@@ -118,24 +118,79 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     // =========================================================
-    // 5. MINING PROFILE FUNCTIONALITY (Claim Button)
+    // 5. MINING PROFILE FUNCTIONALITY (Functional Timer & Claim)
     // =========================================================
     
+    const claimTimeDisplay = document.getElementById('claim-time');
+    const claimAmount = 300; // Define the claim amount
+
+    // Store the next claim time in browser storage (simulates saving across sessions)
+    // Sets the initial next claim time to 24 hours from now if no time is saved.
+    let nextClaimTime = localStorage.getItem('nextClaimTime');
+    if (!nextClaimTime) {
+        nextClaimTime = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
+        localStorage.setItem('nextClaimTime', nextClaimTime);
+    }
+    
+    let timerInterval;
+
+    function formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        
+        // Use padStart to ensure time is always 00:00:00 format
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function updateTimer() {
+        const remainingTime = nextClaimTime - Date.now();
+        
+        if (remainingTime <= 0) {
+            // Timer finished!
+            clearInterval(timerInterval);
+            claimTimeDisplay.textContent = "Ready!";
+            claimButton.textContent = `Claim ${claimAmount} NMP`;
+            claimButton.disabled = false; // Enable the claim button
+            claimButton.classList.remove('secondary');
+            claimButton.classList.add('primary');
+
+        } else {
+            // Timer is still running
+            claimTimeDisplay.textContent = formatTime(remainingTime);
+            claimButton.textContent = "Mining Active";
+            claimButton.disabled = true; // Keep button disabled
+            claimButton.classList.remove('primary');
+            claimButton.classList.add('secondary');
+        }
+    }
+
+    // Claim Button Click Handler
     if (claimButton && balanceDisplay) {
         claimButton.addEventListener('click', function() {
-            // Simulate adding 300 NMP
+            
+            // 1. Update Balance
             let currentBalance = parseInt(balanceDisplay.textContent);
-            let newBalance = currentBalance + 300;
-            
+            let newBalance = currentBalance + claimAmount;
             balanceDisplay.textContent = newBalance.toString().padStart(2, '0');
-            claimButton.textContent = 'Claimed!';
-            claimButton.disabled = true;
             
-            alert('300 NMP successfully claimed! Mining will restart soon.');
+            // 2. Reset Timer
+            nextClaimTime = Date.now() + (24 * 60 * 60 * 1000); // Set new time 24 hours from now
+            localStorage.setItem('nextClaimTime', nextClaimTime);
+            
+            // 3. Restart Timer and update button
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            alert(`${claimAmount} NMP successfully claimed! New mining cycle started.`);
         });
     }
 
-
+    // START THE TIMER when the script loads
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000);
+    
     // =========================================================
     // 6. NAVIGATION: MINING INFO LINK
     // =========================================================
