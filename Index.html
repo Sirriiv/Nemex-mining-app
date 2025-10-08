@@ -2,53 +2,89 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nemex Project Landing Page</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <nav>
-        <a href="#about">About NMX</a> |
-        <a href="#mining">Mining Info</a> |
+        <a href="#about">About NMX</a> / 
+        <a href="#mining">Mining Info</a> / 
         <a href="#contact">Contact</a>
     </nav>
 
-    <main id="main-content">
+    <main class="main-content">
+        
         <section id="about" class="splash-screen">
             <h1>Welcome to NMX</h1>
             <p>Your gateway to earning and managing rewards</p>
-            <button class="main-btn primary">Sign In</button>
-            <button class="main-btn secondary">Login In</button>
+            <div class="main-btn-container">
+                <button id="main-btn" class="main-btn primary">Sign In</button>
+            </div>
+        </section>
+
+        <section id="auth">
+            <h2>Nemex Login</h2>
+            
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="wallet_id">Wallet ID / Username:</label>
+                    <input type="text" id="wallet_id" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" required>
+                </div>
+                <button type="submit" class="submit-btn primary">Login</button>
+                <p class="switch-link">Don't have an account? <a href="#" class="switch-to-signup">Sign Up</a></p>
+            </form>
+
+            <form id="signup-form" style="display: none;">
+                <h2>Nemex Sign Up</h2>
+                <div class="input-group">
+                    <label for="new_username">Choose Username:</label>
+                    <input type="text" id="new_username" required>
+                </div>
+                <div class="input-group">
+                    <label for="new_password">Password:</label>
+                    <input type="password" id="new_password" required>
+                </div>
+                <div class="input-group">
+                    <label for="confirm_password">Confirm Password:</label>
+                    <input type="password" id="confirm_password" required>
+                </div>
+                <button type="submit" class="submit-btn primary">Register</button>
+                <p class="switch-link">Already have an account? <a href="#" class="switch-to-login">Login</a></p>
+            </form>
         </section>
 
         <section id="mining" class="mining-profile">
-            
+            <h2>Mining Dashboard</h2>
             <div class="balance-card">
-                <div class="balance-info">
-                    <span class="label">NMP Balance:</span>
-                    <span id="nmp-balance" class="value">00</span>
-                </div>
+                <p class="label">NMP Balance:</p>
+                <span id="nmp-balance" class="balance-value">00</span>
             </div>
 
             <div class="claim-timer">
-                Next Claim in <span id="claim-time">00:00:00</span>
+                <p class="label">Next Claim in:</p>
+                <span id="claim-time" class="claim-time-value">00:00:00</span>
             </div>
 
             <div class="coin-container">
-                <div id="mining-coin">
-                    <span class="coin-logo">NMX</span>
-                </div>
+                <span class="coin-logo">NMX</span>
             </div>
-
+            
             <button id="claim-btn" class="main-btn primary">Claim 300 NMP</button>
-
             <p id="status-message" style="margin-top: 20px;">Mining Active</p>
-            
         </section>
-        <section id="auth">
-            
-            <form id="login-form">
-                <h2>Nemex Login</h2>
-                <div class="input-group">
-                    <label for="wallet_id">Wallet ID / Username:</label>
-                    <input type="text"
+        
+        <section id="contact">
+            <h2>Contact Us</h2>
+            <p>Support contact information goes here.</p>
+        </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
