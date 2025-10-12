@@ -1,33 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login - Nemex Mining</title>
+    <title>Login</title>
         <style>
-                body { background: #1a1a1a; color: gold; font-family: Arial; margin: 0; padding: 20px; }
-                        .container { max-width: 400px; margin: 50px auto; }
-                                .card { background: #2d2d2d; padding: 30px; border-radius: 10px; border: 1px solid gold; }
-                                        input, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 5px; }
-                                                input { background: #333; color: gold; border: 1px solid gold; }
-                                                        button { background: gold; color: #1a1a1a; border: none; font-weight: bold; }
-                                                                a { color: gold; text-align: center; display: block; margin: 10px 0; }
-                                                                    </style>
-                                                                    </head>
-                                                                    <body>
-                                                                        <div class="container">
-                                                                                <h1 style="text-align: center;">🔐 Login</h1>
-                                                                                        <div class="card">
-                                                                                                    <input type="text" placeholder="Wallet ID" id="walletId">
-                                                                                                                <input type="password" placeholder="Password" id="password">
-                                                                                                                            <button onclick="login()">Login</button>
-                                                                                                                                        <a href="/register">Don't have an account? Sign up</a>
-                                                                                                                                                    <a href="/">← Back to Home</a>
-                                                                                                                                                            </div>
-                                                                                                                                                                </div>
-                                                                                                                                                                    
-                                                                                                                                                                        <script>
-                                                                                                                                                                                function login() {
-                                                                                                                                                                                            alert('Login functionality coming soon!');
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                        </script>
-                                                                                                                                                                                                        </body>
-                                                                                                                                                                                                        </html>
+                body { background: #1a1a1a; color: gold; font-family: Arial; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                        .container { max-width: 400px; width: 100%; text-align: center; }
+                                .title { font-size: 2rem; font-weight: bold; margin-bottom: 10px; }
+                                        .subtitle { color: #ccc; margin-bottom: 30px; }
+                                                input { width: 100%; padding: 15px; margin: 10px 0; background: #2d2d2d; border: 2px solid #444; border-radius: 8px; color: gold; }
+                                                        .btn { background: gold; color: #1a1a1a; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin: 10px 0; }
+                                                                .link { color: gold; margin: 10px 0; display: block; }
+                                                                        .divider { color: #888; margin: 20px 0; }
+                                                                            </style>
+                                                                            </head>
+                                                                            <body>
+                                                                                <div class="container">
+                                                                                        <div class="title">Welcome Back</div>
+                                                                                                <div class="subtitle">Sign in to your account to continue</div>
+                                                                                                        
+                                                                                                                <input type="text" placeholder="Username or Email">
+                                                                                                                        <input type="password" placeholder="Password">
+                                                                                                                                
+                                                                                                                                        <a href="#" class="link">Forgot password?</a>
+                                                                                                                                                
+                                                                                                                                                        <button class="btn" onclick="login()">Sign In</button>
+                                                                                                                                                                
+                                                                                                                                                                        <div class="divider">OR CONTINUE WITH</div>
+                                                                                                                                                                                
+                                                                                                                                                                                        <button class="btn" style="background: #2d2d2d; color: gold; border: 2px solid gold;">Continue with Google</button>
+                                                                                                                                                                                                
+                                                                                                                                                                                                        <a href="/register" class="link">Don't have an account? Sign up</a>
+                                                                                                                                                                                                                <a href="/" class="link">← Back to Home</a>
+                                                                                                                                                                                                                    </div>
+
+                                                                                                                                                                                                                        <script>
+                                                                                                                                                                                                                                function login() {
+                                                                                                                                                                                                                                            alert('Login coming soon!');
+                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                        </script>
+                                                                                                                                                                                                                                                        </body>
+                                                                                                                                                                                                                                                        </html>
