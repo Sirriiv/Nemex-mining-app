@@ -1,33 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sign Up - Nemex Mining</title>
+    <title>Sign Up</title>
         <style>
-                body { background: #1a1a1a; color: gold; font-family: Arial; margin: 0; padding: 20px; }
-                        .container { max-width: 400px; margin: 50px auto; }
-                                .card { background: #2d2d2d; padding: 30px; border-radius: 10px; border: 1px solid gold; }
-                                        input, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 5px; }
-                                                input { background: #333; color: gold; border: 1px solid gold; }
-                                                        button { background: gold; color: #1a1a1a; border: none; font-weight: bold; }
-                                                                a { color: gold; text-align: center; display: block; margin: 10px 0; }
+                body { background: #1a1a1a; color: gold; font-family: Arial; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+                        .container { max-width: 400px; width: 100%; text-align: center; }
+                                .title { font-size: 2rem; font-weight: bold; margin-bottom: 10px; }
+                                        .subtitle { color: #ccc; margin-bottom: 30px; }
+                                                input { width: 100%; padding: 15px; margin: 10px 0; background: #2d2d2d; border: 2px solid #444; border-radius: 8px; color: gold; }
+                                                        .btn { background: gold; color: #1a1a1a; border: none; padding: 15px; width: 100%; border-radius: 8px; font-weight: bold; margin: 10px 0; }
+                                                                .link { color: gold; margin: 10px 0; display: block; }
                                                                     </style>
                                                                     </head>
                                                                     <body>
                                                                         <div class="container">
-                                                                                <h1 style="text-align: center;">🚀 Sign Up</h1>
-                                                                                        <div class="card">
-                                                                                                    <input type="text" placeholder="Wallet ID" id="walletId">
-                                                                                                                <input type="password" placeholder="Password" id="password">
-                                                                                                                            <button onclick="register()">Create Account</button>
-                                                                                                                                        <a href="/login">Already have an account? Login</a>
-                                                                                                                                                    <a href="/">← Back to Home</a>
-                                                                                                                                                            </div>
-                                                                                                                                                                </div>
-                                                                                                                                                                    
-                                                                                                                                                                        <script>
-                                                                                                                                                                                function register() {
-                                                                                                                                                                                            alert('Registration functionality coming soon!');
-                                                                                                                                                                                                    }
-                                                                                                                                                                                                        </script>
-                                                                                                                                                                                                        </body>
-                                                                                                                                                                                                        </html>
+                                                                                <div class="title">Create Account</div>
+                                                                                        <div class="subtitle">Join Nemex Mining today</div>
+                                                                                                
+                                                                                                        <input type="text" placeholder="Username" id="username">
+                                                                                                                <input type="email" placeholder="Email" id="email">
+                                                                                                                        <input type="password" placeholder="Password" id="password">
+                                                                                                                                
+                                                                                                                                        <button class="btn" onclick="register()">Create Account</button>
+                                                                                                                                                
+                                                                                                                                                        <a href="/login" class="link">Already have an account? Sign in</a>
+                                                                                                                                                                <a href="/dashboard" class="link">🚀 Temporary Dashboard Access</a>
+                                                                                                                                                                        <a href="/" class="link">← Back to Home</a>
+                                                                                                                                                                            </div>
+
+                                                                                                                                                                                <script>
+                                                                                                                                                                                        function register() {
+                                                                                                                                                                                                    const username = document.getElementById('username').value;
+                                                                                                                                                                                                                const email = document.getElementById('email').value;
+                                                                                                                                                                                                                            const password = document.getElementById('password').value;
+                                                                                                                                                                                                                                        
+                                                                                                                                                                                                                                                    if (username && email && password) {
+                                                                                                                                                                                                                                                                    // Temporary: Redirect to dashboard
+                                                                                                                                                                                                                                                                                    window.location.href = '/dashboard';
+                                                                                                                                                                                                                                                                                                } else {
+                                                                                                                                                                                                                                                                                                                alert('Please fill all fields');
+                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                                        </script>
+                                                                                                                                                                                                                                                                                                                                        </body>
+                                                                                                                                                                                                                                                                                                                                        </html>
