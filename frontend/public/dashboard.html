@@ -5,74 +5,115 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NEMEXCOIN</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
-body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:80px}
-.loading{position:fixed;top:0;left:0;width:100%;height:100%;background:#0f0f1a;color:#d4af37;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:1000}
-.loading-logo{font-size:80px;margin-bottom:20px}
-.loading-status{font-size:18px}
-.hidden{display:none}
-.header{display:flex;justify-content:space-between;align-items:center;padding:20px 15px;border-bottom:1px solid #1a1a2a}
-.logo{font-weight:bold;color:#d4af37;font-size:18px}
-.dashboard{text-align:center;padding:40px 20px}
-.balance{font-size:48px;font-weight:bold;margin:20px 0;color:#d4af37}
-.timer{font-size:14px;color:#888;margin:10px 0}
-.claim-btn{background:#333;color:#666;border:none;padding:12px 30px;border-radius:25px;font-size:16px;margin:15px 0;cursor:not-allowed}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#1a1a2a;display:flex;justify-content:space-around;padding:10px 0;max-width:400px;margin:0 auto;border-top:1px solid #2a2a3a}
-.nav-item{display:flex;flex-direction:column;align-items:center;padding:5px 10px;color:#666;cursor:pointer}
-.nav-item.active{color:#d4af37}
-.nav-icon{font-size:20px;margin-bottom:4px}
-.section{display:none;padding:20px;text-align:center}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Arial',sans-serif}
+body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:80px;overflow-x:hidden}
+.loading{position:fixed;top:0;left:0;width:100%;height:100%;background:#0f0f1a;color:#d4af37;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:1000;transition:opacity 0.3s}
+.loading-logo{font-size:72px;margin-bottom:20px;font-weight:700;animation:pulse 2s infinite}
+.loading-status{font-size:16px;letter-spacing:0.5px}
+.hidden{opacity:0;pointer-events:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
+.header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #1a1a2a;background:#0f0f1a}
+.logo{font-weight:700;color:#d4af37;font-size:18px;letter-spacing:1px}
+.dashboard{text-align:center;padding:40px 20px;animation:fadeIn 0.5s}
+.balance{font-size:52px;font-weight:700;margin:20px 0;color:#d4af37;text-shadow:0 0 20px rgba(212,175,55,0.3)}
+.chip-icon{font-size:32px;margin:20px 0;opacity:0.8}
+.timer{font-size:14px;color:#aaa;margin:10px 0;letter-spacing:1px}
+.claim-btn{background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f1a;border:none;padding:14px 40px;border-radius:25px;font-size:16px;font-weight:600;margin:20px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(212,175,55,0.3)}
+.claim-btn:active{transform:scale(0.95)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#1a1a2a;display:flex;justify-content:space-around;padding:12px 0;max-width:400px;margin:0 auto;border-top:1px solid #2a2a3a;backdrop-filter:blur(10px)}
+.nav-item{display:flex;flex-direction:column;align-items:center;padding:8px 12px;color:#666;cursor:pointer;transition:all 0.3s;border-radius:12px;min-width:60px}
+.nav-item.active{color:#d4af37;transform:translateY(-2px)}
+.nav-icon{font-size:22px;margin-bottom:4px;transition:all 0.3s}
+.nav-item.active .nav-icon{transform:scale(1.1)}
+.nav-label{font-size:11px;font-weight:500;letter-spacing:0.5px}
+.section{display:none;padding:30px 20px;text-align:center;animation:fadeIn 0.5s}
 .section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.section h2{color:#d4af37;margin-bottom:15px;font-size:24px}
+.section p{color:#aaa;line-height:1.5}
 </style>
 </head>
 <body>
 <div id="loading" class="loading hidden">
     <div class="loading-logo">N</div>
-        <div class="loading-status">Loading...</div>
+        <div class="loading-status">Loading</div>
         </div>
 
         <div class="header">
             <div class="logo">NEMEXCOIN</div>
-                <div>⚙️</div>
+                <div style="font-size:20px">⚙️</div>
                 </div>
 
                 <div id="home" class="section active">
                     <div class="dashboard">
                             <div class="balance">00</div>
-                                    <div>💿</div>
+                                    <div class="chip-icon">💿</div>
                                             <div class="timer">Claim in 24:00:00</div>
                                                     <button class="claim-btn">30 NMX</button>
                                                         </div>
                                                         </div>
 
-                                                        <div id="tasks" class="section"><h2>📋 Tasks</h2><p>Complete tasks to earn NMX</p></div>
-                                                        <div id="buy" class="section"><h2>🛒 Buy NMXp</h2><p>Purchase NMX tokens</p></div>
-                                                        <div id="referrals" class="section"><h2>👥 Referrals</h2><p>Invite friends and earn rewards</p></div>
-                                                        <div id="wallet" class="section"><h2>💰 Wallet</h2><p>Manage your NMX balance</p></div>
+                                                        <div id="tasks" class="section">
+                                                            <h2>📋 Tasks</h2>
+                                                                <p>Complete daily tasks and challenges to earn bonus NMX rewards</p>
+                                                                </div>
 
-                                                        <div class="bottom-nav">
-                                                            <div class="nav-item active" data-section="home"><div class="nav-icon">🏠</div><div>Home</div></div>
-                                                                <div class="nav-item" data-section="tasks"><div class="nav-icon">📋</div><div>Tasks</div></div>
-                                                                    <div class="nav-item" data-section="buy"><div class="nav-icon">🛒</div><div>Buy NMXp</div></div>
-                                                                        <div class="nav-item" data-section="referrals"><div class="nav-icon">👥</div><div>Referrals</div></div>
-                                                                            <div class="nav-item" data-section="wallet"><div class="nav-icon">💰</div><div>Wallet</div></div>
-                                                                            </div>
+                                                                <div id="buy" class="section">
+                                                                    <h2>🛒 Buy NMX</h2>
+                                                                        <p>Purchase NMX tokens securely with multiple payment options</p>
+                                                                        </div>
 
-                                                                            <script>
-                                                                            document.querySelectorAll('.nav-item').forEach(item => {
-                                                                                item.addEventListener('click', function() {
-                                                                                        const target = this.getAttribute('data-section');
-                                                                                                document.getElementById('loading').classList.remove('hidden');
-                                                                                                        
-                                                                                                                setTimeout(() => {
-                                                                                                                            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                                                                                                                                        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                                                                                                                                                    document.getElementById(target).classList.add('active');
-                                                                                                                                                                this.classList.add('active');
-                                                                                                                                                                            document.getElementById('loading').classList.add('hidden');
-                                                                                                                                                                                    }, 1000);
-                                                                                                                                                                                        });
-                                                                                                                                                                                        });
-                                                                                                                                                                                        </script>
-                                                                                                                                                                                        </body>
-                                                                                                                                                                                        </html>
+                                                                        <div id="referrals" class="section">
+                                                                            <h2>👥 Referrals</h2>
+                                                                                <p>Invite friends and earn 20% of their mining rewards</p>
+                                                                                </div>
+
+                                                                                <div id="wallet" class="section">
+                                                                                    <h2>💰 Wallet</h2>
+                                                                                        <p>Manage your NMX balance and transaction history</p>
+                                                                                        </div>
+
+                                                                                        <div class="bottom-nav">
+                                                                                            <div class="nav-item active" data-section="home">
+                                                                                                    <div class="nav-icon">🏠</div>
+                                                                                                            <div class="nav-label">Home</div>
+                                                                                                                </div>
+                                                                                                                    <div class="nav-item" data-section="tasks">
+                                                                                                                            <div class="nav-icon">📋</div>
+                                                                                                                                    <div class="nav-label">Tasks</div>
+                                                                                                                                        </div>
+                                                                                                                                            <div class="nav-item" data-section="buy">
+                                                                                                                                                    <div class="nav-icon">🛒</div>
+                                                                                                                                                            <div class="nav-label">Buy</div>
+                                                                                                                                                                </div>
+                                                                                                                                                                    <div class="nav-item" data-section="referrals">
+                                                                                                                                                                            <div class="nav-icon">👥</div>
+                                                                                                                                                                                    <div class="nav-label">Referrals</div>
+                                                                                                                                                                                        </div>
+                                                                                                                                                                                            <div class="nav-item" data-section="wallet">
+                                                                                                                                                                                                    <div class="nav-icon">💰</div>
+                                                                                                                                                                                                            <div class="nav-label">Wallet</div>
+                                                                                                                                                                                                                </div>
+                                                                                                                                                                                                                </div>
+
+                                                                                                                                                                                                                <script>
+                                                                                                                                                                                                                document.querySelectorAll('.nav-item').forEach(item => {
+                                                                                                                                                                                                                    item.addEventListener('click', function() {
+                                                                                                                                                                                                                            const target = this.getAttribute('data-section');
+                                                                                                                                                                                                                                    const loading = document.getElementById('loading');
+                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                    loading.classList.remove('hidden');
+                                                                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                    setTimeout(() => {
+                                                                                                                                                                                                                                                                                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                                                                                                                                                                                                                                                                                            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                                                                                                                                                                                                                                                                                                        document.getElementById(target).classList.add('active');
+                                                                                                                                                                                                                                                                                                                    this.classList.add('active');
+                                                                                                                                                                                                                                                                                                                                
+                                                                                                                                                                                                                                                                                                                                            setTimeout(() => loading.classList.add('hidden'), 300);
+                                                                                                                                                                                                                                                                                                                                                    }, 800);
+                                                                                                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                                                                                                        });
+                                                                                                                                                                                                                                                                                                                                                        </script>
+                                                                                                                                                                                                                                                                                                                                                        </body>
+                                                                                                                                                                                                                                                                                                                                                        </html>
