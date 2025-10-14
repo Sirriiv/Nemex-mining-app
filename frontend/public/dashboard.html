@@ -286,7 +286,22 @@ async function loadProfileData() {
         document.getElementById('profileUserId').textContent = data.userId;
         document.getElementById('profileMiningDays').textContent = `${data.miningDays} day${data.miningDays > 1 ? 's' : ''}`;
         document.getElementById('profileTotalEarned').textContent = `${data.totalEarned} NMXp`;
-        document.getElementById('profileMemberSince').textContent = new Date(data.memberSince).toLocaleDateString();
+        
+        // FIXED: Better date formatting for Member Since
+        const memberSinceDate = new Date(data.memberSince);
+        const formattedDate = memberSinceDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        document.getElementById('profileMemberSince').textContent = formattedDate;
+        
+        // Debug logging
+        console.log('Profile data loaded:', {
+            memberSince: data.memberSince,
+            formattedDate: formattedDate,
+            rawDate: memberSinceDate.toString()
+        });
         
         hideLoading();
     } catch (error) {
@@ -315,7 +330,14 @@ function fallbackToLocalProfile() {
     document.getElementById('profileUserId').textContent = userId;
     document.getElementById('profileMiningDays').textContent = `${miningDays} day${miningDays > 1 ? 's' : ''}`;
     document.getElementById('profileTotalEarned').textContent = `${totalEarned} NMXp`;
-    document.getElementById('profileMemberSince').textContent = joinDateObj.toLocaleDateString();
+    
+    // FIXED: Better date formatting for fallback
+    const formattedDate = joinDateObj.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    document.getElementById('profileMemberSince').textContent = formattedDate;
     
     alert('⚠️ Using offline profile data.');
 }
