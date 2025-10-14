@@ -51,6 +51,21 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
 /* Overlay for when settings is open */
 .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:none}
 .overlay.active{display:block}
+
+/* PROFILE MODAL STYLES */
+.profile-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2a;border:1px solid #2a2a3a;border-radius:15px;padding:25px;width:90%;max-width:350px;z-index:1002;display:none;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+.profile-modal.active{display:block;animation:fadeIn 0.3s}
+.profile-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #2a2a3a}
+.profile-title{font-size:20px;font-weight:700;color:#d4af37}
+.close-btn{background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;padding:5px;border-radius:5px}
+.close-btn:hover{color:#fff;background:#2a2a3a}
+.profile-info{text-align:left}
+.profile-item{margin-bottom:20px;padding:15px;background:#0f0f1a;border-radius:10px;border:1px solid #2a2a3a}
+.profile-label{font-size:12px;color:#d4af37;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.profile-value{font-size:16px;color:#fff;word-break:break-all}
+.copy-btn{background:#2a2a3a;color:#d4af37;border:1px solid #d4af37;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:10px;transition:all 0.3s}
+.copy-btn:hover{background:#d4af37;color:#0f0f1a}
+.value-row{display:flex;justify-content:space-between;align-items:center}
 </style>
 </head>
 <body>
@@ -64,7 +79,7 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
 
 <!-- Settings Menu -->
 <div id="settingsMenu" class="settings-menu">
-    <div class="settings-item">
+    <div class="settings-item" id="profileBtn">
         <div class="settings-icon-small">👤</div>
         <div class="settings-label">Profile</div>
     </div>
@@ -93,6 +108,43 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
     <div class="settings-item logout-btn">
         <div class="settings-icon-small">🚪</div>
         <div class="settings-label">Logout</div>
+    </div>
+</div>
+
+<!-- Profile Modal -->
+<div id="profileModal" class="profile-modal">
+    <div class="profile-header">
+        <div class="profile-title">👤 User Profile</div>
+        <button class="close-btn" id="closeProfile">✕</button>
+    </div>
+    <div class="profile-info">
+        <div class="profile-item">
+            <div class="profile-label">Name</div>
+            <div class="profile-value" id="profileName">Mining Enthusiast</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Email</div>
+            <div class="profile-value" id="profileEmail">user@nemexcoin.com</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">User ID</div>
+            <div class="value-row">
+                <div class="profile-value" id="profileUserId">Loading...</div>
+                <button class="copy-btn" onclick="copyToClipboard('profileUserId')">Copy</button>
+            </div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Days on Mining</div>
+            <div class="profile-value" id="profileMiningDays">1 day</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Total NMXp Earned</div>
+            <div class="profile-value" id="profileTotalEarned">0 NMXp</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Member Since</div>
+            <div class="profile-value" id="profileMemberSince">Today</div>
+        </div>
     </div>
 </div>
 
@@ -177,6 +229,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
 const settingsButton = document.getElementById('settingsButton');
 const settingsMenu = document.getElementById('settingsMenu');
 const overlay = document.getElementById('overlay');
+const profileModal = document.getElementById('profileModal');
+const closeProfile = document.getElementById('closeProfile');
+const profileBtn = document.getElementById('profileBtn');
 
 // Toggle settings menu
 settingsButton.addEventListener('click', function(e) {
@@ -189,6 +244,7 @@ settingsButton.addEventListener('click', function(e) {
 overlay.addEventListener('click', function() {
     settingsMenu.classList.remove('active');
     overlay.classList.remove('active');
+    profileModal.classList.remove('active');
 });
 
 // Close settings when clicking on overlay
@@ -199,48 +255,102 @@ document.addEventListener('click', function(e) {
     }
 });
 
+// PROFILE MODAL FUNCTIONALITY
+profileBtn.addEventListener('click', function() {
+    settingsMenu.classList.remove('active');
+    loadProfileData();
+    profileModal.classList.add('active');
+    overlay.classList.add('active');
+});
+
+closeProfile.addEventListener('click', function() {
+    profileModal.classList.remove('active');
+    overlay.classList.remove('active');
+});
+
+// Load profile data
+function loadProfileData() {
+    const userId = localStorage.getItem('userId') || currentUserId;
+    const joinDate = localStorage.getItem('joinDate') || new Date().toISOString();
+    const totalEarned = localStorage.getItem('totalEarned') || 0;
+    
+    // Calculate days since joining
+    const joinDateObj = new Date(joinDate);
+    const today = new Date();
+    const daysSinceJoin = Math.floor((today - joinDateObj) / (1000 * 60 * 60 * 24));
+    const miningDays = daysSinceJoin + 1; // At least 1 day
+    
+    // Update profile fields
+    document.getElementById('profileUserId').textContent = userId;
+    document.getElementById('profileMiningDays').textContent = `${miningDays} day${miningDays > 1 ? 's' : ''}`;
+    document.getElementById('profileTotalEarned').textContent = `${totalEarned} NMXp`;
+    document.getElementById('profileMemberSince').textContent = joinDateObj.toLocaleDateString();
+}
+
+// Copy to clipboard function
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        alert('Copied to clipboard!');
+    }).catch(function() {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Copied to clipboard!');
+    });
+}
+
 // Settings menu items functionality
 document.querySelectorAll('.settings-item').forEach(item => {
-    item.addEventListener('click', function() {
-        const label = this.querySelector('.settings-label').textContent;
-        
-        switch(label) {
-            case 'Profile':
-                alert('📊 Profile section coming soon!');
-                break;
-            case 'Notifications':
-                alert('🔔 Notification settings coming soon!');
-                break;
-            case 'Dark Mode':
-                alert('🌙 Dark mode is already enabled!');
-                break;
-            case 'Security':
-                alert('🔒 Security settings coming soon!');
-                break;
-            case 'Help & Support':
-                alert('❓ Help & support coming soon!');
-                break;
-            case 'About':
-                alert('ℹ️ NEMEXCOIN v1.0 - Crypto Rewards Platform');
-                break;
-            case 'Logout':
-                if(confirm('Are you sure you want to logout?')) {
-                    localStorage.clear();
-                    window.location.href = 'index.html';
-                }
-                break;
-        }
-        
-        // Close menu after selection
-        settingsMenu.classList.remove('active');
-        overlay.classList.remove('active');
-    });
+    if (item.id !== 'profileBtn') {
+        item.addEventListener('click', function() {
+            const label = this.querySelector('.settings-label').textContent;
+            
+            switch(label) {
+                case 'Notifications':
+                    alert('🔔 Notification settings coming soon!');
+                    break;
+                case 'Dark Mode':
+                    alert('🌙 Dark mode is already enabled!');
+                    break;
+                case 'Security':
+                    alert('🔒 Security settings coming soon!');
+                    break;
+                case 'Help & Support':
+                    alert('❓ Help & support coming soon!');
+                    break;
+                case 'About':
+                    alert('ℹ️ NEMEXCOIN v1.0 - Crypto Rewards Platform');
+                    break;
+                case 'Logout':
+                    if(confirm('Are you sure you want to logout?')) {
+                        localStorage.clear();
+                        window.location.href = 'index.html';
+                    }
+                    break;
+            }
+            
+            // Close menu after selection
+            settingsMenu.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    }
 });
 
 // SUPABASE-BACKED COUNTDOWN TIMER
 const API_BASE = 'https://nemex-backend.onrender.com';
 let countdownInterval;
 let currentUserId = localStorage.getItem('userId') || generateUserId();
+
+// Initialize join date for new users
+if (!localStorage.getItem('joinDate')) {
+    localStorage.setItem('joinDate', new Date().toISOString());
+    localStorage.setItem('totalEarned', '0');
+}
 
 // Get elements
 const timerDisplay = document.getElementById('timerDisplay');
@@ -251,6 +361,8 @@ const claimButton = document.getElementById('claimButton');
 function generateUserId() {
     const userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
     localStorage.setItem('userId', userId);
+    localStorage.setItem('joinDate', new Date().toISOString());
+    localStorage.setItem('totalEarned', '0');
     return userId;
 }
 
@@ -338,7 +450,7 @@ function startCountdown(initialTime) {
     countdownInterval = setInterval(update, 1000);
 }
 
-// Claim reward
+// Claim reward function - UPDATED TO TRACK TOTAL EARNED
 async function claimReward() {
     try {
         claimButton.disabled = true;
@@ -355,6 +467,12 @@ async function claimReward() {
         
         if (response.ok) {
             balanceDisplay.textContent = data.balance;
+            
+            // Update total earned
+            const currentTotal = parseInt(localStorage.getItem('totalEarned') || '0');
+            const newTotal = currentTotal + 30;
+            localStorage.setItem('totalEarned', newTotal.toString());
+            
             startCountdown(24 * 60 * 60); // Reset to 24 hours
             claimButton.textContent = '30 NMXp';
             
