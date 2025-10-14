@@ -22,12 +22,265 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
 .claim-btn{background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f1a;border:none;padding:14px 40px;border-radius:25px;font-size:16px;font-weight:600;margin:20px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(212,175,55,0.3)}
 .claim-btn:active{transform:scale(0.95)}
 .claim-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#1a1a2a;display:flex;justify-content:space-around;padding:12px 0;max-width:400px;margin:0 auto;border-top:1px solid #2a2a3a;backdrop-filter:blur(10px)}
-.nav-item{display:flex;flex-direction:column;align-items:center;padding:8px 12px;color:#666;cursor:pointer;transition:all 0.3s;border-radius:12px;min-width:60px}
-.nav-item.active{color:#d4af37;transform:translateY(-2px)}
-.nav-icon{font-size:22px;margin-bottom:4px;transition:all 0.3s}
-.nav-item.active .nav-icon{transform:scale(1.1)}
-.nav-label{font-size:11px;font-weight:500;letter-spacing:0.5px}
+
+/* UPDATED NAVIGATION STYLES */
+.bottom-navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 72px;
+  background: linear-gradient(180deg, #0f0f1a 0%, #1a1a2a 100%);
+  border-top: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6), 0 -2px 8px rgba(212, 175, 55, 0.1), inset 0 1px 0 rgba(212, 175, 55, 0.1);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 0 8px;
+  z-index: 1000;
+  backdrop-filter: blur(20px) saturate(180%);
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Navigation Items */
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  padding: 10px 8px;
+  text-decoration: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 16px;
+  margin: 0 4px;
+  position: relative;
+  cursor: pointer;
+  max-width: 80px;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+
+/* Hover Effect */
+.nav-item:hover {
+  background: rgba(212, 175, 55, 0.08);
+  transform: translateY(-3px);
+}
+
+.nav-item:hover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.1));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Active State */
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.08));
+  position: relative;
+}
+
+.nav-item.active::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  padding: 1.5px;
+  background: linear-gradient(135deg, #d4af37, rgba(212, 175, 55, 0.4));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.nav-item.active::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #d4af37, transparent);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.6);
+}
+
+/* Navigation Icons */
+.nav-icon {
+  width: 24px;
+  height: 24px;
+  color: #6b7280;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 0 transparent);
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.nav-item:hover .nav-icon {
+  color: #d4af37;
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.4));
+}
+
+.nav-item.active .nav-icon {
+  color: #d4af37;
+  filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.6));
+  animation: iconPulse 2s ease-in-out infinite;
+}
+
+/* Navigation Labels */
+.nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  line-height: 1.2;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.nav-item:hover .nav-label {
+  color: #d4af37;
+  font-weight: 700;
+  text-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.nav-item.active .nav-label {
+  color: #d4af37;
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+}
+
+/* Active State Animation */
+@keyframes iconPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.6));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.8));
+  }
+}
+
+/* Safe area for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bottom-navbar {
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    height: calc(72px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 380px) {
+  .nav-label {
+    font-size: 10px;
+  }
+
+  .nav-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 20px;
+  }
+
+  .nav-item {
+    padding: 8px 6px;
+    margin: 0 2px;
+  }
+
+  .bottom-navbar {
+    height: 68px;
+  }
+}
+
+@media (max-width: 320px) {
+  .nav-label {
+    font-size: 9px;
+  }
+
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    font-size: 18px;
+  }
+
+  .nav-item {
+    padding: 6px 4px;
+    margin: 0 1px;
+  }
+
+  .bottom-navbar {
+    height: 64px;
+    padding: 0 4px;
+  }
+}
+
+/* Focus states for accessibility */
+.nav-item:focus-visible {
+  outline: 2px solid #d4af37;
+  outline-offset: 2px;
+  background: rgba(212, 175, 55, 0.1);
+}
+
+/* Reduced motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .nav-item,
+  .nav-icon,
+  .nav-label {
+    transition: none;
+  }
+
+  .nav-item.active .nav-icon {
+    animation: none;
+  }
+
+  .nav-item:hover {
+    transform: none;
+  }
+
+  .nav-item:hover .nav-icon {
+    transform: none;
+  }
+}
+
+/* Loading animation */
+@keyframes navSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.bottom-navbar {
+  animation: navSlideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Prevent content from being hidden behind navbar */
+body {
+  padding-bottom: 72px;
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+}
+
 .section{display:none;padding:30px 20px;text-align:center;animation:fadeIn 0.5s}
 .section.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
@@ -182,28 +435,29 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
     <p>Manage your assets and NMXp balance and transaction history</p>
 </div>
 
-<div class="bottom-nav">
-    <div class="nav-item active" data-section="home">
-        <div class="nav-icon">🏠</div>
-        <div class="nav-label">Home</div>
-    </div>
-    <div class="nav-item" data-section="tasks">
-        <div class="nav-icon">📋</div>
-        <div class="nav-label">Tasks</div>
-    </div>
-    <div class="nav-item" data-section="buy">
-        <div class="nav-icon">🛒</div>
-        <div class="nav-label">Buy</div>
-    </div>
-    <div class="nav-item" data-section="referrals">
-        <div class="nav-icon">👥</div>
-        <div class="nav-label">Referrals</div>
-    </div>
-    <div class="nav-item" data-section="wallet">
-        <div class="nav-icon">💰</div>
-        <div class="nav-label">Wallet</div>
-    </div>
-</div>
+<!-- UPDATED NAVIGATION -->
+<nav class="bottom-navbar">
+  <button class="nav-item active" data-section="home">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">Home</div>
+  </button>
+  <button class="nav-item" data-section="tasks">
+    <div class="nav-icon">📋</div>
+    <div class="nav-label">Tasks</div>
+  </button>
+  <button class="nav-item" data-section="buy">
+    <div class="nav-icon">🛒</div>
+    <div class="nav-label">Buy</div>
+  </button>
+  <button class="nav-item" data-section="referrals">
+    <div class="nav-icon">👥</div>
+    <div class="nav-label">Referrals</div>
+  </button>
+  <button class="nav-item" data-section="wallet">
+    <div class="nav-icon">💰</div>
+    <div class="nav-label">Wallet</div>
+  </button>
+</nav>
 
 <script>
 // Tab Switching Code
