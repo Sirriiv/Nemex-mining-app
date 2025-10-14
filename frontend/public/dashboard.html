@@ -117,15 +117,46 @@ document.querySelectorAll('.nav-item').forEach(item => {
     });
 });
 
-// REAL COUNTDOWN TIMER FUNCTIONALITY
-let countdownTime = 24 * 60 * 60; // 24 hours in seconds
+// PERSISTENT COUNTDOWN TIMER FUNCTIONALITY
+let countdownTime = 24 * 60 * 60; // 24 hours in seconds (default)
 let userBalance = 0;
 let countdownInterval;
+let lastUpdateTime = Date.now();
 
 // Get elements
 const timerDisplay = document.getElementById('timerDisplay');
 const balanceDisplay = document.getElementById('balanceDisplay');
 const claimButton = document.getElementById('claimButton');
+
+// Load saved data from localStorage
+function loadSavedData() {
+    const savedBalance = localStorage.getItem('nmxBalance');
+    const savedCountdown = localStorage.getItem('countdownTime');
+    const savedLastUpdate = localStorage.getItem('lastUpdateTime');
+    
+    if (savedBalance) {
+        userBalance = parseInt(savedBalance);
+        balanceDisplay.textContent = userBalance;
+    }
+    
+    if (savedCountdown && savedLastUpdate) {
+        const elapsedSeconds = Math.floor((Date.now() - parseInt(savedLastUpdate)) / 1000);
+        countdownTime = Math.max(0, parseInt(savedCountdown) - elapsedSeconds);
+        
+        if (countdownTime <= 0) {
+            timerDisplay.textContent = 'Ready to Claim!';
+            claimButton.disabled = false;
+            claimButton.textContent = 'CLAIM 30 NMXp';
+        }
+    }
+}
+
+// Save data to localStorage
+function saveData() {
+    localStorage.setItem('nmxBalance', userBalance);
+    localStorage.setItem('countdownTime', countdownTime);
+    localStorage.setItem('lastUpdateTime', Date.now());
+}
 
 // Format time as HH:MM:SS
 function formatTime(seconds) {
@@ -137,15 +168,21 @@ function formatTime(seconds) {
 
 // Update timer display
 function updateTimer() {
-    timerDisplay.textContent = `Claim in ${formatTime(countdownTime)}`;
-    
-    if (countdownTime <= 0) {
+    if (countdownTime > 0) {
+        timerDisplay.textContent = `Claim in ${formatTime(countdownTime)}`;
+        countdownTime--;
+        lastUpdateTime = Date.now();
+        
+        // Save every 30 seconds to avoid too many writes
+        if (countdownTime % 30 === 0) {
+            saveData();
+        }
+    } else {
         timerDisplay.textContent = 'Ready to Claim!';
         claimButton.disabled = false;
         claimButton.textContent = 'CLAIM 30 NMXp';
         clearInterval(countdownInterval);
-    } else {
-        countdownTime--;
+        saveData();
     }
 }
 
@@ -160,7 +197,8 @@ function claimReward() {
         claimButton.disabled = true;
         claimButton.textContent = '30 NMXp';
         
-        // Restart timer
+        // Save and restart timer
+        saveData();
         startTimer();
     }
 }
@@ -171,9 +209,13 @@ function startTimer() {
     countdownInterval = setInterval(updateTimer, 1000);
 }
 
-// Initialize
+// Initialize - Load saved data and start timer
+loadSavedData();
 startTimer();
 claimButton.addEventListener('click', claimReward);
+
+// Save data when page is about to close
+window.addEventListener('beforeunload', saveData);
 </script>
 </body>
 </html>
