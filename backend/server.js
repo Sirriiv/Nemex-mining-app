@@ -36,8 +36,13 @@ app.get('/api/user/:userId', async (req, res) => {
             const newUser = {
                 user_id: userId,
                 balance: 0,
+                total_earned: 0,
+                name: 'Mining Enthusiast',
+                email: `user_${userId.substring(0, 8)}@nemexcoin.com`,
                 countdown_end: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-                last_claim: new Date().toISOString()
+                last_claim: new Date().toISOString(),
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             };
 
             const { data: createdUser, error: createError } = await supabase
@@ -51,7 +56,7 @@ app.get('/api/user/:userId', async (req, res) => {
                 throw createError;
             }
             user = createdUser;
-            console.log('New user created:', user);
+            console.log('New user created:', user.user_id);
         } else if (error) {
             console.error('Error fetching user:', error);
             throw error;
@@ -61,13 +66,6 @@ app.get('/api/user/:userId', async (req, res) => {
         const now = new Date();
         const countdownEnd = new Date(user.countdown_end);
         const remainingTime = Math.max(0, Math.floor((countdownEnd - now) / 1000));
-
-        console.log('User data:', { 
-            userId, 
-            balance: user.balance, 
-            remainingTime,
-            countdownEnd: user.countdown_end 
-        });
 
         res.json({
             balance: user.balance,
@@ -111,10 +109,15 @@ app.post('/api/claim/:userId', async (req, res) => {
         }
 
         // Update user data - CLAIM REWARD
+        const newBalance = user.balance + 30;
+        const newTotalEarned = (user.total_earned || 0) + 30;
+        
         const updates = {
-            balance: user.balance + 30,
+            balance: newBalance,
+            total_earned: newTotalEarned,
             countdown_end: new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString(),
-            last_claim: now.toISOString()
+            last_claim: now.toISOString(),
+            updated_at: now.toISOString()
         };
 
         const { data: updatedUser, error: updateError } = await supabase
@@ -129,14 +132,99 @@ app.post('/api/claim/:userId', async (req, res) => {
             throw updateError;
         }
 
-        console.log('Claim successful for user:', userId, 'New balance:', updatedUser.balance);
+        console.log('Claim successful for user:', userId, 'New balance:', newBalance, 'Total earned:', newTotalEarned);
         
         res.json({
-            balance: updatedUser.balance,
+            balance: newBalance,
+            totalEarned: newTotalEarned,
             message: 'Claim successful! +30 NMXp'
         });
     } catch (error) {
         console.error('Claim Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get user profile
+app.get('/api/profile/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        console.log('Fetching profile for user:', userId);
+
+        // Get user data from Supabase
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) {
+            console.error('Error fetching profile:', error);
+            throw error;
+        }
+
+        // Calculate days since joining
+        const joinDate = new Date(user.created_at);
+        const today = new Date();
+        const miningDays = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24)) + 1;
+
+        console.log('Profile data loaded:', {
+            userId: user.user_id,
+            miningDays: miningDays,
+            totalEarned: user.total_earned,
+            joinDate: user.created_at
+        });
+
+        res.json({
+            name: user.name || 'Mining Enthusiast',
+            email: user.email || `user_${userId.substring(0, 8)}@nemexcoin.com`,
+            userId: user.user_id,
+            miningDays: miningDays,
+            totalEarned: user.total_earned || user.balance,
+            memberSince: user.created_at,
+            balance: user.balance,
+            lastClaim: user.last_claim
+        });
+    } catch (error) {
+        console.error('Profile Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update user profile
+app.post('/api/profile/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { name, email } = req.body;
+
+        console.log('Updating profile for user:', userId, { name, email });
+
+        const updates = {
+            name: name,
+            email: email,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data: updatedUser, error } = await supabase
+            .from('users')
+            .update(updates)
+            .eq('user_id', userId)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating profile:', error);
+            throw error;
+        }
+
+        console.log('Profile updated successfully:', userId);
+
+        res.json({
+            message: 'Profile updated successfully',
+            profile: updatedUser
+        });
+    } catch (error) {
+        console.error('Update Profile Error:', error);
         res.status(500).json({ error: error.message });
     }
 });
