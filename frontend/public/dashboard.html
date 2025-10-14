@@ -20,6 +20,7 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
 .timer{font-size:14px;color:#aaa;margin:10px 0;letter-spacing:1px}
 .claim-btn{background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f1a;border:none;padding:14px 40px;border-radius:25px;font-size:16px;font-weight:600;margin:20px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(212,175,55,0.3)}
 .claim-btn:active{transform:scale(0.95)}
+.claim-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#1a1a2a;display:flex;justify-content:space-around;padding:12px 0;max-width:400px;margin:0 auto;border-top:1px solid #2a2a3a;backdrop-filter:blur(10px)}
 .nav-item{display:flex;flex-direction:column;align-items:center;padding:8px 12px;color:#666;cursor:pointer;transition:all 0.3s;border-radius:12px;min-width:60px}
 .nav-item.active{color:#d4af37;transform:translateY(-2px)}
@@ -36,84 +37,143 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
 <body>
 <div id="loading" class="loading hidden">
     <div class="loading-logo">NMX</div>
-        <div class="loading-status">initializing...</div>
-        </div>
+    <div class="loading-status">Initializing…</div>
+</div>
 
-        <div class="header">
-            <div class="logo">NEMEXCOIN</div>
-                <div style="font-size:20px">⚙️</div>
-                </div>
+<div class="header">
+    <div class="logo">NEMEXCOIN</div>
+    <div style="font-size:20px">⚙️</div>
+</div>
 
-                <div id="home" class="section active">
-                    <div class="dashboard">
-                            <div class="balance">00</div>
-                                    <div class="chip-icon">💿</div>
-                                            <div class="timer">Claim in 24:00:00</div>
-                                                    <button class="claim-btn">30 NMX</button>
-                                                        </div>
-                                                        </div>
+<div id="home" class="section active">
+    <div class="dashboard">
+        <div class="balance" id="balanceDisplay">00</div>
+        <div class="chip-icon">💿</div>
+        <div class="timer" id="timerDisplay">Claim in 24:00:00</div>
+        <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
+    </div>
+</div>
 
-                                                        <div id="tasks" class="section">
-                                                            <h2>📋 Tasks</h2>
-                                                                <p>Complete daily tasks and challenges to earn bonus NMX rewards</p>
-                                                                </div>
+<div id="tasks" class="section">
+    <h2>📋 Tasks</h2>
+    <p>Complete daily tasks and challenges to earn bonus NMX rewards</p>
+</div>
 
-                                                                <div id="buy" class="section">
-                                                                    <h2>🛒 Buy NMX</h2>
-                                                                        <p>Purchase NMX tokens securely with multiple payment options</p>
-                                                                        </div>
+<div id="buy" class="section">
+    <h2>🛒 Buy NMXp</h2>
+    <p>Purchase NMX(points) tokens securely with multiple payment options</p>
+</div>
 
-                                                                        <div id="referrals" class="section">
-                                                                            <h2>👥 Referrals</h2>
-                                                                                <p>Invite friends and earn 20% of their mining rewards</p>
-                                                                                </div>
+<div id="referrals" class="section">
+    <h2>👥 Referrals</h2>
+    <p>Invite friends and earn mining rewards</p>
+</div>
 
-                                                                                <div id="wallet" class="section">
-                                                                                    <h2>💰 Wallet</h2>
-                                                                                        <p>Manage your NMX balance and transaction history</p>
-                                                                                        </div>
+<div id="wallet" class="section">
+    <h2>💰 Wallet</h2>
+    <p>Manage your assets and NMXp balance and transaction history</p>
+</div>
 
-                                                                                        <div class="bottom-nav">
-                                                                                            <div class="nav-item active" data-section="home">
-                                                                                                    <div class="nav-icon">🏠</div>
-                                                                                                            <div class="nav-label">Home</div>
-                                                                                                                </div>
-                                                                                                                    <div class="nav-item" data-section="tasks">
-                                                                                                                            <div class="nav-icon">📋</div>
-                                                                                                                                    <div class="nav-label">Tasks</div>
-                                                                                                                                        </div>
-                                                                                                                                            <div class="nav-item" data-section="buy">
-                                                                                                                                                    <div class="nav-icon">🛒</div>
-                                                                                                                                                            <div class="nav-label">Buy</div>
-                                                                                                                                                                </div>
-                                                                                                                                                                    <div class="nav-item" data-section="referrals">
-                                                                                                                                                                            <div class="nav-icon">👥</div>
-                                                                                                                                                                                    <div class="nav-label">Referrals</div>
-                                                                                                                                                                                        </div>
-                                                                                                                                                                                            <div class="nav-item" data-section="wallet">
-                                                                                                                                                                                                    <div class="nav-icon">💰</div>
-                                                                                                                                                                                                            <div class="nav-label">Wallet</div>
-                                                                                                                                                                                                                </div>
-                                                                                                                                                                                                                </div>
+<div class="bottom-nav">
+    <div class="nav-item active" data-section="home">
+        <div class="nav-icon">🏠</div>
+        <div class="nav-label">Home</div>
+    </div>
+    <div class="nav-item" data-section="tasks">
+        <div class="nav-icon">📋</div>
+        <div class="nav-label">Tasks</div>
+    </div>
+    <div class="nav-item" data-section="buy">
+        <div class="nav-icon">🛒</div>
+        <div class="nav-label">Buy</div>
+    </div>
+    <div class="nav-item" data-section="referrals">
+        <div class="nav-icon">👥</div>
+        <div class="nav-label">Referrals</div>
+    </div>
+    <div class="nav-item" data-section="wallet">
+        <div class="nav-icon">💰</div>
+        <div class="nav-label">Wallet</div>
+    </div>
+</div>
 
-                                                                                                                                                                                                                <script>
-                                                                                                                                                                                                                document.querySelectorAll('.nav-item').forEach(item => {
-                                                                                                                                                                                                                    item.addEventListener('click', function() {
-                                                                                                                                                                                                                            const target = this.getAttribute('data-section');
-                                                                                                                                                                                                                                    const loading = document.getElementById('loading');
-                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                    loading.classList.remove('hidden');
-                                                                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                    setTimeout(() => {
-                                                                                                                                                                                                                                                                                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                                                                                                                                                                                                                                                                                            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                                                                                                                                                                                                                                                                                                        document.getElementById(target).classList.add('active');
-                                                                                                                                                                                                                                                                                                                    this.classList.add('active');
-                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                            setTimeout(() => loading.classList.add('hidden'), 300);
-                                                                                                                                                                                                                                                                                                                                                    }, 2500);
-                                                                                                                                                                                                                                                                                                                                                        });
-                                                                                                                                                                                                                                                                                                                                                        });
-                                                                                                                                                                                                                                                                                                                                                        </script>
-                                                                                                                                                                                                                                                                                                                                                        </body>
-                                                                                                                                                                                                                                                                                                                                                        </html>
+<script>
+// Tab Switching Code
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const target = this.getAttribute('data-section');
+        const loading = document.getElementById('loading');
+        
+        loading.classList.remove('hidden');
+        
+        setTimeout(() => {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(target).classList.add('active');
+            this.classList.add('active');
+            
+            setTimeout(() => loading.classList.add('hidden'), 300);
+        }, 1500);
+    });
+});
+
+// REAL COUNTDOWN TIMER FUNCTIONALITY
+let countdownTime = 24 * 60 * 60; // 24 hours in seconds
+let userBalance = 0;
+let countdownInterval;
+
+// Get elements
+const timerDisplay = document.getElementById('timerDisplay');
+const balanceDisplay = document.getElementById('balanceDisplay');
+const claimButton = document.getElementById('claimButton');
+
+// Format time as HH:MM:SS
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Update timer display
+function updateTimer() {
+    timerDisplay.textContent = `Claim in ${formatTime(countdownTime)}`;
+    
+    if (countdownTime <= 0) {
+        timerDisplay.textContent = 'Ready to Claim!';
+        claimButton.disabled = false;
+        claimButton.textContent = 'CLAIM 30 NMXp';
+        clearInterval(countdownInterval);
+    } else {
+        countdownTime--;
+    }
+}
+
+// Claim reward function
+function claimReward() {
+    if (countdownTime <= 0) {
+        userBalance += 30;
+        balanceDisplay.textContent = userBalance;
+        
+        // Reset timer
+        countdownTime = 24 * 60 * 60;
+        claimButton.disabled = true;
+        claimButton.textContent = '30 NMXp';
+        
+        // Restart timer
+        startTimer();
+    }
+}
+
+// Start the countdown timer
+function startTimer() {
+    clearInterval(countdownInterval);
+    countdownInterval = setInterval(updateTimer, 1000);
+}
+
+// Initialize
+startTimer();
+claimButton.addEventListener('click', claimReward);
+</script>
+</body>
+</html>
