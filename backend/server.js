@@ -18,6 +18,12 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Helper function to get UTC date without timezone issues
+function getUTCDate() {
+    const now = new Date();
+    return new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+}
+
 // User Registration
 app.post('/api/register', async (req, res) => {
     try {
@@ -51,6 +57,10 @@ app.post('/api/register', async (req, res) => {
         // Generate unique user ID for Sybil detection
         const userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
         
+        // FIXED: Use consistent UTC date handling
+        const currentUTCDate = getUTCDate();
+        const countdownEnd = new Date(currentUTCDate.getTime() + 24 * 60 * 60 * 1000);
+        
         // Create new user with REAL data
         const newUser = {
             user_id: userId,
@@ -59,11 +69,11 @@ app.post('/api/register', async (req, res) => {
             password_hash: hashedPassword,
             balance: 0,
             total_earned: 0,
-            countdown_end: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            last_claim: new Date().toISOString(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            last_login: new Date().toISOString()
+            countdown_end: countdownEnd.toISOString(),
+            last_claim: currentUTCDate.toISOString(),
+            created_at: currentUTCDate.toISOString(),
+            updated_at: currentUTCDate.toISOString(),
+            last_login: currentUTCDate.toISOString()
         };
 
         const { data: createdUser, error: createError } = await supabase
@@ -78,6 +88,7 @@ app.post('/api/register', async (req, res) => {
         }
 
         console.log('New user registered:', createdUser.email);
+        console.log('User created at:', createdUser.created_at);
 
         // Return user data (without password)
         const { password_hash, ...userWithoutPassword } = createdUser;
@@ -118,9 +129,10 @@ app.post('/api/login', async (req, res) => {
         }
 
         // Update last login
+        const currentUTCDate = getUTCDate();
         await supabase
             .from('users')
-            .update({ last_login: new Date().toISOString() })
+            .update({ last_login: currentUTCDate.toISOString() })
             .eq('user_id', user.user_id);
 
         // Return user data (without password)
@@ -156,8 +168,8 @@ app.get('/api/user/:userId', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Calculate remaining time
-        const now = new Date();
+        // Calculate remaining time with UTC dates
+        const now = getUTCDate();
         const countdownEnd = new Date(user.countdown_end);
         const remainingTime = Math.max(0, Math.floor((countdownEnd - now) / 1000));
 
@@ -176,7 +188,7 @@ app.get('/api/user/:userId', async (req, res) => {
     }
 });
 
-// Get user profile
+// Get user profile - FIXED DATE HANDLING
 app.get('/api/profile/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -190,10 +202,25 @@ app.get('/api/profile/:userId', async (req, res) => {
 
         if (error) throw error;
 
-        // Calculate days since joining
+        // FIXED: Calculate days since joining with proper date handling
         const joinDate = new Date(user.created_at);
-        const today = new Date();
-        const miningDays = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24)) + 1;
+        const today = getUTCDate();
+        
+        // Reset both dates to start of day for accurate day calculation
+        const joinDateStart = new Date(joinDate.getFullYear(), joinDate.getMonth(), joinDate.getDate());
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        const miningDays = Math.floor((todayStart - joinDateStart) / (1000 * 60 * 60 * 24)) + 1;
+
+        console.log('Profile date debug:', {
+            userId: userId,
+            rawCreatedAt: user.created_at,
+            joinDate: joinDate.toISOString(),
+            today: today.toISOString(),
+            joinDateStart: joinDateStart.toISOString(),
+            todayStart: todayStart.toISOString(),
+            calculatedMiningDays: miningDays
+        });
 
         // Return without password
         const { password_hash, ...userWithoutPassword } = user;
@@ -204,7 +231,7 @@ app.get('/api/profile/:userId', async (req, res) => {
             userId: user.user_id,
             miningDays: miningDays,
             totalEarned: user.total_earned || user.balance,
-            memberSince: user.created_at,
+            memberSince: user.created_at, // Return raw ISO string for frontend to format
             balance: user.balance,
             lastClaim: user.last_claim,
             lastLogin: user.last_login
@@ -224,7 +251,7 @@ app.post('/api/profile/:userId', async (req, res) => {
         const updates = {
             name: name,
             email: email,
-            updated_at: new Date().toISOString()
+            updated_at: getUTCDate().toISOString()
         };
 
         const { data: updatedUser, error } = await supabase
@@ -248,11 +275,11 @@ app.post('/api/profile/:userId', async (req, res) => {
     }
 });
 
-// Claim reward (existing endpoint)
+// Claim reward (existing endpoint) - FIXED DATE HANDLING
 app.post('/api/claim/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        const now = new Date();
+        const now = getUTCDate();
 
         // Get user current data
         const { data: user, error: fetchError } = await supabase
@@ -308,4 +335,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log('Authentication system ready!');
+    console.log('Date handling fixed - using UTC timezone consistency');
 });
