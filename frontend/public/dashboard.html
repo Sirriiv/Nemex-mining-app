@@ -33,6 +33,24 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .section h2{color:#d4af37;margin-bottom:15px;font-size:24px}
 .section p{color:#aaa;line-height:1.5}
+
+/* NEW SETTINGS STYLES */
+.settings-icon{cursor:pointer;transition:transform 0.3s}
+.settings-icon:hover{transform:scale(1.1)}
+.settings-menu{position:absolute;top:60px;right:20px;background:#1a1a2a;border:1px solid #2a2a3a;border-radius:10px;padding:15px;min-width:180px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:1001;display:none}
+.settings-menu.active{display:block;animation:fadeIn 0.3s}
+.settings-item{display:flex;align-items:center;padding:12px 15px;cursor:pointer;border-radius:8px;transition:background 0.3s;margin-bottom:5px}
+.settings-item:hover{background:#2a2a3a}
+.settings-item:last-child{margin-bottom:0}
+.settings-icon-small{font-size:18px;margin-right:12px;width:20px;text-align:center}
+.settings-label{font-size:14px;color:#fff}
+.settings-divider{height:1px;background:#2a2a3a;margin:8px 0}
+.logout-btn{color:#ff6b6b}
+.logout-btn:hover{background:rgba(255,107,107,0.1)}
+
+/* Overlay for when settings is open */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:none}
+.overlay.active{display:block}
 </style>
 </head>
 <body>
@@ -41,9 +59,46 @@ body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:
     <div class="loading-status">Initializing…</div>
 </div>
 
+<!-- Settings Overlay -->
+<div id="overlay" class="overlay"></div>
+
+<!-- Settings Menu -->
+<div id="settingsMenu" class="settings-menu">
+    <div class="settings-item">
+        <div class="settings-icon-small">👤</div>
+        <div class="settings-label">Profile</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">🔔</div>
+        <div class="settings-label">Notifications</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">🌙</div>
+        <div class="settings-label">Dark Mode</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">🔒</div>
+        <div class="settings-label">Security</div>
+    </div>
+    <div class="settings-divider"></div>
+    <div class="settings-item">
+        <div class="settings-icon-small">❓</div>
+        <div class="settings-label">Help & Support</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">ℹ️</div>
+        <div class="settings-label">About</div>
+    </div>
+    <div class="settings-divider"></div>
+    <div class="settings-item logout-btn">
+        <div class="settings-icon-small">🚪</div>
+        <div class="settings-label">Logout</div>
+    </div>
+</div>
+
 <div class="header">
     <div class="logo">NEMEXCOIN</div>
-    <div style="font-size:20px">⚙️</div>
+    <div class="settings-icon" id="settingsButton">⚙️</div>
 </div>
 
 <div id="home" class="section active">
@@ -118,8 +173,72 @@ document.querySelectorAll('.nav-item').forEach(item => {
     });
 });
 
+// SETTINGS MENU FUNCTIONALITY
+const settingsButton = document.getElementById('settingsButton');
+const settingsMenu = document.getElementById('settingsMenu');
+const overlay = document.getElementById('overlay');
+
+// Toggle settings menu
+settingsButton.addEventListener('click', function(e) {
+    e.stopPropagation();
+    settingsMenu.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+
+// Close settings when clicking outside
+overlay.addEventListener('click', function() {
+    settingsMenu.classList.remove('active');
+    overlay.classList.remove('active');
+});
+
+// Close settings when clicking on overlay
+document.addEventListener('click', function(e) {
+    if (!settingsMenu.contains(e.target) && e.target !== settingsButton) {
+        settingsMenu.classList.remove('active');
+        overlay.classList.remove('active');
+    }
+});
+
+// Settings menu items functionality
+document.querySelectorAll('.settings-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const label = this.querySelector('.settings-label').textContent;
+        
+        switch(label) {
+            case 'Profile':
+                alert('📊 Profile section coming soon!');
+                break;
+            case 'Notifications':
+                alert('🔔 Notification settings coming soon!');
+                break;
+            case 'Dark Mode':
+                alert('🌙 Dark mode is already enabled!');
+                break;
+            case 'Security':
+                alert('🔒 Security settings coming soon!');
+                break;
+            case 'Help & Support':
+                alert('❓ Help & support coming soon!');
+                break;
+            case 'About':
+                alert('ℹ️ NEMEXCOIN v1.0 - Crypto Rewards Platform');
+                break;
+            case 'Logout':
+                if(confirm('Are you sure you want to logout?')) {
+                    localStorage.clear();
+                    window.location.href = 'index.html';
+                }
+                break;
+        }
+        
+        // Close menu after selection
+        settingsMenu.classList.remove('active');
+        overlay.classList.remove('active');
+    });
+});
+
 // SUPABASE-BACKED COUNTDOWN TIMER
-const API_BASE = 'https://nemex-backend.onrender.com'; // UPDATED WITH YOUR ACTUAL URL
+const API_BASE = 'https://nemex-backend.onrender.com';
 let countdownInterval;
 let currentUserId = localStorage.getItem('userId') || generateUserId();
 
