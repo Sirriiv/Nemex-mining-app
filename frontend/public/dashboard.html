@@ -268,8 +268,37 @@ closeProfile.addEventListener('click', function() {
     overlay.classList.remove('active');
 });
 
-// Load profile data
-function loadProfileData() {
+// Load profile data from DATABASE
+async function loadProfileData() {
+    try {
+        showLoading('Loading profile...');
+        
+        const response = await fetch(`${API_BASE}/api/profile/${currentUserId}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load profile');
+        }
+        
+        // Update profile fields with REAL database data
+        document.getElementById('profileName').textContent = data.name;
+        document.getElementById('profileEmail').textContent = data.email;
+        document.getElementById('profileUserId').textContent = data.userId;
+        document.getElementById('profileMiningDays').textContent = `${data.miningDays} day${data.miningDays > 1 ? 's' : ''}`;
+        document.getElementById('profileTotalEarned').textContent = `${data.totalEarned} NMXp`;
+        document.getElementById('profileMemberSince').textContent = new Date(data.memberSince).toLocaleDateString();
+        
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        hideLoading();
+        // Fallback to localStorage if backend fails
+        fallbackToLocalProfile();
+    }
+}
+
+// Fallback to localStorage if backend fails
+function fallbackToLocalProfile() {
     const userId = localStorage.getItem('userId') || currentUserId;
     const joinDate = localStorage.getItem('joinDate') || new Date().toISOString();
     const totalEarned = localStorage.getItem('totalEarned') || 0;
@@ -278,13 +307,17 @@ function loadProfileData() {
     const joinDateObj = new Date(joinDate);
     const today = new Date();
     const daysSinceJoin = Math.floor((today - joinDateObj) / (1000 * 60 * 60 * 24));
-    const miningDays = daysSinceJoin + 1; // At least 1 day
+    const miningDays = daysSinceJoin + 1;
     
     // Update profile fields
+    document.getElementById('profileName').textContent = 'Mining Enthusiast';
+    document.getElementById('profileEmail').textContent = `user_${userId.substring(0, 8)}@nemexcoin.com`;
     document.getElementById('profileUserId').textContent = userId;
     document.getElementById('profileMiningDays').textContent = `${miningDays} day${miningDays > 1 ? 's' : ''}`;
     document.getElementById('profileTotalEarned').textContent = `${totalEarned} NMXp`;
     document.getElementById('profileMemberSince').textContent = joinDateObj.toLocaleDateString();
+    
+    alert('⚠️ Using offline profile data.');
 }
 
 // Copy to clipboard function
@@ -346,12 +379,6 @@ const API_BASE = 'https://nemex-backend.onrender.com';
 let countdownInterval;
 let currentUserId = localStorage.getItem('userId') || generateUserId();
 
-// Initialize join date for new users
-if (!localStorage.getItem('joinDate')) {
-    localStorage.setItem('joinDate', new Date().toISOString());
-    localStorage.setItem('totalEarned', '0');
-}
-
 // Get elements
 const timerDisplay = document.getElementById('timerDisplay');
 const balanceDisplay = document.getElementById('balanceDisplay');
@@ -361,8 +388,6 @@ const claimButton = document.getElementById('claimButton');
 function generateUserId() {
     const userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
     localStorage.setItem('userId', userId);
-    localStorage.setItem('joinDate', new Date().toISOString());
-    localStorage.setItem('totalEarned', '0');
     return userId;
 }
 
@@ -450,7 +475,7 @@ function startCountdown(initialTime) {
     countdownInterval = setInterval(update, 1000);
 }
 
-// Claim reward function - UPDATED TO TRACK TOTAL EARNED
+// Claim reward function
 async function claimReward() {
     try {
         claimButton.disabled = true;
@@ -467,12 +492,6 @@ async function claimReward() {
         
         if (response.ok) {
             balanceDisplay.textContent = data.balance;
-            
-            // Update total earned
-            const currentTotal = parseInt(localStorage.getItem('totalEarned') || '0');
-            const newTotal = currentTotal + 30;
-            localStorage.setItem('totalEarned', newTotal.toString());
-            
             startCountdown(24 * 60 * 60); // Reset to 24 hours
             claimButton.textContent = '30 NMXp';
             
