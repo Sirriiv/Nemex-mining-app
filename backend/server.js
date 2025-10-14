@@ -1,6 +1,7 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(cors());
@@ -17,49 +18,142 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Get or create user data
+// User Registration
+app.post('/api/register', async (req, res) => {
+    try {
+        const { name, email, password } = req.body;
+        
+        console.log('Registration attempt:', { name, email });
+
+        // Validate input
+        if (!name || !email || !password) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters' });
+        }
+
+        // Check if user already exists
+        const { data: existingUser, error: checkError } = await supabase
+            .from('users')
+            .select('user_id, email')
+            .eq('email', email)
+            .single();
+
+        if (existingUser) {
+            return res.status(400).json({ error: 'User already exists with this email' });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
+        
+        // Generate unique user ID for Sybil detection
+        const userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        
+        // Create new user with REAL data
+        const newUser = {
+            user_id: userId,
+            name: name.trim(),
+            email: email.toLowerCase().trim(),
+            password_hash: hashedPassword,
+            balance: 0,
+            total_earned: 0,
+            countdown_end: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            last_claim: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            last_login: new Date().toISOString()
+        };
+
+        const { data: createdUser, error: createError } = await supabase
+            .from('users')
+            .insert([newUser])
+            .select()
+            .single();
+
+        if (createError) {
+            console.error('Database Error:', createError);
+            throw createError;
+        }
+
+        console.log('New user registered:', createdUser.email);
+
+        // Return user data (without password)
+        const { password_hash, ...userWithoutPassword } = createdUser;
+        
+        res.json({
+            success: true,
+            message: 'Registration successful!',
+            user: userWithoutPassword
+        });
+    } catch (error) {
+        console.error('Registration Error:', error);
+        res.status(500).json({ error: 'Registration failed. Please try again.' });
+    }
+});
+
+// User Login
+app.post('/api/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        
+        console.log('Login attempt:', email);
+
+        // Find user by email
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', email.toLowerCase().trim())
+            .single();
+
+        if (error || !user) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        // Check password
+        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+        if (!isPasswordValid) {
+            return res.status(401).json({ error: 'Invalid email or password' });
+        }
+
+        // Update last login
+        await supabase
+            .from('users')
+            .update({ last_login: new Date().toISOString() })
+            .eq('user_id', user.user_id);
+
+        // Return user data (without password)
+        const { password_hash, ...userWithoutPassword } = user;
+        
+        console.log('User logged in:', user.email);
+
+        res.json({
+            success: true,
+            message: 'Login successful!',
+            user: userWithoutPassword
+        });
+    } catch (error) {
+        console.error('Login Error:', error);
+        res.status(500).json({ error: 'Login failed. Please try again.' });
+    }
+});
+
+// Get user data (existing endpoint - updated)
 app.get('/api/user/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        console.log('Fetching user:', userId);
 
-        // Check if user exists
-        let { data: user, error } = await supabase
+        // Get user data from Supabase
+        const { data: user, error } = await supabase
             .from('users')
             .select('*')
             .eq('user_id', userId)
             .single();
 
-        if (error && error.code === 'PGRST116') {
-            // User doesn't exist - CREATE NEW USER
-            console.log('Creating new user:', userId);
-            const newUser = {
-                user_id: userId,
-                balance: 0,
-                total_earned: 0,
-                name: 'Mining Enthusiast',
-                email: `user_${userId.substring(0, 8)}@nemexcoin.com`,
-                countdown_end: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-                last_claim: new Date().toISOString(),
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-
-            const { data: createdUser, error: createError } = await supabase
-                .from('users')
-                .insert([newUser])
-                .select()
-                .single();
-
-            if (createError) {
-                console.error('Error creating user:', createError);
-                throw createError;
-            }
-            user = createdUser;
-            console.log('New user created:', user.user_id);
-        } else if (error) {
-            console.error('Error fetching user:', error);
-            throw error;
+        if (error) {
+            console.error('User fetch error:', error);
+            return res.status(404).json({ error: 'User not found' });
         }
 
         // Calculate remaining time
@@ -67,10 +161,14 @@ app.get('/api/user/:userId', async (req, res) => {
         const countdownEnd = new Date(user.countdown_end);
         const remainingTime = Math.max(0, Math.floor((countdownEnd - now) / 1000));
 
+        // Return without password
+        const { password_hash, ...userWithoutPassword } = user;
+
         res.json({
             balance: user.balance,
             remainingTime: remainingTime,
-            canClaim: remainingTime <= 0
+            canClaim: remainingTime <= 0,
+            profile: userWithoutPassword
         });
     } catch (error) {
         console.error('API Error:', error);
@@ -78,13 +176,83 @@ app.get('/api/user/:userId', async (req, res) => {
     }
 });
 
-// Claim reward
+// Get user profile
+app.get('/api/profile/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Get user data from Supabase
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) throw error;
+
+        // Calculate days since joining
+        const joinDate = new Date(user.created_at);
+        const today = new Date();
+        const miningDays = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Return without password
+        const { password_hash, ...userWithoutPassword } = user;
+
+        res.json({
+            name: user.name,
+            email: user.email,
+            userId: user.user_id,
+            miningDays: miningDays,
+            totalEarned: user.total_earned || user.balance,
+            memberSince: user.created_at,
+            balance: user.balance,
+            lastClaim: user.last_claim,
+            lastLogin: user.last_login
+        });
+    } catch (error) {
+        console.error('Profile Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update user profile
+app.post('/api/profile/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { name, email } = req.body;
+
+        const updates = {
+            name: name,
+            email: email,
+            updated_at: new Date().toISOString()
+        };
+
+        const { data: updatedUser, error } = await supabase
+            .from('users')
+            .update(updates)
+            .eq('user_id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+
+        const { password_hash, ...userWithoutPassword } = updatedUser;
+
+        res.json({
+            message: 'Profile updated successfully',
+            profile: userWithoutPassword
+        });
+    } catch (error) {
+        console.error('Update Profile Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Claim reward (existing endpoint)
 app.post('/api/claim/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const now = new Date();
-
-        console.log('Claim attempt by user:', userId);
 
         // Get user current data
         const { data: user, error: fetchError } = await supabase
@@ -93,16 +261,12 @@ app.post('/api/claim/:userId', async (req, res) => {
             .eq('user_id', userId)
             .single();
 
-        if (fetchError) {
-            console.error('Error fetching user for claim:', fetchError);
-            throw fetchError;
-        }
+        if (fetchError) throw fetchError;
 
         // Check if timer is finished
         const countdownEnd = new Date(user.countdown_end);
         if (countdownEnd > now) {
             const remaining = Math.floor((countdownEnd - now) / 1000);
-            console.log('Claim rejected - time remaining:', remaining);
             return res.status(400).json({ 
                 error: `Timer not finished. ${Math.floor(remaining/3600)}h ${Math.floor((remaining%3600)/60)}m remaining` 
             });
@@ -127,13 +291,8 @@ app.post('/api/claim/:userId', async (req, res) => {
             .select()
             .single();
 
-        if (updateError) {
-            console.error('Error updating user:', updateError);
-            throw updateError;
-        }
+        if (updateError) throw updateError;
 
-        console.log('Claim successful for user:', userId, 'New balance:', newBalance, 'Total earned:', newTotalEarned);
-        
         res.json({
             balance: newBalance,
             totalEarned: newTotalEarned,
@@ -145,93 +304,8 @@ app.post('/api/claim/:userId', async (req, res) => {
     }
 });
 
-// Get user profile
-app.get('/api/profile/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        console.log('Fetching profile for user:', userId);
-
-        // Get user data from Supabase
-        const { data: user, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (error) {
-            console.error('Error fetching profile:', error);
-            throw error;
-        }
-
-        // Calculate days since joining
-        const joinDate = new Date(user.created_at);
-        const today = new Date();
-        const miningDays = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24)) + 1;
-
-        console.log('Profile data loaded:', {
-            userId: user.user_id,
-            miningDays: miningDays,
-            totalEarned: user.total_earned,
-            joinDate: user.created_at
-        });
-
-        res.json({
-            name: user.name || 'Mining Enthusiast',
-            email: user.email || `user_${userId.substring(0, 8)}@nemexcoin.com`,
-            userId: user.user_id,
-            miningDays: miningDays,
-            totalEarned: user.total_earned || user.balance,
-            memberSince: user.created_at,
-            balance: user.balance,
-            lastClaim: user.last_claim
-        });
-    } catch (error) {
-        console.error('Profile Error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Update user profile
-app.post('/api/profile/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { name, email } = req.body;
-
-        console.log('Updating profile for user:', userId, { name, email });
-
-        const updates = {
-            name: name,
-            email: email,
-            updated_at: new Date().toISOString()
-        };
-
-        const { data: updatedUser, error } = await supabase
-            .from('users')
-            .update(updates)
-            .eq('user_id', userId)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Error updating profile:', error);
-            throw error;
-        }
-
-        console.log('Profile updated successfully:', userId);
-
-        res.json({
-            message: 'Profile updated successfully',
-            profile: updatedUser
-        });
-    } catch (error) {
-        console.error('Update Profile Error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-    console.log('Supabase URL:', process.env.SUPABASE_URL ? 'Set' : 'Missing');
-    console.log('Supabase Key:', process.env.SUPABASE_ANON_KEY ? 'Set' : 'Missing');
+    console.log('Authentication system ready!');
 });
