@@ -4,49 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Dashboard</title>
-    <link rel="stylesheet" href="css/dashboard.css">
-    <link rel="stylesheet" href="css/components/nav.css">
-    <link rel="stylesheet" href="css/components/models.css">
-    <link rel="stylesheet" href="css/components/security.css">
-</head>
-<body>
-    <!-- Navigation -->
-    <div id="navbar-container"></div>
-
-    <!-- Main Dashboard -->
-    <div class="dashboard-container">
-        <div class="sidebar" id="sidebar"></div>
+    <style>
+        :root {
+            --primary-gold: #FFD700;
+            --dark-gold: #B8860B;
+            --light-gold: #FFF8DC;
+            --bg-black: #0A0A0A;
+            --dark-gray: #1A1A1A;
+            --medium-gray: #2D2D2D;
+            --light-gray: #404040;
+            --text-light: #FFFFFF;
+            --text-gray: #A0A0A0;
+        }
         
-        <div class="main-content">
-            <div class="header">
-                <h2>Dashboard</h2>
-                <div class="header-actions">
-                    <button class="btn btn-outline" id="refresh-btn">Refresh Data</button>
-                </div>
-            </div>
-            
-            <!-- Stats Cards -->
-            <div class="stats-cards" id="stats-cards"></div>
-            
-            <!-- Mining Section -->
-            <div class="mining-section">
-                <div class="mining-status" id="mining-status"></div>
-                <div class="recent-activity" id="recent-activity"></div>
-            </div>
-            
-            <!-- Charts Section -->
-            <div class="charts-section" id="charts-section"></div>
-        </div>
-    </div>
-
-    <!-- Modals Container -->
-    <div id="modals-container"></div>
-
-    <script type="module" src="js/modules/navigation.js"></script>
-    <script type="module" src="js/modules/user.js"></script>
-    <script type="module" src="js/modules/api.js"></script>
-    <script type="module" src="js/modules/utils.js"></script>
-    <script type="module" src="js/modules/settings.js"></script>
-    <script type="module" src="js/dashboard.js"></script>
-</body>
-</html>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-black);
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+        
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--dark-gray);
+            padding: 30px 0;
+            border
