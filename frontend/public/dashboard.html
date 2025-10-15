@@ -1,292 +1,539 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin - Dashboard</title>
-    <style>
-        :root {
-            --primary-gold: #FFD700;
-            --dark-gold: #B8860B;
-            --bg-black: #000000;
-            --card-bg: #1A1A1A;
-            --text-light: #FFFFFF;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-        
-        body {
-            background-color: var(--bg-black);
-            color: var(--text-light);
-            padding: 20px;
-            padding-bottom: 80px; /* Space for bottom nav */
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .header h1 {
-            color: var(--primary-gold);
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        
-        .balance-card {
-            background: linear-gradient(135deg, var(--card-bg), #2A2A2A);
-            border-radius: 15px;
-            padding: 25px;
-            text-align: center;
-            margin-bottom: 25px;
-            border: 1px solid var(--dark-gold);
-        }
-        
-        .balance-amount {
-            font-size: 3rem;
-            font-weight: bold;
-            color: var(--primary-gold);
-            margin: 10px 0;
-        }
-        
-        .claim-timer {
-            background: rgba(255, 215, 0, 0.1);
-            padding: 10px;
-            border-radius: 10px;
-            margin: 15px 0;
-            font-size: 1.1rem;
-            border: 1px solid var(--dark-gold);
-        }
-        
-        .claim-btn {
-            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
-            color: black;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 25px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        
-        .stat-card {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            border: 1px solid #333;
-        }
-        
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-gold);
-            margin: 5px 0;
-        }
-        
-        .stat-label {
-            font-size: 0.9rem;
-            color: #CCC;
-        }
-        
-        .mining-section {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            border: 1px solid #333;
-        }
-        
-        .mining-section h3 {
-            color: var(--primary-gold);
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        
-        .progress-bar {
-            background: #333;
-            height: 10px;
-            border-radius: 5px;
-            margin: 15px 0;
-            overflow: hidden;
-        }
-        
-        .progress {
-            background: linear-gradient(90deg, var(--primary-gold), var(--dark-gold));
-            height: 100%;
-            width: 65%;
-            border-radius: 5px;
-        }
-        
-        .mining-controls {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .mining-btn {
-            background: rgba(255, 215, 0, 0.1);
-            color: var(--primary-gold);
-            border: 1px solid var(--dark-gold);
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .mining-btn.primary {
-            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
-            color: black;
-        }
-        
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--card-bg);
-            display: flex;
-            justify-content: space-around;
-            padding: 15px 0;
-            border-top: 1px solid #333;
-        }
-        
-        .nav-item {
-            text-align: center;
-            color: #CCC;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-        
-        .nav-item.active {
-            color: var(--primary-gold);
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEMEXCOIN</title>
+<style>
+/* Your existing CSS styles remain the same */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Arial',sans-serif}
+body{background:#0f0f1a;color:#fff;max-width:400px;margin:0 auto;padding-bottom:80px;overflow-x:hidden}
+.loading{position:fixed;top:0;left:0;width:100%;height:100%;background:#0f0f1a;color:#d4af37;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:1000;transition:opacity 0.3s}
+.loading-logo{font-size:72px;margin-bottom:20px;font-weight:700;animation:pulse 2s infinite}
+.loading-status{font-size:16px;letter-spacing:0.5px}
+.hidden{opacity:0;pointer-events:none}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
+.header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #1a1a2a;background:#0f0f1a}
+.logo{font-weight:700;color:#d4af37;font-size:18px;letter-spacing:1px}
+.dashboard{text-align:center;padding:40px 20px;animation:fadeIn 0.5s}
+.balance{font-size:52px;font-weight:700;margin:20px 0;color:#d4af37;text-shadow:0 0 20px rgba(212,175,55,0.3)}
+.chip-icon{font-size:32px;margin:20px 0;opacity:0.8}
+.timer{font-size:14px;color:#aaa;margin:10px 0;letter-spacing:1px}
+.claim-btn{background:linear-gradient(135deg,#d4af37,#b8941f);color:#0f0f1a;border:none;padding:14px 40px;border-radius:25px;font-size:16px;font-weight:600;margin:20px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(212,175,55,0.3)}
+.claim-btn:active{transform:scale(0.95)}
+.claim-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#1a1a2a;display:flex;justify-content:space-around;padding:12px 0;max-width:400px;margin:0 auto;border-top:1px solid #2a2a3a;backdrop-filter:blur(10px)}
+.nav-item{display:flex;flex-direction:column;align-items:center;padding:8px 12px;color:#666;cursor:pointer;transition:all 0.3s;border-radius:12px;min-width:60px}
+.nav-item.active{color:#d4af37;transform:translateY(-2px)}
+.nav-icon{font-size:22px;margin-bottom:4px;transition:all 0.3s}
+.nav-item.active .nav-icon{transform:scale(1.1)}
+.nav-label{font-size:11px;font-weight:500;letter-spacing:0.5px}
+.section{display:none;padding:30px 20px;text-align:center;animation:fadeIn 0.5s}
+.section.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.section h2{color:#d4af37;margin-bottom:15px;font-size:24px}
+.section p{color:#aaa;line-height:1.5}
+
+/* NEW SETTINGS STYLES */
+.settings-icon{cursor:pointer;transition:transform 0.3s}
+.settings-icon:hover{transform:scale(1.1)}
+.settings-menu{position:absolute;top:60px;right:20px;background:#1a1a2a;border:1px solid #2a2a3a;border-radius:10px;padding:15px;min-width:180px;box-shadow:0 4px 20px rgba(0,0,0,0.3);z-index:1001;display:none}
+.settings-menu.active{display:block;animation:fadeIn 0.3s}
+.settings-item{display:flex;align-items:center;padding:12px 15px;cursor:pointer;border-radius:8px;transition:background 0.3s;margin-bottom:5px}
+.settings-item:hover{background:#2a2a3a}
+.settings-item:last-child{margin-bottom:0}
+.settings-icon-small{font-size:18px;margin-right:12px;width:20px;text-align:center}
+.settings-label{font-size:14px;color:#fff}
+.settings-divider{height:1px;background:#2a2a3a;margin:8px 0}
+.logout-btn{color:#ff6b6b}
+.logout-btn:hover{background:rgba(255,107,107,0.1)}
+
+/* Overlay for when settings is open */
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000;display:none}
+.overlay.active{display:block}
+
+/* PROFILE MODAL STYLES */
+.profile-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1a1a2a;border:1px solid #2a2a3a;border-radius:15px;padding:25px;width:90%;max-width:350px;z-index:1002;display:none;box-shadow:0 10px 30px rgba(0,0,0,0.5)}
+.profile-modal.active{display:block;animation:fadeIn 0.3s}
+.profile-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid #2a2a3a}
+.profile-title{font-size:20px;font-weight:700;color:#d4af37}
+.close-btn{background:none;border:none;color:#aaa;font-size:20px;cursor:pointer;padding:5px;border-radius:5px}
+.close-btn:hover{color:#fff;background:#2a2a3a}
+.profile-info{text-align:left}
+.profile-item{margin-bottom:20px;padding:15px;background:#0f0f1a;border-radius:10px;border:1px solid #2a2a3a}
+.profile-label{font-size:12px;color:#d4af37;margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.profile-value{font-size:16px;color:#fff;word-break:break-all}
+.copy-btn{background:#2a2a3a;color:#d4af37;border:1px solid #d4af37;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:10px;transition:all 0.3s}
+.copy-btn:hover{background:#d4af37;color:#0f0f1a}
+.value-row{display:flex;justify-content:space-between;align-items:center}
+</style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
-        <h1>NEMEXCOIN</h1>
-    </div>
-    
-    <!-- Balance Card -->
-    <div class="balance-card">
-        <div style="font-size: 1.1rem; color: #CCC;">Available Balance</div>
-        <div class="balance-amount">30 NMXp</div>
-        <div class="claim-timer">
-            Claim in <span id="claim-timer">11:18:45</span>
-        </div>
-        <button class="claim-btn" id="claim-button">CLAIM NOW</button>
-    </div>
-    
-    <!-- Stats Grid -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">Mining Power</div>
-            <div class="stat-value">1.2 KH/s</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Days Mining</div>
-            <div class="stat-value">1 day</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Referrals</div>
-            <div class="stat-value">0</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Total Earned</div>
-            <div class="stat-value">30 NMXp</div>
-        </div>
-    </div>
-    
-    <!-- Mining Section -->
-    <div class="mining-section">
-        <h3>Mining Status</h3>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-            <span>Current Session</span>
-            <span>65%</span>
-        </div>
-        <div class="progress-bar">
-            <div class="progress" id="mining-progress"></div>
-        </div>
-        <div class="mining-controls">
-            <button class="mining-btn primary" id="start-mining">START MINING</button>
-            <button class="mining-btn" id="boost-mining">BOOST</button>
-        </div>
-    </div>
-    
-    <!-- Recent Activity -->
-    <div class="mining-section">
-        <h3>Recent Activity</h3>
-        <div style="color: #CCC; text-align: center; padding: 20px;">
-            Mining session started - Today, 10:30 AM<br>
-            <small>+0.5 NMXp earned</small>
-        </div>
-    </div>
-    
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <a href="#" class="nav-item active">HOME</a>
-        <a href="#" class="nav-item">TASKS</a>
-        <a href="#" class="nav-item">BUY</a>
-        <a href="#" class="nav-item">REFERRALS</a>
-        <a href="#" class="nav-item">WALLET</a>
-    </div>
+<div id="loading" class="loading hidden">
+    <div class="loading-logo">NMX</div>
+    <div class="loading-status">Initializing…</div>
+</div>
 
-    <script>
-        // Claim timer countdown
-        function updateClaimTimer() {
-            const timerElement = document.getElementById('claim-timer');
-            let time = 11 * 3600 + 18 * 60 + 45; // 11:18:45 in seconds
+<!-- Settings Overlay -->
+<div id="overlay" class="overlay"></div>
+
+<!-- Settings Menu -->
+<div id="settingsMenu" class="settings-menu">
+    <div class="settings-item" id="profileBtn">
+        <div class="settings-icon-small">👤</div>
+        <div class="settings-label">Profile</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">🔔</div>
+        <div class="settings-label">Notifications</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">🌙</div>
+        <div class="settings-label">Dark Mode</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">🔒</div>
+        <div class="settings-label">Security</div>
+    </div>
+    <div class="settings-divider"></div>
+    <div class="settings-item">
+        <div class="settings-icon-small">❓</div>
+        <div class="settings-label">Help & Support</div>
+    </div>
+    <div class="settings-item">
+        <div class="settings-icon-small">ℹ️</div>
+        <div class="settings-label">About</div>
+    </div>
+    <div class="settings-divider"></div>
+    <div class="settings-item logout-btn">
+        <div class="settings-icon-small">🚪</div>
+        <div class="settings-label">Logout</div>
+    </div>
+</div>
+
+<!-- Profile Modal -->
+<div id="profileModal" class="profile-modal">
+    <div class="profile-header">
+        <div class="profile-title">👤 User Profile</div>
+        <button class="close-btn" id="closeProfile">✕</button>
+    </div>
+    <div class="profile-info">
+        <div class="profile-item">
+            <div class="profile-label">Name</div>
+            <div class="profile-value" id="profileName">Mining Enthusiast</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Email</div>
+            <div class="profile-value" id="profileEmail">user@nemexcoin.com</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">User ID</div>
+            <div class="value-row">
+                <div class="profile-value" id="profileUserId">Loading...</div>
+                <button class="copy-btn" onclick="copyToClipboard('profileUserId')">Copy</button>
+            </div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Days on Mining</div>
+            <div class="profile-value" id="profileMiningDays">1 day</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Total NMXp Earned</div>
+            <div class="profile-value" id="profileTotalEarned">0 NMXp</div>
+        </div>
+        <div class="profile-item">
+            <div class="profile-label">Member Since</div>
+            <div class="profile-value" id="profileMemberSince">Today</div>
+        </div>
+    </div>
+</div>
+
+<div class="header">
+    <div class="logo">NEMEXCOIN</div>
+    <div class="settings-icon" id="settingsButton">⚙️</div>
+</div>
+
+<div id="home" class="section active">
+    <div class="dashboard">
+        <div class="balance" id="balanceDisplay">00</div>
+        <div class="chip-icon">💿</div>
+        <div class="timer" id="timerDisplay">Claim in 24:00:00</div>
+        <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
+    </div>
+</div>
+
+<div id="tasks" class="section">
+    <h2>📋 Tasks</h2>
+    <p>Complete daily tasks and challenges to earn bonus NMX rewards</p>
+</div>
+
+<div id="buy" class="section">
+    <h2>🛒 Buy NMXp</h2>
+    <p>Purchase NMX(points) tokens securely with multiple payment options</p>
+</div>
+
+<div id="referrals" class="section">
+    <h2>👥 Referrals</h2>
+    <p>Invite friends and earn mining rewards</p>
+</div>
+
+<div id="wallet" class="section">
+    <h2>💰 Wallet</h2>
+    <p>Manage your assets and NMXp balance and transaction history</p>
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-item active" data-section="home">
+        <div class="nav-icon">🏠</div>
+        <div class="nav-label">Home</div>
+    </div>
+    <div class="nav-item" data-section="tasks">
+        <div class="nav-icon">📋</div>
+        <div class="nav-label">Tasks</div>
+    </div>
+    <div class="nav-item" data-section="buy">
+        <div class="nav-icon">🛒</div>
+        <div class="nav-label">Buy</div>
+    </div>
+    <div class="nav-item" data-section="referrals">
+        <div class="nav-icon">👥</div>
+        <div class="nav-label">Referrals</div>
+    </div>
+    <div class="nav-item" data-section="wallet">
+        <div class="nav-icon">💰</div>
+        <div class="nav-label">Wallet</div>
+    </div>
+</div>
+
+<script>
+// Tab Switching Code
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const target = this.getAttribute('data-section');
+        const loading = document.getElementById('loading');
+        
+        loading.classList.remove('hidden');
+        
+        setTimeout(() => {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(target).classList.add('active');
+            this.classList.add('active');
             
-            setInterval(() => {
-                time--;
-                if (time < 0) time = 24 * 3600; // Reset to 24 hours
-                
-                const hours = Math.floor(time / 3600);
-                const minutes = Math.floor((time % 3600) / 60);
-                const seconds = time % 60;
-                
-                timerElement.textContent = 
-                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }, 1000);
+            setTimeout(() => loading.classList.add('hidden'), 300);
+        }, 1500);
+    });
+});
+
+// SETTINGS MENU FUNCTIONALITY
+const settingsButton = document.getElementById('settingsButton');
+const settingsMenu = document.getElementById('settingsMenu');
+const overlay = document.getElementById('overlay');
+const profileModal = document.getElementById('profileModal');
+const closeProfile = document.getElementById('closeProfile');
+const profileBtn = document.getElementById('profileBtn');
+
+// Toggle settings menu
+settingsButton.addEventListener('click', function(e) {
+    e.stopPropagation();
+    settingsMenu.classList.toggle('active');
+    overlay.classList.toggle('active');
+});
+
+// Close settings when clicking outside
+overlay.addEventListener('click', function() {
+    settingsMenu.classList.remove('active');
+    overlay.classList.remove('active');
+    profileModal.classList.remove('active');
+});
+
+// Close settings when clicking on overlay
+document.addEventListener('click', function(e) {
+    if (!settingsMenu.contains(e.target) && e.target !== settingsButton) {
+        settingsMenu.classList.remove('active');
+        overlay.classList.remove('active');
+    }
+});
+
+// PROFILE MODAL FUNCTIONALITY
+profileBtn.addEventListener('click', function() {
+    settingsMenu.classList.remove('active');
+    loadProfileData();
+    profileModal.classList.add('active');
+    overlay.classList.add('active');
+});
+
+closeProfile.addEventListener('click', function() {
+    profileModal.classList.remove('active');
+    overlay.classList.remove('active');
+});
+
+// Load profile data from DATABASE
+async function loadProfileData() {
+    try {
+        showLoading('Loading profile...');
+        
+        const response = await fetch(`${API_BASE}/api/profile/${currentUserId}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load profile');
         }
         
-        // Mining functionality
-        document.getElementById('start-mining').addEventListener('click', function() {
-            const button = this;
-            if (button.textContent === 'START MINING') {
-                button.textContent = 'STOP MINING';
-                document.getElementById('mining-progress').style.width = '100%';
-            } else {
-                button.textContent = 'START MINING';
-                document.getElementById('mining-progress').style.width = '65%';
+        // Update profile fields with REAL database data
+        document.getElementById('profileName').textContent = data.name;
+        document.getElementById('profileEmail').textContent = data.email;
+        document.getElementById('profileUserId').textContent = data.userId;
+        document.getElementById('profileMiningDays').textContent = `${data.miningDays} day${data.miningDays > 1 ? 's' : ''}`;
+        document.getElementById('profileTotalEarned').textContent = `${data.totalEarned} NMXp`;
+        document.getElementById('profileMemberSince').textContent = new Date(data.memberSince).toLocaleDateString();
+        
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        hideLoading();
+        // Fallback to localStorage if backend fails
+        fallbackToLocalProfile();
+    }
+}
+
+// Fallback to localStorage if backend fails
+function fallbackToLocalProfile() {
+    const userId = localStorage.getItem('userId') || currentUserId;
+    const joinDate = localStorage.getItem('joinDate') || new Date().toISOString();
+    const totalEarned = localStorage.getItem('totalEarned') || 0;
+    
+    // Calculate days since joining
+    const joinDateObj = new Date(joinDate);
+    const today = new Date();
+    const daysSinceJoin = Math.floor((today - joinDateObj) / (1000 * 60 * 60 * 24));
+    const miningDays = daysSinceJoin + 1;
+    
+    // Update profile fields
+    document.getElementById('profileName').textContent = 'Mining Enthusiast';
+    document.getElementById('profileEmail').textContent = `user_${userId.substring(0, 8)}@nemexcoin.com`;
+    document.getElementById('profileUserId').textContent = userId;
+    document.getElementById('profileMiningDays').textContent = `${miningDays} day${miningDays > 1 ? 's' : ''}`;
+    document.getElementById('profileTotalEarned').textContent = `${totalEarned} NMXp`;
+    document.getElementById('profileMemberSince').textContent = joinDateObj.toLocaleDateString();
+    
+    alert('⚠️ Using offline profile data.');
+}
+
+// Copy to clipboard function
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        alert('Copied to clipboard!');
+    }).catch(function() {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Copied to clipboard!');
+    });
+}
+
+// Settings menu items functionality
+document.querySelectorAll('.settings-item').forEach(item => {
+    if (item.id !== 'profileBtn') {
+        item.addEventListener('click', function() {
+            const label = this.querySelector('.settings-label').textContent;
+            
+            switch(label) {
+                case 'Notifications':
+                    alert('🔔 Notification settings coming soon!');
+                    break;
+                case 'Dark Mode':
+                    alert('🌙 Dark mode is already enabled!');
+                    break;
+                case 'Security':
+                    alert('🔒 Security settings coming soon!');
+                    break;
+                case 'Help & Support':
+                    alert('❓ Help & support coming soon!');
+                    break;
+                case 'About':
+                    alert('ℹ️ NEMEXCOIN v1.0 - Crypto Rewards Platform');
+                    break;
+                case 'Logout':
+                    if(confirm('Are you sure you want to logout?')) {
+                        localStorage.clear();
+                        window.location.href = 'index.html';
+                    }
+                    break;
             }
+            
+            // Close menu after selection
+            settingsMenu.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    }
+});
+
+// SUPABASE-BACKED COUNTDOWN TIMER
+const API_BASE = 'https://nemex-backend.onrender.com';
+let countdownInterval;
+let currentUserId = localStorage.getItem('userId') || generateUserId();
+
+// Get elements
+const timerDisplay = document.getElementById('timerDisplay');
+const balanceDisplay = document.getElementById('balanceDisplay');
+const claimButton = document.getElementById('claimButton');
+
+// Generate unique user ID
+function generateUserId() {
+    const userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+    localStorage.setItem('userId', userId);
+    return userId;
+}
+
+// Format time as HH:MM:SS
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Load user data from backend
+async function loadUserData() {
+    try {
+        showLoading('Loading your data...');
+        
+        const response = await fetch(`${API_BASE}/api/user/${currentUserId}`);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to load user data');
+        }
+        
+        balanceDisplay.textContent = data.balance;
+        
+        if (data.remainingTime > 0) {
+            startCountdown(data.remainingTime);
+            claimButton.disabled = true;
+            claimButton.textContent = '30 NMXp';
+        } else {
+            timerDisplay.textContent = 'Ready to Claim!';
+            claimButton.disabled = false;
+            claimButton.textContent = 'CLAIM 30 NMXp';
+        }
+        
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading user data:', error);
+        hideLoading();
+        // Fallback to localStorage if backend fails
+        fallbackToLocalStorage();
+    }
+}
+
+// Show loading state
+function showLoading(message = 'Loading...') {
+    const loading = document.getElementById('loading');
+    const status = loading.querySelector('.loading-status');
+    status.textContent = message;
+    loading.classList.remove('hidden');
+}
+
+// Hide loading state
+function hideLoading() {
+    setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+    }, 500);
+}
+
+// Start countdown timer
+function startCountdown(initialTime) {
+    let remainingTime = initialTime;
+    
+    clearInterval(countdownInterval);
+    
+    function update() {
+        if (remainingTime > 0) {
+            timerDisplay.textContent = `Claim in ${formatTime(remainingTime)}`;
+            remainingTime--;
+            
+            // Auto-save progress every minute
+            if (remainingTime % 60 === 0) {
+                localStorage.setItem('backupCountdown', remainingTime);
+                localStorage.setItem('backupLastUpdate', Date.now());
+            }
+        } else {
+            timerDisplay.textContent = 'Ready to Claim!';
+            claimButton.disabled = false;
+            claimButton.textContent = 'CLAIM 30 NMXp';
+            clearInterval(countdownInterval);
+        }
+    }
+    
+    update(); // Initial update
+    countdownInterval = setInterval(update, 1000);
+}
+
+// Claim reward function
+async function claimReward() {
+    try {
+        claimButton.disabled = true;
+        claimButton.textContent = 'Claiming...';
+        
+        const response = await fetch(`${API_BASE}/api/claim/${currentUserId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
         
-        // Claim button
-        document.getElementById('claim-button').addEventListener('click', function() {
-            alert('NMXp claimed successfully!');
-        });
+        const data = await response.json();
         
-        // Initialize
-        updateClaimTimer();
-    </script>
+        if (response.ok) {
+            balanceDisplay.textContent = data.balance;
+            startCountdown(24 * 60 * 60); // Reset to 24 hours
+            claimButton.textContent = '30 NMXp';
+            
+            // Show success message
+            alert('✅ ' + data.message);
+        } else {
+            alert('❌ Error: ' + data.error);
+            claimButton.disabled = false;
+            claimButton.textContent = 'CLAIM 30 NMXp';
+        }
+    } catch (error) {
+        console.error('Error claiming reward:', error);
+        alert('❌ Network error. Please try again.');
+        claimButton.disabled = false;
+        claimButton.textContent = 'CLAIM 30 NMXp';
+    }
+}
+
+// Fallback to localStorage if backend fails
+function fallbackToLocalStorage() {
+    const savedBalance = localStorage.getItem('nmxBalance');
+    const savedCountdown = localStorage.getItem('backupCountdown');
+    const savedLastUpdate = localStorage.getItem('backupLastUpdate');
+    
+    if (savedBalance) {
+        balanceDisplay.textContent = savedBalance;
+    }
+    
+    if (savedCountdown && savedLastUpdate) {
+        const elapsedSeconds = Math.floor((Date.now() - parseInt(savedLastUpdate)) / 1000);
+        const remainingTime = Math.max(0, parseInt(savedCountdown) - elapsedSeconds);
+        startCountdown(remainingTime);
+    } else {
+        startCountdown(24 * 60 * 60);
+    }
+    
+    alert('⚠️ Using offline mode. Some features may be limited.');
+}
+
+// Initialize
+loadUserData();
+claimButton.addEventListener('click', claimReward);
+</script>
 </body>
 </html>
