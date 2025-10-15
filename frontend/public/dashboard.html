@@ -4,128 +4,289 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Dashboard</title>
-    <link rel="stylesheet" href="dashboard.css">
+    <style>
+        :root {
+            --primary-gold: #FFD700;
+            --dark-gold: #B8860B;
+            --bg-black: #000000;
+            --card-bg: #1A1A1A;
+            --text-light: #FFFFFF;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-black);
+            color: var(--text-light);
+            padding: 20px;
+            padding-bottom: 80px; /* Space for bottom nav */
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: var(--primary-gold);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .balance-card {
+            background: linear-gradient(135deg, var(--card-bg), #2A2A2A);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+            border: 1px solid var(--dark-gold);
+        }
+        
+        .balance-amount {
+            font-size: 3rem;
+            font-weight: bold;
+            color: var(--primary-gold);
+            margin: 10px 0;
+        }
+        
+        .claim-timer {
+            background: rgba(255, 215, 0, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 1.1rem;
+            border: 1px solid var(--dark-gold);
+        }
+        
+        .claim-btn {
+            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #333;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-gold);
+            margin: 5px 0;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: #CCC;
+        }
+        
+        .mining-section {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid #333;
+        }
+        
+        .mining-section h3 {
+            color: var(--primary-gold);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            background: #333;
+            height: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        
+        .progress {
+            background: linear-gradient(90deg, var(--primary-gold), var(--dark-gold));
+            height: 100%;
+            width: 65%;
+            border-radius: 5px;
+        }
+        
+        .mining-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .mining-btn {
+            background: rgba(255, 215, 0, 0.1);
+            color: var(--primary-gold);
+            border: 1px solid var(--dark-gold);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .mining-btn.primary {
+            background: linear-gradient(135deg, var(--primary-gold), var(--dark-gold));
+            color: black;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-top: 1px solid #333;
+        }
+        
+        .nav-item {
+            text-align: center;
+            color: #CCC;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .nav-item.active {
+            color: var(--primary-gold);
+        }
+    </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <div class="logo">
-                <h1>NEMEXCOIN</h1>
-            </div>
-            <ul class="nav-links">
-                <li><a href="#" class="active"><i>📊</i> Dashboard</a></li>
-                <li><a href="#"><i>⛏️</i> Mining</a></li>
-                <li><a href="#"><i>💰</i> Wallet</a></li>
-                <li><a href="#"><i>📈</i> Analytics</a></li>
-                <li><a href="#"><i>👥</i> Referrals</a></li>
-                <li><a href="#"><i>⚙️</i> Settings</a></li>
-                <li><a href="#"><i>❓</i> Help & Support</a></li>
-            </ul>
-            
-            <div class="user-profile">
-                <div class="user-avatar">ME</div>
-                <div class="user-info">
-                    <h4>Mining Enthusiast</h4>
-                    <p>user@nemexcoin.com</p>
-                </div>
-            </div>
+    <!-- Header -->
+    <div class="header">
+        <h1>NEMEXCOIN</h1>
+    </div>
+    
+    <!-- Balance Card -->
+    <div class="balance-card">
+        <div style="font-size: 1.1rem; color: #CCC;">Available Balance</div>
+        <div class="balance-amount">30 NMXp</div>
+        <div class="claim-timer">
+            Claim in <span id="claim-timer">11:18:45</span>
         </div>
-        
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="header">
-                <h2>Dashboard</h2>
-                <div class="header-actions">
-                    <button class="btn btn-outline" id="refresh-btn">Refresh Data</button>
-                </div>
-            </div>
-            
-            <!-- Stats Cards -->
-            <div class="stats-cards">
-                <div class="card">
-                    <h3>TOTAL NMXp EARNED</h3>
-                    <div class="value">0 NMXp</div>
-                    <div class="change positive">+0% today</div>
-                </div>
-                <div class="card">
-                    <h3>MINING POWER</h3>
-                    <div class="value">1.2 KH/s</div>
-                    <div class="change positive">+15% this week</div>
-                </div>
-                <div class="card">
-                    <h3>DAYS MINING</h3>
-                    <div class="value">1 day</div>
-                    <div class="change">Just started!</div>
-                </div>
-                <div class="card">
-                    <h3>REFERRALS</h3>
-                    <div class="value">0 users</div>
-                    <div class="change">Earn 10% bonus</div>
-                </div>
-            </div>
-            
-            <!-- Mining Section -->
-            <div class="mining-section">
-                <div class="mining-status">
-                    <h3>Mining Status</h3>
-                    <div class="progress-container">
-                        <div class="progress-label">
-                            <span>Current Session</span>
-                            <span>65%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress" id="mining-progress"></div>
-                        </div>
-                    </div>
-                    <div class="mining-controls">
-                        <button class="btn btn-primary" id="mining-toggle">Start Mining</button>
-                        <button class="btn btn-outline" id="boost-mining">Boost Mining</button>
-                        <button class="btn btn-outline" id="withdraw-btn">Withdraw</button>
-                    </div>
-                </div>
-                
-                <div class="recent-activity">
-                    <h3>Recent Activity</h3>
-                    <ul class="activity-list">
-                        <li class="activity-item">
-                            <div class="activity-icon">⛏️</div>
-                            <div class="activity-details">
-                                <div class="activity-title">Mining Started</div>
-                                <div class="activity-time">Today, 10:30 AM</div>
-                            </div>
-                            <div class="activity-amount">+0.5 NMXp</div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-icon">👤</div>
-                            <div class="activity-details">
-                                <div class="activity-title">Account Created</div>
-                                <div class="activity-time">Today, 10:15 AM</div>
-                            </div>
-                            <div class="activity-amount">Welcome!</div>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-            
-            <!-- Charts Section -->
-            <div class="charts-section">
-                <div class="chart-container">
-                    <h3>Earnings Overview</h3>
-                    <div class="chart-placeholder">
-                        Earnings Chart Will Appear Here
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <h3>Mining Performance</h3>
-                    <div class="chart-placeholder">
-                        Performance Chart Will Appear Here
-                    </div>
-                </div>
-            </div>
+        <button class="claim-btn" id="claim-button">CLAIM NOW</button>
+    </div>
+    
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Mining Power</div>
+            <div class="stat-value">1.2 KH/s</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Days Mining</div>
+            <div class="stat-value">1 day</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Referrals</div>
+            <div class="stat-value">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Earned</div>
+            <div class="stat-value">30 NMXp</div>
         </div>
     </div>
+    
+    <!-- Mining Section -->
+    <div class="mining-section">
+        <h3>Mining Status</h3>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>Current Session</span>
+            <span>65%</span>
+        </div>
+        <div class="progress-bar">
+            <div class="progress" id="mining-progress"></div>
+        </div>
+        <div class="mining-controls">
+            <button class="mining-btn primary" id="start-mining">START MINING</button>
+            <button class="mining-btn" id="boost-mining">BOOST</button>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="mining-section">
+        <h3>Recent Activity</h3>
+        <div style="color: #CCC; text-align: center; padding: 20px;">
+            Mining session started - Today, 10:30 AM<br>
+            <small>+0.5 NMXp earned</small>
+        </div>
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <a href="#" class="nav-item active">HOME</a>
+        <a href="#" class="nav-item">TASKS</a>
+        <a href="#" class="nav-item">BUY</a>
+        <a href="#" class="nav-item">REFERRALS</a>
+        <a href="#" class="nav-item">WALLET</a>
+    </div>
 
-    <script src="dashboard.js"></script>
+    <script>
+        // Claim timer countdown
+        function updateClaimTimer() {
+            const timerElement = document.getElementById('claim-timer');
+            let time = 11 * 3600 + 18 * 60 + 45; // 11:18:45 in seconds
+            
+            setInterval(() => {
+                time--;
+                if (time < 0) time = 24 * 3600; // Reset to 24 hours
+                
+                const hours = Math.floor(time / 3600);
+                const minutes = Math.floor((time % 3600) / 60);
+                const seconds = time % 60;
+                
+                timerElement.textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }, 1000);
+        }
+        
+        // Mining functionality
+        document.getElementById('start-mining').addEventListener('click', function() {
+            const button = this;
+            if (button.textContent === 'START MINING') {
+                button.textContent = 'STOP MINING';
+                document.getElementById('mining-progress').style.width = '100%';
+            } else {
+                button.textContent = 'START MINING';
+                document.getElementById('mining-progress').style.width = '65%';
+            }
+        });
+        
+        // Claim button
+        document.getElementById('claim-button').addEventListener('click', function() {
+            alert('NMXp claimed successfully!');
+        });
+        
+        // Initialize
+        updateClaimTimer();
+    </script>
 </body>
 </html>
