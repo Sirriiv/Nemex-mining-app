@@ -17,10 +17,6 @@ body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;p
 .loading-logo{font-size:72px;margin-bottom:20px;font-weight:700;animation:pulse 2s infinite}
 .loading-status{font-size:16px;letter-spacing:0.5px}
 .hidden{opacity:0;pointer-events:none}
-
-/* Hide content during loading */
-.content-hidden { display: none; }
-
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
 
 /* Header */
@@ -59,7 +55,7 @@ body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;p
 .claim-btn:active{transform:scale(0.95)}
 .claim-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 
-/* BOTTOM NAVIGATION */
+/* Navigation */
 .bottom-navbar{position:fixed;bottom:0;left:0;right:0;height:72px;background:linear-gradient(180deg,var(--darker-bg)0%,#1a1a1a 100%);border-top:1px solid rgba(212,175,55,0.3);box-shadow:0 -8px 32px rgba(0,0,0,0.6),0 -2px 8px rgba(212,175,55,0.1),inset 0 1px 0 rgba(212,175,55,0.1);display:flex;justify-content:space-around;align-items:center;padding:0 8px;z-index:1000;backdrop-filter:blur(20px)saturate(180%);max-width:400px;margin:0 auto;animation:navSlideUp 0.5s cubic-bezier(0.4,0,0.2,1)}
 .nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex:1;padding:10px 8px;text-decoration:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);border-radius:16px;margin:0 4px;position:relative;cursor:pointer;max-width:80px;border:none;background:transparent;color:inherit}
 .nav-item:hover{background:rgba(212,175,55,0.08);transform:translateY(-3px)}
@@ -138,94 +134,79 @@ body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;p
 </style>
 </head>
 <body>
-<!-- Loading Screen - Initially visible -->
-<div id="loading" class="loading">
+<div id="loading" class="loading hidden">
     <div class="loading-logo">NMX</div>
-    <div class="loading-status">Initializing your account...</div>
+    <div class="loading-status">Initializing…</div>
 </div>
 
-<!-- Main Content - Initially hidden -->
-<div id="mainContent" class="content-hidden">
-    <div id="overlay" class="overlay"></div>
-    <div id="settingsMenu" class="settings-menu">
-        <div class="settings-item" id="profileBtn"><div class="settings-icon-small">👤</div><div class="settings-label">Profile</div></div>
-        <div class="settings-item"><div class="settings-icon-small">🔔</div><div class="settings-label">Notifications</div></div>
-        <div class="settings-item"><div class="settings-icon-small">🌙</div><div class="settings-label">Dark Mode</div></div>
-        <div class="settings-item"><div class="settings-icon-small">🔒</div><div class="settings-label">Security</div></div>
-        <div class="settings-divider"></div>
-        <div class="settings-item"><div class="settings-icon-small">❓</div><div class="settings-label">Help & Support</div></div>
-        <div class="settings-item"><div class="settings-icon-small">ℹ️</div><div class="settings-label">About</div></div>
-        <div class="settings-divider"></div>
-        <div class="settings-item logout-btn"><div class="settings-icon-small">🚪</div><div class="settings-label">Logout</div></div>
-    </div>
+<div id="overlay" class="overlay"></div>
+<div id="settingsMenu" class="settings-menu">
+    <div class="settings-item" id="profileBtn"><div class="settings-icon-small">👤</div><div class="settings-label">Profile</div></div>
+    <div class="settings-item"><div class="settings-icon-small">🔔</div><div class="settings-label">Notifications</div></div>
+    <div class="settings-item"><div class="settings-icon-small">🌙</div><div class="settings-label">Dark Mode</div></div>
+    <div class="settings-item"><div class="settings-icon-small">🔒</div><div class="settings-label">Security</div></div>
+    <div class="settings-divider"></div>
+    <div class="settings-item"><div class="settings-icon-small">❓</div><div class="settings-label">Help & Support</div></div>
+    <div class="settings-item"><div class="settings-icon-small">ℹ️</div><div class="settings-label">About</div></div>
+    <div class="settings-divider"></div>
+    <div class="settings-item logout-btn"><div class="settings-icon-small">🚪</div><div class="settings-label">Logout</div></div>
+</div>
 
-    <div id="profileModal" class="profile-modal">
-        <div class="profile-header">
-            <div class="profile-title">👤 User Profile</div>
-            <button class="close-btn" id="closeProfile">✕</button>
-        </div>
-        <div class="profile-info">
-            <div class="profile-item"><div class="profile-label">Name</div><div class="profile-value" id="profileName">Mining Enthusiast</div></div>
-            <div class="profile-item"><div class="profile-label">Email</div><div class="profile-value" id="profileEmail">user@nemexcoin.com</div></div>
-            <div class="profile-item"><div class="profile-label">User ID</div><div class="value-row"><div class="profile-value" id="profileUserId">Loading...</div><button class="copy-btn" onclick="copyToClipboard('profileUserId')">Copy</button></div></div>
-            <div class="profile-item"><div class="profile-label">Days on Mining</div><div class="profile-value" id="profileMiningDays">1 day</div></div>
-            <div class="profile-item"><div class="profile-label">Total NMXp Earned</div><div class="profile-value" id="profileTotalEarned">0 NMXp</div></div>
-            <div class="profile-item"><div class="profile-label">Member Since</div><div class="profile-value" id="profileMemberSince">Today</div></div>
-        </div>
+<div id="profileModal" class="profile-modal">
+    <div class="profile-header">
+        <div class="profile-title">👤 User Profile</div>
+        <button class="close-btn" id="closeProfile">✕</button>
     </div>
-
-    <div class="header">
-        <div class="logo">NEMEXCOIN</div>
-        <div class="settings-icon" id="settingsButton">⚙️</div>
+    <div class="profile-info">
+        <div class="profile-item"><div class="profile-label">Name</div><div class="profile-value" id="profileName">Mining Enthusiast</div></div>
+        <div class="profile-item"><div class="profile-label">Email</div><div class="profile-value" id="profileEmail">user@nemexcoin.com</div></div>
+        <div class="profile-item"><div class="profile-label">User ID</div><div class="value-row"><div class="profile-value" id="profileUserId">Loading...</div><button class="copy-btn" onclick="copyToClipboard('profileUserId')">Copy</button></div></div>
+        <div class="profile-item"><div class="profile-label">Days on Mining</div><div class="profile-value" id="profileMiningDays">1 day</div></div>
+        <div class="profile-item"><div class="profile-label">Total NMXp Earned</div><div class="profile-value" id="profileTotalEarned">0 NMXp</div></div>
+        <div class="profile-item"><div class="profile-label">Member Since</div><div class="profile-value" id="profileMemberSince">Today</div></div>
     </div>
+</div>
 
-    <div id="home" class="section active">
-        <div class="dashboard">
-            <div class="balance" id="balanceDisplay">00</div>
-            <div class="nemex-logo">
-                <div class="logo-container">
-                    <div class="logo-base">
-                        <div class="logo-center"><div class="infinity-symbol"></div></div>
-                        <div class="circuit-lines">
-                            <div class="circuit-line"></div><div class="circuit-line"></div><div class="circuit-line"></div>
-                            <div class="circuit-line"></div><div class="circuit-line"></div><div class="circuit-pad"></div>
-                            <div class="circuit-pad"></div><div class="circuit-pad"></div><div class="circuit-pad"></div>
-                        </div>
+<div class="header">
+    <div class="logo">NEMEXCOIN</div>
+    <div class="settings-icon" id="settingsButton">⚙️</div>
+</div>
+
+<div id="home" class="section active">
+    <div class="dashboard">
+        <div class="balance" id="balanceDisplay">00</div>
+        <div class="nemex-logo">
+            <div class="logo-container">
+                <div class="logo-base">
+                    <div class="logo-center"><div class="infinity-symbol"></div></div>
+                    <div class="circuit-lines">
+                        <div class="circuit-line"></div><div class="circuit-line"></div><div class="circuit-line"></div>
+                        <div class="circuit-line"></div><div class="circuit-line"></div><div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div><div class="circuit-pad"></div><div class="circuit-pad"></div>
                     </div>
-                    <div class="logo-glow"></div>
                 </div>
+                <div class="logo-glow"></div>
             </div>
-            <div class="timer" id="timerDisplay">Claim in 24:00:00</div>
-            <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
         </div>
+        <div class="timer" id="timerDisplay">Claim in 24:00:00</div>
+        <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
     </div>
-
-    <div id="tasks" class="section"><h2>📋 Tasks</h2><p>Complete daily tasks and challenges to earn bonus NMX rewards</p></div>
-    <div id="buy" class="section"><h2>🛒 Buy NMXp</h2><p>Purchase NMX(points) tokens securely with multiple payment options</p></div>
-    <div id="referrals" class="section"><h2>👥 Referrals</h2><p>Invite friends and earn mining rewards</p></div>
-    <div id="wallet" class="section"><h2>💰 Wallet</h2><p>Manage your assets and NMXp balance and transaction history</p></div>
-
-    <!-- BOTTOM NAVIGATION -->
-    <nav class="bottom-navbar">
-        <button class="nav-item active" data-section="home"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></button>
-        <button class="nav-item" data-section="tasks"><div class="nav-icon">📋</div><div class="nav-label">Tasks</div></button>
-        <button class="nav-item" data-section="buy"><div class="nav-icon">🛒</div><div class="nav-label">Buy</div></button>
-        <button class="nav-item" data-section="referrals"><div class="nav-icon">👥</div><div class="nav-label">Referrals</div></button>
-        <button class="nav-item" data-section="wallet"><div class="nav-icon">💰</div><div class="nav-label">Wallet</div></button>
-    </nav>
 </div>
+
+<div id="tasks" class="section"><h2>📋 Tasks</h2><p>Complete daily tasks and challenges to earn bonus NMX rewards</p></div>
+<div id="buy" class="section"><h2>🛒 Buy NMXp</h2><p>Purchase NMX(points) tokens securely with multiple payment options</p></div>
+<div id="referrals" class="section"><h2>👥 Referrals</h2><p>Invite friends and earn mining rewards</p></div>
+<div id="wallet" class="section"><h2>💰 Wallet</h2><p>Manage your assets and NMXp balance and transaction history</p></div>
+
+<nav class="bottom-navbar">
+    <button class="nav-item active" data-section="home"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></button>
+    <button class="nav-item" data-section="tasks"><div class="nav-icon">📋</div><div class="nav-label">Tasks</div></button>
+    <button class="nav-item" data-section="buy"><div class="nav-icon">🛒</div><div class="nav-label">Buy</div></button>
+    <button class="nav-item" data-section="referrals"><div class="nav-icon">👥</div><div class="nav-label">Referrals</div></button>
+    <button class="nav-item" data-section="wallet"><div class="nav-icon">💰</div><div class="nav-label">Wallet</div></button>
+</nav>
 
 <script>
-// Show loading screen initially and hide main content
-document.addEventListener('DOMContentLoaded', function() {
-    const loading = document.getElementById('loading');
-    const mainContent = document.getElementById('mainContent');
-    
-    // Ensure loading screen is visible and main content is hidden
-    loading.classList.remove('hidden');
-    mainContent.classList.add('content-hidden');
-});
-
 // Tab Switching
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', function() {
@@ -391,19 +372,14 @@ function formatTime(seconds) {
 
 function showLoading(message = 'Loading...') {
     const loading = document.getElementById('loading');
-    const mainContent = document.getElementById('mainContent');
     const status = loading.querySelector('.loading-status');
     status.textContent = message;
     loading.classList.remove('hidden');
-    mainContent.classList.add('content-hidden');
 }
 
 function hideLoading() {
     setTimeout(() => {
-        const loading = document.getElementById('loading');
-        const mainContent = document.getElementById('mainContent');
-        loading.classList.add('hidden');
-        mainContent.classList.remove('content-hidden');
+        document.getElementById('loading').classList.add('hidden');
     }, 500);
 }
 
@@ -560,7 +536,7 @@ document.querySelectorAll('.settings-item').forEach(item => {
     }
 });
 
-// Initialize the app
+// Initialize
 initializeUser();
 claimButton.addEventListener('click', claimReward);
 </script>
