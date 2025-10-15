@@ -12,8 +12,8 @@
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
 body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;padding-bottom:80px;overflow-x:hidden}
 
-/* Loading */
-.loading{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--dark-bg);color:var(--gold);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:1000;transition:opacity 0.3s}
+/* Loading - Fixed z-index */
+.loading{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--dark-bg);color:var(--gold);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:2000;transition:opacity 0.3s}
 .loading-logo{font-size:72px;margin-bottom:20px;font-weight:700;animation:pulse 2s infinite}
 .loading-status{font-size:16px;letter-spacing:0.5px}
 .hidden{opacity:0;pointer-events:none}
@@ -207,18 +207,38 @@ body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;p
 </nav>
 
 <script>
-// Tab Switching
+// Tab Switching - Fixed to disable nav during loading
+let isLoading = false;
+
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', function() {
+        if (isLoading) return; // Prevent clicks during loading
+        
         const target = this.getAttribute('data-section');
         const loading = document.getElementById('loading');
+        
+        // Disable navigation
+        isLoading = true;
+        document.querySelectorAll('.nav-item').forEach(nav => {
+            nav.style.pointerEvents = 'none';
+        });
+        
         loading.classList.remove('hidden');
+        
         setTimeout(() => {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById(target).classList.add('active');
             this.classList.add('active');
-            setTimeout(() => loading.classList.add('hidden'), 300);
+            
+            setTimeout(() => {
+                loading.classList.add('hidden');
+                // Re-enable navigation
+                isLoading = false;
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.style.pointerEvents = 'auto';
+                });
+            }, 300);
         }, 1500);
     });
 });
