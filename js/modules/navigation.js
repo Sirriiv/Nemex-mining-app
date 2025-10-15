@@ -1,188 +1,116 @@
-// Navigation functionality
-const Navigation = {
-    isLoading: false,
-    currentSection: 'home',
+export class Navigation {
+    constructor() {
+        this.currentPage = 'dashboard';
+        this.init();
+    }
 
     init() {
-        this.setupNavigation();
-        this.loadInitialSection();
-        console.log('Navigation module initialized');
-    },
+        this.loadNavigation();
+        this.setupEventListeners();
+    }
 
-    setupNavigation() {
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                if (Navigation.isLoading) return;
-
-                const target = this.getAttribute('data-section');
-                Navigation.switchSection(target, this);
-            });
-        });
-    },
-
-    switchSection(sectionName, clickedElement) {
-        if (this.isLoading || this.currentSection === sectionName) return;
-
-        const loading = document.getElementById('loading');
-        
-        // Disable navigation during transition
-        this.isLoading = true;
-        document.querySelectorAll('.nav-item').forEach(nav => {
-            nav.style.pointerEvents = 'none';
-        });
-
-        Core.showLoading(`Loading ${sectionName}...`);
-
-        setTimeout(() => {
-            this.loadSection(sectionName);
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            clickedElement.classList.add('active');
-            this.currentSection = sectionName;
-
-            setTimeout(() => {
-                Core.hideLoading();
-                // Re-enable navigation
-                this.isLoading = false;
-                document.querySelectorAll('.nav-item').forEach(nav => {
-                    nav.style.pointerEvents = 'auto';
-                });
-            }, 300);
-        }, 800);
-    },
-
-    loadInitialSection() {
-        this.loadSection('home');
-    },
-
-    loadSection(sectionName) {
-        fetch(`sections/${sectionName}.html`)
-            .then(response => {
-                if (!response.ok) throw new Error('Section not found');
-                return response.text();
-            })
-            .then(html => {
-                document.getElementById('content').innerHTML = html;
-                this.initializeSection(sectionName);
-            })
-            .catch(error => {
-                console.error('Error loading section:', error);
-                this.showErrorSection(sectionName);
-            });
-    },
-
-    initializeSection(sectionName) {
-        switch(sectionName) {
-            case 'home':
-                this.initializeHomeSection();
-                break;
-            case 'tasks':
-                this.initializeTasksSection();
-                break;
-            case 'buy':
-                this.initializeBuySection();
-                break;
-            case 'referrals':
-                this.initializeReferralsSection();
-                break;
-            case 'wallet':
-                this.initializeWalletSection();
-                break;
+    loadNavigation() {
+        // Load sidebar
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+            sidebar.innerHTML = this.generateSidebar();
         }
-    },
 
-    initializeHomeSection() {
-        const claimButton = document.getElementById('claimButton');
-        if (claimButton) {
-            claimButton.addEventListener('click', User.claimReward);
+        // Load navbar if container exists
+        const navbarContainer = document.getElementById('navbar-container');
+        if (navbarContainer) {
+            navbarContainer.innerHTML = this.generateNavbar();
         }
-        
-        // Initialize home-specific functionality
-        User.initializeUser();
-    },
+    }
 
-    initializeTasksSection() {
-        // Initialize task buttons
-        document.querySelectorAll('.task-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const taskName = this.closest('.task-item').querySelector('h3').textContent;
-                Utils.showNotification(`Starting ${taskName}...`, 'info');
-                // Add task completion logic here
-            });
-        });
-    },
-
-    initializeBuySection() {
-        // Initialize buy buttons
-        document.querySelectorAll('.buy-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const packageName = this.closest('.buy-option').querySelector('h3').textContent;
-                Utils.showNotification(`Processing purchase of ${packageName}...`, 'info');
-                // Add purchase logic here
-            });
-        });
-    },
-
-    initializeReferralsSection() {
-        // Initialize referral functionality
-        const copyBtn = document.querySelector('.copy-btn');
-        if (copyBtn) {
-            copyBtn.addEventListener('click', this.copyReferralLink);
-        }
-        
-        // Load referral stats
-        this.loadReferralStats();
-    },
-
-    initializeWalletSection() {
-        // Load wallet data
-        this.loadWalletData();
-    },
-
-    async loadReferralStats() {
-        try {
-            const stats = await API.getReferralStats(Core.currentUserId);
-            document.getElementById('referralCount').textContent = stats.count || '0';
-            document.getElementById('referralEarnings').textContent = `${stats.earnings || '0'} NMXp`;
-            
-            const referralLink = document.getElementById('referralLink');
-            if (referralLink) {
-                referralLink.value = `https://nemexcoin.com/ref/${Core.currentUserId}`;
-            }
-        } catch (error) {
-            console.error('Error loading referral stats:', error);
-            // Fallback to local data
-            document.getElementById('referralCount').textContent = '0';
-            document.getElementById('referralEarnings').textContent = '0 NMXp';
-        }
-    },
-
-    async loadWalletData() {
-        try {
-            const wallet = await API.getWallet(Core.currentUserId);
-            document.getElementById('walletBalance').textContent = `${wallet.balance || '0'} NMXp`;
-        } catch (error) {
-            console.error('Error loading wallet data:', error);
-            // Fallback to local data
-            const savedBalance = localStorage.getItem('nmxBalance') || '0';
-            document.getElementById('walletBalance').textContent = `${savedBalance} NMXp`;
-        }
-    },
-
-    copyReferralLink() {
-        const referralLink = document.getElementById('referralLink');
-        if (referralLink) {
-            Utils.copyToClipboard(referralLink.value);
-            Utils.showNotification('Referral link copied to clipboard!', 'success');
-        }
-    },
-
-    showErrorSection(sectionName) {
-        document.getElementById('content').innerHTML = `
-            <div class="section active">
-                <h2>⚠️ Error</h2>
-                <p>Failed to load ${sectionName} section. Please try again.</p>
-                <button class="claim-btn" onclick="Navigation.loadSection('${sectionName}')">Retry</button>
+    generateSidebar() {
+        return `
+            <div class="logo">
+                <h1>NEMEXCOIN</h1>
+            </div>
+            <ul class="nav-links">
+                <li><a href="#" class="active" data-page="dashboard"><i>📊</i> Dashboard</a></li>
+                <li><a href="#" data-page="mining"><i>⛏️</i> Mining</a></li>
+                <li><a href="#" data-page="wallet"><i>💰</i> Wallet</a></li>
+                <li><a href="#" data-page="analytics"><i>📈</i> Analytics</a></li>
+                <li><a href="#" data-page="referrals"><i>👥</i> Referrals</a></li>
+                <li><a href="#" data-page="settings"><i>⚙️</i> Settings</a></li>
+                <li><a href="#" data-page="help"><i>❓</i> Help & Support</a></li>
+            </ul>
+            <div class="user-profile">
+                <div class="user-avatar">ME</div>
+                <div class="user-info">
+                    <h4>Mining Enthusiast</h4>
+                    <p>user@nemexcoin.com</p>
+                </div>
             </div>
         `;
     }
-};
+
+    generateNavbar() {
+        return `
+            <nav class="navbar">
+                <div class="nav-brand">
+                    <span class="gold-text">NEMEXCOIN</span>
+                </div>
+                <div class="nav-actions">
+                    <button class="nav-btn" id="notifications-btn">
+                        <i>🔔</i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="nav-btn" id="profile-btn">
+                        <i>👤</i>
+                    </button>
+                </div>
+            </nav>
+        `;
+    }
+
+    setupEventListeners() {
+        // Navigation links
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.nav-links a')) {
+                e.preventDefault();
+                const link = e.target.closest('a');
+                const page = link.dataset.page;
+                this.navigateTo(page);
+            }
+        });
+
+        // Navigation buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#notifications-btn')) {
+                this.showNotifications();
+            }
+            if (e.target.closest('#profile-btn')) {
+                this.showProfileMenu();
+            }
+        });
+    }
+
+    navigateTo(page) {
+        // Update active link
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.classList.remove('active');
+        });
+        document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+        // Update current page
+        this.currentPage = page;
+        
+        // Dispatch navigation event
+        window.dispatchEvent(new CustomEvent('pageChanged', { 
+            detail: { page } 
+        }));
+    }
+
+    showNotifications() {
+        // Implementation for notifications modal
+        console.log('Show notifications');
+    }
+
+    showProfileMenu() {
+        // Implementation for profile menu
+        console.log('Show profile menu');
+    }
+}
