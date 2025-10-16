@@ -1,77 +1,56 @@
-// Navigation Management
-let isLoading = false;
-
-function initializeNavigation() {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', function() {
-            if (isLoading) return;
-            
-            const target = this.getAttribute('data-section');
-            
-            // Don't reload home section since it's already loaded
-            if (target === 'home') {
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                document.getElementById('home').classList.add('active');
-                this.classList.add('active');
-                return;
-            }
-            
-            const loading = document.getElementById('loading');
-            
-            // Disable navigation during loading
-            isLoading = true;
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.style.pointerEvents = 'none';
-            });
-            
-            loading.classList.remove('hidden');
-            
-            setTimeout(() => {
-                loadSection(target);
-                
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                this.classList.add('active');
-                
-                setTimeout(() => {
-                    loading.classList.add('hidden');
-                    // Re-enable navigation
-                    isLoading = false;
-                    document.querySelectorAll('.nav-item').forEach(nav => {
-                        nav.style.pointerEvents = 'auto';
-                    });
-                }, 300);
-            }, 1500);
-        });
-    });
-}
-
-async function loadSection(sectionName) {
-    try {
-        // For home section, just show it (already loaded)
-        if (sectionName === 'home') {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.getElementById('home').classList.add('active');
+// Navigation Module
+const Navigation = {
+    init() {
+        console.log('🚀 Navigation module loading...');
+        
+        // Get all navigation items
+        const navItems = document.querySelectorAll('.nav-item');
+        
+        if (navItems.length === 0) {
+            console.error('❌ No navigation items found');
             return;
         }
         
-        const response = await fetch(`sections/${sectionName}.html`);
-        if (!response.ok) throw new Error('Failed to load section');
+        console.log(`✅ Found ${navItems.length} navigation items`);
         
-        const html = await response.text();
+        // Add click event to each nav item
+        navItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const targetSection = this.getAttribute('data-section');
+                console.log(`📱 Navigation: Switching to ${targetSection}`);
+                Navigation.switchSection(targetSection, this);
+            });
+        });
         
-        // Hide all sections and clear content area
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        document.getElementById('content-area').innerHTML = html;
-        document.getElementById('content-area').firstElementChild.classList.add('active');
-        
-    } catch (error) {
-        console.error('Error loading section:', error);
-        document.getElementById('content-area').innerHTML = `
-            <div class="section active">
-                <h2>${sectionName.charAt(0).toUpperCase() + sectionName.slice(1)}</h2>
-                <p>Failed to load ${sectionName} section. Please try again.</p>
-            </div>
-        `;
+        console.log('✅ Navigation module initialized successfully!');
+    },
+    
+    switchSection(sectionName, clickedElement) {
+        try {
+            // Remove active class from all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from all nav items
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            
+            // Add active class to target section and clicked nav item
+            const targetSection = document.getElementById(sectionName);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                clickedElement.classList.add('active');
+                console.log(`✅ Switched to ${sectionName} section`);
+            } else {
+                console.error(`❌ Section ${sectionName} not found`);
+            }
+        } catch (error) {
+            console.error('❌ Error switching section:', error);
+        }
     }
-}
+};
+
+// Make it available globally
+window.Navigation = Navigation;
