@@ -1,85 +1,85 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEMEXCOIN</title>
-<link rel="stylesheet" href="../CSS/dashboard.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEMEXCOIN</title>
+    <style>
+        /* EMBEDDED CSS - NO PATH ISSUES! */
+        :root { 
+            --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; 
+            --text: #f5f5f5; --muted: #aaa; --error: #e74c3c; 
+        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+        body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;padding-bottom:80px;overflow-x:hidden}
+        
+        .header{display:flex;justify-content:space-between;align-items:center;padding:20px;border-bottom:1px solid #333;background:var(--darker-bg)}
+        .logo{font-weight:700;color:var(--gold);font-size:18px;letter-spacing:1px}
+        
+        .dashboard{text-align:center;padding:40px 20px;}
+        .balance{font-size:52px;font-weight:700;margin:20px 0;color:var(--gold);text-shadow:0 0 20px rgba(212,175,55,0.3)}
+        .timer{font-size:14px;color:var(--muted);margin:10px 0;letter-spacing:1px}
+        .claim-btn{background:linear-gradient(135deg,var(--gold),#b8941f);color:var(--darker-bg);border:none;padding:14px 40px;border-radius:25px;font-size:16px;font-weight:600;margin:20px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(212,175,55,0.3)}
+        
+        .bottom-navbar{position:fixed;bottom:0;left:0;right:0;height:72px;background:linear-gradient(180deg,var(--darker-bg)0%,#1a1a1a 100%);border-top:1px solid rgba(212,175,55,0.3);display:flex;justify-content:space-around;align-items:center;padding:0 8px;z-index:1000;max-width:400px;margin:0 auto}
+        .nav-item{display:flex;flex-direction:column;align-items:center;padding:10px;color:#666;background:none;border:none;cursor:pointer}
+        .nav-item.active{color:var(--gold)}
+    </style>
 </head>
 <body>
-<div id="loading" class="loading hidden">
-    <div class="loading-logo">NMX</div>
-    <div class="loading-status">Initializing…</div>
-</div>
-
-<div id="overlay" class="overlay"></div>
-
-<!-- Settings Menu -->
-<div id="settingsMenu" class="settings-menu">
-    <div class="settings-item" id="profileBtn"><div class="settings-icon-small">👤</div><div class="settings-label">Profile</div></div>
-    <div class="settings-item"><div class="settings-icon-small">🔔</div><div class="settings-label">Notifications</div></div>
-    <div class="settings-item"><div class="settings-icon-small">🌙</div><div class="settings-label">Dark Mode</div></div>
-    <div class="settings-item"><div class="settings-icon-small">🔒</div><div class="settings-label">Security</div></div>
-    <div class="settings-divider"></div>
-    <div class="settings-item"><div class="settings-icon-small">❓</div><div class="settings-label">Help & Support</div></div>
-    <div class="settings-item"><div class="settings-icon-small">ℹ️</div><div class="settings-label">About</div></div>
-    <div class="settings-divider"></div>
-    <div class="settings-item logout-btn"><div class="settings-icon-small">🚪</div><div class="settings-label">Logout</div></div>
-</div>
-
-<!-- Profile Modal -->
-<div id="profileModal" class="profile-modal">
-    <div class="profile-header">
-        <div class="profile-title">👤 User Profile</div>
-        <button class="close-btn" id="closeProfile">✕</button>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">NEMEXCOIN</div>
+        <div class="settings-icon">⚙️</div>
     </div>
-    <div class="profile-info">
-        <div class="profile-item"><div class="profile-label">Name</div><div class="profile-value" id="profileName">Mining Enthusiast</div></div>
-        <div class="profile-item"><div class="profile-label">Email</div><div class="profile-value" id="profileEmail">user@nemexcoin.com</div></div>
-        <div class="profile-item"><div class="profile-label">User ID</div><div class="value-row"><div class="profile-value" id="profileUserId">Loading...</div><button class="copy-btn" onclick="copyToClipboard('profileUserId')">Copy</button></div></div>
-        <div class="profile-item"><div class="profile-label">Days on Mining</div><div class="profile-value" id="profileMiningDays">1 day</div></div>
-        <div class="profile-item"><div class="profile-label">Total NMXp Earned</div><div class="profile-value" id="profileTotalEarned">0 NMXp</div></div>
-        <div class="profile-item"><div class="profile-label">Member Since</div><div class="profile-value" id="profileMemberSince">Today</div></div>
-    </div>
-</div>
 
-<!-- Header -->
-<div class="header">
-    <div class="logo">NEMEXCOIN</div>
-    <div class="settings-icon" id="settingsButton">⚙️</div>
-</div>
-
-<!-- Dynamic Content Area -->
-<main id="section-content">
+    <!-- Main Content -->
     <div class="dashboard">
         <div class="balance" id="balanceDisplay">00</div>
-        <div class="nemex-logo">
-            <div class="logo-container">
-                <div class="logo-base">
-                    <div class="logo-center"><div class="infinity-symbol"></div></div>
-                    <div class="circuit-lines">
-                        <div class="circuit-line"></div><div class="circuit-line"></div><div class="circuit-line"></div>
-                        <div class="circuit-line"></div><div class="circuit-line"></div><div class="circuit-pad"></div>
-                        <div class="circuit-pad"></div><div class="circuit-pad"></div><div class="circuit-pad"></div>
-                    </div>
-                </div>
-                <div class="logo-glow"></div>
-            </div>
-        </div>
         <div class="timer" id="timerDisplay">Claim in 24:00:00</div>
         <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
     </div>
-</main>
 
-<!-- Navigation -->
-<nav class="bottom-navbar">
-    <button class="nav-item active" data-section="home"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></button>
-    <button class="nav-item" data-section="tasks"><div class="nav-icon">📋</div><div class="nav-label">Tasks</div></button>
-    <button class="nav-item" data-section="buy"><div class="nav-icon">🛒</div><div class="nav-label">Buy</div></button>
-    <button class="nav-item" data-section="referrals"><div class="nav-icon">👥</div><div class="nav-label">Referrals</div></button>
-    <button class="nav-item" data-section="wallet"><div class="nav-icon">💰</div><div class="nav-label">Wallet</div></button>
-</nav>
+    <!-- Navigation -->
+    <nav class="bottom-navbar">
+        <button class="nav-item active">🏠 Home</button>
+        <button class="nav-item">📋 Tasks</button>
+        <button class="nav-item">🛒 Buy</button>
+        <button class="nav-item">👥 Referrals</button>
+        <button class="nav-item">💰 Wallet</button>
+    </nav>
 
-<script src="JS/navigation.js"></script>
+    <script>
+        // SIMPLE JAVASCRIPT - NO MODULE ISSUES!
+        console.log('🚀 Dashboard loaded!');
+        
+        // Simple navigation
+        document.querySelectorAll('.nav-item').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                if(!this.textContent.includes('Home')) {
+                    alert(this.textContent + ' section coming soon!');
+                }
+            });
+        });
+        
+        // Mining timer
+        let seconds = 24 * 60 * 60;
+        const timerDisplay = document.getElementById('timerDisplay');
+        
+        function updateTimer() {
+            if (seconds > 0) {
+                seconds--;
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                timerDisplay.textContent = `Claim in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        setInterval(updateTimer, 1000);
+    </script>
 </body>
 </html>
