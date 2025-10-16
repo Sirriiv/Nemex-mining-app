@@ -52,7 +52,37 @@
     <div class="settings-icon" id="settingsButton">⚙️</div>
 </div>
 
-<!-- Sections will be loaded dynamically -->
+<!-- Home Section - Added directly to fix loading issue -->
+<div id="home" class="section active">
+    <div class="dashboard">
+        <div class="balance" id="balanceDisplay">00</div>
+        <div class="nemex-logo">
+            <div class="logo-container">
+                <div class="logo-base">
+                    <div class="logo-center">
+                        <div class="infinity-symbol"></div>
+                    </div>
+                    <div class="circuit-lines">
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                    </div>
+                </div>
+                <div class="logo-glow"></div>
+            </div>
+        </div>
+        <div class="timer" id="timerDisplay">Claim in 24:00:00</div>
+        <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
+    </div>
+</div>
+
+<!-- Other Sections (will be loaded dynamically when needed) -->
 <div id="content-area"></div>
 
 <!-- Navigation -->
@@ -71,5 +101,29 @@
 <script src="js/modules/settings.js"></script>
 <script src="js/modules/core.js"></script>
 <script src="js/app.js"></script>
+
+<script>
+// Fallback initialization - ensures home section works even if modules fail
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure home section is visible
+    const homeSection = document.getElementById('home');
+    if (homeSection) {
+        homeSection.classList.add('active');
+    }
+    
+    // Initialize claim button functionality
+    const claimButton = document.getElementById('claimButton');
+    if (claimButton && typeof claimReward === 'function') {
+        claimButton.addEventListener('click', claimReward);
+    } else if (claimButton) {
+        // Fallback if claimReward not available yet
+        claimButton.addEventListener('click', function() {
+            alert('System initializing... Please wait a moment and try again.');
+        });
+    }
+    
+    console.log('Dashboard initialized successfully');
+});
+</script>
 </body>
 </html>
