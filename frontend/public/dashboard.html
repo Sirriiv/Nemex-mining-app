@@ -51,7 +51,7 @@
     <div class="settings-icon" id="settingsButton">⚙️</div>
 </div>
 
-<!-- HOME SECTION - This is what makes it look like your screenshot -->
+<!-- HOME SECTION - THIS IS WHAT WAS MISSING -->
 <div id="home" class="section active">
     <div class="dashboard">
         <div class="balance" id="balanceDisplay">0</div>
@@ -81,7 +81,7 @@
     </div>
 </div>
 
-<!-- Other sections (empty for now) -->
+<!-- Other Sections -->
 <div id="tasks" class="section">
     <h2>📋 Tasks</h2>
     <p>Complete daily tasks and challenges to earn bonus NMX rewards</p>
@@ -111,17 +111,11 @@
     <button class="nav-item" data-section="wallet"><div class="nav-icon">💰</div><div class="nav-label">Wallet</div></button>
 </nav>
 
-<script src="./js/utils.js"></script>
-<script src="./js/modules/API.js"></script>
-<script src="./js/modules/user.js"></script>
-<script src="./js/modules/navigation.js"></script>
-<script src="./js/modules/settings.js"></script>
-<script src="./js/modules/core.js"></script>
-<script src="./js/app.js"></script>
-
 <script>
-// Simple navigation to make sections work
+// Simple all-in-one JavaScript to make everything work
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('Dashboard loaded!');
+    
     // Navigation between sections
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', function() {
@@ -170,27 +164,42 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('overlay').classList.remove('active');
     });
 
-    // Initialize user and mining functionality
-    if (typeof User !== 'undefined' && User.initializeUser) {
-        User.initializeUser();
-    }
-
-    // Make sure claim button works
-    const claimButton = document.getElementById('claimButton');
-    if (claimButton) {
-        claimButton.addEventListener('click', function() {
-            if (typeof claimReward !== 'undefined') {
-                claimReward();
-            } else if (typeof User !== 'undefined' && User.claimReward) {
-                User.claimReward();
-            } else {
-                alert('Mining system initializing...');
-            }
-        });
-    }
-
-    console.log('Dashboard loaded successfully!');
+    // Start countdown timer (simple version)
+    startCountdown(24 * 60 * 60);
 });
+
+function startCountdown(seconds) {
+    let remainingTime = seconds;
+    const timerDisplay = document.getElementById('timerDisplay');
+    const claimButton = document.getElementById('claimButton');
+    
+    function update() {
+        if (remainingTime > 0) {
+            const hours = Math.floor(remainingTime / 3600);
+            const minutes = Math.floor((remainingTime % 3600) / 60);
+            const secs = remainingTime % 60;
+            timerDisplay.textContent = `Claim in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            remainingTime--;
+        } else {
+            timerDisplay.textContent = 'Ready to Claim!';
+            claimButton.disabled = false;
+            claimButton.textContent = 'CLAIM 30 NMXp';
+        }
+    }
+    
+    update();
+    setInterval(update, 1000);
+}
+
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+        alert('Copied to clipboard!');
+    });
+}
+
+// Make functions globally available
+window.copyToClipboard = copyToClipboard;
 </script>
 </body>
 </html>
