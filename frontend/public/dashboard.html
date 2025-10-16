@@ -51,8 +51,56 @@
     <div class="settings-icon" id="settingsButton">⚙️</div>
 </div>
 
-<!-- Sections will be loaded dynamically -->
-<div id="content-area"></div>
+<!-- HOME SECTION - This is what makes it look like your screenshot -->
+<div id="home" class="section active">
+    <div class="dashboard">
+        <div class="balance" id="balanceDisplay">0</div>
+        <div class="nemex-logo">
+            <div class="logo-container">
+                <div class="logo-base">
+                    <div class="logo-center">
+                        <div class="infinity-symbol"></div>
+                    </div>
+                    <div class="circuit-lines">
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                    </div>
+                </div>
+                <div class="logo-glow"></div>
+            </div>
+        </div>
+        <div class="timer" id="timerDisplay">Claim in 24:00:00</div>
+        <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
+    </div>
+</div>
+
+<!-- Other sections (empty for now) -->
+<div id="tasks" class="section">
+    <h2>📋 Tasks</h2>
+    <p>Complete daily tasks and challenges to earn bonus NMX rewards</p>
+</div>
+
+<div id="buy" class="section">
+    <h2>🛒 Buy NMXp</h2>
+    <p>Purchase NMX(points) tokens securely with multiple payment options</p>
+</div>
+
+<div id="referrals" class="section">
+    <h2>👥 Referrals</h2>
+    <p>Invite friends and earn mining rewards</p>
+</div>
+
+<div id="wallet" class="section">
+    <h2>💰 Wallet</h2>
+    <p>Manage your assets and NMXp balance and transaction history</p>
+</div>
 
 <!-- Navigation -->
 <nav class="bottom-navbar">
@@ -72,23 +120,76 @@
 <script src="./js/app.js"></script>
 
 <script>
-// Quick debug script to check if everything loaded
+// Simple navigation to make sections work
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔍 Debug: Checking loaded modules...');
-    if (typeof Core === 'undefined') console.error('❌ core.js not loaded');
-    else console.log('✅ core.js loaded');
-    
-    if (typeof Navigation === 'undefined') console.error('❌ navigation.js not loaded');
-    else console.log('✅ navigation.js loaded');
-    
-    if (typeof User === 'undefined') console.error('❌ user.js not loaded');
-    else console.log('✅ user.js loaded');
-    
-    if (typeof Settings === 'undefined') console.error('❌ settings.js not loaded');
-    else console.log('✅ settings.js loaded');
-    
-    // Check if home section will load
-    console.log('🔍 Home section should load dynamically');
+    // Navigation between sections
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const target = this.getAttribute('data-section');
+            
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active from all nav items
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                nav.classList.remove('active');
+            });
+            
+            // Show target section and activate nav item
+            document.getElementById(target).classList.add('active');
+            this.classList.add('active');
+        });
+    });
+
+    // Settings menu functionality
+    document.getElementById('settingsButton').addEventListener('click', function(e) {
+        e.stopPropagation();
+        document.getElementById('settingsMenu').classList.toggle('active');
+        document.getElementById('overlay').classList.toggle('active');
+    });
+
+    // Close modals when overlay is clicked
+    document.getElementById('overlay').addEventListener('click', function() {
+        document.getElementById('settingsMenu').classList.remove('active');
+        document.getElementById('profileModal').classList.remove('active');
+        this.classList.remove('active');
+    });
+
+    // Profile button
+    document.getElementById('profileBtn').addEventListener('click', function() {
+        document.getElementById('settingsMenu').classList.remove('active');
+        document.getElementById('profileModal').classList.add('active');
+        document.getElementById('overlay').classList.add('active');
+    });
+
+    // Close profile
+    document.getElementById('closeProfile').addEventListener('click', function() {
+        document.getElementById('profileModal').classList.remove('active');
+        document.getElementById('overlay').classList.remove('active');
+    });
+
+    // Initialize user and mining functionality
+    if (typeof User !== 'undefined' && User.initializeUser) {
+        User.initializeUser();
+    }
+
+    // Make sure claim button works
+    const claimButton = document.getElementById('claimButton');
+    if (claimButton) {
+        claimButton.addEventListener('click', function() {
+            if (typeof claimReward !== 'undefined') {
+                claimReward();
+            } else if (typeof User !== 'undefined' && User.claimReward) {
+                User.claimReward();
+            } else {
+                alert('Mining system initializing...');
+            }
+        });
+    }
+
+    console.log('Dashboard loaded successfully!');
 });
 </script>
 </body>
