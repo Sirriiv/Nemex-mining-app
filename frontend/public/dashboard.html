@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NEMEXCOIN</title>
 <style>
-/* COPY ALL YOUR dashboard.css CONTENT HERE */
 :root { 
     --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; 
     --text: #f5f5f5; --muted: #aaa; --error: #e74c3c; 
@@ -165,10 +164,10 @@ body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;p
     <div class="settings-icon" id="settingsButton">⚙️</div>
 </div>
 
-<!-- HOME SECTION -->
+<!-- Home Section -->
 <div id="home" class="section active">
     <div class="dashboard">
-        <div class="balance" id="balanceDisplay">0</div>
+        <div class="balance" id="balanceDisplay">00</div>
         <div class="nemex-logo">
             <div class="logo-container">
                 <div class="logo-base">
@@ -187,27 +186,6 @@ body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;p
     </div>
 </div>
 
-<!-- Other Sections -->
-<div id="tasks" class="section">
-    <h2>📋 Tasks</h2>
-    <p>Complete daily tasks and challenges to earn bonus NMX rewards</p>
-</div>
-
-<div id="buy" class="section">
-    <h2>🛒 Buy NMXp</h2>
-    <p>Purchase NMX(points) tokens securely with multiple payment options</p>
-</div>
-
-<div id="referrals" class="section">
-    <h2>👥 Referrals</h2>
-    <p>Invite friends and earn mining rewards</p>
-</div>
-
-<div id="wallet" class="section">
-    <h2>💰 Wallet</h2>
-    <p>Manage your assets and NMXp balance and transaction history</p>
-</div>
-
 <!-- Navigation -->
 <nav class="bottom-navbar">
     <button class="nav-item active" data-section="home"><div class="nav-icon">🏠</div><div class="nav-label">Home</div></button>
@@ -218,66 +196,209 @@ body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;p
 </nav>
 
 <script>
-// Simple JavaScript to make everything work
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('NEMEXCOIN Dashboard loaded!');
-    
-    // Navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const target = this.getAttribute('data-section');
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById(target).classList.add('active');
-            this.classList.add('active');
-        });
-    });
+// Simple all-in-one JavaScript to make it work
+const API_BASE = 'https://nemex-backend.onrender.com';
+let currentUserId = localStorage.getItem('userId') || 'user_' + Date.now();
+let countdownInterval;
 
-    // Settings
+// Initialize everything when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeUser();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Settings button
     document.getElementById('settingsButton').addEventListener('click', function(e) {
         e.stopPropagation();
         document.getElementById('settingsMenu').classList.toggle('active');
         document.getElementById('overlay').classList.toggle('active');
     });
 
+    // Overlay click
     document.getElementById('overlay').addEventListener('click', function() {
         document.getElementById('settingsMenu').classList.remove('active');
         document.getElementById('profileModal').classList.remove('active');
         this.classList.remove('active');
     });
 
+    // Profile button
     document.getElementById('profileBtn').addEventListener('click', function() {
         document.getElementById('settingsMenu').classList.remove('active');
+        loadProfileData();
         document.getElementById('profileModal').classList.add('active');
         document.getElementById('overlay').classList.add('active');
     });
 
+    // Close profile
     document.getElementById('closeProfile').addEventListener('click', function() {
         document.getElementById('profileModal').classList.remove('active');
         document.getElementById('overlay').classList.remove('active');
     });
 
-    // Start countdown
-    startCountdown(24 * 60 * 60);
-});
+    // Claim button
+    document.getElementById('claimButton').addEventListener('click', claimReward);
 
-function startCountdown(seconds) {
-    let remainingTime = seconds;
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const target = this.getAttribute('data-section');
+            if (target === 'home') {
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.getElementById('home').classList.add('active');
+                this.classList.add('active');
+            } else {
+                alert(`${target} section coming soon!`);
+            }
+        });
+    });
+}
+
+async function initializeUser() {
+    try {
+        showLoading('Initializing your account...');
+        const response = await fetch(`${API_BASE}/api/user/${currentUserId}`);
+        if (response.ok) {
+            const data = await response.json();
+            updateUI(data);
+        } else if (response.status === 404) {
+            await createNewUser();
+        } else {
+            throw new Error('Failed to load user data');
+        }
+        hideLoading();
+    } catch (error) {
+        console.error('Error initializing user:', error);
+        hideLoading();
+        fallbackToLocalStorage();
+    }
+}
+
+async function createNewUser() {
+    try {
+        const response = await fetch(`${API_BASE}/api/user`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                userId: currentUserId,
+                balance: 0,
+                remainingTime: 24 * 60 * 60,
+                joinDate: new Date().toISOString()
+            })
+        });
+        if (!response.ok) throw new Error('Failed to create user');
+        const data = await response.json();
+        updateUI(data);
+    } catch (error) {
+        console.error('Error creating user:', error);
+        throw error;
+    }
+}
+
+function updateUI(data) {
+    document.getElementById('balanceDisplay').textContent = data.balance;
+    if (data.remainingTime > 0) {
+        startCountdown(data.remainingTime);
+        document.getElementById('claimButton').disabled = true;
+        document.getElementById('claimButton').textContent = '30 NMXp';
+    } else {
+        document.getElementById('timerDisplay').textContent = 'Ready to Claim!';
+        document.getElementById('claimButton').disabled = false;
+        document.getElementById('claimButton').textContent = 'CLAIM 30 NMXp';
+    }
+    localStorage.setItem('nmxBalance', data.balance);
+    localStorage.setItem('backupCountdown', data.remainingTime);
+    localStorage.setItem('backupLastUpdate', Date.now());
+}
+
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+function startCountdown(initialTime) {
+    let remainingTime = initialTime;
+    clearInterval(countdownInterval);
+    
     function update() {
         if (remainingTime > 0) {
-            const hours = Math.floor(remainingTime / 3600);
-            const minutes = Math.floor((remainingTime % 3600) / 60);
-            const secs = remainingTime % 60;
-            document.getElementById('timerDisplay').textContent = `Claim in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            document.getElementById('timerDisplay').textContent = `Claim in ${formatTime(remainingTime)}`;
             remainingTime--;
+            if (remainingTime % 60 === 0) {
+                localStorage.setItem('backupCountdown', remainingTime);
+                localStorage.setItem('backupLastUpdate', Date.now());
+            }
         } else {
             document.getElementById('timerDisplay').textContent = 'Ready to Claim!';
             document.getElementById('claimButton').disabled = false;
             document.getElementById('claimButton').textContent = 'CLAIM 30 NMXp';
+            clearInterval(countdownInterval);
         }
     }
     update();
-    setInterval(update, 1000);
+    countdownInterval = setInterval(update, 1000);
+}
+
+async function claimReward() {
+    try {
+        const claimButton = document.getElementById('claimButton');
+        claimButton.disabled = true;
+        claimButton.textContent = 'Claiming...';
+        
+        const response = await fetch(`${API_BASE}/api/claim/${currentUserId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+        });
+        const data = await response.json();
+        
+        if (response.ok) {
+            document.getElementById('balanceDisplay').textContent = data.balance;
+            startCountdown(24 * 60 * 60);
+            claimButton.textContent = '30 NMXp';
+            localStorage.setItem('nmxBalance', data.balance);
+            alert('✅ ' + data.message);
+        } else {
+            alert('❌ Error: ' + data.error);
+            claimButton.disabled = false;
+            claimButton.textContent = 'CLAIM 30 NMXp';
+        }
+    } catch (error) {
+        console.error('Error claiming reward:', error);
+        alert('❌ Network error. Please try again.');
+        document.getElementById('claimButton').disabled = false;
+        document.getElementById('claimButton').textContent = 'CLAIM 30 NMXp';
+    }
+}
+
+function fallbackToLocalStorage() {
+    const savedBalance = localStorage.getItem('nmxBalance');
+    const savedCountdown = localStorage.getItem('backupCountdown');
+    const savedLastUpdate = localStorage.getItem('backupLastUpdate');
+    
+    if (savedBalance) document.getElementById('balanceDisplay').textContent = savedBalance;
+    if (savedCountdown && savedLastUpdate) {
+        const elapsedSeconds = Math.floor((Date.now() - parseInt(savedLastUpdate)) / 1000);
+        const remainingTime = Math.max(0, parseInt(savedCountdown) - elapsedSeconds);
+        startCountdown(remainingTime);
+    } else {
+        startCountdown(24 * 60 * 60);
+    }
+}
+
+function showLoading(message = 'Loading...') {
+    const loading = document.getElementById('loading');
+    const status = loading.querySelector('.loading-status');
+    status.textContent = message;
+    loading.classList.remove('hidden');
+}
+
+function hideLoading() {
+    setTimeout(() => {
+        document.getElementById('loading').classList.add('hidden');
+    }, 500);
 }
 
 function copyToClipboard(elementId) {
@@ -287,7 +408,34 @@ function copyToClipboard(elementId) {
     });
 }
 
+async function loadProfileData() {
+    try {
+        showLoading('Loading profile...');
+        const response = await fetch(`${API_BASE}/api/profile/${currentUserId}`);
+        const data = await response.json();
+        
+        document.getElementById('profileName').textContent = data.name;
+        document.getElementById('profileEmail').textContent = data.email;
+        document.getElementById('profileUserId').textContent = data.userId;
+        document.getElementById('profileMiningDays').textContent = `${data.miningDays} day${data.miningDays > 1 ? 's' : ''}`;
+        document.getElementById('profileTotalEarned').textContent = `${data.totalEarned} NMXp`;
+        const memberSinceDate = new Date(data.memberSince);
+        document.getElementById('profileMemberSince').textContent = memberSinceDate.toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
+        });
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        hideLoading();
+        // Fallback profile data
+        document.getElementById('profileUserId').textContent = currentUserId;
+        alert('⚠️ Using offline profile data.');
+    }
+}
+
+// Make functions globally available
 window.copyToClipboard = copyToClipboard;
+window.claimReward = claimReward;
 </script>
 </body>
 </html>
