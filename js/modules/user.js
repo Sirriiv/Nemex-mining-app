@@ -1,167 +1,211 @@
 // User Management
-let currentUserId = getStableUserId();
-let countdownInterval;
-
-function getStableUserId() {
-    let userId = localStorage.getItem('userId');
-    if (userId) {
-        console.log('Found existing user ID:', userId);
-        return userId;
+class UserManager {
+    constructor() {
+        this.currentUser = null;
+        this.isAuthenticated = false;
     }
-    userId = generateStableUserId();
-    localStorage.setItem('userId', userId);
-    if (!localStorage.getItem('joinDate')) {
-        localStorage.setItem('joinDate', new Date().toISOString());
-    }
-    console.log('Created new stable user ID:', userId);
-    return userId;
-}
 
-function generateStableUserId() {
-    const components = [
-        navigator.userAgent, navigator.language,
-        navigator.hardwareConcurrency || 'unknown',
-        screen.width + 'x' + screen.height,
-        new Date().getTimezoneOffset()
-    ];
-    let hash = 0;
-    const str = components.join('|');
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return 'user_' + Math.abs(hash).toString(36) + '_' + Date.now();
-}
-
-async function initializeUser() {
-    try {
-        showLoading('Initializing your account...');
-        const data = await API.getUser(currentUserId);
-        console.log('Existing user loaded:', data);
-        updateUI(data);
-        hideLoading();
-    } catch (error) {
-        if (error.message.includes('404')) {
-            console.log('User not found in backend, creating new user...');
-            await createNewUser();
-        } else {
-            console.error('Error initializing user:', error);
-            hideLoading();
-            fallbackToLocalStorage();
-        }
-    }
-}
-
-async function createNewUser() {
-    try {
-        const data = await API.createUser({
-            userId: currentUserId,
-            balance: 0,
-            remainingTime: 24 * 60 * 60,
-            joinDate: new Date().toISOString()
-        });
-        console.log('New user created:', data);
-        updateUI(data);
-    } catch (error) {
-        console.error('Error creating user:', error);
-        throw error;
-    }
-}
-
-function updateUI(data) {
-    const balanceDisplay = document.getElementById('balanceDisplay');
-    const timerDisplay = document.getElementById('timerDisplay');
-    const claimButton = document.getElementById('claimButton');
-    
-    balanceDisplay.textContent = data.balance;
-    if (data.remainingTime > 0) {
-        startCountdown(data.remainingTime);
-        claimButton.disabled = true;
-        claimButton.textContent = '30 NMXp';
-    } else {
-        timerDisplay.textContent = 'Ready to Claim!';
-        claimButton.disabled = false;
-        claimButton.textContent = 'CLAIM 30 NMXp';
-    }
-    localStorage.setItem('nmxBalance', data.balance);
-    localStorage.setItem('backupCountdown', data.remainingTime);
-    localStorage.setItem('backupLastUpdate', Date.now());
-}
-
-function startCountdown(initialTime) {
-    let remainingTime = initialTime;
-    const timerDisplay = document.getElementById('timerDisplay');
-    const claimButton = document.getElementById('claimButton');
-    
-    clearInterval(countdownInterval);
-    
-    function update() {
-        if (remainingTime > 0) {
-            timerDisplay.textContent = `Claim in ${formatTime(remainingTime)}`;
-            remainingTime--;
-            if (remainingTime % 60 === 0) {
-                localStorage.setItem('backupCountdown', remainingTime);
-                localStorage.setItem('backupLastUpdate', Date.now());
+    async login(email, password) {
+        try {
+            console.log('🔐 Attempting login for:', email);
+            
+            // Validate inputs
+            if (!CoreUtils.validateEmail(email)) {
+                throw new Error('Please enter a valid email address');
             }
-        } else {
-            timerDisplay.textContent = 'Ready to Claim!';
-            claimButton.disabled = false;
-            claimButton.textContent = 'CLAIM 30 NMXp';
-            clearInterval(countdownInterval);
+
+            if (!CoreUtils.validatePassword(password)) {
+                throw new Error('Password must be at least 6 characters long');
+            }
+
+            // Simulate API call - replace with actual API
+            const userData = await this.mockLoginAPI(email, password);
+            
+            // Store user data
+            this.currentUser = userData;
+            this.isAuthenticated = true;
+            
+            // Store token
+            StorageManager.set('token', userData.token);
+            StorageManager.set('user', userData);
+            
+            console.log('✅ Login successful');
+            return { success: true, user: userData };
+            
+        } catch (error) {
+            console.error('❌ Login failed:', error);
+            return { success: false, error: error.message };
         }
     }
-    update();
-    countdownInterval = setInterval(update, 1000);
-}
 
-async function claimReward() {
-    const claimButton = document.getElementById('claimButton');
-    
-    try {
-        claimButton.disabled = true;
-        claimButton.textContent = 'Claiming...';
-        
-        const data = await API.claimReward(currentUserId);
-        
-        if (data.balance !== undefined) {
-            document.getElementById('balanceDisplay').textContent = data.balance;
-            startCountdown(24 * 60 * 60);
-            claimButton.textContent = '30 NMXp';
-            localStorage.setItem('nmxBalance', data.balance);
-            alert('✅ ' + data.message);
-        } else if (data.error && data.error.includes('not found')) {
-            console.log('User not found during claim, creating user...');
-            await createNewUser();
-            alert('⚠️ Account initialized. Please try claiming again.');
-            claimButton.disabled = false;
-            claimButton.textContent = 'CLAIM 30 NMXp';
-        } else {
-            alert('❌ Error: ' + data.error);
-            claimButton.disabled = false;
-            claimButton.textContent = 'CLAIM 30 NMXp';
+    async register(userData) {
+        try {
+            console.log('👤 Attempting registration');
+            
+            // Validate inputs
+            if (!userData.fullName || userData.fullName.length < 2) {
+                throw new Error('Please enter your full name');
+            }
+
+            if (!CoreUtils.validateEmail(userData.email)) {
+                throw new Error('Please enter a valid email address');
+            }
+
+            if (!CoreUtils.validatePassword(userData.password)) {
+                throw new Error('Password must be at least 6 characters long');
+            }
+
+            // Simulate API call - replace with actual API
+            const newUser = await this.mockRegisterAPI(userData);
+            
+            console.log('✅ Registration successful');
+            return { success: true, user: newUser };
+            
+        } catch (error) {
+            console.error('❌ Registration failed:', error);
+            return { success: false, error: error.message };
         }
-    } catch (error) {
-        console.error('Error claiming reward:', error);
-        alert('❌ Network error. Please try again.');
-        claimButton.disabled = false;
-        claimButton.textContent = 'CLAIM 30 NMXp';
+    }
+
+    logout() {
+        this.currentUser = null;
+        this.isAuthenticated = false;
+        StorageManager.clear();
+        console.log('🚪 User logged out');
+    }
+
+    getCurrentUser() {
+        if (!this.currentUser) {
+            this.currentUser = StorageManager.get('user');
+            this.isAuthenticated = !!this.currentUser;
+        }
+        return this.currentUser;
+    }
+
+    isLoggedIn() {
+        return !!this.getCurrentUser();
+    }
+
+    updateProfile(updates) {
+        try {
+            const currentUser = this.getCurrentUser();
+            if (!currentUser) {
+                throw new Error('No user logged in');
+            }
+
+            const updatedUser = { ...currentUser, ...updates };
+            this.currentUser = updatedUser;
+            StorageManager.set('user', updatedUser);
+            
+            console.log('✅ Profile updated');
+            return { success: true, user: updatedUser };
+            
+        } catch (error) {
+            console.error('❌ Profile update failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Mock API methods - replace with actual API calls
+    async mockLoginAPI(email, password) {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock response
+        return {
+            id: CoreUtils.generateId(),
+            email: email,
+            fullName: 'Mining Enthusiast',
+            balance: 0,
+            miningDays: 1,
+            referralCode: 'NMX' + Date.now().toString().slice(-6),
+            joinDate: new Date().toISOString(),
+            token: 'mock_jwt_token_' + Date.now()
+        };
+    }
+
+    async mockRegisterAPI(userData) {
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Mock response
+        return {
+            id: CoreUtils.generateId(),
+            email: userData.email,
+            fullName: userData.fullName,
+            balance: 25, // Welcome bonus
+            miningDays: 1,
+            referralCode: 'NMX' + Date.now().toString().slice(-6),
+            joinDate: new Date().toISOString(),
+            token: 'mock_jwt_token_' + Date.now()
+        };
     }
 }
 
-function fallbackToLocalStorage() {
-    const balanceDisplay = document.getElementById('balanceDisplay');
-    const savedBalance = localStorage.getItem('nmxBalance');
-    const savedCountdown = localStorage.getItem('backupCountdown');
-    const savedLastUpdate = localStorage.getItem('backupLastUpdate');
-    
-    if (savedBalance) balanceDisplay.textContent = savedBalance;
-    if (savedCountdown && savedLastUpdate) {
-        const elapsedSeconds = Math.floor((Date.now() - parseInt(savedLastUpdate)) / 1000);
-        const remainingTime = Math.max(0, parseInt(savedCountdown) - elapsedSeconds);
-        startCountdown(remainingTime);
-    } else {
-        startCountdown(24 * 60 * 60);
+// Initialize user manager
+window.userManager = new UserManager();
+
+// Login form handler
+document.addEventListener('DOMContentLoaded', function() {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            
+            // Show loading state
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Signing in...';
+            submitBtn.disabled = true;
+            
+            const result = await userManager.login(email, password);
+            
+            if (result.success) {
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } else {
+                // Show error
+                alert('Login failed: ' + result.error);
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
     }
-    alert('⚠️ Using offline mode. Some features may be limited.');
-}
+
+    // Registration form handler
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                fullName: document.getElementById('fullName').value,
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                referralCode: document.getElementById('referralCode').value
+            };
+            
+            const submitBtn = registerForm.querySelector('button[type="submit"]');
+            
+            // Show loading state
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating account...';
+            submitBtn.disabled = true;
+            
+            const result = await userManager.register(formData);
+            
+            if (result.success) {
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
+            } else {
+                // Show error
+                alert('Registration failed: ' + result.error);
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+    }
+});
