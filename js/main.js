@@ -1,129 +1,210 @@
-// Main dashboard functionality
-let isLoading = false;
-let countdownInterval;
-let currentUserId = getStableUserId();
-const API_BASE = 'https://nemex-backend.onrender.com';
+// Main Application JavaScript
+class NemexApp {
+    constructor() {
+        this.balance = 0;
+        this.timer = 24 * 60 * 60; // 24 hours in seconds
+        this.isClaimable = false;
+        this.interval = null;
+        this.init();
+    }
 
-// Initialize when DOM loads
-document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
-});
+    init() {
+        this.setupEventListeners();
+        this.startTimer();
+        this.loadUserData();
+        this.initializeApp();
+    }
 
-function initializeApp() {
-    setupNavigation();
-    setupSettingsMenu();
-    initializeUser();
-    
-    // Claim button event
-    document.getElementById('claimButton').addEventListener('click', claimReward);
-}
+    initializeApp() {
+        // Simulate app initialization
+        setTimeout(() => {
+            document.getElementById('loading').classList.add('hidden');
+        }, 2000);
+    }
 
-// Navigation
-function setupNavigation() {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', function() {
-            if (isLoading) return;
-
-            const target = this.getAttribute('data-section');
-            const loading = document.getElementById('loading');
-
-            // Disable navigation during loading
-            isLoading = true;
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.style.pointerEvents = 'none';
-            });
-
-            loading.classList.remove('hidden');
-
-            setTimeout(() => {
-                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                document.getElementById(target).classList.add('active');
-                this.classList.add('active');
-
-                setTimeout(() => {
-                    loading.classList.add('hidden');
-                    isLoading = false;
-                    document.querySelectorAll('.nav-item').forEach(nav => {
-                        nav.style.pointerEvents = 'auto';
-                    });
-                }, 300);
-            }, 1500);
+    setupEventListeners() {
+        // Settings button
+        document.getElementById('settingsButton').addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleSettingsMenu();
         });
-    });
-}
 
-// Settings Menu
-function setupSettingsMenu() {
-    const settingsButton = document.getElementById('settingsButton');
-    const settingsMenu = document.getElementById('settingsMenu');
-    const overlay = document.getElementById('overlay');
-    const profileBtn = document.getElementById('profileBtn');
-    const notificationsBtn = document.getElementById('notificationsBtn');
-    const closeProfile = document.getElementById('closeProfile');
+        // Overlay click
+        document.getElementById('overlay').addEventListener('click', () => {
+            this.hideAllModals();
+        });
 
-    // Settings button toggle
-    settingsButton.addEventListener('click', function() {
-        settingsMenu.classList.toggle('active');
-        overlay.classList.toggle('active');
-    });
+        // Close profile modal
+        document.getElementById('closeProfile').addEventListener('click', () => {
+            this.hideProfileModal();
+        });
 
-    // Overlay click to close
-    overlay.addEventListener('click', function() {
-        settingsMenu.classList.remove('active');
-        overlay.classList.remove('active');
-        document.getElementById('profileModal').classList.remove('active');
-    });
+        // Claim button
+        document.getElementById('claimButton').addEventListener('click', () => {
+            this.claimReward();
+        });
 
-    // Profile button
-    profileBtn.addEventListener('click', function() {
-        settingsMenu.classList.remove('active');
-        loadProfileData();
-        document.getElementById('profileModal').classList.add('active');
-    });
+        // Close settings when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.settings-menu') && !e.target.closest('.settings-icon')) {
+                this.hideSettingsMenu();
+            }
+        });
 
-    // Notifications button
-    notificationsBtn.addEventListener('click', function() {
-        settingsMenu.classList.remove('active');
-        overlay.classList.remove('active');
-        sectionLoader.loadNotifications();
-    });
+        // Profile button in settings
+        document.getElementById('profileBtn').addEventListener('click', () => {
+            this.showProfileModal();
+        });
+    }
 
-    // Close profile modal
-    closeProfile.addEventListener('click', function() {
-        document.getElementById('profileModal').classList.remove('active');
-        overlay.classList.remove('active');
-    });
-
-    // Other settings items
-    document.querySelectorAll('.settings-item').forEach(item => {
-        if (!item.id) {
-            item.addEventListener('click', function() {
-                const label = this.querySelector('.settings-label').textContent;
-                const alerts = {
-                    'Dark Mode': '🌙 Dark mode is already enabled!',
-                    'Security': '🔒 Security settings coming soon!',
-                    'Help & Support': '❓ Help & support coming soon!',
-                    'About': 'ℹ️ NEMEXCOIN v1.0 - Crypto Rewards Platform',
-                    'Logout': 'logout'
-                };
-                
-                if (label === 'Logout' && confirm('Are you sure you want to logout?')) {
-                    localStorage.clear();
-                    window.location.href = 'index.html';
-                } else if (alerts[label] && alerts[label] !== 'logout') {
-                    alert(alerts[label]);
-                }
-                
-                settingsMenu.classList.remove('active');
-                overlay.classList.remove('active');
-            });
+    toggleSettingsMenu() {
+        const menu = document.getElementById('settingsMenu');
+        const overlay = document.getElementById('overlay');
+        
+        if (menu.classList.contains('active')) {
+            this.hideSettingsMenu();
+        } else {
+            menu.classList.add('active');
+            overlay.classList.add('active');
         }
+    }
+
+    hideSettingsMenu() {
+        document.getElementById('settingsMenu').classList.remove('active');
+        document.getElementById('overlay').classList.remove('active');
+    }
+
+    showProfileModal() {
+        document.getElementById('profileModal').classList.add('active');
+        document.getElementById('overlay').classList.add('active');
+        this.hideSettingsMenu();
+    }
+
+    hideProfileModal() {
+        document.getElementById('profileModal').classList.remove('active');
+        document.getElementById('overlay').classList.remove('active');
+    }
+
+    hideAllModals() {
+        this.hideSettingsMenu();
+        this.hideProfileModal();
+    }
+
+    startTimer() {
+        this.interval = setInterval(() => {
+            this.timer--;
+            this.updateTimerDisplay();
+
+            if (this.timer <= 0) {
+                this.enableClaim();
+            }
+        }, 1000);
+    }
+
+    updateTimerDisplay() {
+        const timerDisplay = document.getElementById('timerDisplay');
+        const hours = Math.floor(this.timer / 3600);
+        const minutes = Math.floor((this.timer % 3600) / 60);
+        const seconds = this.timer % 60;
+
+        timerDisplay.textContent = `Claim in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    enableClaim() {
+        this.isClaimable = true;
+        const claimBtn = document.getElementById('claimButton');
+        claimBtn.disabled = false;
+        claimBtn.textContent = 'Claim 30 NMXp';
+        document.getElementById('timerDisplay').textContent = 'Ready to Claim!';
+    }
+
+    claimReward() {
+        if (!this.isClaimable) return;
+
+        // Add reward to balance
+        this.balance += 30;
+        this.updateBalanceDisplay();
+
+        // Reset timer
+        this.timer = 24 * 60 * 60;
+        this.isClaimable = false;
+        
+        const claimBtn = document.getElementById('claimButton');
+        claimBtn.disabled = true;
+        claimBtn.textContent = '30 NMXp';
+
+        // Show success feedback
+        this.showClaimSuccess();
+    }
+
+    updateBalanceDisplay() {
+        document.getElementById('balanceDisplay').textContent = this.balance.toString().padStart(2, '0');
+    }
+
+    showClaimSuccess() {
+        // Create success notification
+        const successMsg = document.createElement('div');
+        successMsg.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s;
+        `;
+        successMsg.innerHTML = `
+            <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
+            <h3 style="color: var(--gold); margin-bottom: 10px;">Reward Claimed!</h3>
+            <p style="color: var(--text);">+30 NMXp added to your balance</p>
+        `;
+
+        document.body.appendChild(successMsg);
+
+        // Remove after 2 seconds
+        setTimeout(() => {
+            successMsg.remove();
+        }, 2000);
+    }
+
+    loadUserData() {
+        // Simulate loading user data
+        setTimeout(() => {
+            document.getElementById('profileName').textContent = 'Mining Enthusiast';
+            document.getElementById('profileEmail').textContent = 'user@nemexcoin.com';
+            document.getElementById('profileUserId').textContent = 'NMX' + Date.now().toString().slice(-8);
+            document.getElementById('profileMiningDays').textContent = '1 day';
+            document.getElementById('profileTotalEarned').textContent = this.balance + ' NMXp';
+            document.getElementById('profileMemberSince').textContent = new Date().toLocaleDateString();
+        }, 1000);
+    }
+}
+
+// Utility Functions
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Show copy feedback
+        const originalText = element.textContent;
+        element.textContent = 'Copied!';
+        element.style.color = 'var(--gold)';
+        
+        setTimeout(() => {
+            element.textContent = originalText;
+            element.style.color = '';
+        }, 1500);
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
     });
 }
 
-// ... (Rest of your existing functions: getStableUserId, initializeUser, createNewUser, updateUI, formatTime, showLoading, hideLoading, startCountdown, claimReward, fallbackToLocalStorage, loadProfileData, fallbackToLocalProfile, copyToClipboard)
-
-// Include all your existing mining functionality here exactly as you have it
-// Just copy everything from your original script starting from "// IMPROVED USER ID MANAGEMENT" 
-// to the end of the file, but remove the settings menu and navigation parts since we moved them above
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    window.nemexApp = new NemexApp();
+});
