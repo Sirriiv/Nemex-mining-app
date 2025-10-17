@@ -32,72 +32,79 @@
         /* Header */
         .header {
             background: var(--darker-bg);
-            padding: 20px;
-            text-align: center;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 2px solid var(--gold);
         }
         
         .logo {
             color: var(--gold);
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
         
-        /* Main Content */
-        .main-content {
-            padding: 20px;
-        }
-        
-        /* Mining Coin */
-        .mining-section {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .coin-container {
-            width: 150px;
-            height: 150px;
-            margin: 0 auto 25px auto;
-        }
-        
-        .mining-coin {
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 30% 30%, #fff9c4, var(--gold), #ffb300);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            font-weight: bold;
-            color: #000;
-            border: 4px solid var(--gold);
-            box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+        .settings-icon {
+            color: var(--gold);
+            font-size: 20px;
             cursor: pointer;
         }
         
-        /* Countdown Timer */
+        /* Balance at Center Top */
+        .balance-top {
+            text-align: center;
+            padding: 25px 20px 10px 20px;
+            background: var(--darker-bg);
+            margin-bottom: 10px;
+        }
+        
+        .balance-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .balance-amount {
+            color: var(--gold);
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .balance-usd {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding: 0 20px;
+        }
+        
+        /* Countdown Timer - Centered */
         .countdown-timer {
             background: var(--darker-bg);
             border: 2px solid var(--gold);
             border-radius: 15px;
-            padding: 20px;
-            margin: 0 0 25px 0;
+            padding: 25px 20px;
+            margin: 20px 0;
             text-align: center;
         }
         
         .timer-label {
             color: var(--text-secondary);
             font-size: 16px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         
         .timer-display {
             color: var(--gold);
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             font-family: 'Courier New', monospace;
+            letter-spacing: 3px;
         }
         
         /* Claim Button */
@@ -111,7 +118,7 @@
             font-weight: bold;
             cursor: pointer;
             width: 100%;
-            margin-bottom: 30px;
+            margin: 20px 0 30px 0;
             transition: all 0.3s ease;
         }
         
@@ -121,32 +128,38 @@
             cursor: not-allowed;
         }
         
-        /* Balance Display */
-        .balance-display {
-            background: var(--darker-bg);
-            border: 1px solid var(--gold);
-            border-radius: 15px;
-            padding: 25px 20px;
+        /* Mining Coin - Centered */
+        .mining-section {
             text-align: center;
-            margin-bottom: 30px;
+            margin: 30px 0;
         }
         
-        .balance-label {
-            color: var(--text-secondary);
-            font-size: 16px;
-            margin-bottom: 10px;
+        .coin-container {
+            width: 180px;
+            height: 180px;
+            margin: 0 auto;
         }
         
-        .balance-amount {
-            color: var(--gold);
-            font-size: 36px;
+        .mining-coin {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 30%, #fff9c4, var(--gold), #ffb300);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 42px;
             font-weight: bold;
-            margin: 10px 0;
+            color: #000;
+            border: 5px solid var(--gold);
+            box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
-        .balance-usd {
-            color: var(--text-secondary);
-            font-size: 16px;
+        .mining-coin:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 50px rgba(255, 215, 0, 1);
         }
         
         /* Bottom Navigation */
@@ -157,7 +170,7 @@
             right: 0;
             background: var(--darker-bg);
             border-top: 2px solid var(--gold);
-            padding: 15px 10px;
+            padding: 12px 10px;
             display: flex;
             justify-content: space-around;
             align-items: center;
@@ -168,7 +181,7 @@
             border: none;
             color: var(--text-secondary);
             cursor: pointer;
-            padding: 10px 5px;
+            padding: 8px 5px;
             border-radius: 10px;
             transition: all 0.3s ease;
             display: flex;
@@ -183,38 +196,32 @@
         }
         
         .nav-icon {
-            font-size: 20px;
-            margin-bottom: 5px;
+            font-size: 18px;
+            margin-bottom: 4px;
         }
         
         .nav-text {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 600;
-        }
-        
-        /* Hidden utility */
-        .hidden {
-            display: none !important;
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
+    <!-- Header with Settings Icon -->
     <header class="header">
         <div class="logo">NEMEXCOIN</div>
+        <div class="settings-icon">⚙️</div>
     </header>
+
+    <!-- Balance at Center Top -->
+    <div class="balance-top">
+        <div class="balance-label">Your NMX Balance</div>
+        <div class="balance-amount">30 NMX</div>
+        <div class="balance-usd">≈ $0.00 USD</div>
+    </div>
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Mining Coin -->
-        <div class="mining-section">
-            <div class="coin-container">
-                <div class="mining-coin" id="miningCoin">
-                    NMX
-                </div>
-            </div>
-        </div>
-
         <!-- Countdown Timer -->
         <div class="countdown-timer">
             <div class="timer-label">Claim in</div>
@@ -226,11 +233,13 @@
             Claim Your NMX
         </button>
 
-        <!-- Balance Display -->
-        <div class="balance-display">
-            <div class="balance-label">Your NMX Balance</div>
-            <div class="balance-amount">30 NMX</div>
-            <div class="balance-usd">≈ $0.00 USD</div>
+        <!-- Mining Coin - Centered -->
+        <div class="mining-section">
+            <div class="coin-container">
+                <div class="mining-coin" id="miningCoin">
+                    NMX
+                </div>
+            </div>
         </div>
     </main>
 
@@ -282,7 +291,7 @@
                 const secs = seconds % 60;
                 
                 timerDisplay.textContent = 
-                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    `${hours.toString().padStart(2, '0')} : ${minutes.toString().padStart(2, '0')} : ${secs.toString().padStart(2, '0')}`;
             }
         }
         
@@ -330,6 +339,14 @@
                     countdownTime = 24 * 60 * 60;
                     startCountdown();
                 }
+            });
+        }
+        
+        // Settings Icon
+        const settingsIcon = document.querySelector('.settings-icon');
+        if (settingsIcon) {
+            settingsIcon.addEventListener('click', function() {
+                alert('Settings menu will open here');
             });
         }
         
