@@ -8,181 +8,77 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function initializeApp() {
     console.log('Initializing NEMEXCOIN Dashboard...');
-    
+
     // Hide loading screen and show app
     const loading = document.getElementById('loading');
     const app = document.getElementById('app');
-    
+
     if (loading && app) {
         loading.classList.add('hidden');
         app.classList.remove('hidden');
-        
-        // Force load home section immediately
-        setTimeout(() => {
-            loadSection('home');
-            
-            // Re-attach mining listeners after a short delay
-            setTimeout(() => {
-                if (window.miningCore) {
-                    window.miningCore.attachHomeListeners();
-                }
-            }, 500);
-        }, 100);
-        
         console.log('NEMEXCOIN Dashboard initialized successfully!');
+        
+        // Initialize mining functionality
+        initializeMining();
     } else {
         console.error('Critical elements not found!');
-        // Fallback: try to show app anyway
-        if (app) {
-            app.classList.remove('hidden');
-            loadSection('home');
-        }
     }
-}
-
-// Section Loading Function
-function loadSection(sectionName) {
-    console.log('Loading section:', sectionName);
-
-    const sectionContainer = document.getElementById('section-container');
-    if (!sectionContainer) {
-        console.error('Section container not found!');
-        return;
-    }
-
-    // Hide all sections first
-    const allSections = document.querySelectorAll('.section');
-    allSections.forEach(section => {
-        section.classList.remove('active');
-    });
-
-    // Update navigation active state
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.classList.remove('active');
-        if (item.getAttribute('data-section') === sectionName) {
-            item.classList.add('active');
-        }
-    });
-
-    // Load section content
-    const sectionFile = `../sections/${sectionName}.html`;
-
-    fetch(sectionFile)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Section not found: ' + sectionName);
-            }
-            return response.text();
-        })
-        .then(html => {
-            sectionContainer.innerHTML = html;
-
-            // Re-initialize section-specific functionality
-            initializeSection(sectionName);
-
-            console.log('Section loaded:', sectionName);
-        })
-        .catch(error => {
-            console.error('Error loading section:', error);
-            sectionContainer.innerHTML = `
-                <div class="card">
-                    <div class="text-center">
-                        <h3 class="text-gold">Section Not Available</h3>
-                        <p>Unable to load ${sectionName} section.</p>
-                        <button class="btn" onclick="loadSection('home')">Return Home</button>
-                    </div>
-                </div>
-            `;
-        });
-}
-
-// Initialize section-specific functionality
-function initializeSection(sectionName) {
-    switch(sectionName) {
-        case 'home':
-            initializeHomeSection();
-            break;
-        case 'tasks':
-            initializeTasksSection();
-            break;
-        case 'buy':
-            initializeBuySection();
-            break;
-        case 'referrals':
-            initializeReferralsSection();
-            break;
-        case 'wallet':
-            initializeWalletSection();
-            break;
-    }
-}
-
-// Simple initialization functions (will be expanded in modules)
-function initializeNavigation() {
-    console.log('Navigation initialized');
 }
 
 function initializeMining() {
     console.log('Mining functionality initialized');
-}
-
-function initializeSettings() {
-    console.log('Settings initialized');
-}
-
-// Placeholder functions for section initializations
-function initializeHomeSection() {
-    console.log('Home section initialized');
-    // Mining functionality will be handled in core.js
-}
-
-function initializeTasksSection() {
-    console.log('Tasks section initialized');
-}
-
-function initializeBuySection() {
-    console.log('Buy section initialized');
-}
-
-function initializeReferralsSection() {
-    console.log('Referrals section initialized');
-}
-
-function initializeWalletSection() {
-    console.log('Wallet section initialized');
-}
-
-// Settings modal functions
-function toggleDarkMode() {
-    console.log('Dark mode toggled');
-    alert('Dark mode toggle functionality will be implemented soon!');
-}
-
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        console.log('User logged out');
-        window.location.href = '../public/login.html';
+    
+    // Start countdown timer
+    startCountdown();
+    
+    // Attach mining coin click event
+    const miningCoin = document.getElementById('miningCoin');
+    if (miningCoin) {
+        miningCoin.addEventListener('click', function() {
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 150);
+        });
     }
 }
 
-function openSettingsSection(section) {
-    console.log('Opening settings section:', section);
-    alert('Settings section: ' + section);
+function startCountdown() {
+    let countdownTime = 24 * 60 * 60; // 24 hours in seconds
+    
+    const timer = setInterval(() => {
+        if (countdownTime > 0) {
+            countdownTime--;
+            updateTimerDisplay(countdownTime);
+        } else {
+            clearInterval(timer);
+            enableClaimButton();
+        }
+    }, 1000);
 }
 
-// Debugging function to check if sections are loading properly
-function debugSections() {
-    console.log('=== DEBUG SECTION LOADING ===');
-    console.log('Section container:', document.getElementById('section-container'));
-    console.log('Current sections:', document.querySelectorAll('.section'));
-    console.log('Navigation items:', document.querySelectorAll('.nav-item'));
-    console.log('=== END DEBUG ===');
+function updateTimerDisplay(seconds) {
+    const timerDisplay = document.getElementById('countdownTimer');
+    if (timerDisplay) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        timerDisplay.textContent = 
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
 }
 
-// Add debug info to window for testing
-window.debugApp = {
-    loadSection: loadSection,
-    initializeSection: initializeSection,
-    debugSections: debugSections
-};
+function enableClaimButton() {
+    const claimButton = document.getElementById('claimButton');
+    if (claimButton) {
+        claimButton.disabled = false;
+        claimButton.textContent = 'Claim Your NMX Now!';
+    }
+}
+
+// Simple section navigation
+function loadSection(sectionName) {
+    console.log('Loading section:', sectionName);
+    alert(`Loading ${sectionName} section - This will be implemented fully soon!`);
+}
