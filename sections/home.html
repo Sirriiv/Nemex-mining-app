@@ -1,5 +1,5 @@
 <div class="section home-section active" id="home-section">
-    <!-- Mining Coin and Countdown -->
+    <!-- Mining Coin Section -->
     <div class="mining-section">
         <div class="coin-container">
             <div class="mining-coin" id="miningCoin">
@@ -7,29 +7,29 @@
             </div>
         </div>
         
-        <div class="countdown-timer">
-            <div class="timer-label">Next Claim Available In</div>
+        <!-- Countdown Timer -->
+        <div class="countdown-container">
+            <div class="timer-label">Claim in</div>
             <div class="timer-display" id="countdownTimer">24:00:00</div>
         </div>
         
-        <button class="btn btn-block" id="claimButton" disabled>
+        <!-- Claim Button -->
+        <button class="claim-button" id="claimButton" disabled>
             Claim Your NMX
         </button>
     </div>
 
-    <!-- Current Balance -->
-    <div class="card">
-        <div class="balance-display">
-            <div class="balance-label">Your NMX Balance</div>
-            <div class="balance-amount" id="currentBalance">30 NMX</div>
-            <div class="balance-label">≈ $0.00 USD</div>
-        </div>
+    <!-- Current Balance Section -->
+    <div class="balance-section">
+        <div class="balance-label">Your NMX Balance</div>
+        <div class="balance-amount" id="currentBalance">30 NMX</div>
+        <div class="balance-label">≈ $0.00 USD</div>
     </div>
 
-    <!-- Mining Stats -->
+    <!-- Quick Stats -->
     <div class="card">
         <div class="card-header">
-            <div class="card-title">Mining Stats</div>
+            <div class="card-title">Mining Statistics</div>
         </div>
         <div class="stats-grid">
             <div class="stat-item">
@@ -56,12 +56,14 @@
         <div class="card-header">
             <div class="card-title">Quick Actions</div>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <button class="btn btn-outline" onclick="loadSection('tasks')">
-                📋 Tasks
+                <span style="font-size: 18px; margin-right: 8px;">📋</span>
+                Tasks
             </button>
             <button class="btn btn-outline" onclick="loadSection('referrals')">
-                👥 Refer Friends
+                <span style="font-size: 18px; margin-right: 8px;">👥</span>
+                Refer Friends
             </button>
         </div>
     </div>
