@@ -1,157 +1,143 @@
-import { initializeUser } from './sections/home.js';
-import { SettingsManager } from './modules/settingsManager.js';
-
-// Global variables
-let isLoading = false;
-let currentUserId = getStableUserId();
-let settingsManager;
-
-// Initialize the app
-document.addEventListener('DOMContentLoaded', function() {
-    initializeNavigation();
-    initializeSettings();
-    initializeUser();
-});
-
-function initializeNavigation() {
-    // Set up tab click events
-    document.querySelectorAll('.nav-item').forEach(button => {
-        button.addEventListener('click', function() {
-            if (isLoading) return;
-            
-            const section = this.getAttribute('data-section');
-            loadSection(section);
-            
-            // Update active nav
-            document.querySelectorAll('.nav-item').forEach(nav => {
-                nav.classList.remove('active');
-            });
-            this.classList.add('active');
-        });
-    });
-    
-    // Load home by default
-    loadSection('home');
+// Notifications Management
+function initNotifications() {
+    loadNotifications();
+    setupNotificationSettings();
 }
 
-function initializeSettings() {
-    settingsManager = new SettingsManager(currentUserId);
-}
-
-async function loadSection(sectionName) {
-    try {
-        isLoading = true;
-        showLoading(`Loading ${sectionName}...`);
-        
-        // Disable navigation during load
-        document.querySelectorAll('.nav-item').forEach(nav => {
-            nav.style.pointerEvents = 'none';
-        });
-
-        // Load the HTML content
-        const response = await fetch(`../SECTIONS/${sectionName}.html`);
-        if (!response.ok) throw new Error('Failed to load section');
-        
-        const html = await response.text();
-        document.getElementById('section-content').innerHTML = html;
-        
-        // Load section-specific JavaScript
-        await loadSectionScript(sectionName);
-        
-    } catch (error) {
-        console.error('Error loading section:', error);
-        document.getElementById('section-content').innerHTML = 
-            `<div class="error" style="text-align: center; padding: 40px; color: var(--muted);">
-                Failed to load ${sectionName} section
-            </div>`;
-    } finally {
-        hideLoading();
-        isLoading = false;
-        document.querySelectorAll('.nav-item').forEach(nav => {
-            nav.style.pointerEvents = 'auto';
-        });
-    }
-}
-
-async function loadSectionScript(sectionName) {
-    try {
-        // Import the section-specific JavaScript
-        const module = await import(`./sections/${sectionName}.js`);
-        
-        // Initialize the section if it has an init function
-        if (module.initSection) {
-            module.initSection(currentUserId);
+function loadNotifications() {
+    const notifications = [
+        {
+            id: 1,
+            type: 'reward',
+            title: 'Daily Reward Available',
+            message: 'Your 24-hour mining reward is ready to claim!',
+            time: '2 hours ago',
+            read: false,
+            icon: '💰'
+        },
+        {
+            id: 2,
+            type: 'system',
+            title: 'Welcome to NEMEXCOIN',
+            message: 'Start mining NMXp tokens and grow your portfolio',
+            time: '1 day ago',
+            read: true,
+            icon: '🎉'
+        },
+        {
+            id: 3,
+            type: 'update',
+            title: 'App Update Available',
+            message: 'New version 1.1.0 with improved performance',
+            time: '2 days ago',
+            read: true,
+            icon: '🔄'
         }
-    } catch (error) {
-        console.log(`No specific JavaScript for ${sectionName} section`);
-    }
-}
-
-function showLoading(message = 'Loading...') {
-    const loading = document.getElementById('loading');
-    if (loading) {
-        const status = loading.querySelector('.loading-status');
-        status.textContent = message;
-        loading.classList.remove('hidden');
-    }
-}
-
-function hideLoading() {
-    setTimeout(() => {
-        const loading = document.getElementById('loading');
-        if (loading) {
-            loading.classList.add('hidden');
-        }
-    }, 500);
-}
-
-function getStableUserId() {
-    let userId = localStorage.getItem('userId');
-    if (!userId) {
-        userId = generateStableUserId();
-        localStorage.setItem('userId', userId);
-    }
-    return userId;
-}
-
-function generateStableUserId() {
-    const components = [
-        navigator.userAgent, navigator.language,
-        navigator.hardwareConcurrency || 'unknown',
-        screen.width + 'x' + screen.height,
-        new Date().getTimezoneOffset()
     ];
-    let hash = 0;
-    const str = components.join('|');
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return 'user_' + Math.abs(hash).toString(36) + '_' + Date.now();
+
+    displayNotifications(notifications);
 }
 
-// Make copyToClipboard globally available for HTML onclick attributes
-window.copyToClipboard = function(elementId) {
-    const text = document.getElementById(elementId).textContent;
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Copied to clipboard!');
-    }).catch(() => {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        alert('Copied to clipboard!');
-    });
-};
+function displayNotifications(notifications) {
+    const container = document.querySelector('.notifications-container');
+    if (!container) return;
 
-// Make copyReferralCode globally available
-window.copyReferralCode = function() {
-    const userId = localStorage.getItem('userId') || currentUserId;
-    const referralCode = `NMX-${userId.substring(0, 8).toUpperCase()}`;
-    navigator.clipboard.writeText(referralCode).then(() => {
-        alert('Referral code copied to clipboard!');
+    if (notifications.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🔔</div>
+                <h3>No Notifications</h3>
+                <p>You're all caught up! New notifications will appear here.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const notificationsHTML = notifications.map(notification => `
+        <div class="notification-item ${notification.read ? '' : 'unread'}">
+            <div class="notification-icon">${notification.icon}</div>
+            <div class="notification-content">
+                <div class="notification-title">${notification.title}</div>
+                <div class="notification-message">${notification.message}</div>
+                <div class="notification-time">${notification.time}</div>
+                <div class="notification-actions">
+                    <button class="notification-action-btn" onclick="markAsRead(${notification.id})">
+                        Mark Read
+                    </button>
+                    <button class="notification-action-btn" onclick="deleteNotification(${notification.id})">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = notificationsHTML;
+}
+
+function setupNotificationSettings() {
+    // Load saved settings
+    const settings = {
+        pushEnabled: true,
+        emailEnabled: false,
+        soundEnabled: true,
+        vibrationEnabled: true
+    };
+
+    // Set initial toggle states
+    Object.keys(settings).forEach(setting => {
+        const toggle = document.querySelector(`#${setting}`);
+        if (toggle) {
+            toggle.checked = settings[setting];
+        }
     });
-};
+
+    // Add change listeners
+    document.querySelectorAll('.toggle-switch input').forEach(toggle => {
+        toggle.addEventListener('change', (e) => {
+            const setting = e.target.id;
+            const value = e.target.checked;
+            saveNotificationSetting(setting, value);
+        });
+    });
+}
+
+function saveNotificationSetting(setting, value) {
+    // Save to localStorage or send to server
+    console.log(`Setting ${setting} changed to: ${value}`);
+    // Here you would typically save to localStorage or make an API call
+}
+
+function markAsRead(notificationId) {
+    console.log(`Marking notification ${notificationId} as read`);
+    // Update UI
+    const notification = document.querySelector(`[data-notification-id="${notificationId}"]`);
+    if (notification) {
+        notification.classList.remove('unread');
+    }
+    // Here you would typically update via API
+}
+
+function deleteNotification(notificationId) {
+    console.log(`Deleting notification ${notificationId}`);
+    // Remove from UI
+    const notification = document.querySelector(`[data-notification-id="${notificationId}"]`);
+    if (notification) {
+        notification.remove();
+    }
+    // Here you would typically delete via API
+}
+
+function clearAllNotifications() {
+    if (confirm('Are you sure you want to clear all notifications?')) {
+        const container = document.querySelector('.notifications-container');
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🔔</div>
+                <h3>No Notifications</h3>
+                <p>You're all caught up! New notifications will appear here.</p>
+            </div>
+        `;
+        // Here you would typically clear via API
+    }
+}
