@@ -9,6 +9,32 @@
     --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; 
     --text: #f5f5f5; --muted: #aaa; --error: #e74c3c; 
 }
+/* Error Message Styling */
+.error-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+}
+
+.error-message h3 {
+    color: #ff6b6b;
+    margin-bottom: 15px;
+}
+
+.retry-btn {
+    background: var(--gold);
+    color: var(--darker-bg);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 15px;
+}
+
+.retry-btn:hover {
+    background: #e6c158;
+}
 *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
 body{background:var(--dark-bg);color:var(--text);max-width:400px;margin:0 auto;padding-bottom:80px;overflow-x:hidden}
 
