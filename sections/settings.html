@@ -1,0 +1,135 @@
+<div class="settings-section">
+    <div class="settings-container">
+        <div class="settings-section">
+            <div class="settings-section-title">
+                <span class="icon">🎨</span>
+                Appearance
+            </div>
+            <div class="settings-items">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-name">Theme</div>
+                        <div class="setting-description">Choose your preferred theme</div>
+                    </div>
+                </div>
+                <div class="theme-options">
+                    <div class="theme-option active">
+                        <div class="theme-preview dark"></div>
+                        <div class="theme-label">Dark</div>
+                    </div>
+                    <div class="theme-option">
+                        <div class="theme-preview light"></div>
+                        <div class="theme-label">Light</div>
+                    </div>
+                    <div class="theme-option">
+                        <div class="theme-preview auto"></div>
+                        <div class="theme-label">Auto</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-title">
+                <span class="icon">🔔</span>
+                Notifications
+            </div>
+            <div class="settings-items">
+                <div class="setting-row" onclick="sectionLoader.showSection('notifications')">
+                    <div class="setting-info">
+                        <div class="setting-name">Notification Settings</div>
+                        <div class="setting-description">Manage your notification preferences</div>
+                    </div>
+                    <div class="setting-control">›</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-title">
+                <span class="icon">🌐</span>
+                Language & Region
+            </div>
+            <div class="settings-items">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-name">Language</div>
+                        <div class="setting-description">Choose your preferred language</div>
+                    </div>
+                    <div class="setting-control">
+                        <select class="language-select">
+                            <option value="en">English</option>
+                            <option value="es">Español</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="zh">中文</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section danger-zone">
+            <div class="settings-section-title">
+                <span class="icon">⚠️</span>
+                Danger Zone
+            </div>
+            <div class="settings-items">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-name">Clear All Data</div>
+                        <div class="setting-description">Permanently delete all your data</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="danger-btn">Clear</button>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <div class="setting-name">Delete Account</div>
+                        <div class="setting-description">Permanently delete your account</div>
+                    </div>
+                    <div class="setting-control">
+                        <button class="danger-btn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="settings-section">
+            <div class="settings-section-title">
+                <span class="icon">ℹ️</span>
+                About
+            </div>
+            <div class="about-info">
+                <div class="app-version">NEMEXCOIN v1.0.0</div>
+                <div class="app-build">Build 2024.01.001</div>
+                <p style="color: var(--muted); font-size: 14px; margin-bottom: 20px;">
+                    Secure cryptocurrency mining platform
+                </p>
+                
+                <div class="about-links">
+                    <a href="#" class="about-link">
+                        <div class="link-icon">📘</div>
+                        <div class="link-label">Privacy Policy</div>
+                    </a>
+                    <a href="#" class="about-link">
+                        <div class="link-icon">📝</div>
+                        <div class="link-label">Terms of Service</div>
+                    </a>
+                    <a href="#" class="about-link">
+                        <div class="link-icon">🆘</div>
+                        <div class="link-label">Support</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function initSettings() {
+    // Initialize settings functionality
+    console.log('Settings section initialized');
+}
+</script>
