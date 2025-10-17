@@ -10,19 +10,6 @@
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/components/nav.css">
     <link rel="stylesheet" href="../css/components/modals.css">
-
-    <style>
-        /* Emergency fallback styles */
-        .app-container {
-            display: block !important;
-            min-height: 100vh;
-            background: #0a0a0a;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -43,141 +30,62 @@
 
         <!-- Main Content Area -->
         <main id="main-content" class="main-content">
-            <!-- Home Section will be loaded here by default -->
             <div id="section-container">
-                <!-- Emergency fallback content -->
+                <!-- Home Section (Default) -->
                 <div class="section home-section active" id="home-section">
-                    <!-- Mining Coin Section -->
+                    <!-- Mining Coin -->
                     <div class="mining-section">
                         <div class="coin-container">
                             <div class="mining-coin" id="miningCoin">
                                 NMX
                             </div>
                         </div>
-                        
-                        <!-- Countdown Timer -->
-                        <div class="countdown-container">
-                            <div class="timer-label">Claim in</div>
-                            <div class="timer-display" id="countdownTimer">24:00:00</div>
-                        </div>
-                        
-                        <!-- Claim Button -->
-                        <button class="claim-button" id="claimButton" disabled>
-                            Claim Your NMX
-                        </button>
                     </div>
 
-                    <!-- Current Balance Section -->
-                    <div class="balance-section">
+                    <!-- Countdown Timer -->
+                    <div class="countdown-timer">
+                        <div class="timer-label">Claim in</div>
+                        <div class="timer-display" id="countdownTimer">24:00:00</div>
+                    </div>
+
+                    <!-- Claim Button -->
+                    <button class="claim-btn" id="claimButton" disabled>
+                        Claim Your NMX
+                    </button>
+
+                    <!-- Balance Display -->
+                    <div class="balance-display">
                         <div class="balance-label">Your NMX Balance</div>
-                        <div class="balance-amount" id="currentBalance">30 NMX</div>
-                        <div class="balance-label">≈ $0.00 USD</div>
+                        <div class="balance-amount">30 NMX</div>
+                        <div class="balance-usd">≈ $0.00 USD</div>
                     </div>
 
-                    <!-- Quick Stats -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Mining Statistics</div>
-                        </div>
-                        <div class="stats-grid">
-                            <div class="stat-item">
-                                <div class="stat-value" id="totalMined">30</div>
-                                <div class="stat-label">Total Mined</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value" id="miningRate">1.25</div>
-                                <div class="stat-label">NMX/Hour</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value" id="referralBonus">0</div>
-                                <div class="stat-label">Referral Bonus</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value" id="totalClaims">1</div>
-                                <div class="stat-label">Total Claims</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="card">
-                        <div class="card-header">
-                            <div class="card-title">Quick Actions</div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                            <button class="btn btn-outline" onclick="loadSection('tasks')">
-                                <span style="font-size: 18px; margin-right: 8px;">📋</span>
-                                Tasks
-                            </button>
-                            <button class="btn btn-outline" onclick="loadSection('referrals')">
-                                <span style="font-size: 18px; margin-right: 8px;">👥</span>
-                                Refer Friends
-                            </button>
-                        </div>
-                    </div>
+                    <!-- Bottom Navigation -->
+                    <nav class="bottom-nav">
+                        <button class="nav-btn active" data-section="home">
+                            <span class="nav-icon">🏠</span>
+                            <span class="nav-text">HOME</span>
+                        </button>
+                        <button class="nav-btn" data-section="tasks">
+                            <span class="nav-icon">📋</span>
+                            <span class="nav-text">TASKS</span>
+                        </button>
+                        <button class="nav-btn" data-section="buy">
+                            <span class="nav-icon">🛒</span>
+                            <span class="nav-text">BUY</span>
+                        </button>
+                        <button class="nav-btn" data-section="referrals">
+                            <span class="nav-icon">👥</span>
+                            <span class="nav-text">REFERRALS</span>
+                        </button>
+                        <button class="nav-btn" data-section="wallet">
+                            <span class="nav-icon">💰</span>
+                            <span class="nav-text">WALLET</span>
+                        </button>
+                    </nav>
                 </div>
             </div>
         </main>
-
-        <!-- Bottom Navigation -->
-        <nav class="bottom-navbar">
-            <button class="nav-item active" data-section="home">
-                <div class="nav-icon">🏠</div>
-                <div class="nav-label">Home</div>
-            </button>
-            <button class="nav-item" data-section="tasks">
-                <div class="nav-icon">📋</div>
-                <div class="nav-label">Tasks</div>
-            </button>
-            <button class="nav-item" data-section="buy">
-                <div class="nav-icon">🛒</div>
-                <div class="nav-label">Buy</div>
-            </button>
-            <button class="nav-item" data-section="referrals">
-                <div class="nav-icon">👥</div>
-                <div class="nav-label">Referrals</div>
-            </button>
-            <button class="nav-item" data-section="wallet">
-                <div class="nav-icon">💰</div>
-                <div class="nav-label">Wallet</div>
-            </button>
-        </nav>
-    </div>
-
-    <!-- Settings Modal -->
-    <div class="modal-overlay hidden" id="modalOverlay"></div>
-
-    <div class="settings-modal hidden" id="settingsModal">
-        <div class="settings-item" onclick="openSettingsSection('profile')">
-            <div class="settings-icon-small">👤</div>
-            <div class="settings-label">Profile</div>
-        </div>
-        <div class="settings-item" onclick="openSettingsSection('notifications')">
-            <div class="settings-icon-small">🔔</div>
-            <div class="settings-label">Notifications</div>
-        </div>
-        <div class="settings-item" onclick="openSettingsSection('security')">
-            <div class="settings-icon-small">🔒</div>
-            <div class="settings-label">Security</div>
-        </div>
-        <div class="settings-item" onclick="toggleDarkMode()">
-            <div class="settings-icon-small">🌙</div>
-            <div class="settings-label">Dark Mode</div>
-        </div>
-        <div class="settings-divider"></div>
-        <div class="settings-item" onclick="openSettingsSection('help')">
-            <div class="settings-icon-small">❓</div>
-            <div class="settings-label">Help & Support</div>
-        </div>
-        <div class="settings-item" onclick="openSettingsSection('about')">
-            <div class="settings-icon-small">ℹ️</div>
-            <div class="settings-label">About</div>
-        </div>
-        <div class="settings-divider"></div>
-        <div class="settings-item logout-btn" onclick="logout()">
-            <div class="settings-icon-small">🚪</div>
-            <div class="settings-label">Logout</div>
-        </div>
     </div>
 
     <!-- JavaScript Files -->
@@ -188,48 +96,17 @@
     <script src="../js/modules/core.js"></script>
     <script src="../js/modules/utils.js"></script>
 
-    <!-- Emergency JavaScript -->
     <script>
-        // Emergency initialization if main.js fails
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Emergency initialization running...');
+        // Simple initialization
+        setTimeout(function() {
+            const loading = document.getElementById('loading');
+            const app = document.getElementById('app');
             
-            setTimeout(function() {
-                const loading = document.getElementById('loading');
-                const app = document.getElementById('app');
-                
-                if (loading && app) {
-                    loading.classList.add('hidden');
-                    app.classList.remove('hidden');
-                    console.log('Emergency: App should be visible now');
-                    
-                    // Initialize mining functionality directly
-                    if (window.miningCore) {
-                        window.miningCore.attachHomeListeners();
-                    }
-                }
-            }, 2000);
-        });
-
-        // Emergency section loading
-        function loadSection(sectionName) {
-            console.log('Emergency loading section:', sectionName);
-            alert('Section loading: ' + sectionName + ' (Emergency mode)');
-        }
-
-        // Make functions globally available
-        window.loadSection = loadSection;
-        window.toggleDarkMode = function() {
-            alert('Dark mode toggle - Emergency mode');
-        };
-        window.logout = function() {
-            if (confirm('Logout?')) {
-                alert('Logging out...');
+            if (loading && app) {
+                loading.classList.add('hidden');
+                app.classList.remove('hidden');
             }
-        };
-        window.openSettingsSection = function(section) {
-            alert('Settings: ' + section);
-        };
+        }, 2000);
     </script>
 </body>
 </html>
