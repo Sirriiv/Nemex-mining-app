@@ -1,206 +1,175 @@
-// Main Application JavaScript
+// Main Application Controller
 class NemexApp {
     constructor() {
+        this.currentUser = null;
         this.balance = 0;
-        this.timer = 24 * 60 * 60; // 24 hours in seconds
-        this.isClaimable = false;
-        this.interval = null;
+        this.isInitialized = false;
         this.init();
     }
 
-    init() {
-        this.setupEventListeners();
-        this.startTimer();
-        this.loadUserData();
-        this.initializeApp();
+    async init() {
+        try {
+            console.log('🚀 Initializing NEMEXCOIN App...');
+            
+            // Check authentication
+            await this.checkAuth();
+            
+            // Initialize modules
+            await this.initializeModules();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Load initial data
+            await this.loadInitialData();
+            
+            this.isInitialized = true;
+            console.log('✅ NEMEXCOIN App initialized successfully');
+            
+        } catch (error) {
+            console.error('❌ App initialization failed:', error);
+            this.showError('Failed to initialize app');
+        }
     }
 
-    initializeApp() {
-        // Simulate app initialization
-        setTimeout(() => {
-            document.getElementById('loading').classList.add('hidden');
-        }, 2000);
+    async checkAuth() {
+        const token = localStorage.getItem('nemex_token');
+        if (token) {
+            try {
+                // Verify token with backend
+                const userData = await window.apiService.verifyToken(token);
+                this.currentUser = userData;
+                this.showMainApp();
+            } catch (error) {
+                console.log('Invalid token, redirecting to login');
+                localStorage.removeItem('nemex_token');
+                this.redirectToLogin();
+            }
+        } else {
+            this.redirectToLogin();
+        }
+    }
+
+    showMainApp() {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+    }
+
+    redirectToLogin() {
+        if (!window.location.pathname.includes('login.html') && 
+            !window.location.pathname.includes('register.html')) {
+            window.location.href = 'login.html';
+        }
+    }
+
+    async initializeModules() {
+        // Initialize all core modules
+        if (typeof window.navigation !== 'undefined') {
+            window.navigation.init();
+        }
+        
+        if (typeof window.sectionLoader !== 'undefined') {
+            window.sectionLoader.init();
+        }
     }
 
     setupEventListeners() {
         // Settings button
-        document.getElementById('settingsButton').addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.toggleSettingsMenu();
-        });
+        const settingsBtn = document.getElementById('settingsButton');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', this.toggleSettings.bind(this));
+        }
 
-        // Overlay click
-        document.getElementById('overlay').addEventListener('click', () => {
-            this.hideAllModals();
-        });
-
-        // Close profile modal
-        document.getElementById('closeProfile').addEventListener('click', () => {
-            this.hideProfileModal();
-        });
-
-        // Claim button
-        document.getElementById('claimButton').addEventListener('click', () => {
-            this.claimReward();
-        });
-
-        // Close settings when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.settings-menu') && !e.target.closest('.settings-icon')) {
-                this.hideSettingsMenu();
-            }
-        });
-
-        // Profile button in settings
-        document.getElementById('profileBtn').addEventListener('click', () => {
-            this.showProfileModal();
-        });
+        // Global error handler
+        window.addEventListener('error', this.handleGlobalError.bind(this));
     }
 
-    toggleSettingsMenu() {
-        const menu = document.getElementById('settingsMenu');
-        const overlay = document.getElementById('overlay');
+    toggleSettings() {
+        const modal = document.getElementById('settingsModal');
+        const overlay = document.getElementById('modalOverlay');
         
-        if (menu.classList.contains('active')) {
-            this.hideSettingsMenu();
-        } else {
-            menu.classList.add('active');
-            overlay.classList.add('active');
+        if (modal && overlay) {
+            modal.classList.toggle('active');
+            overlay.classList.toggle('active');
         }
     }
 
-    hideSettingsMenu() {
-        document.getElementById('settingsMenu').classList.remove('active');
-        document.getElementById('overlay').classList.remove('active');
-    }
-
-    showProfileModal() {
-        document.getElementById('profileModal').classList.add('active');
-        document.getElementById('overlay').classList.add('active');
-        this.hideSettingsMenu();
-    }
-
-    hideProfileModal() {
-        document.getElementById('profileModal').classList.remove('active');
-        document.getElementById('overlay').classList.remove('active');
-    }
-
-    hideAllModals() {
-        this.hideSettingsMenu();
-        this.hideProfileModal();
-    }
-
-    startTimer() {
-        this.interval = setInterval(() => {
-            this.timer--;
-            this.updateTimerDisplay();
-
-            if (this.timer <= 0) {
-                this.enableClaim();
+    async loadInitialData() {
+        if (this.currentUser) {
+            try {
+                // Load user balance
+                const balanceData = await window.apiService.getBalance();
+                this.balance = balanceData.balance;
+                this.updateBalanceDisplay();
+                
+                // Load notifications
+                await this.loadNotifications();
+                
+            } catch (error) {
+                console.error('Failed to load initial data:', error);
             }
-        }, 1000);
-    }
-
-    updateTimerDisplay() {
-        const timerDisplay = document.getElementById('timerDisplay');
-        const hours = Math.floor(this.timer / 3600);
-        const minutes = Math.floor((this.timer % 3600) / 60);
-        const seconds = this.timer % 60;
-
-        timerDisplay.textContent = `Claim in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-
-    enableClaim() {
-        this.isClaimable = true;
-        const claimBtn = document.getElementById('claimButton');
-        claimBtn.disabled = false;
-        claimBtn.textContent = 'Claim 30 NMXp';
-        document.getElementById('timerDisplay').textContent = 'Ready to Claim!';
-    }
-
-    claimReward() {
-        if (!this.isClaimable) return;
-
-        // Add reward to balance
-        this.balance += 30;
-        this.updateBalanceDisplay();
-
-        // Reset timer
-        this.timer = 24 * 60 * 60;
-        this.isClaimable = false;
-        
-        const claimBtn = document.getElementById('claimButton');
-        claimBtn.disabled = true;
-        claimBtn.textContent = '30 NMXp';
-
-        // Show success feedback
-        this.showClaimSuccess();
+        }
     }
 
     updateBalanceDisplay() {
-        document.getElementById('balanceDisplay').textContent = this.balance.toString().padStart(2, '0');
+        const balanceEl = document.getElementById('balanceAmount');
+        if (balanceEl) {
+            balanceEl.textContent = this.balance.toString().padStart(2, '0');
+        }
     }
 
-    showClaimSuccess() {
-        // Create success notification
-        const successMsg = document.createElement('div');
-        successMsg.style.cssText = `
+    async loadNotifications() {
+        try {
+            const notifications = await window.apiService.getNotifications();
+            if (typeof window.notificationManager !== 'undefined') {
+                window.notificationManager.displayNotifications(notifications);
+            }
+        } catch (error) {
+            console.error('Failed to load notifications:', error);
+        }
+    }
+
+    handleGlobalError(event) {
+        console.error('Global error:', event.error);
+        this.showError('Something went wrong');
+    }
+
+    showError(message) {
+        // Create error toast
+        const toast = document.createElement('div');
+        toast.style.cssText = `
             position: fixed;
-            top: 50%;
+            top: 20px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--darker-bg);
-            border: 2px solid var(--gold);
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            z-index: 2000;
-            animation: fadeIn 0.3s;
+            transform: translateX(-50%);
+            background: var(--error);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            animation: slideDown 0.3s ease;
         `;
-        successMsg.innerHTML = `
-            <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
-            <h3 style="color: var(--gold); margin-bottom: 10px;">Reward Claimed!</h3>
-            <p style="color: var(--text);">+30 NMXp added to your balance</p>
-        `;
-
-        document.body.appendChild(successMsg);
-
-        // Remove after 2 seconds
+        toast.textContent = message;
+        
+        document.body.appendChild(toast);
+        
         setTimeout(() => {
-            successMsg.remove();
-        }, 2000);
+            toast.remove();
+        }, 3000);
     }
 
-    loadUserData() {
-        // Simulate loading user data
-        setTimeout(() => {
-            document.getElementById('profileName').textContent = 'Mining Enthusiast';
-            document.getElementById('profileEmail').textContent = 'user@nemexcoin.com';
-            document.getElementById('profileUserId').textContent = 'NMX' + Date.now().toString().slice(-8);
-            document.getElementById('profileMiningDays').textContent = '1 day';
-            document.getElementById('profileTotalEarned').textContent = this.balance + ' NMXp';
-            document.getElementById('profileMemberSince').textContent = new Date().toLocaleDateString();
-        }, 1000);
+    logout() {
+        localStorage.removeItem('nemex_token');
+        window.location.href = 'login.html';
     }
 }
 
-// Utility Functions
-function copyToClipboard(elementId) {
-    const element = document.getElementById(elementId);
-    const text = element.textContent;
-    
+// Utility function to copy to clipboard
+function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        // Show copy feedback
-        const originalText = element.textContent;
-        element.textContent = 'Copied!';
-        element.style.color = 'var(--gold)';
-        
-        setTimeout(() => {
-            element.textContent = originalText;
-            element.style.color = '';
-        }, 1500);
+        console.log('Text copied to clipboard');
     }).catch(err => {
-        console.error('Failed to copy: ', err);
+        console.error('Failed to copy text: ', err);
     });
 }
 
