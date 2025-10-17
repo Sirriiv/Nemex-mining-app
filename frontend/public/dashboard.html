@@ -536,7 +536,60 @@ document.querySelectorAll('.settings-item').forEach(item => {
         item.addEventListener('click', function() {
             const label = this.querySelector('.settings-label').textContent;
             const alerts = {
-                'Notifications': '🔔 Notification settings coming soon!',
+                'Notifications': '🔔 
+function loadNotificationsPage() {
+    // Hide current active section
+    const currentActive = document.querySelector('.section.active');
+    if (currentActive) {
+        currentActive.classList.remove('active');
+    }
+
+    // Create or show notifications section
+    let notificationsSection = document.querySelector('#notifications-section');
+    
+    if (!notificationsSection) {
+        notificationsSection = document.createElement('div');
+        notificationsSection.id = 'notifications-section';
+        notificationsSection.className = 'section active';
+        document.querySelector('.container').appendChild(notificationsSection);
+    } else {
+        notificationsSection.classList.add('active');
+    }
+
+    // Load notifications content
+    fetch('sections/notifications.html')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            notificationsSection.innerHTML = html;
+            
+            // Load and initialize notifications JavaScript
+            const script = document.createElement('script');
+            script.src = 'JS/notifications.js';
+            script.onload = () => {
+                console.log('Notifications JS loaded successfully');
+            };
+            document.head.appendChild(script);
+            
+            // Close settings menu
+            settingsMenu.classList.remove('active');
+            overlay.classList.remove('active');
+        })
+        .catch(error => {
+            console.error('Error loading notifications page:', error);
+            notificationsSection.innerHTML = `
+                <div class="error-message">
+                    <h3>⚠️ Error Loading Notifications</h3>
+                    <p>Could not load notifications page. Please check if the file exists.</p>
+                    <button onclick="loadNotificationsPage()" class="retry-btn">Retry</button>
+                </div>
+            `;
+        });
+}
                 'Dark Mode': '🌙 Dark mode is already enabled!',
                 'Security': '🔒 Security settings coming soon!',
                 'Help & Support': '❓ Help & support coming soon!',
