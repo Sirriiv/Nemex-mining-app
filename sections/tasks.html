@@ -1,238 +1,30 @@
-<section class="dashboard-section" id="tasks-section">
-    <div class="section-header">
-        <h2>📋 Daily Tasks</h2>
-        <p>Complete tasks to earn bonus NMXp rewards</p>
-    </div>
-
-    <div class="tasks-container">
-        <div class="task-card">
-            <div class="task-header">
-                <div class="task-icon">📱</div>
-                <div class="task-info">
-                    <div class="task-title">Daily Check-in</div>
-                    <div class="task-reward">+10 NMXp</div>
-                </div>
-            </div>
-            <div class="task-description">Visit the app daily to claim your reward</div>
-            <button class="task-btn completed" disabled>Completed</button>
+<div class="section tasks-section" id="tasks-section">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Daily Tasks</div>
         </div>
-
-        <div class="task-card">
-            <div class="task-header">
-                <div class="task-icon">👥</div>
+        <div class="tasks-list">
+            <div class="task-item">
                 <div class="task-info">
-                    <div class="task-title">Invite Friends</div>
-                    <div class="task-reward">+50 NMXp</div>
+                    <h4>Daily Login</h4>
+                    <p>Log in to claim your daily bonus</p>
                 </div>
+                <div class="task-reward">+5 NMX</div>
             </div>
-            <div class="task-description">Invite 3 friends to join NEMEXCOIN</div>
-            <button class="task-btn" onclick="window.navigation.navigateTo('referrals')">Start</button>
-        </div>
-
-        <div class="task-card">
-            <div class="task-header">
-                <div class="task-icon">💰</div>
+            <div class="task-item">
                 <div class="task-info">
-                    <div class="task-title">Mining Streak</div>
-                    <div class="task-reward">+25 NMXp</div>
+                    <h4>Watch Tutorial</h4>
+                    <p>Watch the getting started guide</p>
                 </div>
+                <div class="task-reward">+10 NMX</div>
             </div>
-            <div class="task-description">Maintain a 7-day mining streak</div>
-            <button class="task-btn in-progress">3/7 Days</button>
-        </div>
-
-        <div class="task-card">
-            <div class="task-header">
-                <div class="task-icon">🛒</div>
+            <div class="task-item">
                 <div class="task-info">
-                    <div class="task-title">First Purchase</div>
-                    <div class="task-reward">+100 NMXp</div>
+                    <h4>Join Telegram</h4>
+                    <p>Join our official Telegram channel</p>
                 </div>
+                <div class="task-reward">+15 NMX</div>
             </div>
-            <div class="task-description">Make your first NMXp purchase</div>
-            <button class="task-btn" onclick="window.navigation.navigateTo('buy')">Buy Now</button>
         </div>
     </div>
-
-    <div class="tasks-stats">
-        <div class="stat-card">
-            <div class="stat-value" id="completedTasks">1</div>
-            <div class="stat-label">Completed</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="availableTasks">3</div>
-            <div class="stat-label">Available</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="totalRewards">85</div>
-            <div class="stat-label">NMXp Earned</div>
-        </div>
-    </div>
-</section>
-
-<style>
-.section-header {
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-.section-header h2 {
-    color: var(--gold);
-    margin-bottom: 8px;
-    font-size: 24px;
-    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
-}
-
-.section-header p {
-    color: var(--muted);
-    font-size: 14px;
-}
-
-.tasks-container {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    margin-bottom: 25px;
-}
-
-.task-card {
-    background: var(--darker-bg);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 15px;
-    padding: 20px;
-    transition: all 0.3s;
-    position: relative;
-    overflow: hidden;
-}
-
-.task-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--gold), transparent);
-}
-
-.task-card:hover {
-    border-color: var(--gold);
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(212, 175, 55, 0.2);
-}
-
-.task-header {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 12px;
-}
-
-.task-icon {
-    font-size: 24px;
-    width: 50px;
-    height: 50px;
-    background: rgba(212, 175, 55, 0.1);
-    border: 2px solid var(--gold);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.task-info {
-    flex: 1;
-}
-
-.task-title {
-    color: var(--text);
-    font-weight: 700;
-    font-size: 16px;
-    margin-bottom: 4px;
-}
-
-.task-reward {
-    color: var(--gold);
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.task-description {
-    color: var(--muted);
-    font-size: 14px;
-    margin-bottom: 15px;
-    line-height: 1.4;
-}
-
-.task-btn {
-    width: 100%;
-    padding: 12px;
-    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
-    color: var(--darker-bg);
-    border: none;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.task-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-}
-
-.task-btn:disabled {
-    background: #333;
-    color: #666;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-
-.task-btn.completed {
-    background: linear-gradient(135deg, #2ecc71, #27ae60);
-    color: white;
-}
-
-.task-btn.in-progress {
-    background: linear-gradient(135deg, #3498db, #2980b9);
-    color: white;
-}
-
-.tasks-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    margin-top: 20px;
-}
-
-/* Progress bar styles */
-.task-progress {
-    margin-bottom: 15px;
-}
-
-.progress-bar {
-    width: 100%;
-    height: 6px;
-    background: #333;
-    border-radius: 3px;
-    overflow: hidden;
-    margin-bottom: 5px;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--gold), var(--gold-light));
-    border-radius: 3px;
-    transition: width 0.3s ease;
-}
-
-.progress-text {
-    font-size: 12px;
-    color: var(--muted);
-    text-align: center;
-    font-weight: 600;
-}
-</style>
+</div>
