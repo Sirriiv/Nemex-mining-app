@@ -10,9 +10,6 @@
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/components/nav.css">
     <link rel="stylesheet" href="../css/components/modals.css">
-    <link rel="stylesheet" href="../css/profile.css">
-    <link rel="stylesheet" href="../css/notification.css">
-    <link rel="stylesheet" href="../css/settings.css">
 </head>
 <body>
     <!-- Loading Screen -->
@@ -23,7 +20,7 @@
 
     <!-- Main App Container -->
     <div id="app" class="app-container hidden">
-        <!-- Header with Settings -->
+        <!-- Header -->
         <div class="header">
             <div class="logo">NEMEXCOIN</div>
             <div class="header-actions">
@@ -62,19 +59,19 @@
         </nav>
     </div>
 
-    <!-- Settings Modal -->
+    <!-- Settings Modal Popup -->
     <div class="modal-overlay" id="modalOverlay"></div>
 
     <div class="settings-modal" id="settingsModal">
-        <div class="settings-item" onclick="openSection('profile')">
+        <div class="settings-item" onclick="openSettingsSection('profile')">
             <div class="settings-icon-small">👤</div>
             <div class="settings-label">Profile</div>
         </div>
-        <div class="settings-item" onclick="openSection('notifications')">
+        <div class="settings-item" onclick="openSettingsSection('notifications')">
             <div class="settings-icon-small">🔔</div>
             <div class="settings-label">Notifications</div>
         </div>
-        <div class="settings-item" onclick="openSection('security')">
+        <div class="settings-item" onclick="openSettingsSection('security')">
             <div class="settings-icon-small">🔒</div>
             <div class="settings-label">Security</div>
         </div>
@@ -83,11 +80,11 @@
             <div class="settings-label">Dark Mode</div>
         </div>
         <div class="settings-divider"></div>
-        <div class="settings-item" onclick="openSection('help')">
+        <div class="settings-item" onclick="openSettingsSection('help')">
             <div class="settings-icon-small">❓</div>
             <div class="settings-label">Help & Support</div>
         </div>
-        <div class="settings-item" onclick="openSection('about')">
+        <div class="settings-item" onclick="openSettingsSection('about')">
             <div class="settings-icon-small">ℹ️</div>
             <div class="settings-label">About</div>
         </div>
@@ -105,8 +102,5 @@
     <script src="../js/modules/user.js"></script>
     <script src="../js/modules/core.js"></script>
     <script src="../js/modules/utils.js"></script>
-    <script src="../js/modules/profileManager.js"></script>
-    
-    <!-- Section Scripts (will be loaded dynamically) -->
 </body>
 </html>
