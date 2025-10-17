@@ -4,57 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEMEXCOIN - Dashboard</title>
-    
+
     <!-- CSS Files -->
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/components/nav.css">
     <link rel="stylesheet" href="../css/components/modals.css">
-    
+
     <style>
-        /* Temporary inline styles to ensure basic styling */
-        :root {
-            --dark-bg: #0a0a0a;
-            --darker-bg: #050505;
-            --gold: #d4af37;
-            --gold-dark: #b8941f;
-            --text: #ffffff;
-            --text-secondary: #cccccc;
-        }
-        
-        body {
-            background: var(--dark-bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-        }
-        
-        .loading {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: var(--dark-bg);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        
-        .loading-logo {
-            font-size: 72px;
-            color: var(--gold);
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        
-        .loading-status {
-            color: var(--text);
-            font-size: 16px;
+        /* Emergency fallback styles */
+        .app-container {
+            display: block !important;
+            min-height: 100vh;
+            background: #0a0a0a;
         }
         
         .hidden {
@@ -83,7 +45,77 @@
         <main id="main-content" class="main-content">
             <!-- Home Section will be loaded here by default -->
             <div id="section-container">
-                <!-- Content will be loaded dynamically -->
+                <!-- Emergency fallback content -->
+                <div class="section home-section active" id="home-section">
+                    <!-- Mining Coin Section -->
+                    <div class="mining-section">
+                        <div class="coin-container">
+                            <div class="mining-coin" id="miningCoin">
+                                NMX
+                            </div>
+                        </div>
+                        
+                        <!-- Countdown Timer -->
+                        <div class="countdown-container">
+                            <div class="timer-label">Claim in</div>
+                            <div class="timer-display" id="countdownTimer">24:00:00</div>
+                        </div>
+                        
+                        <!-- Claim Button -->
+                        <button class="claim-button" id="claimButton" disabled>
+                            Claim Your NMX
+                        </button>
+                    </div>
+
+                    <!-- Current Balance Section -->
+                    <div class="balance-section">
+                        <div class="balance-label">Your NMX Balance</div>
+                        <div class="balance-amount" id="currentBalance">30 NMX</div>
+                        <div class="balance-label">≈ $0.00 USD</div>
+                    </div>
+
+                    <!-- Quick Stats -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Mining Statistics</div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalMined">30</div>
+                                <div class="stat-label">Total Mined</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="miningRate">1.25</div>
+                                <div class="stat-label">NMX/Hour</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="referralBonus">0</div>
+                                <div class="stat-label">Referral Bonus</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="totalClaims">1</div>
+                                <div class="stat-label">Total Claims</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">Quick Actions</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <button class="btn btn-outline" onclick="loadSection('tasks')">
+                                <span style="font-size: 18px; margin-right: 8px;">📋</span>
+                                Tasks
+                            </button>
+                            <button class="btn btn-outline" onclick="loadSection('referrals')">
+                                <span style="font-size: 18px; margin-right: 8px;">👥</span>
+                                Refer Friends
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -113,9 +145,9 @@
     </div>
 
     <!-- Settings Modal -->
-    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="modal-overlay hidden" id="modalOverlay"></div>
 
-    <div class="settings-modal" id="settingsModal">
+    <div class="settings-modal hidden" id="settingsModal">
         <div class="settings-item" onclick="openSettingsSection('profile')">
             <div class="settings-icon-small">👤</div>
             <div class="settings-label">Profile</div>
@@ -155,5 +187,49 @@
     <script src="../js/modules/user.js"></script>
     <script src="../js/modules/core.js"></script>
     <script src="../js/modules/utils.js"></script>
+
+    <!-- Emergency JavaScript -->
+    <script>
+        // Emergency initialization if main.js fails
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Emergency initialization running...');
+            
+            setTimeout(function() {
+                const loading = document.getElementById('loading');
+                const app = document.getElementById('app');
+                
+                if (loading && app) {
+                    loading.classList.add('hidden');
+                    app.classList.remove('hidden');
+                    console.log('Emergency: App should be visible now');
+                    
+                    // Initialize mining functionality directly
+                    if (window.miningCore) {
+                        window.miningCore.attachHomeListeners();
+                    }
+                }
+            }, 2000);
+        });
+
+        // Emergency section loading
+        function loadSection(sectionName) {
+            console.log('Emergency loading section:', sectionName);
+            alert('Section loading: ' + sectionName + ' (Emergency mode)');
+        }
+
+        // Make functions globally available
+        window.loadSection = loadSection;
+        window.toggleDarkMode = function() {
+            alert('Dark mode toggle - Emergency mode');
+        };
+        window.logout = function() {
+            if (confirm('Logout?')) {
+                alert('Logging out...');
+            }
+        };
+        window.openSettingsSection = function(section) {
+            alert('Settings: ' + section);
+        };
+    </script>
 </body>
 </html>
