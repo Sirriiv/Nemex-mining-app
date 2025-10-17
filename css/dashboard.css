@@ -1,236 +1,264 @@
-/* Dashboard Specific Styles */
+/* Dashboard Specific Styles - Exact match to screenshot */
 
-/* Mining Section Styles */
+/* Mining Section Styles - Exact match to screenshot */
 .mining-section {
     text-align: center;
     margin-bottom: 30px;
+    padding: 20px 0;
 }
 
 .coin-container {
     position: relative;
-    width: 150px;
-    height: 150px;
-    margin: 0 auto 20px;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 25px;
 }
 
 .mining-coin {
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle at 30% 30%, var(--gold-light), var(--gold), var(--gold-dark));
+    background: radial-gradient(circle at 30% 30%, #f4e4a9, var(--gold), #b8941f);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
+    font-size: 42px;
     font-weight: bold;
-    color: var(--dark-bg);
-    border: 4px solid var(--gold);
-    box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+    color: #0a0a0a;
+    border: 5px solid var(--gold);
+    box-shadow: 
+        0 0 40px rgba(212, 175, 55, 0.8),
+        inset 0 0 20px rgba(244, 228, 169, 0.6);
     cursor: pointer;
     transition: all 0.3s ease;
     user-select: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .mining-coin:active {
     transform: scale(0.95);
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.8);
+    box-shadow: 
+        0 0 50px rgba(212, 175, 55, 1),
+        inset 0 0 25px rgba(244, 228, 169, 0.8);
 }
 
 .mining-coin.mining {
-    animation: coinGlow 1s ease-in-out infinite alternate;
+    animation: coinPulse 1s ease-in-out infinite alternate;
 }
 
-@keyframes coinGlow {
+@keyframes coinPulse {
     from {
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+        transform: scale(1);
+        box-shadow: 
+            0 0 40px rgba(212, 175, 55, 0.8),
+            inset 0 0 20px rgba(244, 228, 169, 0.6);
     }
     to {
-        box-shadow: 0 0 40px rgba(212, 175, 55, 1);
+        transform: scale(1.05);
+        box-shadow: 
+            0 0 60px rgba(212, 175, 55, 1),
+            inset 0 0 30px rgba(244, 228, 169, 0.9);
     }
 }
 
-/* Countdown Timer */
-.countdown-timer {
+/* Countdown Timer - Exact match to screenshot */
+.countdown-container {
     background: var(--darker-bg);
     border: 2px solid var(--gold);
-    border-radius: 10px;
-    padding: 15px;
-    margin: 20px 0;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 25px 0;
     text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .timer-label {
     color: var(--text-secondary);
-    font-size: 14px;
-    margin-bottom: 5px;
+    font-size: 16px;
+    margin-bottom: 10px;
+    font-weight: 500;
 }
 
 .timer-display {
     color: var(--gold);
-    font-size: 24px;
+    font-size: 28px;
     font-weight: bold;
     font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
 }
 
-/* Balance Display */
-.balance-display {
+/* Claim Button */
+.claim-button {
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--dark-bg);
+    border: none;
+    padding: 16px 32px;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
     text-align: center;
+    display: block;
+    width: 100%;
     margin: 20px 0;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+.claim-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+}
+
+.claim-button:disabled {
+    background: var(--text-muted);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Balance Display - Exact match to screenshot */
+.balance-section {
+    text-align: center;
+    margin: 30px 0;
+    padding: 25px 20px;
+    background: var(--card-bg);
+    border-radius: 15px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .balance-amount {
-    font-size: 36px;
+    font-size: 42px;
     font-weight: bold;
     color: var(--gold);
-    margin: 10px 0;
+    margin: 15px 0;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
 }
 
 .balance-label {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 16px;
+    font-weight: 500;
 }
 
-/* Stats Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-    margin: 20px 0;
+/* Bottom Navigation Spacing */
+.main-content {
+    padding-bottom: 100px; /* More space for bottom nav */
 }
 
-.stat-item {
-    background: var(--card-bg);
-    padding: 15px;
-    border-radius: 10px;
-    text-align: center;
-    border: 1px solid rgba(212, 175, 55, 0.1);
-}
-
-.stat-value {
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--gold);
-    margin-bottom: 5px;
-}
-
-.stat-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-/* Section Styles */
+/* Section Management */
 .section {
     display: none;
-    animation: fadeIn 0.3s ease-in;
+    animation: fadeInUp 0.4s ease-out;
 }
 
 .section.active {
     display: block;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-/* Tasks List */
-.tasks-list {
-    display: flex;
-    flex-direction: column;
+/* Tasks Section Styles */
+.tasks-grid {
+    display: grid;
     gap: 15px;
+    margin: 20px 0;
 }
 
-.task-item {
+.task-card {
     background: var(--card-bg);
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid rgba(212, 175, 55, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: transform 0.2s ease;
 }
 
-.task-info h4 {
+.task-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--gold);
+}
+
+.task-info h3 {
     color: var(--gold);
-    margin-bottom: 5px;
+    margin-bottom: 8px;
+    font-size: 16px;
 }
 
 .task-info p {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .task-reward {
     color: var(--gold);
     font-weight: bold;
+    font-size: 18px;
 }
 
 /* Referral Section */
-.referral-code {
-    background: var(--darker-bg);
-    border: 2px solid var(--gold);
-    border-radius: 10px;
-    padding: 15px;
+.referral-section {
     text-align: center;
-    margin: 20px 0;
+    padding: 20px;
 }
 
-.referral-code .code {
+.referral-code-box {
+    background: var(--darker-bg);
+    border: 2px solid var(--gold);
+    border-radius: 12px;
+    padding: 25px;
+    margin: 25px 0;
+}
+
+.referral-code {
     font-family: 'Courier New', monospace;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     color: var(--gold);
-    margin: 10px 0;
-    padding: 10px;
+    margin: 15px 0;
+    padding: 12px;
     background: rgba(212, 175, 55, 0.1);
-    border-radius: 5px;
+    border-radius: 8px;
+    letter-spacing: 1px;
 }
 
 /* Wallet Section */
-.wallet-balance {
+.wallet-balance-large {
     text-align: center;
-    padding: 30px 20px;
+    padding: 40px 20px;
     background: linear-gradient(135deg, var(--card-bg), var(--darker-bg));
-    border-radius: 15px;
+    border-radius: 20px;
     margin: 20px 0;
     border: 2px solid var(--gold);
 }
 
 .balance-large {
-    font-size: 48px;
+    font-size: 52px;
     font-weight: bold;
     color: var(--gold);
-    margin: 10px 0;
+    margin: 20px 0;
+    text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
 }
 
-/* Transaction History */
-.transaction-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+/* Buy Section */
+.coming-soon {
+    text-align: center;
+    padding: 60px 20px;
 }
 
-.transaction-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 15px;
-    background: var(--card-bg);
-    border-radius: 8px;
-    border-left: 4px solid var(--gold);
-}
-
-.transaction-amount.positive {
-    color: var(--success);
-    font-weight: bold;
-}
-
-.transaction-amount.negative {
-    color: var(--error);
-    font-weight: bold;
-}
-
-.transaction-date {
-    color: var(--text-secondary);
-    font-size: 12px;
+.coming-soon .text-gold {
+    font-size: 32px;
+    margin-bottom: 15px;
 }
