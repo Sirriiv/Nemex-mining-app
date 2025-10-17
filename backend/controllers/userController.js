@@ -1,163 +1,297 @@
-const supabase = require('../config/supabase');
+const bcrypt = require('bcryptjs');
+const { generateToken, users } = require('../middleware/auth');
+const { v4: uuidv4 } = require('uuid');
 
-const userController = {
-    // Get user by ID
-    async getUser(req, res) {
+class UserController {
+    // Register new user
+    async register(req, res) {
         try {
-            const { userId } = req.params;
+            const { fullName, email, password, referralCode } = req.body;
 
-            const { data: user, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
+            console.log('👤 Registration attempt:', { email, fullName });
 
-            if (error) {
-                if (error.code === 'PGRST116') {
-                    return res.status(404).json({ error: 'User not found' });
+            // Check if user already exists
+            const existingUser = Array.from(users.values()).find(user => user.email === email);
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'User with this email already exists'
+                });
+            }
+
+            // Hash password
+            const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+            // Generate user ID and referral code
+            const userId = uuidv4();
+            const userReferralCode = 'NMX' + Date.now().toString().slice(-6);
+
+            // Create user object
+            const user = {
+                id: userId,
+                fullName,
+                email,
+                password: hashedPassword,
+                referralCode: userReferralCode,
+                balance: 25, // Welcome bonus
+                miningDays: 1,
+                totalEarned: 25,
+                joinDate: new Date().toISOString(),
+                role: 'user',
+                isActive: true,
+                lastLogin: new Date().toISOString()
+            };
+
+            // Handle referral if provided
+            if (referralCode) {
+                const referrer = Array.from(users.values()).find(u => u.referralCode === referralCode);
+                if (referrer) {
+                    // Add bonus to referrer
+                    referrer.balance += 50;
+                    referrer.totalEarned += 50;
+                    
+                    // Add referral to user's record
+                    user.referredBy = referrer.id;
+                    user.referralBonus = true;
+                    
+                    console.log(`🎁 Referral applied: ${referrer.email} earned 50 NMXp`);
                 }
-                throw error;
             }
 
-            res.json(user);
+            // Save user to mock database
+            users.set(userId, user);
+
+            // Generate token
+            const token = generateToken(user);
+
+            // Remove password from response
+            const { password: _, ...userWithoutPassword } = user;
+
+            console.log('✅ User registered successfully:', user.email);
+
+            res.status(201).json({
+                success: true,
+                message: 'User registered successfully',
+                user: userWithoutPassword,
+                token
+            });
+
         } catch (error) {
-            console.error('Get user error:', error);
-            res.status(500).json({ error: 'Internal server error' });
+            console.error('❌ Registration error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error during registration'
+            });
         }
-    },
+    }
 
-    // Create new user
-    async createUser(req, res) {
+    // Login user
+    async login(req, res) {
         try {
-            const { userId, balance = 0, remainingTime = 86400, joinDate } = req.body;
+            const { email, password } = req.body;
 
-            const { data: user, error } = await supabase
-                .from('users')
-                .insert([
-                    {
-                        user_id: userId,
-                        balance: balance,
-                        remaining_time: remainingTime,
-                        join_date: joinDate || new Date().toISOString(),
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    }
-                ])
-                .select()
-                .single();
+            console.log('🔐 Login attempt:', email);
 
-            if (error) {
-                if (error.code === '23505') { // Unique violation
-                    return res.status(409).json({ error: 'User already exists' });
-                }
-                throw error;
+            // Find user
+            const user = Array.from(users.values()).find(u => u.email === email && u.isActive);
+            if (!user) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid email or password'
+                });
             }
 
-            res.status(201).json(user);
-        } catch (error) {
-            console.error('Create user error:', error);
-            res.status(500).json({ error: 'Internal server error' });
-        }
-    },
-
-    // Claim mining reward
-    async claimReward(req, res) {
-        try {
-            const { userId } = req.params;
-
-            // Get current user data
-            const { data: user, error: userError } = await supabase
-                .from('users')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
-
-            if (userError) {
-                return res.status(404).json({ error: 'User not found' });
+            // Check password
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            if (!isPasswordValid) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid email or password'
+                });
             }
 
-            // Check if user can claim (remaining_time should be 0)
-            if (user.remaining_time > 0) {
-                return res.status(400).json({ error: 'Reward not ready to claim' });
-            }
+            // Update last login
+            user.lastLogin = new Date().toISOString();
 
-            // Update user balance and reset timer
-            const newBalance = user.balance + 30;
-            const { data: updatedUser, error: updateError } = await supabase
-                .from('users')
-                .update({
-                    balance: newBalance,
-                    remaining_time: 86400, // 24 hours in seconds
-                    updated_at: new Date().toISOString()
-                })
-                .eq('user_id', userId)
-                .select()
-                .single();
+            // Generate token
+            const token = generateToken(user);
 
-            if (updateError) {
-                throw updateError;
-            }
+            // Remove password from response
+            const { password: _, ...userWithoutPassword } = user;
 
-            // Create transaction record
-            await supabase
-                .from('transactions')
-                .insert([
-                    {
-                        user_id: userId,
-                        type: 'mining_reward',
-                        amount: 30,
-                        description: 'Daily mining reward',
-                        created_at: new Date().toISOString()
-                    }
-                ]);
+            console.log('✅ Login successful:', user.email);
 
             res.json({
-                balance: updatedUser.balance,
-                remainingTime: updatedUser.remaining_time,
-                message: 'Successfully claimed 30 NMXp!'
+                success: true,
+                message: 'Login successful',
+                user: userWithoutPassword,
+                token
             });
+
         } catch (error) {
-            console.error('Claim reward error:', error);
-            res.status(500).json({ error: 'Internal server error' });
+            console.error('❌ Login error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error during login'
+            });
         }
-    },
+    }
 
     // Get user profile
     async getProfile(req, res) {
         try {
-            const { userId } = req.params;
+            const userId = req.user.id;
+            const user = users.get(userId);
 
-            const { data: user, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
-
-            if (error) {
-                return res.status(404).json({ error: 'User not found' });
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
             }
 
-            // Calculate mining days
-            const joinDate = new Date(user.join_date);
-            const today = new Date();
-            const miningDays = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24)) + 1;
-
-            // Calculate total earned (you might want to get this from transactions table)
-            const totalEarned = user.balance; // Simplified for now
+            // Remove password from response
+            const { password, ...userProfile } = user;
 
             res.json({
-                userId: user.user_id,
-                name: 'Mining Enthusiast',
-                email: `user_${user.user_id.substring(0, 8)}@nemexcoin.com`,
-                miningDays: miningDays,
-                totalEarned: totalEarned,
-                memberSince: user.join_date
+                success: true,
+                user: userProfile
             });
+
         } catch (error) {
-            console.error('Get profile error:', error);
-            res.status(500).json({ error: 'Internal server error' });
+            console.error('❌ Get profile error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
         }
     }
-};
 
-module.exports = userController;
+    // Update user profile
+    async updateProfile(req, res) {
+        try {
+            const userId = req.user.id;
+            const { fullName, email } = req.body;
+
+            const user = users.get(userId);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // Update fields
+            if (fullName) user.fullName = fullName;
+            if (email) {
+                // Check if email is already taken by another user
+                const emailExists = Array.from(users.values())
+                    .some(u => u.email === email && u.id !== userId);
+                
+                if (emailExists) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Email is already taken'
+                    });
+                }
+                user.email = email;
+            }
+
+            // Remove password from response
+            const { password: _, ...updatedUser } = user;
+
+            res.json({
+                success: true,
+                message: 'Profile updated successfully',
+                user: updatedUser
+            });
+
+        } catch (error) {
+            console.error('❌ Update profile error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Get user balance
+    async getBalance(req, res) {
+        try {
+            const userId = req.user.id;
+            const user = users.get(userId);
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                balance: user.balance,
+                currency: 'NMXp',
+                totalEarned: user.totalEarned
+            });
+
+        } catch (error) {
+            console.error('❌ Get balance error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Claim mining reward
+    async claimMiningReward(req, res) {
+        try {
+            const userId = req.user.id;
+            const user = users.get(userId);
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            const rewardAmount = 30;
+
+            // Update user balance
+            user.balance += rewardAmount;
+            user.totalEarned += rewardAmount;
+            user.miningDays += 1;
+
+            // Create transaction record (in real app, save to transactions table)
+            const transaction = {
+                id: uuidv4(),
+                userId: user.id,
+                type: 'mining_reward',
+                amount: rewardAmount,
+                description: 'Daily mining reward',
+                timestamp: new Date().toISOString()
+            };
+
+            console.log(`💰 Mining reward claimed: ${user.email} earned ${rewardAmount} NMXp`);
+
+            res.json({
+                success: true,
+                message: `Successfully claimed ${rewardAmount} NMXp`,
+                reward: rewardAmount,
+                newBalance: user.balance
+            });
+
+        } catch (error) {
+            console.error('❌ Claim mining reward error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+}
+
+module.exports = new UserController();
