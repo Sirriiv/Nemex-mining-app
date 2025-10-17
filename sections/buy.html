@@ -53,7 +53,7 @@
     </div>
 
     <div class="payment-methods">
-        <h3 style="color: var(--gold); margin: 30px 0 15px 0;">Payment Methods</h3>
+        <h3>Payment Methods</h3>
         <div class="methods-grid">
             <div class="method-card" onclick="selectPayment('card')">
                 <div class="method-icon">💳</div>
@@ -81,21 +81,39 @@
 
 .package-card {
     background: var(--darker-bg);
-    border: 1px solid #333;
-    border-radius: 15px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 20px;
     padding: 25px;
     position: relative;
     transition: all 0.3s;
+    overflow: hidden;
+}
+
+.package-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
 }
 
 .package-card:hover {
     border-color: var(--gold);
-    transform: translateY(-3px);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
 }
 
 .package-card.popular {
     border-color: var(--gold);
-    background: linear-gradient(135deg, var(--darker-bg), rgba(212,175,55,0.05));
+    background: linear-gradient(135deg, var(--darker-bg), rgba(212, 175, 55, 0.05));
+    transform: scale(1.02);
+}
+
+.package-card.popular::before {
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), #ffd700, var(--gold));
 }
 
 .popular-badge {
@@ -103,12 +121,14 @@
     top: -10px;
     left: 50%;
     transform: translateX(-50%);
-    background: var(--gold);
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
     color: var(--darker-bg);
-    padding: 5px 15px;
-    border-radius: 12px;
+    padding: 6px 20px;
+    border-radius: 15px;
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .package-header {
@@ -120,13 +140,13 @@
 
 .package-name {
     color: var(--text);
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
 }
 
 .package-price {
     color: var(--gold);
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
 }
 
@@ -134,6 +154,7 @@
     color: var(--muted);
     font-size: 14px;
     margin-bottom: 15px;
+    font-weight: 600;
 }
 
 .package-features {
@@ -145,23 +166,36 @@
     color: var(--text);
     margin-bottom: 8px;
     font-size: 14px;
+    padding-left: 5px;
 }
 
 .buy-btn {
     width: 100%;
-    padding: 12px;
-    background: var(--gold);
+    padding: 14px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
     color: var(--darker-bg);
     border: none;
-    border-radius: 8px;
-    font-weight: 600;
+    border-radius: 12px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .buy-btn:hover {
-    background: #e6c158;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+.payment-methods h3 {
+    color: var(--gold);
+    margin: 30px 0 20px 0;
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .methods-grid {
@@ -172,28 +206,84 @@
 
 .method-card {
     background: var(--darker-bg);
-    border: 1px solid #333;
-    border-radius: 10px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 15px;
     padding: 20px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+}
+
+.method-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
 .method-card:hover {
     border-color: var(--gold);
     transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(212, 175, 55, 0.2);
 }
 
 .method-icon {
-    font-size: 24px;
-    margin-bottom: 8px;
+    font-size: 28px;
+    margin-bottom: 10px;
+    height: 40px;
 }
 
 .method-name {
     color: var(--text);
     font-size: 14px;
     font-weight: 600;
+}
+
+/* Selected states */
+.package-card.selected {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, var(--darker-bg), rgba(212, 175, 55, 0.1));
+    transform: scale(1.02);
+}
+
+.method-card.selected {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.1);
+}
+
+.purchase-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+    color: var(--darker-bg);
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 20px;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.purchase-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+}
+
+.purchase-btn:disabled {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 </style>
 
