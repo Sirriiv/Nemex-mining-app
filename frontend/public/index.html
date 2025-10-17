@@ -1,62 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEMEXCOIN - Mining App</title>
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/components/nav.css">
-    <link rel="stylesheet" href="../css/components/modals.css">
+    <title>Nemex Mining</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a; /* Charcoal black */
+            color: gold;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 500px;
+            padding: 40px;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: gold;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            color: #cccccc;
+            line-height: 1.5;
+        }
+        
+        .cta-button {
+            background: gold;
+            color: #1a1a1a;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            width: 200px;
+        }
+        
+        .secondary-button {
+            background: transparent;
+            color: gold;
+            border: 2px solid gold;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            width: 200px;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+    </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loading" class="loading">
-        <div class="loading-logo">NMX</div>
-        <div class="loading-status">Initializing NEMEXCOIN...</div>
-    </div>
-
-    <!-- Main App Container -->
-    <div id="app" class="app-container hidden">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">NEMEXCOIN</div>
-            <div class="settings-icon" id="settingsButton">⚙️</div>
+    <div class="container">
+        <div class="logo">Welcome to NMP</div>
+        
+        <div class="subtitle">
+            Your gateway to earning and<br>
+            managing rewards
         </div>
-
-        <!-- Main Content Area -->
-        <main id="main-content" class="main-content">
-            <!-- Sections will be loaded here dynamically -->
-        </main>
-
-        <!-- Bottom Navigation -->
-        <nav class="bottom-navbar">
-            <button class="nav-item active" data-section="home">
-                <div class="nav-icon">🏠</div>
-                <div class="nav-label">Home</div>
+        
+        <div class="button-group">
+            <button class="cta-button" onclick="window.location.href='/register'">
+                Get Started
             </button>
-            <button class="nav-item" data-section="tasks">
-                <div class="nav-icon">📋</div>
-                <div class="nav-label">Tasks</div>
+            
+            <button class="secondary-button" onclick="window.location.href='/login'">
+                Sign In
             </button>
-            <button class="nav-item" data-section="buy">
-                <div class="nav-icon">🛒</div>
-                <div class="nav-label">Buy</div>
-            </button>
-            <button class="nav-item" data-section="referrals">
-                <div class="nav-icon">👥</div>
-                <div class="nav-label">Referrals</div>
-            </button>
-            <button class="nav-item" data-section="wallet">
-                <div class="nav-icon">💰</div>
-                <div class="nav-label">Wallet</div>
-            </button>
-        </nav>
+        </div>
     </div>
 
-    <!-- JavaScript Files -->
-    <script src="../js/main.js"></script>
-    <script src="../js/modules/navigation.js"></script>
-    <script src="../js/section/loader.js"></script>
+    <script>
+        // Telegram Web App integration
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+        }
+    </script>
 </body>
 </html>
