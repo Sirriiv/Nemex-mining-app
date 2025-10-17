@@ -1,93 +1,167 @@
-// Main Application Controller
-class NemexApp {
-    constructor() {
-        this.currentUser = null;
-        this.balance = 0;
-        this.isInitialized = false;
-        this.init();
-    }
+// Main Application Initialization
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('NEMEXCOIN App Initializing...');
+    
+    // Initialize app after a short delay to show loading screen
+    setTimeout(initializeApp, 2000);
+});
 
-    async init() {
-        try {
-            console.log('🚀 Initializing NEMEXCOIN App...');
-            
-            // Check authentication
-            await this.checkAuth();
-            
-            // Show main app
-            this.showMainApp();
-            
-            this.isInitialized = true;
-            console.log('✅ NEMEXCOIN App initialized successfully');
-            
-        } catch (error) {
-            console.error('❌ App initialization failed:', error);
-            this.showError('Failed to initialize app');
-        }
-    }
-
-    async checkAuth() {
-        const token = localStorage.getItem('nemex_token');
-        if (token) {
-            try {
-                // In a real app, verify token with backend
-                this.currentUser = JSON.parse(localStorage.getItem('nemex_user'));
-                console.log('✅ User authenticated:', this.currentUser?.email);
-            } catch (error) {
-                console.log('Invalid token, redirecting to login');
-                localStorage.removeItem('nemex_token');
-                localStorage.removeItem('nemex_user');
-                this.redirectToLogin();
-            }
-        } else {
-            this.redirectToLogin();
-        }
-    }
-
-    showMainApp() {
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-    }
-
-    redirectToLogin() {
-        if (!window.location.pathname.includes('login.html') && 
-            !window.location.pathname.includes('register.html')) {
-            window.location.href = 'login.html';
-        }
-    }
-
-    logout() {
-        localStorage.removeItem('nemex_token');
-        localStorage.removeItem('nemex_user');
-        window.location.href = 'login.html';
-    }
-
-    showError(message) {
-        // Create error toast
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--error);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            z-index: 10000;
-            animation: slideDown 0.3s ease;
-        `;
-        toast.textContent = message;
+function initializeApp() {
+    console.log('Initializing NEMEXCOIN Dashboard...');
+    
+    // Hide loading screen and show app
+    const loading = document.getElementById('loading');
+    const app = document.getElementById('app');
+    
+    if (loading && app) {
+        loading.classList.add('hidden');
+        app.classList.remove('hidden');
         
-        document.body.appendChild(toast);
+        // Load the home section by default
+        loadSection('home');
         
-        setTimeout(() => {
-            toast.remove();
-        }, 3000);
+        // Initialize navigation
+        initializeNavigation();
+        
+        // Initialize mining functionality
+        initializeMining();
+        
+        // Initialize settings modal
+        initializeSettings();
+        
+        console.log('NEMEXCOIN Dashboard initialized successfully!');
+    } else {
+        console.error('Critical elements not found!');
     }
 }
 
-// Initialize app when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    window.nemexApp = new NemexApp();
-});
+// Section Loading Function
+function loadSection(sectionName) {
+    console.log('Loading section:', sectionName);
+    
+    const sectionContainer = document.getElementById('section-container');
+    if (!sectionContainer) {
+        console.error('Section container not found!');
+        return;
+    }
+    
+    // Hide all sections first
+    const allSections = document.querySelectorAll('.section');
+    allSections.forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    // Update navigation active state
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        if (item.getAttribute('data-section') === sectionName) {
+            item.classList.add('active');
+        }
+    });
+    
+    // Load section content
+    const sectionFile = `../sections/${sectionName}.html`;
+    
+    fetch(sectionFile)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Section not found: ' + sectionName);
+            }
+            return response.text();
+        })
+        .then(html => {
+            sectionContainer.innerHTML = html;
+            
+            // Re-initialize section-specific functionality
+            initializeSection(sectionName);
+            
+            console.log('Section loaded:', sectionName);
+        })
+        .catch(error => {
+            console.error('Error loading section:', error);
+            sectionContainer.innerHTML = `
+                <div class="card">
+                    <div class="text-center">
+                        <h3 class="text-gold">Section Not Available</h3>
+                        <p>Unable to load ${sectionName} section.</p>
+                        <button class="btn" onclick="loadSection('home')">Return Home</button>
+                    </div>
+                </div>
+            `;
+        });
+}
+
+// Initialize section-specific functionality
+function initializeSection(sectionName) {
+    switch(sectionName) {
+        case 'home':
+            initializeHomeSection();
+            break;
+        case 'tasks':
+            initializeTasksSection();
+            break;
+        case 'buy':
+            initializeBuySection();
+            break;
+        case 'referrals':
+            initializeReferralsSection();
+            break;
+        case 'wallet':
+            initializeWalletSection();
+            break;
+    }
+}
+
+// Simple initialization functions (will be expanded in modules)
+function initializeNavigation() {
+    console.log('Navigation initialized');
+}
+
+function initializeMining() {
+    console.log('Mining functionality initialized');
+}
+
+function initializeSettings() {
+    console.log('Settings initialized');
+}
+
+// Placeholder functions for section initializations
+function initializeHomeSection() {
+    console.log('Home section initialized');
+    // Mining functionality will be handled in core.js
+}
+
+function initializeTasksSection() {
+    console.log('Tasks section initialized');
+}
+
+function initializeBuySection() {
+    console.log('Buy section initialized');
+}
+
+function initializeReferralsSection() {
+    console.log('Referrals section initialized');
+}
+
+function initializeWalletSection() {
+    console.log('Wallet section initialized');
+}
+
+// Settings modal functions
+function toggleDarkMode() {
+    console.log('Dark mode toggled');
+    alert('Dark mode toggle functionality will be implemented soon!');
+}
+
+function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        console.log('User logged out');
+        window.location.href = '../public/login.html';
+    }
+}
+
+function openSettingsSection(section) {
+    console.log('Opening settings section:', section);
+    alert('Settings section: ' + section);
+}
