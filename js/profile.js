@@ -190,3 +190,7 @@ function displayAchievements(achievements) {
 }
 
 function showAchievementDetail(achievementId) {
+    // Show achievement details in a modal or tooltip
+    console.log('Showing details for achievement:', achievementId);
+    // In a real app, this would show more information about the achievement
+}
