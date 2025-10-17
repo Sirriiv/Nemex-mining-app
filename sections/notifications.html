@@ -1,0 +1,61 @@
+<div class="notifications-section">
+    <div class="notifications-header">
+        <h2>🔔 Notifications</h2>
+        <button class="clear-all-btn" onclick="clearAllNotifications()">Clear All</button>
+    </div>
+
+    <div class="settings-group">
+        <div class="setting-header">
+            <h3>Push Notifications</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" id="pushEnabled" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <p class="setting-description">Receive push notifications for rewards and updates</p>
+    </div>
+
+    <div class="settings-group">
+        <div class="setting-header">
+            <h3>Email Notifications</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" id="emailEnabled">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <p class="setting-description">Get important updates via email</p>
+    </div>
+
+    <div class="settings-group">
+        <div class="setting-header">
+            <h3>Sound Effects</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" id="soundEnabled" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <p class="setting-description">Play sounds for notifications</p>
+    </div>
+
+    <div class="settings-group">
+        <div class="setting-header">
+            <h3>Vibration</h3>
+            <label class="toggle-switch">
+                <input type="checkbox" id="vibrationEnabled" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <p class="setting-description">Vibrate on notifications</p>
+    </div>
+
+    <div class="notifications-container">
+        <!-- Notifications will be loaded here dynamically -->
+    </div>
+</div>
+
+<script>
+// Initialize notifications when this section loads
+if (typeof initNotifications === 'function') {
+    initNotifications();
+}
+</script>
