@@ -1,99 +1,44 @@
 const express = require('express');
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js');
+const { adminAuthMiddleware } = require('../middleware/auth');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+// Mock admin data
+const adminStats = {
+    totalUsers: 150,
+    activeUsers: 89,
+    totalNMXMined: 12500,
+    dailyRewards: 2670,
+    pendingWithdrawals: 3
+};
 
-// Admin credentials (in production, use proper auth)
-const ADMIN_USERNAME = 'admin';
-const ADMIN_PASSWORD = 'admin123';
+// Admin dashboard stats
+router.get('/stats', adminAuthMiddleware, (req, res) => {
+    res.json({
+        success: true,
+        stats: adminStats,
+        lastUpdated: new Date().toISOString()
+    });
+});
 
-// Admin login
-router.post('/login', (req, res) => {
-    const { username, password } = req.body;
-        
-            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                    res.json({ success: true, message: 'Admin login successful' });
-                        } else {
-                                res.status(401).json({ success: false, message: 'Invalid credentials' });
-                                    }
-                                    });
+// Get all users (simplified)
+router.get('/users', adminAuthMiddleware, (req, res) => {
+    const { users } = require('./middleware/auth');
+    
+    const userList = Array.from(users.values()).map(user => ({
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        balance: user.balance,
+        joinDate: user.joinDate,
+        lastLogin: user.lastLogin,
+        isActive: user.isActive
+    }));
 
-                                    // Get all users
-                                    router.get('/users', async (req, res) => {
-                                        try {
-                                                const { data: users, error } = await supabase
-                                                            .from('users')
-                                                                        .select('*')
-                                                                                    .order('created_at', { ascending: false });
+    res.json({
+        success: true,
+        users: userList,
+        total: userList.length
+    });
+});
 
-                                                                                            if (error) throw error;
-
-                                                                                                    // Remove passwords from response
-                                                                                                            const usersWithoutPasswords = users.map(user => {
-                                                                                                                        const { password, ...userWithoutPassword } = user;
-                                                                                                                                    return userWithoutPassword;
-                                                                                                                                            });
-
-                                                                                                                                                    res.json({ success: true, users: usersWithoutPasswords });
-                                                                                                                                                        } catch (error) {
-                                                                                                                                                                res.status(500).json({ success: false, message: error.message });
-                                                                                                                                                                    }
-                                                                                                                                                                    });
-
-                                                                                                                                                                    // Get platform statistics
-                                                                                                                                                                    router.get('/stats', async (req, res) => {
-                                                                                                                                                                        try {
-                                                                                                                                                                                // Total users
-                                                                                                                                                                                        const { data: users, error: usersError } = await supabase
-                                                                                                                                                                                                    .from('users')
-                                                                                                                                                                                                                .select('*');
-
-                                                                                                                                                                                                                        if (usersError) throw usersError;
-
-                                                                                                                                                                                                                                // Total balance
-                                                                                                                                                                                                                                        const totalBalance = users.reduce((sum, user) => sum + (user.balance || 0), 0);
-
-                                                                                                                                                                                                                                                // Telegram users
-                                                                                                                                                                                                                                                        const telegramUsers = users.filter(user => user.telegramId).length;
-
-                                                                                                                                                                                                                                                                // Recent users (last 7 days)
-                                                                                                                                                                                                                                                                        const weekAgo = new Date();
-                                                                                                                                                                                                                                                                                weekAgo.setDate(weekAgo.getDate() - 7);
-                                                                                                                                                                                                                                                                                        const recentUsers = users.filter(user => new Date(user.created_at) > weekAgo).length;
-
-                                                                                                                                                                                                                                                                                                res.json({
-                                                                                                                                                                                                                                                                                                            success: true,
-                                                                                                                                                                                                                                                                                                                        stats: {
-                                                                                                                                                                                                                                                                                                                                        totalUsers: users.length,
-                                                                                                                                                                                                                                                                                                                                                        telegramUsers,
-                                                                                                                                                                                                                                                                                                                                                                        recentUsers,
-                                                                                                                                                                                                                                                                                                                                                                                        totalBalance: totalBalance.toFixed(2),
-                                                                                                                                                                                                                                                                                                                                                                                                        averageBalance: (totalBalance / users.length).toFixed(2) || 0
-                                                                                                                                                                                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                                                                                                                                                                                            });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                } catch (error) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                        res.status(500).json({ success: false, message: error.message });
-                                                                                                                                                                                                                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                                                                                                                                                                                                                            });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                            // Delete user
-                                                                                                                                                                                                                                                                                                                                                                                                                                            router.delete('/users/:walletId', async (req, res) => {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                try {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        const { walletId } = req.params;
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                const { error } = await supabase
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                            .from('users')
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        .delete()
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    .eq('walletId', walletId);
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            if (error) throw error;
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    res.json({ success: true, message: 'User deleted successfully' });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        } catch (error) {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                res.status(500).json({ success: false, message: error.message });
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    });
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    module.exports = router;
+module.exports = router;
