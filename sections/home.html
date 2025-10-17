@@ -1,76 +1,68 @@
-<section class="dashboard-section" id="home-section">
-    <div class="balance-card gold-glow">
-        <div class="balance-label">Your NMXp Balance</div>
-        <div class="balance-amount" id="balanceAmount">00</div>
-        
-        <!-- NemexCoin Logo -->
-        <div class="nemex-logo">
-            <div class="logo-container">
-                <div class="logo-base">
-                    <div class="logo-center">
-                        <div class="infinity-symbol"></div>
-                    </div>
-                    <div class="circuit-lines">
-                        <div class="circuit-line"></div>
-                        <div class="circuit-line"></div>
-                        <div class="circuit-line"></div>
-                        <div class="circuit-line"></div>
-                        <div class="circuit-line"></div>
-                        <div class="circuit-pad"></div>
-                        <div class="circuit-pad"></div>
-                        <div class="circuit-pad"></div>
-                        <div class="circuit-pad"></div>
-                    </div>
-                </div>
-                <div class="logo-glow"></div>
+<div class="section home-section active" id="home-section">
+    <!-- Mining Coin and Countdown -->
+    <div class="mining-section">
+        <div class="coin-container">
+            <div class="mining-coin" id="miningCoin">
+                NMX
             </div>
         </div>
         
-        <div class="mining-timer" id="miningTimer">Claim in 24:00:00</div>
-        <button class="claim-btn" id="claimButton" disabled>30 NMXp</button>
+        <div class="countdown-timer">
+            <div class="timer-label">Next Claim Available In</div>
+            <div class="timer-display" id="countdownTimer">24:00:00</div>
+        </div>
+        
+        <button class="btn btn-block" id="claimButton" disabled>
+            Claim Your NMX
+        </button>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-value" id="totalMined">0</div>
-            <div class="stat-label">Total Mined</div>
+    <!-- Current Balance -->
+    <div class="card">
+        <div class="balance-display">
+            <div class="balance-label">Your NMX Balance</div>
+            <div class="balance-amount" id="currentBalance">30 NMX</div>
+            <div class="balance-label">≈ $0.00 USD</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="miningDays">1</div>
-            <div class="stat-label">Mining Days</div>
+    </div>
+
+    <!-- Mining Stats -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Mining Stats</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value" id="referralCount">0</div>
-            <div class="stat-label">Referrals</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="tasksCompleted">0</div>
-            <div class="stat-label">Tasks Done</div>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value" id="totalMined">30</div>
+                <div class="stat-label">Total Mined</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="miningRate">1.25</div>
+                <div class="stat-label">NMX/Hour</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="referralBonus">0</div>
+                <div class="stat-label">Referral Bonus</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="totalClaims">1</div>
+                <div class="stat-label">Total Claims</div>
+            </div>
         </div>
     </div>
 
     <!-- Quick Actions -->
-    <div class="quick-actions">
-        <h3>Quick Actions</h3>
-        <div class="quick-actions-grid">
-            <button class="quick-action-btn" onclick="window.navigation.navigateTo('tasks')">
-                <div class="quick-action-icon">📋</div>
-                <div class="quick-action-label">Daily Tasks</div>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">Quick Actions</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn btn-outline" onclick="loadSection('tasks')">
+                📋 Tasks
             </button>
-            <button class="quick-action-btn" onclick="window.navigation.navigateTo('referrals')">
-                <div class="quick-action-icon">👥</div>
-                <div class="quick-action-label">Invite Friends</div>
-            </button>
-            <button class="quick-action-btn" onclick="window.navigation.navigateTo('buy')">
-                <div class="quick-action-icon">🛒</div>
-                <div class="quick-action-label">Buy NMXp</div>
-            </button>
-            <button class="quick-action-btn" onclick="showProfileModal()">
-                <div class="quick-action-icon">👤</div>
-                <div class="quick-action-label">My Profile</div>
+            <button class="btn btn-outline" onclick="loadSection('referrals')">
+                👥 Refer Friends
             </button>
         </div>
     </div>
-</section>
-
-<!-- Rest of the modals and scripts remain the same -->
+</div>
