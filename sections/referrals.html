@@ -1,0 +1,229 @@
+<section class="dashboard-section" id="referrals-section">
+    <div class="section-header">
+        <h2>👥 Referral Program</h2>
+        <p>Invite friends and earn mining rewards together</p>
+    </div>
+
+    <div class="referral-stats">
+        <div class="stat-card">
+            <div class="stat-value" id="totalReferrals">0</div>
+            <div class="stat-label">Total Referrals</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="referralEarnings">0</div>
+            <div class="stat-label">NMXp Earned</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="pendingBonus">0</div>
+            <div class="stat-label">Pending Bonus</div>
+        </div>
+    </div>
+
+    <div class="referral-card">
+        <div class="referral-header">
+            <h3 style="color: var(--gold); margin-bottom: 10px;">Your Referral Code</h3>
+            <div class="referral-code" id="referralCode">NMX12345</div>
+        </div>
+        <button class="referral-copy-btn" onclick="copyReferralCode()">
+            📋 Copy Code
+        </button>
+    </div>
+
+    <div class="referral-share">
+        <h3 style="color: var(--gold); margin: 25px 0 15px 0;">Share Your Link</h3>
+        <div class="share-options">
+            <button class="share-btn" onclick="shareVia('whatsapp')">
+                <div class="share-icon">💬</div>
+                <div class="share-label">WhatsApp</div>
+            </button>
+            <button class="share-btn" onclick="shareVia('telegram')">
+                <div class="share-icon">📱</div>
+                <div class="share-label">Telegram</div>
+            </button>
+            <button class="share-btn" onclick="shareVia('message')">
+                <div class="share-icon">✉️</div>
+                <div class="share-label">Message</div>
+            </button>
+        </div>
+    </div>
+
+    <div class="referral-benefits">
+        <h3 style="color: var(--gold); margin: 25px 0 15px 0;">How It Works</h3>
+        <div class="benefits-list">
+            <div class="benefit-item">
+                <div class="benefit-icon">🎁</div>
+                <div class="benefit-text">
+                    <strong>You get 50 NMXp</strong> for each friend who signs up
+                </div>
+            </div>
+            <div class="benefit-item">
+                <div class="benefit-icon">🎁</div>
+                <div class="benefit-text">
+                    <strong>Your friend gets 25 NMXp</strong> as welcome bonus
+                </div>
+            </div>
+            <div class="benefit-item">
+                <div class="benefit-icon">💰</div>
+                <div class="benefit-text">
+                    <strong>Earn 10%</strong> of your friend's mining rewards
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="referral-history">
+        <h3 style="color: var(--gold); margin: 25px 0 15px 0;">Referral History</h3>
+        <div class="history-list" id="referralHistory">
+            <div class="empty-state">
+                <div class="empty-icon">👥</div>
+                <h3>No Referrals Yet</h3>
+                <p>Start sharing your referral code to earn rewards!</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.referral-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.referral-card {
+    background: linear-gradient(135deg, var(--darker-bg), rgba(212,175,55,0.05));
+    border: 1px solid var(--gold);
+    border-radius: 15px;
+    padding: 25px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.referral-code {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--gold);
+    margin: 10px 0;
+    letter-spacing: 2px;
+}
+
+.referral-copy-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--gold);
+    color: var(--darker-bg);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.referral-copy-btn:hover {
+    background: #e6c158;
+    transform: translateY(-1px);
+}
+
+.share-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.share-btn {
+    background: var(--darker-bg);
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.share-btn:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+}
+
+.share-icon {
+    font-size: 20px;
+}
+
+.share-label {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.benefits-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.benefit-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: var(--darker-bg);
+    border: 1px solid #333;
+    border-radius: 10px;
+}
+
+.benefit-icon {
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    background: rgba(212,175,55,0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.benefit-text {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.history-list {
+    min-height: 100px;
+}
+</style>
+
+<script>
+function copyReferralCode() {
+    const code = document.getElementById('referralCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Referral code copied to clipboard!');
+    });
+}
+
+function shareVia(platform) {
+    const code = document.getElementById('referralCode').textContent;
+    const message = `Join me on NEMEXCOIN and start mining NMXp tokens! Use my referral code: ${code} - https://nemexcoin.com`;
+    
+    let shareUrl = '';
+    switch(platform) {
+        case 'whatsapp':
+            shareUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            break;
+        case 'telegram':
+            shareUrl = `https://t.me/share/url?url=${encodeURIComponent('https://nemexcoin.com')}&text=${encodeURIComponent(message)}`;
+            break;
+        case 'message':
+            shareUrl = `sms:?body=${encodeURIComponent(message)}`;
+            break;
+    }
+    
+    if (shareUrl) {
+        window.open(shareUrl, '_blank');
+    }
+}
+</script>
