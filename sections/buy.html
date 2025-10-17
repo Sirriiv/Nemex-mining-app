@@ -1,0 +1,211 @@
+<section class="dashboard-section" id="buy-section">
+    <div class="section-header">
+        <h2>🛒 Buy NMXp</h2>
+        <p>Purchase NMXp tokens securely with multiple payment options</p>
+    </div>
+
+    <div class="buy-options">
+        <div class="package-card">
+            <div class="package-header">
+                <div class="package-name">Starter</div>
+                <div class="package-price">$9.99</div>
+            </div>
+            <div class="package-tokens">100 NMXp</div>
+            <ul class="package-features">
+                <li>✓ Instant delivery</li>
+                <li>✓ No fees</li>
+                <li>✓ Bonus +5 NMXp</li>
+            </ul>
+            <button class="buy-btn" onclick="selectPackage('starter')">Select</button>
+        </div>
+
+        <div class="package-card popular">
+            <div class="popular-badge">Most Popular</div>
+            <div class="package-header">
+                <div class="package-name">Pro Miner</div>
+                <div class="package-price">$49.99</div>
+            </div>
+            <div class="package-tokens">600 NMXp</div>
+            <ul class="package-features">
+                <li>✓ Instant delivery</li>
+                <li>✓ No fees</li>
+                <li>✓ Bonus +50 NMXp</li>
+                <li>✓ Priority support</li>
+            </ul>
+            <button class="buy-btn" onclick="selectPackage('pro')">Select</button>
+        </div>
+
+        <div class="package-card">
+            <div class="package-header">
+                <div class="package-name">Whale</div>
+                <div class="package-price">$99.99</div>
+            </div>
+            <div class="package-tokens">1300 NMXp</div>
+            <ul class="package-features">
+                <li>✓ Instant delivery</li>
+                <li>✓ No fees</li>
+                <li>✓ Bonus +150 NMXp</li>
+                <li>✓ VIP support</li>
+                <li>✓ Early access</li>
+            </ul>
+            <button class="buy-btn" onclick="selectPackage('whale')">Select</button>
+        </div>
+    </div>
+
+    <div class="payment-methods">
+        <h3 style="color: var(--gold); margin: 30px 0 15px 0;">Payment Methods</h3>
+        <div class="methods-grid">
+            <div class="method-card" onclick="selectPayment('card')">
+                <div class="method-icon">💳</div>
+                <div class="method-name">Credit Card</div>
+            </div>
+            <div class="method-card" onclick="selectPayment('paypal')">
+                <div class="method-icon">📊</div>
+                <div class="method-name">PayPal</div>
+            </div>
+            <div class="method-card" onclick="selectPayment('crypto')">
+                <div class="method-icon">₿</div>
+                <div class="method-name">Crypto</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.buy-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.package-card {
+    background: var(--darker-bg);
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 25px;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.package-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-3px);
+}
+
+.package-card.popular {
+    border-color: var(--gold);
+    background: linear-gradient(135deg, var(--darker-bg), rgba(212,175,55,0.05));
+}
+
+.popular-badge {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: var(--darker-bg);
+    padding: 5px 15px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.package-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.package-name {
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.package-price {
+    color: var(--gold);
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.package-tokens {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+.package-features {
+    list-style: none;
+    margin-bottom: 20px;
+}
+
+.package-features li {
+    color: var(--text);
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.buy-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--gold);
+    color: var(--darker-bg);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.buy-btn:hover {
+    background: #e6c158;
+    transform: translateY(-1px);
+}
+
+.methods-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.method-card {
+    background: var(--darker-bg);
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.method-card:hover {
+    border-color: var(--gold);
+    transform: scale(1.05);
+}
+
+.method-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+}
+
+.method-name {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+</style>
+
+<script>
+function selectPackage(packageType) {
+    console.log('Selected package:', packageType);
+    // In real app, this would open payment modal
+    alert(`Selected ${packageType} package. Payment integration would happen here.`);
+}
+
+function selectPayment(method) {
+    console.log('Selected payment method:', method);
+    // In real app, this would set the payment method
+}
+</script>
