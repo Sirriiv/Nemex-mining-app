@@ -13,6 +13,7 @@
             --gold-dark: #b8941f;
             --text: #ffffff;
             --text-secondary: #cccccc;
+            --muted: #888888;
         }
         
         * {
@@ -109,57 +110,211 @@
         
         /* Claim Button */
         .claim-btn {
-            background: linear-gradient(135deg, var(--gold), #ffb300);
-            color: #000;
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
             border: none;
-            padding: 18px;
+            padding: 14px 40px;
             border-radius: 25px;
-            font-size: 18px;
-            font-weight: bold;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0;
             cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
             width: 100%;
-            margin: 20px 0 30px 0;
-            transition: all 0.3s ease;
+        }
+        
+        .claim-btn:active {
+            transform: scale(0.95);
         }
         
         .claim-btn:disabled {
-            background: #666;
-            color: #999;
+            background: #333;
+            color: #666;
             cursor: not-allowed;
+            box-shadow: none;
         }
         
-        /* Mining Coin - Centered */
-        .mining-section {
-            text-align: center;
-            margin: 30px 0;
-        }
-        
-        .coin-container {
-            width: 180px;
-            height: 180px;
-            margin: 0 auto;
-        }
-        
-        .mining-coin {
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle at 30% 30%, #fff9c4, var(--gold), #ffb300);
-            border-radius: 50%;
+        /* NemexCoin Logo - YOUR ORIGINAL CODE */
+        .nemex-logo {
+            width: 140px;
+            height: 140px;
+            margin: 25px auto;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 42px;
-            font-weight: bold;
-            color: #000;
-            border: 5px solid var(--gold);
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
-            cursor: pointer;
-            transition: all 0.3s ease;
         }
         
-        .mining-coin:active {
-            transform: scale(0.95);
-            box-shadow: 0 0 50px rgba(255, 215, 0, 1);
+        .logo-container {
+            width: 120px;
+            height: 120px;
+            position: relative;
+            filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.4));
+        }
+        
+        .logo-base {
+            width: 100%;
+            height: 100%;
+            background: var(--darker-bg);
+            border-radius: 50%;
+            border: 3px solid var(--gold);
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.1), 0 0 30px rgba(212, 175, 55, 0.2);
+        }
+        
+        .logo-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+        }
+        
+        .infinity-symbol {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        .infinity-symbol::before, .infinity-symbol::after {
+            content: '';
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            border: 3px solid var(--gold);
+            border-radius: 50%;
+            border-top-color: transparent;
+            border-left-color: transparent;
+            animation: rotate 8s linear infinite;
+        }
+        
+        .infinity-symbol::before {
+            top: 0;
+            left: 0;
+            transform: rotate(45deg);
+            animation-delay: 0s;
+        }
+        
+        .infinity-symbol::after {
+            bottom: 0;
+            right: 0;
+            transform: rotate(225deg);
+            animation-delay: -4s;
+        }
+        
+        .circuit-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .circuit-line {
+            position: absolute;
+            background: var(--gold);
+            opacity: 0.6;
+        }
+        
+        .circuit-line:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            width: 15px;
+            height: 2px;
+            transform: rotate(30deg);
+        }
+        
+        .circuit-line:nth-child(2) {
+            top: 30%;
+            right: 15%;
+            width: 12px;
+            height: 2px;
+            transform: rotate(-45deg);
+        }
+        
+        .circuit-line:nth-child(3) {
+            bottom: 25%;
+            left: 20%;
+            width: 18px;
+            height: 2px;
+            transform: rotate(15deg);
+        }
+        
+        .circuit-line:nth-child(4) {
+            bottom: 15%;
+            right: 10%;
+            width: 10px;
+            height: 2px;
+            transform: rotate(-60deg);
+        }
+        
+        .circuit-line:nth-child(5) {
+            top: 45%;
+            left: 5%;
+            width: 8px;
+            height: 2px;
+            transform: rotate(75deg);
+        }
+        
+        .circuit-pad {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--gold);
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+        
+        .circuit-pad:nth-child(6) {
+            top: 15%;
+            left: 25%;
+        }
+        
+        .circuit-pad:nth-child(7) {
+            top: 35%;
+            right: 20%;
+        }
+        
+        .circuit-pad:nth-child(8) {
+            bottom: 40%;
+            left: 15%;
+        }
+        
+        .circuit-pad:nth-child(9) {
+            bottom: 20%;
+            right: 30%;
+        }
+        
+        .logo-glow {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0) 70%);
+            animation: glowPulse 3s ease-in-out infinite;
+            z-index: -1;
+        }
+        
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes glowPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.05); }
+        }
+        
+        .timer {
+            font-size: 14px;
+            color: var(--muted);
+            margin: 10px 0;
+            letter-spacing: 1px;
         }
         
         /* Bottom Navigation */
@@ -233,12 +388,26 @@
             Claim Your NMX
         </button>
 
-        <!-- Mining Coin - Centered -->
-        <div class="mining-section">
-            <div class="coin-container">
-                <div class="mining-coin" id="miningCoin">
-                    NMX
+        <!-- NemexCoin Logo - YOUR ORIGINAL DESIGN -->
+        <div class="nemex-logo">
+            <div class="logo-container">
+                <div class="logo-base">
+                    <div class="logo-center">
+                        <div class="infinity-symbol"></div>
+                    </div>
+                    <div class="circuit-lines">
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-line"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                        <div class="circuit-pad"></div>
+                    </div>
                 </div>
+                <div class="logo-glow"></div>
             </div>
         </div>
     </main>
@@ -301,17 +470,6 @@
                 claimButton.disabled = false;
                 claimButton.textContent = 'Claim Your NMX Now!';
             }
-        }
-        
-        // Mining Coin Click Effect
-        const miningCoin = document.getElementById('miningCoin');
-        if (miningCoin) {
-            miningCoin.addEventListener('click', function() {
-                this.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    this.style.transform = 'scale(1)';
-                }, 150);
-            });
         }
         
         // Navigation
