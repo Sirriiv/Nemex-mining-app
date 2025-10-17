@@ -5,11 +5,62 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEMEXCOIN - Dashboard</title>
     
-    <!-- CSS Files - FIXED PATHS -->
-    <link rel="stylesheet" href="../../css/main.css">
-    <link rel="stylesheet" href="../../css/dashboard.css">
-    <link rel="stylesheet" href="../../css/components/nav.css">
-    <link rel="stylesheet" href="../../css/components/modals.css">
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/components/nav.css">
+    <link rel="stylesheet" href="../css/components/modals.css">
+    
+    <style>
+        /* Temporary inline styles to ensure basic styling */
+        :root {
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --gold: #d4af37;
+            --gold-dark: #b8941f;
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+        }
+        
+        body {
+            background: var(--dark-bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-logo {
+            font-size: 72px;
+            color: var(--gold);
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .loading-status {
+            color: var(--text);
+            font-size: 16px;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Screen -->
@@ -21,17 +72,19 @@
     <!-- Main App Container -->
     <div id="app" class="app-container hidden">
         <!-- Header -->
-        <div class="header">
+        <header class="header">
             <div class="logo">NEMEXCOIN</div>
             <div class="header-actions">
                 <div class="settings-icon" id="settingsButton">⚙️</div>
             </div>
-        </div>
+        </header>
 
         <!-- Main Content Area -->
         <main id="main-content" class="main-content">
-            <!-- Sections will be loaded here dynamically -->
-            <div id="section-container"></div>
+            <!-- Home Section will be loaded here by default -->
+            <div id="section-container">
+                <!-- Content will be loaded dynamically -->
+            </div>
         </main>
 
         <!-- Bottom Navigation -->
@@ -59,7 +112,7 @@
         </nav>
     </div>
 
-    <!-- Settings Modal Popup -->
+    <!-- Settings Modal -->
     <div class="modal-overlay" id="modalOverlay"></div>
 
     <div class="settings-modal" id="settingsModal">
@@ -95,12 +148,12 @@
         </div>
     </div>
 
-    <!-- JavaScript Files - FIXED PATHS -->
-    <script src="../../js/main.js"></script>
-    <script src="../../js/modules/navigation.js"></script>
-    <script src="../../js/modules/api.js"></script>
-    <script src="../../js/modules/user.js"></script>
-    <script src="../../js/modules/core.js"></script>
-    <script src="../../js/modules/utils.js"></script>
+    <!-- JavaScript Files -->
+    <script src="../js/main.js"></script>
+    <script src="../js/modules/navigation.js"></script>
+    <script src="../js/modules/api.js"></script>
+    <script src="../js/modules/user.js"></script>
+    <script src="../js/modules/core.js"></script>
+    <script src="../js/modules/utils.js"></script>
 </body>
 </html>
