@@ -149,33 +149,6 @@ input:checked + .slider:before {
     to { transform: translateX(0); opacity: 1; }
 }
 
-/* Error Message Styling */
-.error-message {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--muted);
-}
-
-.error-message h3 {
-    color: #ff6b6b;
-    margin-bottom: 15px;
-}
-
-.retry-btn {
-    background: var(--gold);
-    color: var(--darker-bg);
-    border: none;
-    padding: 10px 20px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 600;
-    margin-top: 15px;
-}
-
-.retry-btn:hover {
-    background: #e6c158;
-}
-
 /* Responsive Notifications */
 @media (max-width: 768px) {
     .notifications-container {
