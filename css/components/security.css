@@ -1,0 +1,75 @@
+/* Security Components */
+.security-section {
+    padding: 20px;
+}
+
+.security-card {
+    background: var(--darker-bg);
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 15px;
+}
+
+.security-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.security-title {
+    color: var(--text);
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.security-status {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.security-status.enabled {
+    background: rgba(46,204,113,0.2);
+    color: #2ecc71;
+}
+
+.security-status.disabled {
+    background: rgba(231,76,60,0.2);
+    color: #e74c3c;
+}
+
+.security-description {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 15px;
+}
+
+.security-btn {
+    background: var(--gold);
+    color: var(--darker-bg);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.security-btn:hover {
+    background: #e6c158;
+}
+
+.security-btn.secondary {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+}
+
+.security-btn.secondary:hover {
+    background: var(--gold);
+    color: var(--darker-bg);
+}
