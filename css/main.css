@@ -569,6 +569,55 @@ body {
     display: block;
 }
 
+/* Loading States */
+.loading-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+}
+
+.loading-spinner {
+    border: 3px solid #333;
+    border-top: 3px solid var(--gold);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error Message Styling */
+.error-message {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+}
+
+.error-message h3 {
+    color: #ff6b6b;
+    margin-bottom: 15px;
+}
+
+.retry-btn {
+    background: var(--gold);
+    color: var(--darker-bg);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 15px;
+}
+
+.retry-btn:hover {
+    background: #e6c158;
+}
+
 /* Responsive */
 @media (max-width: 380px) {
     .nav-label { font-size: 10px; }
