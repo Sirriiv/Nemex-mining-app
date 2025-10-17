@@ -1,7 +1,7 @@
 // Main Application Initialization
 document.addEventListener('DOMContentLoaded', function() {
     console.log('NEMEXCOIN App Initializing...');
-    
+
     // Initialize app after a short delay to show loading screen
     setTimeout(initializeApp, 2000);
 });
@@ -17,40 +17,45 @@ function initializeApp() {
         loading.classList.add('hidden');
         app.classList.remove('hidden');
         
-        // Load the home section by default
-        loadSection('home');
-        
-        // Initialize navigation
-        initializeNavigation();
-        
-        // Initialize mining functionality
-        initializeMining();
-        
-        // Initialize settings modal
-        initializeSettings();
+        // Force load home section immediately
+        setTimeout(() => {
+            loadSection('home');
+            
+            // Re-attach mining listeners after a short delay
+            setTimeout(() => {
+                if (window.miningCore) {
+                    window.miningCore.attachHomeListeners();
+                }
+            }, 500);
+        }, 100);
         
         console.log('NEMEXCOIN Dashboard initialized successfully!');
     } else {
         console.error('Critical elements not found!');
+        // Fallback: try to show app anyway
+        if (app) {
+            app.classList.remove('hidden');
+            loadSection('home');
+        }
     }
 }
 
 // Section Loading Function
 function loadSection(sectionName) {
     console.log('Loading section:', sectionName);
-    
+
     const sectionContainer = document.getElementById('section-container');
     if (!sectionContainer) {
         console.error('Section container not found!');
         return;
     }
-    
+
     // Hide all sections first
     const allSections = document.querySelectorAll('.section');
     allSections.forEach(section => {
         section.classList.remove('active');
     });
-    
+
     // Update navigation active state
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
@@ -59,10 +64,10 @@ function loadSection(sectionName) {
             item.classList.add('active');
         }
     });
-    
+
     // Load section content
     const sectionFile = `../sections/${sectionName}.html`;
-    
+
     fetch(sectionFile)
         .then(response => {
             if (!response.ok) {
@@ -72,10 +77,10 @@ function loadSection(sectionName) {
         })
         .then(html => {
             sectionContainer.innerHTML = html;
-            
+
             // Re-initialize section-specific functionality
             initializeSection(sectionName);
-            
+
             console.log('Section loaded:', sectionName);
         })
         .catch(error => {
@@ -165,3 +170,19 @@ function openSettingsSection(section) {
     console.log('Opening settings section:', section);
     alert('Settings section: ' + section);
 }
+
+// Debugging function to check if sections are loading properly
+function debugSections() {
+    console.log('=== DEBUG SECTION LOADING ===');
+    console.log('Section container:', document.getElementById('section-container'));
+    console.log('Current sections:', document.querySelectorAll('.section'));
+    console.log('Navigation items:', document.querySelectorAll('.nav-item'));
+    console.log('=== END DEBUG ===');
+}
+
+// Add debug info to window for testing
+window.debugApp = {
+    loadSection: loadSection,
+    initializeSection: initializeSection,
+    debugSections: debugSections
+};
