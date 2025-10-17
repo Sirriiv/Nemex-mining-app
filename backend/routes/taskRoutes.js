@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const taskController = require('../controllers/taskController');
+const { authMiddleware } = require('../middleware/auth');
 
-// Task routes
-router.get('/tasks/:userId', taskController.getTasks);
-router.post('/tasks/:userId/complete', taskController.completeTask);
+// Protected routes
+router.get('/', authMiddleware, taskController.getTasks);
+router.get('/stats', authMiddleware, taskController.getTaskStats);
+router.post('/:taskId/complete', authMiddleware, taskController.completeTask);
 
 module.exports = router;
