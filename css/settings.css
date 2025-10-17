@@ -1,0 +1,108 @@
+/* Settings Styles */
+.settings-container {
+    padding: 20px;
+    text-align: left;
+}
+
+.settings-group {
+    background: var(--darker-bg);
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.settings-group h3 {
+    color: var(--gold);
+    margin-bottom: 15px;
+    font-size: 18px;
+}
+
+.theme-selector {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.theme-option {
+    flex: 1;
+    text-align: center;
+    padding: 15px;
+    background: #1a1a1a;
+    border: 2px solid #333;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.theme-option:hover {
+    border-color: var(--gold);
+}
+
+.theme-option.active {
+    border-color: var(--gold);
+    background: rgba(255, 193, 7, 0.1);
+}
+
+.theme-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    margin: 0 auto 10px;
+}
+
+.theme-dark .theme-preview {
+    background: linear-gradient(135deg, #1a1a1a 50%, #333 50%);
+}
+
+.theme-light .theme-preview {
+    background: linear-gradient(135deg, #f8f9fa 50%, #dee2e6 50%);
+}
+
+.theme-auto .theme-preview {
+    background: linear-gradient(135deg, #1a1a1a 50%, #f8f9fa 50%);
+}
+
+.danger-zone {
+    border-color: #dc3545 !important;
+}
+
+.danger-zone h3 {
+    color: #dc3545;
+}
+
+.danger-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.danger-btn:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    border-color: var(--gold);
+    outline: none;
+}
+
+.toggle-label {
+    margin-left: 10px;
+    color: var(--text);
+}
