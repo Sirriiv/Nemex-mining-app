@@ -4,109 +4,337 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEMEXCOIN - Dashboard</title>
-
-    <!-- CSS Files -->
-    <link rel="stylesheet" href="../css/main.css">
-    <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/components/nav.css">
-    <link rel="stylesheet" href="../css/components/modals.css">
+    <style>
+        /* Gold and Black Theme */
+        :root {
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --gold: #FFD700;
+            --gold-dark: #b8941f;
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: var(--dark-bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+        
+        /* Header */
+        .header {
+            background: var(--darker-bg);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--gold);
+        }
+        
+        .logo {
+            color: var(--gold);
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding: 20px;
+        }
+        
+        /* Mining Coin */
+        .mining-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .coin-container {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 25px auto;
+        }
+        
+        .mining-coin {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 30%, #fff9c4, var(--gold), #ffb300);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #000;
+            border: 4px solid var(--gold);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
+            cursor: pointer;
+        }
+        
+        /* Countdown Timer */
+        .countdown-timer {
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 0 0 25px 0;
+            text-align: center;
+        }
+        
+        .timer-label {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .timer-display {
+            color: var(--gold);
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Claim Button */
+        .claim-btn {
+            background: linear-gradient(135deg, var(--gold), #ffb300);
+            color: #000;
+            border: none;
+            padding: 18px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .claim-btn:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+        }
+        
+        /* Balance Display */
+        .balance-display {
+            background: var(--darker-bg);
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+            padding: 25px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .balance-label {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .balance-amount {
+            color: var(--gold);
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .balance-usd {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+        
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--darker-bg);
+            border-top: 2px solid var(--gold);
+            padding: 15px 10px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 10px 5px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+        }
+        
+        .nav-btn.active {
+            color: var(--gold);
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .nav-text {
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* Hidden utility */
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loading" class="loading">
-        <div class="loading-logo">NMX</div>
-        <div class="loading-status">Loading NEMEXCOIN...</div>
-    </div>
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">NEMEXCOIN</div>
+    </header>
 
-    <!-- Main App Container -->
-    <div id="app" class="app-container hidden">
-        <!-- Header -->
-        <header class="header">
-            <div class="logo">NEMEXCOIN</div>
-            <div class="header-actions">
-                <div class="settings-icon" id="settingsButton">⚙️</div>
-            </div>
-        </header>
-
-        <!-- Main Content Area -->
-        <main id="main-content" class="main-content">
-            <div id="section-container">
-                <!-- Home Section (Default) -->
-                <div class="section home-section active" id="home-section">
-                    <!-- Mining Coin -->
-                    <div class="mining-section">
-                        <div class="coin-container">
-                            <div class="mining-coin" id="miningCoin">
-                                NMX
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Countdown Timer -->
-                    <div class="countdown-timer">
-                        <div class="timer-label">Claim in</div>
-                        <div class="timer-display" id="countdownTimer">24:00:00</div>
-                    </div>
-
-                    <!-- Claim Button -->
-                    <button class="claim-btn" id="claimButton" disabled>
-                        Claim Your NMX
-                    </button>
-
-                    <!-- Balance Display -->
-                    <div class="balance-display">
-                        <div class="balance-label">Your NMX Balance</div>
-                        <div class="balance-amount">30 NMX</div>
-                        <div class="balance-usd">≈ $0.00 USD</div>
-                    </div>
-
-                    <!-- Bottom Navigation -->
-                    <nav class="bottom-nav">
-                        <button class="nav-btn active" data-section="home">
-                            <span class="nav-icon">🏠</span>
-                            <span class="nav-text">HOME</span>
-                        </button>
-                        <button class="nav-btn" data-section="tasks">
-                            <span class="nav-icon">📋</span>
-                            <span class="nav-text">TASKS</span>
-                        </button>
-                        <button class="nav-btn" data-section="buy">
-                            <span class="nav-icon">🛒</span>
-                            <span class="nav-text">BUY</span>
-                        </button>
-                        <button class="nav-btn" data-section="referrals">
-                            <span class="nav-icon">👥</span>
-                            <span class="nav-text">REFERRALS</span>
-                        </button>
-                        <button class="nav-btn" data-section="wallet">
-                            <span class="nav-icon">💰</span>
-                            <span class="nav-text">WALLET</span>
-                        </button>
-                    </nav>
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Mining Coin -->
+        <div class="mining-section">
+            <div class="coin-container">
+                <div class="mining-coin" id="miningCoin">
+                    NMX
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
 
-    <!-- JavaScript Files -->
-    <script src="../js/main.js"></script>
-    <script src="../js/modules/navigation.js"></script>
-    <script src="../js/modules/api.js"></script>
-    <script src="../js/modules/user.js"></script>
-    <script src="../js/modules/core.js"></script>
-    <script src="../js/modules/utils.js"></script>
+        <!-- Countdown Timer -->
+        <div class="countdown-timer">
+            <div class="timer-label">Claim in</div>
+            <div class="timer-display" id="countdownTimer">24:00:00</div>
+        </div>
+
+        <!-- Claim Button -->
+        <button class="claim-btn" id="claimButton" disabled>
+            Claim Your NMX
+        </button>
+
+        <!-- Balance Display -->
+        <div class="balance-display">
+            <div class="balance-label">Your NMX Balance</div>
+            <div class="balance-amount">30 NMX</div>
+            <div class="balance-usd">≈ $0.00 USD</div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-btn active" data-section="home">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-text">HOME</span>
+        </button>
+        <button class="nav-btn" data-section="tasks">
+            <span class="nav-icon">📋</span>
+            <span class="nav-text">TASKS</span>
+        </button>
+        <button class="nav-btn" data-section="buy">
+            <span class="nav-icon">🛒</span>
+            <span class="nav-text">BUY</span>
+        </button>
+        <button class="nav-btn" data-section="referrals">
+            <span class="nav-icon">👥</span>
+            <span class="nav-text">REFERRALS</span>
+        </button>
+        <button class="nav-btn" data-section="wallet">
+            <span class="nav-icon">💰</span>
+            <span class="nav-text">WALLET</span>
+        </button>
+    </nav>
 
     <script>
-        // Simple initialization
-        setTimeout(function() {
-            const loading = document.getElementById('loading');
-            const app = document.getElementById('app');
-            
-            if (loading && app) {
-                loading.classList.add('hidden');
-                app.classList.remove('hidden');
+        // Countdown Timer Functionality
+        let countdownTime = 24 * 60 * 60; // 24 hours in seconds
+        
+        function startCountdown() {
+            const timer = setInterval(() => {
+                if (countdownTime > 0) {
+                    countdownTime--;
+                    updateTimerDisplay(countdownTime);
+                } else {
+                    clearInterval(timer);
+                    enableClaimButton();
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay(seconds) {
+            const timerDisplay = document.getElementById('countdownTimer');
+            if (timerDisplay) {
+                const hours = Math.floor(seconds / 3600);
+                const minutes = Math.floor((seconds % 3600) / 60);
+                const secs = seconds % 60;
+                
+                timerDisplay.textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
             }
-        }, 2000);
+        }
+        
+        function enableClaimButton() {
+            const claimButton = document.getElementById('claimButton');
+            if (claimButton) {
+                claimButton.disabled = false;
+                claimButton.textContent = 'Claim Your NMX Now!';
+            }
+        }
+        
+        // Mining Coin Click Effect
+        const miningCoin = document.getElementById('miningCoin');
+        if (miningCoin) {
+            miningCoin.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 150);
+            });
+        }
+        
+        // Navigation
+        const navButtons = document.querySelectorAll('.nav-btn');
+        navButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                navButtons.forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                const section = this.getAttribute('data-section');
+                alert(`Loading ${section} section...`);
+            });
+        });
+        
+        // Claim Button
+        const claimButton = document.getElementById('claimButton');
+        if (claimButton) {
+            claimButton.addEventListener('click', function() {
+                if (!this.disabled) {
+                    alert('NMX claimed successfully!');
+                    this.disabled = true;
+                    this.textContent = 'Claim Your NMX';
+                    countdownTime = 24 * 60 * 60;
+                    startCountdown();
+                }
+            });
+        }
+        
+        // Start the countdown when page loads
+        startCountdown();
     </script>
 </body>
 </html>
