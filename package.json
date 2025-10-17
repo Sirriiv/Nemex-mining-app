@@ -1,1 +1,20 @@
-{"scripts":{"start":"npx serve . -p 3000"}}
+{
+  "name": "nemex-mining-app",
+  "version": "1.0.0",
+  "description": "NMX Cryptocurrency Mining Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "test": "node backend/simple-test.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "@supabase/supabase-js": "^2.38.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
