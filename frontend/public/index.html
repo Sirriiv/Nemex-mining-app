@@ -1,97 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Nemex Mining</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: #0f0f1a; /* Match your dashboard theme */
-            color: #d4af37; /* Gold color */
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-        
-        .container {
-            max-width: 500px;
-            padding: 40px;
-        }
-        
-        .logo {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #d4af37;
-        }
-        
-        .subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 40px;
-            color: #cccccc;
-            line-height: 1.5;
-        }
-        
-        .cta-button {
-            background: #d4af37;
-            color: #0f0f1a;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 25px;
-            cursor: pointer;
-            margin: 10px;
-            width: 200px;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .secondary-button {
-            background: transparent;
-            color: #d4af37;
-            border: 2px solid #d4af37;
-            padding: 15px 40px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 25px;
-            cursor: pointer;
-            margin: 10px;
-            width: 200px;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .button-group {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEMEXCOIN - Mining App</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/components/nav.css">
+    <link rel="stylesheet" href="../css/components/modals.css">
 </head>
 <body>
-    <div class="container">
-        <div class="logo">NMX</div>
-        <div class="subtitle">
-            Your gateway to decentralized finance.<br>
-            Start mining NMX tokens and join the crypto revolution.
-        </div>
-        
-        <div class="button-group">
-            <a href="register.html" class="cta-button">Get Started</a>
-            <a href="login.html" class="secondary-button">Sign In</a>
-        </div>
+    <!-- Loading Screen -->
+    <div id="loading" class="loading">
+        <div class="loading-logo">NMX</div>
+        <div class="loading-status">Initializing NEMEXCOIN...</div>
     </div>
 
-    <script>
-        // Check if user is already logged in
-        if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = 'dashboard.html';
-        }
-    </script>
+    <!-- Main App Container -->
+    <div id="app" class="app-container hidden">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">NEMEXCOIN</div>
+            <div class="settings-icon" id="settingsButton">⚙️</div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="main-content" class="main-content">
+            <!-- Sections will be loaded here dynamically -->
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-navbar">
+            <button class="nav-item active" data-section="home">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Home</div>
+            </button>
+            <button class="nav-item" data-section="tasks">
+                <div class="nav-icon">📋</div>
+                <div class="nav-label">Tasks</div>
+            </button>
+            <button class="nav-item" data-section="buy">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Buy</div>
+            </button>
+            <button class="nav-item" data-section="referrals">
+                <div class="nav-icon">👥</div>
+                <div class="nav-label">Referrals</div>
+            </button>
+            <button class="nav-item" data-section="wallet">
+                <div class="nav-icon">💰</div>
+                <div class="nav-label">Wallet</div>
+            </button>
+        </nav>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="../js/main.js"></script>
+    <script src="../js/modules/navigation.js"></script>
+    <script src="../js/section/loader.js"></script>
 </body>
 </html>
