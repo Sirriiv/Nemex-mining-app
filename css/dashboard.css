@@ -1,17 +1,21 @@
-/* Dashboard Specific Styles - Exact match to screenshot */
+/* Dashboard Styles - Exact match to screenshot */
 
-/* Mining Section Styles - Exact match to screenshot */
+.app-container {
+    background: var(--dark-bg);
+    min-height: 100vh;
+    color: var(--text);
+}
+
+/* Mining Section */
 .mining-section {
     text-align: center;
-    margin-bottom: 30px;
-    padding: 20px 0;
+    padding: 30px 20px 20px 20px;
 }
 
 .coin-container {
-    position: relative;
-    width: 180px;
-    height: 180px;
-    margin: 0 auto 25px;
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 30px auto;
 }
 
 .mining-coin {
@@ -22,54 +26,27 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 42px;
+    font-size: 36px;
     font-weight: bold;
     color: #0a0a0a;
-    border: 5px solid var(--gold);
-    box-shadow: 
-        0 0 40px rgba(212, 175, 55, 0.8),
-        inset 0 0 20px rgba(244, 228, 169, 0.6);
+    border: 4px solid var(--gold);
+    box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
     cursor: pointer;
     transition: all 0.3s ease;
-    user-select: none;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .mining-coin:active {
     transform: scale(0.95);
-    box-shadow: 
-        0 0 50px rgba(212, 175, 55, 1),
-        inset 0 0 25px rgba(244, 228, 169, 0.8);
 }
 
-.mining-coin.mining {
-    animation: coinPulse 1s ease-in-out infinite alternate;
-}
-
-@keyframes coinPulse {
-    from {
-        transform: scale(1);
-        box-shadow: 
-            0 0 40px rgba(212, 175, 55, 0.8),
-            inset 0 0 20px rgba(244, 228, 169, 0.6);
-    }
-    to {
-        transform: scale(1.05);
-        box-shadow: 
-            0 0 60px rgba(212, 175, 55, 1),
-            inset 0 0 30px rgba(244, 228, 169, 0.9);
-    }
-}
-
-/* Countdown Timer - Exact match to screenshot */
-.countdown-container {
+/* Countdown Timer */
+.countdown-timer {
     background: var(--darker-bg);
     border: 2px solid var(--gold);
-    border-radius: 12px;
+    border-radius: 15px;
     padding: 20px;
-    margin: 25px 0;
+    margin: 0 20px 25px 20px;
     text-align: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .timer-label {
@@ -81,184 +58,124 @@
 
 .timer-display {
     color: var(--gold);
-    font-size: 28px;
+    font-size: 32px;
     font-weight: bold;
     font-family: 'Courier New', monospace;
     letter-spacing: 2px;
 }
 
 /* Claim Button */
-.claim-button {
+.claim-btn {
     background: linear-gradient(135deg, var(--gold), var(--gold-dark));
     color: var(--dark-bg);
     border: none;
-    padding: 16px 32px;
+    padding: 18px 30px;
     border-radius: 25px;
-    font-weight: bold;
     font-size: 18px;
+    font-weight: bold;
     cursor: pointer;
+    width: calc(100% - 40px);
+    margin: 0 20px 30px 20px;
     transition: all 0.3s ease;
-    text-align: center;
-    display: block;
-    width: 100%;
-    margin: 20px 0;
     box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
 }
 
-.claim-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
-}
-
-.claim-button:disabled {
+.claim-btn:disabled {
     background: var(--text-muted);
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
 }
 
-/* Balance Display - Exact match to screenshot */
-.balance-section {
-    text-align: center;
-    margin: 30px 0;
-    padding: 25px 20px;
-    background: var(--card-bg);
-    border-radius: 15px;
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+.claim-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
 }
 
-.balance-amount {
-    font-size: 42px;
-    font-weight: bold;
-    color: var(--gold);
-    margin: 15px 0;
-    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+/* Balance Display */
+.balance-display {
+    text-align: center;
+    padding: 25px 20px;
+    background: var(--card-bg);
+    margin: 0 20px 30px 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
 .balance-label {
     color: var(--text-secondary);
     font-size: 16px;
-    font-weight: 500;
+    margin-bottom: 10px;
 }
 
-/* Bottom Navigation Spacing */
-.main-content {
-    padding-bottom: 100px; /* More space for bottom nav */
+.balance-amount {
+    color: var(--gold);
+    font-size: 42px;
+    font-weight: bold;
+    margin: 10px 0;
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.3);
+}
+
+.balance-usd {
+    color: var(--text-secondary);
+    font-size: 16px;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--darker-bg);
+    border-top: 2px solid var(--gold);
+    padding: 12px 10px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+}
+
+.nav-btn.active {
+    color: var(--gold);
+    background: rgba(212, 175, 55, 0.15);
+}
+
+.nav-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.nav-text {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
 /* Section Management */
 .section {
     display: none;
-    animation: fadeInUp 0.4s ease-out;
 }
 
 .section.active {
     display: block;
 }
 
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Tasks Section Styles */
-.tasks-grid {
-    display: grid;
-    gap: 15px;
-    margin: 20px 0;
-}
-
-.task-card {
-    background: var(--card-bg);
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: transform 0.2s ease;
-}
-
-.task-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--gold);
-}
-
-.task-info h3 {
-    color: var(--gold);
-    margin-bottom: 8px;
-    font-size: 16px;
-}
-
-.task-info p {
-    color: var(--text-secondary);
-    font-size: 14px;
-}
-
-.task-reward {
-    color: var(--gold);
-    font-weight: bold;
-    font-size: 18px;
-}
-
-/* Referral Section */
-.referral-section {
-    text-align: center;
-    padding: 20px;
-}
-
-.referral-code-box {
-    background: var(--darker-bg);
-    border: 2px solid var(--gold);
-    border-radius: 12px;
-    padding: 25px;
-    margin: 25px 0;
-}
-
-.referral-code {
-    font-family: 'Courier New', monospace;
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--gold);
-    margin: 15px 0;
-    padding: 12px;
-    background: rgba(212, 175, 55, 0.1);
-    border-radius: 8px;
-    letter-spacing: 1px;
-}
-
-/* Wallet Section */
-.wallet-balance-large {
-    text-align: center;
-    padding: 40px 20px;
-    background: linear-gradient(135deg, var(--card-bg), var(--darker-bg));
-    border-radius: 20px;
-    margin: 20px 0;
-    border: 2px solid var(--gold);
-}
-
-.balance-large {
-    font-size: 52px;
-    font-weight: bold;
-    color: var(--gold);
-    margin: 20px 0;
-    text-shadow: 0 0 15px rgba(212, 175, 55, 0.4);
-}
-
-/* Buy Section */
-.coming-soon {
-    text-align: center;
-    padding: 60px 20px;
-}
-
-.coming-soon .text-gold {
-    font-size: 32px;
-    margin-bottom: 15px;
+/* Ensure main content has proper spacing */
+.main-content {
+    padding-bottom: 80px;
 }
