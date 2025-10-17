@@ -53,93 +53,29 @@
             cursor: pointer;
         }
         
-        /* Balance at Center Top */
-        .balance-top {
-            text-align: center;
-            padding: 25px 20px 10px 20px;
-            background: var(--darker-bg);
-            margin-bottom: 10px;
-        }
-        
-        .balance-label {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-bottom: 8px;
-        }
-        
-        .balance-amount {
-            color: var(--gold);
-            font-size: 32px;
-            font-weight: bold;
-        }
-        
-        .balance-usd {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-top: 5px;
-        }
-        
         /* Main Content */
         .main-content {
             padding: 0 20px;
         }
         
-        /* Countdown Timer - Centered */
-        .countdown-timer {
-            background: var(--darker-bg);
-            border: 2px solid var(--gold);
-            border-radius: 15px;
-            padding: 25px 20px;
-            margin: 20px 0;
+        /* 00 Display Above Coin */
+        .points-display {
             text-align: center;
+            padding: 30px 20px 10px 20px;
         }
         
-        .timer-label {
-            color: var(--text-secondary);
-            font-size: 16px;
-            margin-bottom: 15px;
-        }
-        
-        .timer-display {
+        .points-amount {
             color: var(--gold);
-            font-size: 32px;
+            font-size: 48px;
             font-weight: bold;
-            font-family: 'Courier New', monospace;
-            letter-spacing: 3px;
-        }
-        
-        /* Claim Button */
-        .claim-btn {
-            background: linear-gradient(135deg, var(--gold), #b8941f);
-            color: var(--darker-bg);
-            border: none;
-            padding: 14px 40px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 20px 0;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
-            width: 100%;
-        }
-        
-        .claim-btn:active {
-            transform: scale(0.95);
-        }
-        
-        .claim-btn:disabled {
-            background: #333;
-            color: #666;
-            cursor: not-allowed;
-            box-shadow: none;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
         
         /* NemexCoin Logo - YOUR ORIGINAL CODE */
         .nemex-logo {
             width: 140px;
             height: 140px;
-            margin: 25px auto;
+            margin: 0 auto 30px auto;
             position: relative;
             display: flex;
             align-items: center;
@@ -310,11 +246,71 @@
             50% { opacity: 0.8; transform: scale(1.05); }
         }
         
-        .timer {
-            font-size: 14px;
-            color: var(--muted);
-            margin: 10px 0;
-            letter-spacing: 1px;
+        /* Countdown Timer */
+        .countdown-timer {
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 0 0 20px 0;
+            text-align: center;
+        }
+        
+        .timer-label {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .timer-display {
+            color: var(--gold);
+            font-size: 28px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+        }
+        
+        /* Balance Display */
+        .balance-display {
+            text-align: center;
+            padding: 20px;
+            background: var(--darker-bg);
+            margin: 0 0 20px 0;
+            border-radius: 15px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+        
+        .balance-amount {
+            color: var(--gold);
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        /* Claim Button */
+        .claim-btn {
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
+            border: none;
+            padding: 16px 40px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .claim-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .claim-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
         }
         
         /* Bottom Navigation */
@@ -368,27 +364,14 @@
         <div class="settings-icon">⚙️</div>
     </header>
 
-    <!-- Balance at Center Top -->
-    <div class="balance-top">
-        <div class="balance-label">Your NMX Balance</div>
-        <div class="balance-amount">30 NMX</div>
-        <div class="balance-usd">≈ $0.00 USD</div>
-    </div>
-
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Countdown Timer -->
-        <div class="countdown-timer">
-            <div class="timer-label">Claim in</div>
-            <div class="timer-display" id="countdownTimer">24:00:00</div>
+        <!-- 00 Points Above Coin -->
+        <div class="points-display">
+            <div class="points-amount">00</div>
         </div>
 
-        <!-- Claim Button -->
-        <button class="claim-btn" id="claimButton" disabled>
-            Claim Your NMX
-        </button>
-
-        <!-- NemexCoin Logo - YOUR ORIGINAL DESIGN -->
+        <!-- NemexCoin Logo -->
         <div class="nemex-logo">
             <div class="logo-container">
                 <div class="logo-base">
@@ -410,6 +393,22 @@
                 <div class="logo-glow"></div>
             </div>
         </div>
+
+        <!-- Countdown Timer -->
+        <div class="countdown-timer">
+            <div class="timer-label">Claim in</div>
+            <div class="timer-display" id="countdownTimer">24:00:00</div>
+        </div>
+
+        <!-- Balance Display -->
+        <div class="balance-display">
+            <div class="balance-amount">30 NMXp</div>
+        </div>
+
+        <!-- Claim Button -->
+        <button class="claim-btn" id="claimButton" disabled>
+            Claim Your NMX
+        </button>
     </main>
 
     <!-- Bottom Navigation -->
@@ -460,7 +459,7 @@
                 const secs = seconds % 60;
                 
                 timerDisplay.textContent = 
-                    `${hours.toString().padStart(2, '0')} : ${minutes.toString().padStart(2, '0')} : ${secs.toString().padStart(2, '0')}`;
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
             }
         }
         
