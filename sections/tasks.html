@@ -1,0 +1,188 @@
+<section class="dashboard-section" id="tasks-section">
+    <div class="section-header">
+        <h2>📋 Daily Tasks</h2>
+        <p>Complete tasks to earn bonus NMXp rewards</p>
+    </div>
+
+    <div class="tasks-container">
+        <div class="task-card">
+            <div class="task-header">
+                <div class="task-icon">📱</div>
+                <div class="task-info">
+                    <div class="task-title">Daily Check-in</div>
+                    <div class="task-reward">+10 NMXp</div>
+                </div>
+            </div>
+            <div class="task-description">Visit the app daily to claim your reward</div>
+            <button class="task-btn completed" disabled>Completed</button>
+        </div>
+
+        <div class="task-card">
+            <div class="task-header">
+                <div class="task-icon">👥</div>
+                <div class="task-info">
+                    <div class="task-title">Invite Friends</div>
+                    <div class="task-reward">+50 NMXp</div>
+                </div>
+            </div>
+            <div class="task-description">Invite 3 friends to join NEMEXCOIN</div>
+            <button class="task-btn" onclick="window.navigation.navigateTo('referrals')">Start</button>
+        </div>
+
+        <div class="task-card">
+            <div class="task-header">
+                <div class="task-icon">💰</div>
+                <div class="task-info">
+                    <div class="task-title">Mining Streak</div>
+                    <div class="task-reward">+25 NMXp</div>
+                </div>
+            </div>
+            <div class="task-description">Maintain a 7-day mining streak</div>
+            <button class="task-btn in-progress">3/7 Days</button>
+        </div>
+
+        <div class="task-card">
+            <div class="task-header">
+                <div class="task-icon">🛒</div>
+                <div class="task-info">
+                    <div class="task-title">First Purchase</div>
+                    <div class="task-reward">+100 NMXp</div>
+                </div>
+            </div>
+            <div class="task-description">Make your first NMXp purchase</div>
+            <button class="task-btn" onclick="window.navigation.navigateTo('buy')">Buy Now</button>
+        </div>
+    </div>
+
+    <div class="tasks-stats">
+        <div class="stat-card">
+            <div class="stat-value" id="completedTasks">1</div>
+            <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="availableTasks">3</div>
+            <div class="stat-label">Available</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="totalRewards">85</div>
+            <div class="stat-label">NMXp Earned</div>
+        </div>
+    </div>
+</section>
+
+<style>
+.section-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.section-header h2 {
+    color: var(--gold);
+    margin-bottom: 8px;
+}
+
+.section-header p {
+    color: var(--muted);
+}
+
+.tasks-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.task-card {
+    background: var(--darker-bg);
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.task-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-2px);
+}
+
+.task-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.task-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    background: rgba(212,175,55,0.1);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.task-info {
+    flex: 1;
+}
+
+.task-title {
+    color: var(--text);
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.task-reward {
+    color: var(--gold);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.task-description {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 15px;
+    line-height: 1.4;
+}
+
+.task-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--gold);
+    color: var(--darker-bg);
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.task-btn:hover:not(:disabled) {
+    background: #e6c158;
+    transform: translateY(-1px);
+}
+
+.task-btn:disabled {
+    background: #333;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.task-btn.completed {
+    background: #2ecc71;
+    color: white;
+}
+
+.task-btn.in-progress {
+    background: #3498db;
+    color: white;
+}
+
+.tasks-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+</style>
