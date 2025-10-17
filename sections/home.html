@@ -1,5 +1,5 @@
 <section class="dashboard-section" id="home-section">
-    <div class="balance-card">
+    <div class="balance-card gold-glow">
         <div class="balance-label">Your NMXp Balance</div>
         <div class="balance-amount" id="balanceAmount">00</div>
         <div class="mining-timer" id="miningTimer">Claim in 24:00:00</div>
@@ -26,16 +26,24 @@
     </div>
 
     <!-- Quick Actions -->
-    <div class="quick-actions" style="margin-top: 30px;">
-        <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">Quick Actions</h3>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-            <button class="profile-action-btn" onclick="window.navigation.navigateTo('tasks')">
-                <div class="action-icon">📋</div>
-                <div class="action-label">Daily Tasks</div>
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="quick-actions-grid">
+            <button class="quick-action-btn" onclick="window.navigation.navigateTo('tasks')">
+                <div class="quick-action-icon">📋</div>
+                <div class="quick-action-label">Daily Tasks</div>
             </button>
-            <button class="profile-action-btn" onclick="window.navigation.navigateTo('referrals')">
-                <div class="action-icon">👥</div>
-                <div class="action-label">Invite Friends</div>
+            <button class="quick-action-btn" onclick="window.navigation.navigateTo('referrals')">
+                <div class="quick-action-icon">👥</div>
+                <div class="quick-action-label">Invite Friends</div>
+            </button>
+            <button class="quick-action-btn" onclick="window.navigation.navigateTo('buy')">
+                <div class="quick-action-icon">🛒</div>
+                <div class="quick-action-label">Buy NMXp</div>
+            </button>
+            <button class="quick-action-btn" onclick="showProfileModal()">
+                <div class="quick-action-icon">👤</div>
+                <div class="quick-action-label">My Profile</div>
             </button>
         </div>
     </div>
@@ -45,7 +53,7 @@
 <div class="modal-overlay" id="modalOverlay"></div>
 
 <div class="settings-modal" id="settingsModal">
-    <div class="settings-item" onclick="window.navigation.navigateTo('profile')">
+    <div class="settings-item" onclick="showProfileModal()">
         <div class="settings-icon-small">👤</div>
         <div class="settings-label">Profile</div>
     </div>
@@ -127,7 +135,38 @@ function closeProfileModal() {
 }
 
 function showProfileModal() {
-    document.getElementById('profileModal').classList.add('active');
-    document.getElementById('modalOverlay').classList.add('active');
+    // Close settings first if open
+    document.getElementById('settingsModal').classList.remove('active');
+    
+    // Load profile data and show modal
+    if (window.profileManager) {
+        window.profileManager.loadProfile().then(() => {
+            document.getElementById('profileModal').classList.add('active');
+            document.getElementById('modalOverlay').classList.add('active');
+        });
+    } else {
+        document.getElementById('profileModal').classList.add('active');
+        document.getElementById('modalOverlay').classList.add('active');
+    }
+}
+
+// Utility function to copy to clipboard
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Show copy feedback
+        const originalText = element.textContent;
+        element.textContent = 'Copied!';
+        element.style.color = 'var(--gold)';
+        
+        setTimeout(() => {
+            element.textContent = originalText;
+            element.style.color = '';
+        }, 1500);
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
 }
 </script>
