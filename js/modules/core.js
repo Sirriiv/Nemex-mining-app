@@ -1,124 +1,142 @@
-// Core Application Utilities
-class CoreUtils {
-    static formatNumber(number) {
-        return new Intl.NumberFormat().format(number);
-    }
-
-    static formatCurrency(amount, currency = 'USD') {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency
-        }).format(amount);
-    }
-
-    static formatTime(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    static debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
-    static generateId() {
-        return 'nmx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    }
-
-    static validateEmail(email) {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(email);
-    }
-
-    static validatePassword(password) {
-        return password.length >= 6;
-    }
-}
-
-// Storage Manager
-class StorageManager {
-    static set(key, value) {
-        try {
-            localStorage.setItem(`nemex_${key}`, JSON.stringify(value));
-            return true;
-        } catch (error) {
-            console.error('Storage set error:', error);
-            return false;
-        }
-    }
-
-    static get(key) {
-        try {
-            const item = localStorage.getItem(`nemex_${key}`);
-            return item ? JSON.parse(item) : null;
-        } catch (error) {
-            console.error('Storage get error:', error);
-            return null;
-        }
-    }
-
-    static remove(key) {
-        try {
-            localStorage.removeItem(`nemex_${key}`);
-            return true;
-        } catch (error) {
-            console.error('Storage remove error:', error);
-            return false;
-        }
-    }
-
-    static clear() {
-        try {
-            const keys = Object.keys(localStorage);
-            keys.forEach(key => {
-                if (key.startsWith('nemex_')) {
-                    localStorage.removeItem(key);
-                }
-            });
-            return true;
-        } catch (error) {
-            console.error('Storage clear error:', error);
-            return false;
-        }
-    }
-}
-
-// Event Bus for component communication
-class EventBus {
+// Core Mining Functionality
+class MiningCore {
     constructor() {
-        this.events = {};
+        this.balance = 30;
+        this.isMining = false;
+        this.countdownTime = 24 * 60 * 60; // 24 hours in seconds
+        this.countdownInterval = null;
+        this.init();
     }
-
-    on(event, callback) {
-        if (!this.events[event]) {
-            this.events[event] = [];
+    
+    init() {
+        console.log('Mining core initialized');
+        this.startCountdown();
+        this.attachMiningListeners();
+        this.updateDisplay();
+    }
+    
+    attachMiningListeners() {
+        // This will be attached when home section loads
+        document.addEventListener('sectionLoaded', (e) => {
+            if (e.detail.section === 'home') {
+                this.attachHomeListeners();
+            }
+        });
+    }
+    
+    attachHomeListeners() {
+        const miningCoin = document.getElementById('miningCoin');
+        const claimButton = document.getElementById('claimButton');
+        
+        if (miningCoin) {
+            miningCoin.addEventListener('click', this.startMining.bind(this));
         }
-        this.events[event].push(callback);
+        
+        if (claimButton) {
+            claimButton.addEventListener('click', this.claimRewards.bind(this));
+        }
+        
+        console.log('Mining listeners attached');
     }
-
-    off(event, callback) {
-        if (this.events[event]) {
-            this.events[event] = this.events[event].filter(cb => cb !== callback);
+    
+    startMining() {
+        if (this.isMining) return;
+        
+        console.log('Mining started');
+        this.isMining = true;
+        
+        const miningCoin = document.getElementById('miningCoin');
+        if (miningCoin) {
+            miningCoin.classList.add('mining');
+        }
+        
+        // Simulate mining process
+        setTimeout(() => {
+            this.completeMining();
+        }, 3000);
+    }
+    
+    completeMining() {
+        console.log('Mining completed');
+        this.isMining = false;
+        
+        const miningCoin = document.getElementById('miningCoin');
+        if (miningCoin) {
+            miningCoin.classList.remove('mining');
+        }
+        
+        // Add mining reward
+        this.addToBalance(1.25);
+    }
+    
+    startCountdown() {
+        this.countdownInterval = setInterval(() => {
+            if (this.countdownTime > 0) {
+                this.countdownTime--;
+                this.updateCountdownDisplay();
+            } else {
+                this.enableClaim();
+            }
+        }, 1000);
+    }
+    
+    updateCountdownDisplay() {
+        const timerDisplay = document.getElementById('countdownTimer');
+        if (timerDisplay) {
+            const hours = Math.floor(this.countdownTime / 3600);
+            const minutes = Math.floor((this.countdownTime % 3600) / 60);
+            const seconds = this.countdownTime % 60;
+            
+            timerDisplay.textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         }
     }
-
-    emit(event, data) {
-        if (this.events[event]) {
-            this.events[event].forEach(callback => callback(data));
+    
+    enableClaim() {
+        const claimButton = document.getElementById('claimButton');
+        if (claimButton) {
+            claimButton.disabled = false;
+            claimButton.textContent = 'Claim Your NMX Now!';
+        }
+    }
+    
+    claimRewards() {
+        console.log('Claiming rewards');
+        
+        // Reset countdown
+        this.countdownTime = 24 * 60 * 60;
+        this.updateCountdownDisplay();
+        
+        // Disable claim button until next cycle
+        const claimButton = document.getElementById('claimButton');
+        if (claimButton) {
+            claimButton.disabled = true;
+            claimButton.textContent = 'Claim Your NMX';
+        }
+        
+        // Show success message
+        alert('Successfully claimed your NMX rewards!');
+    }
+    
+    addToBalance(amount) {
+        this.balance += amount;
+        this.updateDisplay();
+    }
+    
+    updateDisplay() {
+        const balanceElement = document.getElementById('currentBalance');
+        if (balanceElement) {
+            balanceElement.textContent = `${this.balance.toFixed(2)} NMX`;
+        }
+        
+        const totalMinedElement = document.getElementById('totalMined');
+        if (totalMinedElement) {
+            totalMinedElement.textContent = this.balance.toFixed(0);
         }
     }
 }
 
-// Initialize core utilities
-window.CoreUtils = CoreUtils;
-window.StorageManager = StorageManager;
-window.eventBus = new EventBus();
+// Initialize mining core
+document.addEventListener('DOMContentLoaded', function() {
+    window.miningCore = new MiningCore();
+});
