@@ -1,116 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Dashboard</title>
-    <style>
-        body { 
-            background: #1a1a1a; 
-            color: gold; 
-            font-family: Arial; 
-            margin: 0; 
-            padding: 20px; 
-            text-align: center; 
-        }
-        .balance { 
-            font-size: 4rem; 
-            font-weight: bold; 
-            margin: 20px 0; 
-            color: gold; 
-        }
-        .timer { 
-            font-size: 1.8rem; 
-            color: #00ff88; 
-            margin: 15px 0; 
-            font-weight: bold; 
-        }
-        .claim { 
-            font-size: 1.2rem; 
-            color: gold; 
-            margin: 10px 0; 
-        }
-        .nav { 
-            display: flex; 
-            justify-content: space-around; 
-            margin: 30px 0; 
-        }
-        .nav-btn { 
-            color: gold; 
-            text-decoration: none; 
-            font-size: 0.9rem; 
-        }
-        .coin { 
-            font-size: 3rem; 
-            margin: 10px 0; 
-        }
-        button { 
-            background: gold; 
-            color: #1a1a1a; 
-            border: none; 
-            padding: 15px 40px; 
-            border-radius: 25px; 
-            font-weight: bold; 
-            font-size: 1.1rem; 
-            cursor: pointer;
-        }
-        button:disabled {
-            background: #666;
-            color: #999;
-            cursor: not-allowed;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEMEXCOIN - Dashboard</title>
+    
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/components/nav.css">
+    <link rel="stylesheet" href="../css/components/modals.css">
+    <link rel="stylesheet" href="../css/profile.css">
+    <link rel="stylesheet" href="../css/notification.css">
+    <link rel="stylesheet" href="../css/settings.css">
 </head>
 <body>
-    <div class="balance" id="balance">00</div>
-    
-    <div class="coin">🪙</div>
-    
-    <div class="timer" id="timer">24:00:00</div>
-    
-    <div class="claim" id="claimText">Claim 100 NMXp</div>
-    
-    <button onclick="claimTokens()" id="claimBtn">
-        Claim Now
-    </button>
-
-    <div class="nav">
-        <a href="/" class="nav-btn">🏠 Home</a>
-        <a href="/wallet" class="nav-btn">💰 Wallet</a>
-        <a href="/team" class="nav-btn">👥 Team</a>
-        <a href="/settings" class="nav-btn">⚙️ Settings</a>
+    <!-- Loading Screen -->
+    <div id="loading" class="loading">
+        <div class="loading-logo">NMX</div>
+        <div class="loading-status">Loading NEMEXCOIN...</div>
     </div>
 
-    <script>
-        let claimTime = 24 * 60 * 60;
-        let canClaim = false;
+    <!-- Main App Container -->
+    <div id="app" class="app-container hidden">
+        <!-- Header with Settings -->
+        <div class="header">
+            <div class="logo">NEMEXCOIN</div>
+            <div class="header-actions">
+                <div class="settings-icon" id="settingsButton">⚙️</div>
+            </div>
+        </div>
 
-        setInterval(() => {
-            if (claimTime > 0) {
-                claimTime--;
-                const h = Math.floor(claimTime / 3600);
-                const m = Math.floor((claimTime % 3600) / 60);
-                const s = claimTime % 60;
-                document.getElementById('timer').textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-                document.getElementById('claimBtn').disabled = true;
-                document.getElementById('claimBtn').textContent = 'Waiting...';
-                document.getElementById('claimText').textContent = 'Claim 100 NMXp';
-            } else {
-                document.getElementById('claimBtn').disabled = false;
-                document.getElementById('claimBtn').textContent = 'Claim Now';
-                document.getElementById('claimText').textContent = '100 NMXp Available!';
-                canClaim = true;
-            }
-        }, 1000);
-        
-        function claimTokens() {
-            if (!canClaim) return;
-            
-            const balance = parseInt(document.getElementById('balance').textContent) || 0;
-            document.getElementById('balance').textContent = (balance + 100).toString().padStart(2, '0');
-            claimTime = 24 * 60 * 60;
-            canClaim = false;
-            
-            alert('🎉 +100 NMXp claimed!');
-        }
-    </script>
+        <!-- Main Content Area -->
+        <main id="main-content" class="main-content">
+            <!-- Sections will be loaded here dynamically -->
+            <div id="section-container"></div>
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-navbar">
+            <button class="nav-item active" data-section="home">
+                <div class="nav-icon">🏠</div>
+                <div class="nav-label">Home</div>
+            </button>
+            <button class="nav-item" data-section="tasks">
+                <div class="nav-icon">📋</div>
+                <div class="nav-label">Tasks</div>
+            </button>
+            <button class="nav-item" data-section="buy">
+                <div class="nav-icon">🛒</div>
+                <div class="nav-label">Buy</div>
+            </button>
+            <button class="nav-item" data-section="referrals">
+                <div class="nav-icon">👥</div>
+                <div class="nav-label">Referrals</div>
+            </button>
+            <button class="nav-item" data-section="wallet">
+                <div class="nav-icon">💰</div>
+                <div class="nav-label">Wallet</div>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="modalOverlay"></div>
+
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-item" onclick="openSection('profile')">
+            <div class="settings-icon-small">👤</div>
+            <div class="settings-label">Profile</div>
+        </div>
+        <div class="settings-item" onclick="openSection('notifications')">
+            <div class="settings-icon-small">🔔</div>
+            <div class="settings-label">Notifications</div>
+        </div>
+        <div class="settings-item" onclick="openSection('security')">
+            <div class="settings-icon-small">🔒</div>
+            <div class="settings-label">Security</div>
+        </div>
+        <div class="settings-item" onclick="toggleDarkMode()">
+            <div class="settings-icon-small">🌙</div>
+            <div class="settings-label">Dark Mode</div>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-item" onclick="openSection('help')">
+            <div class="settings-icon-small">❓</div>
+            <div class="settings-label">Help & Support</div>
+        </div>
+        <div class="settings-item" onclick="openSection('about')">
+            <div class="settings-icon-small">ℹ️</div>
+            <div class="settings-label">About</div>
+        </div>
+        <div class="settings-divider"></div>
+        <div class="settings-item logout-btn" onclick="logout()">
+            <div class="settings-icon-small">🚪</div>
+            <div class="settings-label">Logout</div>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="../js/main.js"></script>
+    <script src="../js/modules/navigation.js"></script>
+    <script src="../js/modules/api.js"></script>
+    <script src="../js/modules/user.js"></script>
+    <script src="../js/modules/core.js"></script>
+    <script src="../js/modules/utils.js"></script>
+    <script src="../js/modules/profileManager.js"></script>
+    
+    <!-- Section Scripts (will be loaded dynamically) -->
 </body>
 </html>
