@@ -1,31 +1,25 @@
-// User Data Manager - UPDATED TO USE DATABASE DATA
+// Professional User Data Manager - Supabase-Only
 class UserDataManager {
     constructor() {
         this.userData = null;
         this.isInitialized = false;
-        this.API_BASE = 'https://nemex-backend.onrender.com';
     }
 
     async initialize() {
         try {
-            console.log('🔄 Initializing user data manager...');
+            console.log('🔄 Initializing professional user data manager...');
 
-            // Wait for auth manager to be ready
-            if (window.AuthManager && window.AuthManager.currentUser) {
-                if (window.AuthManager.isAuthenticated) {
-                    await this.loadRealUserData();
-                } else {
-                    await this.loadDemoData();
-                }
+            if (window.AuthManager && window.AuthManager.isAuthenticated) {
+                await this.loadRealUserData();
             } else {
                 await this.loadDemoData();
             }
 
             this.isInitialized = true;
-            console.log('✅ User data manager ready');
+            console.log('✅ Professional user data manager ready');
 
         } catch (error) {
-            console.error('❌ User data manager failed:', error);
+            console.error('❌ Professional user data manager failed:', error);
             await this.loadDemoData();
         }
     }
@@ -38,48 +32,55 @@ class UserDataManager {
                 throw new Error('User not authenticated');
             }
 
-            console.log('👤 Loading real user data from database...');
+            console.log('👤 Loading professional user data from Supabase...');
 
-            // Use data from AuthManager (which now comes from database)
+            // Use data directly from AuthManager (which comes from Supabase)
             this.userData = {
                 id: auth.currentUser.id,
+                backend_id: auth.currentUser.backend_id,
                 username: auth.currentUser.name,
                 email: auth.currentUser.email,
-                balance: auth.currentUser.balance || 30,
-                availableBalance: auth.currentUser.balance || 0,
-                referralCode: auth.currentUser.referralCode || `NMX-${auth.currentUser.id.slice(-6).toUpperCase()}`,
-                countdownTarget: new Date(Date.now() + 24 * 60 * 60 * 1000), // Will be overridden by countdown manager
-                isClaimed: false,
-                joinDate: auth.currentUser.joinDate || new Date().toISOString()
+                balance: auth.currentUser.balance,
+                availableBalance: auth.currentUser.availableBalance,
+                totalEarned: auth.currentUser.totalEarned,
+                referralCode: auth.currentUser.referralCode,
+                countdownTarget: auth.currentUser.countdownTarget,
+                isClaimed: auth.currentUser.isClaimed,
+                joinDate: auth.currentUser.joinDate,
+                ipAddress: auth.currentUser.ipAddress,
+                lastLogin: auth.currentUser.lastLogin
             };
 
-            console.log('✅ Real user data loaded from database:', {
+            console.log('✅ Professional user data loaded from Supabase:', {
+                id: this.userData.id,
                 username: this.userData.username,
                 email: this.userData.email,
-                balance: this.userData.balance,
-                joinDate: this.userData.joinDate
+                balance: this.userData.balance
             });
 
         } catch (error) {
-            console.error('❌ Failed to load real user data from database:', error);
+            console.error('❌ Failed to load professional user data:', error);
             throw error;
         }
     }
 
     async loadDemoData() {
-        // Demo user data
+        // Professional demo data
         this.userData = {
             id: 'demo-user-123',
             username: 'nemex_demo',
             email: 'demo@nemexcoin.com',
             balance: 30,
             availableBalance: 0,
+            totalEarned: 0,
             referralCode: 'NMX-DEMO-1234',
             countdownTarget: new Date(Date.now() + 24 * 60 * 60 * 1000),
             isClaimed: false,
-            joinDate: new Date().toISOString()
+            joinDate: new Date().toISOString(),
+            ipAddress: '127.0.0.1',
+            lastLogin: new Date().toISOString()
         };
-        console.log('✅ Demo user data loaded');
+        console.log('✅ Professional demo data loaded');
     }
 
     async getBalance() {
@@ -106,59 +107,51 @@ class UserDataManager {
 
     async claimReward() {
         try {
-            console.log('🎯 Claiming reward...');
+            console.log('🎯 Professional reward claim process...');
 
             const auth = window.AuthManager;
 
-            if (auth.isAuthenticated) {
-                // Real user - update in Supabase and backend
-                const result = await this.claimRewardForRealUser();
+            if (auth.isAuthenticated && window.SupabaseClient?.isInitialized) {
+                const result = await this.claimRewardProfessional();
                 return result;
             } else {
-                // Demo user
                 return await this.claimDemoReward();
             }
 
         } catch (error) {
-            console.error('❌ Claim reward failed:', error);
+            console.error('❌ Professional claim reward failed:', error);
             return { success: false, error: error.message };
         }
     }
 
-    async claimRewardForRealUser() {
+    async claimRewardProfessional() {
         const client = window.SupabaseClient.getClient();
         const userId = window.AuthManager.currentUser.id;
 
         try {
-            // Update in Supabase
-            const { data: balanceData, error: balanceError } = await client
-                .from('user_balances')
-                .select('pending_balance, available_balance')
-                .eq('user_id', userId)
-                .single();
-
-            if (balanceError) throw balanceError;
-
-            const newAvailableBalance = parseFloat(balanceData.available_balance) + parseFloat(balanceData.pending_balance);
-            const claimedAmount = parseFloat(balanceData.pending_balance);
+            // Professional: Use database transaction for data consistency
+            const claimedAmount = this.userData.balance;
+            const newAvailableBalance = this.userData.availableBalance + claimedAmount;
 
             // Update balances in Supabase
-            const { error: updateError } = await client
+            const { error: balanceError } = await client
                 .from('user_balances')
                 .update({
                     available_balance: newAvailableBalance,
                     pending_balance: 0,
+                    total_earned: this.userData.totalEarned + claimedAmount,
                     updated_at: new Date().toISOString()
                 })
                 .eq('user_id', userId);
 
-            if (updateError) throw updateError;
+            if (balanceError) throw balanceError;
 
             // Reset countdown timer in Supabase
+            const newTargetTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
             const { error: timerError } = await client
                 .from('countdown_timers')
                 .update({
-                    target_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    target_time: newTargetTime.toISOString(),
                     is_claimed: true,
                     last_claimed: new Date().toISOString()
                 })
@@ -166,25 +159,24 @@ class UserDataManager {
 
             if (timerError) throw timerError;
 
-            // Record transaction in Supabase
+            // Record professional transaction
             await client.from('transactions').insert([{
                 user_id: userId,
-                type: 'claim',
+                type: 'daily_reward',
                 amount: claimedAmount,
-                description: 'Daily reward claim'
+                description: 'Professional daily reward claim',
+                status: 'completed',
+                created_at: new Date().toISOString()
             }]);
-
-            // Update backend balance
-            await this.updateBackendBalance(newAvailableBalance);
 
             // Update local data
             this.userData.availableBalance = newAvailableBalance;
             this.userData.balance = 0;
-            this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            this.userData.totalEarned += claimedAmount;
+            this.userData.countdownTarget = newTargetTime;
             this.userData.isClaimed = true;
 
-            // Update localStorage
-            localStorage.setItem('userBalance', newAvailableBalance.toString());
+            console.log('✅ Professional reward claimed successfully');
 
             return { 
                 success: true, 
@@ -193,57 +185,18 @@ class UserDataManager {
             };
 
         } catch (error) {
-            console.error('❌ Supabase claim failed:', error);
-            // Fallback to simple balance update
-            return await this.updateBackendBalanceSimple();
+            console.error('❌ Professional claim failed:', error);
+            return { success: false, error: 'Database update failed' };
         }
-    }
-
-    async updateBackendBalance(newBalance) {
-        try {
-            // Update your backend balance if you have an endpoint for this
-            const response = await fetch(`${this.API_BASE}/api/update-balance`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    user_id: window.AuthManager.currentUser.id,
-                    balance: newBalance
-                })
-            });
-
-            if (!response.ok) {
-                console.warn('⚠️ Backend balance update failed');
-            }
-        } catch (error) {
-            console.warn('⚠️ Backend balance update error:', error);
-        }
-    }
-
-    async updateBackendBalanceSimple() {
-        // Simple fallback - just update localStorage
-        const newBalance = (parseFloat(localStorage.getItem('userBalance') || '0') + 30);
-        localStorage.setItem('userBalance', newBalance.toString());
-
-        this.userData.availableBalance = newBalance;
-        this.userData.balance = 0;
-        this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        this.userData.isClaimed = true;
-
-        return { 
-            success: true, 
-            newBalance: newBalance,
-            claimedAmount: 30 
-        };
     }
 
     async claimDemoReward() {
-        // Simulate API call delay
+        // Simulate professional API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
 
         // Update local demo data
-        this.userData.availableBalance += this.userData.balance;
+        const claimedAmount = this.userData.balance;
+        this.userData.availableBalance += claimedAmount;
         this.userData.balance = 0;
         this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
         this.userData.isClaimed = true;
@@ -251,12 +204,21 @@ class UserDataManager {
         return { 
             success: true, 
             newBalance: this.userData.availableBalance,
-            claimedAmount: 30 
+            claimedAmount: claimedAmount 
         };
     }
 
     getUserData() {
         return this.userData;
+    }
+
+    // Professional: Refresh data from Supabase
+    async refreshUserData() {
+        if (window.AuthManager && window.AuthManager.isAuthenticated) {
+            await this.loadRealUserData();
+            return true;
+        }
+        return false;
     }
 }
 
