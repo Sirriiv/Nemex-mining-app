@@ -38,10 +38,10 @@
             <i class="fas fa-microchip"></i>
             <h1>NMX</h1>
         </div>
-        
+
         <div class="card">
             <h2>Create Account</h2>
-            
+
             <form id="registerForm">
                 <div class="form-group">
                     <input type="text" class="input" id="name" placeholder="Full Name" required>
@@ -63,11 +63,11 @@
                     <i class="fas fa-spinner fa-spin"></i> Creating account...
                 </div>
             </form>
-            
+
             <div class="divider">
                 <span>OR CONTINUE WITH</span>
             </div>
-            
+
             <button class="social-btn" disabled>
                 <i class="fab fa-google"></i> Continue with Google
             </button>
@@ -78,12 +78,21 @@
         </div>
     </div>
 
+    <!-- Supabase Configuration Meta Tags -->
+    <meta name="supabase-url" content="https://bjulifvbfogymoduxnzl.supabase.co">
+    <meta name="supabase-anon-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU">
+
+    <!-- JavaScript Files -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config/supabase-config.js"></script>
+    <script src="js/config/supabase-client.js"></script>
+    <script src="js/modules/auth-manager.js"></script>
+
     <script>
-        const API_BASE = 'https://nemex-backend.onrender.com';
-        
+        // Enhanced registration handler with Supabase integration
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
@@ -93,64 +102,74 @@
             const passwordError = document.getElementById('passwordError');
             const formError = document.getElementById('formError');
             const formSuccess = document.getElementById('formSuccess');
-            
+
             // Reset errors
             passwordError.style.display = 'none';
             formError.style.display = 'none';
             formSuccess.style.display = 'none';
-            
+
             // Validate passwords match
             if (password !== confirmPassword) {
                 passwordError.textContent = 'Passwords do not match';
                 passwordError.style.display = 'block';
                 return;
             }
-            
+
             // Validate password length
             if (password.length < 6) {
                 passwordError.textContent = 'Password must be at least 6 characters';
                 passwordError.style.display = 'block';
                 return;
             }
-            
+
             registerBtn.disabled = true;
             registerLoading.style.display = 'block';
-            
+
             try {
-                const response = await fetch(`${API_BASE}/api/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: name,
-                        email: email,
-                        password: password
-                    })
+                console.log('🚀 Starting registration process...');
+
+                // Initialize Supabase first
+                if (window.SupabaseConfig && window.SupabaseClient) {
+                    console.log('🔄 Initializing Supabase...');
+                    await window.SupabaseConfig.getConfig();
+                    await window.SupabaseClient.initialize();
+                    console.log('✅ Supabase initialized');
+                } else {
+                    console.log('⚠️ Supabase modules not available, continuing without...');
+                }
+
+                // Initialize Auth Manager if not already done
+                if (!window.AuthManager) {
+                    console.error('❌ Auth Manager not loaded');
+                    throw new Error('Authentication system not available');
+                }
+
+                console.log('👤 Attempting registration for:', email);
+
+                // Use the new auth manager for registration
+                const result = await window.AuthManager.signUp({
+                    fullName: name,
+                    email: email,
+                    password: password
                 });
-                
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    formSuccess.textContent = 'Account created successfully! Redirecting...';
+
+                if (result.success) {
+                    console.log('✅ Registration successful!');
+                    formSuccess.textContent = 'Account created successfully! Setting up your account...';
                     formSuccess.style.display = 'block';
-                    
-                    // Store user data and redirect after success
+
+                    // Show success message for a moment before redirect
                     setTimeout(() => {
-                        localStorage.setItem('userId', data.user.user_id);
-                        localStorage.setItem('userName', data.user.name);
-                        localStorage.setItem('userEmail', data.user.email);
-                        localStorage.setItem('userBalance', data.user.balance);
-                        localStorage.setItem('isLoggedIn', 'true');
                         window.location.href = 'dashboard.html';
                     }, 2000);
                 } else {
-                    formError.textContent = data.error || 'Registration failed';
+                    console.error('❌ Registration failed:', result.error);
+                    formError.textContent = result.error || 'Registration failed';
                     formError.style.display = 'block';
                 }
             } catch (error) {
-                console.error('Registration error:', error);
-                formError.textContent = 'Network error. Please try again.';
+                console.error('❌ Registration error:', error);
+                formError.textContent = error.message || 'Registration failed. Please try again.';
                 formError.style.display = 'block';
             } finally {
                 registerBtn.disabled = false;
@@ -158,10 +177,33 @@
             }
         });
 
+        // Real-time password validation
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            const passwordError = document.getElementById('passwordError');
+
+            if (confirmPassword && password !== confirmPassword) {
+                passwordError.textContent = 'Passwords do not match';
+                passwordError.style.display = 'block';
+            } else if (confirmPassword && password === confirmPassword) {
+                passwordError.style.display = 'none';
+            }
+        });
+
         // Check if user is already logged in
         if (localStorage.getItem('isLoggedIn') === 'true') {
+            console.log('👤 User already logged in, redirecting to dashboard...');
             window.location.href = 'dashboard.html';
         }
+
+        // Add some debugging info
+        console.log('🔧 Register page loaded successfully');
+        console.log('📁 Available modules:', {
+            SupabaseConfig: !!window.SupabaseConfig,
+            SupabaseClient: !!window.SupabaseClient,
+            AuthManager: !!window.AuthManager
+        });
     </script>
 </body>
 </html>
