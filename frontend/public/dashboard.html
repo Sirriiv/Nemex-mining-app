@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEMEXCOIN - Dashboard</title>
-    
+
     <!-- Supabase Configuration Meta Tags -->
     <meta name="supabase-url" content=https://bjulifvbfogymoduxnzl.supabase.co>
     <meta name="supabase-anon-key" content=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU>
-   
+
     <style>
         /* [KEEP ALL YOUR EXISTING CSS - IT'S PERFECT] */
         :root {
@@ -20,13 +20,13 @@
             --text-secondary: #cccccc;
             --muted: #888888;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             background: var(--dark-bg);
             color: var(--text);
@@ -34,11 +34,11 @@
             min-height: 100vh;
             padding-bottom: 80px;
         }
-        
+
         /* [KEEP ALL YOUR EXISTING CSS STYLES] */
         /* Loading Screen, Header, Main Content, Sections, Logo, Timer, Balance, Claim Button, Settings Modal, Cards, Navigation */
         /* ... (your existing CSS remains unchanged) ... */
-        
+
         #loadingScreen {
             position: fixed;
             top: 0;
@@ -52,7 +52,7 @@
             align-items: center;
             z-index: 9999;
         }
-        
+
         .loading-logo {
             font-size: 72px;
             color: var(--gold);
@@ -60,12 +60,12 @@
             margin-bottom: 20px;
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
         }
-        
+
         .loading-text {
             color: var(--text);
             font-size: 18px;
         }
-        
+
         .header {
             background: var(--darker-bg);
             padding: 15px 20px;
@@ -74,44 +74,44 @@
             align-items: center;
             border-bottom: 2px solid var(--gold);
         }
-        
+
         .logo {
             color: var(--gold);
             font-size: 20px;
             font-weight: bold;
             text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
         }
-        
+
         .settings-icon {
             color: var(--gold);
             font-size: 20px;
             cursor: pointer;
         }
-        
+
         .main-content {
             padding: 0 20px;
             text-align: center;
         }
-        
+
         .section {
             display: none;
         }
-        
+
         .section.active {
             display: block;
         }
-        
+
         .points-display {
             padding: 30px 20px 10px 20px;
         }
-        
+
         .points-amount {
             color: var(--gold);
             font-size: 48px;
             font-weight: bold;
             text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
         }
-        
+
         .nemex-logo {
             width: 140px;
             height: 140px;
@@ -121,14 +121,14 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .logo-container {
             width: 120px;
             height: 120px;
             position: relative;
             filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.4));
         }
-        
+
         .logo-base {
             width: 100%;
             height: 100%;
@@ -139,7 +139,7 @@
             overflow: hidden;
             box-shadow: inset 0 0 20px rgba(212, 175, 55, 0.1), 0 0 30px rgba(212, 175, 55, 0.2);
         }
-        
+
         .logo-center {
             position: absolute;
             top: 50%;
@@ -148,13 +148,13 @@
             width: 50px;
             height: 50px;
         }
-        
+
         .infinity-symbol {
             width: 100%;
             height: 100%;
             position: relative;
         }
-        
+
         .infinity-symbol::before, .infinity-symbol::after {
             content: '';
             position: absolute;
@@ -166,21 +166,21 @@
             border-left-color: transparent;
             animation: rotate 8s linear infinite;
         }
-        
+
         .infinity-symbol::before {
             top: 0;
             left: 0;
             transform: rotate(45deg);
             animation-delay: 0s;
         }
-        
+
         .infinity-symbol::after {
             bottom: 0;
             right: 0;
             transform: rotate(225deg);
             animation-delay: -4s;
         }
-        
+
         .circuit-lines {
             position: absolute;
             top: 0;
@@ -188,13 +188,13 @@
             width: 100%;
             height: 100%;
         }
-        
+
         .circuit-line {
             position: absolute;
             background: var(--gold);
             opacity: 0.6;
         }
-        
+
         .circuit-line:nth-child(1) {
             top: 20%;
             left: 10%;
@@ -202,7 +202,7 @@
             height: 2px;
             transform: rotate(30deg);
         }
-        
+
         .circuit-line:nth-child(2) {
             top: 30%;
             right: 15%;
@@ -210,7 +210,7 @@
             height: 2px;
             transform: rotate(-45deg);
         }
-        
+
         .circuit-line:nth-child(3) {
             bottom: 25%;
             left: 20%;
@@ -218,7 +218,7 @@
             height: 2px;
             transform: rotate(15deg);
         }
-        
+
         .circuit-line:nth-child(4) {
             bottom: 15%;
             right: 10%;
@@ -226,7 +226,7 @@
             height: 2px;
             transform: rotate(-60deg);
         }
-        
+
         .circuit-line:nth-child(5) {
             top: 45%;
             left: 5%;
@@ -234,7 +234,7 @@
             height: 2px;
             transform: rotate(75deg);
         }
-        
+
         .circuit-pad {
             position: absolute;
             width: 4px;
@@ -243,27 +243,27 @@
             border-radius: 50%;
             opacity: 0.8;
         }
-        
+
         .circuit-pad:nth-child(6) {
             top: 15%;
             left: 25%;
         }
-        
+
         .circuit-pad:nth-child(7) {
             top: 35%;
             right: 20%;
         }
-        
+
         .circuit-pad:nth-child(8) {
             bottom: 40%;
             left: 15%;
         }
-        
+
         .circuit-pad:nth-child(9) {
             bottom: 20%;
             right: 30%;
         }
-        
+
         .logo-glow {
             position: absolute;
             top: -10px;
@@ -275,28 +275,28 @@
             animation: glowPulse 3s ease-in-out infinite;
             z-index: -1;
         }
-        
+
         @keyframes rotate {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
+
         @keyframes glowPulse {
             0%, 100% { opacity: 0.5; transform: scale(1); }
             50% { opacity: 0.8; transform: scale(1.05); }
         }
-        
+
         .countdown-timer {
             padding: 10px 0;
             margin: 0 0 15px 0;
         }
-        
+
         .timer-label {
             color: var(--text-secondary);
             font-size: 16px;
             margin-bottom: 8px;
         }
-        
+
         .timer-display {
             color: var(--gold);
             font-size: 28px;
@@ -304,18 +304,18 @@
             font-family: 'Courier New', monospace;
             letter-spacing: 2px;
         }
-        
+
         .balance-display {
             padding: 10px 0;
             margin: 0 0 20px 0;
         }
-        
+
         .balance-amount {
             color: var(--gold);
             font-size: 32px;
             font-weight: bold;
         }
-        
+
         .claim-btn {
             background: linear-gradient(135deg, var(--gold), #b8941f);
             color: var(--darker-bg);
@@ -330,18 +330,18 @@
             width: 100%;
             margin-bottom: 30px;
         }
-        
+
         .claim-btn:active {
             transform: scale(0.95);
         }
-        
+
         .claim-btn:disabled {
             background: #333;
             color: #666;
             cursor: not-allowed;
             box-shadow: none;
         }
-        
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -352,7 +352,7 @@
             z-index: 1000;
             display: none;
         }
-        
+
         .settings-modal {
             position: fixed;
             bottom: 0;
@@ -365,15 +365,15 @@
             z-index: 1001;
             display: none;
         }
-        
+
         .settings-section {
             display: none;
         }
-        
+
         .settings-section.active {
             display: block;
         }
-        
+
         .settings-header {
             display: flex;
             justify-content: space-between;
@@ -382,13 +382,13 @@
             padding-bottom: 15px;
             border-bottom: 1px solid rgba(255, 215, 0, 0.3);
         }
-        
+
         .settings-title {
             color: var(--gold);
             font-size: 20px;
             font-weight: bold;
         }
-        
+
         .close-settings {
             color: var(--gold);
             font-size: 24px;
@@ -396,7 +396,7 @@
             background: none;
             border: none;
         }
-        
+
         .settings-item {
             display: flex;
             align-items: center;
@@ -404,29 +404,29 @@
             border-bottom: 1px solid rgba(255, 215, 0, 0.1);
             cursor: pointer;
         }
-        
+
         .settings-item:last-child {
             border-bottom: none;
         }
-        
+
         .settings-icon-small {
             font-size: 20px;
             margin-right: 15px;
             color: var(--gold);
             width: 30px;
         }
-        
+
         .settings-label {
             color: var(--text);
             font-size: 16px;
             flex: 1;
         }
-        
+
         .settings-arrow {
             color: var(--text-secondary);
             font-size: 18px;
         }
-        
+
         .back-button {
             background: none;
             border: none;
@@ -436,7 +436,7 @@
             padding: 10px 0;
             margin-bottom: 15px;
         }
-        
+
         .card {
             background: var(--darker-bg);
             border: 1px solid var(--gold);
@@ -445,14 +445,14 @@
             margin: 15px 0;
             text-align: left;
         }
-        
+
         .card-title {
             color: var(--gold);
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 15px;
         }
-        
+
         .task-item {
             display: flex;
             justify-content: space-between;
@@ -460,16 +460,16 @@
             padding: 12px 0;
             border-bottom: 1px solid rgba(255, 215, 0, 0.2);
         }
-        
+
         .task-item:last-child {
             border-bottom: none;
         }
-        
+
         .task-reward {
             color: var(--gold);
             font-weight: bold;
         }
-        
+
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -482,7 +482,7 @@
             justify-content: space-around;
             align-items: center;
         }
-        
+
         .nav-btn {
             background: none;
             border: none;
@@ -496,17 +496,17 @@
             align-items: center;
             min-width: 60px;
         }
-        
+
         .nav-btn.active {
             color: var(--gold);
             background: rgba(255, 215, 0, 0.1);
         }
-        
+
         .nav-icon {
             font-size: 18px;
             margin-bottom: 4px;
         }
-        
+
         .nav-text {
             font-size: 10px;
             font-weight: 600;
@@ -514,7 +514,8 @@
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
+
+   <!-- Loading Screen -->
     <div id="loadingScreen">
         <div class="loading-logo">NMX</div>
         <div class="loading-text">Loading NEMEXCOIN...</div>
@@ -620,7 +621,7 @@
                     <button class="claim-btn" style="margin: 10px 0;">Copy Referral Code</button>
                 </div>
             </div>
-            
+
             <div class="card">
                 <div class="card-title">Referral Rewards</div>
                 <div class="task-item">
@@ -643,7 +644,7 @@
                     <div style="color: var(--text-secondary);">≈ $0.00 USD</div>
                 </div>
             </div>
-            
+
             <div class="card">
                 <div class="card-title">Recent Transactions</div>
                 <div class="task-item">
@@ -669,43 +670,43 @@
                 <div class="settings-title">Settings</div>
                 <button class="close-settings" id="closeSettings">✕</button>
             </div>
-            
+
             <div class="settings-item" onclick="openSettingsSection('profile')">
                 <div class="settings-icon-small">👤</div>
                 <div class="settings-label">Profile</div>
                 <div class="settings-arrow">›</div>
             </div>
-            
+
             <div class="settings-item" onclick="openSettingsSection('notifications')">
                 <div class="settings-icon-small">🔔</div>
                 <div class="settings-label">Notifications</div>
                 <div class="settings-arrow">›</div>
             </div>
-                 
+
             <div class="settings-item" onclick="openSettingsSection('security')">
-                <div class="settings-icon-small">🔒</div>
+                              <div class="settings-icon-small">🔒</div>
                 <div class="settings-label">Security</div>
                 <div class="settings-arrow">›</div>
             </div>
-            
+
             <div class="settings-item" onclick="openSettingsSection('appearance')">
                 <div class="settings-icon-small">🎨</div>
                 <div class="settings-label">Appearance</div>
                 <div class="settings-arrow">›</div>
             </div>
-            
+
             <div class="settings-item" onclick="openSettingsSection('about')">
                 <div class="settings-icon-small">ℹ️</div>
                 <div class="settings-label">About</div>
                 <div class="settings-arrow">›</div>
             </div>
-            
+
             <div class="settings-item" onclick="openSettingsSection('help')">
                 <div class="settings-icon-small">❓</div>
                 <div class="settings-label">Help & Support</div>
                 <div class="settings-arrow">›</div>
             </div>
-            
+
             <div class="settings-item" style="color: #ff4444;" onclick="logout()">
                 <div class="settings-icon-small">🚪</div>
                 <div class="settings-label">Logout</div>
@@ -719,7 +720,7 @@
                 <div class="settings-title">Profile</div>
                 <div style="width: 40px;"></div>
             </div>
-            
+
             <div class="card">
                 <div class="card-title">Account Information</div>
                 <div style="padding: 15px 0;">
@@ -768,36 +769,170 @@
     <!-- JavaScript Files - NEW LOADING ORDER -->
     <!-- Load Supabase SDK first -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <!-- Load your existing modules -->
     <script src="../js/modules/user.js"></script>
-    
+
     <!-- Load new configuration files -->
     <script src="../js/config/supabase-config.js"></script>
     <script src="../js/config/supabase-client.js"></script>
-    
+
     <!-- Load new data management -->
     <script src="../js/modules/user-data.js"></script>
     <script src="../js/modules/countdown-manager.js"></script>
-    
+
     <!-- Load main initializer last -->
     <script src="../js/main-initializer.js"></script>
 
-    <!-- Inline JavaScript for basic functionality -->
+    <!-- Emergency Fallback Script -->
     <script>
-        // Basic UI functionality that doesn't depend on modules
+        // Emergency fallback if modules fail to load
+        function initializeEmergencyFallback() {
+            console.log('🚨 Using emergency fallback initialization');
+            
+            // Basic countdown timer
+            let countdownTime = 24 * 60 * 60;
+            const timerDisplay = document.getElementById('countdownTimer');
+            const claimButton = document.getElementById('claimButton');
+            
+            function updateTimer() {
+                if (countdownTime > 0) {
+                    countdownTime--;
+                    const hours = Math.floor(countdownTime / 3600);
+                    const minutes = Math.floor((countdownTime % 3600) / 60);
+                    const seconds = countdownTime % 60;
+                    
+                    if (timerDisplay) {
+                        timerDisplay.textContent = 
+                            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                    }
+                    
+                    if (claimButton) {
+                        claimButton.disabled = countdownTime > 0;
+                        if (countdownTime === 0) {
+                            claimButton.textContent = 'Claim Your NMX Now!';
+                        }
+                    }
+                }
+            }
+            
+            // Start timer
+            setInterval(updateTimer, 1000);
+            updateTimer();
+            
+            // Navigation
+            const navButtons = document.querySelectorAll('.nav-btn');
+            const sections = document.querySelectorAll('.section');
+            
+            navButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetSection = this.getAttribute('data-section');
+                    
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    sections.forEach(section => section.classList.remove('active'));
+                    
+                    this.classList.add('active');
+                    document.getElementById(`${targetSection}-section`).classList.add('active');
+                });
+            });
+            
+            // Claim button
+            if (claimButton) {
+                claimButton.addEventListener('click', function() {
+                    if (!this.disabled) {
+                        alert('30 NMX claimed successfully!');
+                        this.disabled = true;
+                        this.textContent = 'Claim Your NMX';
+                        countdownTime = 24 * 60 * 60;
+                    }
+                });
+            }
+            
+            // Settings modal
+            const settingsButton = document.getElementById('settingsButton');
+            const settingsModal = document.getElementById('settingsModal');
+            const modalOverlay = document.getElementById('modalOverlay');
+            const closeSettings = document.getElementById('closeSettings');
+            
+            if (settingsButton && settingsModal) {
+                settingsButton.addEventListener('click', function() {
+                    settingsModal.style.display = 'block';
+                    modalOverlay.style.display = 'block';
+                });
+                
+                closeSettings.addEventListener('click', function() {
+                    settingsModal.style.display = 'none';
+                    modalOverlay.style.display = 'none';
+                    backToMainSettings();
+                });
+                
+                modalOverlay.addEventListener('click', function() {
+                    settingsModal.style.display = 'none';
+                    modalOverlay.style.display = 'none';
+                    backToMainSettings();
+                });
+            }
+            
+            console.log('✅ Emergency fallback initialized');
+        }
+
+        // Universal loading screen handler
+        function handleLoadingScreen() {
+            console.log('🔄 Handling loading screen...');
+            
+            // Always hide loading screen after 2 seconds regardless of module status
+            const loadingTimeout = setTimeout(() => {
+                const loadingScreen = document.getElementById('loadingScreen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                    console.log('✅ Loading screen hidden (timeout)');
+                }
+            }, 2000);
+            
+            // Try to initialize the main app
+            if (window.MainInitializer) {
+                console.log('🚀 Main initializer found, starting app...');
+                const app = new MainInitializer();
+                app.initialize().then(() => {
+                    clearTimeout(loadingTimeout);
+                    console.log('✅ App initialized successfully');
+                }).catch(error => {
+                    console.error('❌ App initialization failed:', error);
+                    // Fall back to emergency mode
+                    initializeEmergencyFallback();
+                });
+            } else {
+                console.warn('⚠️ Main initializer not found, using emergency fallback');
+                initializeEmergencyFallback();
+            }
+        }
+
+        // Wait for DOM to be fully loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', handleLoadingScreen);
+        } else {
+            handleLoadingScreen();
+        }
+
+        // Basic UI functions
         function openSettingsSection(section) {
             document.querySelectorAll('.settings-section').forEach(sec => {
                 sec.classList.remove('active');
             });
-            document.getElementById('settings' + section.charAt(0).toUpperCase() + section.slice(1)).classList.add('active');
+            const sectionElement = document.getElementById('settings' + section.charAt(0).toUpperCase() + section.slice(1));
+            if (sectionElement) {
+                sectionElement.classList.add('active');
+            }
         }
         
         function backToMainSettings() {
             document.querySelectorAll('.settings-section').forEach(sec => {
                 sec.classList.remove('active');
             });
-            document.getElementById('settingsMain').classList.add('active');
+            const mainSettings = document.getElementById('settingsMain');
+            if (mainSettings) {
+                mainSettings.classList.add('active');
+            }
         }
         
         function logout() {
