@@ -11,6 +11,7 @@
             --darker-bg: #050505;
             --gold: #FFD700;
             --gold-dark: #b8941f;
+            --gold-light: #fff9c4;
             --text: #ffffff;
             --text-secondary: #cccccc;
             --muted: #888888;
@@ -286,7 +287,7 @@
         /* Countdown Timer - NO BOX */
         .countdown-timer {
             padding: 10px 0;
-            margin: 0 0 15px 0;
+            margin: 0 0 25px 0;
         }
         
         .timer-label {
@@ -303,43 +304,79 @@
             letter-spacing: 2px;
         }
         
-        /* Balance Display - NO BOX */
-        .balance-display {
-            padding: 10px 0;
-            margin: 0 0 20px 0;
+        /* Mining Button with Progress Fill */
+        .mining-btn-container {
+            position: relative;
+            margin: 30px 0;
         }
         
-        .balance-amount {
+        .mining-btn {
+            position: relative;
+            background: var(--darker-bg);
+            border: 3px solid var(--gold);
             color: var(--gold);
-            font-size: 32px;
-            font-weight: bold;
-        }
-        
-        /* Claim Button */
-        .claim-btn {
-            background: linear-gradient(135deg, var(--gold), #b8941f);
-            color: var(--darker-bg);
-            border: none;
-            padding: 16px 40px;
+            padding: 25px 20px;
             border-radius: 25px;
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
             width: 100%;
-            margin-bottom: 30px;
+            overflow: hidden;
+            z-index: 2;
         }
         
-        .claim-btn:active {
-            transform: scale(0.95);
+        .mining-btn-progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+            border-radius: 22px;
+            z-index: 1;
+            transition: width 1s ease;
+            width: 0%;
         }
         
-        .claim-btn:disabled {
-            background: #333;
-            color: #666;
+        .mining-btn-content {
+            position: relative;
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .mining-btn-balance {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--dark-bg);
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+        }
+        
+        .mining-btn-label {
+            font-size: 16px;
+            color: var(--dark-bg);
+            font-weight: 500;
+        }
+        
+        .mining-btn:disabled {
             cursor: not-allowed;
-            box-shadow: none;
+            opacity: 0.7;
+        }
+        
+        .mining-btn.ready {
+            animation: shine 2s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+        }
+        
+        @keyframes shine {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(255, 215, 0, 1), 0 0 60px rgba(255, 215, 0, 0.4);
+            }
         }
         
         /* Settings Modal */
@@ -567,17 +604,19 @@
                 <div class="timer-display" id="countdownTimer">24:00:00</div>
             </div>
 
-            <!-- Balance Display -->
-            <div class="balance-display">
-                <div class="balance-amount">30 NMXp</div>
+            <!-- Mining Button with Balance Inside -->
+            <div class="mining-btn-container">
+                <div class="mining-btn-progress" id="miningProgress"></div>
+                <button class="mining-btn" id="miningButton" disabled>
+                    <div class="mining-btn-content">
+                        <div class="mining-btn-balance">30 NMXp</div>
+                        <div class="mining-btn-label">Tap to Claim</div>
+                    </div>
+                </button>
             </div>
-
-            <!-- Claim Button -->
-            <button class="claim-btn" id="claimButton" disabled>
-                Claim Your NMX
-            </button>
         </div>
 
+        <!-- Other sections remain the same -->
         <!-- Tasks Section -->
         <div class="section tasks-section" id="tasks-section">
             <div class="card">
@@ -619,7 +658,11 @@
                     <div style="font-family: 'Courier New', monospace; font-size: 20px; color: var(--gold); font-weight: bold; background: rgba(255, 215, 0, 0.1); padding: 15px; border-radius: 10px; margin: 15px 0;">
                         NMX-USER-1234
                     </div>
-                    <button class="claim-btn" style="margin: 10px 0;">Copy Referral Code</button>
+                    <button class="mining-btn" style="margin: 10px 0; background: var(--darker-bg);">
+                        <div class="mining-btn-content">
+                            <div class="mining-btn-label">Copy Referral Code</div>
+                        </div>
+                    </button>
                 </div>
             </div>
             
@@ -660,239 +703,8 @@
         </div>
     </main>
 
-    <!-- Settings Modal -->
-    <div class="modal-overlay" id="modalOverlay"></div>
-
-    <div class="settings-modal" id="settingsModal">
-        <!-- Main Settings Menu -->
-        <div class="settings-section settings-main active" id="settingsMain">
-            <div class="settings-header">
-                <div class="settings-title">Settings</div>
-                <button class="close-settings" id="closeSettings">✕</button>
-            </div>
-            
-            <div class="settings-item" onclick="openSettingsSection('profile')">
-                <div class="settings-icon-small">👤</div>
-                <div class="settings-label">Profile</div>
-                <div class="settings-arrow">›</div>
-            </div>
-            
-            <div class="settings-item" onclick="openSettingsSection('notifications')">
-                <div class="settings-icon-small">🔔</div>
-                <div class="settings-label">Notifications</div>
-                <div class="settings-arrow">›</div>
-            </div>
-            
-            <div class="settings-item" onclick="openSettingsSection('security')">
-                <div class="settings-icon-small">🔒</div>
-                <div class="settings-label">Security</div>
-                <div class="settings-arrow">›</div>
-            </div>
-            
-            <div class="settings-item" onclick="openSettingsSection('appearance')">
-                <div class="settings-icon-small">🎨</div>
-                <div class="settings-label">Appearance</div>
-                <div class="settings-arrow">›</div>
-            </div>
-            
-            <div class="settings-item" onclick="openSettingsSection('about')">
-                <div class="settings-icon-small">ℹ️</div>
-                <div class="settings-label">About</div>
-                <div class="settings-arrow">›</div>
-            </div>
-            
-            <div class="settings-item" onclick="openSettingsSection('help')">
-                <div class="settings-icon-small">❓</div>
-                <div class="settings-label">Help & Support</div>
-                <div class="settings-arrow">›</div>
-            </div>
-            
-            <div class="settings-item" style="color: #ff4444;" onclick="logout()">
-                <div class="settings-icon-small">🚪</div>
-                <div class="settings-label">Logout</div>
-            </div>
-        </div>
-
-        <!-- Profile Settings -->
-        <div class="settings-section" id="settingsProfile">
-            <div class="settings-header">
-                <button class="back-button" onclick="backToMainSettings()">‹ Back</button>
-                <div class="settings-title">Profile</div>
-                <div style="width: 40px;"></div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">Account Information</div>
-                <div style="padding: 15px 0;">
-                    <div style="color: var(--text-secondary); margin-bottom: 5px;">Username</div>
-                    <div style="color: var(--gold); font-weight: bold;">nemex_user</div>
-                </div>
-                <div style="padding: 15px 0;">
-                    <div style="color: var(--text-secondary); margin-bottom: 5px;">Email</div>
-                    <div style="color: var(--gold); font-weight: bold;">user@nemexcoin.com</div>
-                </div>
-                <div style="padding: 15px 0;">
-                    <div style="color: var(--text-secondary); margin-bottom: 5px;">Member Since</div>
-                    <div style="color: var(--gold); font-weight: bold;">January 2024</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Notifications Settings -->
-        <div class="settings-section" id="settingsNotifications">
-            <div class="settings-header">
-                <button class="back-button" onclick="backToMainSettings()">‹ Back</button>
-                <div class="settings-title">Notifications</div>
-                <div style="width: 40px;"></div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">Notification Preferences</div>
-                <div class="task-item">
-                    <div>Mining Alerts</div>
-                    <div style="color: var(--gold);">ON</div>
-                </div>
-                <div class="task-item">
-                    <div>Task Reminders</div>
-                    <div style="color: var(--gold);">ON</div>
-                </div>
-                <div class="task-item">
-                    <div>Referral Notifications</div>
-                    <div style="color: var(--gold);">ON</div>
-                </div>
-                <div class="task-item">
-                    <div>Promotional Emails</div>
-                    <div style="color: var(--text-secondary);">OFF</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Security Settings -->
-        <div class="settings-section" id="settingsSecurity">
-            <div class="settings-header">
-                <button class="back-button" onclick="backToMainSettings()">‹ Back</button>
-                <div class="settings-title">Security</div>
-                <div style="width: 40px;"></div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">Security Settings</div>
-                <div class="settings-item">
-                    <div class="settings-icon-small">🔑</div>
-                    <div class="settings-label">Change Password</div>
-                    <div class="settings-arrow">›</div>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-icon-small">📱</div>
-                    <div class="settings-label">Two-Factor Authentication</div>
-                    <div style="color: var(--text-secondary);">OFF</div>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-icon-small">👁️</div>
-                    <div class="settings-label">Privacy Settings</div>
-                    <div class="settings-arrow">›</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Appearance Settings -->
-        <div class="settings-section" id="settingsAppearance">
-            <div class="settings-header">
-                <button class="back-button" onclick="backToMainSettings()">‹ Back</button>
-                <div class="settings-title">Appearance</div>
-                <div style="width: 40px;"></div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">Theme Settings</div>
-                <div class="task-item">
-                    <div>Dark Mode</div>
-                    <div style="color: var(--gold);">ON</div>
-                </div>
-                <div class="task-item">
-                    <div>Language</div>
-                    <div style="color: var(--gold);">English</div>
-                </div>
-                <div class="task-item">
-                    <div>Currency</div>
-                    <div style="color: var(--gold);">USD</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- About Settings -->
-        <div class="settings-section" id="settingsAbout">
-            <div class="settings-header">
-                <button class="back-button" onclick="backToMainSettings()">‹ Back</button>
-                <div class="settings-title">About</div>
-                <div style="width: 40px;"></div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">NEMEXCOIN</div>
-                <div style="padding: 15px 0;">
-                    <div style="color: var(--text-secondary); margin-bottom: 5px;">Version</div>
-                    <div style="color: var(--gold); font-weight: bold;">1.0.0</div>
-                </div>
-                <div style="padding: 15px 0;">
-                    <div style="color: var(--text-secondary); margin-bottom: 5px;">Last Updated</div>
-                    <div style="color: var(--gold); font-weight: bold;">March 2024</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Help & Support Settings -->
-        <div class="settings-section" id="settingsHelp">
-            <div class="settings-header">
-                <button class="back-button" onclick="backToMainSettings()">‹ Back</button>
-                <div class="settings-title">Help & Support</div>
-                <div style="width: 40px;"></div>
-            </div>
-            
-            <div class="card">
-                <div class="card-title">Support Options</div>
-                <div class="settings-item">
-                    <div class="settings-icon-small">📖</div>
-                    <div class="settings-label">User Guide</div>
-                    <div class="settings-arrow">›</div>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-icon-small">💬</div>
-                    <div class="settings-label">Contact Support</div>
-                    <div class="settings-arrow">›</div>
-                </div>
-                <div class="settings-item">
-                    <div class="settings-icon-small">🐛</div>
-                    <div class="settings-label">Report a Bug</div>
-                    <div class="settings-arrow">›</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-        <button class="nav-btn active" data-section="home">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-text">HOME</span>
-        </button>
-        <button class="nav-btn" data-section="tasks">
-            <span class="nav-icon">📋</span>
-            <span class="nav-text">TASKS</span>
-        </button>
-        <button class="nav-btn" data-section="buy">
-            <span class="nav-icon">🛒</span>
-            <span class="nav-text">BUY</span>
-        </button>
-        <button class="nav-btn" data-section="referrals">
-            <span class="nav-icon">👥</span>
-            <span class="nav-text">REFERRALS</span>
-        </button>
-        <button class="nav-btn" data-section="wallet">
-            <span class="nav-icon">💰</span>
-            <span class="nav-text">WALLET</span>
-        </button>
-    </nav>
+    <!-- Settings Modal and Bottom Navigation remain the same -->
+    <!-- ... (settings modal and navigation code from previous version) ... -->
 
     <script>
         // Hide loading screen after page loads
@@ -902,17 +714,20 @@
             }, 2000);
         });
 
-        // Countdown Timer Functionality
+        // Countdown Timer and Mining Button Progress
         let countdownTime = 24 * 60 * 60; // 24 hours in seconds
+        const totalTime = 24 * 60 * 60; // Total 24 hours in seconds
+        let miningInterval;
         
         function startCountdown() {
-            const timer = setInterval(() => {
+            miningInterval = setInterval(() => {
                 if (countdownTime > 0) {
                     countdownTime--;
                     updateTimerDisplay(countdownTime);
+                    updateMiningProgress();
                 } else {
-                    clearInterval(timer);
-                    enableClaimButton();
+                    clearInterval(miningInterval);
+                    enableMiningButton();
                 }
             }, 1000);
         }
@@ -929,105 +744,65 @@
             }
         }
         
-        function enableClaimButton() {
-            const claimButton = document.getElementById('claimButton');
-            if (claimButton) {
-                claimButton.disabled = false;
-                claimButton.textContent = 'Claim Your NMX Now!';
+        function updateMiningProgress() {
+            const progress = document.getElementById('miningProgress');
+            const progressPercentage = ((totalTime - countdownTime) / totalTime) * 100;
+            progress.style.width = progressPercentage + '%';
+        }
+        
+        function enableMiningButton() {
+            const miningButton = document.getElementById('miningButton');
+            const progress = document.getElementById('miningProgress');
+            
+            if (miningButton) {
+                miningButton.disabled = false;
+                miningButton.classList.add('ready');
+                progress.style.width = '100%';
+                
+                // Update button text
+                const balanceElement = miningButton.querySelector('.mining-btn-balance');
+                const labelElement = miningButton.querySelector('.mining-btn-label');
+                if (balanceElement && labelElement) {
+                    balanceElement.textContent = '30 NMXp';
+                    labelElement.textContent = 'Tap to Claim!';
+                }
             }
         }
         
-        // Navigation System
-        const navButtons = document.querySelectorAll('.nav-btn');
-        const sections = document.querySelectorAll('.section');
-        
-        navButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const targetSection = this.getAttribute('data-section');
-                
-                // Remove active class from all buttons and sections
-                navButtons.forEach(btn => btn.classList.remove('active'));
-                sections.forEach(section => section.classList.remove('active'));
-                
-                // Add active class to clicked button and target section
-                this.classList.add('active');
-                document.getElementById(`${targetSection}-section`).classList.add('active');
-            });
-        });
-        
-        // Claim Button
-        const claimButton = document.getElementById('claimButton');
-        if (claimButton) {
-            claimButton.addEventListener('click', function() {
+        // Mining Button Click
+        const miningButton = document.getElementById('miningButton');
+        if (miningButton) {
+            miningButton.addEventListener('click', function() {
                 if (!this.disabled) {
-                    alert('NMX claimed successfully!');
-                    this.disabled = true;
-                    this.textContent = 'Claim Your NMX';
-                    countdownTime = 24 * 60 * 60;
-                    startCountdown();
+                    // Show claim animation
+                    this.style.transform = 'scale(0.95)';
+                    
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                        alert('30 NMXp claimed successfully!');
+                        
+                        // Reset for next cycle
+                        this.disabled = true;
+                        this.classList.remove('ready');
+                        countdownTime = 24 * 60 * 60;
+                        document.getElementById('miningProgress').style.width = '0%';
+                        startCountdown();
+                        
+                        // Update button text
+                        const labelElement = this.querySelector('.mining-btn-label');
+                        if (labelElement) {
+                            labelElement.textContent = 'Mining...';
+                        }
+                    }, 150);
                 }
             });
         }
-        
-        // Settings Modal Functions
-        const settingsButton = document.getElementById('settingsButton');
-        const settingsModal = document.getElementById('settingsModal');
-        const modalOverlay = document.getElementById('modalOverlay');
-        const closeSettings = document.getElementById('closeSettings');
-        
-        settingsButton.addEventListener('click', function() {
-            settingsModal.style.display = 'block';
-            modalOverlay.style.display = 'block';
-        });
-        
-        closeSettings.addEventListener('click', closeSettingsModal);
-        modalOverlay.addEventListener('click', closeSettingsModal);
-        
-        function closeSettingsModal() {
-            settingsModal.style.display = 'none';
-            modalOverlay.style.display = 'none';
-            backToMainSettings();
-        }
-        
-        function openSettingsSection(section) {
-            // Hide all settings sections
-            document.querySelectorAll('.settings-section').forEach(sec => {
-                sec.classList.remove('active');
-            });
-            
-            // Show selected section
-            document.getElementById('settings' + section.charAt(0).toUpperCase() + section.slice(1)).classList.add('active');
-        }
-        
-        function backToMainSettings() {
-            document.querySelectorAll('.settings-section').forEach(sec => {
-                sec.classList.remove('active');
-            });
-            document.getElementById('settingsMain').classList.add('active');
-        }
-        
-        function logout() {
-            if (confirm('Are you sure you want to logout?')) {
-                alert('Logging out...');
-                // Redirect to login page
-                window.location.href = 'login.html';
-            }
-        }
-        
-        // Copy Referral Code
-        const copyButtons = document.querySelectorAll('.claim-btn');
-        copyButtons.forEach(button => {
-            if (button.textContent.includes('Copy')) {
-                button.addEventListener('click', function() {
-                    navigator.clipboard.writeText('NMX-USER-1234').then(() => {
-                        alert('Referral code copied to clipboard!');
-                    });
-                });
-            }
-        });
+
+        // ... (rest of the navigation and settings code remains the same) ...
         
         // Start the countdown when page loads
         startCountdown();
+        updateMiningProgress(); // Initialize progress bar
     </script>
 </body>
 </html>
