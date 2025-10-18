@@ -1,4 +1,4 @@
-// User Data Manager - UPDATED FOR YOUR BACKEND
+// User Data Manager - UPDATED TO USE DATABASE DATA
 class UserDataManager {
     constructor() {
         this.userData = null;
@@ -9,7 +9,7 @@ class UserDataManager {
     async initialize() {
         try {
             console.log('🔄 Initializing user data manager...');
-            
+
             // Wait for auth manager to be ready
             if (window.AuthManager && window.AuthManager.currentUser) {
                 if (window.AuthManager.isAuthenticated) {
@@ -20,10 +20,10 @@ class UserDataManager {
             } else {
                 await this.loadDemoData();
             }
-            
+
             this.isInitialized = true;
             console.log('✅ User data manager ready');
-            
+
         } catch (error) {
             console.error('❌ User data manager failed:', error);
             await this.loadDemoData();
@@ -33,87 +33,36 @@ class UserDataManager {
     async loadRealUserData() {
         try {
             const auth = window.AuthManager;
-            
+
             if (!auth.isAuthenticated) {
                 throw new Error('User not authenticated');
             }
 
-            // Try to get data from Supabase first
-            let supabaseData = null;
-            if (window.SupabaseClient && window.SupabaseClient.isInitialized) {
-                supabaseData = await this.loadFromSupabase(auth.currentUser.id);
-            }
+            console.log('👤 Loading real user data from database...');
 
-            // If Supabase data exists, use it
-            if (supabaseData) {
-                this.userData = supabaseData;
-                console.log('✅ User data loaded from Supabase');
-            } else {
-                // Fallback to localStorage data
-                this.userData = {
-                    id: auth.currentUser.id,
-                    username: auth.currentUser.name,
-                    email: auth.currentUser.email,
-                    balance: auth.currentUser.balance,
-                    availableBalance: auth.currentUser.balance,
-                    referralCode: `NMX-${auth.currentUser.id.slice(-6).toUpperCase()}`,
-                    countdownTarget: new Date(Date.now() + 24 * 60 * 60 * 1000),
-                    isClaimed: false
-                };
-                console.log('✅ User data loaded from localStorage');
-            }
-
-        } catch (error) {
-            console.error('❌ Failed to load real user data:', error);
-            throw error;
-        }
-    }
-
-    async loadFromSupabase(userId) {
-        try {
-            const client = window.SupabaseClient.getClient();
-            
-            // Get user balance
-            const { data: balanceData, error: balanceError } = await client
-                .from('user_balances')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
-
-            if (balanceError) throw balanceError;
-
-            // Get countdown timer
-            const { data: timerData, error: timerError } = await client
-                .from('countdown_timers')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
-
-            if (timerError) throw timerError;
-
-            // Get user profile
-            const { data: userProfile, error: profileError } = await client
-                .from('users')
-                .select('*')
-                .eq('id', userId)
-                .single();
-
-            if (profileError) throw profileError;
-
-            return {
-                id: userId,
-                username: userProfile.username,
-                email: userProfile.email,
-                balance: parseFloat(balanceData.pending_balance),
-                availableBalance: parseFloat(balanceData.available_balance),
-                referralCode: userProfile.referral_code,
-                countdownTarget: new Date(timerData.target_time),
-                isClaimed: timerData.is_claimed
+            // Use data from AuthManager (which now comes from database)
+            this.userData = {
+                id: auth.currentUser.id,
+                username: auth.currentUser.name,
+                email: auth.currentUser.email,
+                balance: auth.currentUser.balance || 30,
+                availableBalance: auth.currentUser.balance || 0,
+                referralCode: auth.currentUser.referralCode || `NMX-${auth.currentUser.id.slice(-6).toUpperCase()}`,
+                countdownTarget: new Date(Date.now() + 24 * 60 * 60 * 1000), // Will be overridden by countdown manager
+                isClaimed: false,
+                joinDate: auth.currentUser.joinDate || new Date().toISOString()
             };
 
+            console.log('✅ Real user data loaded from database:', {
+                username: this.userData.username,
+                email: this.userData.email,
+                balance: this.userData.balance,
+                joinDate: this.userData.joinDate
+            });
+
         } catch (error) {
-            console.warn('⚠️ Failed to load from Supabase:', error);
-            return null;
+            console.error('❌ Failed to load real user data from database:', error);
+            throw error;
         }
     }
 
@@ -127,7 +76,8 @@ class UserDataManager {
             availableBalance: 0,
             referralCode: 'NMX-DEMO-1234',
             countdownTarget: new Date(Date.now() + 24 * 60 * 60 * 1000),
-            isClaimed: false
+            isClaimed: false,
+            joinDate: new Date().toISOString()
         };
         console.log('✅ Demo user data loaded');
     }
@@ -144,10 +94,10 @@ class UserDataManager {
                 isClaimable: false
             };
         }
-        
+
         const now = new Date();
         const isClaimable = now > this.userData.countdownTarget && !this.userData.isClaimed;
-        
+
         return {
             targetTime: this.userData.countdownTarget,
             isClaimable: isClaimable
@@ -157,9 +107,9 @@ class UserDataManager {
     async claimReward() {
         try {
             console.log('🎯 Claiming reward...');
-            
+
             const auth = window.AuthManager;
-            
+
             if (auth.isAuthenticated) {
                 // Real user - update in Supabase and backend
                 const result = await this.claimRewardForRealUser();
@@ -168,7 +118,7 @@ class UserDataManager {
                 // Demo user
                 return await this.claimDemoReward();
             }
-            
+
         } catch (error) {
             console.error('❌ Claim reward failed:', error);
             return { success: false, error: error.message };
@@ -178,7 +128,7 @@ class UserDataManager {
     async claimRewardForRealUser() {
         const client = window.SupabaseClient.getClient();
         const userId = window.AuthManager.currentUser.id;
-        
+
         try {
             // Update in Supabase
             const { data: balanceData, error: balanceError } = await client
@@ -191,7 +141,7 @@ class UserDataManager {
 
             const newAvailableBalance = parseFloat(balanceData.available_balance) + parseFloat(balanceData.pending_balance);
             const claimedAmount = parseFloat(balanceData.pending_balance);
-            
+
             // Update balances in Supabase
             const { error: updateError } = await client
                 .from('user_balances')
@@ -275,7 +225,7 @@ class UserDataManager {
         // Simple fallback - just update localStorage
         const newBalance = (parseFloat(localStorage.getItem('userBalance') || '0') + 30);
         localStorage.setItem('userBalance', newBalance.toString());
-        
+
         this.userData.availableBalance = newBalance;
         this.userData.balance = 0;
         this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -291,13 +241,13 @@ class UserDataManager {
     async claimDemoReward() {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
-        
+
         // Update local demo data
         this.userData.availableBalance += this.userData.balance;
         this.userData.balance = 0;
         this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
         this.userData.isClaimed = true;
-        
+
         return { 
             success: true, 
             newBalance: this.userData.availableBalance,
