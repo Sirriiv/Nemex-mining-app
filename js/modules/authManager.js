@@ -1,4 +1,4 @@
-// Authentication Manager - UPDATED FOR YOUR EXISTING BACKEND
+// Authentication Manager - UPDATED TO USE DATABASE DATA
 class AuthManager {
     constructor() {
         this.currentUser = null;
@@ -10,11 +10,12 @@ class AuthManager {
         try {
             console.log('🔄 Initializing auth manager...');
             
-            // Check if user is already logged in (your existing system)
+            // Check if user is already logged in
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const userId = localStorage.getItem('userId');
             
-            if (isLoggedIn) {
-                await this.loadUserFromLocalStorage();
+            if (isLoggedIn && userId) {
+                await this.loadUserFromDatabase(userId);
             } else {
                 await this.initializeDemoUser();
             }
@@ -27,19 +28,86 @@ class AuthManager {
         }
     }
 
+    async loadUserFromDatabase(userId) {
+        try {
+            console.log('📡 Fetching user data from database...');
+            
+            // Fetch user data from your backend API
+            const response = await fetch(`${this.API_BASE}/api/user/${userId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (response.ok) {
+                const userData = await response.json();
+                
+                if (userData.success) {
+                    this.currentUser = {
+                        id: userData.user.user_id,
+                        name: userData.user.name,
+                        email: userData.user.email,
+                        balance: parseFloat(userData.user.balance || '0'),
+                        joinDate: userData.user.created_at || new Date().toISOString(),
+                        referralCode: userData.user.referral_code,
+                        isAuthenticated: true
+                    };
+                    
+                    this.isAuthenticated = true;
+                    
+                    console.log('✅ User loaded from database:', {
+                        id: this.currentUser.id,
+                        name: this.currentUser.name,
+                        email: this.currentUser.email,
+                        balance: this.currentUser.balance
+                    });
+
+                    // Initialize Supabase user data if needed
+                    await this.initializeSupabaseUserData();
+                    
+                } else {
+                    throw new Error('Failed to load user data from database');
+                }
+            } else {
+                throw new Error('Network response was not ok');
+            }
+            
+        } catch (error) {
+            console.error('❌ Failed to load user from database:', error);
+            // Fallback to localStorage data
+            await this.loadUserFromLocalStorage();
+        }
+    }
+
     async loadUserFromLocalStorage() {
         try {
+            const userId = localStorage.getItem('userId');
+            const userName = localStorage.getItem('userName');
+            const userEmail = localStorage.getItem('userEmail');
+            const userBalance = localStorage.getItem('userBalance');
+            
+            if (!userId || !userEmail) {
+                throw new Error('No user data found');
+            }
+
             this.currentUser = {
-                id: localStorage.getItem('userId'),
-                name: localStorage.getItem('userName'),
-                email: localStorage.getItem('userEmail'),
-                balance: parseFloat(localStorage.getItem('userBalance') || '0'),
+                id: userId,
+                name: userName || 'User',
+                email: userEmail,
+                balance: parseFloat(userBalance || '0'),
+                joinDate: localStorage.getItem('userJoinDate') || new Date().toISOString(),
+                referralCode: localStorage.getItem('userReferralCode'),
                 isAuthenticated: true
             };
             
             this.isAuthenticated = true;
             
-            console.log('✅ User loaded from localStorage:', this.currentUser);
+            console.log('✅ User loaded from localStorage (fallback):', {
+                id: this.currentUser.id,
+                name: this.currentUser.name,
+                email: this.currentUser.email
+            });
             
         } catch (error) {
             console.error('❌ Failed to load user from localStorage:', error);
@@ -65,18 +133,16 @@ class AuthManager {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                // Store user data in localStorage (your existing system)
+                // Store basic user data in localStorage
                 localStorage.setItem('userId', data.user.user_id);
                 localStorage.setItem('userName', data.user.name);
                 localStorage.setItem('userEmail', data.user.email);
                 localStorage.setItem('userBalance', data.user.balance);
+                localStorage.setItem('userJoinDate', data.user.created_at || new Date().toISOString());
                 localStorage.setItem('isLoggedIn', 'true');
 
-                // Load the user
-                await this.loadUserFromLocalStorage();
-                
-                // Initialize user data in Supabase if needed
-                await this.initializeSupabaseUserData();
+                // Load the complete user data from database
+                await this.loadUserFromDatabase(data.user.user_id);
                 
                 return { success: true, user: this.currentUser };
             } else {
@@ -101,8 +167,7 @@ class AuthManager {
                 body: JSON.stringify({
                     name: userData.fullName,
                     email: userData.email,
-                    password: userData.password,
-                    referral_code: userData.referralCode
+                    password: userData.password
                 })
             });
 
@@ -114,13 +179,11 @@ class AuthManager {
                 localStorage.setItem('userName', data.user.name);
                 localStorage.setItem('userEmail', data.user.email);
                 localStorage.setItem('userBalance', data.user.balance);
+                localStorage.setItem('userJoinDate', data.user.created_at || new Date().toISOString());
                 localStorage.setItem('isLoggedIn', 'true');
 
-                // Load the user
-                await this.loadUserFromLocalStorage();
-                
-                // Initialize user data in Supabase
-                await this.initializeSupabaseUserData();
+                // Load the complete user data
+                await this.loadUserFromDatabase(data.user.user_id);
                 
                 return { success: true, user: this.currentUser };
             } else {
@@ -154,12 +217,12 @@ class AuthManager {
             }
 
             if (!existingUser) {
-                // Create new user in Supabase
+                // Create new user in Supabase for additional data storage
                 const newUser = {
                     id: this.currentUser.id,
                     username: this.currentUser.name,
                     email: this.currentUser.email,
-                    referral_code: `NMX-${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
+                    referral_code: this.currentUser.referralCode || `NMX-${Math.random().toString(36).substr(2, 8).toUpperCase()}`,
                     created_at: new Date().toISOString()
                 };
 
@@ -171,7 +234,7 @@ class AuthManager {
 
                 if (createError) throw createError;
 
-                // Create user balance record
+                // Create user balance record in Supabase
                 await client.from('user_balances').insert([
                     { 
                         user_id: this.currentUser.id, 
@@ -180,9 +243,12 @@ class AuthManager {
                     }
                 ]);
 
-                // Create countdown timer
+                // Create countdown timer in Supabase
                 await client.from('countdown_timers').insert([
-                    { user_id: this.currentUser.id }
+                    { 
+                        user_id: this.currentUser.id,
+                        target_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+                    }
                 ]);
 
                 console.log('✅ User data initialized in Supabase');
@@ -198,11 +264,13 @@ class AuthManager {
 
     async signOut() {
         try {
-            // Clear localStorage (your existing system)
+            // Clear localStorage
             localStorage.removeItem('userId');
             localStorage.removeItem('userName');
             localStorage.removeItem('userEmail');
             localStorage.removeItem('userBalance');
+            localStorage.removeItem('userJoinDate');
+            localStorage.removeItem('userReferralCode');
             localStorage.removeItem('isLoggedIn');
             
             this.currentUser = null;
@@ -220,9 +288,11 @@ class AuthManager {
         console.log('👤 Initializing demo user...');
         this.currentUser = {
             id: 'demo-user-123',
-            name: 'nemex_demo',
+            name: 'Demo User',
             email: 'demo@nemexcoin.com',
             balance: 30,
+            joinDate: new Date().toISOString(),
+            referralCode: 'NMX-DEMO-1234',
             isAuthenticated: false
         };
         this.isAuthenticated = false;
@@ -234,6 +304,14 @@ class AuthManager {
 
     isUserAuthenticated() {
         return this.isAuthenticated;
+    }
+
+    // Method to refresh user data from database
+    async refreshUserData() {
+        if (this.isAuthenticated && this.currentUser) {
+            console.log('🔄 Refreshing user data from database...');
+            await this.loadUserFromDatabase(this.currentUser.id);
+        }
     }
 }
 
