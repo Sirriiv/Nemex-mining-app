@@ -82,11 +82,11 @@
     <meta name="supabase-url" content="https://bjulifvbfogymoduxnzl.supabase.co">
     <meta name="supabase-anon-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU">
 
-    <!-- JavaScript Files - PROFESSIONAL LOADING ORDER -->
+    <!-- JavaScript Files - FIXED PATHS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config/supabase-config.js"></script>
-    <script src="js/config/supabase-client.js"></script>
-    <script src="js/modules/auth-manager.js"></script>
+    <script src="./js/config/supabase-config.js"></script>
+    <script src="./js/config/supabase-client.js"></script>
+    <script src="./js/modules/auth-manager.js"></script>
 
     <script>
         // PROFESSIONAL REGISTRATION HANDLER
@@ -136,6 +136,11 @@
                     supabase: !!window.supabase
                 });
 
+                // Check if Supabase SDK loaded
+                if (!window.supabase) {
+                    throw new Error('Supabase SDK not loaded - check CDN connection');
+                }
+
                 // Initialize Supabase first
                 if (window.SupabaseConfig && window.SupabaseClient) {
                     console.log('🔄 Initializing Supabase...');
@@ -148,7 +153,7 @@
 
                 // Check if AuthManager is available
                 if (!window.AuthManager) {
-                    throw new Error('AuthManager not loaded - check file path: js/modules/auth-manager.js');
+                    throw new Error('AuthManager not loaded - check file path: ./js/modules/auth-manager.js');
                 }
 
                 console.log('👤 Attempting professional registration for:', email);
@@ -198,36 +203,47 @@
             }
         });
 
-        // PROFESSIONAL: Check if user is already logged in with strict validation
-        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-        const hasUserData = localStorage.getItem('userId') && localStorage.getItem('userEmail');
+        // Check file loading on page load
+        window.addEventListener('load', function() {
+            console.log('🔧 Page loaded - checking file paths:');
+            console.log('- SupabaseConfig:', !!window.SupabaseConfig);
+            console.log('- SupabaseClient:', !!window.SupabaseClient);
+            console.log('- AuthManager:', !!window.AuthManager);
+            console.log('- supabase SDK:', !!window.supabase);
 
-        if (isLoggedIn && hasUserData) {
-            console.log('👤 User already logged in, redirecting to dashboard...');
-            window.location.href = 'dashboard.html';
-        } else {
-            console.log('🔐 No valid login session found');
-            // Clear any partial data
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('userEmail');
-            localStorage.removeItem('userBalance');
-        }
+            // Check for 404 errors in console
+            if (!window.SupabaseConfig) {
+                console.error('❌ SupabaseConfig not loaded - check: ./js/config/supabase-config.js');
+            }
+            if (!window.SupabaseClient) {
+                console.error('❌ SupabaseClient not loaded - check: ./js/config/supabase-client.js');
+            }
+            if (!window.AuthManager) {
+                console.error('❌ AuthManager not loaded - check: ./js/modules/auth-manager.js');
+            }
+            if (!window.supabase) {
+                console.error('❌ Supabase SDK not loaded - check CDN');
+            }
+
+            // PROFESSIONAL: Check if user is already logged in with strict validation
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const hasUserData = localStorage.getItem('userId') && localStorage.getItem('userEmail');
+
+            if (isLoggedIn && hasUserData) {
+                console.log('👤 User already logged in, redirecting to dashboard...');
+                window.location.href = 'dashboard.html';
+            } else {
+                console.log('🔐 No valid login session found');
+                // Clear any partial data
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userBalance');
+            }
+        });
 
         // Professional debug info
         console.log('🔧 Professional register page loaded');
-        console.log('📁 Available modules:', {
-            SupabaseConfig: !!window.SupabaseConfig,
-            SupabaseClient: !!window.SupabaseClient,
-            AuthManager: !!window.AuthManager,
-            supabase: !!window.supabase
-        });
-
-        // File path verification
-        console.log('📂 Checking file paths:');
-        console.log('- js/config/supabase-config.js: ', !!window.SupabaseConfig);
-        console.log('- js/config/supabase-client.js: ', !!window.SupabaseClient);
-        console.log('- js/modules/auth-manager.js: ', !!window.AuthManager);
     </script>
 </body>
 </html>
