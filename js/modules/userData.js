@@ -1,181 +1,314 @@
-// User Management with Supabase integration
-class UserManager {
+// User Data Manager - UPDATED FOR YOUR BACKEND
+class UserDataManager {
     constructor() {
-        this.currentUser = null;
-        this.userBalance = 30;
-        this.useSupabase = false;
+        this.userData = null;
+        this.isInitialized = false;
+        this.API_BASE = 'https://nemex-backend.onrender.com';
     }
 
     async initialize() {
-        console.log('Initializing User Manager...');
-        
-        // Check if Supabase is available
-        this.useSupabase = window.SupabaseClient.isReady();
-        console.log('Supabase available:', this.useSupabase);
-        
-        if (this.useSupabase) {
-            await this.initializeWithSupabase();
-        } else {
-            this.initializeWithLocalStorage();
-        }
-    }
-
-    async initializeWithSupabase() {
         try {
-            // Check authentication state
-            const { data: { user }, error } = await window.SupabaseClient.getClient().auth.getUser();
+            console.log('🔄 Initializing user data manager...');
             
-            if (error) {
-                throw new Error('Auth check failed: ' + error.message);
-            }
-            
-            this.currentUser = user;
-            
-            if (this.currentUser) {
-                await this.loadUserFromSupabase();
+            // Wait for auth manager to be ready
+            if (window.AuthManager && window.AuthManager.currentUser) {
+                if (window.AuthManager.isAuthenticated) {
+                    await this.loadRealUserData();
+                } else {
+                    await this.loadDemoData();
+                }
             } else {
-                console.log('No authenticated user, using localStorage');
-                this.initializeWithLocalStorage();
+                await this.loadDemoData();
             }
+            
+            this.isInitialized = true;
+            console.log('✅ User data manager ready');
             
         } catch (error) {
-            console.warn('Supabase initialization failed, falling back to localStorage:', error);
-            this.useSupabase = false;
-            this.initializeWithLocalStorage();
+            console.error('❌ User data manager failed:', error);
+            await this.loadDemoData();
         }
     }
 
-    async loadUserFromSupabase() {
+    async loadRealUserData() {
         try {
-            console.log('Loading user data from Supabase...');
+            const auth = window.AuthManager;
             
-            const { data: balanceData, error } = await window.SupabaseClient.getClient()
+            if (!auth.isAuthenticated) {
+                throw new Error('User not authenticated');
+            }
+
+            // Try to get data from Supabase first
+            let supabaseData = null;
+            if (window.SupabaseClient && window.SupabaseClient.isInitialized) {
+                supabaseData = await this.loadFromSupabase(auth.currentUser.id);
+            }
+
+            // If Supabase data exists, use it
+            if (supabaseData) {
+                this.userData = supabaseData;
+                console.log('✅ User data loaded from Supabase');
+            } else {
+                // Fallback to localStorage data
+                this.userData = {
+                    id: auth.currentUser.id,
+                    username: auth.currentUser.name,
+                    email: auth.currentUser.email,
+                    balance: auth.currentUser.balance,
+                    availableBalance: auth.currentUser.balance,
+                    referralCode: `NMX-${auth.currentUser.id.slice(-6).toUpperCase()}`,
+                    countdownTarget: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                    isClaimed: false
+                };
+                console.log('✅ User data loaded from localStorage');
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to load real user data:', error);
+            throw error;
+        }
+    }
+
+    async loadFromSupabase(userId) {
+        try {
+            const client = window.SupabaseClient.getClient();
+            
+            // Get user balance
+            const { data: balanceData, error: balanceError } = await client
                 .from('user_balances')
                 .select('*')
-                .eq('user_id', this.currentUser.id)
+                .eq('user_id', userId)
                 .single();
+
+            if (balanceError) throw balanceError;
+
+            // Get countdown timer
+            const { data: timerData, error: timerError } = await client
+                .from('countdown_timers')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+
+            if (timerError) throw timerError;
+
+            // Get user profile
+            const { data: userProfile, error: profileError } = await client
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (profileError) throw profileError;
+
+            return {
+                id: userId,
+                username: userProfile.username,
+                email: userProfile.email,
+                balance: parseFloat(balanceData.pending_balance),
+                availableBalance: parseFloat(balanceData.available_balance),
+                referralCode: userProfile.referral_code,
+                countdownTarget: new Date(timerData.target_time),
+                isClaimed: timerData.is_claimed
+            };
+
+        } catch (error) {
+            console.warn('⚠️ Failed to load from Supabase:', error);
+            return null;
+        }
+    }
+
+    async loadDemoData() {
+        // Demo user data
+        this.userData = {
+            id: 'demo-user-123',
+            username: 'nemex_demo',
+            email: 'demo@nemexcoin.com',
+            balance: 30,
+            availableBalance: 0,
+            referralCode: 'NMX-DEMO-1234',
+            countdownTarget: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            isClaimed: false
+        };
+        console.log('✅ Demo user data loaded');
+    }
+
+    async getBalance() {
+        if (!this.isInitialized) return 30;
+        return this.userData?.balance || 30;
+    }
+
+    async getCountdownData() {
+        if (!this.isInitialized) {
+            return {
+                targetTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+                isClaimable: false
+            };
+        }
+        
+        const now = new Date();
+        const isClaimable = now > this.userData.countdownTarget && !this.userData.isClaimed;
+        
+        return {
+            targetTime: this.userData.countdownTarget,
+            isClaimable: isClaimable
+        };
+    }
+
+    async claimReward() {
+        try {
+            console.log('🎯 Claiming reward...');
             
-            if (error) {
-                if (error.code === 'PGRST116') {
-                    // No record found, create one
-                    await this.createUserBalanceRecord();
-                    return;
-                }
-                throw error;
-            }
+            const auth = window.AuthManager;
             
-            if (balanceData) {
-                this.userBalance = balanceData.balance;
-                this.updateUI();
-                console.log('User data loaded from Supabase. Balance:', this.userBalance);
+            if (auth.isAuthenticated) {
+                // Real user - update in Supabase and backend
+                const result = await this.claimRewardForRealUser();
+                return result;
+            } else {
+                // Demo user
+                return await this.claimDemoReward();
             }
             
         } catch (error) {
-            console.error('Error loading user from Supabase:', error);
-            this.useSupabase = false;
-            this.initializeWithLocalStorage();
+            console.error('❌ Claim reward failed:', error);
+            return { success: false, error: error.message };
         }
     }
 
-    async createUserBalanceRecord() {
+    async claimRewardForRealUser() {
+        const client = window.SupabaseClient.getClient();
+        const userId = window.AuthManager.currentUser.id;
+        
         try {
-            const { data, error } = await window.SupabaseClient.getClient()
+            // Update in Supabase
+            const { data: balanceData, error: balanceError } = await client
                 .from('user_balances')
-                .insert({
-                    user_id: this.currentUser.id,
-                    balance: 30,
-                    total_mined: 0
-                })
-                .select()
+                .select('pending_balance, available_balance')
+                .eq('user_id', userId)
                 .single();
-            
-            if (error) throw error;
-            
-            this.userBalance = data.balance;
-            this.updateUI();
-            console.log('New user balance record created');
-            
-        } catch (error) {
-            console.error('Error creating user balance record:', error);
-            this.useSupabase = false;
-        }
-    }
 
-    initializeWithLocalStorage() {
-        console.log('Initializing with localStorage...');
-        const storedBalance = localStorage.getItem('nemexBalance');
-        this.userBalance = storedBalance ? parseInt(storedBalance) : 30;
-        this.updateUI();
-    }
+            if (balanceError) throw balanceError;
 
-    async updateBalance(amount) {
-        this.userBalance = amount;
-        
-        if (this.useSupabase && this.currentUser) {
-            await this.updateBalanceInSupabase(amount);
-        } else {
-            this.updateBalanceInLocalStorage(amount);
-        }
-        
-        this.updateUI();
-    }
-
-    async updateBalanceInSupabase(amount) {
-        try {
-            const { data, error } = await window.SupabaseClient.getClient()
+            const newAvailableBalance = parseFloat(balanceData.available_balance) + parseFloat(balanceData.pending_balance);
+            const claimedAmount = parseFloat(balanceData.pending_balance);
+            
+            // Update balances in Supabase
+            const { error: updateError } = await client
                 .from('user_balances')
-                .upsert({
-                    user_id: this.currentUser.id,
-                    balance: amount,
+                .update({
+                    available_balance: newAvailableBalance,
+                    pending_balance: 0,
                     updated_at: new Date().toISOString()
                 })
-                .select()
-                .single();
-            
-            if (error) throw error;
-            
-            console.log('Balance updated in Supabase:', data.balance);
-            
+                .eq('user_id', userId);
+
+            if (updateError) throw updateError;
+
+            // Reset countdown timer in Supabase
+            const { error: timerError } = await client
+                .from('countdown_timers')
+                .update({
+                    target_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                    is_claimed: true,
+                    last_claimed: new Date().toISOString()
+                })
+                .eq('user_id', userId);
+
+            if (timerError) throw timerError;
+
+            // Record transaction in Supabase
+            await client.from('transactions').insert([{
+                user_id: userId,
+                type: 'claim',
+                amount: claimedAmount,
+                description: 'Daily reward claim'
+            }]);
+
+            // Update backend balance
+            await this.updateBackendBalance(newAvailableBalance);
+
+            // Update local data
+            this.userData.availableBalance = newAvailableBalance;
+            this.userData.balance = 0;
+            this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            this.userData.isClaimed = true;
+
+            // Update localStorage
+            localStorage.setItem('userBalance', newAvailableBalance.toString());
+
+            return { 
+                success: true, 
+                newBalance: newAvailableBalance,
+                claimedAmount: claimedAmount
+            };
+
         } catch (error) {
-            console.error('Error updating balance in Supabase:', error);
-            this.useSupabase = false;
-            this.updateBalanceInLocalStorage(amount);
+            console.error('❌ Supabase claim failed:', error);
+            // Fallback to simple balance update
+            return await this.updateBackendBalanceSimple();
         }
     }
 
-    updateBalanceInLocalStorage(amount) {
-        localStorage.setItem('nemexBalance', amount.toString());
-        console.log('Balance updated in localStorage:', amount);
+    async updateBackendBalance(newBalance) {
+        try {
+            // Update your backend balance if you have an endpoint for this
+            const response = await fetch(`${this.API_BASE}/api/update-balance`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: window.AuthManager.currentUser.id,
+                    balance: newBalance
+                })
+            });
+
+            if (!response.ok) {
+                console.warn('⚠️ Backend balance update failed');
+            }
+        } catch (error) {
+            console.warn('⚠️ Backend balance update error:', error);
+        }
     }
 
-    updateUI() {
-        // Update balance display
-        const balanceElement = document.querySelector('.balance-amount');
-        if (balanceElement) {
-            balanceElement.textContent = `${this.userBalance} NMXp`;
-        }
+    async updateBackendBalanceSimple() {
+        // Simple fallback - just update localStorage
+        const newBalance = (parseFloat(localStorage.getItem('userBalance') || '0') + 30);
+        localStorage.setItem('userBalance', newBalance.toString());
         
-        // Update wallet balance
-        const walletBalance = document.querySelector('.wallet-section .card:first-child div div');
-        if (walletBalance) {
-            walletBalance.textContent = `${this.userBalance}.00 NMX`;
-        }
+        this.userData.availableBalance = newBalance;
+        this.userData.balance = 0;
+        this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        this.userData.isClaimed = true;
+
+        return { 
+            success: true, 
+            newBalance: newBalance,
+            claimedAmount: 30 
+        };
+    }
+
+    async claimDemoReward() {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
-        console.log('UI updated with balance:', this.userBalance);
+        // Update local demo data
+        this.userData.availableBalance += this.userData.balance;
+        this.userData.balance = 0;
+        this.userData.countdownTarget = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        this.userData.isClaimed = true;
+        
+        return { 
+            success: true, 
+            newBalance: this.userData.availableBalance,
+            claimedAmount: 30 
+        };
     }
 
-    getBalance() {
-        return this.userBalance;
-    }
-
-    isUsingSupabase() {
-        return this.useSupabase;
-    }
-
-    getCurrentUser() {
-        return this.currentUser;
+    getUserData() {
+        return this.userData;
     }
 }
 
-// Create instance
-window.UserManager = new UserManager();
+// Create global instance
+window.UserDataManager = new UserDataManager();
