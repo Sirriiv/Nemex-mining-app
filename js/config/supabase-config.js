@@ -1,98 +1,44 @@
-// Hybrid Supabase Configuration
-// Tries multiple sources to get Supabase credentials
-
+// Supabase Configuration Manager
 class SupabaseConfig {
     constructor() {
-        this.sources = [
-            this.tryApiEndpoint.bind(this),
-            this.tryEnvFile.bind(this),
-            this.tryMetaTags.bind(this)
-        ];
-        this.config = null;
+        this.supabaseUrl = null;
+        this.supabaseAnonKey = null;
+        this.isConfigured = false;
     }
 
-    // Try to get config from backend API
-    async tryApiEndpoint() {
-        try {
-            console.log('Trying to fetch config from API...');
-            const response = await fetch('/api/config');
-            if (response.ok) {
-                const config = await response.json();
-                console.log('Config loaded from API');
-                return {
-                    url: config.supabaseUrl,
-                    anonKey: config.supabaseAnonKey,
-                    source: 'api'
-                };
-            }
-        } catch (error) {
-            console.log('API endpoint not available');
-        }
-        return null;
-    }
-
-    // Try to get config from build-time environment variables
-    tryEnvFile() {
-        console.log('Trying to get config from environment variables...');
-        // If using a build process that injects environment variables
-        if (typeof window !== 'undefined' && window.__ENV__) {
-            console.log('Config loaded from build environment');
-            return {
-                url: window.__ENV__.SUPABASE_URL,
-                anonKey: window.__ENV__.SUPABASE_ANON_KEY,
-                source: 'build_env'
-            };
-        }
-        return null;
-    }
-
-    // Try to get config from HTML meta tags
-    tryMetaTags() {
-        console.log('Trying to get config from meta tags...');
-        const urlMeta = document.querySelector('meta[name="supabase-url"]');
-        const keyMeta = document.querySelector('meta[name="supabase-anon-key"]');
-        
-        if (urlMeta && keyMeta) {
-            const url = urlMeta.getAttribute('content');
-            const anonKey = keyMeta.getAttribute('content');
-            
-            if (url && anonKey) {
-                console.log('Config loaded from meta tags');
-                return {
-                    url: url,
-                    anonKey: anonKey,
-                    source: 'meta_tags'
-                };
-            }
-        }
-        return null;
-    }
-
-    // Get configuration from available sources
     async getConfig() {
-        for (const source of this.sources) {
-            const config = await source();
-            if (config && config.url && config.anonKey) {
-                this.config = config;
-                console.log(`Supabase configuration loaded from: ${config.source}`);
-                return config;
+        try {
+            // Try to get from meta tags first
+            const urlMeta = document.querySelector('meta[name="supabase-url"]');
+            const keyMeta = document.querySelector('meta[name="supabase-anon-key"]');
+            
+            if (urlMeta && keyMeta) {
+                this.supabaseUrl = urlMeta.getAttribute('content');
+                this.supabaseAnonKey = keyMeta.getAttribute('content');
+                console.log('✅ Supabase config loaded from meta tags');
+            } else {
+                // Fallback to direct values
+                this.supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+                this.supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+                console.log('✅ Supabase config loaded from hardcoded values');
             }
+
+            if (!this.supabaseUrl || !this.supabaseAnonKey) {
+                throw new Error('Missing Supabase configuration');
+            }
+
+            this.isConfigured = true;
+            return {
+                url: this.supabaseUrl,
+                anonKey: this.supabaseAnonKey
+            };
+        } catch (error) {
+            console.error('❌ Supabase config error:', error);
+            this.isConfigured = false;
+            throw error;
         }
-        
-        console.warn('No Supabase configuration found in any source');
-        return null;
-    }
-
-    // Check if we have valid configuration
-    isValid() {
-        return this.config !== null;
-    }
-
-    // Get the source of the configuration
-    getSource() {
-        return this.config ? this.config.source : 'none';
     }
 }
 
-// Create and export instance
+// Create global instance
 window.SupabaseConfig = new SupabaseConfig();
