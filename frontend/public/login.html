@@ -79,14 +79,14 @@
     <meta name="supabase-url" content="https://bjulifvbfogymoduxnzl.supabase.co">
     <meta name="supabase-anon-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU">
 
-    <!-- JavaScript Files -->
+    <!-- JavaScript Files - PROFESSIONAL LOADING ORDER -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/config/supabase-config.js"></script>
     <script src="js/config/supabase-client.js"></script>
     <script src="js/modules/auth-manager.js"></script>
 
     <script>
-        // Enhanced login handler with Supabase integration
+        // PROFESSIONAL LOGIN HANDLER
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -102,7 +102,15 @@
             loginLoading.style.display = 'block';
 
             try {
-                console.log('🚀 Starting login process...');
+                console.log('🚀 Starting professional login process...');
+
+                // Debug: Check if modules are loaded
+                console.log('🔍 Module Status:', {
+                    SupabaseConfig: !!window.SupabaseConfig,
+                    SupabaseClient: !!window.SupabaseClient,
+                    AuthManager: !!window.AuthManager,
+                    supabase: !!window.supabase
+                });
 
                 // Initialize Supabase first
                 if (window.SupabaseConfig && window.SupabaseClient) {
@@ -111,22 +119,21 @@
                     await window.SupabaseClient.initialize();
                     console.log('✅ Supabase initialized');
                 } else {
-                    console.log('⚠️ Supabase modules not available, continuing without...');
+                    throw new Error('Supabase configuration not loaded - check file paths');
                 }
 
-                // Initialize Auth Manager if not already done
+                // Check if AuthManager is available
                 if (!window.AuthManager) {
-                    console.error('❌ Auth Manager not loaded');
-                    throw new Error('Authentication system not available');
+                    throw new Error('AuthManager not loaded - check file path: js/modules/auth-manager.js');
                 }
 
-                console.log('🔐 Attempting login with:', email);
+                console.log('🔐 Attempting professional login for:', email);
 
-                // Use the new auth manager
+                // Use the professional auth manager
                 const result = await window.AuthManager.signIn(email, password);
 
                 if (result.success) {
-                    console.log('✅ Login successful, redirecting to dashboard...');
+                    console.log('✅ Professional login successful!');
                     // Redirect to dashboard
                     window.location.href = 'dashboard.html';
                 } else {
@@ -135,8 +142,8 @@
                     errorElement.style.display = 'block';
                 }
             } catch (error) {
-                console.error('❌ Login error:', error);
-                errorElement.textContent = error.message || 'Login failed. Please try again.';
+                console.error('❌ Professional login error:', error);
+                errorElement.textContent = error.message || 'Login failed. Please check console for details.';
                 errorElement.style.display = 'block';
             } finally {
                 loginBtn.disabled = false;
@@ -144,18 +151,49 @@
             }
         });
 
-        // Check if user is already logged in
-        if (localStorage.getItem('isLoggedIn') === 'true') {
+        // PROFESSIONAL: Check if user is already logged in with strict validation
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        const hasUserData = localStorage.getItem('userId') && localStorage.getItem('userEmail');
+
+        if (isLoggedIn && hasUserData) {
             console.log('👤 User already logged in, redirecting to dashboard...');
             window.location.href = 'dashboard.html';
+        } else {
+            console.log('🔐 No valid login session found');
+            // Clear any partial data
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userBalance');
         }
 
-        // Add some debugging info
-        console.log('🔧 Login page loaded successfully');
+        // Professional debug info
+        console.log('🔧 Professional login page loaded');
         console.log('📁 Available modules:', {
             SupabaseConfig: !!window.SupabaseConfig,
             SupabaseClient: !!window.SupabaseClient,
-            AuthManager: !!window.AuthManager
+            AuthManager: !!window.AuthManager,
+            supabase: !!window.supabase
+        });
+
+        // File path verification
+        console.log('📂 Checking file paths:');
+        console.log('- js/config/supabase-config.js: ', !!window.SupabaseConfig);
+        console.log('- js/config/supabase-client.js: ', !!window.SupabaseClient);
+        console.log('- js/modules/auth-manager.js: ', !!window.AuthManager);
+
+        // Auto-clear any invalid sessions on page load
+        window.addEventListener('load', function() {
+            const userId = localStorage.getItem('userId');
+            const userEmail = localStorage.getItem('userEmail');
+            
+            if (!userId || !userEmail) {
+                console.log('🧹 Clearing invalid session data...');
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userId');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userBalance');
+            }
         });
     </script>
 </body>
