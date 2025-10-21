@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - NemexCoin</title>
     <style>
-        /* ... (your existing CSS remains exactly the same) ... */
         :root {
             --dark-bg: #0f0f1a;
             --darker-bg: #050508;
@@ -260,7 +259,7 @@
 <body>
     <div class="container">
         <div class="logo">
-            <a href="index.html">
+            <a href="/">
                 <span>✨</span> NEMEXCOIN
             </a>
         </div>
@@ -300,7 +299,7 @@
             </button>
 
             <div class="switch">
-                Don't have an account? <a href="register.html">Sign up</a>
+                Don't have an account? <a href="/login">Sign up</a>
             </div>
 
             <div class="demo-accounts">
@@ -327,7 +326,7 @@
 
         // Check if user is already logged in
         if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = 'dashboard.html';
+            window.location.href = '/dashboard';
         }
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -366,8 +365,8 @@
                     localStorage.setItem('userBalance', data.user.balance);
                     localStorage.setItem('isLoggedIn', 'true');
 
-                    // Redirect to dashboard
-                    window.location.href = 'dashboard.html';
+                    // ✅ FIX: Redirect to dashboard with absolute path
+                    window.location.href = '/dashboard';
                 } else {
                     errorElement.textContent = data.error || 'Invalid email or password';
                     errorElement.style.display = 'block';
