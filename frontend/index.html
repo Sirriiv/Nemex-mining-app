@@ -13,14 +13,14 @@
     <header class="header">
         <div class="container">
             <nav class="nav">
-                <a href="/" class="logo">
+                <a href="index.html" class="logo"> <!-- ✅ FIXED: Changed to index.html -->
                     <span>✨</span> NEMEXCOIN
                 </a>
                 <div class="nav-links">
                     <a href="#features" class="nav-link">Features</a>
                     <a href="#about" class="nav-link">About</a>
-                    <a href="/login" class="nav-link">Login</a>
-                    <a href="/register" class="btn btn-primary">Get Started</a> <!-- ✅ FIXED: Changed to /register -->
+                    <a href="login.html" class="nav-link">Login</a> <!-- ✅ FIXED: Changed to login.html -->
+                    <a href="register.html" class="btn btn-primary">Get Started</a> <!-- ✅ FIXED: Changed to register.html -->
                 </div>
             </nav>
         </div>
@@ -33,7 +33,7 @@
             <h1>Start Mining Crypto Today</h1>
             <p>Join thousands of users earning NMX tokens through our secure mining platform. No technical knowledge required - start earning in seconds!</p>
             <div class="hero-buttons">
-                <a href="/login" class="btn btn-primary">Start Mining Free</a>
+                <a href="login.html" class="btn btn-primary">Start Mining Free</a> <!-- ✅ FIXED: Changed to login.html -->
                 <a href="#features" class="btn btn-outline">Learn More</a>
             </div>
         </div>
@@ -68,7 +68,7 @@
     <script>
         // Check if user is already logged in
         if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = '/dashboard';
+            window.location.href = 'dashboard.html'; // ✅ FIXED: Changed to dashboard.html
         }
 
         // Smooth scrolling for anchor links
