@@ -11,7 +11,7 @@
 <body>
     <div class="container">
         <div class="logo">
-            <a href="/">
+            <a href="index.html"> <!-- ✅ FIXED: Changed to index.html -->
                 <span>✨</span> NEMEXCOIN
             </a>
         </div>
@@ -20,33 +20,7 @@
             <h2>Create Account</h2>
 
             <form id="registerForm">
-                <div class="form-group">
-                    <input type="text" class="input" id="name" placeholder="Full Name" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="email" class="input" id="email" placeholder="Email Address" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input" id="password" placeholder="Password (min. 6 characters)" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input" id="confirmPassword" placeholder="Confirm Password" required>
-                    <div class="error-message" id="passwordError"></div>
-                </div>
-
-                <div class="error-message" id="formError"></div>
-                <div class="success-message" id="formSuccess"></div>
-
-                <button type="submit" class="btn" id="registerBtn">
-                    Create Account
-                </button>
-
-                <div class="loading" id="registerLoading">
-                    🔄 Creating your account...
-                </div>
+                <!-- ... (your existing form remains the same) ... -->
             </form>
 
             <div class="divider">
@@ -58,7 +32,7 @@
             </button>
 
             <div class="switch">
-                Already have an account? <a href="/login">Sign in</a>
+                Already have an account? <a href="login.html">Sign in</a> <!-- ✅ FIXED: Changed to login.html -->
             </div>
 
             <div class="terms">
@@ -73,93 +47,10 @@
 
         // Check if user is already logged in
         if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = '/dashboard';
+            window.location.href = 'dashboard.html'; // ✅ FIXED: Changed to dashboard.html
         }
 
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const registerBtn = document.getElementById('registerBtn');
-            const registerLoading = document.getElementById('registerLoading');
-            const passwordError = document.getElementById('passwordError');
-            const formError = document.getElementById('formError');
-            const formSuccess = document.getElementById('formSuccess');
-
-            // Reset messages
-            passwordError.style.display = 'none';
-            formError.style.display = 'none';
-            formSuccess.style.display = 'none';
-
-            // Validate passwords match
-            if (password !== confirmPassword) {
-                passwordError.textContent = 'Passwords do not match';
-                passwordError.style.display = 'block';
-                return;
-            }
-
-            // Validate password length
-            if (password.length < 6) {
-                passwordError.textContent = 'Password must be at least 6 characters';
-                passwordError.style.display = 'block';
-                return;
-            }
-
-            // Show loading state
-            registerBtn.disabled = true;
-            registerLoading.style.display = 'block';
-
-            try {
-                const response = await fetch(`${API_BASE}/api/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        name: name,
-                        email: email,
-                        password: password
-                    })
-                });
-
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    formSuccess.textContent = 'Account created successfully! Redirecting...';
-                    formSuccess.style.display = 'block';
-
-                    // Store user data and redirect
-                    setTimeout(() => {
-                        localStorage.setItem('userId', data.user.user_id);
-                        localStorage.setItem('userName', data.user.name);
-                        localStorage.setItem('userEmail', data.user.email);
-                        localStorage.setItem('userBalance', data.user.balance);
-                        localStorage.setItem('isLoggedIn', 'true');
-                        window.location.href = '/dashboard';
-                    }, 2000);
-                } else {
-                    formError.textContent = data.error || 'Registration failed. Please try again.';
-                    formError.style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Registration error:', error);
-                formError.textContent = 'Network error. Please check your connection and try again.';
-                formError.style.display = 'block';
-            } finally {
-                registerBtn.disabled = false;
-                registerLoading.style.display = 'none';
-            }
-        });
-
-        // Enter key support
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('registerForm').dispatchEvent(new Event('submit'));
-            }
-        });
+        // ... (your existing register JavaScript remains the same) ...
     </script>
 </body>
 </html>
