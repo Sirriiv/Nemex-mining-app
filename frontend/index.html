@@ -14,27 +14,27 @@
             --text-secondary: #cccccc;
             --muted: #888888;
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-        
+
         body {
             background: var(--dark-bg);
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 20px;
         }
-        
+
         /* Header */
         .header {
             background: var(--darker-bg);
@@ -45,13 +45,13 @@
             top: 0;
             z-index: 1000;
         }
-        
+
         .nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .logo {
             font-size: 28px;
             font-weight: bold;
@@ -61,24 +61,24 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         .nav-links {
             display: flex;
             gap: 30px;
             align-items: center;
         }
-        
+
         .nav-link {
             color: var(--text);
             text-decoration: none;
             font-weight: 500;
             transition: color 0.3s;
         }
-        
+
         .nav-link:hover {
             color: var(--gold);
         }
-        
+
         .btn {
             padding: 12px 30px;
             border-radius: 25px;
@@ -89,42 +89,42 @@
             cursor: pointer;
             font-size: 16px;
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
             color: var(--darker-bg);
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
         }
-        
+
         .btn-outline {
             background: transparent;
             color: var(--gold);
             border: 2px solid var(--gold);
         }
-        
+
         .btn-outline:hover {
             background: var(--gold);
             color: var(--darker-bg);
         }
-        
+
         /* Hero Section */
         .hero {
             padding: 160px 0 100px;
             text-align: center;
             background: linear-gradient(135deg, var(--dark-bg) 0%, var(--darker-bg) 100%);
         }
-        
+
         .hero-logo {
             font-size: 120px;
             color: var(--gold);
             margin-bottom: 30px;
             text-shadow: 0 0 50px rgba(255, 215, 0, 0.5);
         }
-        
+
         .hero h1 {
             font-size: 3.5rem;
             margin-bottom: 20px;
@@ -133,7 +133,7 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
         }
-        
+
         .hero p {
             font-size: 1.3rem;
             color: var(--text-secondary);
@@ -143,33 +143,33 @@
             margin-right: auto;
             line-height: 1.6;
         }
-        
+
         .hero-buttons {
             display: flex;
             gap: 20px;
             justify-content: center;
             margin-bottom: 50px;
         }
-        
+
         /* Features */
         .features {
             padding: 100px 0;
             background: var(--darker-bg);
         }
-        
+
         .section-title {
             text-align: center;
             font-size: 2.5rem;
             margin-bottom: 60px;
             color: var(--gold);
         }
-        
+
         .features-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 40px;
         }
-        
+
         .feature-card {
             background: var(--dark-bg);
             padding: 40px 30px;
@@ -178,29 +178,29 @@
             text-align: center;
             transition: transform 0.3s, box-shadow 0.3s;
         }
-        
+
         .feature-card:hover {
             transform: translateY(-10px);
             box-shadow: 0 20px 40px rgba(255, 215, 0, 0.1);
         }
-        
+
         .feature-icon {
             font-size: 50px;
             margin-bottom: 20px;
             color: var(--gold);
         }
-        
+
         .feature-card h3 {
             font-size: 1.5rem;
             margin-bottom: 15px;
             color: var(--gold);
         }
-        
+
         .feature-card p {
             color: var(--text-secondary);
             line-height: 1.6;
         }
-        
+
         /* Footer */
         .footer {
             background: var(--darker-bg);
@@ -208,51 +208,51 @@
             border-top: 1px solid rgba(255, 215, 0, 0.2);
             text-align: center;
         }
-        
+
         .footer-logo {
             font-size: 24px;
             font-weight: bold;
             color: var(--gold);
             margin-bottom: 20px;
         }
-        
+
         .footer-links {
             display: flex;
             justify-content: center;
             gap: 30px;
             margin-bottom: 30px;
         }
-        
+
         .footer-link {
             color: var(--text-secondary);
             text-decoration: none;
             transition: color 0.3s;
         }
-        
+
         .footer-link:hover {
             color: var(--gold);
         }
-        
+
         .copyright {
             color: var(--muted);
             font-size: 14px;
         }
-        
+
         /* Responsive */
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 2.5rem;
             }
-            
+
             .hero-buttons {
                 flex-direction: column;
                 align-items: center;
             }
-            
+
             .nav-links {
                 display: none;
             }
-            
+
             .hero-logo {
                 font-size: 80px;
             }
@@ -264,14 +264,14 @@
     <header class="header">
         <div class="container">
             <nav class="nav">
-                <a href="index.html" class="logo">
+                <a href="/" class="logo">
                     <span>✨</span> NEMEXCOIN
                 </a>
                 <div class="nav-links">
                     <a href="#features" class="nav-link">Features</a>
                     <a href="#about" class="nav-link">About</a>
-                    <a href="login.html" class="nav-link">Login</a>
-                    <a href="register.html" class="btn btn-primary">Get Started</a>
+                    <a href="/login" class="nav-link">Login</a>
+                    <a href="/login" class="btn btn-primary">Get Started</a>
                 </div>
             </nav>
         </div>
@@ -284,7 +284,7 @@
             <h1>Start Mining Crypto Today</h1>
             <p>Join thousands of users earning NMX tokens through our secure mining platform. No technical knowledge required - start earning in seconds!</p>
             <div class="hero-buttons">
-                <a href="register.html" class="btn btn-primary">Start Mining Free</a>
+                <a href="/login" class="btn btn-primary">Start Mining Free</a>
                 <a href="#features" class="btn btn-outline">Learn More</a>
             </div>
         </div>
@@ -348,7 +348,7 @@
     <script>
         // Check if user is already logged in
         if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = 'dashboard.html';
+            window.location.href = '/dashboard';
         }
 
         // Smooth scrolling for anchor links
