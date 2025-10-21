@@ -14,7 +14,7 @@ app.use(express.json());
 // ✅ FIX: Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
 
-// Your existing backend code (users, transactions, miningSessions arrays)
+// In-memory storage
 let users = [
     {
         user_id: 1,
@@ -55,6 +55,19 @@ const authenticate = (req, res, next) => {
     req.user = user;
     next();
 };
+
+// ✅ FIX: Add explicit routes for each page
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+});
+
+app.get('/login', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend', 'login.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html'));
+});
 
 // API Routes
 app.get('/api/health', (req, res) => {
@@ -173,26 +186,15 @@ app.post('/api/stop-mining', authenticate, (req, res) => {
     });
 });
 
-// ✅ FIX: Serve frontend routes - ADD THESE LINES
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
-});
-
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'login.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html'));
-});
-
-// ✅ FIX: Catch-all handler for frontend routes
+// ✅ FIX: Catch-all handler - MUST BE LAST
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
 app.listen(PORT, () => {
     console.log(`🚀 NemexCoin app running on port ${PORT}`);
-    console.log(`📧 Demo account: test@nemexcoin.com / 123456`);
-    console.log(`✅ Frontend served from: ${path.join(__dirname, 'frontend')}`);
+    console.log(`🏠 Homepage: http://localhost:${PORT}`);
+    console.log(`🔑 Login: http://localhost:${PORT}/login`);
+    console.log(`📊 Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`🩺 Health: http://localhost:${PORT}/api/health`);
 });
