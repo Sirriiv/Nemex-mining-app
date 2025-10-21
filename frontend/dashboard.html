@@ -39,16 +39,29 @@
 
         /* HEADER SECTION */
         .header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 20px 16px;
             border-bottom: 1px solid var(--border-color);
             background-color: var(--bg-primary);
         }
 
-        .header h1 {
+        .settings-icon {
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .settings-icon:active {
+            color: var(--gold);
+        }
+
+        .header-title {
             font-size: 24px;
             font-weight: 700;
-            color: var(--text-primary);
+            color: var(--gold);
         }
 
         /* MAIN CONTENT AREA */
@@ -62,11 +75,28 @@
             text-align: center;
         }
 
-        /* NEMEXCOIN LOGO */
+        .balance-display {
+            margin-bottom: 30px;
+        }
+
+        .balance-label {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 80px;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
+        }
+
+        /* NEMEXCOIN LOGO - BIGGER SIZE */
         .nemex-logo {
-            width: 140px;
-            height: 140px;
-            margin: 25px auto;
+            width: 200px;
+            height: 200px;
+            margin: 30px auto;
             position: relative;
             display: flex;
             align-items: center;
@@ -74,10 +104,10 @@
         }
 
         .logo-container {
-            width: 120px;
-            height: 120px;
+            width: 180px;
+            height: 180px;
             position: relative;
-            filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));
+            filter: drop-shadow(0 0 20px rgba(212,175,55,0.5));
         }
 
         .logo-base {
@@ -85,10 +115,10 @@
             height: 100%;
             background: var(--darker-bg);
             border-radius: 50%;
-            border: 3px solid var(--gold);
+            border: 4px solid var(--gold);
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 20px rgba(212,175,55,0.1), 0 0 30px rgba(212,175,55,0.2);
+            box-shadow: inset 0 0 30px rgba(212,175,55,0.1), 0 0 40px rgba(212,175,55,0.3);
         }
 
         .logo-center {
@@ -96,8 +126,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
+            width: 70px;
+            height: 70px;
         }
 
         .infinity-symbol {
@@ -109,9 +139,9 @@
         .infinity-symbol::before, .infinity-symbol::after {
             content: '';
             position: absolute;
-            width: 25px;
-            height: 25px;
-            border: 3px solid var(--gold);
+            width: 35px;
+            height: 35px;
+            border: 4px solid var(--gold);
             border-radius: 50%;
             border-top-color: transparent;
             border-left-color: transparent;
@@ -149,47 +179,47 @@
         .circuit-line:nth-child(1) {
             top: 20%;
             left: 10%;
-            width: 15px;
-            height: 2px;
+            width: 20px;
+            height: 3px;
             transform: rotate(30deg);
         }
 
         .circuit-line:nth-child(2) {
             top: 30%;
             right: 15%;
-            width: 12px;
-            height: 2px;
+            width: 16px;
+            height: 3px;
             transform: rotate(-45deg);
         }
 
         .circuit-line:nth-child(3) {
             bottom: 25%;
             left: 20%;
-            width: 18px;
-            height: 2px;
+            width: 22px;
+            height: 3px;
             transform: rotate(15deg);
         }
 
         .circuit-line:nth-child(4) {
             bottom: 15%;
             right: 10%;
-            width: 10px;
-            height: 2px;
+            width: 14px;
+            height: 3px;
             transform: rotate(-60deg);
         }
 
         .circuit-line:nth-child(5) {
             top: 45%;
             left: 5%;
-            width: 8px;
-            height: 2px;
+            width: 12px;
+            height: 3px;
             transform: rotate(75deg);
         }
 
         .circuit-pad {
             position: absolute;
-            width: 4px;
-            height: 4px;
+            width: 6px;
+            height: 6px;
             background: var(--gold);
             border-radius: 50%;
             opacity: 0.8;
@@ -217,12 +247,12 @@
 
         .logo-glow {
             position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
+            top: -15px;
+            left: -15px;
+            right: -15px;
+            bottom: -15px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0) 70%);
+            background: radial-gradient(circle, rgba(212,175,55,0.3) 0%, rgba(212,175,55,0) 70%);
             animation: glowPulse 3s ease-in-out infinite;
             z-index: -1;
         }
@@ -237,25 +267,8 @@
             50% { opacity: 0.8; transform: scale(1.05); }
         }
 
-        .balance-display {
-            margin-bottom: 20px;
-        }
-
-        .balance-label {
-            font-size: 16px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        .balance-amount {
-            font-size: 64px;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1;
-        }
-
         .countdown-section {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .countdown-label {
@@ -271,25 +284,18 @@
             letter-spacing: 1px;
         }
 
-        .timer {
-            font-size: 14px;
-            color: var(--muted);
-            margin: 10px 0;
-            letter-spacing: 1px;
-        }
-
         .claim-btn {
             background: linear-gradient(135deg, var(--gold), #b8941f);
             color: var(--darker-bg);
             border: none;
-            padding: 14px 40px;
+            padding: 16px 50px;
             border-radius: 25px;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             margin: 20px 0;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(212,175,55,0.3);
+            box-shadow: 0 4px 20px rgba(212,175,55,0.4);
         }
 
         .claim-btn:active {
@@ -348,16 +354,16 @@
                 padding: 24px 20px;
             }
             
-            .header h1 {
+            .header-title {
                 font-size: 26px;
             }
             
             .balance-amount {
-                font-size: 72px;
+                font-size: 90px;
             }
             
             .claim-btn {
-                padding: 18px 48px;
+                padding: 18px 55px;
                 font-size: 20px;
             }
             
@@ -380,12 +386,19 @@
     <div class="content-wrapper">
         <!-- HEADER SECTION -->
         <header class="header">
-            <h1>〽️ NEMEXCOIN</h1>
+            <div class="settings-icon">⚙️</div>
+            <div class="header-title">〽️ NEMEXCOIN</div>
+            <div style="width: 24px;"></div> <!-- Spacer for balance -->
         </header>
 
         <!-- MAIN CONTENT AREA -->
         <main class="main-content">
-            <!-- NEMEXCOIN LOGO -->
+            <div class="balance-display">
+                <div class="balance-label">Your Balance</div>
+                <div class="balance-amount">00</div>
+            </div>
+
+            <!-- NEMEXCOIN LOGO - POSITIONED UNDER THE "00" -->
             <div class="nemex-logo">
                 <div class="logo-container">
                     <div class="logo-base">
@@ -408,15 +421,9 @@
                 </div>
             </div>
 
-            <div class="balance-display">
-                <div class="balance-label">Your Balance</div>
-                <div class="balance-amount">00</div>
-            </div>
-
             <div class="countdown-section">
                 <div class="countdown-label">Claim in</div>
                 <div class="countdown-timer">00:00:00</div>
-                <div class="timer">Next mining cycle</div>
             </div>
 
             <button class="claim-btn">30 NMXp</button>
@@ -471,6 +478,12 @@
         document.querySelector('.claim-btn').addEventListener('click', function() {
             // In a real app, this would trigger the mining claim process
             alert('30 NMXp claimed!');
+        });
+
+        // Settings icon functionality
+        document.querySelector('.settings-icon').addEventListener('click', function() {
+            // In a real app, this would open settings
+            alert('Settings menu would open here');
         });
     </script>
 </body>
