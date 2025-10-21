@@ -1,1 +1,0 @@
-curl -X POST -H "Content-Type: application/json" -d '{"wallet_id": "test_miner_wallet_04", "password": "securepassword999"}' https://silver-adventure-q749ppv7rgx7397pr-3000.app.github.dev/api/users/register
