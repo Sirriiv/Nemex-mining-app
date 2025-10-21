@@ -5,13 +5,261 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - NemexCoin</title>
     <style>
-        /* ... (your existing CSS remains exactly the same) ... */
+        :root {
+            --dark-bg: #0f0f1a;
+            --darker-bg: #050508;
+            --gold: #FFD700;
+            --gold-dark: #b8941f;
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+            --muted: #888888;
+            --error: #ff4444;
+            --success: #00C851;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--dark-bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo a {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--gold);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .card {
+            background: var(--darker-bg);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: var(--gold);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .input {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
+        }
+
+        .input::placeholder {
+            color: var(--muted);
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 25px;
+        }
+
+        .forgot-password a {
+            color: var(--gold);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--darker-bg);
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+        }
+
+        .btn:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 30px 0;
+            color: var(--muted);
+            position: relative;
+        }
+
+        .divider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider span {
+            background: var(--darker-bg);
+            padding: 0 20px;
+            font-size: 14px;
+        }
+
+        .social-btn {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .social-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--gold);
+        }
+
+        .social-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .switch {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--text-secondary);
+        }
+
+        .switch a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .switch a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .success-message {
+            color: var(--success);
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
+            color: var(--gold);
+        }
+
+        .demo-accounts {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .demo-accounts h4 {
+            color: var(--gold);
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .demo-account {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 30px 20px;
+            }
+
+            .container {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo">
-            <a href="index.html"> <!-- ✅ FIXED: Changed to index.html -->
+            <a href="/"> <!-- ✅ ROUTE-BASED: Changed to / -->
                 <span>✨</span> NEMEXCOIN
             </a>
         </div>
@@ -20,7 +268,26 @@
             <h2>Welcome Back</h2>
 
             <form id="loginForm">
-                <!-- ... (your existing form remains the same) ... -->
+                <div class="form-group">
+                    <input type="email" class="input" id="email" placeholder="Email Address" required>
+                </div>
+
+                <div class="form-group">
+                    <input type="password" class="input" id="password" placeholder="Password" required>
+                    <div class="error-message" id="loginError"></div>
+                </div>
+
+                <div class="forgot-password">
+                    <a href="#">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn" id="loginBtn">
+                    Sign In
+                </button>
+
+                <div class="loading" id="loginLoading">
+                    🔄 Signing you in...
+                </div>
             </form>
 
             <div class="divider">
@@ -32,7 +299,7 @@
             </button>
 
             <div class="switch">
-                Don't have an account? <a href="register.html">Sign up</a> <!-- ✅ FIXED: Changed to register.html -->
+                Don't have an account? <a href="/register">Sign up</a> <!-- ✅ ROUTE-BASED: Changed to /register -->
             </div>
 
             <div class="demo-accounts">
@@ -50,15 +317,79 @@
     </div>
 
     <script>
-        // ✅ FIXED: Use your actual backend URL
+        // ✅ ROUTE-BASED: Use your actual backend URL
         const API_BASE = 'https://nemex-backend.onrender.com';
 
         // Check if user is already logged in
         if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = 'dashboard.html'; // ✅ FIXED: Changed to dashboard.html
+            window.location.href = '/dashboard'; // ✅ ROUTE-BASED: Changed to /dashboard
         }
 
-        // ... (your existing login JavaScript remains the same) ...
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginLoading = document.getElementById('loginLoading');
+            const errorElement = document.getElementById('loginError');
+
+            // Reset error
+            errorElement.style.display = 'none';
+            loginBtn.disabled = true;
+            loginLoading.style.display = 'block';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Store user data in localStorage
+                    localStorage.setItem('userId', data.user.user_id);
+                    localStorage.setItem('userName', data.user.name);
+                    localStorage.setItem('userEmail', data.user.email);
+                    localStorage.setItem('userBalance', data.user.balance);
+                    localStorage.setItem('isLoggedIn', 'true');
+
+                    // Redirect to dashboard
+                    window.location.href = '/dashboard'; // ✅ ROUTE-BASED: Changed to /dashboard
+                } else {
+                    errorElement.textContent = data.error || 'Invalid email or password';
+                    errorElement.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorElement.textContent = 'Network error. Please check your connection and try again.';
+                errorElement.style.display = 'block';
+            } finally {
+                loginBtn.disabled = false;
+                loginLoading.style.display = 'none';
+            }
+        });
+
+        // Demo account auto-fill for testing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-fill demo account for easy testing
+            document.getElementById('email').value = 'test@nemexcoin.com';
+            document.getElementById('password').value = '123456';
+        });
+
+        // Enter key support
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
     </script>
 </body>
 </html>
