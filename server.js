@@ -11,6 +11,12 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// ✅ DEBUG: Log all requests
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
 // ✅ FIX: Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
 
@@ -56,22 +62,41 @@ const authenticate = (req, res, next) => {
     next();
 };
 
-// ✅ FIX: Add explicit routes for each page
+// ✅ FIX: Add explicit routes for each page with error handling
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+    try {
+        res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+    } catch (error) {
+        console.error('Error serving index.html:', error);
+        res.status(500).send('Error loading homepage');
+    }
 });
 
 app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'login.html'));
+    try {
+        res.sendFile(path.join(__dirname, 'frontend', 'login.html'));
+    } catch (error) {
+        console.error('Error serving login.html:', error);
+        res.status(500).send('Error loading login page');
+    }
 });
 
 app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html'));
+    try {
+        res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html'));
+    } catch (error) {
+        console.error('Error serving dashboard.html:', error);
+        res.status(500).send('Error loading dashboard');
+    }
 });
 
-// ✅ ADD: Register page route
 app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'register.html'));
+    try {
+        res.sendFile(path.join(__dirname, 'frontend', 'register.html'));
+    } catch (error) {
+        console.error('Error serving register.html:', error);
+        res.status(500).send('Error loading registration page');
+    }
 });
 
 // API Routes
@@ -79,11 +104,11 @@ app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'NemexCoin API is running!',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
-// Login route
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -121,7 +146,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// ✅ ADD: Register route
 app.post('/api/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -133,7 +157,6 @@ app.post('/api/register', async (req, res) => {
             });
         }
         
-        // Check if user already exists
         const existingUser = users.find(u => u.email === email);
         if (existingUser) {
             return res.status(400).json({ 
@@ -142,10 +165,8 @@ app.post('/api/register', async (req, res) => {
             });
         }
         
-        // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Create new user
         const newUser = {
             user_id: users.length + 1,
             name,
@@ -158,7 +179,6 @@ app.post('/api/register', async (req, res) => {
         
         users.push(newUser);
         
-        // Remove password from response
         const { password: _, ...userWithoutPassword } = newUser;
         
         res.status(201).json({
@@ -248,6 +268,7 @@ app.post('/api/stop-mining', authenticate, (req, res) => {
 
 // ✅ FIX: Catch-all handler - MUST BE LAST
 app.get('*', (req, res) => {
+    console.log('Catch-all route triggered for:', req.url);
     res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
@@ -259,4 +280,5 @@ app.listen(PORT, () => {
     console.log(`📊 Dashboard: http://localhost:${PORT}/dashboard`);
     console.log(`🩺 Health: http://localhost:${PORT}/api/health`);
     console.log(`📧 Demo account: test@nemexcoin.com / 123456`);
+    console.log(`✅ Frontend folder exists: ${require('fs').existsSync(path.join(__dirname, 'frontend'))}`);
 });
