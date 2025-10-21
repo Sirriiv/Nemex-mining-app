@@ -1,1 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - NemexCoin</title>
+    <style>
+        :root {
+            --dark-bg: #0f0f1a;
+            --darker-bg: #050508;
+            --card-bg: #151525;
+            --gold: #FFD700;
+            --gold-dark: #b8941f;
+            --gold-glow: rgba(255, 215, 0, 0.3);
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+            --muted: #888888;
+            --success: #00C851;
+            --warning: #ffbb33;
+            --error: #ff4444;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: var(--dark-bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        
+        .navbar {
+            background: var(--darker-bg);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--gold);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .nav-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .user-info {
+            text-align: right;
+        }
+        
+        .user-name {
+            font-weight: 600;
+            color: var(--gold);
+        }
+        
+        .user-email {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: var(--gold);
+            color: var(--darker-bg);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .dashboard-header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: var(--gold);
+        }
+        
+        .dashboard-header p {
+            color: var(--text-secondary);
+            font-size: 18px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold);
+            box-shadow: 0 10px 30px var(--gold-glow);
+        }
+        
+        .stat-card.gold {
+            background: linear-gradient(135deg, var(--card-bg), rgba(255, 215, 0, 0.1));
+            border-color: var(--gold);
+        }
+        
+        .stat-icon {
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .mining-section {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .mining-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .mining-header h2 {
+            color: var(--gold);
+            font-size: 24px;
+        }
+        
+        .mining-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: rgba(255, 215, 0, 0.1);
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--muted);
+        }
+        
+        .status-indicator.active {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .mining-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .mining-power {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .power-slider {
+            width: 100%;
+            margin: 15px 0;
+            -webkit-appearance: none;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        .power-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--gold);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .power-labels {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        .mining-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: var(--darker-bg);
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .mining-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px var(--gold-glow);
+        }
+        
+        .mining-btn:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .mining-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .mining-stat {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+        
+        .mining-stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+        
+        .mining-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .transactions-section {
+            background: var(--card-bg);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .section-header h2 {
+            color: var(--gold);
+            font-size: 24px;
+        }
+        
+        .transactions-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: background 0.3s;
+        }
+        
+        .transaction-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .transaction-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 215, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .transaction-details h4 {
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+        
+        .transaction-details span {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        .transaction-amount {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .transaction-amount.positive {
+            color: var(--success);
+        }
+        
+        .transaction-amount.negative {
+            color: var(--error);
+        }
+        
+        .no-transactions {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--gold);
+        }
+        
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .mining-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .navbar {
+                padding: 15px 20px;
+            }
+            
+            .nav-user {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .user-info {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="index.html" class="logo">
+            <span>✨</span> NEMEXCOIN
+        </a>
+        
+        <div class="nav-links">
+            <div class="nav-user">
+                <div class="user-info">
+                    <div class="user-name" id="userName">Loading...</div>
+                    <div class="user-email" id="userEmail">Loading...</div>
+                </div>
+                <button class="logout-btn" id="logoutBtn">Logout</button>
+            </div>
+        </div>
+    </nav>
 
+    <div class="container">
+        <div class="dashboard-header">
+            <h1>Mining Dashboard</h1>
+            <p>Monitor your mining performance and earnings</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <div class="stats-grid">
+            <div class="stat-card gold">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="balance">0.00 NEMEX</div>
+                <div class="stat-label">Current Balance</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⛏️</div>
+                <div class="stat-value" id="totalMined">0.00 NEMEX</div>
+                <div class="stat-label">Total Mined</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value" id="miningPower">0 MH/s</div>
+                <div class="stat-label">Mining Power</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value" id="dailyEarnings">0.00 NEMEX</div>
+                <div class="stat-label">24h Earnings</div>
+            </div>
+        </div>
+
+        <section class="mining-section">
+            <div class="mining-header">
+                <h2>Mining Control</h2>
+                <div class="mining-status">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="miningStatusText">Loading...</span>
+                </div>
+            </div>
+
+            <div class="mining-controls">
+                <div class="mining-power">
+                    <h3>Mining Power</h3>
+                    <input type="range" min="1" max="100" value="50" class="power-slider" id="powerSlider">
+                    <div class="power-labels">
+                        <span>Low</span>
+                        <span>Medium</span>
+                        <span>High</span>
+                    </div>
+                </div>
+                
+                <button class="mining-btn" id="miningToggle">
+                    <span>🚀</span>
+                    <span id="miningButtonText">Start Mining</span>
+                </button>
+            </div>
+
+            <div class="mining-stats">
+                <div class="mining-stat">
+                    <div class="mining-stat-value" id="currentRate">0.0000 NEMEX/h</div>
+                    <div class="mining-stat-label">Current Rate</div>
+                </div>
+                <div class="mining-stat">
+                    <div class="mining-stat-value" id="sessionEarnings">0.0000 NEMEX</div>
+                    <div class="mining-stat-label">Session Earnings</div>
+                </div>
+                <div class="mining-stat">
+                    <div class="mining-stat-value" id="sessionTime">00:00:00</div>
+                    <div class="mining-stat-label">Session Time</div>
+                </div>
+                <div class="mining-stat">
+                    <div class="mining-stat-value" id="activeMiners">0</div>
+                    <div class="mining-stat-label">Active Miners</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="transactions-section">
+            <div class="section-header">
+                <h2>Recent Transactions</h2>
+            </div>
+            
+            <div class="transactions-list" id="transactionsList">
+                <div class="loading">Loading transactions...</div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const API_BASE = 'https://nemex-backend.onrender.com';
+        let miningInterval;
+        let miningSessionStart = null;
+        let isMining = false;
+
+        // Check authentication
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+        // Load user data
+        async function loadUserData() {
+            try {
+                const userId = localStorage.getItem('userId');
+                const response = await fetch(`${API_BASE}/api/user/${userId}`);
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    document.getElementById('userName').textContent = data.user.name;
+                    document.getElementById('userEmail').textContent = data.user.email;
+                    document.getElementById('balance').textContent = `${parseFloat(data.user.balance).toFixed(6)} NEMEX`;
+                    
+                    // Update mining stats
+                    updateMiningStats(data.user.balance);
+                } else {
+                    showError('Failed to load user data');
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showError('Network error loading user data');
+            }
+        }
+
+        // Load transactions
+        async function loadTransactions() {
+            try {
+                const userId = localStorage.getItem('userId');
+                const response = await fetch(`${API_BASE}/api/transactions/${userId}`);
+                const data = await response.json();
+
+                const transactionsList = document.getElementById('transactionsList');
+                
+                if (response.ok && data.success && data.transactions.length > 0) {
+                    transactionsList.innerHTML = data.transactions.map(transaction => `
+                        <div class="transaction-item">
+                            <div class="transaction-info">
+                                <div class="transaction-icon">
+                                    ${transaction.type === 'mining' ? '⛏️' : '💰'}
+                                </div>
+                                <div class="transaction-details">
+                                    <h4>${transaction.type === 'mining' ? 'Mining Reward' : 'Transaction'}</h4>
+                                    <span>${new Date(transaction.timestamp).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div class="transaction-amount ${transaction.amount >= 0 ? 'positive' : 'negative'}">
+                                ${transaction.amount >= 0 ? '+' : ''}${parseFloat(transaction.amount).toFixed(6)} NEMEX
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    transactionsList.innerHTML = `
+                        <div class="no-transactions">
+                            <p>No transactions yet</p>
+                            <p style="margin-top: 10px; font-size: 14px;">Start mining to see your first transaction!</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                document.getElementById('transactionsList').innerHTML = `
+                    <div class="no-transactions">
+                        <p>Error loading transactions</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Update mining statistics
+        function updateMiningStats(balance) {
+            const miningPower = parseInt(document.getElementById('powerSlider').value);
+            const baseRate = 0.001; // Base mining rate per hour at power 1
+            
+            const currentRate = baseRate * miningPower;
+            document.getElementById('currentRate').textContent = `${currentRate.toFixed(4)} NEMEX/h`;
+            document.getElementById('miningPower').textContent = `${miningPower} MH/s`;
+            document.getElementById('totalMined').textContent = `${parseFloat(balance).toFixed(6)} NEMEX`;
+            
+            // Estimate daily earnings (current rate * 24)
+            document.getElementById('dailyEarnings').textContent = `${(currentRate * 24).toFixed(6)} NEMEX`;
+        }
+
+        // Start mining session
+        async function startMining() {
+            if (isMining) return;
+
+            isMining = true;
+            miningSessionStart = new Date();
+            
+            document.getElementById('miningToggle').disabled = true;
+            document.getElementById('miningButtonText').textContent = 'Starting...';
+            
+            try {
+                const userId = localStorage.getItem('userId');
+                const miningPower =
+parseInt(document.getElementById('powerSlider').value);
+                
+                const response = await fetch(`${API_BASE}/api/start-mining`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        mining_power: miningPower
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    updateMiningStatus(true);
+                    startMiningTimer();
+                    showError(''); // Clear any errors
+                } else {
+                    throw new Error(data.error || 'Failed to start mining');
+                }
+            } catch (error) {
+                console.error('Error starting mining:', error);
+                showError('Failed to start mining session');
+                isMining = false;
+            } finally {
+                document.getElementById('miningToggle').disabled = false;
+                document.getElementById('miningButtonText').textContent = 'Stop Mining';
+            }
+        }
+
+        // Stop mining session
+        async function stopMining() {
+            if (!isMining) return;
+
+            document.getElementById('miningToggle').disabled = true;
+            document.getElementById('miningButtonText').textContent = 'Stopping...';
+
+            try {
+                const userId = localStorage.getItem('userId');
+                
+                const response = await fetch(`${API_BASE}/api/stop-mining`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Update balance with session earnings
+                    const newBalance = parseFloat(localStorage.getItem('userBalance')) + data.earnings;
+                    localStorage.setItem('userBalance', newBalance.toString());
+                    document.getElementById('balance').textContent = `${newBalance.toFixed(6)} NEMEX`;
+                    
+                    updateMiningStatus(false);
+                    stopMiningTimer();
+                    loadTransactions(); // Refresh transactions
+                    showError(''); // Clear any errors
+                } else {
+                    throw new Error(data.error || 'Failed to stop mining');
+                }
+            } catch (error) {
+                console.error('Error stopping mining:', error);
+                showError('Failed to stop mining session');
+            } finally {
+                document.getElementById('miningToggle').disabled = false;
+                document.getElementById('miningButtonText').textContent = 'Start Mining';
+            }
+        }
+
+        // Update mining status display
+        function updateMiningStatus(mining) {
+            isMining = mining;
+            const indicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('miningStatusText');
+            const buttonText = document.getElementById('miningButtonText');
+
+            if (mining) {
+                indicator.className = 'status-indicator active';
+                statusText.textContent = 'Mining Active';
+                buttonText.textContent = 'Stop Mining';
+            } else {
+                indicator.className = 'status-indicator';
+                statusText.textContent = 'Mining Stopped';
+                buttonText.textContent = 'Start Mining';
+            }
+        }
+
+        // Mining timer functions
+        function startMiningTimer() {
+            let sessionTime = 0;
+            const sessionEarningsElement = document.getElementById('sessionEarnings');
+            const sessionTimeElement = document.getElementById('sessionTime');
+            
+            miningInterval = setInterval(() => {
+                sessionTime++;
+                
+                // Update session time
+                const hours = Math.floor(sessionTime / 3600);
+                const minutes = Math.floor((sessionTime % 3600) / 60);
+                const seconds = sessionTime % 60;
+                sessionTimeElement.textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Calculate and update session earnings
+                const miningPower = parseInt(document.getElementById('powerSlider').value);
+                const baseRate = 0.001 / 3600; // Convert hourly rate to per-second
+                const earnings = baseRate * miningPower * sessionTime;
+                sessionEarningsElement.textContent = `${earnings.toFixed(6)} NEMEX`;
+                
+            }, 1000);
+        }
+
+        function stopMiningTimer() {
+            if (miningInterval) {
+                clearInterval(miningInterval);
+                miningInterval = null;
+            }
+            
+            document.getElementById('sessionEarnings').textContent = '0.000000 NEMEX';
+            document.getElementById('sessionTime').textContent = '00:00:00';
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            if (message) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            } else {
+                errorElement.style.display = 'none';
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        });
+
+        document.getElementById('miningToggle').addEventListener('click', function() {
+            if (isMining) {
+                stopMining();
+            } else {
+                startMining();
+            }
+        });
+
+        document.getElementById('powerSlider').addEventListener('input', function() {
+            updateMiningStats(localStorage.getItem('userBalance'));
+        });
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+            loadTransactions();
+            updateMiningStats(localStorage.getItem('userBalance') || '0');
+            
+            // Set active miners (random for demo)
+            document.getElementById('activeMiners').textContent = 
+                Math.floor(Math.random() * 1000) + 500;
+        });
+    </script>
+</body>
+</html>
