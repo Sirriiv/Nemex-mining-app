@@ -5,93 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Mining Dashboard</title>
     <link rel="stylesheet" href="css/style.css">
-    <style>
-        /* Mining-specific styles */
-        .mining-content {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            height: calc(100vh - 140px);
-        }
-
-        .balance-display {
-            margin-bottom: 30px;
-        }
-
-        .balance-label {
-            font-size: 16px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        .balance-amount {
-            font-size: 70px;
-            font-weight: 700;
-            color: var(--gold);
-            line-height: 1;
-            text-shadow: 0 0 10px rgba(212,175,55,0.3);
-        }
-
-        /* Logo styles */
-        .nemex-logo {
-            width: 200px;
-            height: 200px;
-            margin: 30px auto;
-            position: relative;
-        }
-
-        .logo-container {
-            width: 180px;
-            height: 180px;
-            position: relative;
-            filter: drop-shadow(0 0 25px rgba(212,175,55,0.7));
-        }
-
-        .logo-base {
-            width: 100%;
-            height: 100%;
-            background: var(--darker-bg);
-            border-radius: 50%;
-            border: 4px solid var(--gold);
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 0 40px rgba(212,175,55,0.2), 
-                        0 0 50px rgba(212,175,55,0.4);
-        }
-
-        .countdown-section {
-            margin-bottom: 30px;
-        }
-
-        .countdown-label {
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        .countdown-timer {
-            font-size: 24px;
-            font-weight: 600;
-            color: var(--accent-gold);
-            letter-spacing: 1px;
-            text-shadow: 0 0 8px rgba(212,175,55,0.3);
-        }
-
-        .claim-btn {
-            background: linear-gradient(135deg, var(--gold), #b8941f);
-            color: var(--darker-bg);
-            border: none;
-            padding: 16px 50px;
-            border-radius: 25px;
-            font-size: 18px;
-            font-weight: 600;
-            margin: 20px 0;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(212,175,55,0.4);
-        }
-    </style>
 </head>
 <body>
     <div class="content-wrapper">
@@ -110,8 +23,23 @@
                 <div class="nemex-logo">
                     <div class="logo-container">
                         <div class="logo-base">
-                            <!-- Logo content -->
+                            <div class="logo-center">
+                                <div class="infinity-symbol"></div>
+                            </div>
+                            <div class="circuit-lines">
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                            </div>
                         </div>
+                        <div class="logo-glow"></div>
+                        <div class="logo-outer-glow"></div>
                     </div>
                 </div>
 
