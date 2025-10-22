@@ -13,6 +13,7 @@
             --muted: #aaa; 
             --bg-secondary: #1a1a1a;
             --border-color: #333333;
+            --success: #00C851;
         }
 
         * { 
@@ -50,10 +51,11 @@
             background-color: var(--dark-bg);
         }
 
-        .settings-icon {
+        .back-btn {
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
+            text-decoration: none;
         }
 
         .header-title {
@@ -62,138 +64,180 @@
             color: var(--gold);
         }
 
-        .main-content {
+        .content-wrapper {
+            padding: 20px;
             flex: 1;
-            padding: 20px;
+            overflow-y: auto;
         }
 
-        .page-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .page-subtitle {
-            font-size: 16px;
-            color: var(--muted);
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .card { 
-            background: var(--darker-bg); 
-            padding: 20px; 
-            border-radius: 10px; 
-            border: 1px solid #333; 
-            margin-bottom: 15px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 10px;
-        }
-
-        .card-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-        }
-
-        .package {
+        .buy-section {
             background: var(--darker-bg);
-            padding: 20px;
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid var(--gold);
             border-radius: 12px;
-            border: 2px solid #333;
+            padding: 20px;
             text-align: center;
-            margin-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .balance-label {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gold);
+            font-family: 'Courier New', monospace;
+        }
+
+        .packages-grid {
+            display: grid;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .package-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .package-card:hover, .package-card.selected {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .package-card.selected {
+            position: relative;
+        }
+
+        .package-card.selected::before {
+            content: "✓";
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--gold);
+            color: var(--darker-bg);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
         }
 
         .package-amount {
             font-size: 24px;
             font-weight: 700;
             color: var(--gold);
-            margin: 10px 0;
+            margin-bottom: 5px;
         }
 
         .package-price {
-            font-size: 18px;
             color: var(--muted);
-            margin-bottom: 15px;
+            font-size: 14px;
+            margin-bottom: 10px;
         }
 
-        .btn {
-            width: 100%; 
-            padding: 12px; 
-            background: var(--gold); 
-            border: none; 
-            border-radius: 5px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            color: var(--darker-bg);
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
+        .package-bonus {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            padding: 4px 8px;
             border-radius: 8px;
-            margin: 0 1px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
-        .nav-item.active {
+        .payment-methods {
+            margin: 25px 0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
             color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
         }
 
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
-        .nav-text {
-            margin-top: 4px;
+        .payment-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .content-wrapper {
-            padding-bottom: 70px;
+        .payment-option:hover, .payment-option.selected {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .payment-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .payment-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .buy-button {
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
             width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            transition: all 0.3s;
+        }
+
+        .buy-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .buy-button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .info-note {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
         }
     </style>
 </head>
@@ -201,55 +245,146 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <div class="header-title">〽️ NEMEXCOIN</div>
-                <div class="settings-icon">⚙️</div>
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">💰 Buy NMXp</div>
+                <div style="width: 20px;"></div>
             </header>
 
-            <main class="main-content">
-                <h1 class="page-title">Buy NMXp</h1>
-                <p class="page-subtitle">Purchase NMXp to boost your mining</p>
-                
-                <div class="card">
-                    <div class="card-title">Your NMXp Balance</div>
-                    <div class="card-value">1,250 NMXp</div>
+            <div class="buy-section">
+                <div class="balance-card">
+                    <div class="balance-label">Your Current Balance</div>
+                    <div class="balance-amount" id="currentBalance">0 NMXp</div>
                 </div>
-                
-                <div class="package">
-                    <div class="package-amount">500 NMXp</div>
-                    <div class="package-price">$5.00 USD</div>
-                    <button class="btn">Purchase</button>
-                </div>
-                
-                <div class="package">
-                    <div class="package-amount">1,200 NMXp</div>
-                    <div class="package-price">$10.00 USD</div>
-                    <button class="btn">Purchase</button>
-                </div>
-            </main>
-        </div>
 
-        <nav class="bottom-nav">
-            <a href="index.html" class="nav-item">
-                <span class="nav-text">MINING</span>
-            </a>
-            <a href="tasks.html" class="nav-item">
-                <span class="nav-text">TASKS</span>
-            </a>
-            <a href="buynmxp.html" class="nav-item active">
-                <span class="nav-text">BUY NMXp</span>
-            </a>
-            <a href="referrals.html" class="nav-item">
-                <span class="nav-text">REFERRALS</span>
-            </a>
-            <a href="wallet.html" class="nav-item">
-                <span class="nav-text">WALLET</span>
-            </a>
-        </nav>
+                <div class="section-title">Select Package</div>
+                <div class="packages-grid">
+                    <div class="package-card" onclick="selectPackage(this, 1000)">
+                        <div class="package-amount">1,000 NMXp</div>
+                        <div class="package-price">$10.00 USD</div>
+                        <div class="package-bonus">+50 NMXp Bonus</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 2500)">
+                        <div class="package-amount">2,500 NMXp</div>
+                        <div class="package-price">$22.50 USD</div>
+                        <div class="package-bonus">+200 NMXp Bonus</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 5000)">
+                        <div class="package-amount">5,000 NMXp</div>
+                        <div class="package-price">$40.00 USD</div>
+                        <div class="package-bonus">+500 NMXp Bonus</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 10000)">
+                        <div class="package-amount">10,000 NMXp</div>
+                        <div class="package-price">$75.00 USD</div>
+                        <div class="package-bonus">+1,500 NMXp Bonus</div>
+                    </div>
+                </div>
+
+                <div class="payment-methods">
+                    <div class="section-title">Payment Method</div>
+                    <div class="payment-options">
+                        <div class="payment-option" onclick="selectPayment(this, 'card')">
+                            <div class="payment-icon">💳</div>
+                            <div class="payment-name">Credit Card</div>
+                        </div>
+                        <div class="payment-option" onclick="selectPayment(this, 'paypal')">
+                            <div class="payment-icon">🔵</div>
+                            <div class="payment-name">PayPal</div>
+                        </div>
+                        <div class="payment-option" onclick="selectPayment(this, 'crypto')">
+                            <div class="payment-icon">₿</div>
+                            <div class="payment-name">Crypto</div>
+                        </div>
+                        <div class="payment-option" onclick="selectPayment(this, 'bank')">
+                            <div class="payment-icon">🏦</div>
+                            <div class="payment-name">Bank Transfer</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="buy-button" id="buyButton" disabled onclick="processPurchase()">
+                    Buy Now - Select Package
+                </button>
+
+                <div class="info-note">
+                    💡 All purchases are processed securely. NMXp will be credited to your account immediately after payment confirmation.
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.querySelector('.settings-icon').addEventListener('click', function() {
-            alert('Settings menu would open here');
+        let selectedPackage = null;
+        let selectedPayment = null;
+
+        function selectPackage(element, amount) {
+            // Remove selected class from all packages
+            document.querySelectorAll('.package-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked package
+            element.classList.add('selected');
+            selectedPackage = amount;
+            
+            updateBuyButton();
+        }
+
+        function selectPayment(element, method) {
+            // Remove selected class from all payments
+            document.querySelectorAll('.payment-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked payment
+            element.classList.add('selected');
+            selectedPayment = method;
+            
+            updateBuyButton();
+        }
+
+        function updateBuyButton() {
+            const buyButton = document.getElementById('buyButton');
+            
+            if (selectedPackage && selectedPayment) {
+                buyButton.disabled = false;
+                buyButton.textContent = `Buy ${selectedPackage.toLocaleString()} NMXp - ${getPaymentText(selectedPayment)}`;
+            } else {
+                buyButton.disabled = true;
+                buyButton.textContent = 'Buy Now - Select Package';
+            }
+        }
+
+        function getPaymentText(method) {
+            const methods = {
+                'card': 'Credit Card',
+                'paypal': 'PayPal',
+                'crypto': 'Crypto',
+                'bank': 'Bank Transfer'
+            };
+            return methods[method] || 'Payment';
+        }
+
+        function processPurchase() {
+            if (!selectedPackage || !selectedPayment) return;
+            
+            alert(`Purchase initiated!\n\nPackage: ${selectedPackage.toLocaleString()} NMXp\nPayment: ${getPaymentText(selectedPayment)}\n\nYou will be redirected to the payment gateway...`);
+            
+            // Simulate payment processing
+            setTimeout(() => {
+                alert('Payment processing feature coming soon! This will integrate with actual payment gateways.');
+            }, 1000);
+        }
+
+        // Load current balance
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading balance - in real app, this would come from your database
+            setTimeout(() => {
+                document.getElementById('currentBalance').textContent = '0 NMXp';
+            }, 500);
         });
     </script>
 </body>
