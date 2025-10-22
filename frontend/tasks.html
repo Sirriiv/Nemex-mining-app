@@ -50,10 +50,11 @@
             background-color: var(--dark-bg);
         }
 
-        .settings-icon {
+        .back-btn {
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
+            text-decoration: none;
         }
 
         .header-title {
@@ -62,110 +63,53 @@
             color: var(--gold);
         }
 
-        .main-content {
-            flex: 1;
+        .content-wrapper {
             padding: 20px;
-        }
-
-        .page-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .page-subtitle {
-            font-size: 16px;
-            color: var(--muted);
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .task-item {
-            background: var(--darker-bg);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-            border: 1px solid #333;
-        }
-
-        .task-reward {
-            color: var(--gold);
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .btn {
-            width: 100%; 
-            padding: 12px; 
-            background: var(--gold); 
-            border: none; 
-            border-radius: 5px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            color: var(--darker-bg);
-            margin: 10px 0;
-        }
-
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .nav-item {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
-            border-radius: 8px;
-            margin: 0 1px;
-        }
-
-        .nav-item.active {
-            color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
-        }
-
-        .nav-text {
-            margin-top: 4px;
+            justify-content: center;
             text-align: center;
         }
 
-        .content-wrapper {
-            padding-bottom: 70px;
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+        .coming-soon {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 40px 25px;
+            border: 1px solid var(--border-color);
+            max-width: 300px;
+        }
+
+        .coming-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .coming-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 10px;
+        }
+
+        .coming-desc {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
         }
     </style>
 </head>
@@ -173,53 +117,20 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <div class="header-title">〽️ NEMEXCOIN</div>
-                <div class="settings-icon">⚙️</div>
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">📋 Tasks</div>
+                <div style="width: 20px;"></div>
             </header>
 
-            <main class="main-content">
-                <h1 class="page-title">Daily Tasks</h1>
-                <p class="page-subtitle">Complete tasks to earn NMXp</p>
-                
-                <div class="task-item">
-                    <h3>Follow on Twitter</h3>
-                    <p>Follow our official Twitter account</p>
-                    <div class="task-reward">+10 NMXp</div>
-                    <button class="btn">Complete Task</button>
+            <div class="coming-soon">
+                <div class="coming-icon">🚧</div>
+                <div class="coming-title">Coming Soon</div>
+                <div class="coming-desc">
+                    The Tasks section is currently under development. You'll soon be able to complete various tasks to earn additional NMX rewards!
                 </div>
-                
-                <div class="task-item">
-                    <h3>Join Telegram</h3>
-                    <p>Join our Telegram community</p>
-                    <div class="task-reward">+15 NMXp</div>
-                    <button class="btn">Complete Task</button>
-                </div>
-            </main>
+                <a href="dashboard.html" class="back-button">Back to Dashboard</a>
+            </div>
         </div>
-
-        <nav class="bottom-nav">
-            <a href="index.html" class="nav-item">
-                <span class="nav-text">MINING</span>
-            </a>
-            <a href="tasks.html" class="nav-item active">
-                <span class="nav-text">TASKS</span>
-            </a>
-            <a href="buynmxp.html" class="nav-item">
-                <span class="nav-text">BUY NMXp</span>
-            </a>
-            <a href="referrals.html" class="nav-item">
-                <span class="nav-text">REFERRALS</span>
-            </a>
-            <a href="wallet.html" class="nav-item">
-                <span class="nav-text">WALLET</span>
-            </a>
-        </nav>
     </div>
-
-    <script>
-        document.querySelector('.settings-icon').addEventListener('click', function() {
-            alert('Settings menu would open here');
-        });
-    </script>
 </body>
 </html>
