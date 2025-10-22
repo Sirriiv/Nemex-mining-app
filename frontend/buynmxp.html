@@ -13,10 +13,10 @@
         }
         
         .package {
-            background: var(--bg-secondary);
+            background: var(--darker-bg);
             padding: 20px;
             border-radius: 12px;
-            border: 2px solid var(--border-color);
+            border: 2px solid #333;
             text-align: center;
         }
         
@@ -34,67 +34,69 @@
         
         .package-price {
             font-size: 18px;
-            color: var(--text-secondary);
+            color: var(--muted);
             margin-bottom: 15px;
         }
     </style>
 </head>
 <body>
-    <div class="content-wrapper">
-        <header class="header">
-            <div class="header-title">〽️ NEMEXCOIN</div>
-            <div class="settings-icon">⚙️</div>
-        </header>
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <div class="header-title">〽️ NEMEXCOIN</div>
+                <div class="settings-icon">⚙️</div>
+            </header>
 
-        <main class="main-content">
-            <h1 class="page-title">Buy NMXp</h1>
-            <p class="page-subtitle">Purchase NMXp to boost your mining</p>
-            
-            <div class="card">
-                <div class="card-title">Your NMXp Balance</div>
-                <div class="card-value">1,250 NMXp</div>
-            </div>
-            
-            <div class="package-options">
-                <div class="package">
-                    <div class="package-amount">500 NMXp</div>
-                    <div class="package-price">$5.00 USD</div>
-                    <button class="btn-primary">Purchase</button>
+            <main class="main-content">
+                <h1 class="page-title">Buy NMXp</h1>
+                <p class="page-subtitle">Purchase NMXp to boost your mining</p>
+                
+                <div class="card">
+                    <div class="card-title">Your NMXp Balance</div>
+                    <div class="card-value">1,250 NMXp</div>
                 </div>
                 
-                <div class="package featured">
-                    <div class="package-amount">1,200 NMXp</div>
-                    <div class="package-price">$10.00 USD</div>
-                    <div style="color: var(--gold); margin-bottom: 10px;">Best Value</div>
-                    <button class="btn-primary">Purchase</button>
+                <div class="package-options">
+                    <div class="package">
+                        <div class="package-amount">500 NMXp</div>
+                        <div class="package-price">$5.00 USD</div>
+                        <button class="btn">Purchase</button>
+                    </div>
+                    
+                    <div class="package featured">
+                        <div class="package-amount">1,200 NMXp</div>
+                        <div class="package-price">$10.00 USD</div>
+                        <div style="color: var(--gold); margin-bottom: 10px;">Best Value</div>
+                        <button class="btn">Purchase</button>
+                    </div>
+                    
+                    <div class="package">
+                        <div class="package-amount">3,000 NMXp</div>
+                        <div class="package-price">$20.00 USD</div>
+                        <button class="btn">Purchase</button>
+                    </div>
                 </div>
-                
-                <div class="package">
-                    <div class="package-amount">3,000 NMXp</div>
-                    <div class="package-price">$20.00 USD</div>
-                    <button class="btn-primary">Purchase</button>
-                </div>
-            </div>
-        </main>
+            </main>
+        </div>
+
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item">
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item active">
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
-
-    <nav class="bottom-nav">
-        <a href="index.html" class="nav-item">
-            <span class="nav-text">MINING</span>
-        </a>
-        <a href="tasks.html" class="nav-item">
-            <span class="nav-text">TASKS</span>
-        </a>
-        <a href="buynmxp.html" class="nav-item active">
-            <span class="nav-text">BUY NMXp</span>
-        </a>
-        <a href="referrals.html" class="nav-item">
-            <span class="nav-text">REFERRALS</span>
-        </a>
-        <a href="wallet.html" class="nav-item">
-            <span class="nav-text">WALLET</span>
-        </a>
-    </nav>
 
     <script src="js/main.js"></script>
 </body>
