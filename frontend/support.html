@@ -1,1 +1,309 @@
-s
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support - NemexCoin</title>
+    <style>
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
+
+        .back-btn {
+            font-size: 20px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .content-wrapper {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .support-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .support-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .support-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .support-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .support-desc {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .faq-section {
+            margin: 25px 0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--gold);
+        }
+
+        .faq-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .faq-question {
+            padding: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .faq-answer {
+            padding: 0 15px 15px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .contact-methods {
+            margin: 25px 0;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            text-decoration: none;
+            color: var(--text);
+            transition: all 0.3s;
+        }
+
+        .contact-item:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .contact-icon {
+            font-size: 20px;
+            margin-right: 15px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .contact-info {
+            flex: 1;
+        }
+
+        .contact-title {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .contact-desc {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .quick-help {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">💬 Support</div>
+                <div style="width: 20px;"></div>
+            </header>
+
+            <div class="support-section">
+                <div class="support-header">
+                    <div class="support-icon">💬</div>
+                    <div class="support-title">Help & Support</div>
+                    <div class="support-desc">We're here to help you with any issues</div>
+                </div>
+
+                <div class="faq-section">
+                    <div class="section-title">Frequently Asked Questions</div>
+                    
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFAQ(this)">
+                            How do I claim my NMX tokens?
+                            <span>▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            You can claim 30 NMX tokens every 12 hours by clicking the "Claim 30 NMX Now!" button on the mining dashboard. The timer will show you when your next claim is available.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFAQ(this)">
+                            Why is my balance not updating?
+                            <span>▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Balance updates are instant. If you're experiencing delays, try refreshing the page or check your internet connection. All transactions are recorded on the blockchain.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFAQ(this)">
+                            Is there a referral program?
+                            <span>▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            Yes! You can earn bonus NMX by referring friends. Share your referral link from the Referrals section to get started.
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question" onclick="toggleFAQ(this)">
+                            How secure is my account?
+                            <span>▼</span>
+                        </div>
+                        <div class="faq-answer">
+                            We use industry-standard security practices including encryption and secure authentication. Your data is protected and never shared with third parties.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="contact-methods">
+                    <div class="section-title">Contact Support</div>
+                    
+                    <a href="mailto:support@nemexcoin.com" class="contact-item">
+                        <div class="contact-icon">📧</div>
+                        <div class="contact-info">
+                            <div class="contact-title">Email Support</div>
+                            <div class="contact-desc">Get help via email</div>
+                        </div>
+                    </a>
+
+                    <a href="#" class="contact-item" onclick="openChat()">
+                        <div class="contact-icon">💬</div>
+                        <div class="contact-info">
+                            <div class="contact-title">Live Chat</div>
+                            <div class="contact-desc">Chat with our support team</div>
+                        </div>
+                    </a>
+
+                    <div class="contact-item" onclick="showCommunity()">
+                        <div class="contact-icon">👥</div>
+                        <div class="contact-info">
+                            <div class="contact-title">Community Forum</div>
+                            <div class="contact-desc">Connect with other users</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-help">
+                    💡 Quick Tip: Most issues can be resolved by refreshing the page or checking your internet connection.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleFAQ(element) {
+            const answer = element.nextElementSibling;
+            const isVisible = answer.style.display === 'block';
+            
+            // Close all FAQs
+            document.querySelectorAll('.faq-answer').forEach(ans => {
+                ans.style.display = 'none';
+            });
+            
+            // Toggle current FAQ
+            answer.style.display = isVisible ? 'none' : 'block';
+        }
+
+        function openChat() {
+            alert('Live chat feature coming soon! In the meantime, please email us at support@nemexcoin.com');
+        }
+
+        function showCommunity() {
+            alert('Community forum launching soon! Stay tuned for updates.');
+        }
+    </script>
+</body>
+</html>
