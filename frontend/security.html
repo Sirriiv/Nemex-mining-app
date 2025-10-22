@@ -1,1 +1,264 @@
-s
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security - NemexCoin</title>
+    <style>
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --error: #ff4444;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
+
+        .back-btn {
+            font-size: 20px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .content-wrapper {
+            padding: 20px;
+            flex: 1;
+        }
+
+        .security-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .security-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .security-item:last-child {
+            border-bottom: none;
+        }
+
+        .security-info {
+            flex: 1;
+        }
+
+        .security-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .security-desc {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .security-status {
+            color: var(--success);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .security-btn {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .security-btn:hover {
+            background: var(--gold);
+            color: var(--darker-bg);
+        }
+
+        .security-warning {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .session-list {
+            margin-top: 20px;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .session-info {
+            flex: 1;
+        }
+
+        .session-device {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .session-time {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .session-current {
+            color: var(--success);
+            font-size: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">🔒 Security</div>
+                <div style="width: 20px;"></div>
+            </header>
+
+            <div class="security-section">
+                <div class="security-item">
+                    <div class="security-info">
+                        <div class="security-title">Password</div>
+                        <div class="security-desc">Last changed: Recently</div>
+                    </div>
+                    <button class="security-btn" onclick="changePassword()">Change</button>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-info">
+                        <div class="security-title">Two-Factor Authentication</div>
+                        <div class="security-desc">Add an extra layer of security</div>
+                    </div>
+                    <div class="security-status">Inactive</div>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-info">
+                        <div class="security-title">Login Sessions</div>
+                        <div class="security-desc">Manage your active sessions</div>
+                    </div>
+                    <button class="security-btn" onclick="viewSessions()">View</button>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-info">
+                        <div class="security-title">Account Recovery</div>
+                        <div class="security-desc">Set up recovery options</div>
+                    </div>
+                    <button class="security-btn" onclick="setupRecovery()">Setup</button>
+                </div>
+
+                <div class="session-list" id="sessionsList" style="display: none;">
+                    <div class="session-item">
+                        <div class="session-info">
+                            <div class="session-device">Chrome on Windows</div>
+                            <div class="session-time">Current session • Active now</div>
+                        </div>
+                        <div class="session-current">Current</div>
+                    </div>
+                    <div class="session-item">
+                        <div class="session-info">
+                            <div class="session-device">Safari on iPhone</div>
+                            <div class="session-time">Last active: 2 days ago</div>
+                        </div>
+                        <button class="security-btn" style="padding: 4px 8px; font-size: 10px;">Revoke</button>
+                    </div>
+                </div>
+
+                <div class="security-warning">
+                    ⚠️ For your security, never share your password or 2FA codes with anyone.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function changePassword() {
+            const newPassword = prompt('Enter new password:');
+            if (newPassword) {
+                if (newPassword.length < 6) {
+                    alert('Password must be at least 6 characters long.');
+                    return;
+                }
+                alert('Password change request sent! Check your email for confirmation.');
+            }
+        }
+
+        function viewSessions() {
+            const sessionsList = document.getElementById('sessionsList');
+            sessionsList.style.display = sessionsList.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function setupRecovery() {
+            alert('Account recovery setup coming soon!');
+        }
+    </script>
+</body>
+</html>
