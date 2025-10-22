@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referrals - NemexCoin</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .referral-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .referral-code {
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .code-display {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin: 15px 0;
+            letter-spacing: 2px;
+        }
+        
+        .referral-list {
+            margin-top: 20px;
+        }
+        
+        .referral-item {
+            background: var(--bg-secondary);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-wrapper">
+        <header class="header">
+            <div class="header-title">〽️ NEMEXCOIN</div>
+            <div class="settings-icon">⚙️</div>
+        </header>
+
+        <main class="main-content">
+            <h1 class="page-title">Referral Program</h1>
+            <p class="page-subtitle">Earn 20% of your referrals' mining rewards</p>
+            
+            <div class="referral-stats">
+                <div class="card">
+                    <div class="card-title">Total Referrals</div>
+                    <div class="card-value">12</div>
+                </div>
+                <div class="card">
+                    <div class="card-title">Earned</div>
+                    <div class="card-value">450 NMXp</div>
+                </div>
+            </div>
+            
+            <div class="referral-code">
+                <div class="card-title">Your Referral Code</div>
+                <div class="code-display">NEMEX-8X2K9</div>
+                <button class="btn-primary">Copy Link</button>
+            </div>
+            
+            <div class="referral-list">
+                <h3 style="margin-bottom: 15px;">Your Referrals</h3>
+                <div class="referral-item">
+                    <div>user_1234</div>
+                    <div style="color: var(--gold);">+50 NMXp</div>
+                </div>
+                <div class="referral-item">
+                    <div>crypto_miner</div>
+                    <div style="color: var(--gold);">+120 NMXp</div>
+                </div>
+                <div class="referral-item">
+                    <div>john_doe</div>
+                    <div style="color: var(--gold);">+35 NMXp</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="index.html" class="nav-item">
+            <span class="nav-text">MINING</span>
+        </a>
+        <a href="tasks.html" class="nav-item">
+            <span class="nav-text">TASKS</span>
+        </a>
+        <a href="buynmxp.html" class="nav-item">
+            <span class="nav-text">BUY NMXp</span>
+        </a>
+        <a href="referrals.html" class="nav-item active">
+            <span class="nav-text">REFERRALS</span>
+        </a>
+        <a href="wallet.html" class="nav-item">
+            <span class="nav-text">WALLET</span>
+        </a>
+    </nav>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
