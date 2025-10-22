@@ -12,7 +12,6 @@
             --gold: #d4af37; 
             --text: #f5f5f5; 
             --muted: #aaa; 
-            --error: #e74c3c; 
             --bg-secondary: #1a1a1a;
             --border-color: #333333;
         }
@@ -57,11 +56,6 @@
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
-            transition: color 0.2s ease;
-        }
-
-        .settings-icon:active {
-            color: var(--gold);
         }
 
         .header-title {
@@ -96,7 +90,6 @@
             font-weight: 700;
             color: var(--gold);
             line-height: 1;
-            text-shadow: 0 0 10px rgba(212,175,55,0.3);
         }
 
         /* NemexCoin Logo */
@@ -114,7 +107,6 @@
             width: 120px;
             height: 120px;
             position: relative;
-            filter: drop-shadow(0 0 15px rgba(212,175,55,0.4));
         }
 
         .logo-base {
@@ -125,138 +117,6 @@
             border: 3px solid var(--gold);
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 20px rgba(212,175,55,0.1), 0 0 30px rgba(212,175,55,0.2);
-        }
-
-        .logo-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-        }
-
-        .infinity-symbol {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
-
-        .infinity-symbol::before, .infinity-symbol::after {
-            content: '';
-            position: absolute;
-            width: 25px;
-            height: 25px;
-            border: 3px solid var(--gold);
-            border-radius: 50%;
-            border-top-color: transparent;
-            border-left-color: transparent;
-            animation: rotate 8s linear infinite;
-        }
-
-        .infinity-symbol::before {
-            top: 0;
-            left: 0;
-            transform: rotate(45deg);
-            animation-delay: 0s;
-        }
-
-        .infinity-symbol::after {
-            bottom: 0;
-            right: 0;
-            transform: rotate(225deg);
-            animation-delay: -4s;
-        }
-
-        .circuit-lines {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-
-        .circuit-line {
-            position: absolute;
-            background: var(--gold);
-            opacity: 0.6;
-        }
-
-        .circuit-line:nth-child(1) {
-            top: 20%;
-            left: 10%;
-            width: 15px;
-            height: 2px;
-            transform: rotate(30deg);
-        }
-
-        .circuit-line:nth-child(2) {
-            top: 30%;
-            right: 15%;
-            width: 12px;
-            height: 2px;
-            transform: rotate(-45deg);
-        }
-
-        .circuit-line:nth-child(3) {
-            bottom: 25%;
-            left: 20%;
-            width: 18px;
-            height: 2px;
-            transform: rotate(15deg);
-        }
-
-        .circuit-line:nth-child(4) {
-            bottom: 15%;
-            right: 10%;
-            width: 10px;
-            height: 2px;
-            transform: rotate(-60deg);
-        }
-
-        .circuit-line:nth-child(5) {
-            top: 45%;
-            left: 5%;
-            width: 8px;
-            height: 2px;
-            transform: rotate(75deg);
-        }
-
-        .circuit-pad {
-            position: absolute;
-            width: 4px;
-            height: 4px;
-            background: var(--gold);
-            border-radius: 50%;
-            opacity: 0.8;
-        }
-
-        .circuit-pad:nth-child(6) { top: 15%; left: 25%; }
-        .circuit-pad:nth-child(7) { top: 35%; right: 20%; }
-        .circuit-pad:nth-child(8) { bottom: 40%; left: 15%; }
-        .circuit-pad:nth-child(9) { bottom: 20%; right: 30%; }
-
-        .logo-glow {
-            position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0) 70%);
-            animation: glowPulse 3s ease-in-out infinite;
-            z-index: -1;
-        }
-
-        @keyframes rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes glowPulse {
-            0%, 100% { opacity: 0.5; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
         }
 
         .countdown-section {
@@ -274,7 +134,6 @@
             font-weight: 600;
             color: var(--gold);
             letter-spacing: 1px;
-            text-shadow: 0 0 8px rgba(212,175,55,0.3);
         }
 
         .claim-btn {
@@ -287,12 +146,6 @@
             font-weight: 600;
             margin: 20px 0;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(212,175,55,0.3);
-        }
-
-        .claim-btn:active {
-            transform: scale(0.95);
         }
 
         /* NAVIGATION SYSTEM */
@@ -321,11 +174,9 @@
             font-size: 10px;
             font-weight: 600;
             flex: 1;
-            transition: all 0.3s ease;
             padding: 8px 2px;
             border-radius: 8px;
             margin: 0 1px;
-            min-width: 0;
         }
 
         .nav-item.active {
@@ -343,20 +194,13 @@
             width: 50%;
             height: 3px;
             background: var(--gold);
-            border-radius: 0 0 2px 2px;
         }
 
         .nav-text {
             margin-top: 4px;
-            letter-spacing: 0.3px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
             text-align: center;
         }
 
-        /* SPACING FOR BOTTOM NAV */
         .content-wrapper {
             padding-bottom: 70px;
             width: 100%;
@@ -364,80 +208,25 @@
             display: flex;
             flex-direction: column;
         }
-
-        /* RESPONSIVE ADJUSTMENTS */
-        @media (min-width: 400px) {
-            .header {
-                padding: 18px 20px;
-            }
-            
-            .header-title {
-                font-size: 20px;
-            }
-            
-            .nav-item {
-                font-size: 11px;
-                padding: 8px 4px;
-            }
-            
-            .bottom-nav {
-                padding: 12px 10px;
-                gap: 8px;
-            }
-        }
-
-        @media (min-width: 768px) {
-            body {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                background: var(--dark-bg);
-            }
-            
-            .container {
-                border-left: 1px solid var(--border-color);
-                border-right: 1px solid var(--border-color);
-                min-height: 100vh;
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="content-wrapper">
-            <!-- HEADER SECTION -->
             <header class="header">
                 <div class="header-title">〽️ NEMEXCOIN</div>
                 <div class="settings-icon">⚙️</div>
             </header>
 
-            <!-- MAIN CONTENT AREA -->
             <main class="main-content">
                 <div class="balance-display">
                     <div class="balance-label">Your Balance</div>
                     <div class="balance-amount">00</div>
                 </div>
 
-                <!-- NEMEXCOIN LOGO -->
                 <div class="nemex-logo">
                     <div class="logo-container">
-                        <div class="logo-base">
-                            <div class="logo-center">
-                                <div class="infinity-symbol"></div>
-                            </div>
-                            <div class="circuit-lines">
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-pad"></div>
-                                <div class="circuit-pad"></div>
-                                <div class="circuit-pad"></div>
-                                <div class="circuit-pad"></div>
-                            </div>
-                        </div>
-                        <div class="logo-glow"></div>
+                        <div class="logo-base"></div>
                     </div>
                 </div>
 
@@ -450,7 +239,6 @@
             </main>
         </div>
 
-        <!-- NAVIGATION SYSTEM -->
         <nav class="bottom-nav">
             <a href="index.html" class="nav-item active">
                 <span class="nav-text">MINING</span>
@@ -471,40 +259,10 @@
     </div>
 
     <script>
-        // Simple countdown timer for demonstration
-        function updateCountdown() {
-            document.querySelector('.countdown-timer').textContent = '00:00:00';
-        }
-
-        // Update countdown every second
-        setInterval(updateCountdown, 1000);
-        
-        // Initialize countdown
-        updateCountdown();
-
-        // Navigation active state handling
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function(e) {
-                e.preventDefault();
-                document.querySelectorAll('.nav-item').forEach(nav => {
-                    nav.classList.remove('active');
-                });
-                this.classList.add('active');
-                
-                // Show alert for demo (remove this in production)
-                const pageName = this.querySelector('.nav-text').textContent;
-                if(pageName !== 'MINING') {
-                    alert(`This would navigate to ${pageName} page. In a real app, this would load the actual page.`);
-                }
-            });
-        });
-
-        // Claim button functionality
         document.querySelector('.claim-btn').addEventListener('click', function() {
             alert('30 NMX claimed!');
         });
 
-        // Settings icon functionality
         document.querySelector('.settings-icon').addEventListener('click', function() {
             alert('Settings menu would open here');
         });
