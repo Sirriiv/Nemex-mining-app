@@ -259,7 +259,7 @@
 <body>
     <div class="container">
         <div class="logo">
-            <a href="/"> <!-- ✅ ROUTE-BASED: Changed to / -->
+            <a href="index.html">
                 <span>✨</span> NEMEXCOIN
             </a>
         </div>
@@ -278,7 +278,7 @@
                 </div>
 
                 <div class="forgot-password">
-                    <a href="#">Forgot password?</a>
+                    <a href="#" id="forgotPassword">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="btn" id="loginBtn">
@@ -299,32 +299,62 @@
             </button>
 
             <div class="switch">
-                Don't have an account? <a href="/register">Sign up</a> <!-- ✅ ROUTE-BASED: Changed to /register -->
+                Don't have an account? <a href="register.html">Sign up</a>
             </div>
 
             <div class="demo-accounts">
-                <h4>💡 Demo Accounts (for testing)</h4>
+                <h4>💡 Test Account</h4>
                 <div class="demo-account">
                     <span>Email:</span>
-                    <span>test@nemexcoin.com</span>
+                    <span>your-test@email.com</span>
                 </div>
                 <div class="demo-account">
                     <span>Password:</span>
-                    <span>123456</span>
+                    <span>Create your own!</span>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Include Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase-config.js"></script>
+    
     <script>
-        // ✅ ROUTE-BASED: Use your actual backend URL
-        const API_BASE = 'https://nemex-backend.onrender.com';
-
         // Check if user is already logged in
-        if (localStorage.getItem('isLoggedIn') === 'true') {
-            window.location.href = '/dashboard'; // ✅ ROUTE-BASED: Changed to /dashboard
+        async function checkExistingSession() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                console.log('User already logged in, redirecting...');
+                window.location.href = 'index.html';
+            }
         }
 
+        // Login function
+        async function loginUser(email, password) {
+            try {
+                console.log('Attempting login...');
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
+                if (error) {
+                    console.error('Login error:', error);
+                    throw error;
+                }
+
+                console.log('Login successful:', data);
+                return data;
+
+            } catch (error) {
+                console.error('Login failed:', error);
+                throw error;
+            }
+        }
+
+        // Form submission
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -340,36 +370,32 @@
             loginLoading.style.display = 'block';
 
             try {
-                const response = await fetch(`${API_BASE}/api/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password
-                    })
-                });
+                // Login user with Supabase
+                const result = await loginUser(email, password);
 
-                const data = await response.json();
-
-                if (response.ok && data.success) {
-                    // Store user data in localStorage
-                    localStorage.setItem('userId', data.user.user_id);
-                    localStorage.setItem('userName', data.user.name);
-                    localStorage.setItem('userEmail', data.user.email);
-                    localStorage.setItem('userBalance', data.user.balance);
+                if (result.user) {
+                    console.log('✅ Login successful, redirecting to dashboard...');
+                    
+                    // Store user session
+                    localStorage.setItem('userEmail', result.user.email);
+                    localStorage.setItem('userId', result.user.id);
                     localStorage.setItem('isLoggedIn', 'true');
-
+                    
                     // Redirect to dashboard
-                    window.location.href = '/dashboard'; // ✅ ROUTE-BASED: Changed to /dashboard
-                } else {
-                    errorElement.textContent = data.error || 'Invalid email or password';
-                    errorElement.style.display = 'block';
+                    window.location.href = 'index.html';
                 }
+
             } catch (error) {
                 console.error('Login error:', error);
-                errorElement.textContent = 'Network error. Please check your connection and try again.';
+                
+                if (error.message.includes('Invalid login credentials')) {
+                    errorElement.textContent = '❌ Invalid email or password. Please try again.';
+                } else if (error.message.includes('Email not confirmed')) {
+                    errorElement.textContent = '❌ Please verify your email address before logging in.';
+                } else {
+                    errorElement.textContent = '❌ Login failed: ' + error.message;
+                }
+                
                 errorElement.style.display = 'block';
             } finally {
                 loginBtn.disabled = false;
@@ -377,11 +403,24 @@
             }
         });
 
-        // Demo account auto-fill for testing
+        // Forgot password
+        document.getElementById('forgotPassword').addEventListener('click', async function(e) {
+            e.preventDefault();
+            const email = prompt('Please enter your email address to reset your password:');
+            
+            if (email) {
+                const { error } = await supabase.auth.resetPasswordForEmail(email);
+                if (error) {
+                    alert('Error sending reset email: ' + error.message);
+                } else {
+                    alert('Password reset email sent! Please check your inbox.');
+                }
+            }
+        });
+
+        // Check for existing session on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Auto-fill demo account for easy testing
-            document.getElementById('email').value = 'test@nemexcoin.com';
-            document.getElementById('password').value = '123456';
+            checkExistingSession();
         });
 
         // Enter key support
