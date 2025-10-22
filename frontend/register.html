@@ -4,98 +4,185 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - NemexCoin</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
-        :root {
-            --dark-bg: #0f0f1a;
-            --darker-bg: #050508;
-            --gold: #FFD700;
-            --gold-dark: #b8941f;
-            --text: #ffffff;
-            --error: #ff4444;
-            --success: #00C851;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: var(--dark-bg);
-            color: var(--text);
+        .auth-container {
             min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
             padding: 20px;
         }
 
-        .container {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .card {
+        .auth-card {
             background: var(--darker-bg);
             padding: 40px;
             border-radius: 20px;
             border: 1px solid rgba(255, 215, 0, 0.3);
-            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 440px;
+            backdrop-filter: blur(10px);
         }
 
-        .card h2 {
-            color: var(--gold);
+        .auth-header {
+            text-align: center;
             margin-bottom: 30px;
         }
 
-        .input {
+        .auth-logo {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .auth-title {
+            color: var(--gold);
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .form-input {
             width: 100%;
             padding: 15px;
-            margin: 10px 0;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             color: var(--text);
+            font-size: 1em;
+            transition: all 0.3s ease;
         }
 
-        .btn {
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+        }
+
+        .auth-btn {
             width: 100%;
             padding: 15px;
-            background: var(--gold);
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
             color: var(--darker-bg);
             border: none;
             border-radius: 10px;
+            font-size: 1.1em;
             font-weight: 600;
             cursor: pointer;
-            margin: 10px 0;
+            transition: all 0.3s ease;
+            margin-top: 10px;
         }
 
-        .error {
-            color: var(--error);
-            margin: 10px 0;
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
         }
 
-        .success {
+        .auth-btn:active {
+            transform: translateY(0);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .auth-link {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .auth-link:hover {
+            text-decoration: underline;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
             color: var(--success);
-            margin: 10px 0;
+        }
+
+        .message.error {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        .message.info {
+            background: rgba(255, 215, 0, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h2>Create Account</h2>
-            
-            <input type="text" class="input" id="name" placeholder="Full Name">
-            <input type="email" class="input" id="email" placeholder="Email">
-            <input type="password" class="input" id="password" placeholder="Password (min 6 chars)">
-            
-            <button class="btn" id="registerBtn">Create Account</button>
-            
-            <div id="result"></div>
-            <div><a href="login.html" style="color: var(--gold);">Already have an account? Login</a></div>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">🪙</div>
+                <h1 class="auth-title">Create Account</h1>
+                <p class="auth-subtitle">Join NemexCoin and start earning today</p>
+            </div>
+
+            <form id="registerForm">
+                <div class="input-group">
+                    <label class="input-label" for="name">Full Name</label>
+                    <input type="text" class="form-input" id="name" placeholder="Enter your full name" required>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="email">Email Address</label>
+                    <input type="email" class="form-input" id="email" placeholder="Enter your email" required>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="password">Password</label>
+                    <input type="password" class="form-input" id="password" placeholder="Create a password (min 6 characters)" minlength="6" required>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="confirmPassword">Confirm Password</label>
+                    <input type="password" class="form-input" id="confirmPassword" placeholder="Confirm your password" minlength="6" required>
+                </div>
+
+                <button type="submit" class="auth-btn" id="registerBtn">
+                    <span id="btnText">Create Account</span>
+                    <div id="btnSpinner" class="btn-spinner" style="display: none;"></div>
+                </button>
+
+                <div id="message"></div>
+            </form>
+
+            <div class="auth-footer">
+                <p>Already have an account? <a href="login.html" class="auth-link">Sign In</a></p>
+            </div>
         </div>
     </div>
 
@@ -104,40 +191,107 @@
     <script src="js/supabase-config.js"></script>
     
     <script>
-        document.getElementById('registerBtn').addEventListener('click', async function() {
+        console.log('🔍 Testing Supabase availability...');
+        console.log('Supabase lib:', typeof window.supabase);
+        console.log('Supabase client:', window.supabaseClient);
+        
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const result = document.getElementById('result');
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const messageDiv = document.getElementById('message');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const registerBtn = document.getElementById('registerBtn');
             
-            result.innerHTML = '🔄 Registering...';
+            // Validation
+            if (password !== confirmPassword) {
+                showMessage('Passwords do not match', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showMessage('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            // Show loading state
+            registerBtn.disabled = true;
+            btnText.textContent = 'Creating Account...';
+            btnSpinner.style.display = 'inline-block';
             
             try {
-                console.log('Testing Supabase:', window.supabaseClient);
-                console.log('Testing Auth:', window.supabaseClient?.auth);
+                console.log('🔄 Attempting registration...');
+                console.log('Supabase client available:', !!window.supabaseClient);
                 
-                if (!window.supabaseClient || !window.supabaseClient.auth) {
-                    throw new Error('Supabase not loaded properly');
+                if (!window.supabaseClient) {
+                    throw new Error('Supabase client not initialized. Please refresh the page.');
                 }
-
+                
                 const { data, error } = await window.supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                     options: {
                         data: {
-                            name: name
+                            full_name: name,
+                            created_at: new Date().toISOString()
                         }
                     }
                 });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Registration error:', error);
+                    throw error;
+                }
 
-                result.innerHTML = '✅ Success! Check your email for verification.';
-                console.log('Registration data:', data);
-
+                console.log('Registration success:', data);
+                
+                if (data.user) {
+                    showMessage('✅ Account created successfully! Please check your email for verification.', 'success');
+                    // Clear form
+                    document.getElementById('registerForm').reset();
+                    
+                    // Redirect to login after delay
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
+                }
+                
             } catch (error) {
-                result.innerHTML = `❌ Error: ${error.message}`;
-                console.error('Registration error:', error);
+                console.error('Registration failed:', error);
+                showMessage(`❌ ${error.message}`, 'error');
+            } finally {
+                // Reset button state
+                registerBtn.disabled = false;
+                btnText.textContent = 'Create Account';
+                btnSpinner.style.display = 'none';
+            }
+        });
+        
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+        }
+        
+        // Password match validation
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
+            const messageDiv = document.getElementById('message');
+            
+            if (confirmPassword && password !== confirmPassword) {
+                messageDiv.innerHTML = '⚠️ Passwords do not match';
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+            } else if (confirmPassword && password === confirmPassword) {
+                messageDiv.innerHTML = '✅ Passwords match';
+                messageDiv.className = 'message success';
+                messageDiv.style.display = 'block';
             }
         });
     </script>
