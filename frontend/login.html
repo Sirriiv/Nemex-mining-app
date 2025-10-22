@@ -4,221 +4,314 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - NemexCoin</title>
-    <link rel="stylesheet" href="styles.css">
     <style>
-        .auth-container {
+        :root {
+            --dark-bg: #0f0f1a;
+            --darker-bg: #050508;
+            --gold: #FFD700;
+            --gold-dark: #b8941f;
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+            --muted: #888888;
+            --error: #ff4444;
+            --success: #00C851;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: var(--dark-bg);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+            align-items: center;
             padding: 20px;
         }
 
-        .auth-card {
+        .container {
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo a {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--gold);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .card {
             background: var(--darker-bg);
             padding: 40px;
             border-radius: 20px;
             border: 1px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 440px;
-            backdrop-filter: blur(10px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         }
 
-        .auth-header {
+        .card h2 {
             text-align: center;
+            font-size: 28px;
             margin-bottom: 30px;
-        }
-
-        .auth-logo {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-        }
-
-        .auth-title {
             color: var(--gold);
-            font-size: 1.8em;
-            margin-bottom: 10px;
         }
 
-        .auth-subtitle {
-            color: var(--text-secondary);
-            font-size: 0.9em;
-        }
-
-        .input-group {
+        .form-group {
             margin-bottom: 20px;
         }
 
-        .input-label {
-            display: block;
-            margin-bottom: 8px;
-            color: var(--text);
-            font-weight: 500;
-        }
-
-        .form-input {
+        .input {
             width: 100%;
-            padding: 15px;
+            padding: 15px 20px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            border-radius: 12px;
             color: var(--text);
-            font-size: 1em;
-            transition: all 0.3s ease;
+            font-size: 16px;
+            transition: all 0.3s;
         }
 
-        .form-input:focus {
+        .input:focus {
             outline: none;
             border-color: var(--gold);
-            box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.2);
+            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
         }
 
-        .auth-btn {
+        .input::placeholder {
+            color: var(--muted);
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 25px;
+        }
+
+        .forgot-password a {
+            color: var(--gold);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
+        .btn {
             width: 100%;
             padding: 15px;
             background: linear-gradient(135deg, var(--gold), var(--gold-dark));
             color: var(--darker-bg);
             border: none;
-            border-radius: 10px;
-            font-size: 1.1em;
+            border-radius: 12px;
+            font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 10px;
+            transition: all 0.3s;
         }
 
-        .auth-btn:hover {
+        .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(255, 215, 0, 0.3);
+            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
         }
 
-        .auth-btn:active {
-            transform: translateY(0);
+        .btn:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
-        .auth-footer {
+        .divider {
             text-align: center;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 30px 0;
+            color: var(--muted);
+            position: relative;
         }
 
-        .auth-link {
+        .divider::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider span {
+            background: var(--darker-bg);
+            padding: 0 20px;
+            font-size: 14px;
+        }
+
+        .social-btn {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .social-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--gold);
+        }
+
+        .social-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .switch {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--text-secondary);
+        }
+
+        .switch a {
             color: var(--gold);
             text-decoration: none;
-            font-weight: 500;
+            font-weight: 600;
         }
 
-        .auth-link:hover {
+        .switch a:hover {
             text-decoration: underline;
         }
 
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            margin: 15px 0;
-            text-align: center;
-            font-weight: 500;
-        }
-
-        .message.success {
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-        }
-
-        .message.error {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid var(--error);
+        .error-message {
             color: var(--error);
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
         }
 
-        .forgot-password {
-            text-align: right;
-            margin-bottom: 20px;
+        .success-message {
+            color: var(--success);
+            font-size: 14px;
+            margin-top: 8px;
+            display: none;
         }
 
-        .forgot-link {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.9em;
-        }
-
-        .forgot-link:hover {
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 15px;
             color: var(--gold);
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 30px 20px;
+            }
+
+            .container {
+                padding: 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <div class="auth-logo">🪙</div>
-                <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Sign in to your NemexCoin account</p>
-            </div>
+    <div class="container">
+        <div class="logo">
+            <a href="index.html">
+                <span>✨</span> NEMEXCOIN
+            </a>
+        </div>
+
+        <div class="card">
+            <h2>Welcome Back</h2>
 
             <form id="loginForm">
-                <div class="input-group">
-                    <label class="input-label" for="email">Email Address</label>
-                    <input type="email" class="form-input" id="email" placeholder="Enter your email" required>
+                <div class="form-group">
+                    <input type="email" class="input" id="email" placeholder="Email Address" required>
                 </div>
 
-                <div class="input-group">
-                    <label class="input-label" for="password">Password</label>
-                    <input type="password" class="form-input" id="password" placeholder="Enter your password" required>
+                <div class="form-group">
+                    <input type="password" class="input" id="password" placeholder="Password" required>
+                    <div class="error-message" id="loginError"></div>
                 </div>
 
                 <div class="forgot-password">
-                    <a href="#" class="forgot-link">Forgot Password?</a>
+                    <a href="#" id="forgotPassword">Forgot password?</a>
                 </div>
 
-                <button type="submit" class="auth-btn" id="loginBtn">
-                    <span id="btnText">Sign In</span>
-                    <div id="btnSpinner" class="btn-spinner" style="display: none;"></div>
+                <button type="submit" class="btn" id="loginBtn">
+                    Sign In
                 </button>
 
-                <div id="message"></div>
+                <div class="loading" id="loginLoading">
+                    🔄 Signing you in...
+                </div>
             </form>
 
-            <div class="auth-footer">
-                <p>Don't have an account? <a href="register.html" class="auth-link">Create Account</a></p>
+            <div class="divider">
+                <span>OR CONTINUE WITH</span>
+            </div>
+
+            <button class="social-btn" disabled>
+                <span>🔍</span> Continue with Google
+            </button>
+
+            <div class="switch">
+                Don't have an account? <a href="register.html">Sign up</a>
             </div>
         </div>
     </div>
 
-    <!-- Load Supabase FIRST -->
+    <!-- Include Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     
     <script>
-        console.log('🔍 Testing Supabase availability...');
-        console.log('Supabase lib:', typeof window.supabase);
-        console.log('Supabase client:', window.supabaseClient);
-        
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const messageDiv = document.getElementById('message');
-            const btnText = document.getElementById('btnText');
-            const btnSpinner = document.getElementById('btnSpinner');
-            const loginBtn = document.getElementById('loginBtn');
-            
-            // Show loading state
-            loginBtn.disabled = true;
-            btnText.textContent = 'Signing In...';
-            btnSpinner.style.display = 'inline-block';
-            
+        // Check if user is already logged in
+        async function checkExistingSession() {
             try {
-                console.log('🔄 Attempting login...');
-                console.log('Supabase client available:', !!window.supabaseClient);
+                if (!window.supabaseClient) {
+                    console.error('Supabase client not available');
+                    return;
+                }
+                
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                if (session) {
+                    console.log('User already logged in, redirecting...');
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (error) {
+                console.error('Session check error:', error);
+            }
+        }
+
+        // Login function
+        async function loginUser(email, password) {
+            try {
+                console.log('Attempting login...');
                 
                 if (!window.supabaseClient) {
-                    throw new Error('Supabase client not initialized. Please refresh the page.');
+                    throw new Error('Supabase client not initialized');
                 }
                 
                 const { data, error } = await window.supabaseClient.auth.signInWithPassword({
@@ -231,32 +324,97 @@
                     throw error;
                 }
 
-                console.log('Login success:', data);
-                
-                showMessage('✅ Login successful! Redirecting...', 'success');
-                
-                // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = 'index.html';
-                }, 1000);
-                
+                console.log('Login successful:', data);
+                return data;
+
             } catch (error) {
                 console.error('Login failed:', error);
-                showMessage(`❌ ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        // Form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginLoading = document.getElementById('loginLoading');
+            const errorElement = document.getElementById('loginError');
+
+            // Reset error
+            errorElement.style.display = 'none';
+            loginBtn.disabled = true;
+            loginLoading.style.display = 'block';
+
+            try {
+                // Check if Supabase is available
+                if (!window.supabaseClient) {
+                    throw new Error('Supabase is not loaded properly. Please refresh the page.');
+                }
+
+                // Login user with Supabase
+                const result = await loginUser(email, password);
+
+                if (result.user) {
+                    console.log('✅ Login successful, redirecting to dashboard...');
+                    
+                    // Store user session
+                    localStorage.setItem('userEmail', result.user.email);
+                    localStorage.setItem('userId', result.user.id);
+                    localStorage.setItem('isLoggedIn', 'true');
+                    
+                    // Redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                }
+
+            } catch (error) {
+                console.error('Login error:', error);
+                
+                if (error.message.includes('Invalid login credentials')) {
+                    errorElement.textContent = '❌ Invalid email or password. Please try again.';
+                } else if (error.message.includes('Email not confirmed')) {
+                    errorElement.textContent = '❌ Please verify your email address before logging in.';
+                } else {
+                    errorElement.textContent = '❌ Login failed: ' + error.message;
+                }
+                
+                errorElement.style.display = 'block';
             } finally {
-                // Reset button state
                 loginBtn.disabled = false;
-                btnText.textContent = 'Sign In';
-                btnSpinner.style.display = 'none';
+                loginLoading.style.display = 'none';
             }
         });
-        
-        function showMessage(text, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.innerHTML = text;
-            messageDiv.className = `message ${type}`;
-            messageDiv.style.display = 'block';
-        }
+
+        // Forgot password
+        document.getElementById('forgotPassword').addEventListener('click', async function(e) {
+            e.preventDefault();
+            const email = prompt('Please enter your email address to reset your password:');
+            
+            if (email && window.supabaseClient) {
+                const { error } = await window.supabaseClient.auth.resetPasswordForEmail(email);
+                if (error) {
+                    alert('Error sending reset email: ' + error.message);
+                } else {
+                    alert('Password reset email sent! Please check your inbox.');
+                }
+            }
+        });
+
+        // Check for existing session on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, checking Supabase...');
+            console.log('Supabase client:', window.supabaseClient);
+            checkExistingSession();
+        });
+
+        // Enter key support
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+            }
+        });
     </script>
 </body>
 </html>
