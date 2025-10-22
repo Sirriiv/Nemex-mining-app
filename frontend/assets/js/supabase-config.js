@@ -2,50 +2,77 @@
 const SUPABASE_URL = 'https://bjulifvbfogymoduxnzl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
-// Initialize Supabase
+// Initialize Supabase properly
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Export for use in other files
+window.supabaseClient = supabase;
+
+console.log('✅ Supabase initialized successfully');
 
 // Supabase Functions
 async function getUserBalance(userId) {
-    const { data, error } = await supabase
-        .from('users')
-        .select('balance')
-        .eq('id', userId)
-        .single();
-    
-    if (error) {
-        console.error('Error fetching balance:', error);
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('balance')
+            .eq('id', userId)
+            .single();
+        
+        if (error) {
+            console.error('Error fetching balance:', error);
+            return 0;
+        }
+        
+        return data?.balance || 0;
+    } catch (error) {
+        console.error('Error in getUserBalance:', error);
         return 0;
     }
-    
-    return data.balance;
 }
 
 async function updateUserBalance(userId, newBalance) {
-    const { error } = await supabase
-        .from('users')
-        .update({ balance: newBalance })
-        .eq('id', userId);
-    
-    if (error) {
-        console.error('Error updating balance:', error);
+    try {
+        const { error } = await supabase
+            .from('users')
+            .update({ 
+                balance: newBalance,
+                last_claim: new Date().toISOString()
+            })
+            .eq('id', userId);
+        
+        if (error) {
+            console.error('Error updating balance:', error);
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error in updateUserBalance:', error);
         return false;
     }
-    
-    return true;
 }
 
 async function saveClaimHistory(userId, amount) {
-    const { error } = await supabase
-        .from('claim_history')
-        .insert([
-            { user_id: userId, amount: amount, claimed_at: new Date() }
-        ]);
-    
-    if (error) {
-        console.error('Error saving claim history:', error);
+    try {
+        const { error } = await supabase
+            .from('claim_history')
+            .insert([
+                { 
+                    user_id: userId, 
+                    amount: amount, 
+                    claimed_at: new Date().toISOString() 
+                }
+            ]);
+        
+        if (error) {
+            console.error('Error saving claim history:', error);
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error in saveClaimHistory:', error);
         return false;
     }
-    
-    return true;
 }
