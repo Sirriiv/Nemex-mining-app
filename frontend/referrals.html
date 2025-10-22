@@ -13,6 +13,7 @@
             --muted: #aaa; 
             --bg-secondary: #1a1a1a;
             --border-color: #333333;
+            --success: #00C851;
         }
 
         * { 
@@ -50,10 +51,11 @@
             background-color: var(--dark-bg);
         }
 
-        .settings-icon {
+        .back-btn {
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
+            text-decoration: none;
         }
 
         .header-title {
@@ -62,150 +64,196 @@
             color: var(--gold);
         }
 
-        .main-content {
-            flex: 1;
+        .content-wrapper {
             padding: 20px;
+            flex: 1;
+            overflow-y: auto;
         }
 
-        .page-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 20px;
-            text-align: center;
+        .referral-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
         }
 
-        .page-subtitle {
-            font-size: 16px;
-            color: var(--muted);
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .referral-stats {
+        .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
-        .card { 
-            background: var(--darker-bg); 
-            padding: 20px; 
-            border-radius: 10px; 
-            border: 1px solid #333; 
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
         }
 
-        .card-title {
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .referral-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .referral-title {
             font-size: 18px;
             font-weight: 600;
-            color: var(--text);
             margin-bottom: 10px;
-        }
-
-        .card-value {
-            font-size: 24px;
-            font-weight: 700;
             color: var(--gold);
         }
 
-        .referral-code {
-            background: var(--darker-bg);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
+        .referral-desc {
+            color: var(--muted);
+            font-size: 14px;
             margin-bottom: 20px;
-            border: 1px solid #333;
+            line-height: 1.5;
         }
 
-        .code-display {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-            margin: 15px 0;
-            letter-spacing: 2px;
+        .referral-link-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        .btn {
-            width: 100%; 
-            padding: 12px; 
-            background: var(--gold); 
-            border: none; 
-            border-radius: 5px; 
-            font-weight: 600; 
-            cursor: pointer; 
+        .referral-link {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            background: var(--gold);
             color: var(--darker-bg);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #b8941f;
+        }
+
+        .share-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .share-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .share-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
+        .bonus-info {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .referrals-list {
+            margin-top: 25px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--gold);
         }
 
         .referral-item {
-            background: var(--darker-bg);
+            display: flex;
+            align-items: center;
             padding: 15px;
-            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid #333;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
         }
 
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
+        .referral-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), #b8941f);
             display: flex;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: var(--darker-bg);
+            font-weight: 600;
         }
 
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
+        .referral-info {
+            flex: 1;
+        }
+
+        .referral-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .referral-date {
             color: var(--muted);
+            font-size: 11px;
+        }
+
+        .referral-status {
+            background: var(--success);
+            color: var(--darker-bg);
+            padding: 4px 8px;
+            border-radius: 8px;
             font-size: 10px;
             font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
-            border-radius: 8px;
-            margin: 0 1px;
-        }
-
-        .nav-item.active {
-            color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
-        }
-
-        .nav-text {
-            margin-top: 4px;
-            text-align: center;
-        }
-
-        .content-wrapper {
-            padding-bottom: 70px;
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
         }
     </style>
 </head>
@@ -213,55 +261,130 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <div class="header-title">〽️ NEMEXCOIN</div>
-                <div class="settings-icon">⚙️</div>
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">👥 Referrals</div>
+                <div style="width: 20px;"></div>
             </header>
 
-            <main class="main-content">
-                <h1 class="page-title">Referral Program</h1>
-                <p class="page-subtitle">Earn 20% of your referrals' mining rewards</p>
-                
-                <div class="referral-stats">
-                    <div class="card">
-                        <div class="card-title">Total Referrals</div>
-                        <div class="card-value">12</div>
+            <div class="referral-section">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalReferrals">0</div>
+                        <div class="stat-label">Total Referrals</div>
                     </div>
-                    <div class="card">
-                        <div class="card-title">Earned</div>
-                        <div class="card-value">450 NMXp</div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalEarned">0</div>
+                        <div class="stat-label">Bonus Earned</div>
                     </div>
                 </div>
-                
-                <div class="referral-code">
-                    <div class="card-title">Your Referral Code</div>
-                    <div class="code-display">NEMEX-8X2K9</div>
-                    <button class="btn">Copy Link</button>
-                </div>
-            </main>
-        </div>
 
-        <nav class="bottom-nav">
-            <a href="index.html" class="nav-item">
-                <span class="nav-text">MINING</span>
-            </a>
-            <a href="tasks.html" class="nav-item">
-                <span class="nav-text">TASKS</span>
-            </a>
-            <a href="buynmxp.html" class="nav-item">
-                <span class="nav-text">BUY NMXp</span>
-            </a>
-            <a href="referrals.html" class="nav-item active">
-                <span class="nav-text">REFERRALS</span>
-            </a>
-            <a href="wallet.html" class="nav-item">
-                <span class="nav-text">WALLET</span>
-            </a>
-        </nav>
+                <div class="referral-card">
+                    <div class="referral-title">Invite Friends & Earn</div>
+                    <div class="referral-desc">
+                        Share your referral link and earn <strong>100 NMXp</strong> for each friend who signs up and starts mining!
+                    </div>
+
+                    <div class="referral-link-container">
+                        <input type="text" class="referral-link" id="referralLink" value="https://nemexcoin.com/ref/abc123xyz" readonly>
+                        <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
+                    </div>
+
+                    <div class="share-buttons">
+                        <button class="share-btn" onclick="shareWhatsApp()">
+                            📱 WhatsApp
+                        </button>
+                        <button class="share-btn" onclick="shareTelegram()">
+                            ✈️ Telegram
+                        </button>
+                        <button class="share-btn" onclick="shareTwitter()">
+                            🐦 Twitter
+                        </button>
+                        <button class="share-btn" onclick="shareEmail()">
+                            📧 Email
+                        </button>
+                    </div>
+
+                    <div class="bonus-info">
+                        🎉 Your friend also gets 50 NMXp bonus when they sign up using your link!
+                    </div>
+                </div>
+
+                <div class="referrals-list">
+                    <div class="section-title">Your Referrals</div>
+                    
+                    <div class="referral-item">
+                        <div class="referral-avatar">JD</div>
+                        <div class="referral-info">
+                            <div class="referral-name">John Doe</div>
+                            <div class="referral-date">Joined 2 days ago</div>
+                        </div>
+                        <div class="referral-status">Active</div>
+                    </div>
+
+                    <div class="referral-item">
+                        <div class="referral-avatar">SJ</div>
+                        <div class="referral-info">
+                            <div class="referral-name">Sarah Johnson</div>
+                            <div class="referral-date">Joined 1 week ago</div>
+                        </div>
+                        <div class="referral-status">Active</div>
+                    </div>
+
+                    <div class="referral-item">
+                        <div class="referral-avatar">MB</div>
+                        <div class="referral-info">
+                            <div class="referral-name">Mike Brown</div>
+                            <div class="referral-date">Joined 3 days ago</div>
+                        </div>
+                        <div class="referral-status">Pending</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.querySelector('.settings-icon').addEventListener('click', function() {
-            alert('Settings menu would open here');
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink');
+            referralLink.select();
+            referralLink.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            
+            alert('Referral link copied to clipboard!');
+        }
+
+        function shareWhatsApp() {
+            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral link: ${document.getElementById('referralLink').value}`;
+            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareTelegram() {
+            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral link: ${document.getElementById('referralLink').value}`;
+            const url = `https://t.me/share/url?url=${encodeURIComponent(document.getElementById('referralLink').value)}&text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareTwitter() {
+            const message = `Join me on NemexCoin and start earning NMX tokens! 🚀 ${document.getElementById('referralLink').value}`;
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareEmail() {
+            const subject = 'Join me on NemexCoin!';
+            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can sign up using my referral link: ${document.getElementById('referralLink').value}\n\nWe'll both get bonus NMXp when you join!`;
+            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = url;
+        }
+
+        // Load referral stats
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading stats - in real app, this would come from your database
+            setTimeout(() => {
+                document.getElementById('totalReferrals').textContent = '3';
+                document.getElementById('totalEarned').textContent = '300';
+            }, 500);
         });
     </script>
 </body>
