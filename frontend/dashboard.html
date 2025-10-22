@@ -265,6 +265,87 @@
             border: 1px solid var(--error);
             color: var(--error);
         }
+
+        /* Settings Modal */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .settings-content {
+            background: var(--darker-bg);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 15px;
+            border: 1px solid var(--gold);
+            overflow: hidden;
+        }
+
+        .settings-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            position: relative;
+        }
+
+        .settings-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .settings-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .settings-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .settings-item {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text);
+            text-decoration: none;
+            display: block;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item:hover {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+        }
+
+        .settings-item.logout {
+            color: #ff4444;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .settings-item.logout:hover {
+            background: rgba(255, 68, 68, 0.1);
+        }
     </style>
 </head>
 <body>
@@ -320,8 +401,25 @@
             </main>
         </div>
 
+        <!-- Settings Modal -->
+        <div class="settings-modal" id="settingsModal">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h2 class="settings-title">Settings</h2>
+                    <button class="settings-close" id="closeSettings">✕</button>
+                </div>
+                <div class="settings-list">
+                    <a href="profile.html" class="settings-item">👤 Profile</a>
+                    <a href="security.html" class="settings-item">🔒 Security</a>
+                    <a href="about.html" class="settings-item">ℹ️ About</a>
+                    <a href="support.html" class="settings-item">💬 Help & Support</a>
+                    <div class="settings-item logout" id="logoutButton">🚪 Log Out</div>
+                </div>
+            </div>
+        </div>
+
         <nav class="bottom-nav">
-            <a href="index.html" class="nav-item active">
+            <a href="#" class="nav-item active" id="miningTab">
                 <span class="nav-text">MINING</span>
             </a>
             <a href="tasks.html" class="nav-item">
@@ -372,7 +470,7 @@
         // Initialize navigation and settings
         function initializeNavigation() {
             // Fix mining tab navigation
-            const miningTab = document.querySelector('a[href="index.html"]');
+            const miningTab = document.getElementById('miningTab');
             if (miningTab) {
                 miningTab.addEventListener('click', function(e) {
                     e.preventDefault();
@@ -384,33 +482,41 @@
                 });
             }
 
-            // Settings functionality
+            // Settings modal functionality
             const settingsIcon = document.querySelector('.settings-icon');
-            if (settingsIcon) {
-                settingsIcon.addEventListener('click', function() {
-                    // Show settings options (you can replace this with a modal later)
-                    const choice = confirm('Settings Options:\n\n1. Profile\n2. Security\n3. About\n4. Help & Support\n5. Log Out\n\nClick OK for Log Out or Cancel to stay.');
-                    if (choice) {
-                        logoutUser();
-                    }
-                    // For now, we'll just show an alert. Later you can create a proper modal
-                    // alert('Settings menu will open here with:\n- Profile\n- Security\n- About\n- Help & Support\n- Log Out');
-                });
-            }
-        }
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettings = document.getElementById('closeSettings');
+            const logoutButton = document.getElementById('logoutButton');
 
-        // Logout function
-        async function logoutUser() {
-            try {
-                await supabaseClient.auth.signOut();
-                localStorage.removeItem('isLoggedIn');
-                localStorage.removeItem('userEmail');
-                localStorage.removeItem('userId');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('Logout error:', error);
-                alert('Error during logout. Please try again.');
-            }
+            // Open settings modal
+            settingsIcon.addEventListener('click', function() {
+                settingsModal.style.display = 'flex';
+            });
+
+            // Close settings modal
+            closeSettings.addEventListener('click', function() {
+                settingsModal.style.display = 'none';
+            });
+
+            // Close modal when clicking outside
+            settingsModal.addEventListener('click', function(e) {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+            });
+
+            // Logout functionality
+            logoutButton.addEventListener('click', async function() {
+                try {
+                    await supabaseClient.auth.signOut();
+                    localStorage.removeItem('isLoggedIn');
+                    localStorage.removeItem('userEmail');
+                    localStorage.removeItem('userId');
+                    window.location.href = 'login.html';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+            });
         }
 
         // Initialize dashboard
