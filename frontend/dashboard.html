@@ -277,7 +277,7 @@
 
             <main class="main-content">
                 <div class="connection-status" id="connectionStatus">Connecting to database...</div>
-                
+
                 <div class="balance-display">
                     <div class="balance-label">Your Balance</div>
                     <div class="balance-amount" id="balanceAmount">0</div>
@@ -312,10 +312,10 @@
                 </div>
 
                 <div class="loading" id="loadingIndicator">🔄 Processing...</div>
-                
+
                 <div class="message success-message" id="successMessage"></div>
                 <div class="message error-message" id="errorMessage"></div>
-                
+
                 <button class="claim-btn" id="claimButton" disabled>Claim 30 NMX Now!</button>
             </main>
         </div>
@@ -341,12 +341,12 @@
 
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <script>
         // Initialize Supabase
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        
+
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         // Global variables
@@ -366,7 +366,52 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Dashboard...');
             initializeDashboard();
+            initializeNavigation();
         });
+
+        // Initialize navigation and settings
+        function initializeNavigation() {
+            // Fix mining tab navigation
+            const miningTab = document.querySelector('a[href="index.html"]');
+            if (miningTab) {
+                miningTab.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // Just update active state, don't navigate
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                });
+            }
+
+            // Settings functionality
+            const settingsIcon = document.querySelector('.settings-icon');
+            if (settingsIcon) {
+                settingsIcon.addEventListener('click', function() {
+                    // Show settings options (you can replace this with a modal later)
+                    const choice = confirm('Settings Options:\n\n1. Profile\n2. Security\n3. About\n4. Help & Support\n5. Log Out\n\nClick OK for Log Out or Cancel to stay.');
+                    if (choice) {
+                        logoutUser();
+                    }
+                    // For now, we'll just show an alert. Later you can create a proper modal
+                    // alert('Settings menu will open here with:\n- Profile\n- Security\n- About\n- Help & Support\n- Log Out');
+                });
+            }
+        }
+
+        // Logout function
+        async function logoutUser() {
+            try {
+                await supabaseClient.auth.signOut();
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userId');
+                window.location.href = 'login.html';
+            } catch (error) {
+                console.error('Logout error:', error);
+                alert('Error during logout. Please try again.');
+            }
+        }
 
         // Initialize dashboard
         async function initializeDashboard() {
@@ -384,7 +429,7 @@
 
                 // Load user data
                 await loadUserData();
-                
+
                 // Start countdown timer
                 startCountdownTimer();
 
@@ -398,7 +443,7 @@
         async function loadUserData() {
             try {
                 console.log('📊 Loading user data...');
-                
+
                 // Get user profile
                 const { data: profile, error } = await supabaseClient
                     .from('profiles')
@@ -414,14 +459,14 @@
                 }
 
                 console.log('✅ User profile loaded:', profile);
-                
+
                 // Update balance with comma formatting
                 userBalance = parseFloat(profile.balance) || 0;
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
                 // Update last claim time
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
-                
+
                 console.log('💰 Balance:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
 
@@ -435,7 +480,7 @@
         async function createUserProfile() {
             try {
                 console.log('📝 Creating user profile...');
-                
+
                 const { data, error } = await supabaseClient
                     .from('profiles')
                     .insert([
@@ -508,7 +553,7 @@
 
                 countdownElement.textContent = 
                     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
+
                 countdownElement.style.color = '#d4af37';
                 claimBtn.disabled = true;
                 claimBtn.textContent = 'Claim 30 NMX Now!';
@@ -580,7 +625,7 @@
                 // Update UI with formatted number
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
                 showSuccess(`✅ Successfully claimed ${CLAIM_AMOUNT} NMX!`);
-                
+
                 console.log('✅ Claim successful, new balance:', userBalance);
 
                 // Restart countdown
@@ -589,7 +634,7 @@
             } catch (error) {
                 console.error('❌ Claim failed:', error);
                 showError('Failed to claim NMX. Please try again.');
-                
+
                 // Re-enable button if error
                 updateClaimButton();
             } finally {
@@ -612,19 +657,6 @@
         // Event Listeners
         document.getElementById('claimButton').addEventListener('click', claimNMX);
 
-        // Settings icon click (logout)
-        document.querySelector('.settings-icon').addEventListener('click', async function() {
-            try {
-                await supabaseClient.auth.signOut();
-                localStorage.removeItem('isLoggedIn');
-                localStorage.removeItem('userEmail');
-                localStorage.removeItem('userId');
-                window.location.href = 'login.html';
-            } catch (error) {
-                console.error('Logout error:', error);
-            }
-        });
-
         // Helper functions
         function showError(message) {
             const errorElement = document.getElementById('errorMessage');
@@ -636,7 +668,7 @@
             const successElement = document.getElementById('successMessage');
             successElement.textContent = message;
             successElement.style.display = 'block';
-            
+
             setTimeout(() => {
                 successElement.style.display = 'none';
             }, 3000);
