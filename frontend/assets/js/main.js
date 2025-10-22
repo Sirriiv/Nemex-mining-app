@@ -143,19 +143,3 @@ function initializeMiningDashboard() {
     // Load user data when page loads
     loadUserData();
 }
-
-// Navigation click handlers for all pages
-document.addEventListener('DOMContentLoaded', function() {
-    // Add click handlers to navigation items
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', function(e) {
-            // For demo purposes - in production this would navigate to the actual page
-            const pageName = this.querySelector('.nav-text').textContent;
-            if (pageName !== 'MINING') {
-                e.preventDefault();
-                alert(`This would navigate to ${pageName} page. In a real app, this would load the actual page.`);
-            }
-        });
-    });
-});
