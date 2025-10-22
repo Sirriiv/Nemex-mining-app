@@ -37,18 +37,18 @@
             margin: 0;
         }
 
-        /* HEADER SECTION */
+        /* HEADER SECTION - MATCHING SCREENSHOT */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 16px;
+            padding: 16px 20px;
             border-bottom: 1px solid var(--border-color);
             background-color: var(--bg-primary);
         }
 
         .settings-icon {
-            font-size: 24px;
+            font-size: 20px;
             color: var(--text-secondary);
             cursor: pointer;
             transition: color 0.2s ease;
@@ -59,9 +59,9 @@
         }
 
         .header-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
-            color: var(--gold);
+            color: var(--text-primary);
         }
 
         /* MAIN CONTENT AREA */
@@ -98,7 +98,7 @@
             text-shadow: 0 0 15px rgba(212,175,55,0.5);
         }
 
-        /* NEMEXCOIN LOGO - BIGGER SIZE */
+        /* NEMEXCOIN LOGO WITH ENHANCED GLOW */
         .nemex-logo {
             width: 200px;
             height: 200px;
@@ -113,7 +113,7 @@
             width: 180px;
             height: 180px;
             position: relative;
-            filter: drop-shadow(0 0 20px rgba(212,175,55,0.5));
+            filter: drop-shadow(0 0 25px rgba(212,175,55,0.7));
         }
 
         .logo-base {
@@ -124,7 +124,8 @@
             border: 4px solid var(--gold);
             position: relative;
             overflow: hidden;
-            box-shadow: inset 0 0 30px rgba(212,175,55,0.1), 0 0 40px rgba(212,175,55,0.3);
+            box-shadow: inset 0 0 40px rgba(212,175,55,0.2), 
+                        0 0 50px rgba(212,175,55,0.4);
         }
 
         .logo-center {
@@ -253,14 +254,26 @@
 
         .logo-glow {
             position: absolute;
-            top: -15px;
-            left: -15px;
-            right: -15px;
-            bottom: -15px;
+            top: -20px;
+            left: -20px;
+            right: -20px;
+            bottom: -20px;
             border-radius: 50%;
-            background: radial-gradient(circle, rgba(212,175,55,0.3) 0%, rgba(212,175,55,0) 70%);
+            background: radial-gradient(circle, rgba(212,175,55,0.4) 0%, rgba(212,175,55,0.1) 50%, rgba(212,175,55,0) 70%);
             animation: glowPulse 3s ease-in-out infinite;
             z-index: -1;
+        }
+
+        .logo-outer-glow {
+            position: absolute;
+            top: -40px;
+            left: -40px;
+            right: -40px;
+            bottom: -40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(212,175,55,0.2) 0%, rgba(212,175,55,0) 70%);
+            animation: outerGlowPulse 4s ease-in-out infinite;
+            z-index: -2;
         }
 
         @keyframes rotate {
@@ -269,8 +282,13 @@
         }
 
         @keyframes glowPulse {
-            0%, 100% { opacity: 0.5; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.05); }
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 0.9; transform: scale(1.05); }
+        }
+
+        @keyframes outerGlowPulse {
+            0%, 100% { opacity: 0.3; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
         }
 
         .countdown-section {
@@ -363,11 +381,11 @@
         /* RESPONSIVE ADJUSTMENTS */
         @media (min-width: 400px) {
             .header {
-                padding: 24px 20px;
+                padding: 18px 20px;
             }
             
             .header-title {
-                font-size: 22px;
+                font-size: 20px;
             }
             
             .balance-amount {
@@ -396,11 +414,10 @@
 </head>
 <body>
     <div class="content-wrapper">
-        <!-- HEADER SECTION -->
+        <!-- HEADER SECTION - MATCHING SCREENSHOT -->
         <header class="header">
+            <div class="header-title">NEMEXCOIN</div>
             <div class="settings-icon">⚙️</div>
-            <div class="header-title">〽️ NemexCoin</div>
-            <div style="width: 24px;"></div> <!-- Spacer for balance -->
         </header>
 
         <!-- MAIN CONTENT AREA -->
@@ -410,7 +427,7 @@
                 <div class="balance-amount">00</div>
             </div>
 
-            <!-- NEMEXCOIN LOGO - POSITIONED UNDER THE "00" -->
+            <!-- NEMEXCOIN LOGO WITH ENHANCED GLOW -->
             <div class="nemex-logo">
                 <div class="logo-container">
                     <div class="logo-base">
@@ -430,12 +447,13 @@
                         </div>
                     </div>
                     <div class="logo-glow"></div>
+                    <div class="logo-outer-glow"></div>
                 </div>
             </div>
 
             <div class="countdown-section">
                 <div class="countdown-label">Claim in</div>
-                <div class="countdown-timer">00:00:00</div>
+                <div class="countdown-timer">23:53:45</div>
             </div>
 
             <button class="claim-btn">30 NMXp</button>
@@ -464,9 +482,8 @@
     <script>
         // Simple countdown timer for demonstration
         function updateCountdown() {
-            // For demo purposes, we'll just show a static time
-            // In a real app, this would calculate time until next claim
-            document.querySelector('.countdown-timer').textContent = '00:00:00';
+            // For demo purposes, we'll use the time from the screenshot
+            document.querySelector('.countdown-timer').textContent = '23:53:45';
         }
 
         // Format balance with commas for thousands
@@ -476,8 +493,8 @@
 
         // Update balance display with formatted number
         function updateBalanceDisplay() {
-            // For demo, we'll use a sample large number
-            const sampleBalance = 1250; // Change this to test formatting
+            // For demo, we'll use the initial value from the screenshot
+            const sampleBalance = 0;
             const formattedBalance = formatBalance(sampleBalance);
             document.querySelector('.balance-amount').textContent = formattedBalance;
         }
