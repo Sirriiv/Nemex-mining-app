@@ -24,4 +24,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     setActiveNav();
+
+    // Claim button functionality for mining page
+    const claimBtn = document.querySelector('.claim-btn');
+    if (claimBtn) {
+        claimBtn.addEventListener('click', function() {
+            alert('30 NMX claimed!');
+        });
+    }
 });
