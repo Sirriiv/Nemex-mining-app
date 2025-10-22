@@ -272,14 +272,10 @@
 
     <!-- Include Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Include External Supabase Config -->
+    <script src="js/supabase-config.js"></script>
+    
     <script>
-        // Supabase Configuration - YOUR CREDENTIALS ADDED
-        const SUPABASE_URL = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        
-        // Initialize Supabase
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         // User session management (for demo - you'll need proper auth)
         let currentUserId = 'demo-user-123'; // Replace with actual user ID from auth
 
@@ -290,16 +286,16 @@
         function updateCountdown() {
             if (countdownTime > 0) {
                 countdownTime--;
-                
+
                 const hours = Math.floor(countdownTime / 3600);
                 const minutes = Math.floor((countdownTime % 3600) / 60);
                 const seconds = countdownTime % 60;
-                
+
                 const formattedTime = 
                     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
+
                 document.getElementById('countdownTimer').textContent = formattedTime;
-                
+
                 // Update button state
                 const claimButton = document.getElementById('claimButton');
                 if (countdownTime === 0) {
@@ -319,7 +315,7 @@
                 // For demo - you'll implement proper user loading
                 const balance = await getUserBalance(currentUserId);
                 document.getElementById('balanceAmount').textContent = balance;
-                
+
                 // Load last claim time and set countdown
                 // You'll implement this based on your database structure
             } catch (error) {
@@ -332,37 +328,37 @@
             if (canClaim) {
                 const claimButton = this;
                 const loadingIndicator = document.getElementById('loadingIndicator');
-                
+
                 try {
                     // Show loading
                     claimButton.disabled = true;
                     loadingIndicator.style.display = 'block';
-                    
+
                     // Get current balance
                     const currentBalance = parseInt(document.getElementById('balanceAmount').textContent) || 0;
                     const newBalance = currentBalance + 30;
-                    
+
                     // Update display immediately
                     document.getElementById('balanceAmount').textContent = newBalance;
-                    
+
                     // Save to Supabase
                     const success = await updateUserBalance(currentUserId, newBalance);
-                    
+
                     if (success) {
                         // Save claim history
                         await saveClaimHistory(currentUserId, 30);
-                        
+
                         // Reset countdown to 12 hours
                         countdownTime = 12 * 60 * 60;
                         canClaim = false;
-                        
+
                         alert('30 NMX claimed successfully! Next claim available in 12 hours.');
                     } else {
                         alert('Error saving to database. Please try again.');
                         // Revert balance display if save failed
                         document.getElementById('balanceAmount').textContent = currentBalance;
                     }
-                    
+
                 } catch (error) {
                     console.error('Error claiming NMX:', error);
                     alert('Error claiming NMX. Please try again.');
@@ -378,73 +374,6 @@
         document.querySelector('.settings-icon').addEventListener('click', function() {
             alert('Settings menu would open here');
         });
-
-        // Supabase Functions
-        async function getUserBalance(userId) {
-            try {
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('balance')
-                    .eq('id', userId)
-                    .single();
-                
-                if (error) {
-                    console.error('Error fetching balance:', error);
-                    return 0;
-                }
-                
-                return data.balance || 0;
-            } catch (error) {
-                console.error('Error in getUserBalance:', error);
-                return 0;
-            }
-        }
-
-        async function updateUserBalance(userId, newBalance) {
-            try {
-                const { error } = await supabase
-                    .from('users')
-                    .update({ 
-                        balance: newBalance,
-                        last_claim: new Date().toISOString()
-                    })
-                    .eq('id', userId);
-                
-                if (error) {
-                    console.error('Error updating balance:', error);
-                    return false;
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('Error in updateUserBalance:', error);
-                return false;
-            }
-        }
-
-        async function saveClaimHistory(userId, amount) {
-            try {
-                const { error } = await supabase
-                    .from('claim_history')
-                    .insert([
-                        { 
-                            user_id: userId, 
-                            amount: amount, 
-                            claimed_at: new Date().toISOString() 
-                        }
-                    ]);
-                
-                if (error) {
-                    console.error('Error saving claim history:', error);
-                    return false;
-                }
-                
-                return true;
-            } catch (error) {
-                console.error('Error in saveClaimHistory:', error);
-                return false;
-            }
-        }
 
         // Start the countdown timer
         setInterval(updateCountdown, 1000);
