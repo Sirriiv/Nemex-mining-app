@@ -88,10 +88,11 @@
         }
 
         .balance-amount {
-            font-size: 70px;
+            font-size: 42px; /* Reduced from 70px */
             font-weight: 700;
             color: var(--gold);
             line-height: 1;
+            font-family: 'Courier New', monospace; /* Better for numbers */
         }
 
         /* NemexCoin Logo */
@@ -238,6 +239,7 @@
             font-size: 12px;
             color: var(--muted);
             margin: 5px 0;
+            display: none; /* Hide the connection status */
         }
 
         /* Messages */
@@ -278,7 +280,7 @@
                 
                 <div class="balance-display">
                     <div class="balance-label">Your Balance</div>
-                    <div class="balance-amount" id="balanceAmount">00</div>
+                    <div class="balance-amount" id="balanceAmount">0</div>
                 </div>
 
                 <!-- NEMEXCOIN LOGO -->
@@ -314,7 +316,7 @@
                 <div class="message success-message" id="successMessage"></div>
                 <div class="message error-message" id="errorMessage"></div>
                 
-                <button class="claim-btn" id="claimButton" disabled>Claim 30 NMXp<button>
+                <button class="claim-btn" id="claimButton" disabled>Claim 30 NMX Now!</button>
             </main>
         </div>
 
@@ -353,7 +355,12 @@
         let lastClaimTime = null;
         let countdownInterval = null;
         const CLAIM_AMOUNT = 30;
-        const CLAIM_COOLDOWN = 10 * 60 * 1000; // 10 minutes in milliseconds
+        const CLAIM_COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+
+        // Format number with commas
+        function formatNumber(number) {
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
@@ -364,18 +371,14 @@
         // Initialize dashboard
         async function initializeDashboard() {
             try {
-                updateConnectionStatus('🔗 Checking authentication...');
-                
                 // Check if user is logged in
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) {
-                    updateConnectionStatus('❌ Not authenticated');
                     window.location.href = 'login.html';
                     return;
                 }
 
                 user = session.user;
-                updateConnectionStatus('✅ Connected to database');
 
                 console.log('👤 User:', user.id);
 
@@ -387,7 +390,6 @@
 
             } catch (error) {
                 console.error('❌ Dashboard initialization failed:', error);
-                updateConnectionStatus('❌ Connection failed');
                 showError('Failed to load dashboard. Please refresh the page.');
             }
         }
@@ -413,18 +415,15 @@
 
                 console.log('✅ User profile loaded:', profile);
                 
-                // Update balance
+                // Update balance with comma formatting
                 userBalance = parseFloat(profile.balance) || 0;
-                document.getElementById('balanceAmount').textContent = userBalance;
+                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
                 // Update last claim time
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 
                 console.log('💰 Balance:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
-
-                // Update connection status
-                updateConnectionStatus('✅ Mining system ready');
 
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -436,7 +435,6 @@
         async function createUserProfile() {
             try {
                 console.log('📝 Creating user profile...');
-                updateConnectionStatus('🔄 Creating user profile...');
                 
                 const { data, error } = await supabaseClient
                     .from('profiles')
@@ -461,7 +459,6 @@
                 userBalance = 0;
                 lastClaimTime = null;
                 document.getElementById('balanceAmount').textContent = '0';
-                updateConnectionStatus('✅ Profile created successfully');
 
             } catch (error) {
                 console.error('Error creating profile:', error);
@@ -479,7 +476,7 @@
             updateCountdown(); // Initial update
         }
 
-        // Update countdown timer - FIXED VERSION
+        // Update countdown timer - 12 HOURS VERSION
         function updateCountdown() {
             const countdownElement = document.getElementById('countdownTimer');
             const claimBtn = document.getElementById('claimButton');
@@ -504,7 +501,7 @@
                 claimBtn.disabled = false;
                 claimBtn.textContent = 'Claim 30 NMX Now!';
             } else {
-                // Still in cooldown
+                // Still in cooldown - 12 hours format
                 const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
                 const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
                 const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
@@ -530,7 +527,6 @@
                 hideMessages();
 
                 console.log('💰 Claiming NMX...');
-                updateConnectionStatus('🔄 Processing claim...');
 
                 // Calculate new balance
                 const newBalance = userBalance + CLAIM_AMOUNT;
@@ -581,10 +577,9 @@
                 userBalance = newBalance;
                 lastClaimTime = new Date(now);
 
-                // Update UI
-                document.getElementById('balanceAmount').textContent = userBalance;
+                // Update UI with formatted number
+                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
                 showSuccess(`✅ Successfully claimed ${CLAIM_AMOUNT} NMX!`);
-                updateConnectionStatus('✅ Claim successful!');
                 
                 console.log('✅ Claim successful, new balance:', userBalance);
 
@@ -594,7 +589,6 @@
             } catch (error) {
                 console.error('❌ Claim failed:', error);
                 showError('Failed to claim NMX. Please try again.');
-                updateConnectionStatus('❌ Claim failed');
                 
                 // Re-enable button if error
                 updateClaimButton();
@@ -615,16 +609,10 @@
             }
         }
 
-        // Update connection status
-        function updateConnectionStatus(message) {
-            const statusElement = document.getElementById('connectionStatus');
-            statusElement.textContent = message;
-        }
-
         // Event Listeners
         document.getElementById('claimButton').addEventListener('click', claimNMX);
 
-        // Settings icon click
+        // Settings icon click (logout)
         document.querySelector('.settings-icon').addEventListener('click', async function() {
             try {
                 await supabaseClient.auth.signOut();
