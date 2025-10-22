@@ -93,31 +93,27 @@
         }
 
         /* NemexCoin Logo */
-        .nemex-logo {
-            width: 140px;
-            height: 140px;
-            margin: 25px auto;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .logo-container {
-            width: 120px;
-            height: 120px;
-            position: relative;
-        }
-
-        .logo-base {
-            width: 100%;
-            height: 100%;
-            background: var(--darker-bg);
-            border-radius: 50%;
-            border: 3px solid var(--gold);
-            position: relative;
-            overflow: hidden;
-        }
+        .nemex-logo{width:140px;height:140px;margin:25px auto;position:relative;display:flex;align-items:center;justify-content:center}
+        .logo-container{width:120px;height:120px;position:relative;filter:drop-shadow(0 0 15px rgba(212,175,55,0.4))}
+        .logo-base{width:100%;height:100%;background:var(--darker-bg);border-radius:50%;border:3px solid var(--gold);position:relative;overflow:hidden;box-shadow:inset 0 0 20px rgba(212,175,55,0.1),0 0 30px rgba(212,175,55,0.2)}
+        .logo-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px}
+        .infinity-symbol{width:100%;height:100%;position:relative}
+        .infinity-symbol::before,.infinity-symbol::after{content:'';position:absolute;width:25px;height:25px;border:3px solid var(--gold);border-radius:50%;border-top-color:transparent;border-left-color:transparent;animation:rotate 8s linear infinite}
+        .infinity-symbol::before{top:0;left:0;transform:rotate(45deg);animation-delay:0s}
+        .infinity-symbol::after{bottom:0;right:0;transform:rotate(225deg);animation-delay:-4s}
+        .circuit-lines{position:absolute;top:0;left:0;width:100%;height:100%}
+        .circuit-line{position:absolute;background:var(--gold);opacity:0.6}
+        .circuit-line:nth-child(1){top:20%;left:10%;width:15px;height:2px;transform:rotate(30deg)}
+        .circuit-line:nth-child(2){top:30%;right:15%;width:12px;height:2px;transform:rotate(-45deg)}
+        .circuit-line:nth-child(3){bottom:25%;left:20%;width:18px;height:2px;transform:rotate(15deg)}
+        .circuit-line:nth-child(4){bottom:15%;right:10%;width:10px;height:2px;transform:rotate(-60deg)}
+        .circuit-line:nth-child(5){top:45%;left:5%;width:8px;height:2px;transform:rotate(75deg)}
+        .circuit-pad{position:absolute;width:4px;height:4px;background:var(--gold);border-radius:50%;opacity:0.8}
+        .circuit-pad:nth-child(6){top:15%;left:25%}.circuit-pad:nth-child(7){top:35%;right:20%}
+        .circuit-pad:nth-child(8){bottom:40%;left:15%}.circuit-pad:nth-child(9){bottom:20%;right:30%}
+        .logo-glow{position:absolute;top:-10px;left:-10px;right:-10px;bottom:-10px;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,0.2)0%,rgba(212,175,55,0)70%);animation:glowPulse 3s ease-in-out infinite;z-index:-1}
+        @keyframes rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        @keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:0.8;transform:scale(1.05)}}
 
         .countdown-section {
             margin-bottom: 30px;
@@ -136,17 +132,9 @@
             letter-spacing: 1px;
         }
 
-        .claim-btn {
-            background: linear-gradient(135deg, var(--gold), #b8941f);
-            color: var(--darker-bg);
-            border: none;
-            padding: 14px 40px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: 600;
-            margin: 20px 0;
-            cursor: pointer;
-        }
+        .claim-btn{background:linear-gradient(135deg,var(--gold),#b8941f);color:var(--darker-bg);border:none;padding:14px 40px;border-radius:25px;font-size:16px;font-weight:600;margin:20px 0;cursor:pointer;transition:all 0.3s;box-shadow:0 4px 15px rgba(212,175,55,0.3)}
+        .claim-btn:active{transform:scale(0.95)}
+        .claim-btn:disabled{background:#333;color:#666;cursor:not-allowed;box-shadow:none}
 
         /* NAVIGATION SYSTEM */
         .bottom-nav {
@@ -221,21 +209,38 @@
             <main class="main-content">
                 <div class="balance-display">
                     <div class="balance-label">Your Balance</div>
-                    <div class="balance-amount">00</div>
+                    <div class="balance-amount" id="balanceAmount">00</div>
                 </div>
 
+                <!-- NEMEXCOIN LOGO -->
                 <div class="nemex-logo">
                     <div class="logo-container">
-                        <div class="logo-base"></div>
+                        <div class="logo-base">
+                            <div class="logo-center">
+                                <div class="infinity-symbol"></div>
+                            </div>
+                            <div class="circuit-lines">
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                            </div>
+                        </div>
+                        <div class="logo-glow"></div>
                     </div>
                 </div>
 
                 <div class="countdown-section">
                     <div class="countdown-label">Claim in</div>
-                    <div class="countdown-timer">00:00:00</div>
+                    <div class="countdown-timer" id="countdownTimer">12:00:00</div>
                 </div>
 
-                <button class="claim-btn">Claim 30 NMX Now!</button>
+                <button class="claim-btn" id="claimButton">Claim 30 NMX Now!</button>
             </main>
         </div>
 
@@ -258,14 +263,91 @@
         </nav>
     </div>
 
+    <!-- Include Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        document.querySelector('.claim-btn').addEventListener('click', function() {
-            alert('30 NMX claimed!');
+        // Supabase Configuration
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+        
+        // Initialize Supabase (you'll need to add your actual credentials)
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Countdown Timer Functionality
+        let countdownTime = 12 * 60 * 60; // 12 hours in seconds
+        let canClaim = false;
+
+        function updateCountdown() {
+            if (countdownTime > 0) {
+                countdownTime--;
+                
+                const hours = Math.floor(countdownTime / 3600);
+                const minutes = Math.floor((countdownTime % 3600) / 60);
+                const seconds = countdownTime % 60;
+                
+                const formattedTime = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                document.getElementById('countdownTimer').textContent = formattedTime;
+                
+                // Update button state
+                const claimButton = document.getElementById('claimButton');
+                if (countdownTime === 0) {
+                    canClaim = true;
+                    claimButton.disabled = false;
+                    claimButton.textContent = 'Claim 30 NMX Now!';
+                } else {
+                    claimButton.disabled = true;
+                    claimButton.textContent = 'Claim 30 NMX Now!';
+                }
+            }
+        }
+
+        // Claim Button Functionality
+        document.getElementById('claimButton').addEventListener('click', async function() {
+            if (canClaim) {
+                try {
+                    // Add 30 NMX to user's balance
+                    const currentBalance = parseInt(document.getElementById('balanceAmount').textContent) || 0;
+                    const newBalance = currentBalance + 30;
+                    document.getElementById('balanceAmount').textContent = newBalance;
+                    
+                    // Reset countdown to 12 hours
+                    countdownTime = 12 * 60 * 60;
+                    canClaim = false;
+                    this.disabled = true;
+                    
+                    // Here you would save to Supabase
+                    // await saveToSupabase(newBalance);
+                    
+                    alert('30 NMX claimed successfully! Next claim available in 12 hours.');
+                } catch (error) {
+                    console.error('Error claiming NMX:', error);
+                    alert('Error claiming NMX. Please try again.');
+                }
+            }
         });
 
+        // Settings icon functionality
         document.querySelector('.settings-icon').addEventListener('click', function() {
             alert('Settings menu would open here');
         });
+
+        // Start the countdown timer
+        setInterval(updateCountdown, 1000);
+        updateCountdown(); // Initial call
+
+        // Supabase Functions (you'll implement these)
+        async function saveToSupabase(balance) {
+            // This is where you'll save data to Supabase
+            // You'll need to set up authentication first
+            console.log('Saving to Supabase:', balance);
+        }
+
+        async function loadFromSupabase() {
+            // This is where you'll load data from Supabase
+            console.log('Loading from Supabase');
+        }
     </script>
 </body>
 </html>
