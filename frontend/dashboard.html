@@ -59,7 +59,7 @@
         }
 
         .header-title {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--gold);
         }
@@ -90,6 +90,12 @@
             font-weight: 700;
             color: var(--gold);
             line-height: 1;
+            text-shadow: 0 0 10px rgba(212,175,55,0.3);
+            transition: text-shadow 0.3s ease;
+        }
+
+        .balance-amount:hover {
+            text-shadow: 0 0 15px rgba(212,175,55,0.5);
         }
 
         /* NEMEXCOIN LOGO - BIGGER SIZE */
@@ -282,6 +288,12 @@
             font-weight: 600;
             color: var(--accent-gold);
             letter-spacing: 1px;
+            text-shadow: 0 0 8px rgba(212,175,55,0.3);
+            transition: text-shadow 0.3s ease;
+        }
+
+        .countdown-timer:hover {
+            text-shadow: 0 0 12px rgba(212,175,55,0.5);
         }
 
         .claim-btn {
@@ -355,7 +367,7 @@
             }
             
             .header-title {
-                font-size: 26px;
+                font-size: 22px;
             }
             
             .balance-amount {
@@ -387,7 +399,7 @@
         <!-- HEADER SECTION -->
         <header class="header">
             <div class="settings-icon">⚙️</div>
-            <div class="header-title">〽️ NEMEXCOIN</div>
+            <div class="header-title">〽️ NemexCoin</div>
             <div style="width: 24px;"></div> <!-- Spacer for balance -->
         </header>
 
@@ -457,11 +469,25 @@
             document.querySelector('.countdown-timer').textContent = '00:00:00';
         }
 
+        // Format balance with commas for thousands
+        function formatBalance(amount) {
+            return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        // Update balance display with formatted number
+        function updateBalanceDisplay() {
+            // For demo, we'll use a sample large number
+            const sampleBalance = 1250; // Change this to test formatting
+            const formattedBalance = formatBalance(sampleBalance);
+            document.querySelector('.balance-amount').textContent = formattedBalance;
+        }
+
         // Update countdown every second
         setInterval(updateCountdown, 1000);
         
-        // Initialize countdown
+        // Initialize countdown and balance
         updateCountdown();
+        updateBalanceDisplay();
 
         // Navigation active state handling
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -478,6 +504,11 @@
         document.querySelector('.claim-btn').addEventListener('click', function() {
             // In a real app, this would trigger the mining claim process
             alert('30 NMXp claimed!');
+            
+            // Update balance with new amount (for demo purposes)
+            const currentBalance = parseInt(document.querySelector('.balance-amount').textContent.replace(/,/g, ''));
+            const newBalance = currentBalance + 30;
+            document.querySelector('.balance-amount').textContent = formatBalance(newBalance);
         });
 
         // Settings icon functionality
