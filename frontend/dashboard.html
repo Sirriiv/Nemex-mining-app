@@ -432,10 +432,10 @@
 </head>
 <body>
     <div class="content-wrapper">
-        <!-- HEADER SECTION - MATCHING SCREENSHOT -->
+        <!-- HEADER SECTION - FIXED POSITION -->
         <header class="header">
-            <div class="settings-icon">⚙️</div>
             <div class="header-title">〽️ NEMEXCOIN</div>
+            <div class="settings-icon">⚙️</div>
         </header>
 
         <!-- MAIN CONTENT AREA -->
@@ -471,26 +471,26 @@
 
             <div class="countdown-section">
                 <div class="countdown-label">Claim in</div>
-                <div class="countdown-timer">23:53:45</div>
+                <div class="countdown-timer">00:00:00</div>
             </div>
 
-            <button class="claim-btn">30 NMXp</button>
+            <button class="claim-btn">Claim 30 NMX Now!</button>
         </main>
     </div>
 
     <!-- UPDATED NAVIGATION SYSTEM - MATCHING SCREENSHOT WITH GOLD THEME -->
     <nav class="bottom-nav">
         <a href="#" class="nav-item active">
-            <span class="nav-text">HOME</span>
+            <span class="nav-text">MINING</span>
         </a>
         <a href="#" class="nav-item">
             <span class="nav-text">TASKS</span>
         </a>
         <a href="#" class="nav-item">
-            <span class="nav-text">BUY NMXp</span>
+            <span class="nav-text">REFERRALS</span>
         </a>
         <a href="#" class="nav-item">
-            <span class="nav-text">REFERRALS</span>
+            <span class="nav-text">MARKETPLACE</span>
         </a>
         <a href="#" class="nav-item">
             <span class="nav-text">WALLET</span>
@@ -501,7 +501,7 @@
         // Simple countdown timer for demonstration
         function updateCountdown() {
             // For demo purposes, we'll use the time from the screenshot
-            document.querySelector('.countdown-timer').textContent = '23:53:45';
+            document.querySelector('.countdown-timer').textContent = '00:00:00';
         }
 
         // Format balance with commas for thousands
@@ -538,7 +538,7 @@
         // Claim button functionality
         document.querySelector('.claim-btn').addEventListener('click', function() {
             // In a real app, this would trigger the mining claim process
-            alert('30 NMXp claimed!');
+            alert('30 NMX claimed!');
             
             // Update balance with new amount (for demo purposes)
             const currentBalance = parseInt(document.querySelector('.balance-amount').textContent.replace(/,/g, ''));
