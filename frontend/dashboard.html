@@ -339,7 +339,7 @@
             box-shadow: none;
         }
 
-        /* NAVIGATION SYSTEM */
+        /* UPDATED NAVIGATION SYSTEM - MATCHING SCREENSHOT WITH GOLD THEME */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -359,18 +359,36 @@
             align-items: center;
             text-decoration: none;
             color: var(--text-muted);
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: 600;
             flex: 1;
-            transition: color 0.2s ease;
+            transition: all 0.3s ease;
+            padding: 8px 4px;
+            border-radius: 8px;
+            margin: 0 2px;
         }
 
         .nav-item.active {
-            color: var(--accent-gold);
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 0 0 2px 2px;
         }
 
         .nav-text {
-            margin-top: 4px;
+            margin-top: 6px;
+            letter-spacing: 0.5px;
         }
 
         /* SPACING FOR BOTTOM NAV */
@@ -398,7 +416,7 @@
             }
             
             .nav-item {
-                font-size: 13px;
+                font-size: 12px;
             }
         }
 
@@ -460,19 +478,19 @@
         </main>
     </div>
 
-    <!-- NAVIGATION SYSTEM -->
+    <!-- UPDATED NAVIGATION SYSTEM - MATCHING SCREENSHOT WITH GOLD THEME -->
     <nav class="bottom-nav">
         <a href="#" class="nav-item active">
-            <span class="nav-text">HOME</span>
+            <span class="nav-text">MINING</span>
         </a>
         <a href="#" class="nav-item">
             <span class="nav-text">TASKS</span>
         </a>
         <a href="#" class="nav-item">
-            <span class="nav-text">BUY NMXp</span>
+            <span class="nav-text">REFERRALS</span>
         </a>
         <a href="#" class="nav-item">
-            <span class="nav-text">REFERRALS</span>
+            <span class="nav-text">MARKETPLACE</span>
         </a>
         <a href="#" class="nav-item">
             <span class="nav-text">WALLET</span>
