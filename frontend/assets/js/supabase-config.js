@@ -1,6 +1,6 @@
 // Supabase Configuration
-const SUPABASE_URL =
-const SUPABASE_ANON_KEY = 'your-anon-key-here';
+const SUPABASE_URL = 'https://bjulifvbfogymoduxnzl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
 // Initialize Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
