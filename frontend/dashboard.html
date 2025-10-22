@@ -5,263 +5,336 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Mining Dashboard</title>
     <style>
-        * {
-            margin: 0;
+        /* Gold Theme and Dark Background */
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --error: #ff4444;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
             padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
         }
 
-        body {
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
-            color: #ffffff;
-            min-height: 100vh;
-        }
-
-        .dashboard-container {
-            max-width: 1200px;
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
             margin: 0 auto;
-            padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Header */
+        /* HEADER SECTION */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px 0;
-            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
-            margin-bottom: 30px;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
         }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo h1 {
-            font-size: 28px;
-            font-weight: bold;
-            color: #FFD700;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .logout-btn {
-            padding: 10px 20px;
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid #FFD700;
-            color: #FFD700;
-            border-radius: 8px;
+        .settings-icon {
+            font-size: 20px;
+            color: var(--muted);
             cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
         }
 
-        .logout-btn:hover {
-            background: #FFD700;
-            color: #0f0f23;
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
         }
 
-        /* Balance Card */
-        .balance-section {
+        /* MAIN CONTENT AREA */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
             text-align: center;
-            margin-bottom: 40px;
         }
 
-        .balance-card {
-            background: rgba(13, 13, 28, 0.95);
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-            max-width: 400px;
-            margin: 0 auto;
+        .balance-display {
+            margin-bottom: 30px;
         }
 
         .balance-label {
-            font-size: 18px;
-            color: #cccccc;
-            margin-bottom: 15px;
+            font-size: 16px;
+            color: var(--muted);
+            margin-bottom: 8px;
         }
 
         .balance-amount {
-            font-size: 48px;
-            font-weight: bold;
-            color: #FFD700;
-            margin-bottom: 30px;
+            font-size: 70px;
+            font-weight: 700;
+            color: var(--gold);
+            line-height: 1;
         }
+
+        /* NemexCoin Logo */
+        .nemex-logo{width:140px;height:140px;margin:25px auto;position:relative;display:flex;align-items:center;justify-content:center}
+        .logo-container{width:120px;height:120px;position:relative;filter:drop-shadow(0 0 15px rgba(212,175,55,0.4))}
+        .logo-base{width:100%;height:100%;background:var(--darker-bg);border-radius:50%;border:3px solid var(--gold);position:relative;overflow:hidden;box-shadow:inset 0 0 20px rgba(212,175,55,0.1),0 0 30px rgba(212,175,55,0.2)}
+        .logo-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px}
+        .infinity-symbol{width:100%;height:100%;position:relative}
+        .infinity-symbol::before,.infinity-symbol::after{content:'';position:absolute;width:25px;height:25px;border:3px solid var(--gold);border-radius:50%;border-top-color:transparent;border-left-color:transparent;animation:rotate 8s linear infinite}
+        .infinity-symbol::before{top:0;left:0;transform:rotate(45deg);animation-delay:0s}
+        .infinity-symbol::after{bottom:0;right:0;transform:rotate(225deg);animation-delay:-4s}
+        .circuit-lines{position:absolute;top:0;left:0;width:100%;height:100%}
+        .circuit-line{position:absolute;background:var(--gold);opacity:0.6}
+        .circuit-line:nth-child(1){top:20%;left:10%;width:15px;height:2px;transform:rotate(30deg)}
+        .circuit-line:nth-child(2){top:30%;right:15%;width:12px;height:2px;transform:rotate(-45deg)}
+        .circuit-line:nth-child(3){bottom:25%;left:20%;width:18px;height:2px;transform:rotate(15deg)}
+        .circuit-line:nth-child(4){bottom:15%;right:10%;width:10px;height:2px;transform:rotate(-60deg)}
+        .circuit-line:nth-child(5){top:45%;left:5%;width:8px;height:2px;transform:rotate(75deg)}
+        .circuit-pad{position:absolute;width:4px;height:4px;background:var(--gold);border-radius:50%;opacity:0.8}
+        .circuit-pad:nth-child(6){top:15%;left:25%}.circuit-pad:nth-child(7){top:35%;right:20%}
+        .circuit-pad:nth-child(8){bottom:40%;left:15%}.circuit-pad:nth-child(9){bottom:20%;right:30%}
+        .logo-glow{position:absolute;top:-10px;left:-10px;right:-10px;bottom:-10px;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,0.2)0%,rgba(212,175,55,0)70%);animation:glowPulse 3s ease-in-out infinite;z-index:-1}
+        @keyframes rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        @keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:0.8;transform:scale(1.05)}}
 
         .countdown-section {
             margin-bottom: 30px;
         }
 
         .countdown-label {
-            font-size: 16px;
-            color: #cccccc;
-            margin-bottom: 10px;
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 8px;
         }
 
         .countdown-timer {
-            font-size: 32px;
-            font-weight: bold;
-            color: #ffffff;
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--gold);
+            letter-spacing: 1px;
             font-family: 'Courier New', monospace;
             background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-        }
-
-        .claim-btn {
-            width: 100%;
-            padding: 18px;
-            background: linear-gradient(135deg, #FFD700, #b8941f);
-            color: #0f0f23;
-            border: none;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .claim-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
-        }
-
-        .claim-btn:disabled {
-            background: #666666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* Navigation */
-        .nav-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 40px;
-            padding: 20px;
-            background: rgba(13, 13, 28, 0.8);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-tab {
-            padding: 15px 30px;
-            background: transparent;
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            color: #FFD700;
+            padding: 10px 20px;
             border-radius: 10px;
-            cursor: pointer;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .claim-btn{
+            background:linear-gradient(135deg,var(--gold),#b8941f);
+            color:var(--darker-bg);
+            border:none;
+            padding:14px 40px;
+            border-radius:25px;
+            font-size:16px;
+            font-weight:600;
+            margin:20px 0;
+            cursor:pointer;
+            transition:all 0.3s;
+            box-shadow:0 4px 15px rgba(212,175,55,0.3);
+            width: 100%;
+            max-width: 280px;
+        }
+        .claim-btn:active{transform:scale(0.95)}
+        .claim-btn:disabled{
+            background:#333;
+            color:#666;
+            cursor:not-allowed;
+            box-shadow:none;
+            transform: none;
+        }
+        .claim-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212,175,55,0.4);
+        }
+
+        /* NAVIGATION SYSTEM */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
         }
 
-        .nav-tab:hover {
-            background: rgba(255, 215, 0, 0.1);
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
         }
 
-        .nav-tab.active {
-            background: #FFD700;
-            color: #0f0f23;
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
         }
 
-        /* Loading State */
-        .loading {
-            color: #FFD700;
+        .nav-text {
+            margin-top: 4px;
             text-align: center;
-            margin: 20px 0;
         }
 
-        .error-message {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid rgba(255, 68, 68, 0.3);
-            color: #ff4444;
+        .content-wrapper {
+            padding-bottom: 70px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .loading {
+            display: none;
+            color: var(--gold);
+            margin: 10px 0;
+        }
+
+        .connection-status {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 5px 0;
+        }
+
+        /* Messages */
+        .message {
             padding: 12px;
             border-radius: 8px;
-            margin: 20px 0;
+            margin: 10px 0;
+            font-size: 14px;
             text-align: center;
             display: none;
+            max-width: 280px;
+            width: 100%;
         }
 
         .success-message {
             background: rgba(0, 200, 81, 0.1);
-            border: 1px solid rgba(0, 200, 81, 0.3);
-            color: #00C851;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 20px 0;
-            text-align: center;
-            display: none;
+            border: 1px solid var(--success);
+            color: var(--success);
         }
 
-        @media (max-width: 768px) {
-            .nav-tabs {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .balance-card {
-                padding: 30px 20px;
-            }
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">
-                <h1>NEWEXCOIN</h1>
-            </div>
-            <div class="user-info">
-                <span id="userEmail">Loading...</span>
-                <button class="logout-btn" id="logoutBtn">Logout</button>
-            </div>
-        </div>
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <div class="header-title">〽️ NEMEXCOIN</div>
+                <div class="settings-icon">⚙️</div>
+            </header>
 
-        <!-- Balance Section -->
-        <div class="balance-section">
-            <div class="balance-card">
-                <div class="balance-label">Your Balance</div>
-                <div class="balance-amount" id="balanceAmount">0 NMX</div>
+            <main class="main-content">
+                <div class="connection-status" id="connectionStatus">Connecting to database...</div>
                 
+                <div class="balance-display">
+                    <div class="balance-label">Your Balance</div>
+                    <div class="balance-amount" id="balanceAmount">0</div>
+                </div>
+
+                <!-- NEMEXCOIN LOGO -->
+                <div class="nemex-logo">
+                    <div class="logo-container">
+                        <div class="logo-base">
+                            <div class="logo-center">
+                                <div class="infinity-symbol"></div>
+                            </div>
+                            <div class="circuit-lines">
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-line"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                                <div class="circuit-pad"></div>
+                            </div>
+                        </div>
+                        <div class="logo-glow"></div>
+                    </div>
+                </div>
+
                 <div class="countdown-section">
-                    <div class="countdown-label">Next Claim Available In</div>
+                    <div class="countdown-label">Next Claim In</div>
                     <div class="countdown-timer" id="countdownTimer">00:10:00</div>
                 </div>
 
-                <button class="claim-btn" id="claimBtn" disabled>
-                    Claim 30 NMX Now!
-                </button>
-
-                <div class="loading" id="loading" style="display: none;">
-                    🔄 Processing Claim...
-                </div>
-
-                <div class="error-message" id="errorMessage"></div>
-                <div class="success-message" id="successMessage"></div>
-            </div>
+                <div class="loading" id="loadingIndicator">🔄 Processing...</div>
+                
+                <div class="message success-message" id="successMessage"></div>
+                <div class="message error-message" id="errorMessage"></div>
+                
+                <button class="claim-btn" id="claimButton" disabled>Claim 30 NMX Now!</button>
+            </main>
         </div>
 
-        <!-- Navigation -->
-        <div class="nav-tabs">
-            <button class="nav-tab active">MINING</button>
-            <button class="nav-tab">TASKS</button>
-            <button class="nav-tab">BUY NMXP</button>
-            <button class="nav-tab">REFERRALS</button>
-            <button class="nav-tab">WALLET</button>
-        </div>
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item active">
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
 
     <!-- Supabase CDN -->
@@ -284,22 +357,25 @@
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing dashboard...');
+            console.log('🚀 Initializing NemexCoin Dashboard...');
             initializeDashboard();
         });
 
         // Initialize dashboard
         async function initializeDashboard() {
             try {
+                updateConnectionStatus('🔗 Checking authentication...');
+                
                 // Check if user is logged in
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) {
+                    updateConnectionStatus('❌ Not authenticated');
                     window.location.href = 'login.html';
                     return;
                 }
 
                 user = session.user;
-                document.getElementById('userEmail').textContent = user.email;
+                updateConnectionStatus('✅ Connected to database');
 
                 console.log('👤 User:', user.id);
 
@@ -311,6 +387,7 @@
 
             } catch (error) {
                 console.error('❌ Dashboard initialization failed:', error);
+                updateConnectionStatus('❌ Connection failed');
                 showError('Failed to load dashboard. Please refresh the page.');
             }
         }
@@ -338,13 +415,16 @@
                 
                 // Update balance
                 userBalance = parseFloat(profile.balance) || 0;
-                document.getElementById('balanceAmount').textContent = userBalance + ' NMX';
+                document.getElementById('balanceAmount').textContent = userBalance;
 
                 // Update last claim time
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 
                 console.log('💰 Balance:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
+
+                // Update connection status
+                updateConnectionStatus('✅ Mining system ready');
 
             } catch (error) {
                 console.error('Error loading user data:', error);
@@ -356,6 +436,7 @@
         async function createUserProfile() {
             try {
                 console.log('📝 Creating user profile...');
+                updateConnectionStatus('🔄 Creating user profile...');
                 
                 const { data, error } = await supabaseClient
                     .from('profiles')
@@ -379,7 +460,8 @@
                 console.log('✅ Profile created:', data);
                 userBalance = 0;
                 lastClaimTime = null;
-                document.getElementById('balanceAmount').textContent = '0 NMX';
+                document.getElementById('balanceAmount').textContent = '0';
+                updateConnectionStatus('✅ Profile created successfully');
 
             } catch (error) {
                 console.error('Error creating profile:', error);
@@ -400,11 +482,12 @@
         // Update countdown timer - FIXED VERSION
         function updateCountdown() {
             const countdownElement = document.getElementById('countdownTimer');
-            const claimBtn = document.getElementById('claimBtn');
+            const claimBtn = document.getElementById('claimButton');
 
             if (!lastClaimTime) {
                 // Never claimed before - can claim immediately
                 countdownElement.textContent = 'READY!';
+                countdownElement.style.color = '#00C851';
                 claimBtn.disabled = false;
                 claimBtn.textContent = 'Claim 30 NMX Now!';
                 return;
@@ -414,12 +497,10 @@
             const timeSinceLastClaim = now.getTime() - new Date(lastClaimTime).getTime();
             const timeRemaining = CLAIM_COOLDOWN - timeSinceLastClaim;
 
-            console.log('⏱️ Time since last claim:', timeSinceLastClaim, 'ms');
-            console.log('⏱️ Time remaining:', timeRemaining, 'ms');
-
             if (timeRemaining <= 0) {
                 // Cooldown finished
                 countdownElement.textContent = 'READY!';
+                countdownElement.style.color = '#00C851';
                 claimBtn.disabled = false;
                 claimBtn.textContent = 'Claim 30 NMX Now!';
             } else {
@@ -431,6 +512,7 @@
                 countdownElement.textContent = 
                     `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 
+                countdownElement.style.color = '#d4af37';
                 claimBtn.disabled = true;
                 claimBtn.textContent = 'Claim 30 NMX Now!';
             }
@@ -438,8 +520,8 @@
 
         // Claim NMX function
         async function claimNMX() {
-            const claimBtn = document.getElementById('claimBtn');
-            const loading = document.getElementById('loading');
+            const claimBtn = document.getElementById('claimButton');
+            const loading = document.getElementById('loadingIndicator');
 
             try {
                 // Show loading
@@ -448,6 +530,7 @@
                 hideMessages();
 
                 console.log('💰 Claiming NMX...');
+                updateConnectionStatus('🔄 Processing claim...');
 
                 // Calculate new balance
                 const newBalance = userBalance + CLAIM_AMOUNT;
@@ -499,8 +582,9 @@
                 lastClaimTime = new Date(now);
 
                 // Update UI
-                document.getElementById('balanceAmount').textContent = userBalance + ' NMX';
+                document.getElementById('balanceAmount').textContent = userBalance;
                 showSuccess(`✅ Successfully claimed ${CLAIM_AMOUNT} NMX!`);
+                updateConnectionStatus('✅ Claim successful!');
                 
                 console.log('✅ Claim successful, new balance:', userBalance);
 
@@ -510,6 +594,7 @@
             } catch (error) {
                 console.error('❌ Claim failed:', error);
                 showError('Failed to claim NMX. Please try again.');
+                updateConnectionStatus('❌ Claim failed');
                 
                 // Re-enable button if error
                 updateClaimButton();
@@ -520,7 +605,7 @@
 
         // Update claim button state
         function updateClaimButton() {
-            const claimBtn = document.getElementById('claimBtn');
+            const claimBtn = document.getElementById('claimButton');
             if (!lastClaimTime) {
                 claimBtn.disabled = false;
             } else {
@@ -530,10 +615,17 @@
             }
         }
 
-        // Event Listeners
-        document.getElementById('claimBtn').addEventListener('click', claimNMX);
+        // Update connection status
+        function updateConnectionStatus(message) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.textContent = message;
+        }
 
-        document.getElementById('logoutBtn').addEventListener('click', async function() {
+        // Event Listeners
+        document.getElementById('claimButton').addEventListener('click', claimNMX);
+
+        // Settings icon click
+        document.querySelector('.settings-icon').addEventListener('click', async function() {
             try {
                 await supabaseClient.auth.signOut();
                 localStorage.removeItem('isLoggedIn');
@@ -543,16 +635,6 @@
             } catch (error) {
                 console.error('Logout error:', error);
             }
-        });
-
-        // Navigation tabs
-        document.querySelectorAll('.nav-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                const tabName = this.textContent;
-                console.log('Switching to tab:', tabName);
-            });
         });
 
         // Helper functions
