@@ -4,21 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wallet - NemexCoin</title>
-    <link rel="stylesheet" href="css/style.css">
     <style>
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
+
+        .settings-icon {
+            font-size: 20px;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         .wallet-stats {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
+        .card { 
+            background: var(--darker-bg); 
+            padding: 20px; 
+            border-radius: 10px; 
+            border: 1px solid #333; 
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
         .wallet-actions {
             display: flex;
             gap: 10px;
             margin: 20px 0;
         }
-        
+
         .wallet-action-btn {
             flex: 1;
             background: var(--darker-bg);
@@ -29,11 +118,7 @@
             text-align: center;
             cursor: pointer;
         }
-        
-        .transaction-list {
-            margin-top: 20px;
-        }
-        
+
         .transaction-item {
             background: var(--darker-bg);
             padding: 15px;
@@ -44,13 +129,69 @@
             align-items: center;
             border: 1px solid #333;
         }
-        
-        .transaction-amount.positive {
+
+        .transaction-amount {
             color: var(--gold);
         }
-        
-        .transaction-amount.negative {
-            color: #ff6b6b;
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+        }
+
+        .nav-text {
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .content-wrapper {
+            padding-bottom: 70px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
     </style>
 </head>
@@ -85,35 +226,14 @@
                         <div>📤</div>
                         <div>Withdraw</div>
                     </div>
-                    <div class="wallet-action-btn">
-                        <div>🔄</div>
-                        <div>Swap</div>
-                    </div>
                 </div>
                 
-                <div class="transaction-list">
-                    <h3 style="margin-bottom: 15px;">Recent Transactions</h3>
-                    <div class="transaction-item">
-                        <div>
-                            <div>Mining Reward</div>
-                            <div style="font-size: 12px; color: var(--muted);">Today, 10:30 AM</div>
-                        </div>
-                        <div class="transaction-amount positive">+30 NMXp</div>
+                <div class="transaction-item">
+                    <div>
+                        <div>Mining Reward</div>
+                        <div style="font-size: 12px; color: var(--muted);">Today, 10:30 AM</div>
                     </div>
-                    <div class="transaction-item">
-                        <div>
-                            <div>Task Completion</div>
-                            <div style="font-size: 12px; color: var(--muted);">Yesterday, 3:15 PM</div>
-                        </div>
-                        <div class="transaction-amount positive">+15 NMXp</div>
-                    </div>
-                    <div class="transaction-item">
-                        <div>
-                            <div>Referral Bonus</div>
-                            <div style="font-size: 12px; color: var(--muted);">Mar 12, 2024</div>
-                        </div>
-                        <div class="transaction-amount positive">+50 NMXp</div>
-                    </div>
+                    <div class="transaction-amount">+30 NMXp</div>
                 </div>
             </main>
         </div>
@@ -137,6 +257,10 @@
         </nav>
     </div>
 
-    <script src="js/main.js"></script>
+    <script>
+        document.querySelector('.settings-icon').addEventListener('click', function() {
+            alert('Settings menu would open here');
+        });
+    </script>
 </body>
 </html>
