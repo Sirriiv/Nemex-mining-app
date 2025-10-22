@@ -2,13 +2,17 @@
 const SUPABASE_URL = 'https://bjulifvbfogymoduxnzl.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
-// Initialize Supabase properly
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase PROPERLY
+const { createClient } = window.supabase;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Export for use in other files
+console.log('✅ Supabase initialized:', !!supabase);
+console.log('✅ Auth available:', !!supabase.auth);
+console.log('✅ SignUp available:', !!supabase.auth.signUp);
+console.log('✅ SignIn available:', !!supabase.auth.signInWithPassword);
+
+// Export for global use
 window.supabaseClient = supabase;
-
-console.log('✅ Supabase initialized successfully');
 
 // Supabase Functions
 async function getUserBalance(userId) {
