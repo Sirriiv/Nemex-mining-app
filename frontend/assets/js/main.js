@@ -39,8 +39,8 @@ function initializeMiningDashboard() {
     // Only run if we're on the mining dashboard
     if (!claimBtn || !countdownTimer) return;
 
-    // User session management (for demo - you'll need proper auth)
-    let currentUserId = 'demo-user-123'; // Replace with actual user ID from auth
+    // REMOVED DEMO USER - Database connection test
+    let currentUserId = null; // Will be set after authentication
 
     // Countdown Timer Functionality
     let countdownTime = 12 * 60 * 60; // 12 hours in seconds
@@ -71,22 +71,37 @@ function initializeMiningDashboard() {
         }
     }
 
-    // Load user data from Supabase
+    // Load user data from Supabase - TEST CONNECTION
     async function loadUserData() {
         try {
-            const balance = await getUserBalance(currentUserId);
-            if (balanceAmount) {
-                balanceAmount.textContent = balance;
+            console.log('Testing Supabase connection...');
+            
+            // Test if we can connect to Supabase
+            const { data, error } = await supabase
+                .from('users')
+                .select('count')
+                .limit(1);
+
+            if (error) {
+                console.error('❌ Supabase connection failed:', error);
+                alert('Database connection failed. Check console for details.');
+                return;
             }
 
-            // Load last claim time and set countdown
-            // You'll implement this based on your database structure
+            console.log('✅ Supabase connection successful!');
+            
+            // For now, show 0 balance since no user is logged in
+            if (balanceAmount) {
+                balanceAmount.textContent = '0';
+            }
+
         } catch (error) {
-            console.error('Error loading user data:', error);
+            console.error('❌ Error testing database connection:', error);
+            alert('Database connection error. Please check your Supabase setup.');
         }
     }
 
-    // Claim Button Functionality
+    // Claim Button Functionality - MODIFIED FOR TESTING
     claimBtn.addEventListener('click', async function() {
         if (canClaim) {
             const claimButton = this;
@@ -98,34 +113,71 @@ function initializeMiningDashboard() {
                     loadingIndicator.style.display = 'block';
                 }
 
-                // Get current balance
-                const currentBalance = parseInt(balanceAmount.textContent) || 0;
-                const newBalance = currentBalance + 30;
+                // Test database write operation
+                console.log('Testing database write operation...');
+                
+                // Try to create a test user and update balance
+                const testUserId = 'test-user-' + Date.now();
+                const testBalance = 30;
 
-                // Update display immediately
-                balanceAmount.textContent = newBalance;
+                // First, try to insert a new user
+                const { error: insertError } = await supabase
+                    .from('users')
+                    .insert([
+                        { 
+                            id: testUserId, 
+                            balance: testBalance,
+                            created_at: new Date().toISOString()
+                        }
+                    ]);
 
-                // Save to Supabase
-                const success = await updateUserBalance(currentUserId, newBalance);
+                if (insertError) {
+                    console.error('❌ Database write test failed:', insertError);
+                    
+                    // If insert fails, try update (in case user already exists)
+                    const { error: updateError } = await supabase
+                        .from('users')
+                        .update({ balance: testBalance })
+                        .eq('id', testUserId);
 
-                if (success) {
-                    // Save claim history
-                    await saveClaimHistory(currentUserId, 30);
-
-                    // Reset countdown to 12 hours
-                    countdownTime = 12 * 60 * 60;
-                    canClaim = false;
-
-                    alert('30 NMX claimed successfully! Next claim available in 12 hours.');
-                } else {
-                    alert('Error saving to database. Please try again.');
-                    // Revert balance display if save failed
-                    balanceAmount.textContent = currentBalance;
+                    if (updateError) {
+                        throw new Error('Both insert and update failed: ' + updateError.message);
+                    }
                 }
 
+                console.log('✅ Database write test successful!');
+                
+                // Update display
+                const currentBalance = parseInt(balanceAmount.textContent) || 0;
+                const newBalance = currentBalance + 30;
+                balanceAmount.textContent = newBalance;
+
+                // Save claim history
+                const { error: historyError } = await supabase
+                    .from('claim_history')
+                    .insert([
+                        { 
+                            user_id: testUserId, 
+                            amount: 30, 
+                            claimed_at: new Date().toISOString() 
+                        }
+                    ]);
+
+                if (historyError) {
+                    console.warn('Claim history save warning:', historyError);
+                } else {
+                    console.log('✅ Claim history saved successfully!');
+                }
+
+                // Reset countdown to 12 hours
+                countdownTime = 12 * 60 * 60;
+                canClaim = false;
+
+                alert('✅ Database test successful! 30 NMX claimed. Check browser console for details.');
+
             } catch (error) {
-                console.error('Error claiming NMX:', error);
-                alert('Error claiming NMX. Please try again.');
+                console.error('❌ Error during database test:', error);
+                alert('Database test failed: ' + error.message + '\n\nCheck browser console for details.');
             } finally {
                 // Hide loading
                 if (loadingIndicator) {
@@ -133,6 +185,8 @@ function initializeMiningDashboard() {
                 }
                 claimButton.disabled = !canClaim;
             }
+        } else {
+            alert('⏰ Countdown timer must reach 00:00:00 before claiming!');
         }
     });
 
@@ -140,6 +194,6 @@ function initializeMiningDashboard() {
     setInterval(updateCountdown, 1000);
     updateCountdown(); // Initial call
 
-    // Load user data when page loads
+    // Load user data and test connection when page loads
     loadUserData();
 }
