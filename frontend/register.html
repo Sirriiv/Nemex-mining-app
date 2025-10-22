@@ -11,8 +11,6 @@
             --gold: #FFD700;
             --gold-dark: #b8941f;
             --text: #ffffff;
-            --text-secondary: #cccccc;
-            --muted: #888888;
             --error: #ff4444;
             --success: #00C851;
         }
@@ -36,23 +34,7 @@
 
         .container {
             width: 100%;
-            max-width: 450px;
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .logo a {
-            font-size: 32px;
-            font-weight: bold;
-            color: var(--gold);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            max-width: 400px;
         }
 
         .card {
@@ -60,376 +42,103 @@
             padding: 40px;
             border-radius: 20px;
             border: 1px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
 
         .card h2 {
-            text-align: center;
-            font-size: 28px;
-            margin-bottom: 30px;
             color: var(--gold);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .input {
             width: 100%;
-            padding: 15px 20px;
+            padding: 15px;
+            margin: 10px 0;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border-radius: 10px;
             color: var(--text);
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-
-        .input:focus {
-            outline: none;
-            border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-        }
-
-        .input::placeholder {
-            color: var(--muted);
         }
 
         .btn {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            background: var(--gold);
             color: var(--darker-bg);
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            margin: 10px 0;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
-        }
-
-        .btn:disabled {
-            background: var(--muted);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .divider {
-            text-align: center;
-            margin: 30px 0;
-            color: var(--muted);
-            position: relative;
-        }
-
-        .divider::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .divider span {
-            background: var(--darker-bg);
-            padding: 0 20px;
-            font-size: 14px;
-        }
-
-        .switch {
-            text-align: center;
-            margin-top: 30px;
-            color: var(--text-secondary);
-        }
-
-        .switch a {
-            color: var(--gold);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .switch a:hover {
-            text-decoration: underline;
-        }
-
-        .error-message {
+        .error {
             color: var(--error);
-            font-size: 14px;
-            margin-top: 8px;
-            display: none;
+            margin: 10px 0;
         }
 
-        .success-message {
+        .success {
             color: var(--success);
-            font-size: 14px;
-            margin-top: 8px;
-            display: none;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 15px;
-            color: var(--gold);
-        }
-
-        .password-requirements {
-            background: rgba(255, 215, 0, 0.1);
-            border: 1px solid rgba(255, 215, 0, 0.3);
-            border-radius: 12px;
-            padding: 15px;
-            margin-top: 20px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .password-requirements h4 {
-            color: var(--gold);
-            margin-bottom: 8px;
-            font-size: 13px;
-        }
-
-        .requirement {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 5px;
-        }
-
-        .requirement.valid {
-            color: var(--success);
-        }
-
-        @media (max-width: 480px) {
-            .card {
-                padding: 30px 20px;
-            }
-
-            .container {
-                padding: 10px;
-            }
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <a href="index.html">
-                <span>✨</span> NEMEXCOIN
-            </a>
-        </div>
-
         <div class="card">
             <h2>Create Account</h2>
-
-            <form id="registerForm">
-                <div class="form-group">
-                    <input type="text" class="input" id="name" placeholder="Full Name" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="email" class="input" id="email" placeholder="Email Address" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input" id="password" placeholder="Password" required minlength="6">
-                    <div class="error-message" id="passwordError"></div>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input" id="confirmPassword" placeholder="Confirm Password" required>
-                    <div class="error-message" id="confirmPasswordError"></div>
-                </div>
-
-                <button type="submit" class="btn" id="registerBtn">
-                    Create Account
-                </button>
-
-                <div class="loading" id="registerLoading">
-                    🔄 Creating your account...
-                </div>
-
-                <div class="error-message" id="registerError"></div>
-                <div class="success-message" id="registerSuccess"></div>
-            </form>
-
-            <div class="divider">
-                <span>OR</span>
-            </div>
-
-            <div class="switch">
-                Already have an account? <a href="login.html">Sign in</a>
-            </div>
-
-            <div class="password-requirements">
-                <h4>🔐 Password Requirements</h4>
-                <div class="requirement" id="reqLength">
-                    <span>●</span> At least 6 characters
-                </div>
-            </div>
+            
+            <input type="text" class="input" id="name" placeholder="Full Name">
+            <input type="email" class="input" id="email" placeholder="Email">
+            <input type="password" class="input" id="password" placeholder="Password (min 6 chars)">
+            
+            <button class="btn" id="registerBtn">Create Account</button>
+            
+            <div id="result"></div>
+            <div><a href="login.html" style="color: var(--gold);">Already have an account? Login</a></div>
         </div>
     </div>
 
-    <!-- Include Supabase -->
+    <!-- Load Supabase FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     
     <script>
-        // Check if user is already logged in
-        async function checkExistingSession() {
+        document.getElementById('registerBtn').addEventListener('click', async function() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            result.innerHTML = '🔄 Registering...';
+            
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    window.location.href = 'index.html';
-                }
-            } catch (error) {
-                console.error('Session check error:', error);
-            }
-        }
-
-        // Password validation
-        function validatePassword(password, confirmPassword) {
-            const passwordError = document.getElementById('passwordError');
-            const confirmError = document.getElementById('confirmPasswordError');
-            let isValid = true;
-
-            // Reset errors
-            passwordError.style.display = 'none';
-            confirmError.style.display = 'none';
-
-            // Check password length
-            if (password.length < 6) {
-                passwordError.textContent = 'Password must be at least 6 characters';
-                passwordError.style.display = 'block';
-                isValid = false;
-            }
-
-            // Check password match
-            if (password !== confirmPassword) {
-                confirmError.textContent = 'Passwords do not match';
-                confirmError.style.display = 'block';
-                isValid = false;
-            }
-
-            return isValid;
-        }
-
-        // Registration function
-        async function registerUser(email, password, name) {
-            try {
-                console.log('Starting registration...');
+                console.log('Testing Supabase:', window.supabaseClient);
+                console.log('Testing Auth:', window.supabaseClient?.auth);
                 
-                // Sign up with Supabase Auth
-                const { data, error } = await supabase.auth.signUp({
+                if (!window.supabaseClient || !window.supabaseClient.auth) {
+                    throw new Error('Supabase not loaded properly');
+                }
+
+                const { data, error } = await window.supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                     options: {
                         data: {
-                            name: name,
-                            balance: 0
+                            name: name
                         }
                     }
                 });
 
-                if (error) {
-                    console.error('Registration error:', error);
-                    throw error;
-                }
+                if (error) throw error;
 
-                console.log('Registration successful:', data);
-                return data;
+                result.innerHTML = '✅ Success! Check your email for verification.';
+                console.log('Registration data:', data);
 
             } catch (error) {
-                console.error('Registration failed:', error);
-                throw error;
-            }
-        }
-
-        // Form submission
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const name = document.getElementById('name').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const registerBtn = document.getElementById('registerBtn');
-            const registerLoading = document.getElementById('registerLoading');
-            const errorElement = document.getElementById('registerError');
-            const successElement = document.getElementById('registerSuccess');
-
-            // Reset messages
-            errorElement.style.display = 'none';
-            successElement.style.display = 'none';
-
-            // Validate password
-            if (!validatePassword(password, confirmPassword)) {
-                return;
-            }
-
-            // Show loading
-            registerBtn.disabled = true;
-            registerLoading.style.display = 'block';
-
-            try {
-                // Register user with Supabase
-                const result = await registerUser(email, password, name);
-
-                if (result.user) {
-                    successElement.textContent = '✅ Account created successfully! Please check your email to verify your account.';
-                    successElement.style.display = 'block';
-                    
-                    // Clear form
-                    document.getElementById('registerForm').reset();
-                    
-                    // Redirect to login after 3 seconds
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 3000);
-                }
-
-            } catch (error) {
+                result.innerHTML = `❌ Error: ${error.message}`;
                 console.error('Registration error:', error);
-                
-                if (error.message.includes('already registered')) {
-                    errorElement.textContent = '❌ An account with this email already exists.';
-                } else if (error.message.includes('invalid email')) {
-                    errorElement.textContent = '❌ Please enter a valid email address.';
-                } else if (error.message.includes('password')) {
-                    errorElement.textContent = '❌ Password is too weak. Please use a stronger password.';
-                } else {
-                    errorElement.textContent = '❌ Registration failed: ' + error.message;
-                }
-                
-                errorElement.style.display = 'block';
-            } finally {
-                registerBtn.disabled = false;
-                registerLoading.style.display = 'none';
             }
-        });
-
-        // Real-time password validation
-        document.getElementById('password').addEventListener('input', function() {
-            const password = this.value;
-            const reqLength = document.getElementById('reqLength');
-            
-            if (password.length >= 6) {
-                reqLength.classList.add('valid');
-            } else {
-                reqLength.classList.remove('valid');
-            }
-        });
-
-        // Check for existing session on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            checkExistingSession();
         });
     </script>
 </body>
