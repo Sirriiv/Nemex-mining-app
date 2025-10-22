@@ -4,38 +4,196 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buy NMXp - NemexCoin</title>
-    <link rel="stylesheet" href="css/style.css">
     <style>
-        .package-options {
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 15px;
         }
-        
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
+
+        .settings-icon {
+            font-size: 20px;
+            color: var(--muted);
+            cursor: pointer;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .page-subtitle {
+            font-size: 16px;
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .card { 
+            background: var(--darker-bg); 
+            padding: 20px; 
+            border-radius: 10px; 
+            border: 1px solid #333; 
+            margin-bottom: 15px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
         .package {
             background: var(--darker-bg);
             padding: 20px;
             border-radius: 12px;
             border: 2px solid #333;
             text-align: center;
+            margin-bottom: 15px;
         }
-        
-        .package.featured {
-            border-color: var(--gold);
-            background: rgba(212, 175, 55, 0.1);
-        }
-        
+
         .package-amount {
             font-size: 24px;
             font-weight: 700;
             color: var(--gold);
             margin: 10px 0;
         }
-        
+
         .package-price {
             font-size: 18px;
             color: var(--muted);
             margin-bottom: 15px;
+        }
+
+        .btn {
+            width: 100%; 
+            padding: 12px; 
+            background: var(--gold); 
+            border: none; 
+            border-radius: 5px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            color: var(--darker-bg);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+        }
+
+        .nav-text {
+            margin-top: 4px;
+            text-align: center;
+        }
+
+        .content-wrapper {
+            padding-bottom: 70px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
     </style>
 </head>
@@ -56,25 +214,16 @@
                     <div class="card-value">1,250 NMXp</div>
                 </div>
                 
-                <div class="package-options">
-                    <div class="package">
-                        <div class="package-amount">500 NMXp</div>
-                        <div class="package-price">$5.00 USD</div>
-                        <button class="btn">Purchase</button>
-                    </div>
-                    
-                    <div class="package featured">
-                        <div class="package-amount">1,200 NMXp</div>
-                        <div class="package-price">$10.00 USD</div>
-                        <div style="color: var(--gold); margin-bottom: 10px;">Best Value</div>
-                        <button class="btn">Purchase</button>
-                    </div>
-                    
-                    <div class="package">
-                        <div class="package-amount">3,000 NMXp</div>
-                        <div class="package-price">$20.00 USD</div>
-                        <button class="btn">Purchase</button>
-                    </div>
+                <div class="package">
+                    <div class="package-amount">500 NMXp</div>
+                    <div class="package-price">$5.00 USD</div>
+                    <button class="btn">Purchase</button>
+                </div>
+                
+                <div class="package">
+                    <div class="package-amount">1,200 NMXp</div>
+                    <div class="package-price">$10.00 USD</div>
+                    <button class="btn">Purchase</button>
                 </div>
             </main>
         </div>
@@ -98,6 +247,10 @@
         </nav>
     </div>
 
-    <script src="js/main.js"></script>
+    <script>
+        document.querySelector('.settings-icon').addEventListener('click', function() {
+            alert('Settings menu would open here');
+        });
+    </script>
 </body>
 </html>
