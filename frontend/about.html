@@ -1,1 +1,242 @@
-s
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - NemexCoin</title>
+    <style>
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
+
+        .back-btn {
+            font-size: 20px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .content-wrapper {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .about-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .app-logo {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .logo-large {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .app-name {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .app-tagline {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .info-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--gold);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .info-text {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .feature-item::before {
+            content: "✓";
+            color: var(--gold);
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .version-info {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .version {
+            color: var(--muted);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">ℹ️ About</div>
+                <div style="width: 20px;"></div>
+            </header>
+
+            <div class="about-section">
+                <div class="app-logo">
+                    <div class="logo-large">〽️</div>
+                    <div class="app-name">NEMEXCOIN</div>
+                    <div class="app-tagline">Crypto Mining Revolution</div>
+                </div>
+
+                <div class="info-section">
+                    <div class="section-title">About NemexCoin</div>
+                    <div class="info-text">
+                        NemexCoin is a revolutionary cryptocurrency mining platform that allows users to earn NMX tokens through simple, accessible mining operations. Our mission is to make cryptocurrency mining available to everyone, regardless of technical expertise.
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="section-title">Key Features</div>
+                    <ul class="feature-list">
+                        <li class="feature-item">Easy-to-use mining interface</li>
+                        <li class="feature-item">12-hour claim cycles</li>
+                        <li class="feature-item">Secure wallet integration</li>
+                        <li class="feature-item">Referral bonus system</li>
+                        <li class="feature-item">Real-time balance tracking</li>
+                        <li class="feature-item">Multi-platform support</li>
+                    </ul>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalUsers">10K+</div>
+                        <div class="stat-label">Active Users</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalNMX">2.5M+</div>
+                        <div class="stat-label">NMX Mined</div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="section-title">Technology</div>
+                    <div class="info-text">
+                        Built on modern web technologies with secure Supabase backend integration. Our platform ensures maximum security and performance for all users.
+                    </div>
+                </div>
+
+                <div class="version-info">
+                    <div class="version">Version 1.0.0</div>
+                    <div class="version">© 2024 NemexCoin. All rights reserved.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
