@@ -13,6 +13,8 @@
             --muted: #aaa; 
             --bg-secondary: #1a1a1a;
             --border-color: #333333;
+            --success: #00C851;
+            --error: #ff4444;
         }
 
         * { 
@@ -50,10 +52,11 @@
             background-color: var(--dark-bg);
         }
 
-        .settings-icon {
+        .back-btn {
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
+            text-decoration: none;
         }
 
         .header-title {
@@ -62,136 +65,206 @@
             color: var(--gold);
         }
 
-        .main-content {
-            flex: 1;
+        .content-wrapper {
             padding: 20px;
+            flex: 1;
+            overflow-y: auto;
         }
 
-        .page-title {
-            font-size: 24px;
+        .wallet-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .balance-label {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 36px;
             font-weight: 700;
             color: var(--gold);
-            margin-bottom: 20px;
-            text-align: center;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
         }
 
-        .wallet-stats {
+        .balance-usd {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .action-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
 
-        .card { 
-            background: var(--darker-bg); 
-            padding: 20px; 
-            border-radius: 10px; 
-            border: 1px solid #333; 
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
+        .action-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
             color: var(--text);
-            margin-bottom: 10px;
         }
 
-        .card-value {
+        .action-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
+        .action-icon {
             font-size: 24px;
-            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .action-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .tokens-grid {
+            margin: 25px 0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
             color: var(--gold);
         }
 
-        .wallet-actions {
+        .token-card {
             display: flex;
-            gap: 10px;
-            margin: 20px 0;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
         }
 
-        .wallet-action-btn {
+        .token-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: 600;
+            color: var(--darker-bg);
+        }
+
+        .token-info {
             flex: 1;
-            background: var(--darker-bg);
-            border: 1px solid #333;
-            color: var(--text);
-            padding: 15px;
-            border-radius: 10px;
-            text-align: center;
-            cursor: pointer;
+        }
+
+        .token-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .token-symbol {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .token-amount {
+            font-weight: 700;
+            color: var(--gold);
+            font-family: 'Courier New', monospace;
+        }
+
+        .transaction-history {
+            margin-top: 25px;
         }
 
         .transaction-item {
-            background: var(--darker-bg);
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 10px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            border: 1px solid #333;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .transaction-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(0, 200, 81, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: var(--success);
+            font-size: 14px;
+        }
+
+        .transaction-icon.sent {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .transaction-details {
+            flex: 1;
+        }
+
+        .transaction-type {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .transaction-date {
+            color: var(--muted);
+            font-size: 11px;
         }
 
         .transaction-amount {
-            color: var(--gold);
+            font-weight: 700;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
         }
 
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
+        .transaction-amount.positive {
+            color: var(--success);
         }
 
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
-            border-radius: 8px;
-            margin: 0 1px;
+        .transaction-amount.negative {
+            color: var(--error);
         }
 
-        .nav-item.active {
-            color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
-        }
-
-        .nav-text {
-            margin-top: 4px;
+        .empty-state {
             text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
         }
 
-        .content-wrapper {
-            padding-bottom: 70px;
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -199,67 +272,125 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <div class="header-title">〽️ NEMEXCOIN</div>
-                <div class="settings-icon">⚙️</div>
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">💰 Wallet</div>
+                <div style="width: 20px;"></div>
             </header>
 
-            <main class="main-content">
-                <h1 class="page-title">My Wallet</h1>
-                
-                <div class="wallet-stats">
-                    <div class="card">
-                        <div class="card-title">Total Balance</div>
-                        <div class="card-value">1,580 NMXp</div>
-                    </div>
-                    <div class="card">
-                        <div class="card-title">Available</div>
-                        <div class="card-value">1,250 NMXp</div>
-                    </div>
+            <div class="wallet-section">
+                <div class="balance-card">
+                    <div class="balance-label">Total Balance</div>
+                    <div class="balance-amount" id="totalBalance">0 NMXp</div>
+                    <div class="balance-usd">≈ $0.00 USD</div>
                 </div>
-                
-                <div class="wallet-actions">
-                    <div class="wallet-action-btn">
-                        <div>📥</div>
-                        <div>Deposit</div>
-                    </div>
-                    <div class="wallet-action-btn">
-                        <div>📤</div>
-                        <div>Withdraw</div>
-                    </div>
-                </div>
-                
-                <div class="transaction-item">
-                    <div>
-                        <div>Mining Reward</div>
-                        <div style="font-size: 12px; color: var(--muted);">Today, 10:30 AM</div>
-                    </div>
-                    <div class="transaction-amount">+30 NMXp</div>
-                </div>
-            </main>
-        </div>
 
-        <nav class="bottom-nav">
-            <a href="index.html" class="nav-item">
-                <span class="nav-text">MINING</span>
-            </a>
-            <a href="tasks.html" class="nav-item">
-                <span class="nav-text">TASKS</span>
-            </a>
-            <a href="buynmxp.html" class="nav-item">
-                <span class="nav-text">BUY NMXp</span>
-            </a>
-            <a href="referrals.html" class="nav-item">
-                <span class="nav-text">REFERRALS</span>
-            </a>
-            <a href="wallet.html" class="nav-item active">
-                <span class="nav-text">WALLET</span>
-            </a>
-        </nav>
+                <div class="action-buttons">
+                    <a href="buynmxp.html" class="action-btn">
+                        <div class="action-icon">💰</div>
+                        <div class="action-label">Buy NMXp</div>
+                    </a>
+                    <a href="#" class="action-btn" onclick="showSend()">
+                        <div class="action-icon">📤</div>
+                        <div class="action-label">Send</div>
+                    </a>
+                    <a href="#" class="action-btn" onclick="showReceive()">
+                        <div class="action-icon">📥</div>
+                        <div class="action-label">Receive</div>
+                    </a>
+                    <a href="#" class="action-btn" onclick="showSwap()">
+                        <div class="action-icon">🔄</div>
+                        <div class="action-label">Swap</div>
+                    </a>
+                </div>
+
+                <div class="tokens-grid">
+                    <div class="section-title">Your Tokens</div>
+                    
+                    <div class="token-card">
+                        <div class="token-icon">N</div>
+                        <div class="token-info">
+                            <div class="token-name">NemexCoin</div>
+                            <div class="token-symbol">NMXp</div>
+                        </div>
+                        <div class="token-amount" id="nmxpBalance">0</div>
+                    </div>
+
+                    <div class="token-card">
+                        <div class="token-icon">B</div>
+                        <div class="token-info">
+                            <div class="token-name">Bonus Tokens</div>
+                            <div class="token-symbol">BONUS</div>
+                        </div>
+                        <div class="token-amount">0</div>
+                    </div>
+                </div>
+
+                <div class="transaction-history">
+                    <div class="section-title">Recent Transactions</div>
+                    
+                    <div class="transaction-item">
+                        <div class="transaction-icon">📥</div>
+                        <div class="transaction-details">
+                            <div class="transaction-type">Mining Reward</div>
+                            <div class="transaction-date">Today, 10:30 AM</div>
+                        </div>
+                        <div class="transaction-amount positive">+30 NMXp</div>
+                    </div>
+
+                    <div class="transaction-item">
+                        <div class="transaction-icon">🎁</div>
+                        <div class="transaction-details">
+                            <div class="transaction-type">Referral Bonus</div>
+                            <div class="transaction-date">Yesterday, 3:15 PM</div>
+                        </div>
+                        <div class="transaction-amount positive">+100 NMXp</div>
+                    </div>
+
+                    <div class="transaction-item">
+                        <div class="transaction-icon sent">📤</div>
+                        <div class="transaction-details">
+                            <div class="transaction-type">Sent to Friend</div>
+                            <div class="transaction-date">2 days ago</div>
+                        </div>
+                        <div class="transaction-amount negative">-50 NMXp</div>
+                    </div>
+
+                    <div class="empty-state" id="emptyTransactions" style="display: none;">
+                        <div class="empty-icon">📭</div>
+                        <div>No transactions yet</div>
+                        <div style="font-size: 12px; margin-top: 5px;">Start mining to see your transactions here</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.querySelector('.settings-icon').addEventListener('click', function() {
-            alert('Settings menu would open here');
+        function showSend() {
+            alert('Send functionality coming soon! You will be able to send NMXp to other users.');
+        }
+
+        function showReceive() {
+            const address = "NMXp_1A2b3C4d5E6f7G8h9J0kL1mN2oP3qR4sT5u";
+            alert(`Your NMXp receiving address:\n\n${address}\n\nShare this address to receive NMXp from others.`);
+        }
+
+        function showSwap() {
+            alert('Token swap functionality coming soon! You will be able to swap between different cryptocurrencies.');
+        }
+
+        // Load wallet data
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading wallet data - in real app, this would come from your database
+            setTimeout(() => {
+                document.getElementById('totalBalance').textContent = '1,230 NMXp';
+                document.getElementById('nmxpBalance').textContent = '1,230';
+                
+                // Update USD value (example rate: 1 NMXp = $0.01)
+                const nmxpBalance = 1230;
+                const usdValue = (nmxpBalance * 0.01).toFixed(2);
+                document.querySelector('.balance-usd').textContent = `≈ $${usdValue} USD`;
+            }, 500);
         });
     </script>
 </body>
