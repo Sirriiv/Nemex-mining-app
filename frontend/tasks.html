@@ -6,61 +6,78 @@
     <title>Tasks - NemexCoin</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        .tasks-container {
-            padding: 20px;
-        }
-        
         .task-item {
-            background: var(--bg-secondary);
+            background: var(--darker-bg);
             padding: 15px;
             margin-bottom: 10px;
             border-radius: 10px;
-            border: 1px solid var(--border-color);
+            border: 1px solid #333;
         }
         
         .task-reward {
             color: var(--gold);
             font-weight: 600;
+            margin-top: 10px;
+        }
+        
+        .task-completed {
+            opacity: 0.6;
         }
     </style>
 </head>
 <body>
-    <div class="content-wrapper">
-        <header class="header">
-            <div class="header-title">〽️ NEMEXCOIN</div>
-            <div class="settings-icon">⚙️</div>
-        </header>
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <div class="header-title">〽️ NEMEXCOIN</div>
+                <div class="settings-icon">⚙️</div>
+            </header>
 
-        <main class="main-content">
-            <h1 class="page-title">Daily Tasks</h1>
-            <div class="tasks-container">
+            <main class="main-content">
+                <h1 class="page-title">Daily Tasks</h1>
+                <p class="page-subtitle">Complete tasks to earn NMXp</p>
+                
                 <div class="task-item">
                     <h3>Follow on Twitter</h3>
                     <p>Follow our official Twitter account</p>
                     <div class="task-reward">+10 NMXp</div>
+                    <button class="btn">Complete Task</button>
                 </div>
-                <!-- Add more tasks here -->
-            </div>
-        </main>
-    </div>
+                
+                <div class="task-item">
+                    <h3>Join Telegram</h3>
+                    <p>Join our Telegram community</p>
+                    <div class="task-reward">+15 NMXp</div>
+                    <button class="btn">Complete Task</button>
+                </div>
+                
+                <div class="task-item task-completed">
+                    <h3>Watch Tutorial</h3>
+                    <p>Watch the getting started video</p>
+                    <div class="task-reward">+5 NMXp ✓</div>
+                    <button class="btn" disabled>Completed</button>
+                </div>
+            </main>
+        </div>
 
-    <nav class="bottom-nav">
-        <a href="index.html" class="nav-item">
-            <span class="nav-text">MINING</span>
-        </a>
-        <a href="tasks.html" class="nav-item active">
-            <span class="nav-text">TASKS</span>
-        </a>
-        <a href="buynmxp.html" class="nav-item">
-            <span class="nav-text">BUY NMXp</span>
-        </a>
-        <a href="referrals.html" class="nav-item">
-            <span class="nav-text">REFERRALS</span>
-        </a>
-        <a href="wallet.html" class="nav-item">
-            <span class="nav-text">WALLET</span>
-        </a>
-    </nav>
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item">
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item active">
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
+    </div>
 
     <script src="js/main.js"></script>
 </body>
