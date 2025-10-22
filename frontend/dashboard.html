@@ -196,6 +196,12 @@
             display: flex;
             flex-direction: column;
         }
+
+        .loading {
+            display: none;
+            color: var(--gold);
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -240,6 +246,7 @@
                     <div class="countdown-timer" id="countdownTimer">12:00:00</div>
                 </div>
 
+                <div class="loading" id="loadingIndicator">Processing...</div>
                 <button class="claim-btn" id="claimButton">Claim 30 NMX Now!</button>
             </main>
         </div>
@@ -266,12 +273,15 @@
     <!-- Include Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase Configuration
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';
-        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';
+        // Supabase Configuration - YOUR CREDENTIALS ADDED
+        const SUPABASE_URL = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         
-        // Initialize Supabase (you'll need to add your actual credentials)
+        // Initialize Supabase
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // User session management (for demo - you'll need proper auth)
+        let currentUserId = 'demo-user-123'; // Replace with actual user ID from auth
 
         // Countdown Timer Functionality
         let countdownTime = 12 * 60 * 60; // 12 hours in seconds
@@ -303,27 +313,63 @@
             }
         }
 
+        // Load user data from Supabase
+        async function loadUserData() {
+            try {
+                // For demo - you'll implement proper user loading
+                const balance = await getUserBalance(currentUserId);
+                document.getElementById('balanceAmount').textContent = balance;
+                
+                // Load last claim time and set countdown
+                // You'll implement this based on your database structure
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
         // Claim Button Functionality
         document.getElementById('claimButton').addEventListener('click', async function() {
             if (canClaim) {
+                const claimButton = this;
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                
                 try {
-                    // Add 30 NMX to user's balance
+                    // Show loading
+                    claimButton.disabled = true;
+                    loadingIndicator.style.display = 'block';
+                    
+                    // Get current balance
                     const currentBalance = parseInt(document.getElementById('balanceAmount').textContent) || 0;
                     const newBalance = currentBalance + 30;
+                    
+                    // Update display immediately
                     document.getElementById('balanceAmount').textContent = newBalance;
                     
-                    // Reset countdown to 12 hours
-                    countdownTime = 12 * 60 * 60;
-                    canClaim = false;
-                    this.disabled = true;
+                    // Save to Supabase
+                    const success = await updateUserBalance(currentUserId, newBalance);
                     
-                    // Here you would save to Supabase
-                    // await saveToSupabase(newBalance);
+                    if (success) {
+                        // Save claim history
+                        await saveClaimHistory(currentUserId, 30);
+                        
+                        // Reset countdown to 12 hours
+                        countdownTime = 12 * 60 * 60;
+                        canClaim = false;
+                        
+                        alert('30 NMX claimed successfully! Next claim available in 12 hours.');
+                    } else {
+                        alert('Error saving to database. Please try again.');
+                        // Revert balance display if save failed
+                        document.getElementById('balanceAmount').textContent = currentBalance;
+                    }
                     
-                    alert('30 NMX claimed successfully! Next claim available in 12 hours.');
                 } catch (error) {
                     console.error('Error claiming NMX:', error);
                     alert('Error claiming NMX. Please try again.');
+                } finally {
+                    // Hide loading
+                    loadingIndicator.style.display = 'none';
+                    claimButton.disabled = !canClaim;
                 }
             }
         });
@@ -333,21 +379,81 @@
             alert('Settings menu would open here');
         });
 
+        // Supabase Functions
+        async function getUserBalance(userId) {
+            try {
+                const { data, error } = await supabase
+                    .from('users')
+                    .select('balance')
+                    .eq('id', userId)
+                    .single();
+                
+                if (error) {
+                    console.error('Error fetching balance:', error);
+                    return 0;
+                }
+                
+                return data.balance || 0;
+            } catch (error) {
+                console.error('Error in getUserBalance:', error);
+                return 0;
+            }
+        }
+
+        async function updateUserBalance(userId, newBalance) {
+            try {
+                const { error } = await supabase
+                    .from('users')
+                    .update({ 
+                        balance: newBalance,
+                        last_claim: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+                
+                if (error) {
+                    console.error('Error updating balance:', error);
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error in updateUserBalance:', error);
+                return false;
+            }
+        }
+
+        async function saveClaimHistory(userId, amount) {
+            try {
+                const { error } = await supabase
+                    .from('claim_history')
+                    .insert([
+                        { 
+                            user_id: userId, 
+                            amount: amount, 
+                            claimed_at: new Date().toISOString() 
+                        }
+                    ]);
+                
+                if (error) {
+                    console.error('Error saving claim history:', error);
+                    return false;
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error in saveClaimHistory:', error);
+                return false;
+            }
+        }
+
         // Start the countdown timer
         setInterval(updateCountdown, 1000);
         updateCountdown(); // Initial call
 
-        // Supabase Functions (you'll implement these)
-        async function saveToSupabase(balance) {
-            // This is where you'll save data to Supabase
-            // You'll need to set up authentication first
-            console.log('Saving to Supabase:', balance);
-        }
-
-        async function loadFromSupabase() {
-            // This is where you'll load data from Supabase
-            console.log('Loading from Supabase');
-        }
+        // Load user data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserData();
+        });
     </script>
 </body>
 </html>
