@@ -1,5 +1,5 @@
 // Supabase Configuration
-const SUPABASE_URL = 'https://your-project.supabase.co';
+const SUPABASE_URL =
 const SUPABASE_ANON_KEY = 'your-anon-key-here';
 
 // Initialize Supabase
