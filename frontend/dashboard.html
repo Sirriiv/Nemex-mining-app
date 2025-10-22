@@ -202,6 +202,12 @@
             color: var(--gold);
             margin: 10px 0;
         }
+
+        .connection-status {
+            font-size: 12px;
+            color: var(--muted);
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -213,9 +219,11 @@
             </header>
 
             <main class="main-content">
+                <div class="connection-status" id="connectionStatus">Testing database connection...</div>
+                
                 <div class="balance-display">
                     <div class="balance-label">Your Balance</div>
-                    <div class="balance-amount" id="balanceAmount">00</div>
+                    <div class="balance-amount" id="balanceAmount">0</div>
                 </div>
 
                 <!-- NEMEXCOIN LOGO -->
@@ -243,11 +251,11 @@
 
                 <div class="countdown-section">
                     <div class="countdown-label">Claim in</div>
-                    <div class="countdown-timer" id="countdownTimer">12:00:00</div>
+                    <div class="countdown-timer" id="countdownTimer">00:10:00</div>
                 </div>
 
-                <div class="loading" id="loadingIndicator">Processing...</div>
-                <button class="claim-btn" id="claimButton">Claim 30 NMX Now!</button>
+                <div class="loading" id="loadingIndicator">Testing Database Connection...</div>
+                <button class="claim-btn" id="claimButton" disabled>Claim 30 NMX Now!</button>
             </main>
         </div>
 
@@ -270,7 +278,7 @@
         </nav>
     </div>
 
-    <!-- External JavaScript Files - SIMPLIFIED! -->
+    <!-- External JavaScript Files -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     <script src="js/main.js"></script>
