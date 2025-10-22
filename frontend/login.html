@@ -11,8 +11,6 @@
             --gold: #FFD700;
             --gold-dark: #b8941f;
             --text: #ffffff;
-            --text-secondary: #cccccc;
-            --muted: #888888;
             --error: #ff4444;
             --success: #00C851;
         }
@@ -36,23 +34,7 @@
 
         .container {
             width: 100%;
-            max-width: 450px;
-        }
-
-        .logo {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .logo a {
-            font-size: 32px;
-            font-weight: bold;
-            color: var(--gold);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
+            max-width: 400px;
         }
 
         .card {
@@ -60,343 +42,100 @@
             padding: 40px;
             border-radius: 20px;
             border: 1px solid rgba(255, 215, 0, 0.3);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
         }
 
         .card h2 {
-            text-align: center;
-            font-size: 28px;
-            margin-bottom: 30px;
             color: var(--gold);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
 
         .input {
             width: 100%;
-            padding: 15px 20px;
+            padding: 15px;
+            margin: 10px 0;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            border-radius: 10px;
             color: var(--text);
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-
-        .input:focus {
-            outline: none;
-            border-color: var(--gold);
-            box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.1);
-        }
-
-        .input::placeholder {
-            color: var(--muted);
-        }
-
-        .forgot-password {
-            text-align: right;
-            margin-bottom: 25px;
-        }
-
-        .forgot-password a {
-            color: var(--gold);
-            text-decoration: none;
-            font-size: 14px;
-            transition: color 0.3s;
-        }
-
-        .forgot-password a:hover {
-            text-decoration: underline;
         }
 
         .btn {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            background: var(--gold);
             color: var(--darker-bg);
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            border-radius: 10px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            margin: 10px 0;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
-        }
-
-        .btn:disabled {
-            background: var(--muted);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .divider {
-            text-align: center;
-            margin: 30px 0;
-            color: var(--muted);
-            position: relative;
-        }
-
-        .divider::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .divider span {
-            background: var(--darker-bg);
-            padding: 0 20px;
-            font-size: 14px;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: var(--text);
-            font-size: 16px;
-            cursor: pointer;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .social-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: var(--gold);
-        }
-
-        .social-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .switch {
-            text-align: center;
-            margin-top: 30px;
-            color: var(--text-secondary);
-        }
-
-        .switch a {
-            color: var(--gold);
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .switch a:hover {
-            text-decoration: underline;
-        }
-
-        .error-message {
+        .error {
             color: var(--error);
-            font-size: 14px;
-            margin-top: 8px;
-            display: none;
+            margin: 10px 0;
         }
 
-        .success-message {
+        .success {
             color: var(--success);
-            font-size: 14px;
-            margin-top: 8px;
-            display: none;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            margin-top: 15px;
-            color: var(--gold);
-        }
-
-        @media (max-width: 480px) {
-            .card {
-                padding: 30px 20px;
-            }
-
-            .container {
-                padding: 10px;
-            }
+            margin: 10px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="logo">
-            <a href="index.html">
-                <span>✨</span> NEMEXCOIN
-            </a>
-        </div>
-
         <div class="card">
-            <h2>Welcome Back</h2>
-
-            <form id="loginForm">
-                <div class="form-group">
-                    <input type="email" class="input" id="email" placeholder="Email Address" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input" id="password" placeholder="Password" required>
-                    <div class="error-message" id="loginError"></div>
-                </div>
-
-                <div class="forgot-password">
-                    <a href="#" id="forgotPassword">Forgot password?</a>
-                </div>
-
-                <button type="submit" class="btn" id="loginBtn">
-                    Sign In
-                </button>
-
-                <div class="loading" id="loginLoading">
-                    🔄 Signing you in...
-                </div>
-            </form>
-
-            <div class="divider">
-                <span>OR CONTINUE WITH</span>
-            </div>
-
-            <button class="social-btn" disabled>
-                <span>🔍</span> Continue with Google
-            </button>
-
-            <div class="switch">
-                Don't have an account? <a href="register.html">Sign up</a>
-            </div>
+            <h2>Login</h2>
+            
+            <input type="email" class="input" id="email" placeholder="Email">
+            <input type="password" class="input" id="password" placeholder="Password">
+            
+            <button class="btn" id="loginBtn">Login</button>
+            
+            <div id="result"></div>
+            <div><a href="register.html" style="color: var(--gold);">Don't have an account? Register</a></div>
         </div>
     </div>
 
-    <!-- Include Supabase -->
+    <!-- Load Supabase FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/supabase-config.js"></script>
     
     <script>
-        // Check if user is already logged in
-        async function checkExistingSession() {
+        document.getElementById('loginBtn').addEventListener('click', async function() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const result = document.getElementById('result');
+            
+            result.innerHTML = '🔄 Logging in...';
+            
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (session) {
-                    console.log('User already logged in, redirecting...');
-                    window.location.href = 'index.html';
-                }
-            } catch (error) {
-                console.error('Session check error:', error);
-            }
-        }
-
-        // Login function
-        async function loginUser(email, password) {
-            try {
-                console.log('Attempting login...');
+                console.log('Testing Supabase:', window.supabaseClient);
+                console.log('Testing Auth:', window.supabaseClient?.auth);
                 
-                const { data, error } = await supabase.auth.signInWithPassword({
+                if (!window.supabaseClient || !window.supabaseClient.auth) {
+                    throw new Error('Supabase not loaded properly');
+                }
+
+                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
 
-                if (error) {
-                    console.error('Login error:', error);
-                    throw error;
-                }
+                if (error) throw error;
 
-                console.log('Login successful:', data);
-                return data;
-
-            } catch (error) {
-                console.error('Login failed:', error);
-                throw error;
-            }
-        }
-
-        // Form submission
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const loginBtn = document.getElementById('loginBtn');
-            const loginLoading = document.getElementById('loginLoading');
-            const errorElement = document.getElementById('loginError');
-
-            // Reset error
-            errorElement.style.display = 'none';
-            loginBtn.disabled = true;
-            loginLoading.style.display = 'block';
-
-            try {
-                // Login user with Supabase
-                const result = await loginUser(email, password);
-
-                if (result.user) {
-                    console.log('✅ Login successful, redirecting to dashboard...');
-                    
-                    // Store user session
-                    localStorage.setItem('userEmail', result.user.email);
-                    localStorage.setItem('userId', result.user.id);
-                    localStorage.setItem('isLoggedIn', 'true');
-                    
-                    // Redirect to dashboard
+                result.innerHTML = '✅ Login successful! Redirecting...';
+                console.log('Login data:', data);
+                
+                // Redirect to dashboard
+                setTimeout(() => {
                     window.location.href = 'index.html';
-                }
+                }, 1000);
 
             } catch (error) {
+                result.innerHTML = `❌ Error: ${error.message}`;
                 console.error('Login error:', error);
-                
-                if (error.message.includes('Invalid login credentials')) {
-                    errorElement.textContent = '❌ Invalid email or password. Please try again.';
-                } else if (error.message.includes('Email not confirmed')) {
-                    errorElement.textContent = '❌ Please verify your email address before logging in.';
-                } else {
-                    errorElement.textContent = '❌ Login failed: ' + error.message;
-                }
-                
-                errorElement.style.display = 'block';
-            } finally {
-                loginBtn.disabled = false;
-                loginLoading.style.display = 'none';
-            }
-        });
-
-        // Forgot password
-        document.getElementById('forgotPassword').addEventListener('click', async function(e) {
-            e.preventDefault();
-            const email = prompt('Please enter your email address to reset your password:');
-            
-            if (email) {
-                const { error } = await supabase.auth.resetPasswordForEmail(email);
-                if (error) {
-                    alert('Error sending reset email: ' + error.message);
-                } else {
-                    alert('Password reset email sent! Please check your inbox.');
-                }
-            }
-        });
-
-        // Check for existing session on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            checkExistingSession();
-        });
-
-        // Enter key support
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
         });
     </script>
