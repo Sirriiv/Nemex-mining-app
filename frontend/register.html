@@ -284,9 +284,13 @@
     <script>
         // Check if user is already logged in
         async function checkExistingSession() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                window.location.href = 'index.html';
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    window.location.href = 'index.html';
+                }
+            } catch (error) {
+                console.error('Session check error:', error);
             }
         }
 
