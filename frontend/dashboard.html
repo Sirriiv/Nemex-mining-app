@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Mining Dashboard</title>
-
-    <!-- Add Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
     <style>
-        /* Gold Theme and Dark Background */
+        /* Your existing CSS styles remain the same */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -21,14 +18,12 @@
             --success: #00C851;
             --error: #ff4444;
         }
-
         * { 
             margin: 0; 
             padding: 0; 
             box-sizing: border-box; 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
         }
-
         body { 
             background: var(--dark-bg); 
             color: var(--text); 
@@ -38,7 +33,6 @@
             padding: 0;
             margin: 0;
         }
-
         .container { 
             width: 100%; 
             max-width: 400px; 
@@ -47,8 +41,6 @@
             display: flex;
             flex-direction: column;
         }
-
-        /* HEADER SECTION */
         .header {
             display: flex;
             justify-content: space-between;
@@ -57,20 +49,16 @@
             border-bottom: 1px solid var(--border-color);
             background-color: var(--dark-bg);
         }
-
         .settings-icon {
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
         }
-
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
         }
-
-        /* MAIN CONTENT AREA */
         .main-content {
             flex: 1;
             display: flex;
@@ -80,17 +68,14 @@
             padding: 20px;
             text-align: center;
         }
-
         .balance-display {
             margin-bottom: 30px;
         }
-
         .balance-label {
             font-size: 16px;
             color: var(--muted);
             margin-bottom: 8px;
         }
-
         .balance-amount {
             font-size: 42px;
             font-weight: 700;
@@ -98,8 +83,6 @@
             line-height: 1;
             font-family: 'Courier New', monospace;
         }
-
-        /* NemexCoin Logo */
         .nemex-logo{width:140px;height:140px;margin:25px auto;position:relative;display:flex;align-items:center;justify-content:center}
         .logo-container{width:120px;height:120px;position:relative;filter:drop-shadow(0 0 15px rgba(212,175,55,0.4))}
         .logo-base{width:100%;height:100%;background:var(--darker-bg);border-radius:50%;border:3px solid var(--gold);position:relative;overflow:hidden;box-shadow:inset 0 0 20px rgba(212,175,55,0.1),0 0 30px rgba(212,175,55,0.2)}
@@ -121,17 +104,14 @@
         .logo-glow{position:absolute;top:-10px;left:-10px;right:-10px;bottom:-10px;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,0.2)0%,rgba(212,175,55,0)70%);animation:glowPulse 3s ease-in-out infinite;z-index:-1}
         @keyframes rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:0.8;transform:scale(1.05)}}
-
         .countdown-section {
             margin-bottom: 30px;
         }
-
         .countdown-label {
             font-size: 14px;
             color: var(--muted);
             margin-bottom: 8px;
         }
-
         .countdown-timer {
             font-size: 24px;
             font-weight: 600;
@@ -143,7 +123,6 @@
             border-radius: 10px;
             border: 1px solid rgba(212, 175, 55, 0.3);
         }
-
         .claim-btn{
             background:linear-gradient(135deg,var(--gold),#b8941f);
             color:var(--darker-bg);
@@ -171,8 +150,6 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(212,175,55,0.4);
         }
-
-        /* NAVIGATION SYSTEM */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -188,7 +165,6 @@
             max-width: 400px;
             margin: 0 auto;
         }
-
         .nav-item {
             display: flex;
             flex-direction: column;
@@ -202,13 +178,11 @@
             border-radius: 8px;
             margin: 0 1px;
         }
-
         .nav-item.active {
             color: var(--gold);
             background-color: rgba(212, 175, 55, 0.1);
             position: relative;
         }
-
         .nav-item.active::after {
             content: '';
             position: absolute;
@@ -219,12 +193,10 @@
             height: 3px;
             background: var(--gold);
         }
-
         .nav-text {
             margin-top: 4px;
             text-align: center;
         }
-
         .content-wrapper {
             padding-bottom: 70px;
             width: 100%;
@@ -232,21 +204,17 @@
             display: flex;
             flex-direction: column;
         }
-
         .loading {
             display: none;
             color: var(--gold);
             margin: 10px 0;
         }
-
         .connection-status {
             font-size: 12px;
             color: var(--muted);
             margin: 5px 0;
             display: none;
         }
-
-        /* Messages */
         .message {
             padding: 12px;
             border-radius: 8px;
@@ -257,20 +225,16 @@
             max-width: 280px;
             width: 100%;
         }
-
         .success-message {
             background: rgba(0, 200, 81, 0.1);
             border: 1px solid var(--success);
             color: var(--success);
         }
-
         .error-message {
             background: rgba(255, 68, 68, 0.1);
             border: 1px solid var(--error);
             color: var(--error);
         }
-
-        /* Settings Modal */
         .settings-modal {
             display: none;
             position: fixed;
@@ -283,7 +247,6 @@
             justify-content: center;
             align-items: center;
         }
-
         .settings-content {
             background: var(--darker-bg);
             width: 90%;
@@ -292,20 +255,17 @@
             border: 1px solid var(--gold);
             overflow: hidden;
         }
-
         .settings-header {
             padding: 20px;
             border-bottom: 1px solid var(--border-color);
             text-align: center;
             position: relative;
         }
-
         .settings-title {
             font-size: 20px;
             font-weight: 700;
             color: var(--gold);
         }
-
         .settings-close {
             position: absolute;
             top: 15px;
@@ -316,13 +276,11 @@
             font-size: 20px;
             cursor: pointer;
         }
-
         .settings-list {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-
         .settings-item {
             padding: 18px 20px;
             border-bottom: 1px solid var(--border-color);
@@ -332,26 +290,20 @@
             transition: all 0.3s ease;
             cursor: pointer;
         }
-
         .settings-item:last-child {
             border-bottom: none;
         }
-
         .settings-item:hover {
             background: rgba(212, 175, 55, 0.1);
             color: var(--gold);
         }
-
         .settings-item.logout {
             color: #ff4444;
             border-top: 1px solid var(--border-color);
         }
-
         .settings-item.logout:hover {
             background: rgba(255, 68, 68, 0.1);
         }
-
-        /* Telegram User Info - Will only show in Telegram */
         .telegram-user-info {
             text-align: center;
             padding: 15px;
@@ -361,7 +313,6 @@
             border: 1px solid rgba(0, 136, 204, 0.3);
             display: none;
         }
-
         .telegram-avatar {
             width: 50px;
             height: 50px;
@@ -369,31 +320,24 @@
             margin: 0 auto 10px;
             border: 2px solid var(--gold);
         }
-
         .telegram-welcome {
             font-size: 16px;
             color: var(--text);
             margin-bottom: 5px;
         }
-
         .telegram-username {
             font-size: 14px;
             color: var(--muted);
         }
-
-        /* Telegram-specific styles */
         .telegram-app .header {
             padding-top: 20px !important;
         }
-
         .telegram-app .main-content {
             padding-top: 10px;
         }
-
         .telegram-app .connection-status {
             display: none !important;
         }
-
         .telegram-badge {
             background: #0088cc;
             color: white;
@@ -882,7 +826,7 @@
             showSuccess(`Hello ${user.first_name}! Welcome to NemexCoin! 🚀`);
         }
 
-        // Load user data from profile table
+        // Load user data from profile table - FIXED VERSION
         async function loadUserData() {
             try {
                 console.log('📊 Loading user data...');
@@ -925,7 +869,7 @@
                     profile = data;
                 }
 
-                // Update UI
+                // Update UI - FIXED: Ensure balance is properly parsed
                 userBalance = parseFloat(profile.balance) || 0;
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
@@ -1032,7 +976,7 @@
             }
         }
 
-        // Claim NMX function
+        // Claim NMX function - FIXED VERSION
         async function claimNMX() {
             const claimBtn = document.getElementById('claimButton');
             const loading = document.getElementById('loadingIndicator');
@@ -1069,22 +1013,29 @@
                         .eq('id', user.id);
                 }
 
-                const { error: updateError } = await updateQuery;
+                const { data, error: updateError } = await updateQuery.select().single();
 
                 if (updateError) {
                     console.error('Error updating balance:', updateError);
                     throw updateError;
                 }
 
+                console.log('✅ Database update successful:', data);
+
                 // Save claim history
                 const userId = isTelegramApp && telegramUser ? user.id : user.id;
-                await supabaseClient
+                const { error: historyError } = await supabaseClient
                     .from('claim_history')
                     .insert({
                         user_id: userId,
                         amount: CLAIM_AMOUNT,
                         claimed_at: now
                     });
+
+                if (historyError) {
+                    console.error('Error saving claim history:', historyError);
+                    // Continue anyway, history is secondary
+                }
 
                 // Update local state
                 userBalance = newBalance;
@@ -1111,6 +1062,7 @@
             } catch (error) {
                 console.error('❌ Claim failed:', error);
                 showError('Failed to claim NMX. Please try again.');
+                // Re-enable button if claim failed
                 updateCountdown();
             } finally {
                 loading.style.display = 'none';
@@ -1125,18 +1077,6 @@
             }
         }
 
-        // Update claim button state
-        function updateClaimButton() {
-            const claimBtn = document.getElementById('claimButton');
-            if (!lastClaimTime) {
-                claimBtn.disabled = false;
-            } else {
-                const now = new Date();
-                const timeSinceLastClaim = now.getTime() - new Date(lastClaimTime).getTime();
-                claimBtn.disabled = timeSinceLastClaim < CLAIM_COOLDOWN;
-            }
-        }
-
         // Event Listeners
         document.getElementById('claimButton').addEventListener('click', claimNMX);
 
@@ -1145,6 +1085,9 @@
             const errorElement = document.getElementById('errorMessage');
             errorElement.textContent = message;
             errorElement.style.display = 'block';
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
         }
 
         function showSuccess(message) {
@@ -1153,7 +1096,7 @@
             successElement.style.display = 'block';
             setTimeout(() => {
                 successElement.style.display = 'none';
-            }, 3000);
+            }, 5000);
         }
 
         function hideMessages() {
