@@ -1,0 +1,84 @@
+/* css/telegram-styles.css */
+.telegram-app {
+    /* Adjust for Telegram's native header */
+    padding-top: 0 !important;
+}
+
+.telegram-app header {
+    display: none !important;
+}
+
+.telegram-app .main-content {
+    padding-top: 0;
+    min-height: 100vh;
+}
+
+/* Telegram-optimized buttons */
+.telegram-app .btn-telegram {
+    background: #0088cc;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-weight: 500;
+}
+
+.telegram-app .btn-primary {
+    background: #d4af37;
+    color: #000;
+    border: none;
+    border-radius: 10px;
+}
+
+/* Mobile-optimized for Telegram */
+.telegram-app .dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px;
+}
+
+.telegram-app .card {
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    margin-bottom: 12px;
+}
+
+.telegram-app .user-info {
+    text-align: center;
+    padding: 20px 16px;
+    background: linear-gradient(135deg, #d4af37, #f4d03f);
+    border-radius: 0 0 20px 20px;
+    margin-bottom: 0;
+}
+
+/* Hide elements not needed in Telegram */
+.telegram-app .desktop-only {
+    display: none !important;
+}
+
+.telegram-app .login-section {
+    display: none !important;
+}
+
+/* Telegram-specific enhancements */
+.telegram-badge {
+    background: #0088cc;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    display: inline-block;
+    margin-left: 8px;
+}
+
+/* Optimize for Telegram viewport */
+@media (max-width: 768px) {
+    .telegram-app .container {
+        padding: 0 8px;
+    }
+    
+    .telegram-app .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
