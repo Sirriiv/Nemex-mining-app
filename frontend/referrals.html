@@ -6,7 +6,7 @@
     <title>Referrals - NemexCoin</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing referrals.css styles remain the same */
+        /* Your existing CSS remains the same */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -469,16 +469,6 @@
         let referralData = null;
         const REFERRAL_BONUS = 30;
 
-        // Generate random referral code
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing Referrals Page...');
@@ -544,7 +534,7 @@
                 // Update referral link - FIXED: Use current domain
                 const currentDomain = window.location.origin;
                 const referralUrl = `${currentDomain}/register.html?ref=${stats.referral_code}`;
-                
+
                 document.getElementById('referralLink').value = referralUrl;
                 console.log('🔗 Generated referral link:', referralUrl);
 
@@ -557,8 +547,187 @@
             }
         }
 
-        // Rest of your referrals.js code remains the same...
-        // [Keep all your existing functions: loadReferralsList, displayReferralsList, etc.]
+        // Load referrals list
+        async function loadReferralsList() {
+            try {
+                // Get referrals where current user is the referrer
+                const { data: referrals, error } = await supabaseClient
+                    .from('referrals')
+                    .select(`
+                        *,
+                        referred_user:profiles!referrals_referred_id_fkey(full_name, username, created_at)
+                    `)
+                    .eq('referrer_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading referrals list:', error);
+                    throw error;
+                }
+
+                displayReferralsList(referrals || []);
+
+            } catch (error) {
+                console.error('Error loading referrals:', error);
+                document.getElementById('referralsList').innerHTML = `
+                    <div class="error-message">Failed to load referrals</div>
+                `;
+            }
+        }
+
+        // Display referrals list
+        function displayReferralsList(referrals) {
+            const referralsList = document.getElementById('referralsList');
+
+            if (!referrals || referrals.length === 0) {
+                referralsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👥</div>
+                        <div>No referrals yet</div>
+                        <div style="font-size: 12px; margin-top: 8px;">
+                            Share your referral link to start earning!
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            referrals.forEach((referral, index) => {
+                const referredUser = referral.referred_user;
+                const referralDate = new Date(referral.created_at).toLocaleDateString();
+                const initials = getInitials(referredUser?.full_name || referredUser?.username || 'Unknown');
+                const status = referral.bonus_claimed ? 'active' : 'pending';
+
+                html += `
+                    <div class="referral-item">
+                        <div class="referral-avatar">${initials}</div>
+                        <div class="referral-info">
+                            <div class="referral-name">
+                                ${referredUser?.full_name || referredUser?.username || 'Unknown User'}
+                                <span class="referral-status status-${status}">
+                                    ${status.toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="referral-details">
+                                <div class="referral-date">
+                                    📅 ${referralDate}
+                                </div>
+                                <div class="referral-earned">
+                                    💰 +${REFERRAL_BONUS} NMX
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            referralsList.innerHTML = html;
+        }
+
+        // Get initials for avatar
+        function getInitials(name) {
+            return name.split(' ')
+                .map(word => word.charAt(0))
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+
+        // Add referral (for users who want to join under a friend)
+        async function addReferral() {
+            const friendCodeInput = document.getElementById('friendReferralCode');
+            const friendCode = friendCodeInput.value.trim().toUpperCase();
+            const addBtn = document.getElementById('addReferralBtn');
+
+            if (!friendCode) {
+                showError('Please enter a referral code');
+                return;
+            }
+
+            if (friendCode === referralData?.referral_code) {
+                showError('You cannot use your own referral code');
+                return;
+            }
+
+            try {
+                addBtn.disabled = true;
+                addBtn.textContent = 'Adding...';
+
+                // Find the friend by referral code
+                const { data: friend, error: friendError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, referral_code, used_slots, referral_slots')
+                    .eq('referral_code', friendCode)
+                    .single();
+
+                if (friendError || !friend) {
+                    showError('Invalid referral code. Please check and try again.');
+                    return;
+                }
+
+                // Check if friend has available slots
+                if (friend.used_slots >= friend.referral_slots) {
+                    showError('This user has reached their referral limit');
+                    return;
+                }
+
+                // Update current user's profile to set referred_by
+                const { error: updateError } = await supabaseClient
+                    .from('profiles')
+                    .update({ referred_by: friendCode })
+                    .eq('id', user.id);
+
+                if (updateError) {
+                    console.error('Error updating referral:', updateError);
+                    showError('Failed to add referral. Please try again.');
+                    return;
+                }
+
+                // Create referral record
+                const { error: referralError } = await supabaseClient
+                    .from('referrals')
+                    .insert([{
+                        referrer_id: friend.id,
+                        referred_id: user.id,
+                        referral_code_used: friendCode,
+                        bonus_amount: REFERRAL_BONUS,
+                        bonus_claimed: true
+                    }]);
+
+                if (referralError) {
+                    console.error('Error creating referral record:', referralError);
+                    // Continue anyway - the main relationship is set
+                }
+
+                // Update friend's stats
+                const { error: statsError } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        used_slots: friend.used_slots + 1,
+                        balance: (friend.balance || 0) + REFERRAL_BONUS,
+                        total_earned_from_refs: (friend.total_earned_from_refs || 0) + REFERRAL_BONUS
+                    })
+                    .eq('id', friend.id);
+
+                if (statsError) {
+                    console.error('Error updating friend stats:', statsError);
+                }
+
+                showSuccess(`🎉 Success! You've joined under ${friendCode}. Both of you earned ${REFERRAL_BONUS} NMX!`);
+                friendCodeInput.value = '';
+
+                // Reload data to reflect changes
+                await loadReferralData();
+
+            } catch (error) {
+                console.error('Error adding referral:', error);
+                showError('Failed to add referral. Please try again.');
+            } finally {
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add';
+            }
+        }
 
         // Copy referral link
         async function copyReferralLink() {
@@ -576,26 +745,26 @@
 
         // Share functions
         function shareWhatsApp() {
-            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral code: ${referralData?.referral_code}`;
+            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral link: ${document.getElementById('referralLink').value}`;
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareTelegram() {
-            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral code: ${referralData?.referral_code}`;
-            const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(message)}`;
+            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral link: ${document.getElementById('referralLink').value}`;
+            const url = `https://t.me/share/url?url=${encodeURIComponent(document.getElementById('referralLink').value)}&text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareTwitter() {
-            const message = `Join me on NemexCoin and start earning NMX tokens! 🚀 Use code: ${referralData?.referral_code}`;
+            const message = `Join me on NemexCoin and start earning NMX tokens! 🚀 ${document.getElementById('referralLink').value}`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareEmail() {
             const subject = 'Join me on NemexCoin!';
-            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can sign up using my referral code: ${referralData?.referral_code}\n\nWe'll both get bonuses when you join!`;
+            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can sign up using my referral link: ${document.getElementById('referralLink').value}\n\nWe'll both get ${REFERRAL_BONUS} NMX bonuses when you join!`;
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = url;
         }
@@ -624,8 +793,12 @@
             document.getElementById('successMessage').style.display = 'none';
         }
 
-        // Add the rest of your existing referral functions here...
-        // [Keep all your existing addReferral, removeReferral, etc. functions]
+        // Enter key support for referral input
+        document.getElementById('friendReferralCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addReferral();
+            }
+        });
     </script>
 </body>
 </html>
