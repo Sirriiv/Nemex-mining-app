@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Register</title>
-    
+
     <!-- Add Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
+
     <style>
         * {
             margin: 0;
@@ -320,6 +320,42 @@
         let isTelegramApp = false;
         let telegramUser = null;
 
+        // Generate random referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Create new Telegram user
+        async function createTelegramUser(telegramUser) {
+            const referralCode = generateReferralCode();
+            
+            const { data: newUser, error: createError } = await supabaseClient
+                .from('profiles')
+                .insert([
+                    {
+                        telegram_id: telegramUser.id,
+                        username: telegramUser.username || `tg_${telegramUser.id}`,
+                        full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                        avatar_url: telegramUser.photo_url,
+                        balance: 0,
+                        last_claim: null,
+                        referral_code: referralCode,
+                        referral_slots: 10,
+                        used_slots: 0,
+                        created_via: 'telegram'
+                    }
+                ])
+                .select()
+                .single();
+                
+            return { data: newUser, error: createError };
+        }
+
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Registration...');
@@ -352,28 +388,28 @@
             if (window.Telegram && window.Telegram.WebApp) {
                 console.log('📱 Telegram Web App detected');
                 isTelegramApp = true;
-                
+
                 const tg = window.Telegram.WebApp;
-                
+
                 try {
                     // Expand to full screen
                     tg.expand();
-                    
+
                     // Set theme colors
                     tg.setHeaderColor('#FFD700');
                     tg.setBackgroundColor('#0f0f23');
-                    
+
                     // Get user info
                     telegramUser = tg.initDataUnsafe?.user;
-                    
+
                     if (telegramUser) {
                         console.log('👤 Telegram user detected:', telegramUser);
                         handleTelegramUser();
                     }
-                    
+
                     // Add Telegram class to body for specific styling
                     document.body.classList.add('telegram-app');
-                    
+
                 } catch (error) {
                     console.error('❌ Telegram initialization error:', error);
                 }
@@ -392,14 +428,14 @@
             const welcomeTitle = document.getElementById('welcomeTitle');
             const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
             const fullNameField = document.getElementById('fullName');
-            
+
             telegramInfo.style.display = 'block';
             welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
             telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
-            
+
             // Pre-fill full name for Telegram users
             fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
-            
+
             showSuccess(`Hello ${telegramUser.first_name}! Ready to create your NemexCoin account.`);
         }
 
@@ -439,13 +475,13 @@
                     // User already has an account - redirect to login
                     console.log('Telegram user already has account, redirecting to login...');
                     showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting to login...`);
-                    
+
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);
                 }
                 // If no account found, continue with registration
-                
+
             } catch (error) {
                 if (error.code !== 'PGRST116') {
                     console.error('Error checking Telegram account:', error);
@@ -457,7 +493,7 @@
         document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
             const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
             const loading = document.getElementById('loading');
-            
+
             telegramRegisterBtn.disabled = true;
             loading.style.display = 'block';
             hideError();
@@ -494,6 +530,9 @@
                                 avatar_url: telegramUser.photo_url,
                                 balance: 0,
                                 last_claim: null,
+                                referral_code: generateReferralCode(),
+                                referral_slots: 10,
+                                used_slots: 0,
                                 created_via: 'telegram'
                             }
                         ])
@@ -505,13 +544,13 @@
                     }
 
                     console.log('✅ Telegram user account created:', newUser);
-                    
+
                     // Set session and redirect to dashboard
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
                     localStorage.setItem('isLoggedIn', 'true');
-                    
+
                     showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
-                    
+
                     // Redirect to dashboard
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
@@ -523,7 +562,7 @@
 
             } catch (error) {
                 console.error('❌ Telegram registration failed:', error);
-                
+
                 if (error.message.includes('already exists')) {
                     showError('This Telegram account is already registered. Please login instead.');
                     setTimeout(() => {
@@ -580,6 +619,8 @@
                     throw new Error('Authentication service not available');
                 }
 
+                const referralCode = generateReferralCode();
+                
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
@@ -592,6 +633,29 @@
 
                 if (error) {
                     throw error;
+                }
+
+                // Create user profile with referral code
+                if (data.user) {
+                    const { error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .insert([
+                            {
+                                id: data.user.id,
+                                email: email,
+                                full_name: fullName,
+                                balance: 0,
+                                last_claim: null,
+                                referral_code: referralCode,
+                                referral_slots: 10,
+                                used_slots: 0
+                            }
+                        ]);
+
+                    if (profileError) {
+                        console.error('Error creating profile:', profileError);
+                        // Continue anyway, profile can be created later
+                    }
                 }
 
                 console.log('✅ Registration successful:', data);
