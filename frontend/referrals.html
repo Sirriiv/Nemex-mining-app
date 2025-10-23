@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Referrals - NemexCoin</title>
+    
+    <!-- Add Telegram Web App script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <style>
         :root { 
             --dark-bg: #0f0f0f; 
@@ -14,6 +18,8 @@
             --bg-secondary: #1a1a1a;
             --border-color: #333333;
             --success: #00C851;
+            --error: #ff4444;
+            --warning: #ffbb33;
         }
 
         * { 
@@ -79,8 +85,8 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
             margin-bottom: 25px;
         }
 
@@ -88,19 +94,19 @@
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
         }
 
         .stat-number {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
             color: var(--gold);
             margin-bottom: 5px;
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--muted);
         }
 
@@ -199,6 +205,64 @@
             text-align: center;
         }
 
+        /* Add Referral Section */
+        .add-referral-section {
+            background: rgba(0, 136, 204, 0.1);
+            border: 1px solid rgba(0, 136, 204, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .add-referral-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #0088cc;
+        }
+
+        .referral-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .referral-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .referral-input:focus {
+            outline: none;
+            border-color: #0088cc;
+        }
+
+        .add-btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .add-btn:hover {
+            background: #0077b3;
+        }
+
+        .add-btn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
         .referrals-list {
             margin-top: 25px;
         }
@@ -208,6 +272,17 @@
             font-weight: 600;
             margin-bottom: 15px;
             color: var(--gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--gold);
+            cursor: pointer;
+            font-size: 16px;
         }
 
         .referral-item {
@@ -218,6 +293,7 @@
             border-radius: 10px;
             margin-bottom: 10px;
             border: 1px solid var(--border-color);
+            position: relative;
         }
 
         .referral-avatar {
@@ -231,6 +307,7 @@
             margin-right: 15px;
             color: var(--darker-bg);
             font-weight: 600;
+            font-size: 14px;
         }
 
         .referral-info {
@@ -240,20 +317,109 @@
         .referral-name {
             font-weight: 600;
             margin-bottom: 3px;
+            font-size: 14px;
         }
 
-        .referral-date {
-            color: var(--muted);
+        .referral-details {
+            display: flex;
+            gap: 15px;
             font-size: 11px;
+            color: var(--muted);
+        }
+
+        .referral-date, .referral-earned {
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .referral-status {
-            background: var(--success);
-            color: var(--darker-bg);
             padding: 4px 8px;
             border-radius: 8px;
             font-size: 10px;
             font-weight: 600;
+            margin-right: 10px;
+        }
+
+        .status-active {
+            background: var(--success);
+            color: var(--darker-bg);
+        }
+
+        .status-inactive {
+            background: var(--warning);
+            color: var(--darker-bg);
+        }
+
+        .status-pending {
+            background: var(--muted);
+            color: var(--dark-bg);
+        }
+
+        .remove-btn {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .remove-btn:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        .remove-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--gold);
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        .success-message {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+        }
+
+        /* Telegram-specific styles */
+        .telegram-app .header {
+            padding-top: 20px !important;
         }
     </style>
 </head>
@@ -267,10 +433,15 @@
             </header>
 
             <div class="referral-section">
+                <!-- Stats Grid -->
                 <div class="stats-grid">
                     <div class="stat-card">
                         <div class="stat-number" id="totalReferrals">0</div>
                         <div class="stat-label">Total Referrals</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="availableSlots">10</div>
+                        <div class="stat-label">Available Slots</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-number" id="totalEarned">0</div>
@@ -278,14 +449,16 @@
                     </div>
                 </div>
 
+                <!-- Referral Sharing Card -->
                 <div class="referral-card">
                     <div class="referral-title">Invite Friends & Earn</div>
                     <div class="referral-desc">
-                        Share your referral link and earn <strong>100 NMXp</strong> for each friend who signs up and starts mining!
+                        Share your referral code and earn <strong>30 NMX</strong> for each active friend!<br>
+                        <small>Max 10 referrals per user for fair distribution</small>
                     </div>
 
                     <div class="referral-link-container">
-                        <input type="text" class="referral-link" id="referralLink" value="https://nemexcoin.com/ref/abc123xyz" readonly>
+                        <input type="text" class="referral-link" id="referralLink" readonly>
                         <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
                     </div>
 
@@ -305,87 +478,410 @@
                     </div>
 
                     <div class="bonus-info">
-                        🎉 Your friend also gets 50 NMXp bonus when they sign up using your link!
+                        🎉 Both you and your friend get bonuses when they stay active!
                     </div>
                 </div>
 
+                <!-- Add Referral Section -->
+                <div class="add-referral-section">
+                    <div class="add-referral-title">Add Friend's Referral</div>
+                    <div class="referral-input-group">
+                        <input type="text" class="referral-input" id="friendReferralCode" placeholder="Enter friend's referral code" maxlength="10">
+                        <button class="add-btn" id="addReferralBtn" onclick="addReferral()">Add</button>
+                    </div>
+                    <div style="font-size: 11px; color: var(--muted); text-align: center;">
+                        Join under a friend to help them earn bonuses
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div class="message success-message" id="successMessage"></div>
+                <div class="message error-message" id="errorMessage"></div>
+
+                <!-- Referrals List -->
                 <div class="referrals-list">
-                    <div class="section-title">Your Referrals</div>
-                    
-                    <div class="referral-item">
-                        <div class="referral-avatar">JD</div>
-                        <div class="referral-info">
-                            <div class="referral-name">John Doe</div>
-                            <div class="referral-date">Joined 2 days ago</div>
-                        </div>
-                        <div class="referral-status">Active</div>
+                    <div class="section-title">
+                        Your Referrals
+                        <button class="refresh-btn" onclick="loadReferralData()">🔄</button>
                     </div>
 
-                    <div class="referral-item">
-                        <div class="referral-avatar">SJ</div>
-                        <div class="referral-info">
-                            <div class="referral-name">Sarah Johnson</div>
-                            <div class="referral-date">Joined 1 week ago</div>
-                        </div>
-                        <div class="referral-status">Active</div>
-                    </div>
-
-                    <div class="referral-item">
-                        <div class="referral-avatar">MB</div>
-                        <div class="referral-info">
-                            <div class="referral-name">Mike Brown</div>
-                            <div class="referral-date">Joined 3 days ago</div>
-                        </div>
-                        <div class="referral-status">Pending</div>
+                    <div id="referralsList">
+                        <div class="loading">Loading referrals...</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
-        function copyReferralLink() {
-            const referralLink = document.getElementById('referralLink');
-            referralLink.select();
-            referralLink.setSelectionRange(0, 99999);
-            document.execCommand('copy');
-            
-            alert('Referral link copied to clipboard!');
+        // Initialize Supabase
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        let user = null;
+        let referralData = null;
+        const REFERRAL_BONUS = 30;
+
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Initializing Referrals Page...');
+            initializePage();
+        });
+
+        // Initialize page
+        async function initializePage() {
+            try {
+                // Check authentication
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                user = session.user;
+
+                // Initialize Telegram if in Telegram
+                initializeTelegram();
+
+                // Load referral data
+                await loadReferralData();
+
+            } catch (error) {
+                console.error('❌ Page initialization failed:', error);
+                showError('Failed to load referrals. Please refresh.');
+            }
         }
 
+        // Initialize Telegram
+        function initializeTelegram() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.expand();
+                document.body.classList.add('telegram-app');
+            }
+        }
+
+        // Load referral data
+        async function loadReferralData() {
+            try {
+                showLoading();
+
+                // Load user's referral stats
+                const { data: stats, error: statsError } = await supabaseClient
+                    .from('profiles')
+                    .select('referral_code, referral_slots, used_slots, total_earned_from_refs')
+                    .eq('id', user.id)
+                    .single();
+
+                if (statsError) throw statsError;
+
+                referralData = stats;
+
+                // Update stats UI
+                document.getElementById('totalReferrals').textContent = stats.used_slots || 0;
+                document.getElementById('availableSlots').textContent = (stats.referral_slots || 10) - (stats.used_slots || 0);
+                document.getElementById('totalEarned').textContent = (stats.total_earned_from_refs || 0).toLocaleString();
+
+                // Update referral link
+                const baseUrl = window.location.origin;
+                document.getElementById('referralLink').value = `${baseUrl}/register.html?ref=${stats.referral_code}`;
+
+                // Load referrals list
+                await loadReferralsList();
+
+            } catch (error) {
+                console.error('Error loading referral data:', error);
+                showError('Failed to load referral data.');
+            }
+        }
+
+        // Load referrals list
+        async function loadReferralsList() {
+            try {
+                const { data: referrals, error } = await supabaseClient
+                    .from('referrals')
+                    .select(`
+                        id,
+                        referred_id,
+                        joined_at,
+                        last_active,
+                        total_earned,
+                        is_active,
+                        profiles:referred_id (
+                            username,
+                            full_name,
+                            avatar_url,
+                            last_login
+                        )
+                    `)
+                    .eq('referrer_id', user.id)
+                    .order('joined_at', { ascending: false });
+
+                if (error) throw error;
+
+                displayReferralsList(referrals || []);
+
+            } catch (error) {
+                console.error('Error loading referrals list:', error);
+                showError('Failed to load referrals list.');
+                displayReferralsList([]);
+            }
+        }
+
+        // Display referrals list
+        function displayReferralsList(referrals) {
+            const container = document.getElementById('referralsList');
+            
+            if (referrals.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👥</div>
+                        <div>No referrals yet</div>
+                        <div style="font-size: 12px; margin-top: 8px;">Share your referral code to start earning!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            referrals.forEach(ref => {
+                const referralUser = ref.profiles;
+                const joinDate = new Date(ref.joined_at).toLocaleDateString();
+                const isActive = isReferralActive(ref.last_active || ref.joined_at);
+                const statusClass = isActive ? 'status-active' : 'status-inactive';
+                const statusText = isActive ? 'Active' : 'Inactive';
+                const initials = getInitials(referralUser?.full_name || 'Unknown User');
+                const displayName = referralUser?.full_name || referralUser?.username || 'Unknown User';
+
+                html += `
+                    <div class="referral-item">
+                        <div class="referral-avatar">${initials}</div>
+                        <div class="referral-info">
+                            <div class="referral-name">${displayName}</div>
+                            <div class="referral-details">
+                                <div class="referral-date">📅 ${joinDate}</div>
+                                <div class="referral-earned">💰 ${ref.total_earned || 0} NMX</div>
+                            </div>
+                        </div>
+                        <div class="referral-status ${statusClass}">${statusText}</div>
+                        <button class="remove-btn" onclick="removeReferral('${ref.id}')" 
+                                ${isActive ? 'disabled' : ''}>
+                            Remove
+                        </button>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Check if referral is active (logged in within last 30 days)
+        function isReferralActive(lastActive) {
+            if (!lastActive) return false;
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            return new Date(lastActive) > thirtyDaysAgo;
+        }
+
+        // Get initials from name
+        function getInitials(name) {
+            return name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 2);
+        }
+
+        // Add referral
+        async function addReferral() {
+            const codeInput = document.getElementById('friendReferralCode');
+            const addBtn = document.getElementById('addReferralBtn');
+            const code = codeInput.value.trim().toUpperCase();
+
+            if (!code) {
+                showError('Please enter a referral code');
+                return;
+            }
+
+            addBtn.disabled = true;
+            addBtn.textContent = 'Adding...';
+            hideMessages();
+
+            try {
+                // Get referrer data
+                const { data: referrer, error: referrerError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, referral_slots, used_slots')
+                    .eq('referral_code', code)
+                    .single();
+
+                if (referrerError) {
+                    throw new Error('Invalid referral code');
+                }
+
+                // Check if user is trying to refer themselves
+                if (referrer.id === user.id) {
+                    throw new Error('Cannot use your own referral code');
+                }
+
+                // Check if referrer has available slots
+                if (referrer.used_slots >= referrer.referral_slots) {
+                    throw new Error('This user has no available referral slots');
+                }
+
+                // Check if already referred by someone
+                const { data: existingRef, error: checkError } = await supabaseClient
+                    .from('profiles')
+                    .select('referred_by')
+                    .eq('id', user.id)
+                    .single();
+
+                if (existingRef?.referred_by) {
+                    throw new Error('You are already referred by another user');
+                }
+
+                // Create referral record
+                const { error: referralError } = await supabaseClient
+                    .from('referrals')
+                    .insert([{
+                        referrer_id: referrer.id,
+                        referred_id: user.id,
+                        referral_code_used: code
+                    }]);
+
+                if (referralError) throw referralError;
+
+                // Update referrer's used slots
+                await supabaseClient
+                    .from('profiles')
+                    .update({ used_slots: referrer.used_slots + 1 })
+                    .eq('id', referrer.id);
+
+                // Update current user's referred_by
+                await supabaseClient
+                    .from('profiles')
+                    .update({ referred_by: referrer.id })
+                    .eq('id', user.id);
+
+                // Give bonus to referrer
+                await supabaseClient
+                    .from('profiles')
+                    .update({ 
+                        balance: supabaseClient.raw(`balance + ${REFERRAL_BONUS}`),
+                        total_earned_from_refs: supabaseClient.raw(`total_earned_from_refs + ${REFERRAL_BONUS}`)
+                    })
+                    .eq('id', referrer.id);
+
+                showSuccess('Successfully joined under referral! Bonus awarded.');
+                codeInput.value = '';
+
+                // Reload data
+                await loadReferralData();
+
+            } catch (error) {
+                console.error('Error adding referral:', error);
+                showError(error.message);
+            } finally {
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add';
+            }
+        }
+
+        // Remove referral
+        async function removeReferral(referralId) {
+            if (!confirm('Are you sure you want to remove this referral? This will free up a slot for a new active referral.')) {
+                return;
+            }
+
+            try {
+                const { error } = await supabaseClient
+                    .from('referrals')
+                    .update({ is_active: false })
+                    .eq('id', referralId)
+                    .eq('referrer_id', user.id);
+
+                if (error) throw error;
+
+                // Decrement used slots
+                await supabaseClient
+                    .from('profiles')
+                    .update({ used_slots: supabaseClient.raw('used_slots - 1') })
+                    .eq('id', user.id);
+
+                showSuccess('Referral removed successfully. Slot freed up!');
+
+                // Reload data
+                await loadReferralData();
+
+            } catch (error) {
+                console.error('Error removing referral:', error);
+                showError('Failed to remove referral.');
+            }
+        }
+
+        // Copy referral link
+        async function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink');
+            try {
+                await navigator.clipboard.writeText(referralLink.value);
+                showSuccess('Referral link copied to clipboard! 📋');
+            } catch (error) {
+                // Fallback
+                referralLink.select();
+                document.execCommand('copy');
+                showSuccess('Referral link copied to clipboard! 📋');
+            }
+        }
+
+        // Share functions (keep your existing ones)
         function shareWhatsApp() {
-            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral link: ${document.getElementById('referralLink').value}`;
+            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral code: ${referralData?.referral_code}`;
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareTelegram() {
-            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral link: ${document.getElementById('referralLink').value}`;
-            const url = `https://t.me/share/url?url=${encodeURIComponent(document.getElementById('referralLink').value)}&text=${encodeURIComponent(message)}`;
+            const message = `Join me on NemexCoin and start earning NMX tokens! Use my referral code: ${referralData?.referral_code}`;
+            const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareTwitter() {
-            const message = `Join me on NemexCoin and start earning NMX tokens! 🚀 ${document.getElementById('referralLink').value}`;
+            const message = `Join me on NemexCoin and start earning NMX tokens! 🚀 Use code: ${referralData?.referral_code}`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareEmail() {
             const subject = 'Join me on NemexCoin!';
-            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can sign up using my referral link: ${document.getElementById('referralLink').value}\n\nWe'll both get bonus NMXp when you join!`;
+            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can sign up using my referral code: ${referralData?.referral_code}\n\nWe'll both get bonuses when you join!`;
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = url;
         }
 
-        // Load referral stats
-        document.addEventListener('DOMContentLoaded', function() {
-            // Simulate loading stats - in real app, this would come from your database
-            setTimeout(() => {
-                document.getElementById('totalReferrals').textContent = '3';
-                document.getElementById('totalEarned').textContent = '300';
-            }, 500);
-        });
+        // Helper functions
+        function showLoading() {
+            document.getElementById('referralsList').innerHTML = '<div class="loading">Loading referrals...</div>';
+        }
+
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            setTimeout(() => errorElement.style.display = 'none', 5000);
+        }
+
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+            setTimeout(() => successElement.style.display = 'none', 5000);
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
     </script>
 </body>
 </html>
