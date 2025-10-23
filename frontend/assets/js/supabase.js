@@ -2,7 +2,7 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.1/+esm'
 
 // Supabase configuration
-const supabaseUrl = 'https://your-project.supabase.co'; // Replace with your actual Supabase URL
+const supabaseUrl = '
 const supabaseAnonKey = 'your-anon-key'; // Replace with your actual anon key
 
 // Create Supabase client
