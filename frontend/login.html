@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin</title>
-    
+
     <!-- Add Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
+
     <style>
         * {
             margin: 0;
@@ -332,6 +332,50 @@
         let isTelegramApp = false;
         let telegramUser = null;
 
+        // Generate random referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Create new Telegram user
+        async function createTelegramUser(telegramUser) {
+            const referralCode = generateReferralCode();
+            
+            const { data, error } = await supabaseClient
+                .from('profiles')
+                .insert([
+                    {
+                        telegram_id: telegramUser.id,
+                        username: telegramUser.username || `tg_${telegramUser.id}`,
+                        full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                        avatar_url: telegramUser.photo_url,
+                        balance: 0,
+                        last_claim: null,
+                        referral_code: referralCode,
+                        referral_slots: 10,
+                        used_slots: 0,
+                        created_via: 'telegram'
+                    }
+                ])
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Error creating Telegram user:', error);
+                // Create a mock user object for the session
+                user = { id: `telegram_${telegramUser.id}` };
+            } else {
+                console.log('✅ Telegram user created:', data);
+                user = { id: data.id };
+                localStorage.setItem('nemex_telegram_user', JSON.stringify(data));
+            }
+        }
+
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Login...');
@@ -364,28 +408,28 @@
             if (window.Telegram && window.Telegram.WebApp) {
                 console.log('📱 Telegram Web App detected');
                 isTelegramApp = true;
-                
+
                 const tg = window.Telegram.WebApp;
-                
+
                 try {
                     // Expand to full screen
                     tg.expand();
-                    
+
                     // Set theme colors
                     tg.setHeaderColor('#FFD700');
                     tg.setBackgroundColor('#0f0f23');
-                    
+
                     // Get user info
                     telegramUser = tg.initDataUnsafe?.user;
-                    
+
                     if (telegramUser) {
                         console.log('👤 Telegram user detected:', telegramUser);
                         handleTelegramUser();
                     }
-                    
+
                     // Add Telegram class to body for specific styling
                     document.body.classList.add('telegram-app');
-                    
+
                 } catch (error) {
                     console.error('❌ Telegram initialization error:', error);
                 }
@@ -403,11 +447,11 @@
             const telegramInfo = document.getElementById('telegramInfo');
             const welcomeTitle = document.getElementById('welcomeTitle');
             const telegramLoginBtn = document.getElementById('telegramLoginBtn');
-            
+
             telegramInfo.style.display = 'block';
             welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
             telegramLoginBtn.innerHTML = `<span>📱</span> Continue as ${telegramUser.first_name}`;
-            
+
             showSuccess(`Hello ${telegramUser.first_name}! Ready to access NemexCoin.`);
         }
 
@@ -438,7 +482,7 @@
         async function handleTelegramAuth() {
             try {
                 console.log('🔐 Handling Telegram authentication...');
-                
+
                 // Check if Telegram user exists in database
                 const { data: existingUser, error } = await supabaseClient
                     .from('profiles')
@@ -449,26 +493,26 @@
                 if (error && error.code === 'PGRST116') {
                     // User doesn't exist - show login options
                     console.log('Telegram user not found, showing login options...');
-                    showSuccess(`Welcome ${telegramUser.first_name}! Create your account or login.`);
+                    showSuccess(`Welcome ${telegramUser.first_name}! Create your account or login.');
                 } else if (existingUser) {
                     // User exists - auto login and redirect
                     console.log('Telegram user found, auto-logging in...', existingUser);
-                    
+
                     // Set local session for Telegram user
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(existingUser));
                     localStorage.setItem('isLoggedIn', 'true');
-                    
+
                     showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting...`);
-                    
+
                     // Redirect to dashboard
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
-                    
+
                 } else if (error) {
                     console.error('Error checking Telegram user:', error);
                 }
-                
+
             } catch (error) {
                 console.error('Telegram auth error:', error);
             }
@@ -478,7 +522,7 @@
         document.getElementById('telegramLoginBtn').addEventListener('click', async function() {
             const telegramLoginBtn = document.getElementById('telegramLoginBtn');
             const loading = document.getElementById('loading');
-            
+
             telegramLoginBtn.disabled = true;
             loading.style.display = 'block';
             hideError();
@@ -511,6 +555,9 @@
                                 avatar_url: telegramUser.photo_url,
                                 balance: 0,
                                 last_claim: null,
+                                referral_code: generateReferralCode(),
+                                referral_slots: 10,
+                                used_slots: 0,
                                 created_via: 'telegram'
                             }
                         ])
@@ -522,13 +569,13 @@
                     }
 
                     console.log('✅ Telegram user created:', newUser);
-                    
+
                     // Set session and redirect
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
                     localStorage.setItem('isLoggedIn', 'true');
-                    
+
                     showSuccess('Account created successfully! Redirecting...');
-                    
+
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
@@ -536,16 +583,16 @@
                 } else if (existingUser) {
                     // Login existing user
                     console.log('Logging in existing Telegram user...');
-                    
+
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(existingUser));
                     localStorage.setItem('isLoggedIn', 'true');
-                    
+
                     showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting...`);
-                    
+
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
-                    
+
                 } else if (checkError) {
                     throw checkError;
                 }
