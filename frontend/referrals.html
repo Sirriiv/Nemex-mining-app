@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Referrals - NemexCoin</title>
-    
+
     <!-- Add Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
+
     <style>
         :root { 
             --dark-bg: #0f0f0f; 
@@ -522,10 +522,62 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-        
+
         let user = null;
         let referralData = null;
         const REFERRAL_BONUS = 30;
+
+        // Generate random referral code
+        function generateReferralCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Ensure referral code exists for user
+        async function ensureReferralCode() {
+            try {
+                console.log('🔑 Ensuring referral code exists...');
+                
+                const { data: profile, error } = await supabaseClient
+                    .from('profiles')
+                    .select('referral_code')
+                    .eq('id', user.id)
+                    .single();
+                    
+                if (error) throw error;
+                
+                // Generate referral code if it doesn't exist
+                if (!profile.referral_code) {
+                    console.log('📝 Generating new referral code...');
+                    const referralCode = generateReferralCode();
+                    
+                    const { error: updateError } = await supabaseClient
+                        .from('profiles')
+                        .update({ 
+                            referral_code: referralCode,
+                            referral_slots: 10,
+                            used_slots: 0
+                        })
+                        .eq('id', user.id);
+                        
+                    if (updateError) throw updateError;
+                    
+                    console.log('✅ Referral code generated:', referralCode);
+                    return referralCode;
+                } else {
+                    console.log('✅ Referral code exists:', profile.referral_code);
+                    return profile.referral_code;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error ensuring referral code:', error);
+                return null;
+            }
+        }
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
@@ -569,6 +621,9 @@
         async function loadReferralData() {
             try {
                 showLoading();
+
+                // Ensure referral code exists first
+                await ensureReferralCode();
 
                 // Load user's referral stats
                 const { data: stats, error: statsError } = await supabaseClient
@@ -635,7 +690,7 @@
         // Display referrals list
         function displayReferralsList(referrals) {
             const container = document.getElementById('referralsList');
-            
+
             if (referrals.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
