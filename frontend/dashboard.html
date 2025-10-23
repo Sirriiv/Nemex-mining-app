@@ -6,7 +6,7 @@
     <title>NemexCoin - Mining Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS styles remain the same */
+        /* Your existing CSS styles */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -347,6 +347,71 @@
             margin-left: 8px;
             display: inline-block;
         }
+
+        /* Quick Referral Section */
+        .quick-referral {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            width: 100%;
+            max-width: 280px;
+        }
+        .quick-referral-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--gold);
+        }
+        .referral-link-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .referral-link {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 11px;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .copy-btn {
+            background: var(--gold);
+            color: var(--darker-bg);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .share-telegram-btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .share-telegram-btn:hover {
+            background: #0077b3;
+        }
     </style>
 </head>
 <body>
@@ -393,6 +458,18 @@
                         </div>
                         <div class="logo-glow"></div>
                     </div>
+                </div>
+
+                <!-- Quick Referral Section -->
+                <div class="quick-referral" id="quickReferral" style="display: none;">
+                    <div class="quick-referral-title">📨 Share & Earn 30 NMX</div>
+                    <div class="referral-link-container">
+                        <input type="text" class="referral-link" id="referralLink" readonly>
+                        <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
+                    </div>
+                    <button class="share-telegram-btn" onclick="shareToTelegram()">
+                        <span>✈️</span> Share on Telegram
+                    </button>
                 </div>
 
                 <div class="countdown-section">
@@ -462,6 +539,7 @@
         let countdownInterval = null;
         let isTelegramApp = false;
         let telegramUser = null;
+        let userReferralCode = null;
         const CLAIM_AMOUNT = 30;
         const CLAIM_COOLDOWN = 12 * 60 * 60 * 1000;
 
@@ -480,72 +558,129 @@
             return result;
         }
 
-        // Ensure referral code exists for user
+        // Ensure referral code exists for user - COMPLETELY REWRITTEN
         async function ensureReferralCode() {
             try {
                 console.log('🔑 Ensuring referral code exists...');
                 
                 let profile;
+                let userId;
                 
                 if (isTelegramApp && telegramUser) {
-                    // Check Telegram user
+                    // For Telegram users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('referral_code')
+                        .select('id, referral_code, balance, last_claim')
                         .eq('telegram_id', telegramUser.id)
                         .single();
                         
-                    if (error) throw error;
+                    if (error) {
+                        console.error('Error loading Telegram profile:', error);
+                        // Create profile if it doesn't exist
+                        return await createTelegramUser(telegramUser);
+                    }
+                    
                     profile = data;
+                    userId = data.id;
                 } else {
-                    // Check web user
+                    // For web users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('referral_code')
+                        .select('id, referral_code, balance, last_claim')
                         .eq('id', user.id)
                         .single();
                         
-                    if (error) throw error;
+                    if (error) {
+                        console.error('Error loading profile:', error);
+                        await createUserProfile();
+                        return;
+                    }
+                    
                     profile = data;
+                    userId = data.id;
                 }
+
+                // Update UI with actual data
+                userBalance = parseFloat(profile.balance) || 0;
+                lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
+                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                
+                console.log('💰 Balance loaded:', userBalance);
+                console.log('⏰ Last claim:', lastClaimTime);
                 
                 // Generate referral code if it doesn't exist
                 if (!profile.referral_code) {
                     console.log('📝 Generating new referral code...');
                     const referralCode = generateReferralCode();
                     
-                    let updateQuery;
-                    if (isTelegramApp && telegramUser) {
-                        updateQuery = supabaseClient
-                            .from('profiles')
-                            .update({ 
-                                referral_code: referralCode,
-                                referral_slots: 10,
-                                used_slots: 0
-                            })
-                            .eq('telegram_id', telegramUser.id);
-                    } else {
-                        updateQuery = supabaseClient
-                            .from('profiles')
-                            .update({ 
-                                referral_code: referralCode,
-                                referral_slots: 10,
-                                used_slots: 0
-                            })
-                            .eq('id', user.id);
+                    const { error: updateError } = await supabaseClient
+                        .from('profiles')
+                        .update({ 
+                            referral_code: referralCode,
+                            referral_slots: 10,
+                            used_slots: 0
+                        })
+                        .eq('id', userId);
+                    
+                    if (updateError) {
+                        console.error('Error updating referral code:', updateError);
+                        return;
                     }
                     
-                    const { error: updateError } = await updateQuery;
-                    if (updateError) throw updateError;
-                    
+                    userReferralCode = referralCode;
                     console.log('✅ Referral code generated:', referralCode);
                 } else {
-                    console.log('✅ Referral code exists:', profile.referral_code);
+                    userReferralCode = profile.referral_code;
+                    console.log('✅ Referral code exists:', userReferralCode);
                 }
+                
+                // Show referral section
+                showReferralSection();
                 
             } catch (error) {
                 console.error('❌ Error ensuring referral code:', error);
             }
+        }
+
+        // Show referral section with link
+        function showReferralSection() {
+            if (userReferralCode) {
+                const quickReferral = document.getElementById('quickReferral');
+                const referralLink = document.getElementById('referralLink');
+                
+                const baseUrl = window.location.origin;
+                const referralUrl = `${baseUrl}/register.html?ref=${userReferralCode}`;
+                
+                referralLink.value = referralUrl;
+                quickReferral.style.display = 'block';
+                
+                console.log('🔗 Referral link generated:', referralUrl);
+            }
+        }
+
+        // Copy referral link
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink');
+            try {
+                navigator.clipboard.writeText(referralLink.value);
+                showSuccess('Referral link copied to clipboard! 📋');
+            } catch (error) {
+                // Fallback
+                referralLink.select();
+                document.execCommand('copy');
+                showSuccess('Referral link copied to clipboard! 📋');
+            }
+        }
+
+        // Share to Telegram
+        function shareToTelegram() {
+            if (!userReferralCode) return;
+            
+            const message = `Join me on NemexCoin and start earning NMX tokens! 🚀\n\nUse my referral code: ${userReferralCode}\n\nWe both get 30 NMX bonus when you join!`;
+            const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(message)}`;
+            
+            window.open(url, '_blank');
+            showSuccess('Telegram share opened! ✈️');
         }
 
         // Wait for DOM to load
@@ -557,54 +692,31 @@
 
         // Initialize navigation and settings
         function initializeNavigation() {
-            // Fix mining tab navigation
-            const miningTab = document.getElementById('miningTab');
-            if (miningTab) {
-                miningTab.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    document.querySelectorAll('.nav-item').forEach(item => {
-                        item.classList.remove('active');
-                    });
-                    this.classList.add('active');
-                });
-            }
-
             // Settings modal functionality
             const settingsIcon = document.querySelector('.settings-icon');
             const settingsModal = document.getElementById('settingsModal');
             const closeSettings = document.getElementById('closeSettings');
             const logoutButton = document.getElementById('logoutButton');
 
-            // Open settings modal
             settingsIcon.addEventListener('click', function() {
                 settingsModal.style.display = 'flex';
-                updateTelegramBackButton();
             });
 
-            // Close settings modal
             closeSettings.addEventListener('click', function() {
                 settingsModal.style.display = 'none';
-                updateTelegramBackButton();
             });
 
-            // Close modal when clicking outside
             settingsModal.addEventListener('click', function(e) {
                 if (e.target === settingsModal) {
                     settingsModal.style.display = 'none';
-                    updateTelegramBackButton();
                 }
             });
 
-            // Enhanced logout functionality for Telegram
             logoutButton.addEventListener('click', async function() {
                 try {
                     if (isTelegramApp) {
-                        // Telegram logout - clear local data
                         localStorage.removeItem('nemex_telegram_user');
-                        localStorage.removeItem('telegram_user');
                         showSuccess('Logged out successfully!');
-
-                        // Close the app or reload
                         setTimeout(() => {
                             if (window.Telegram && window.Telegram.WebApp) {
                                 window.Telegram.WebApp.close();
@@ -613,7 +725,6 @@
                             }
                         }, 1500);
                     } else {
-                        // Regular web logout
                         await supabaseClient.auth.signOut();
                         localStorage.removeItem('isLoggedIn');
                         localStorage.removeItem('userEmail');
@@ -630,7 +741,7 @@
         // Initialize dashboard
         async function initializeDashboard() {
             try {
-                // Initialize Telegram first (before auth check)
+                // Initialize Telegram first
                 initializeTelegram();
 
                 // If we're in Telegram with a user, handle Telegram auth
@@ -648,8 +759,8 @@
                     console.log('👤 Web User:', user.id);
                 }
 
-                // Load user data
-                await loadUserData();
+                // Load user data and ensure referral code
+                await ensureReferralCode();
 
                 // Start countdown timer
                 startCountdownTimer();
@@ -669,42 +780,19 @@
                 const tg = window.Telegram.WebApp;
 
                 try {
-                    // Expand to full screen
                     tg.expand();
-
-                    // Set theme colors
                     tg.setHeaderColor('#d4af37');
                     tg.setBackgroundColor('#0f0f0f');
-
-                    // Enable closing confirmation
                     tg.enableClosingConfirmation();
 
-                    // Get user info
                     telegramUser = tg.initDataUnsafe?.user;
                     if (telegramUser) {
                         console.log('👤 Telegram user:', telegramUser);
                         showTelegramUserInfo(telegramUser);
-
-                        // Show Telegram badge in header
                         document.getElementById('telegramBadge').style.display = 'inline-block';
                     }
 
-                    // Set up back button
-                    tg.BackButton.onClick(() => {
-                        const settingsModal = document.getElementById('settingsModal');
-                        if (settingsModal.style.display === 'flex') {
-                            settingsModal.style.display = 'none';
-                            updateTelegramBackButton();
-                        } else if (window.history.length > 1) {
-                            window.history.back();
-                        } else {
-                            tg.close();
-                        }
-                    });
-
-                    // Add Telegram class to body for specific styling
                     document.body.classList.add('telegram-app');
-
                     console.log('✅ Telegram Web App initialized successfully');
 
                 } catch (error) {
@@ -721,7 +809,6 @@
             try {
                 console.log('🔐 Handling Telegram user authentication...');
 
-                // Check if Telegram user exists in database
                 const { data: existingUser, error } = await supabaseClient
                     .from('profiles')
                     .select('*')
@@ -729,14 +816,11 @@
                     .single();
 
                 if (error && error.code === 'PGRST116') {
-                    // User doesn't exist - create new account
                     console.log('Creating new Telegram user...');
                     await createTelegramUser(telegramUser);
                 } else if (existingUser) {
-                    // User exists - use their data
                     console.log('Telegram user found:', existingUser);
-                    user = { id: existingUser.id }; // Set user object for consistency
-                    await updateLastLogin(existingUser.id);
+                    user = { id: existingUser.id };
                 } else if (error) {
                     console.error('Error checking Telegram user:', error);
                 }
@@ -771,122 +855,11 @@
 
             if (error) {
                 console.error('Error creating Telegram user:', error);
-                // Create a mock user object for the session
                 user = { id: `telegram_${telegramUser.id}` };
             } else {
                 console.log('✅ Telegram user created:', data);
                 user = { id: data.id };
                 localStorage.setItem('nemex_telegram_user', JSON.stringify(data));
-            }
-        }
-
-        // Update last login time
-        async function updateLastLogin(userId) {
-            try {
-                await supabaseClient
-                    .from('profiles')
-                    .update({ last_login: new Date().toISOString() })
-                    .eq('id', userId);
-            } catch (error) {
-                console.error('Error updating last login:', error);
-            }
-        }
-
-        // Update Telegram back button visibility
-        function updateTelegramBackButton() {
-            if (isTelegramApp && window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                const settingsModal = document.getElementById('settingsModal');
-
-                if (settingsModal.style.display === 'flex') {
-                    tg.BackButton.show();
-                } else {
-                    tg.BackButton.hide();
-                }
-            }
-        }
-
-        // Show Telegram user info
-        function showTelegramUserInfo(user) {
-            const userInfoElement = document.getElementById('telegramUserInfo');
-            const avatarElement = document.getElementById('telegramAvatar');
-            const welcomeElement = document.getElementById('telegramWelcome');
-            const usernameElement = document.getElementById('telegramUsername');
-
-            userInfoElement.style.display = 'block';
-
-            if (user.photo_url) {
-                avatarElement.src = user.photo_url;
-                avatarElement.style.display = 'block';
-            }
-
-            welcomeElement.textContent = `Welcome, ${user.first_name}! 🎉`;
-            usernameElement.textContent = `@${user.username || 'user'}`;
-
-            showSuccess(`Hello ${user.first_name}! Welcome to NemexCoin! 🚀`);
-        }
-
-        // Load user data from profile table - FIXED VERSION
-        async function loadUserData() {
-            try {
-                console.log('📊 Loading user data...');
-
-                let profile;
-
-                if (isTelegramApp && telegramUser) {
-                    // Load Telegram user data
-                    const { data, error } = await supabaseClient
-                        .from('profiles')
-                        .select('balance, last_claim, id, referral_code')
-                        .eq('telegram_id', telegramUser.id)
-                        .single();
-
-                    if (error) {
-                        console.error('Error loading Telegram profile:', error);
-                        // Set defaults for new Telegram users
-                        userBalance = 0;
-                        lastClaimTime = null;
-                        document.getElementById('balanceAmount').textContent = '0';
-                        return;
-                    }
-
-                    profile = data;
-                    user = { id: data.id }; // Ensure user object is set
-                } else {
-                    // Load web user data
-                    const { data, error } = await supabaseClient
-                        .from('profiles')
-                        .select('balance, last_claim, referral_code')
-                        .eq('id', user.id)
-                        .single();
-
-                    if (error) {
-                        console.error('Error loading profile:', error);
-                        await createUserProfile();
-                        return;
-                    }
-
-                    profile = data;
-                }
-
-                // Update UI - FIXED: Ensure balance is properly parsed
-                userBalance = parseFloat(profile.balance) || 0;
-                lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
-                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
-
-                console.log('💰 Balance:', userBalance);
-                console.log('⏰ Last claim:', lastClaimTime);
-                console.log('🔑 Referral code:', profile.referral_code);
-
-                // Ensure referral code exists
-                await ensureReferralCode();
-
-            } catch (error) {
-                console.error('Error loading user data:', error);
-                // Set defaults on error
-                userBalance = 0;
-                lastClaimTime = null;
-                document.getElementById('balanceAmount').textContent = '0';
             }
         }
 
@@ -930,6 +903,26 @@
             }
         }
 
+        // Show Telegram user info
+        function showTelegramUserInfo(user) {
+            const userInfoElement = document.getElementById('telegramUserInfo');
+            const avatarElement = document.getElementById('telegramAvatar');
+            const welcomeElement = document.getElementById('telegramWelcome');
+            const usernameElement = document.getElementById('telegramUsername');
+
+            userInfoElement.style.display = 'block';
+
+            if (user.photo_url) {
+                avatarElement.src = user.photo_url;
+                avatarElement.style.display = 'block';
+            }
+
+            welcomeElement.textContent = `Welcome, ${user.first_name}! 🎉`;
+            usernameElement.textContent = `@${user.username || 'user'}`;
+
+            showSuccess(`Hello ${user.first_name}! Welcome to NemexCoin! 🚀`);
+        }
+
         // Start countdown timer
         function startCountdownTimer() {
             if (countdownInterval) {
@@ -949,7 +942,6 @@
                 countdownElement.textContent = 'READY!';
                 countdownElement.style.color = '#00C851';
                 claimBtn.disabled = false;
-                claimBtn.textContent = 'Claim 30 NMX Now!';
                 return;
             }
 
@@ -961,7 +953,6 @@
                 countdownElement.textContent = 'READY!';
                 countdownElement.style.color = '#00C851';
                 claimBtn.disabled = false;
-                claimBtn.textContent = 'Claim 30 NMX Now!';
             } else {
                 const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
                 const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
@@ -972,11 +963,10 @@
 
                 countdownElement.style.color = '#d4af37';
                 claimBtn.disabled = true;
-                claimBtn.textContent = 'Claim 30 NMX Now!';
             }
         }
 
-        // Claim NMX function - FIXED VERSION
+        // Claim NMX function - ULTRA SIMPLIFIED AND FIXED
         async function claimNMX() {
             const claimBtn = document.getElementById('claimButton');
             const loading = document.getElementById('loadingIndicator');
@@ -991,68 +981,42 @@
                 const newBalance = userBalance + CLAIM_AMOUNT;
                 const now = new Date().toISOString();
 
-                let updateQuery;
+                // Determine user ID for update
+                let userId;
+                let updateCondition;
 
                 if (isTelegramApp && telegramUser) {
-                    // Update Telegram user
-                    updateQuery = supabaseClient
-                        .from('profiles')
-                        .update({
-                            balance: newBalance,
-                            last_claim: now
-                        })
-                        .eq('telegram_id', telegramUser.id);
+                    userId = user.id;
+                    updateCondition = { telegram_id: telegramUser.id };
                 } else {
-                    // Update web user
-                    updateQuery = supabaseClient
-                        .from('profiles')
-                        .update({
-                            balance: newBalance,
-                            last_claim: now
-                        })
-                        .eq('id', user.id);
+                    userId = user.id;
+                    updateCondition = { id: user.id };
                 }
 
-                const { data, error: updateError } = await updateQuery.select().single();
+                // SIMPLE UPDATE - just balance and last_claim
+                const { data, error } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        balance: newBalance,
+                        last_claim: now
+                    })
+                    .match(updateCondition)
+                    .select()
+                    .single();
 
-                if (updateError) {
-                    console.error('Error updating balance:', updateError);
-                    throw updateError;
+                if (error) {
+                    console.error('❌ Database update error:', error);
+                    throw new Error(`Database error: ${error.message}`);
                 }
 
                 console.log('✅ Database update successful:', data);
 
-                // Save claim history
-                const userId = isTelegramApp && telegramUser ? user.id : user.id;
-                const { error: historyError } = await supabaseClient
-                    .from('claim_history')
-                    .insert({
-                        user_id: userId,
-                        amount: CLAIM_AMOUNT,
-                        claimed_at: now
-                    });
-
-                if (historyError) {
-                    console.error('Error saving claim history:', historyError);
-                    // Continue anyway, history is secondary
-                }
-
                 // Update local state
-                userBalance = newBalance;
+                userBalance = parseFloat(data.balance) || newBalance;
                 lastClaimTime = new Date(now);
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
-                showSuccess(`✅ Successfully claimed ${CLAIM_AMOUNT} NMX!`);
-
-                // Send success data to Telegram bot
-                if (isTelegramApp) {
-                    sendToTelegram({
-                        action: 'claim_success',
-                        amount: CLAIM_AMOUNT,
-                        newBalance: newBalance,
-                        user: telegramUser.first_name
-                    });
-                }
+                showSuccess(`✅ Successfully claimed ${CLAIM_AMOUNT} NMX! New balance: ${formatNumber(userBalance)} NMX`);
 
                 console.log('✅ Claim successful, new balance:', userBalance);
 
@@ -1061,24 +1025,13 @@
 
             } catch (error) {
                 console.error('❌ Claim failed:', error);
-                showError('Failed to claim NMX. Please try again.');
-                // Re-enable button if claim failed
-                updateCountdown();
+                showError(`Claim failed: ${error.message}`);
             } finally {
                 loading.style.display = 'none';
+                // Re-enable button based on cooldown
+                updateCountdown();
             }
         }
-
-        // Send data back to Telegram bot
-        function sendToTelegram(data) {
-            if (isTelegramApp && window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.sendData(JSON.stringify(data));
-                console.log('📤 Data sent to Telegram:', data);
-            }
-        }
-
-        // Event Listeners
-        document.getElementById('claimButton').addEventListener('click', claimNMX);
 
         // Helper functions
         function showError(message) {
@@ -1104,8 +1057,13 @@
             document.getElementById('successMessage').style.display = 'none';
         }
 
+        // Event Listeners
+        document.getElementById('claimButton').addEventListener('click', claimNMX);
+
         // Auto-refresh balance every 30 seconds
-        setInterval(loadUserData, 30000);
+        setInterval(async () => {
+            await ensureReferralCode();
+        }, 30000);
     </script>
 </body>
 </html>
