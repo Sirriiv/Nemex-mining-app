@@ -233,6 +233,27 @@
             display: none;
         }
 
+        .referral-banner {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .referral-banner h3 {
+            color: #FFD700;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .referral-banner p {
+            color: #cccccc;
+            font-size: 14px;
+            margin: 0;
+        }
+
         @media (max-width: 480px) {
             .register-card {
                 padding: 30px 20px;
@@ -253,6 +274,12 @@
 
         <div class="register-card">
             <h2 id="welcomeTitle">Create Your Account</h2>
+
+            <!-- Referral Banner (Shows when referred by someone) -->
+            <div class="referral-banner" id="referralBanner" style="display: none;">
+                <h3>🎉 You've been referred!</h3>
+                <p>You'll get <strong>30 NMX</strong> bonus after registration!</p>
+            </div>
 
             <!-- Telegram Info Message -->
             <div class="telegram-info" id="telegramInfo">
@@ -319,6 +346,8 @@
         let supabaseClient;
         let isTelegramApp = false;
         let telegramUser = null;
+        let referralCode = null; // Store the referral code from URL
+        const REFERRAL_BONUS = 30;
 
         // Generate random referral code
         function generateReferralCode() {
@@ -330,9 +359,89 @@
             return result;
         }
 
-        // Create new Telegram user
+        // NEW: Detect referral code from URL parameters
+        function detectReferralCode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('start');
+            
+            if (refCode) {
+                referralCode = refCode.toUpperCase();
+                console.log('🎯 Referral code detected:', referralCode);
+                
+                // Show referral banner
+                const referralBanner = document.getElementById('referralBanner');
+                referralBanner.style.display = 'block';
+                
+                return true;
+            }
+            return false;
+        }
+
+        // NEW: Process referral bonus
+        async function processReferralBonus(newUserId, referralCode) {
+            try {
+                console.log('💰 Processing referral bonus...');
+                
+                // Find the referrer by their referral code
+                const { data: referrer, error: referrerError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, used_slots, referral_slots, balance')
+                    .eq('referral_code', referralCode)
+                    .single();
+
+                if (referrerError) {
+                    console.error('❌ Referrer not found:', referrerError);
+                    return false;
+                }
+
+                // Check if referrer has available slots
+                if (referrer.used_slots >= referrer.referral_slots) {
+                    console.error('❌ Referrer has no available slots');
+                    return false;
+                }
+
+                // Create referral record
+                const { error: referralError } = await supabaseClient
+                    .from('referrals')
+                    .insert([{
+                        referrer_id: referrer.id,
+                        referred_id: newUserId,
+                        referral_code_used: referralCode,
+                        bonus_amount: REFERRAL_BONUS
+                    }]);
+
+                if (referralError) {
+                    console.error('❌ Error creating referral record:', referralError);
+                    return false;
+                }
+
+                // Update referrer's stats and balance
+                const { error: updateError } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        used_slots: referrer.used_slots + 1,
+                        balance: referrer.balance + REFERRAL_BONUS,
+                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS
+                    })
+                    .eq('id', referrer.id);
+
+                if (updateError) {
+                    console.error('❌ Error updating referrer stats:', updateError);
+                    return false;
+                }
+
+                console.log('✅ Referral bonus processed successfully!');
+                return true;
+
+            } catch (error) {
+                console.error('❌ Error processing referral bonus:', error);
+                return false;
+            }
+        }
+
+        // Create new Telegram user - UPDATED with referral processing
         async function createTelegramUser(telegramUser) {
-            const referralCode = generateReferralCode();
+            const userReferralCode = generateReferralCode();
             
             const { data: newUser, error: createError } = await supabaseClient
                 .from('profiles')
@@ -344,16 +453,26 @@
                         avatar_url: telegramUser.photo_url,
                         balance: 0,
                         last_claim: null,
-                        referral_code: referralCode,
+                        referral_code: userReferralCode,
                         referral_slots: 10,
                         used_slots: 0,
-                        created_via: 'telegram'
+                        created_via: 'telegram',
+                        referred_by: referralCode || null // NEW: Track who referred this user
                     }
                 ])
                 .select()
                 .single();
-                
-            return { data: newUser, error: createError };
+
+            if (createError) {
+                return { data: null, error: createError };
+            }
+
+            // NEW: Process referral bonus if applicable
+            if (referralCode && newUser) {
+                await processReferralBonus(newUser.id, referralCode);
+            }
+
+            return { data: newUser, error: null };
         }
 
         // Wait for DOM to load
@@ -370,6 +489,9 @@
                 });
 
                 console.log('✅ Supabase client created successfully');
+
+                // NEW: Detect referral code first
+                detectReferralCode();
 
                 // Initialize Telegram first
                 initializeTelegram();
@@ -489,7 +611,7 @@
             }
         }
 
-        // Telegram registration button handler
+        // Telegram registration button handler - UPDATED with referral
         document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
             const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
             const loading = document.getElementById('loading');
@@ -520,24 +642,7 @@
                 if (checkError && checkError.code === 'PGRST116') {
                     // Create new Telegram user
                     console.log('Creating new Telegram user account...');
-                    const { data: newUser, error: createError } = await supabaseClient
-                        .from('profiles')
-                        .insert([
-                            {
-                                telegram_id: telegramUser.id,
-                                username: telegramUser.username || `tg_${telegramUser.id}`,
-                                full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                                avatar_url: telegramUser.photo_url,
-                                balance: 0,
-                                last_claim: null,
-                                referral_code: generateReferralCode(),
-                                referral_slots: 10,
-                                used_slots: 0,
-                                created_via: 'telegram'
-                            }
-                        ])
-                        .select()
-                        .single();
+                    const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
 
                     if (createError) {
                         throw createError;
@@ -549,7 +654,13 @@
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
                     localStorage.setItem('isLoggedIn', 'true');
 
-                    showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
+                    // Show success message with referral info if applicable
+                    let successMessage = 'Account created successfully! Welcome to NemexCoin! 🚀';
+                    if (referralCode) {
+                        successMessage += ' You received 30 NMX referral bonus! 🎉';
+                    }
+
+                    showSuccess(successMessage);
 
                     // Redirect to dashboard
                     setTimeout(() => {
@@ -610,7 +721,7 @@
             return true;
         }
 
-        // Registration function for email/password
+        // Registration function for email/password - UPDATED with referral
         async function registerUser(email, password, fullName) {
             try {
                 console.log('📝 Starting email registration...');
@@ -619,8 +730,8 @@
                     throw new Error('Authentication service not available');
                 }
 
-                const referralCode = generateReferralCode();
-                
+                const userReferralCode = generateReferralCode();
+
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
@@ -646,15 +757,21 @@
                                 full_name: fullName,
                                 balance: 0,
                                 last_claim: null,
-                                referral_code: referralCode,
+                                referral_code: userReferralCode,
                                 referral_slots: 10,
-                                used_slots: 0
+                                used_slots: 0,
+                                referred_by: referralCode || null // NEW: Track who referred this user
                             }
                         ]);
 
                     if (profileError) {
                         console.error('Error creating profile:', profileError);
                         // Continue anyway, profile can be created later
+                    } else {
+                        // NEW: Process referral bonus if applicable
+                        if (referralCode) {
+                            await processReferralBonus(data.user.id, referralCode);
+                        }
                     }
                 }
 
@@ -667,7 +784,7 @@
             }
         }
 
-        // Form submission for email/password registration
+        // Form submission for email/password registration - UPDATED
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -690,7 +807,12 @@
                 const result = await registerUser(email, password, fullName);
 
                 if (result.user) {
-                    showSuccess('✅ Account created successfully! Please check your email to verify your account.');
+                    let successMessage = '✅ Account created successfully! Please check your email to verify your account.';
+                    if (referralCode) {
+                        successMessage += ' You received 30 NMX referral bonus! 🎉';
+                    }
+
+                    showSuccess(successMessage);
 
                     // Clear form
                     document.getElementById('registerForm').reset();
