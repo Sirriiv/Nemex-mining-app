@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Mining Dashboard</title>
+    <!-- Add Telegram Web App script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Add Telegram styles -->
+    <link rel="stylesheet" href="css/telegram-styles.css">
+    
     <style>
         /* Gold Theme and Dark Background */
         :root { 
@@ -346,6 +352,35 @@
         .settings-item.logout:hover {
             background: rgba(255, 68, 68, 0.1);
         }
+
+        /* Telegram User Info */
+        .telegram-user-info {
+            text-align: center;
+            padding: 15px;
+            background: rgba(0, 136, 204, 0.1);
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 1px solid rgba(0, 136, 204, 0.3);
+        }
+
+        .telegram-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            border: 2px solid var(--gold);
+        }
+
+        .telegram-welcome {
+            font-size: 16px;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .telegram-username {
+            font-size: 14px;
+            color: var(--muted);
+        }
     </style>
 </head>
 <body>
@@ -357,6 +392,13 @@
             </header>
 
             <main class="main-content">
+                <!-- Telegram User Info (will be shown only in Telegram) -->
+                <div id="telegramUserInfo" class="telegram-user-info" style="display: none;">
+                    <img id="telegramAvatar" class="telegram-avatar" src="" alt="Telegram Avatar">
+                    <div id="telegramWelcome" class="telegram-welcome"></div>
+                    <div id="telegramUsername" class="telegram-username"></div>
+                </div>
+
                 <div class="connection-status" id="connectionStatus">Connecting to database...</div>
 
                 <div class="balance-display">
@@ -437,16 +479,13 @@
         </nav>
     </div>
 
-    <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Replace Supabase CDN with local supabase.js -->
+    <script type="module" src="js/supabase.js"></script>
+    
+    <!-- Add Telegram Integration -->
+    <script src="js/telegram-integration.js"></script>
 
     <script>
-        // Initialize Supabase
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
         // Global variables
         let user = null;
         let userBalance = 0;
@@ -463,9 +502,56 @@
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Dashboard...');
-            initializeDashboard();
+            
+            // Initialize Telegram integration first
+            telegramApp.init();
+            
+            // Initialize dashboard based on environment
+            if (telegramApp.isTelegramUser()) {
+                initializeTelegramDashboard();
+            } else {
+                initializeDashboard();
+            }
+            
             initializeNavigation();
         });
+
+        // Telegram-optimized dashboard initialization
+        async function initializeTelegramDashboard() {
+            console.log('Initializing Telegram-optimized dashboard...');
+            
+            try {
+                // Show Telegram user info
+                const telegramUser = telegramApp.user;
+                if (telegramUser) {
+                    const userInfoElement = document.getElementById('telegramUserInfo');
+                    const avatarElement = document.getElementById('telegramAvatar');
+                    const welcomeElement = document.getElementById('telegramWelcome');
+                    const usernameElement = document.getElementById('telegramUsername');
+                    
+                    userInfoElement.style.display = 'block';
+                    
+                    if (telegramUser.photo_url) {
+                        avatarElement.src = telegramUser.photo_url;
+                    }
+                    
+                    welcomeElement.textContent = `Welcome, ${telegramUser.first_name}! 🎉`;
+                    usernameElement.textContent = `@${telegramUser.username || 'user'}`;
+                    
+                    showSuccess(`Welcome to NemexCoin ${telegramUser.first_name}! 🚀`);
+                }
+                
+                // Wait a bit for Telegram user data to load
+                setTimeout(() => {
+                    loadUserProfile();
+                    loadWalletBalance();
+                    loadTransactionHistory();
+                }, 500);
+                
+            } catch (error) {
+                console.error('Telegram dashboard initialization error:', error);
+            }
+        }
 
         // Initialize navigation and settings
         function initializeNavigation() {
@@ -508,30 +594,40 @@
             // Logout functionality
             logoutButton.addEventListener('click', async function() {
                 try {
-                    await supabaseClient.auth.signOut();
-                    localStorage.removeItem('isLoggedIn');
-                    localStorage.removeItem('userEmail');
-                    localStorage.removeItem('userId');
-                    window.location.href = 'login.html';
+                    // Check if we're in Telegram
+                    if (telegramApp.isTelegramUser()) {
+                        // For Telegram users, just clear local data
+                        localStorage.removeItem('nemex_user');
+                        localStorage.removeItem('nemex_token');
+                        localStorage.removeItem('telegram_user');
+                        showSuccess('Logged out successfully!');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1500);
+                    } else {
+                        // Regular web logout
+                        await supabaseAuth.signOut();
+                        window.location.href = 'login.html';
+                    }
                 } catch (error) {
                     console.error('Logout error:', error);
+                    showError('Logout failed. Please try again.');
                 }
             });
         }
 
-        // Initialize dashboard
+        // Initialize dashboard (regular web version)
         async function initializeDashboard() {
             try {
                 // Check if user is logged in
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (!session) {
+                const currentUser = supabaseAuth.getCurrentUser();
+                if (!currentUser && !telegramApp.isTelegramUser()) {
                     window.location.href = 'login.html';
                     return;
                 }
 
-                user = session.user;
-
-                console.log('👤 User:', user.id);
+                user = currentUser;
+                console.log('👤 User:', user?.id || 'Telegram User');
 
                 // Load user data
                 await loadUserData();
@@ -550,28 +646,43 @@
             try {
                 console.log('📊 Loading user data...');
 
-                // Get user profile
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('balance, last_claim')
-                    .eq('id', user.id)
-                    .single();
+                let userId;
+                
+                // Determine user ID based on auth method
+                if (telegramApp.isTelegramUser()) {
+                    const telegramUser = telegramApp.user;
+                    // Get user by Telegram ID
+                    const userData = await getUserByTelegramId(telegramUser.id);
+                    if (userData) {
+                        userId = userData.id;
+                        userBalance = parseFloat(userData.balance) || 0;
+                        lastClaimTime = userData.last_claim ? new Date(userData.last_claim) : null;
+                    } else {
+                        // Create new Telegram user profile
+                        await createTelegramUserProfile();
+                        return;
+                    }
+                } else {
+                    // Regular web user
+                    userId = user.id;
+                    const { data: profile, error } = await supabase
+                        .from('profiles')
+                        .select('balance, last_claim')
+                        .eq('id', userId)
+                        .single();
 
-                if (error) {
-                    console.error('Error loading profile:', error);
-                    // Create profile if it doesn't exist
-                    await createUserProfile();
-                    return;
+                    if (error) {
+                        console.error('Error loading profile:', error);
+                        await createUserProfile();
+                        return;
+                    }
+
+                    userBalance = parseFloat(profile.balance) || 0;
+                    lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 }
 
-                console.log('✅ User profile loaded:', profile);
-
                 // Update balance with comma formatting
-                userBalance = parseFloat(profile.balance) || 0;
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
-
-                // Update last claim time
-                lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
 
                 console.log('💰 Balance:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
@@ -582,12 +693,65 @@
             }
         }
 
-        // Create user profile if it doesn't exist
+        // Get user by Telegram ID
+        async function getUserByTelegramId(telegramId) {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('telegram_id', telegramId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching Telegram user:', error);
+                return null;
+            }
+
+            return data;
+        }
+
+        // Create Telegram user profile
+        async function createTelegramUserProfile() {
+            try {
+                console.log('📝 Creating Telegram user profile...');
+                const telegramUser = telegramApp.user;
+
+                const userData = {
+                    telegram_id: telegramUser.id,
+                    username: telegramUser.username || `tg_${telegramUser.id}`,
+                    full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                    avatar_url: telegramUser.photo_url,
+                    balance: 0,
+                    last_claim: null,
+                    created_via: 'telegram'
+                };
+
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .insert([userData])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                console.log('✅ Telegram profile created:', data);
+                userBalance = 0;
+                lastClaimTime = null;
+                document.getElementById('balanceAmount').textContent = '0';
+
+                return data;
+
+            } catch (error) {
+                console.error('Error creating Telegram profile:', error);
+                throw error;
+            }
+        }
+
+        // Create regular user profile if it doesn't exist
         async function createUserProfile() {
             try {
                 console.log('📝 Creating user profile...');
 
-                const { data, error } = await supabaseClient
+                const { data, error } = await supabase
                     .from('profiles')
                     .insert([
                         {
@@ -601,10 +765,7 @@
                     .select()
                     .single();
 
-                if (error) {
-                    console.error('Error creating profile:', error);
-                    throw error;
-                }
+                if (error) throw error;
 
                 console.log('✅ Profile created:', data);
                 userBalance = 0;
@@ -683,14 +844,32 @@
                 const newBalance = userBalance + CLAIM_AMOUNT;
                 const now = new Date().toISOString();
 
-                // Update user balance in profile table
-                const { error: updateError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        balance: newBalance,
-                        last_claim: now
-                    })
-                    .eq('id', user.id);
+                let userId;
+                let updateQuery;
+
+                if (telegramApp.isTelegramUser()) {
+                    // Update Telegram user
+                    userId = telegramApp.user.id;
+                    updateQuery = supabase
+                        .from('profiles')
+                        .update({
+                            balance: newBalance,
+                            last_claim: now
+                        })
+                        .eq('telegram_id', userId);
+                } else {
+                    // Update regular user
+                    userId = user.id;
+                    updateQuery = supabase
+                        .from('profiles')
+                        .update({
+                            balance: newBalance,
+                            last_claim: now
+                        })
+                        .eq('id', userId);
+                }
+
+                const { error: updateError } = await updateQuery;
 
                 if (updateError) {
                     console.error('Error updating balance:', updateError);
@@ -698,30 +877,16 @@
                 }
 
                 // Save claim history
-                const { error: historyError } = await supabaseClient
+                const { error: historyError } = await supabase
                     .from('claim_history')
                     .insert({
-                        user_id: user.id,
+                        user_id: userId,
                         amount: CLAIM_AMOUNT,
                         claimed_at: now
                     });
 
                 if (historyError) {
                     console.error('Error saving claim history:', historyError);
-                    // Don't throw here - the claim was successful, just history failed
-                }
-
-                // Create mining session record
-                const { error: miningError } = await supabaseClient
-                    .from('mining_sessions')
-                    .insert({
-                        user_id: user.id,
-                        coins_mined: CLAIM_AMOUNT,
-                        is_active: false
-                    });
-
-                if (miningError) {
-                    console.error('Error saving mining session:', miningError);
                 }
 
                 // Update local state
@@ -736,6 +901,15 @@
 
                 // Restart countdown
                 startCountdownTimer();
+
+                // Send success data to Telegram bot
+                if (telegramApp.isTelegramUser()) {
+                    telegramApp.sendDataToBot({
+                        action: 'claim_success',
+                        amount: CLAIM_AMOUNT,
+                        newBalance: newBalance
+                    });
+                }
 
             } catch (error) {
                 console.error('❌ Claim failed:', error);
@@ -758,6 +932,24 @@
                 const timeSinceLastClaim = now.getTime() - new Date(lastClaimTime).getTime();
                 claimBtn.disabled = timeSinceLastClaim < CLAIM_COOLDOWN;
             }
+        }
+
+        // Load wallet balance (for Telegram users)
+        async function loadWalletBalance() {
+            // Implementation for wallet balance loading
+            console.log('Loading wallet balance...');
+        }
+
+        // Load transaction history (for Telegram users)
+        async function loadTransactionHistory() {
+            // Implementation for transaction history
+            console.log('Loading transaction history...');
+        }
+
+        // Load user profile (for Telegram users)
+        async function loadUserProfile() {
+            // Implementation for user profile
+            console.log('Loading user profile...');
         }
 
         // Event Listeners
