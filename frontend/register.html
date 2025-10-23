@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Register</title>
+    
+    <!-- Add Telegram Web App script -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -163,6 +167,16 @@
             cursor: not-allowed;
         }
 
+        .telegram-btn {
+            background: linear-gradient(135deg, #0088cc, #006699);
+            border: 1px solid rgba(0, 136, 204, 0.3);
+        }
+
+        .telegram-btn:hover {
+            background: linear-gradient(135deg, #0099e6, #0077b3);
+            border-color: rgba(0, 136, 204, 0.5);
+        }
+
         .signin-link {
             margin-top: 20px;
             color: #cccccc;
@@ -208,11 +222,22 @@
             display: none;
         }
 
+        .telegram-info {
+            background: rgba(0, 136, 204, 0.1);
+            border: 1px solid rgba(0, 136, 204, 0.3);
+            color: #0088cc;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: none;
+        }
+
         @media (max-width: 480px) {
             .register-card {
                 padding: 30px 20px;
             }
-            
+
             .register-container {
                 padding: 10px;
             }
@@ -222,11 +247,19 @@
 <body>
     <div class="register-container">
         <div class="logo">
-            <h1>NMP</h1>
+            <h1>NemexCoin</h1>
             <div class="subtitle">Create Account</div>
         </div>
 
         <div class="register-card">
+            <h2 id="welcomeTitle">Create Your Account</h2>
+
+            <!-- Telegram Info Message -->
+            <div class="telegram-info" id="telegramInfo">
+                📱 <strong>Telegram User Detected!</strong><br>
+                You can create an account with Telegram or use email/password.
+            </div>
+
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
 
@@ -260,6 +293,11 @@
                 <span>OR CONTINUE WITH</span>
             </div>
 
+            <!-- Telegram Registration Button -->
+            <button class="social-btn telegram-btn" id="telegramRegisterBtn">
+                <span>📱</span> Register with Telegram
+            </button>
+
             <button class="social-btn" disabled>
                 <span>🔍</span> Continue with Google
             </button>
@@ -272,48 +310,112 @@
 
     <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <script>
-        // Initialize Supabase directly in the register page
+        // Initialize Supabase
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        
+
         let supabaseClient;
+        let isTelegramApp = false;
+        let telegramUser = null;
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing Supabase...');
-            
+            console.log('🚀 Initializing NemexCoin Registration...');
+
             try {
-                // Check if Supabase is available
-                if (typeof window.supabase === 'undefined') {
-                    throw new Error('Supabase library not loaded');
-                }
-                
-                // Create Supabase client
+                // Initialize Supabase client
                 supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
                     auth: {
                         persistSession: true,
                         autoRefreshToken: true
                     }
                 });
-                
+
                 console.log('✅ Supabase client created successfully');
-                
-                // Check if user is already logged in
-                checkExistingSession();
-                
+
+                // Initialize Telegram first
+                initializeTelegram();
+
+                // Check if user is already logged in (after Telegram check)
+                setTimeout(() => checkExistingSession(), 500);
+
             } catch (error) {
-                console.error('❌ Supabase initialization failed:', error);
-                showError('Failed to initialize authentication. Please refresh the page.');
+                console.error('❌ Initialization failed:', error);
+                showError('Failed to initialize. Please refresh the page.');
             }
         });
+
+        // Initialize Telegram Web App
+        function initializeTelegram() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                console.log('📱 Telegram Web App detected');
+                isTelegramApp = true;
+                
+                const tg = window.Telegram.WebApp;
+                
+                try {
+                    // Expand to full screen
+                    tg.expand();
+                    
+                    // Set theme colors
+                    tg.setHeaderColor('#FFD700');
+                    tg.setBackgroundColor('#0f0f23');
+                    
+                    // Get user info
+                    telegramUser = tg.initDataUnsafe?.user;
+                    
+                    if (telegramUser) {
+                        console.log('👤 Telegram user detected:', telegramUser);
+                        handleTelegramUser();
+                    }
+                    
+                    // Add Telegram class to body for specific styling
+                    document.body.classList.add('telegram-app');
+                    
+                } catch (error) {
+                    console.error('❌ Telegram initialization error:', error);
+                }
+            } else {
+                console.log('🌐 Running in regular browser');
+                isTelegramApp = false;
+            }
+        }
+
+        // Handle Telegram user
+        function handleTelegramUser() {
+            if (!telegramUser) return;
+
+            // Show Telegram info
+            const telegramInfo = document.getElementById('telegramInfo');
+            const welcomeTitle = document.getElementById('welcomeTitle');
+            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
+            const fullNameField = document.getElementById('fullName');
+            
+            telegramInfo.style.display = 'block';
+            welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
+            telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
+            
+            // Pre-fill full name for Telegram users
+            fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
+            
+            showSuccess(`Hello ${telegramUser.first_name}! Ready to create your NemexCoin account.`);
+        }
 
         // Check if user is already logged in
         async function checkExistingSession() {
             try {
                 if (!supabaseClient) return;
-                
+
+                // If we have a Telegram user, check if they already have an account
+                if (isTelegramApp && telegramUser) {
+                    console.log('📱 Telegram user detected, checking existing account...');
+                    await checkTelegramAccount();
+                    return;
+                }
+
+                // Regular session check for web users
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
                     console.log('User already logged in, redirecting...');
@@ -324,37 +426,143 @@
             }
         }
 
+        // Check if Telegram user already has an account
+        async function checkTelegramAccount() {
+            try {
+                const { data: existingUser, error } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('telegram_id', telegramUser.id)
+                    .single();
+
+                if (existingUser) {
+                    // User already has an account - redirect to login
+                    console.log('Telegram user already has account, redirecting to login...');
+                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting to login...`);
+                    
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                }
+                // If no account found, continue with registration
+                
+            } catch (error) {
+                if (error.code !== 'PGRST116') {
+                    console.error('Error checking Telegram account:', error);
+                }
+            }
+        }
+
+        // Telegram registration button handler
+        document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
+            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
+            const loading = document.getElementById('loading');
+            
+            telegramRegisterBtn.disabled = true;
+            loading.style.display = 'block';
+            hideError();
+            hideSuccess();
+
+            try {
+                if (!telegramUser) {
+                    throw new Error('Telegram user not available');
+                }
+
+                console.log('📱 Processing Telegram registration...');
+
+                // Check if Telegram user already exists
+                const { data: existingUser, error: checkError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('telegram_id', telegramUser.id)
+                    .single();
+
+                if (existingUser) {
+                    throw new Error('Telegram account already exists. Please login instead.');
+                }
+
+                if (checkError && checkError.code === 'PGRST116') {
+                    // Create new Telegram user
+                    console.log('Creating new Telegram user account...');
+                    const { data: newUser, error: createError } = await supabaseClient
+                        .from('profiles')
+                        .insert([
+                            {
+                                telegram_id: telegramUser.id,
+                                username: telegramUser.username || `tg_${telegramUser.id}`,
+                                full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                                avatar_url: telegramUser.photo_url,
+                                balance: 0,
+                                last_claim: null,
+                                created_via: 'telegram'
+                            }
+                        ])
+                        .select()
+                        .single();
+
+                    if (createError) {
+                        throw createError;
+                    }
+
+                    console.log('✅ Telegram user account created:', newUser);
+                    
+                    // Set session and redirect to dashboard
+                    localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
+                    localStorage.setItem('isLoggedIn', 'true');
+                    
+                    showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
+                    
+                    // Redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+
+                } else if (checkError) {
+                    throw checkError;
+                }
+
+            } catch (error) {
+                console.error('❌ Telegram registration failed:', error);
+                
+                if (error.message.includes('already exists')) {
+                    showError('This Telegram account is already registered. Please login instead.');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showError('Failed to register with Telegram: ' + error.message);
+                }
+            } finally {
+                telegramRegisterBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+
         // Password validation
         function validateForm(fullName, email, password, confirmPassword) {
-            // Reset errors
             hideMessages();
 
-            // Check full name
             if (!fullName.trim()) {
                 showError('Please enter your full name');
                 return false;
             }
 
-            // Check email
             if (!email.trim()) {
                 showError('Please enter your email address');
                 return false;
             }
 
-            // Basic email validation
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
                 showError('Please enter a valid email address');
                 return false;
             }
 
-            // Check password
             if (password.length < 6) {
                 showError('Password must be at least 6 characters long');
                 return false;
             }
 
-            // Check password match
             if (password !== confirmPassword) {
                 showError('Passwords do not match');
                 return false;
@@ -363,16 +571,15 @@
             return true;
         }
 
-        // Registration function
+        // Registration function for email/password
         async function registerUser(email, password, fullName) {
             try {
-                console.log('📝 Starting registration...');
-                
+                console.log('📝 Starting email registration...');
+
                 if (!supabaseClient) {
                     throw new Error('Authentication service not available');
                 }
-                
-                // Sign up with Supabase Auth
+
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
@@ -384,7 +591,6 @@
                 });
 
                 if (error) {
-                    console.error('Registration error:', error);
                     throw error;
                 }
 
@@ -397,7 +603,7 @@
             }
         }
 
-        // Form submission
+        // Form submission for email/password registration
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -408,26 +614,23 @@
             const registerBtn = document.getElementById('registerBtn');
             const loading = document.getElementById('loading');
 
-            // Reset messages
             hideMessages();
             registerBtn.disabled = true;
             loading.style.display = 'block';
 
             try {
-                // Validate form
                 if (!validateForm(fullName, email, password, confirmPassword)) {
                     return;
                 }
 
-                // Register user
                 const result = await registerUser(email, password, fullName);
 
                 if (result.user) {
                     showSuccess('✅ Account created successfully! Please check your email to verify your account.');
-                    
+
                     // Clear form
                     document.getElementById('registerForm').reset();
-                    
+
                     // Redirect to login after 3 seconds
                     setTimeout(() => {
                         window.location.href = 'login.html';
@@ -436,8 +639,7 @@
 
             } catch (error) {
                 console.error('Registration error:', error);
-                
-                // User-friendly error messages
+
                 if (error.message.includes('already registered') || error.message.includes('already exists')) {
                     showError('An account with this email already exists. Please sign in instead.');
                 } else if (error.message.includes('invalid email')) {
@@ -449,7 +651,7 @@
                 } else {
                     showError('Registration failed: ' + error.message);
                 }
-                
+
             } finally {
                 registerBtn.disabled = false;
                 loading.style.display = 'none';
@@ -460,7 +662,7 @@
         document.getElementById('confirmPassword').addEventListener('input', function() {
             const password = document.getElementById('password').value;
             const confirmPassword = this.value;
-            
+
             if (confirmPassword && password !== confirmPassword) {
                 this.style.borderColor = '#ff4444';
             } else if (confirmPassword && password === confirmPassword) {
