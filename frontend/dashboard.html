@@ -4,20 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Mining Dashboard</title>
-    
-    <!-- Add Telegram Web App script -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <style>
-        /* Your existing CSS styles - KEEP ALL YOUR ORIGINAL STYLES */
+        /* SIMPLE STYLES THAT WORK */
         :root { 
             --dark-bg: #0f0f0f; 
-            --darker-bg: #080808; 
             --gold: #d4af37; 
             --text: #f5f5f5; 
             --muted: #aaa; 
-            --bg-secondary: #1a1a1a;
-            --border-color: #333333;
             --success: #00C851;
             --error: #ff4444;
         }
@@ -26,59 +19,40 @@
             margin: 0; 
             padding: 0; 
             box-sizing: border-box; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+            font-family: Arial, sans-serif; 
         }
 
         body { 
             background: var(--dark-bg); 
             color: var(--text); 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column;
-            padding: 0;
-            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .container { 
-            width: 100%; 
             max-width: 400px; 
             margin: 0 auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            text-align: center;
         }
 
-        /* HEADER SECTION */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
-            background-color: var(--dark-bg);
+            padding: 16px 0;
+            margin-bottom: 30px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--gold);
         }
 
         .settings-icon {
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
-        }
-
-        .header-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold);
-        }
-
-        /* MAIN CONTENT AREA */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            text-align: center;
         }
 
         .balance-display {
@@ -93,34 +67,9 @@
 
         .balance-amount {
             font-size: 42px;
-            font-weight: 700;
+            font-weight: bold;
             color: var(--gold);
-            line-height: 1;
-            font-family: 'Courier New', monospace;
         }
-
-        /* NemexCoin Logo - KEEP YOUR ORIGINAL LOGO STYLES */
-        .nemex-logo{width:140px;height:140px;margin:25px auto;position:relative;display:flex;align-items:center;justify-content:center}
-        .logo-container{width:120px;height:120px;position:relative;filter:drop-shadow(0 0 15px rgba(212,175,55,0.4))}
-        .logo-base{width:100%;height:100%;background:var(--darker-bg);border-radius:50%;border:3px solid var(--gold);position:relative;overflow:hidden;box-shadow:inset 0 0 20px rgba(212,175,55,0.1),0 0 30px rgba(212,175,55,0.2)}
-        .logo-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px}
-        .infinity-symbol{width:100%;height:100%;position:relative}
-        .infinity-symbol::before,.infinity-symbol::after{content:'';position:absolute;width:25px;height:25px;border:3px solid var(--gold);border-radius:50%;border-top-color:transparent;border-left-color:transparent;animation:rotate 8s linear infinite}
-        .infinity-symbol::before{top:0;left:0;transform:rotate(45deg);animation-delay:0s}
-        .infinity-symbol::after{bottom:0;right:0;transform:rotate(225deg);animation-delay:-4s}
-        .circuit-lines{position:absolute;top:0;left:0;width:100%;height:100%}
-        .circuit-line{position:absolute;background:var(--gold);opacity:0.6}
-        .circuit-line:nth-child(1){top:20%;left:10%;width:15px;height:2px;transform:rotate(30deg)}
-        .circuit-line:nth-child(2){top:30%;right:15%;width:12px;height:2px;transform:rotate(-45deg)}
-        .circuit-line:nth-child(3){bottom:25%;left:20%;width:18px;height:2px;transform:rotate(15deg)}
-        .circuit-line:nth-child(4){bottom:15%;right:10%;width:10px;height:2px;transform:rotate(-60deg)}
-        .circuit-line:nth-child(5){top:45%;left:5%;width:8px;height:2px;transform:rotate(75deg)}
-        .circuit-pad{position:absolute;width:4px;height:4px;background:var(--gold);border-radius:50%;opacity:0.8}
-        .circuit-pad:nth-child(6){top:15%;left:25%}.circuit-pad:nth-child(7){top:35%;right:20%}
-        .circuit-pad:nth-child(8){bottom:40%;left:15%}.circuit-pad:nth-child(9){bottom:20%;right:30%}
-        .logo-glow{position:absolute;top:-10px;left:-10px;right:-10px;bottom:-10px;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,0.2)0%,rgba(212,175,55,0)70%);animation:glowPulse 3s ease-in-out infinite;z-index:-1}
-        @keyframes rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-        @keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:0.8;transform:scale(1.05)}}
 
         .countdown-section {
             margin-bottom: 30px;
@@ -136,126 +85,37 @@
             font-size: 24px;
             font-weight: 600;
             color: var(--gold);
-            letter-spacing: 1px;
-            font-family: 'Courier New', monospace;
             background: rgba(0, 0, 0, 0.3);
             padding: 10px 20px;
             border-radius: 10px;
             border: 1px solid rgba(212, 175, 55, 0.3);
         }
 
-        .claim-btn{
-            background:linear-gradient(135deg,var(--gold),#b8941f);
-            color:var(--darker-bg);
-            border:none;
-            padding:14px 40px;
-            border-radius:25px;
-            font-size:16px;
-            font-weight:600;
-            margin:20px 0;
-            cursor:pointer;
-            transition:all 0.3s;
-            box-shadow:0 4px 15px rgba(212,175,55,0.3);
+        .claim-btn {
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 20px 0;
+            cursor: pointer;
             width: 100%;
             max-width: 280px;
         }
-        .claim-btn:active{transform:scale(0.95)}
-        .claim-btn:disabled{
-            background:#333;
-            color:#666;
-            cursor:not-allowed;
-            box-shadow:none;
-            transform: none;
-        }
-        .claim-btn:not(:disabled):hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(212,175,55,0.4);
+
+        .claim-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
         }
 
-        /* NAVIGATION SYSTEM */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
-            border-radius: 8px;
-            margin: 0 1px;
-        }
-
-        .nav-item.active {
-            color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
-        }
-
-        .nav-text {
-            margin-top: 4px;
-            text-align: center;
-        }
-
-        .content-wrapper {
-            padding-bottom: 70px;
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .loading {
-            display: none;
-            color: var(--gold);
-            margin: 10px 0;
-        }
-
-        .connection-status {
-            font-size: 12px;
-            color: var(--muted);
-            margin: 5px 0;
-            display: none;
-        }
-
-        /* Messages */
         .message {
             padding: 12px;
             border-radius: 8px;
             margin: 10px 0;
-            font-size: 14px;
-            text-align: center;
             display: none;
-            max-width: 280px;
-            width: 100%;
         }
 
         .success-message {
@@ -270,455 +130,173 @@
             color: var(--error);
         }
 
-        /* Settings Modal */
-        .settings-modal {
+        .loading {
             display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .settings-content {
-            background: var(--darker-bg);
-            width: 90%;
-            max-width: 400px;
-            border-radius: 15px;
-            border: 1px solid var(--gold);
-            overflow: hidden;
-        }
-
-        .settings-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            text-align: center;
-            position: relative;
-        }
-
-        .settings-title {
-            font-size: 20px;
-            font-weight: 700;
             color: var(--gold);
-        }
-
-        .settings-close {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: var(--muted);
-            font-size: 20px;
-            cursor: pointer;
-        }
-
-        .settings-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .settings-item {
-            padding: 18px 20px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text);
-            text-decoration: none;
-            display: block;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .settings-item:last-child {
-            border-bottom: none;
-        }
-
-        .settings-item:hover {
-            background: rgba(212, 175, 55, 0.1);
-            color: var(--gold);
-        }
-
-        .settings-item.logout {
-            color: #ff4444;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .settings-item.logout:hover {
-            background: rgba(255, 68, 68, 0.1);
-        }
-
-        /* Telegram User Info */
-        .telegram-user-info {
-            text-align: center;
-            padding: 15px;
-            background: rgba(0, 136, 204, 0.1);
-            border-radius: 10px;
             margin: 10px 0;
-            border: 1px solid rgba(0, 136, 204, 0.3);
-            display: none;
         }
 
-        .telegram-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            margin: 0 auto 10px;
-            border: 2px solid var(--gold);
+        .nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1a1a1a;
+            display: flex;
+            justify-content: space-around;
+            padding: 12px;
+            max-width: 400px;
+            margin: 0 auto;
         }
 
-        .telegram-welcome {
-            font-size: 16px;
-            color: var(--text);
-            margin-bottom: 5px;
-        }
-
-        .telegram-username {
-            font-size: 14px;
+        .nav-item {
             color: var(--muted);
+            text-decoration: none;
+            font-size: 10px;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="content-wrapper">
-            <header class="header">
-                <div class="header-title">〽️ NEMEXCOIN</div>
-                <div class="settings-icon">⚙️</div>
-            </header>
-
-            <main class="main-content">
-                <!-- Telegram User Info -->
-                <div id="telegramUserInfo" class="telegram-user-info">
-                    <img id="telegramAvatar" class="telegram-avatar" src="" alt="Telegram Avatar">
-                    <div id="telegramWelcome" class="telegram-welcome"></div>
-                    <div id="telegramUsername" class="telegram-username"></div>
-                </div>
-
-                <div class="connection-status" id="connectionStatus">Connecting to database...</div>
-
-                <div class="balance-display">
-                    <div class="balance-label">Your Balance</div>
-                    <div class="balance-amount" id="balanceAmount">0</div>
-                </div>
-
-                <!-- NEMEXCOIN LOGO -->
-                <div class="nemex-logo">
-                    <div class="logo-container">
-                        <div class="logo-base">
-                            <div class="logo-center">
-                                <div class="infinity-symbol"></div>
-                            </div>
-                            <div class="circuit-lines">
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-line"></div>
-                                <div class="circuit-pad"></div>
-                                <div class="circuit-pad"></div>
-                                <div class="circuit-pad"></div>
-                                <div class="circuit-pad"></div>
-                            </div>
-                        </div>
-                        <div class="logo-glow"></div>
-                    </div>
-                </div>
-
-                <div class="countdown-section">
-                    <div class="countdown-label">Next Claim In</div>
-                    <div class="countdown-timer" id="countdownTimer">12:00:00</div>
-                </div>
-
-                <div class="loading" id="loadingIndicator">🔄 Processing...</div>
-
-                <div class="message success-message" id="successMessage"></div>
-                <div class="message error-message" id="errorMessage"></div>
-
-                <button class="claim-btn" id="claimButton" disabled>Claim 30 NMX Now!</button>
-            </main>
+        <div class="header">
+            <div class="header-title">〽️ NEMEXCOIN</div>
+            <div class="settings-icon">⚙️</div>
         </div>
 
-        <!-- Settings Modal -->
-        <div class="settings-modal" id="settingsModal">
-            <div class="settings-content">
-                <div class="settings-header">
-                    <h2 class="settings-title">Settings</h2>
-                    <button class="settings-close" id="closeSettings">✕</button>
-                </div>
-                <div class="settings-list">
-                    <a href="profile.html" class="settings-item">👤 Profile</a>
-                    <a href="security.html" class="settings-item">🔒 Security</a>
-                    <a href="about.html" class="settings-item">ℹ️ About</a>
-                    <a href="support.html" class="settings-item">💬 Help & Support</a>
-                    <div class="settings-item logout" id="logoutButton">🚪 Log Out</div>
-                </div>
-            </div>
+        <div class="balance-display">
+            <div class="balance-label">Your Balance</div>
+            <div class="balance-amount" id="balanceAmount">0</div>
         </div>
 
-        <nav class="bottom-nav">
-            <a href="#" class="nav-item active" id="miningTab">
-                <span class="nav-text">MINING</span>
-            </a>
-            <a href="tasks.html" class="nav-item">
-                <span class="nav-text">TASKS</span>
-            </a>
-            <a href="buynmxp.html" class="nav-item">
-                <span class="nav-text">BUY NMXp</span>
-            </a>
-            <a href="referrals.html" class="nav-item">
-                <span class="nav-text">REFERRALS</span>
-            </a>
-            <a href="wallet.html" class="nav-item">
-                <span class="nav-text">WALLET</span>
-            </a>
-        </nav>
+        <div class="countdown-section">
+            <div class="countdown-label">Next Claim In</div>
+            <div class="countdown-timer" id="countdownTimer">12:00:00</div>
+        </div>
+
+        <div class="loading" id="loadingIndicator">🔄 Processing...</div>
+
+        <div class="message success-message" id="successMessage"></div>
+        <div class="message error-message" id="errorMessage"></div>
+
+        <button class="claim-btn" id="claimButton" disabled>Claim 30 NMX Now!</button>
     </div>
 
-    <!-- SIMPLIFIED IMPORTS -->
-    <script src="js/supabase.js"></script>
-    <script src="js/telegram-integration.js"></script>
+    <nav class="nav">
+        <a href="#" class="nav-item active">MINING</a>
+        <a href="tasks.html" class="nav-item">TASKS</a>
+        <a href="buynmxp.html" class="nav-item">BUY NMXp</a>
+        <a href="referrals.html" class="nav-item">REFERRALS</a>
+        <a href="wallet.html" class="nav-item">WALLET</a>
+    </nav>
 
+    <!-- SIMPLE SUPABASE SETUP -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        console.log('🔧 Supabase initialized');
+
         // Global variables
         let user = null;
         let userBalance = 0;
         let lastClaimTime = null;
-        let countdownInterval = null;
         const CLAIM_AMOUNT = 30;
-        const CLAIM_COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours
-
-        // Format number with commas
-        function formatNumber(number) {
-            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
 
         // Wait for DOM to load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing NemexCoin Dashboard...');
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Starting dashboard...');
             
-            // Initialize Telegram first
-            telegramApp.init();
-            
-            // Then initialize dashboard
-            initializeDashboard();
-            initializeNavigation();
-        });
-
-        // Initialize navigation and settings
-        function initializeNavigation() {
-            // Settings modal functionality
-            const settingsIcon = document.querySelector('.settings-icon');
-            const settingsModal = document.getElementById('settingsModal');
-            const closeSettings = document.getElementById('closeSettings');
-            const logoutButton = document.getElementById('logoutButton');
-
-            // Open settings modal
-            settingsIcon.addEventListener('click', function() {
-                settingsModal.style.display = 'flex';
-            });
-
-            // Close settings modal
-            closeSettings.addEventListener('click', function() {
-                settingsModal.style.display = 'none';
-            });
-
-            // Close modal when clicking outside
-            settingsModal.addEventListener('click', function(e) {
-                if (e.target === settingsModal) {
-                    settingsModal.style.display = 'none';
-                }
-            });
-
-            // Logout functionality
-            logoutButton.addEventListener('click', async function() {
-                try {
-                    if (telegramApp.isTelegramUser()) {
-                        // Telegram logout - just clear data
-                        localStorage.clear();
-                        showSuccess('Logged out successfully!');
-                        setTimeout(() => location.reload(), 1500);
-                    } else {
-                        // Web logout
-                        await supabaseAuth.signOut();
-                        localStorage.clear();
-                        window.location.href = 'login.html';
-                    }
-                } catch (error) {
-                    console.error('Logout error:', error);
-                    showError('Logout failed');
-                }
-            });
-        }
-
-        // Initialize dashboard
-        async function initializeDashboard() {
             try {
-                console.log('📊 Starting dashboard...');
-
-                // Check authentication
-                if (telegramApp.isTelegramUser()) {
-                    console.log('👤 Telegram user detected');
-                    await handleTelegramUser();
-                } else {
-                    console.log('🌐 Regular web user');
-                    const currentUser = await supabaseAuth.getCurrentUser();
-                    if (!currentUser) {
-                        window.location.href = 'login.html';
-                        return;
-                    }
-                    user = currentUser;
+                // Check if user is logged in
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (!session) {
+                    console.log('❌ No session, redirecting to login...');
+                    window.location.href = 'login.html';
+                    return;
                 }
+
+                user = session.user;
+                console.log('👤 User:', user.id);
 
                 // Load user data
                 await loadUserData();
-
+                
                 // Start countdown
                 startCountdownTimer();
-
-                console.log('✅ Dashboard initialized successfully');
+                
+                console.log('✅ Dashboard ready!');
 
             } catch (error) {
-                console.error('❌ Dashboard init failed:', error);
+                console.error('❌ Startup error:', error);
                 showError('Failed to load. Please refresh.');
             }
-        }
-
-        // Handle Telegram user
-        async function handleTelegramUser() {
-            const telegramUser = telegramApp.user;
-            if (!telegramUser) return;
-
-            // Show Telegram user info
-            const userInfo = document.getElementById('telegramUserInfo');
-            const avatar = document.getElementById('telegramAvatar');
-            const welcome = document.getElementById('telegramWelcome');
-            const username = document.getElementById('telegramUsername');
-
-            userInfo.style.display = 'block';
-            welcome.textContent = `Welcome, ${telegramUser.first_name}! 🎉`;
-            username.textContent = `@${telegramUser.username || 'user'}`;
-            
-            if (telegramUser.photo_url) {
-                avatar.src = telegramUser.photo_url;
-            }
-
-            showSuccess(`Hello ${telegramUser.first_name}! 🚀`);
-        }
+        });
 
         // Load user data
         async function loadUserData() {
             try {
-                console.log('📈 Loading user data...');
+                console.log('📊 Loading user data...');
 
-                let profileData;
+                // Get or create user profile
+                let { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('balance, last_claim')
+                    .eq('id', user.id)
+                    .single();
 
-                if (telegramApp.isTelegramUser()) {
-                    // Load Telegram user data
-                    const telegramUser = telegramApp.user;
-                    const { data, error } = await supabase
+                if (error) {
+                    console.log('Creating new profile...');
+                    // Create profile
+                    const { data: newProfile, error: createError } = await supabase
                         .from('profiles')
-                        .select('balance, last_claim')
-                        .eq('telegram_id', telegramUser.id)
+                        .insert([{
+                            id: user.id,
+                            email: user.email,
+                            full_name: user.user_metadata?.full_name || 'User',
+                            balance: 0,
+                            last_claim: null
+                        }])
+                        .select()
                         .single();
 
-                    if (error) {
-                        console.log('Creating new Telegram profile...');
-                        await createTelegramProfile();
-                        profileData = { balance: 0, last_claim: null };
-                    } else {
-                        profileData = data;
+                    if (createError) {
+                        console.error('Error creating profile:', createError);
+                        throw createError;
                     }
-                } else {
-                    // Load web user data
-                    const { data, error } = await supabase
-                        .from('profiles')
-                        .select('balance, last_claim')
-                        .eq('id', user.id)
-                        .single();
 
-                    if (error) {
-                        console.log('Creating new web profile...');
-                        await createWebProfile();
-                        profileData = { balance: 0, last_claim: null };
-                    } else {
-                        profileData = data;
-                    }
+                    profile = newProfile;
+                    console.log('✅ Profile created');
                 }
 
                 // Update UI
-                userBalance = parseFloat(profileData.balance) || 0;
-                lastClaimTime = profileData.last_claim ? new Date(profileData.last_claim) : null;
+                userBalance = parseFloat(profile.balance) || 0;
+                lastClaimTime = profile.last_claim;
                 
-                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                document.getElementById('balanceAmount').textContent = userBalance.toLocaleString();
                 
                 console.log('💰 Balance:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
 
             } catch (error) {
-                console.error('Error loading user data:', error);
-                // Set defaults on error
+                console.error('Error loading data:', error);
+                // Set defaults
                 userBalance = 0;
-                lastClaimTime = null;
                 document.getElementById('balanceAmount').textContent = '0';
             }
         }
 
-        // Create Telegram profile
-        async function createTelegramProfile() {
-            const telegramUser = telegramApp.user;
-            const { data, error } = await supabase
-                .from('profiles')
-                .insert([{
-                    telegram_id: telegramUser.id,
-                    username: telegramUser.username || `tg_${telegramUser.id}`,
-                    full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                    avatar_url: telegramUser.photo_url,
-                    balance: 0,
-                    last_claim: null,
-                    created_via: 'telegram'
-                }])
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error creating Telegram profile:', error);
-                throw error;
-            }
-
-            return data;
-        }
-
-        // Create web profile
-        async function createWebProfile() {
-            const { data, error } = await supabase
-                .from('profiles')
-                .insert([{
-                    id: user.id,
-                    email: user.email,
-                    full_name: user.user_metadata?.full_name || 'User',
-                    balance: 0,
-                    last_claim: null,
-                    created_via: 'website'
-                }])
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error creating web profile:', error);
-                throw error;
-            }
-
-            return data;
-        }
-
         // Start countdown timer
         function startCountdownTimer() {
-            if (countdownInterval) clearInterval(countdownInterval);
-            countdownInterval = setInterval(updateCountdown, 1000);
+            setInterval(updateCountdown, 1000);
             updateCountdown();
         }
 
@@ -736,8 +314,10 @@
             }
 
             const now = new Date();
-            const timeSinceLastClaim = now.getTime() - new Date(lastClaimTime).getTime();
-            const timeRemaining = CLAIM_COOLDOWN - timeSinceLastClaim;
+            const lastClaim = new Date(lastClaimTime);
+            const timeSinceLastClaim = now.getTime() - lastClaim.getTime();
+            const twelveHours = 12 * 60 * 60 * 1000;
+            const timeRemaining = twelveHours - timeSinceLastClaim;
 
             if (timeRemaining <= 0) {
                 // Ready to claim
@@ -773,48 +353,47 @@
                 const newBalance = userBalance + CLAIM_AMOUNT;
                 const now = new Date().toISOString();
 
-                let updateResult;
+                // Update profile
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({
+                        balance: newBalance,
+                        last_claim: now
+                    })
+                    .eq('id', user.id);
 
-                if (telegramApp.isTelegramUser()) {
-                    updateResult = await supabase
-                        .from('profiles')
-                        .update({
-                            balance: newBalance,
-                            last_claim: now
-                        })
-                        .eq('telegram_id', telegramApp.user.id);
-                } else {
-                    updateResult = await supabase
-                        .from('profiles')
-                        .update({
-                            balance: newBalance,
-                            last_claim: now
-                        })
-                        .eq('id', user.id);
-                }
+                if (updateError) throw updateError;
 
-                if (updateResult.error) throw updateResult.error;
+                // Save claim history
+                await supabase
+                    .from('claim_history')
+                    .insert({
+                        user_id: user.id,
+                        amount: CLAIM_AMOUNT,
+                        claimed_at: now
+                    });
 
-                // Update local state
+                // Update UI
                 userBalance = newBalance;
-                lastClaimTime = new Date(now);
-                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                lastClaimTime = now;
+                document.getElementById('balanceAmount').textContent = newBalance.toLocaleString();
 
                 showSuccess(`✅ Successfully claimed ${CLAIM_AMOUNT} NMX!`);
+                console.log('✅ Claim successful');
 
-                // Restart countdown
-                startCountdownTimer();
+                // Update countdown
+                updateCountdown();
 
             } catch (error) {
                 console.error('❌ Claim failed:', error);
                 showError('Claim failed. Please try again.');
+                updateCountdown(); // Re-enable button
             } finally {
                 loading.style.display = 'none';
-                updateCountdown(); // Re-enable button if needed
             }
         }
 
-        // Event Listeners
+        // Event listener
         document.getElementById('claimButton').addEventListener('click', claimNMX);
 
         // Helper functions
