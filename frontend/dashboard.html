@@ -481,10 +481,10 @@
             return result;
         }
 
-        // FIXED: Ensure referral code exists for user (removed referral stats)
-        async function ensureReferralCode() {
+        // FIXED: Load user data with proper balance refresh
+        async function loadUserData() {
             try {
-                console.log('🔑 Ensuring referral code exists...');
+                console.log('🔄 Loading user data...');
 
                 let profile;
                 let userId;
@@ -493,7 +493,7 @@
                     // For Telegram users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim')
+                        .select('id, referral_code, balance, last_claim, total_earned_from_refs')
                         .eq('telegram_id', telegramUser.id)
                         .single();
 
@@ -508,7 +508,7 @@
                     // For web users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim')
+                        .select('id, referral_code, balance, last_claim, total_earned_from_refs')
                         .eq('id', user.id)
                         .single();
 
@@ -522,13 +522,14 @@
                     userId = data.id;
                 }
 
-                // Update UI with actual data
+                // FIXED: Update UI with actual data from database
                 userBalance = parseFloat(profile.balance) || 0;
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
-                console.log('💰 Balance loaded:', userBalance);
+                console.log('💰 Balance loaded from database:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
+                console.log('🎁 Total earned from referrals:', profile.total_earned_from_refs || 0);
 
                 // Generate referral code if it doesn't exist
                 if (!profile.referral_code) {
@@ -554,8 +555,37 @@
                     console.log('✅ Referral code exists:', profile.referral_code);
                 }
 
+                return profile;
+
             } catch (error) {
-                console.error('❌ Error ensuring referral code:', error);
+                console.error('❌ Error loading user data:', error);
+                return null;
+            }
+        }
+
+        // FIXED: Refresh balance function - called when returning from referrals
+        async function refreshBalance() {
+            try {
+                console.log('🔄 Refreshing balance...');
+                const profile = await loadUserData();
+                
+                if (profile) {
+                    // Show notification if referral earnings increased
+                    const currentBalance = parseFloat(profile.balance) || 0;
+                    if (currentBalance > userBalance) {
+                        const bonusEarned = currentBalance - userBalance;
+                        console.log('🎉 New referral bonus detected:', bonusEarned);
+                        
+                        if (bonusEarned > 0) {
+                            showSuccess(`🎉 Referral bonus! +${bonusEarned} NMX from your referrals!`);
+                        }
+                    }
+                    
+                    userBalance = currentBalance;
+                    document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                }
+            } catch (error) {
+                console.error('Error refreshing balance:', error);
             }
         }
 
@@ -635,11 +665,19 @@
                     console.log('👤 Web User:', user.id);
                 }
 
-                // Load user data and ensure referral code
-                await ensureReferralCode();
+                // FIXED: Load user data with balance refresh
+                await loadUserData();
 
                 // Start countdown timer
                 startCountdownTimer();
+
+                // FIXED: Refresh balance when page becomes visible (returning from referrals)
+                document.addEventListener('visibilitychange', function() {
+                    if (!document.hidden) {
+                        console.log('📄 Page visible - refreshing balance...');
+                        refreshBalance();
+                    }
+                });
 
             } catch (error) {
                 console.error('❌ Dashboard initialization failed:', error);
@@ -935,10 +973,13 @@
         // Event Listeners
         document.getElementById('claimButton').addEventListener('click', claimNMX);
 
-        // Auto-refresh balance every 30 seconds
+        // FIXED: Auto-refresh balance every 10 seconds (instead of 30)
         setInterval(async () => {
-            await ensureReferralCode();
-        }, 30000);
+            await refreshBalance();
+        }, 10000);
+
+        // FIXED: Refresh balance when returning from referrals page
+        window.addEventListener('focus', refreshBalance);
     </script>
 </body>
 </html>
