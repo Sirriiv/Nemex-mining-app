@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NemexCoin - Loading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: #d4af37;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .loading-container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(15, 15, 15, 0.95);
+            border-radius: 20px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .logo-panel {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .logo-text {
+            font-size: 42px;
+            font-weight: 900;
+            color: #0f0f0f;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 2px;
+        }
+
+        .loading-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #d4af37, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .loading-subtitle {
+            font-size: 16px;
+            color: #cccccc;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #d4af37, #ffd700);
+            border-radius: 10px;
+            width: 0%;
+            animation: progress 2s ease-in-out infinite;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+
+        .status-messages {
+            margin-top: 25px;
+            text-align: left;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.1);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #888;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .status-line {
+            margin-bottom: 8px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+
+        .status-line:nth-child(1) { animation-delay: 0.5s; }
+        .status-line:nth-child(2) { animation-delay: 1s; }
+        .status-line:nth-child(3) { animation-delay: 1.5s; }
+        .status-line:nth-child(4) { animation-delay: 2s; }
+        .status-line:nth-child(5) { animation-delay: 2.5s; }
+        .status-line:nth-child(6) { animation-delay: 3s; }
+
+        .timestamp {
+            color: #d4af37;
+            margin-right: 10px;
+        }
+
+        .success { color: #00C851; }
+        .warning { color: #ffbb33; }
+        .info { color: #33b5e5; }
+
+        .powered-by {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        @keyframes glow {
+            0% {
+                box-shadow: 0 10px 30px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 15px 40px rgba(212, 175, 55, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes progress {
+            0% {
+                width: 0%;
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(100%);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Scrollbar styling */
+        .status-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .status-messages::-webkit-scrollbar-track {
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 3px;
+        }
+
+        .status-messages::-webkit-scrollbar-thumb {
+            background: #d4af37;
+            border-radius: 3px;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 480px) {
+            .loading-container {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+
+            .logo-panel {
+                width: 80px;
+                height: 80px;
+            }
+
+            .logo-text {
+                font-size: 36px;
+            }
+
+            .loading-title {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <!-- Gold NMX Logo Panel -->
+        <div class="logo-panel">
+            <div class="logo-text">NMX</div>
+        </div>
+
+        <h1 class="loading-title">NemexCoin</h1>
+        <div class="loading-subtitle">Initializing Application</div>
+
+        <!-- Animated Progress Bar -->
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+        </div>
+
+        <!-- Status Messages -->
+        <div class="status-messages">
+            <div class="status-line">
+                <span class="timestamp">15:29:55</span>
+                <span class="info">INCOMING REQUEST DETECTED</span>
+            </div>
+            <div class="status-line">
+                <span class="timestamp">15:29:58</span>
+                <span class="warning">SERVICE WAKING UP</span>
+            </div>
+            <div class="status-line">
+                <span class="timestamp">15:30:02</span>
+                <span class="info">ALLOCATING COMPUTE RESOURCES</span>
+            </div>
+            <div class="status-line">
+                <span class="timestamp">15:30:05</span>
+                <span class="info">PREPARING INSTANCE</span>
+            </div>
+            <div class="status-line">
+                <span class="timestamp">15:30:09</span>
+                <span class="success">STARTING NEMEXCOIN</span>
+            </div>
+            <div class="status-line">
+                <span class="timestamp">15:30:15</span>
+                <span class="success">INITIALIZATION COMPLETE</span>
+            </div>
+        </div>
+
+        <div class="powered-by">
+            Powered by Telegram Mini App
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect to main app after loading
+        setTimeout(() => {
+            // Check if we're in Telegram or regular browser
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.location.href = 'dashboard.html';
+            } else {
+                window.location.href = 'index.html';
+            }
+        }, 4000); // 4 second loading screen
+
+        // Optional: Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            const progressBar = document.querySelector('.progress-bar');
+            const statusLines = document.querySelectorAll('.status-line');
+            
+            // Add click to skip functionality
+            document.body.addEventListener('click', function() {
+                window.location.href = 'dashboard.html';
+            });
+
+            // Simulate progress updates
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 5;
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                }
+            }, 80);
+        });
+    </script>
+</body>
+</html>
