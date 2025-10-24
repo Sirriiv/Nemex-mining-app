@@ -342,40 +342,6 @@
             return result;
         }
 
-        // Create new Telegram user
-        async function createTelegramUser(telegramUser) {
-            const referralCode = generateReferralCode();
-            
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .insert([
-                    {
-                        telegram_id: telegramUser.id,
-                        username: telegramUser.username || `tg_${telegramUser.id}`,
-                        full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                        avatar_url: telegramUser.photo_url,
-                        balance: 0,
-                        last_claim: null,
-                        referral_code: referralCode,
-                        referral_slots: 10,
-                        used_slots: 0,
-                        created_via: 'telegram'
-                    }
-                ])
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error creating Telegram user:', error);
-                // Create a mock user object for the session
-                user = { id: `telegram_${telegramUser.id}` };
-            } else {
-                console.log('✅ Telegram user created:', data);
-                user = { id: data.id };
-                localStorage.setItem('nemex_telegram_user', JSON.stringify(data));
-            }
-        }
-
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Login...');
@@ -451,82 +417,66 @@
             telegramInfo.style.display = 'block';
             welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
             telegramLoginBtn.innerHTML = `<span>📱</span> Continue as ${telegramUser.first_name}`;
-
-            showSuccess(`Hello ${telegramUser.first_name}! Ready to access NemexCoin.`);
         }
 
-        // Check if user is already logged in
+        // FIXED: Check if user is already logged in
         async function checkExistingSession() {
             try {
-                if (!supabaseClient) return;
-
-                // If we have a Telegram user, handle Telegram auth
-                if (isTelegramApp && telegramUser) {
-                    console.log('📱 Telegram user detected, checking account...');
-                    await handleTelegramAuth();
+                // Check for Telegram session first
+                const telegramUserData = localStorage.getItem('nemex_telegram_user');
+                if (telegramUserData) {
+                    console.log('📱 Found Telegram session, redirecting...');
+                    window.location.href = 'dashboard.html';
                     return;
                 }
 
-                // Regular session check for web users
+                // Check for web session
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
-                    console.log('User already logged in, redirecting...');
+                    console.log('🔑 Found web session, redirecting...');
                     window.location.href = 'dashboard.html';
+                    return;
                 }
+
+                // If we're in Telegram with a user, check if they have an account
+                if (isTelegramApp && telegramUser) {
+                    console.log('📱 Telegram user detected, checking account...');
+                    await checkTelegramAccount();
+                }
+
             } catch (error) {
                 console.error('Session check error:', error);
             }
         }
 
-        // Handle Telegram authentication
-        async function handleTelegramAuth() {
+        // NEW: Check if Telegram user has an account
+        async function checkTelegramAccount() {
             try {
-                console.log('🔐 Handling Telegram authentication...');
-
-                // Check if Telegram user exists in database
                 const { data: existingUser, error } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .eq('telegram_id', telegramUser.id)
                     .single();
 
-                if (error && error.code === 'PGRST116') {
-                    // User doesn't exist - show login options
-                    console.log('Telegram user not found, showing login options...');
-                    showSuccess(`Welcome ${telegramUser.first_name}! Create your account or login.');
-                } else if (existingUser) {
-                    // User exists - auto login and redirect
-                    console.log('Telegram user found, auto-logging in...', existingUser);
-
-                    // Set local session for Telegram user
-                    localStorage.setItem('nemex_telegram_user', JSON.stringify(existingUser));
-                    localStorage.setItem('isLoggedIn', 'true');
-
-                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting...`);
-
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-
-                } else if (error) {
-                    console.error('Error checking Telegram user:', error);
+                if (existingUser) {
+                    console.log('✅ Telegram user has account, enabling quick login');
+                    showSuccess(`Welcome back ${telegramUser.first_name}! Click "Continue as ${telegramUser.first_name}" to login.`);
                 }
-
+                // If no account found, do nothing - user can still register
             } catch (error) {
-                console.error('Telegram auth error:', error);
+                // User doesn't exist or other error - that's fine
+                console.log('ℹ️ Telegram user not registered yet');
             }
         }
 
-        // Telegram login button handler
+        // FIXED: Telegram login button handler
         document.getElementById('telegramLoginBtn').addEventListener('click', async function() {
             const telegramLoginBtn = document.getElementById('telegramLoginBtn');
             const loading = document.getElementById('loading');
 
             telegramLoginBtn.disabled = true;
             loading.style.display = 'block';
-            hideError();
-            hideSuccess();
+            hideMessages();
 
             try {
                 if (!telegramUser) {
@@ -543,8 +493,10 @@
                     .single();
 
                 if (checkError && checkError.code === 'PGRST116') {
-                    // Create new Telegram user
+                    // User doesn't exist - create new account
                     console.log('Creating new Telegram user...');
+                    const referralCode = generateReferralCode();
+                    
                     const { data: newUser, error: createError } = await supabaseClient
                         .from('profiles')
                         .insert([
@@ -555,7 +507,7 @@
                                 avatar_url: telegramUser.photo_url,
                                 balance: 0,
                                 last_claim: null,
-                                referral_code: generateReferralCode(),
+                                referral_code: referralCode,
                                 referral_slots: 10,
                                 used_slots: 0,
                                 created_via: 'telegram'
@@ -582,7 +534,7 @@
 
                 } else if (existingUser) {
                     // Login existing user
-                    console.log('Logging in existing Telegram user...');
+                    console.log('✅ Logging in existing Telegram user...');
 
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(existingUser));
                     localStorage.setItem('isLoggedIn', 'true');
@@ -599,21 +551,32 @@
 
             } catch (error) {
                 console.error('❌ Telegram login failed:', error);
-                showError('Failed to login with Telegram. Please try email/password.');
+                showError('Failed to login with Telegram: ' + error.message);
             } finally {
                 telegramLoginBtn.disabled = false;
                 loading.style.display = 'none';
             }
         });
 
-        // Login function for email/password
-        async function loginUser(email, password) {
-            try {
-                console.log('🔐 Attempting login...');
+        // FIXED: Form submission for email/password login
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-                if (!supabaseClient) {
-                    throw new Error('Authentication service not available');
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loading = document.getElementById('loading');
+
+            hideMessages();
+            loginBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                if (!email || !password) {
+                    throw new Error('Please fill in all fields');
                 }
+
+                console.log('🔐 Attempting email login...');
 
                 const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
@@ -624,51 +587,19 @@
                     throw error;
                 }
 
-                console.log('✅ Login successful:', data);
-                return data;
+                console.log('✅ Login successful:', data.user);
 
-            } catch (error) {
-                console.error('❌ Login failed:', error);
-                throw error;
-            }
-        }
+                // Store user session
+                localStorage.setItem('userEmail', data.user.email);
+                localStorage.setItem('userId', data.user.id);
+                localStorage.setItem('isLoggedIn', 'true');
 
-        // Form submission for email/password login
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+                showSuccess('Login successful! Redirecting...');
 
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const loginBtn = document.getElementById('loginBtn');
-            const loading = document.getElementById('loading');
-
-            hideError();
-            hideSuccess();
-            loginBtn.disabled = true;
-            loading.style.display = 'block';
-
-            try {
-                if (!email || !password) {
-                    throw new Error('Please fill in all fields');
-                }
-
-                const result = await loginUser(email, password);
-
-                if (result.user) {
-                    console.log('✅ Login successful, redirecting...');
-
-                    // Store user session
-                    localStorage.setItem('userEmail', result.user.email);
-                    localStorage.setItem('userId', result.user.id);
-                    localStorage.setItem('isLoggedIn', 'true');
-
-                    showSuccess('Login successful! Redirecting...');
-
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
-                }
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
 
             } catch (error) {
                 console.error('Login error:', error);
@@ -677,8 +608,6 @@
                     showError('Invalid email or password. Please try again.');
                 } else if (error.message.includes('Email not confirmed')) {
                     showError('Please verify your email address before logging in.');
-                } else if (error.message.includes('not available')) {
-                    showError('Authentication service unavailable. Please try again later.');
                 } else {
                     showError('Login failed: ' + error.message);
                 }
@@ -721,14 +650,9 @@
             successElement.style.display = 'block';
         }
 
-        function hideError() {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.style.display = 'none';
-        }
-
-        function hideSuccess() {
-            const successElement = document.getElementById('successMessage');
-            successElement.style.display = 'none';
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
         }
 
         // Enter key support
