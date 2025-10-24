@@ -25,9 +25,78 @@ document.addEventListener('DOMContentLoaded', function() {
 
     setActiveNav();
 
+    // Initialize Supabase client
+    initializeSupabase();
+    
     // Mining Dashboard Specific Functionality
     initializeMiningDashboard();
 });
+
+// Initialize Supabase
+let supabaseClient;
+function initializeSupabase() {
+    const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+
+    supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    console.log('✅ Supabase client initialized in main.js');
+}
+
+// Get current user
+async function getCurrentUser() {
+    try {
+        // Check Telegram session first
+        const telegramUserData = localStorage.getItem('nemex_telegram_user');
+        if (telegramUserData) {
+            return JSON.parse(telegramUserData);
+        }
+
+        // Check web session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            // Get user profile from profiles table
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (error) throw error;
+            return profile;
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Error getting current user:', error);
+        return null;
+    }
+}
+
+// Load user balance
+async function loadUserBalance() {
+    try {
+        const user = await getCurrentUser();
+        if (!user) {
+            console.log('No user logged in');
+            return 0;
+        }
+
+        console.log('👤 Current user:', user);
+        console.log('💰 User balance:', user.balance);
+
+        // Update balance display if element exists
+        const balanceElement = document.getElementById('balanceAmount');
+        if (balanceElement) {
+            balanceElement.textContent = user.balance || 0;
+        }
+
+        return user.balance || 0;
+
+    } catch (error) {
+        console.error('Error loading user balance:', error);
+        return 0;
+    }
+}
 
 // Mining Dashboard Functions
 function initializeMiningDashboard() {
@@ -72,15 +141,15 @@ function initializeMiningDashboard() {
         }
     }
 
-    // Test Supabase Connection
+    // FIXED: Test Supabase Connection with CORRECT table structure
     async function testDatabaseConnection() {
         try {
             console.log('🔄 Testing Supabase connection...');
             connectionStatus.textContent = 'Testing database connection...';
-            
-            // Test basic connection
-            const { data, error } = await supabase
-                .from('users')
+
+            // Test connection using PROFILES table (not users)
+            const { data, error } = await supabaseClient
+                .from('profiles')
                 .select('count')
                 .limit(1);
 
@@ -93,18 +162,8 @@ function initializeMiningDashboard() {
             connectionStatus.style.color = 'var(--gold)';
             databaseConnected = true;
 
-            // Test if tables exist by trying to read
-            const { error: usersError } = await supabase
-                .from('users')
-                .select('id')
-                .limit(1);
-
-            if (usersError && usersError.code === '42P01') {
-                console.warn('⚠️ Users table does not exist yet');
-                connectionStatus.textContent = '⚠️ Database connected but tables not created';
-            } else {
-                console.log('✅ Users table exists!');
-            }
+            // Load user balance immediately after connection
+            await loadUserBalance();
 
         } catch (error) {
             console.error('❌ Database connection failed:', error);
@@ -114,7 +173,7 @@ function initializeMiningDashboard() {
         }
     }
 
-    // Claim Button Functionality - FORCE DATABASE TEST
+    // FIXED: Claim Button Functionality - Uses PROFILES table
     claimBtn.addEventListener('click', async function() {
         if (!databaseConnected) {
             alert('❌ Cannot claim - Database not connected!');
@@ -127,81 +186,78 @@ function initializeMiningDashboard() {
             // Show loading
             claimButton.disabled = true;
             loadingIndicator.style.display = 'block';
-            loadingIndicator.textContent = 'Testing database write...';
+            loadingIndicator.textContent = 'Processing claim...';
 
-            console.log('🔄 Testing database write operation...');
+            console.log('🔄 Processing NMX claim...');
 
-            // Generate unique test user
-            const testUserId = 'test-' + Date.now();
-            const testBalance = 30;
-
-            // Test INSERT operation
-            const { data: insertData, error: insertError } = await supabase
-                .from('users')
-                .insert([
-                    { 
-                        id: testUserId, 
-                        balance: testBalance,
-                        email: 'test@nemexcoin.com',
-                        created_at: new Date().toISOString()
-                    }
-                ])
-                .select();
-
-            if (insertError) {
-                console.error('❌ Insert failed:', insertError);
-                
-                // Try UPDATE instead (if user exists)
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ balance: testBalance })
-                    .eq('id', testUserId);
-
-                if (updateError) {
-                    throw new Error('Both insert and update failed: ' + updateError.message);
-                }
-                console.log('✅ Update successful (user already exists)');
-            } else {
-                console.log('✅ Insert successful:', insertData);
+            // Get current user
+            const user = await getCurrentUser();
+            if (!user) {
+                throw new Error('No user logged in');
             }
 
-            // Test claim history
-            const { error: historyError } = await supabase
-                .from('claim_history')
-                .insert([
-                    { 
-                        user_id: testUserId, 
-                        amount: 30, 
-                        claimed_at: new Date().toISOString() 
-                    }
-                ]);
+            console.log('👤 Claiming for user:', user.id);
 
-            if (historyError) {
-                console.warn('⚠️ Claim history warning:', historyError);
-            } else {
-                console.log('✅ Claim history saved!');
+            // Calculate new balance
+            const currentBalance = user.balance || 0;
+            const claimAmount = 30;
+            const newBalance = currentBalance + claimAmount;
+
+            // FIXED: Update balance in PROFILES table
+            const { data: updateData, error: updateError } = await supabaseClient
+                .from('profiles')
+                .update({ 
+                    balance: newBalance,
+                    last_claim: new Date().toISOString()
+                })
+                .eq('id', user.id)
+                .select();
+
+            if (updateError) {
+                throw new Error('Failed to update balance: ' + updateError.message);
+            }
+
+            console.log('✅ Balance updated successfully:', updateData);
+
+            // FIXED: Save claim history (if claim_history table exists)
+            try {
+                const { error: historyError } = await supabaseClient
+                    .from('claim_history')
+                    .insert([
+                        { 
+                            user_id: user.id, 
+                            amount: claimAmount, 
+                            claimed_at: new Date().toISOString() 
+                        }
+                    ]);
+
+                if (historyError) {
+                    console.warn('⚠️ Claim history warning:', historyError);
+                } else {
+                    console.log('✅ Claim history saved!');
+                }
+            } catch (historyError) {
+                console.warn('⚠️ Claim history table might not exist:', historyError);
             }
 
             // Update UI
-            const currentBalance = parseInt(balanceAmount.textContent) || 0;
-            const newBalance = currentBalance + 30;
             balanceAmount.textContent = newBalance;
 
             // Reset countdown
-            countdownTime = 10 * 60; // 10 minutes for next test
+            countdownTime = 10 * 60; // 10 minutes for next claim
 
-            loadingIndicator.textContent = '✅ Database test successful!';
+            loadingIndicator.textContent = '✅ Claim successful! +30 NMX';
             setTimeout(() => {
                 loadingIndicator.style.display = 'none';
             }, 2000);
 
-            alert('🎉 SUCCESS! Database is working perfectly!\n\nCheck browser console (F12) for details.');
+            alert('🎉 SUCCESS! Claimed 30 NMX!\n\nNew balance: ' + newBalance + ' NMX');
 
         } catch (error) {
-            console.error('❌ Database test failed:', error);
-            loadingIndicator.textContent = '❌ Database test failed';
+            console.error('❌ Claim failed:', error);
+            loadingIndicator.textContent = '❌ Claim failed';
             loadingIndicator.style.color = '#ff6b6b';
-            alert('Database test failed: ' + error.message + '\n\nCheck browser console for details.');
+            alert('Claim failed: ' + error.message);
         } finally {
             claimButton.disabled = countdownTime > 0 || !databaseConnected;
         }
