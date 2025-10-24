@@ -6,7 +6,7 @@
     <title>NemexCoin - Mining Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS styles - ADDED referral stats section */
+        /* Your existing CSS styles - REMOVED referral stats section */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -82,33 +82,6 @@
             color: var(--gold);
             line-height: 1;
             font-family: 'Courier New', monospace;
-        }
-        
-        /* NEW: Referral Stats Section */
-        .referral-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 280px;
-        }
-        .referral-stat {
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-        }
-        .referral-stat-number {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 4px;
-        }
-        .referral-stat-label {
-            font-size: 11px;
-            color: var(--muted);
         }
 
         .nemex-logo{width:140px;height:140px;margin:25px auto;position:relative;display:flex;align-items:center;justify-content:center}
@@ -400,18 +373,6 @@
                     <div class="balance-amount" id="balanceAmount">0</div>
                 </div>
 
-                <!-- NEW: Referral Stats Section -->
-                <div class="referral-stats" id="referralStats" style="display: none;">
-                    <div class="referral-stat">
-                        <div class="referral-stat-number" id="referralCount">0</div>
-                        <div class="referral-stat-label">Referrals</div>
-                    </div>
-                    <div class="referral-stat">
-                        <div class="referral-stat-number" id="referralEarnings">0</div>
-                        <div class="referral-stat-label">Referral Earnings</div>
-                    </div>
-                </div>
-
                 <!-- NEMEXCOIN LOGO -->
                 <div class="nemex-logo">
                     <div class="logo-container">
@@ -445,7 +406,6 @@
                 <div class="message success-message" id="successMessage"></div>
                 <div class="message error-message" id="errorMessage"></div>
 
-                <!-- FIXED: Corrected button syntax -->
                 <button class="claim-btn" id="claimButton" disabled>Claim 30 NMX</button>
             </main>
         </div>
@@ -521,53 +481,7 @@
             return result;
         }
 
-        // NEW: Load referral stats for dashboard
-        async function loadReferralStats() {
-            try {
-                console.log('📊 Loading referral stats...');
-
-                let userId;
-                let queryCondition;
-
-                if (isTelegramApp && telegramUser) {
-                    userId = user.id;
-                    queryCondition = { telegram_id: telegramUser.id };
-                } else {
-                    userId = user.id;
-                    queryCondition = { id: user.id };
-                }
-
-                // Get user's referral stats
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('used_slots, total_earned_from_refs')
-                    .match(queryCondition)
-                    .single();
-
-                if (error) {
-                    console.error('Error loading referral stats:', error);
-                    return;
-                }
-
-                // Show referral stats section
-                const referralStats = document.getElementById('referralStats');
-                referralStats.style.display = 'grid';
-
-                // Update stats
-                document.getElementById('referralCount').textContent = profile.used_slots || 0;
-                document.getElementById('referralEarnings').textContent = (profile.total_earned_from_refs || 0).toLocaleString();
-
-                console.log('✅ Referral stats loaded:', {
-                    referrals: profile.used_slots,
-                    earnings: profile.total_earned_from_refs
-                });
-
-            } catch (error) {
-                console.error('Error loading referral stats:', error);
-            }
-        }
-
-        // Ensure referral code exists for user - UPDATED with referral stats
+        // FIXED: Ensure referral code exists for user (removed referral stats)
         async function ensureReferralCode() {
             try {
                 console.log('🔑 Ensuring referral code exists...');
@@ -579,7 +493,7 @@
                     // For Telegram users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim, used_slots, total_earned_from_refs')
+                        .select('id, referral_code, balance, last_claim')
                         .eq('telegram_id', telegramUser.id)
                         .single();
 
@@ -594,7 +508,7 @@
                     // For web users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim, used_slots, total_earned_from_refs')
+                        .select('id, referral_code, balance, last_claim')
                         .eq('id', user.id)
                         .single();
 
@@ -639,9 +553,6 @@
                 } else {
                     console.log('✅ Referral code exists:', profile.referral_code);
                 }
-
-                // Load referral stats
-                await loadReferralStats();
 
             } catch (error) {
                 console.error('❌ Error ensuring referral code:', error);
