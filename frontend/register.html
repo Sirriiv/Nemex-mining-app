@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Register</title>
-
-    <!-- Add Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
     <style>
+        /* Your existing CSS styles remain the same */
         * {
             margin: 0;
             padding: 0;
@@ -359,10 +357,24 @@
             return result;
         }
 
-        // FIXED: Detect referral code from URL parameters
+        // ENHANCED: Detect referral code from URL parameters - BETTER DETECTION
         function detectReferralCode() {
+            console.log('🔍 Detecting referral code from URL...');
+            
+            // Get current URL
+            const currentUrl = window.location.href;
+            console.log('📄 Current URL:', currentUrl);
+            
+            // Parse URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const refCode = urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('start');
+            
+            console.log('📋 URL Parameters found:', {
+                ref: urlParams.get('ref'),
+                startapp: urlParams.get('startapp'),
+                start: urlParams.get('start'),
+                finalRefCode: refCode
+            });
             
             if (refCode) {
                 referralCode = refCode.toUpperCase();
@@ -372,9 +384,17 @@
                 const referralBanner = document.getElementById('referralBanner');
                 referralBanner.style.display = 'block';
                 
+                // Update welcome message
+                const welcomeTitle = document.getElementById('welcomeTitle');
+                welcomeTitle.textContent = `Create Account - Referred by ${referralCode}`;
+                
+                showSuccess(`🎉 You were referred by ${referralCode}! You'll get bonus NMX after registration.`);
+                
                 return true;
+            } else {
+                console.log('❌ No referral code detected in URL');
+                return false;
             }
-            return false;
         }
 
         // FIXED: Process referral bonus - COMPLETELY REWRITTEN
@@ -512,7 +532,7 @@
 
                 console.log('✅ Supabase client created successfully');
 
-                // Detect referral code first
+                // ENHANCED: Detect referral code FIRST - before anything else
                 detectReferralCode();
 
                 // Initialize Telegram first
@@ -574,7 +594,14 @@
             const fullNameField = document.getElementById('fullName');
 
             telegramInfo.style.display = 'block';
-            welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
+            
+            // Update welcome title to include referral info if applicable
+            if (referralCode) {
+                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referralCode}`;
+            } else {
+                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
+            }
+            
             telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
 
             // Pre-fill full name for Telegram users
@@ -683,7 +710,7 @@
                     // Show success message with referral info if applicable
                     let successMessage = 'Account created successfully! Welcome to NemexCoin! 🚀';
                     if (referralCode) {
-                        successMessage += ' You received 30 NMX referral bonus! 🎉';
+                        successMessage += ` You were referred by ${referralCode} - 30 NMX bonus applied! 🎉`;
                     }
 
                     showSuccess(successMessage);
@@ -839,7 +866,7 @@
                 if (result.user) {
                     let successMessage = '✅ Account created successfully! Please check your email to verify your account.';
                     if (referralCode) {
-                        successMessage += ' You received 30 NMX referral bonus! 🎉';
+                        successMessage += ` You were referred by ${referralCode} - 30 NMX bonus applied! 🎉`;
                     }
 
                     showSuccess(successMessage);
