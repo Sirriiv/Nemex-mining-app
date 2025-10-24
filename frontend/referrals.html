@@ -179,55 +179,7 @@
             font-size: 12px;
             text-align: center;
         }
-        .add-referral-section {
-            background: rgba(0, 136, 204, 0.1);
-            border: 1px solid rgba(0, 136, 204, 0.3);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        .add-referral-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #0088cc;
-        }
-        .referral-input-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .referral-input {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            color: var(--text);
-            font-size: 14px;
-        }
-        .referral-input:focus {
-            outline: none;
-            border-color: #0088cc;
-        }
-        .add-btn {
-            background: #0088cc;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            padding: 12px 20px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .add-btn:hover {
-            background: #0077b3;
-        }
-        .add-btn:disabled {
-            background: #666;
-            cursor: not-allowed;
-        }
+        /* REMOVED: .add-referral-section styles */
         .referrals-list {
             margin-top: 25px;
         }
@@ -308,25 +260,6 @@
             background: var(--muted);
             color: var(--dark-bg);
         }
-        .remove-btn {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
-            border-radius: 6px;
-            padding: 6px 12px;
-            font-size: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .remove-btn:hover {
-            background: var(--error);
-            color: white;
-        }
-        .remove-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -395,7 +328,7 @@
                 <div class="referral-card">
                     <div class="referral-title">Invite Friends & Earn</div>
                     <div class="referral-desc">
-                        Share your referral code and earn <strong>30 NMX</strong> for each active friend!<br>
+                        Share your referral link and earn <strong>30 NMX</strong> for each active friend!<br>
                         <small>Max 10 referrals per user for fair distribution</small>
                     </div>
 
@@ -420,19 +353,7 @@
                     </div>
 
                     <div class="bonus-info">
-                        🎉 Both you and your friend get bonuses when they stay active!
-                    </div>
-                </div>
-
-                <!-- Add Referral Section -->
-                <div class="add-referral-section">
-                    <div class="add-referral-title">Add Friend's Referral</div>
-                    <div class="referral-input-group">
-                        <input type="text" class="referral-input" id="friendReferralCode" placeholder="Enter friend's referral code" maxlength="10">
-                        <button class="add-btn" id="addReferralBtn" onclick="addReferral()">Add</button>
-                    </div>
-                    <div style="font-size: 11px; color: var(--muted); text-align: center;">
-                        Join under a friend to help them earn bonuses
+                        🎉 <strong>Automatic System:</strong> When friends use your link, you'll automatically get 30 NMX! No manual input needed.
                     </div>
                 </div>
 
@@ -655,101 +576,6 @@
                 .substring(0, 2);
         }
 
-        // Add referral (for users who want to join under a friend)
-        async function addReferral() {
-            const friendCodeInput = document.getElementById('friendReferralCode');
-            const friendCode = friendCodeInput.value.trim().toUpperCase();
-            const addBtn = document.getElementById('addReferralBtn');
-
-            if (!friendCode) {
-                showError('Please enter a referral code');
-                return;
-            }
-
-            if (friendCode === referralData?.referral_code) {
-                showError('You cannot use your own referral code');
-                return;
-            }
-
-            try {
-                addBtn.disabled = true;
-                addBtn.textContent = 'Adding...';
-
-                // Find the friend by referral code
-                const { data: friend, error: friendError } = await supabaseClient
-                    .from('profiles')
-                    .select('id, referral_code, used_slots, referral_slots, balance, total_earned_from_refs')
-                    .eq('referral_code', friendCode)
-                    .single();
-
-                if (friendError || !friend) {
-                    showError('Invalid referral code. Please check and try again.');
-                    return;
-                }
-
-                // Check if friend has available slots
-                if (friend.used_slots >= friend.referral_slots) {
-                    showError('This user has reached their referral limit');
-                    return;
-                }
-
-                // Update current user's profile to set referred_by
-                const { error: updateError } = await supabaseClient
-                    .from('profiles')
-                    .update({ referred_by: friendCode })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('Error updating referral:', updateError);
-                    showError('Failed to add referral. Please try again.');
-                    return;
-                }
-
-                // Create referral record
-                const { error: referralError } = await supabaseClient
-                    .from('referrals')
-                    .insert([{
-                        referrer_id: friend.id,
-                        referred_id: user.id,
-                        referral_code_used: friendCode,
-                        bonus_amount: REFERRAL_BONUS,
-                        bonus_claimed: true
-                    }]);
-
-                if (referralError) {
-                    console.error('Error creating referral record:', referralError);
-                    // Continue anyway - the main relationship is set
-                }
-
-                // Update friend's stats
-                const { error: statsError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        used_slots: (friend.used_slots || 0) + 1,
-                        balance: (friend.balance || 0) + REFERRAL_BONUS,
-                        total_earned_from_refs: (friend.total_earned_from_refs || 0) + REFERRAL_BONUS
-                    })
-                    .eq('id', friend.id);
-
-                if (statsError) {
-                    console.error('Error updating friend stats:', statsError);
-                }
-
-                showSuccess(`🎉 Success! You've joined under ${friendCode}. Both of you earned ${REFERRAL_BONUS} NMX!`);
-                friendCodeInput.value = '';
-
-                // Reload data to reflect changes
-                await loadReferralData();
-
-            } catch (error) {
-                console.error('Error adding referral:', error);
-                showError('Failed to add referral. Please try again.');
-            } finally {
-                addBtn.disabled = false;
-                addBtn.textContent = 'Add';
-            }
-        }
-
         // Copy referral link
         async function copyReferralLink() {
             const referralLink = document.getElementById('referralLink');
@@ -821,13 +647,6 @@
             document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('successMessage').style.display = 'none';
         }
-
-        // Enter key support for referral input
-        document.getElementById('friendReferralCode').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                addReferral();
-            }
-        });
     </script>
 </body>
 </html>
