@@ -468,7 +468,9 @@
         let user = null;
         let referralData = null;
         const REFERRAL_BONUS = 30;
-        const TELEGRAM_BOT_USERNAME = 'NemexCoinBot'; // Your bot username
+        
+        // FIXED: Use your ACTUAL bot username
+        const TELEGRAM_BOT_USERNAME = 'SiNemexbot'; // Your actual bot username
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
@@ -551,7 +553,7 @@
                 document.getElementById('availableSlots').textContent = (stats.referral_slots || 10) - (stats.used_slots || 0);
                 document.getElementById('totalEarned').textContent = (stats.total_earned_from_refs || 0).toLocaleString();
 
-                // FIXED: Use Telegram deep links instead of website links
+                // FIXED: Use your ACTUAL Telegram bot username
                 const telegramReferralUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${stats.referral_code}`;
                 document.getElementById('referralLink').value = telegramReferralUrl;
                 
@@ -762,7 +764,7 @@
             }
         }
 
-        // FIXED: Share functions with Telegram deep links
+        // FIXED: Share functions with your ACTUAL Telegram bot username
         function shareWhatsApp() {
             const message = `Join me on NemexCoin and earn NMX tokens! Use my Telegram bot: https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
