@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin</title>
+    <title>NemexCoin - Register</title>
 
     <!-- Add Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -26,14 +26,14 @@
             padding: 20px;
         }
 
-        .login-container {
+        .register-container {
             width: 100%;
             max-width: 400px;
             text-align: center;
         }
 
         .logo {
-            margin-bottom: 40px;
+            margin-bottom: 30px;
         }
 
         .logo h1 {
@@ -49,7 +49,7 @@
             font-weight: 500;
         }
 
-        .login-card {
+        .register-card {
             background: rgba(13, 13, 28, 0.95);
             padding: 40px 30px;
             border-radius: 20px;
@@ -58,7 +58,7 @@
             backdrop-filter: blur(10px);
         }
 
-        .login-card h2 {
+        .register-card h2 {
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 30px;
@@ -91,23 +91,7 @@
             color: #888888;
         }
 
-        .forgot-password {
-            text-align: right;
-            margin-bottom: 25px;
-        }
-
-        .forgot-password a {
-            color: #FFD700;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .forgot-password a:hover {
-            text-decoration: underline;
-        }
-
-        .login-btn {
+        .register-btn {
             width: 100%;
             padding: 16px;
             background: linear-gradient(135deg, #FFD700, #b8941f);
@@ -118,15 +102,15 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
-        .login-btn:hover {
+        .register-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
         }
 
-        .login-btn:disabled {
+        .register-btn:disabled {
             background: #666666;
             cursor: not-allowed;
             transform: none;
@@ -135,7 +119,7 @@
 
         .divider {
             position: relative;
-            margin: 30px 0;
+            margin: 25px 0;
             color: #888888;
             font-size: 14px;
         }
@@ -166,7 +150,7 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -193,19 +177,19 @@
             border-color: rgba(0, 136, 204, 0.5);
         }
 
-        .signup-link {
-            margin-top: 30px;
+        .signin-link {
+            margin-top: 20px;
             color: #cccccc;
             font-size: 14px;
         }
 
-        .signup-link a {
+        .signin-link a {
             color: #FFD700;
             text-decoration: none;
             font-weight: 600;
         }
 
-        .signup-link a:hover {
+        .signin-link a:hover {
             text-decoration: underline;
         }
 
@@ -249,55 +233,86 @@
             display: none;
         }
 
+        .referral-banner {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .referral-banner h3 {
+            color: #FFD700;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .referral-banner p {
+            color: #cccccc;
+            font-size: 14px;
+            margin: 0;
+        }
+
         @media (max-width: 480px) {
-            .login-card {
+            .register-card {
                 padding: 30px 20px;
             }
 
-            .login-container {
+            .register-container {
                 padding: 10px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
+    <div class="register-container">
         <div class="logo">
             <h1>NemexCoin</h1>
-            <div class="subtitle">NMX</div>
+            <div class="subtitle">Create Account</div>
         </div>
 
-        <div class="login-card">
-            <h2 id="welcomeTitle">Welcome Back</h2>
+        <div class="register-card">
+            <h2 id="welcomeTitle">Create Your Account</h2>
+
+            <!-- Referral Banner (Shows when referred by someone) -->
+            <div class="referral-banner" id="referralBanner" style="display: none;">
+                <h3>🎉 You've been referred!</h3>
+                <p>You'll get <strong>30 NMX</strong> bonus after registration!</p>
+            </div>
 
             <!-- Telegram Info Message -->
             <div class="telegram-info" id="telegramInfo">
                 📱 <strong>Telegram User Detected!</strong><br>
-                You can login with your Telegram account or use email/password.
+                You can create an account with Telegram or use email/password.
             </div>
 
             <div class="error-message" id="errorMessage"></div>
             <div class="success-message" id="successMessage"></div>
 
-            <form id="loginForm">
+            <form id="registerForm">
+                <div class="form-group">
+                    <input type="text" class="input-field" id="fullName" placeholder="Full Name" required>
+                </div>
+
                 <div class="form-group">
                     <input type="email" class="input-field" id="email" placeholder="Email Address" required>
                 </div>
 
                 <div class="form-group">
-                    <input type="password" class="input-field" id="password" placeholder="Password" required>
+                    <input type="password" class="input-field" id="password" placeholder="Password" required minlength="6">
                 </div>
 
-                <div class="forgot-password">
-                    <a href="#" id="forgotPassword">Forgot password?</a>
+                <div class="form-group">
+                    <input type="password" class="input-field" id="confirmPassword" placeholder="Confirm Password" required>
                 </div>
 
-                <button type="submit" class="login-btn" id="loginBtn">
-                    Sign In
+                <button type="submit" class="register-btn" id="registerBtn">
+                    Create Account
                 </button>
 
                 <div class="loading" id="loading">
-                    🔄 Signing you in...
+                    🔄 Creating your account...
                 </div>
             </form>
 
@@ -305,17 +320,17 @@
                 <span>OR CONTINUE WITH</span>
             </div>
 
-            <!-- Telegram Login Button -->
-            <button class="social-btn telegram-btn" id="telegramLoginBtn">
-                <span>📱</span> Continue with Telegram
+            <!-- Telegram Registration Button -->
+            <button class="social-btn telegram-btn" id="telegramRegisterBtn">
+                <span>📱</span> Register with Telegram
             </button>
 
             <button class="social-btn" disabled>
                 <span>🔍</span> Continue with Google
             </button>
 
-            <div class="signup-link">
-                Don't have an account? <a href="register.html">Sign Up</a>
+            <div class="signin-link">
+                Already have an account? <a href="login.html">Sign In</a>
             </div>
         </div>
     </div>
@@ -331,6 +346,8 @@
         let supabaseClient;
         let isTelegramApp = false;
         let telegramUser = null;
+        let referralCode = null; // Store the referral code from URL
+        const REFERRAL_BONUS = 30;
 
         // Generate random referral code
         function generateReferralCode() {
@@ -342,43 +359,147 @@
             return result;
         }
 
-        // Create new Telegram user
+        // FIXED: Detect referral code from URL parameters
+        function detectReferralCode() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('start');
+            
+            if (refCode) {
+                referralCode = refCode.toUpperCase();
+                console.log('🎯 Referral code detected:', referralCode);
+                
+                // Show referral banner
+                const referralBanner = document.getElementById('referralBanner');
+                referralBanner.style.display = 'block';
+                
+                return true;
+            }
+            return false;
+        }
+
+        // FIXED: Process referral bonus - COMPLETELY REWRITTEN
+        async function processReferralBonus(newUserId, referralCode) {
+            try {
+                console.log('💰 Processing referral bonus for user:', newUserId, 'with code:', referralCode);
+                
+                // Find the referrer by their referral code
+                const { data: referrer, error: referrerError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, used_slots, referral_slots, balance, total_earned_from_refs')
+                    .eq('referral_code', referralCode)
+                    .single();
+
+                if (referrerError || !referrer) {
+                    console.error('❌ Referrer not found:', referrerError);
+                    return false;
+                }
+
+                console.log('🎯 Referrer found:', referrer.id);
+
+                // Check if referrer has available slots
+                if (referrer.used_slots >= referrer.referral_slots) {
+                    console.error('❌ Referrer has no available slots');
+                    return false;
+                }
+
+                // Create referral record
+                const { error: referralError } = await supabaseClient
+                    .from('referrals')
+                    .insert([{
+                        referrer_id: referrer.id,
+                        referred_id: newUserId,
+                        referral_code_used: referralCode,
+                        bonus_amount: REFERRAL_BONUS,
+                        bonus_claimed: true
+                    }]);
+
+                if (referralError) {
+                    console.error('❌ Error creating referral record:', referralError);
+                    return false;
+                }
+
+                console.log('📝 Referral record created');
+
+                // Update referrer's stats and balance
+                const { error: updateError } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        used_slots: (referrer.used_slots || 0) + 1,
+                        balance: (referrer.balance || 0) + REFERRAL_BONUS,
+                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS
+                    })
+                    .eq('id', referrer.id);
+
+                if (updateError) {
+                    console.error('❌ Error updating referrer stats:', updateError);
+                    return false;
+                }
+
+                console.log('✅ Referral bonus processed successfully! Referrer got', REFERRAL_BONUS, 'NMX');
+                return true;
+
+            } catch (error) {
+                console.error('❌ Error processing referral bonus:', error);
+                return false;
+            }
+        }
+
+        // FIXED: Create new Telegram user with referral processing
         async function createTelegramUser(telegramUser) {
-            const referralCode = generateReferralCode();
+            const userReferralCode = generateReferralCode();
+            
+            try {
+                console.log('📱 Creating Telegram user with referral code:', userReferralCode);
+                
+                const { data: newUser, error: createError } = await supabaseClient
+                    .from('profiles')
+                    .insert([
+                        {
+                            telegram_id: telegramUser.id,
+                            username: telegramUser.username || `tg_${telegramUser.id}`,
+                            full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                            avatar_url: telegramUser.photo_url,
+                            balance: 0,
+                            last_claim: null,
+                            referral_code: userReferralCode,
+                            referral_slots: 10,
+                            used_slots: 0,
+                            created_via: 'telegram',
+                            referred_by: referralCode || null
+                        }
+                    ])
+                    .select()
+                    .single();
 
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .insert([
-                    {
-                        telegram_id: telegramUser.id,
-                        username: telegramUser.username || `tg_${telegramUser.id}`,
-                        full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                        avatar_url: telegramUser.photo_url,
-                        balance: 0,
-                        last_claim: null,
-                        referral_code: referralCode,
-                        referral_slots: 10,
-                        used_slots: 0,
-                        created_via: 'telegram'
+                if (createError) {
+                    console.error('❌ Error creating Telegram user:', createError);
+                    return { data: null, error: createError };
+                }
+
+                console.log('✅ Telegram user created:', newUser);
+
+                // Process referral bonus if applicable
+                if (referralCode && newUser) {
+                    console.log('🎁 Processing referral bonus for new user...');
+                    const bonusSuccess = await processReferralBonus(newUser.id, referralCode);
+                    if (bonusSuccess) {
+                        console.log('✅ Referral bonus applied successfully!');
+                    } else {
+                        console.log('⚠️ Referral bonus failed, but user was created');
                     }
-                ])
-                .select()
-                .single();
+                }
 
-            if (error) {
-                console.error('Error creating Telegram user:', error);
-                // Create a mock user object for the session
-                user = { id: `telegram_${telegramUser.id}` };
-            } else {
-                console.log('✅ Telegram user created:', data);
-                user = { id: data.id };
-                localStorage.setItem('nemex_telegram_user', JSON.stringify(data));
+                return { data: newUser, error: null };
+
+            } catch (error) {
+                console.error('❌ Error in createTelegramUser:', error);
+                return { data: null, error: error };
             }
         }
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing NemexCoin Login...');
+            console.log('🚀 Initializing NemexCoin Registration...');
 
             try {
                 // Initialize Supabase client
@@ -390,6 +511,9 @@
                 });
 
                 console.log('✅ Supabase client created successfully');
+
+                // Detect referral code first
+                detectReferralCode();
 
                 // Initialize Telegram first
                 initializeTelegram();
@@ -446,149 +570,125 @@
             // Show Telegram info
             const telegramInfo = document.getElementById('telegramInfo');
             const welcomeTitle = document.getElementById('welcomeTitle');
-            const telegramLoginBtn = document.getElementById('telegramLoginBtn');
+            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
+            const fullNameField = document.getElementById('fullName');
 
             telegramInfo.style.display = 'block';
             welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
-            telegramLoginBtn.innerHTML = `<span>📱</span> Continue as ${telegramUser.first_name}`;
+            telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
 
-            showSuccess(`Hello ${telegramUser.first_name}! Ready to access NemexCoin.`);
+            // Pre-fill full name for Telegram users
+            fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
         }
 
-        // Check if user is already logged in
+        // FIXED: Check if user is already logged in
         async function checkExistingSession() {
             try {
-                if (!supabaseClient) return;
-
-                // If we have a Telegram user, handle Telegram auth
-                if (isTelegramApp && telegramUser) {
-                    console.log('📱 Telegram user detected, checking account...');
-                    await handleTelegramAuth();
+                // Check for Telegram session first
+                const telegramUserData = localStorage.getItem('nemex_telegram_user');
+                if (telegramUserData) {
+                    console.log('📱 Found Telegram session, redirecting...');
+                    window.location.href = 'dashboard.html';
                     return;
                 }
 
-                // Regular session check for web users
+                // Check for web session
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
-                    console.log('User already logged in, redirecting...');
+                    console.log('🔑 Found web session, redirecting...');
                     window.location.href = 'dashboard.html';
+                    return;
                 }
+
+                // If we're in Telegram with a user, check if they have an account
+                if (isTelegramApp && telegramUser) {
+                    console.log('📱 Telegram user detected, checking account...');
+                    await checkTelegramAccount();
+                }
+
             } catch (error) {
                 console.error('Session check error:', error);
             }
         }
 
-        // Handle Telegram authentication
-        async function handleTelegramAuth() {
+        // Check if Telegram user already has an account
+        async function checkTelegramAccount() {
             try {
-                console.log('🔐 Handling Telegram authentication...');
-
-                // Check if Telegram user exists in database
                 const { data: existingUser, error } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .eq('telegram_id', telegramUser.id)
                     .single();
 
-                if (error && error.code === 'PGRST116') {
-                    // User doesn't exist - show login options
-                    console.log('Telegram user not found, showing login options...');
-                    showSuccess(`Welcome ${telegramUser.first_name}! Create your account or login.');
-                } else if (existingUser) {
-                    // User exists - auto login and redirect
-                    console.log('Telegram user found, auto-logging in...', existingUser);
+                if (existingUser) {
+                    // User already has an account - redirect to login
+                    console.log('Telegram user already has account, redirecting to login...');
+                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting to login...`);
 
-                    // Set local session for Telegram user
-                    localStorage.setItem('nemex_telegram_user', JSON.stringify(existingUser));
-                    localStorage.setItem('isLoggedIn', 'true');
-
-                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting...`);
-
-                    // Redirect to dashboard
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-
-                } else if (error) {
-                    console.error('Error checking Telegram user:', error);
+                        window.location.href = 'login.html';
+                    }, 2000);
                 }
+                // If no account found, continue with registration
 
             } catch (error) {
-                console.error('Telegram auth error:', error);
+                if (error.code !== 'PGRST116') {
+                    console.error('Error checking Telegram account:', error);
+                }
             }
         }
 
-        // Telegram login button handler
-        document.getElementById('telegramLoginBtn').addEventListener('click', async function() {
-            const telegramLoginBtn = document.getElementById('telegramLoginBtn');
+        // FIXED: Telegram registration button handler
+        document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
+            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
             const loading = document.getElementById('loading');
 
-            telegramLoginBtn.disabled = true;
+            telegramRegisterBtn.disabled = true;
             loading.style.display = 'block';
-            hideError();
-            hideSuccess();
+            hideMessages();
 
             try {
                 if (!telegramUser) {
                     throw new Error('Telegram user not available');
                 }
 
-                console.log('📱 Processing Telegram login...');
+                console.log('📱 Processing Telegram registration...');
 
-                // Check if user exists
+                // Check if Telegram user already exists
                 const { data: existingUser, error: checkError } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .eq('telegram_id', telegramUser.id)
                     .single();
 
+                if (existingUser) {
+                    throw new Error('Telegram account already exists. Please login instead.');
+                }
+
                 if (checkError && checkError.code === 'PGRST116') {
                     // Create new Telegram user
-                    console.log('Creating new Telegram user...');
-                    const { data: newUser, error: createError } = await supabaseClient
-                        .from('profiles')
-                        .insert([
-                            {
-                                telegram_id: telegramUser.id,
-                                username: telegramUser.username || `tg_${telegramUser.id}`,
-                                full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                                avatar_url: telegramUser.photo_url,
-                                balance: 0,
-                                last_claim: null,
-                                referral_code: generateReferralCode(),
-                                referral_slots: 10,
-                                used_slots: 0,
-                                created_via: 'telegram'
-                            }
-                        ])
-                        .select()
-                        .single();
+                    console.log('Creating new Telegram user account...');
+                    const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
 
                     if (createError) {
                         throw createError;
                     }
 
-                    console.log('✅ Telegram user created:', newUser);
+                    console.log('✅ Telegram user account created:', newUser);
 
-                    // Set session and redirect
+                    // Set session and redirect to dashboard
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
                     localStorage.setItem('isLoggedIn', 'true');
 
-                    showSuccess('Account created successfully! Redirecting...');
+                    // Show success message with referral info if applicable
+                    let successMessage = 'Account created successfully! Welcome to NemexCoin! 🚀';
+                    if (referralCode) {
+                        successMessage += ' You received 30 NMX referral bonus! 🎉';
+                    }
 
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
+                    showSuccess(successMessage);
 
-                } else if (existingUser) {
-                    // Login existing user
-                    console.log('Logging in existing Telegram user...');
-
-                    localStorage.setItem('nemex_telegram_user', JSON.stringify(existingUser));
-                    localStorage.setItem('isLoggedIn', 'true');
-
-                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting...`);
-
+                    // Redirect to dashboard
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1500);
@@ -598,113 +698,193 @@
                 }
 
             } catch (error) {
-                console.error('❌ Telegram login failed:', error);
-                showError('Failed to login with Telegram. Please try email/password.');
+                console.error('❌ Telegram registration failed:', error);
+
+                if (error.message.includes('already exists')) {
+                    showError('This Telegram account is already registered. Please login instead.');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showError('Failed to register with Telegram: ' + error.message);
+                }
             } finally {
-                telegramLoginBtn.disabled = false;
+                telegramRegisterBtn.disabled = false;
                 loading.style.display = 'none';
             }
         });
 
-        // Login function for email/password
-        async function loginUser(email, password) {
+        // Password validation
+        function validateForm(fullName, email, password, confirmPassword) {
+            hideMessages();
+
+            if (!fullName.trim()) {
+                showError('Please enter your full name');
+                return false;
+            }
+
+            if (!email.trim()) {
+                showError('Please enter your email address');
+                return false;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('Please enter a valid email address');
+                return false;
+            }
+
+            if (password.length < 6) {
+                showError('Password must be at least 6 characters long');
+                return false;
+            }
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return false;
+            }
+
+            return true;
+        }
+
+        // FIXED: Registration function for email/password
+        async function registerUser(email, password, fullName) {
             try {
-                console.log('🔐 Attempting login...');
+                console.log('📝 Starting email registration...');
 
                 if (!supabaseClient) {
                     throw new Error('Authentication service not available');
                 }
 
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                const userReferralCode = generateReferralCode();
+
+                const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
-                    password: password
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName
+                        }
+                    }
                 });
 
                 if (error) {
                     throw error;
                 }
 
-                console.log('✅ Login successful:', data);
+                // Create user profile with referral code
+                if (data.user) {
+                    const { error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .insert([
+                            {
+                                id: data.user.id,
+                                email: email,
+                                full_name: fullName,
+                                balance: 0,
+                                last_claim: null,
+                                referral_code: userReferralCode,
+                                referral_slots: 10,
+                                used_slots: 0,
+                                referred_by: referralCode || null
+                            }
+                        ]);
+
+                    if (profileError) {
+                        console.error('Error creating profile:', profileError);
+                        // Continue anyway, profile can be created later
+                    } else {
+                        // Process referral bonus if applicable
+                        if (referralCode) {
+                            console.log('🎁 Processing referral bonus for email user...');
+                            const bonusSuccess = await processReferralBonus(data.user.id, referralCode);
+                            if (bonusSuccess) {
+                                console.log('✅ Referral bonus applied successfully!');
+                            }
+                        }
+                    }
+                }
+
+                console.log('✅ Registration successful:', data);
                 return data;
 
             } catch (error) {
-                console.error('❌ Login failed:', error);
+                console.error('❌ Registration failed:', error);
                 throw error;
             }
         }
 
-        // Form submission for email/password login
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        // Form submission for email/password registration
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            const fullName = document.getElementById('fullName').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const loginBtn = document.getElementById('loginBtn');
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const registerBtn = document.getElementById('registerBtn');
             const loading = document.getElementById('loading');
 
-            hideError();
-            hideSuccess();
-            loginBtn.disabled = true;
+            hideMessages();
+            registerBtn.disabled = true;
             loading.style.display = 'block';
 
             try {
-                if (!email || !password) {
-                    throw new Error('Please fill in all fields');
+                if (!validateForm(fullName, email, password, confirmPassword)) {
+                    return;
                 }
 
-                const result = await loginUser(email, password);
+                const result = await registerUser(email, password, fullName);
 
                 if (result.user) {
-                    console.log('✅ Login successful, redirecting...');
+                    let successMessage = '✅ Account created successfully! Please check your email to verify your account.';
+                    if (referralCode) {
+                        successMessage += ' You received 30 NMX referral bonus! 🎉';
+                    }
 
-                    // Store user session
-                    localStorage.setItem('userEmail', result.user.email);
-                    localStorage.setItem('userId', result.user.id);
-                    localStorage.setItem('isLoggedIn', 'true');
+                    showSuccess(successMessage);
 
-                    showSuccess('Login successful! Redirecting...');
+                    // Clear form
+                    document.getElementById('registerForm').reset();
 
-                    // Redirect to dashboard
+                    // Redirect to login after 3 seconds
                     setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1000);
+                        window.location.href = 'login.html';
+                    }, 3000);
                 }
 
             } catch (error) {
-                console.error('Login error:', error);
+                console.error('Registration error:', error);
 
-                if (error.message.includes('Invalid login credentials')) {
-                    showError('Invalid email or password. Please try again.');
-                } else if (error.message.includes('Email not confirmed')) {
-                    showError('Please verify your email address before logging in.');
+                if (error.message.includes('already registered') || error.message.includes('already exists')) {
+                    showError('An account with this email already exists. Please sign in instead.');
+                } else if (error.message.includes('invalid email')) {
+                    showError('Please enter a valid email address.');
+                } else if (error.message.includes('password')) {
+                    showError('Password is too weak. Please use a stronger password.');
                 } else if (error.message.includes('not available')) {
                     showError('Authentication service unavailable. Please try again later.');
                 } else {
-                    showError('Login failed: ' + error.message);
+                    showError('Registration failed: ' + error.message);
                 }
 
             } finally {
-                loginBtn.disabled = false;
+                registerBtn.disabled = false;
                 loading.style.display = 'none';
             }
         });
 
-        // Forgot password
-        document.getElementById('forgotPassword').addEventListener('click', async function(e) {
-            e.preventDefault();
-            const email = prompt('Please enter your email address to reset your password:');
+        // Real-time password validation
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = this.value;
 
-            if (email && supabaseClient) {
-                try {
-                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
-                    if (error) {
-                        alert('Error sending reset email: ' + error.message);
-                    } else {
-                        alert('Password reset email sent! Please check your inbox.');
-                    }
-                } catch (error) {
-                    alert('Error: ' + error.message);
-                }
+            if (confirmPassword && password !== confirmPassword) {
+                this.style.borderColor = '#ff4444';
+            } else if (confirmPassword && password === confirmPassword) {
+                this.style.borderColor = '#00C851';
+            } else {
+                this.style.borderColor = 'rgba(255, 255, 255, 0.1)';
             }
         });
 
@@ -721,20 +901,15 @@
             successElement.style.display = 'block';
         }
 
-        function hideError() {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.style.display = 'none';
-        }
-
-        function hideSuccess() {
-            const successElement = document.getElementById('successMessage');
-            successElement.style.display = 'none';
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
         }
 
         // Enter key support
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+                document.getElementById('registerForm').dispatchEvent(new Event('submit'));
             }
         });
     </script>
