@@ -6,7 +6,7 @@
     <title>NemexCoin - Register</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS styles remain the same */
+        /* Your existing CSS styles remain exactly the same */
         * {
             margin: 0;
             padding: 0;
@@ -357,39 +357,47 @@
             return result;
         }
 
-        // ENHANCED: Detect referral code from URL parameters - BETTER DETECTION
+        // FIXED: Better referral code detection for Telegram
         function detectReferralCode() {
             console.log('🔍 Detecting referral code from URL...');
-            
+
             // Get current URL
             const currentUrl = window.location.href;
             console.log('📄 Current URL:', currentUrl);
-            
-            // Parse URL parameters
+
+            // FIXED: Better Telegram parameter detection
             const urlParams = new URLSearchParams(window.location.search);
-            const refCode = urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('start');
             
+            // Telegram uses "start" parameter for deep linking
+            let refCode = urlParams.get('start');
+            
+            // Also check for other common referral parameters
+            if (!refCode) {
+                refCode = urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('referral');
+            }
+
             console.log('📋 URL Parameters found:', {
+                start: urlParams.get('start'),
                 ref: urlParams.get('ref'),
                 startapp: urlParams.get('startapp'),
-                start: urlParams.get('start'),
+                referral: urlParams.get('referral'),
                 finalRefCode: refCode
             });
-            
+
             if (refCode) {
                 referralCode = refCode.toUpperCase();
                 console.log('🎯 Referral code detected:', referralCode);
-                
+
                 // Show referral banner
                 const referralBanner = document.getElementById('referralBanner');
                 referralBanner.style.display = 'block';
-                
+
                 // Update welcome message
                 const welcomeTitle = document.getElementById('welcomeTitle');
                 welcomeTitle.textContent = `Create Account - Referred by ${referralCode}`;
-                
+
                 showSuccess(`🎉 You were referred by ${referralCode}! You'll get bonus NMX after registration.`);
-                
+
                 return true;
             } else {
                 console.log('❌ No referral code detected in URL');
@@ -401,7 +409,7 @@
         async function processReferralBonus(newUserId, referralCode) {
             try {
                 console.log('💰 Processing referral bonus for user:', newUserId, 'with code:', referralCode);
-                
+
                 // Find the referrer by their referral code
                 const { data: referrer, error: referrerError } = await supabaseClient
                     .from('profiles')
@@ -467,10 +475,11 @@
         // FIXED: Create new Telegram user with referral processing
         async function createTelegramUser(telegramUser) {
             const userReferralCode = generateReferralCode();
-            
+
             try {
                 console.log('📱 Creating Telegram user with referral code:', userReferralCode);
-                
+
+                // FIXED: Starting balance set to 0 as requested
                 const { data: newUser, error: createError } = await supabaseClient
                     .from('profiles')
                     .insert([
@@ -479,7 +488,7 @@
                             username: telegramUser.username || `tg_${telegramUser.id}`,
                             full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
                             avatar_url: telegramUser.photo_url,
-                            balance: 0,
+                            balance: 0, // FIXED: Starting balance set to 0
                             last_claim: null,
                             referral_code: userReferralCode,
                             referral_slots: 10,
@@ -532,7 +541,7 @@
 
                 console.log('✅ Supabase client created successfully');
 
-                // ENHANCED: Detect referral code FIRST - before anything else
+                // FIXED: Detect referral code FIRST - before anything else
                 detectReferralCode();
 
                 // Initialize Telegram first
@@ -594,14 +603,14 @@
             const fullNameField = document.getElementById('fullName');
 
             telegramInfo.style.display = 'block';
-            
+
             // Update welcome title to include referral info if applicable
             if (referralCode) {
                 welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referralCode}`;
             } else {
                 welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
             }
-            
+
             telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
 
             // Pre-fill full name for Telegram users
@@ -808,7 +817,7 @@
                                 id: data.user.id,
                                 email: email,
                                 full_name: fullName,
-                                balance: 0,
+                                balance: 0, // FIXED: Starting balance set to 0
                                 last_claim: null,
                                 referral_code: userReferralCode,
                                 referral_slots: 10,
@@ -821,12 +830,14 @@
                         console.error('Error creating profile:', profileError);
                         // Continue anyway, profile can be created later
                     } else {
-                        // Process referral bonus if applicable
+                        // FIXED: Process referral bonus for email users
                         if (referralCode) {
                             console.log('🎁 Processing referral bonus for email user...');
                             const bonusSuccess = await processReferralBonus(data.user.id, referralCode);
                             if (bonusSuccess) {
                                 console.log('✅ Referral bonus applied successfully!');
+                            } else {
+                                console.log('⚠️ Referral bonus failed for email user');
                             }
                         }
                     }
