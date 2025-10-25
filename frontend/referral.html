@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NemexCoin Referral</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            background: rgba(13, 13, 28, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #d4af37;
+            margin-bottom: 10px;
+        }
+        .button {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            color: #0f0f0f;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+        }
+        .telegram-button {
+            background: linear-gradient(135deg, #0088cc, #006699);
+            color: white;
+        }
+        .instructions {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .code-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 18px;
+            color: #d4af37;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">〽️</div>
+        <h1>NemexCoin Referral</h1>
+        <div id="message">Processing your referral...</div>
+        
+        <div id="referralInfo" style="display: none;">
+            <div class="code-display" id="codeDisplay"></div>
+            
+            <div class="instructions">
+                <h3>🎯 How to Register:</h3>
+                <p><strong>Choose your preferred method:</strong></p>
+            </div>
+
+            <a id="telegramBtn" class="button telegram-button">
+                📱 Register via Telegram
+            </a>
+            
+            <a id="webBtn" class="button">
+                🌐 Register on Website
+            </a>
+            
+            <p style="margin-top: 20px; color: #888; font-size: 14px;">
+                Both methods will apply your <strong>30 NMX referral bonus!</strong>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Get referral code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const referralCode = urlParams.get('ref') || urlParams.get('code') || urlParams.get('start');
+
+        async function handleReferral() {
+            if (!referralCode) {
+                document.getElementById('message').innerHTML = 
+                    '❌ No referral code found.<br><br>' +
+                    '<a href="register.html" class="button">Register Without Referral</a>';
+                return;
+            }
+
+            // Verify the referral code exists in database
+            try {
+                const { data: referrer, error } = await supabase
+                    .from('profiles')
+                    .select('full_name, referral_code')
+                    .eq('referral_code', referralCode)
+                    .single();
+
+                if (error) {
+                    document.getElementById('message').innerHTML = 
+                        `❌ Invalid referral code: <strong>${referralCode}</strong><br><br>` +
+                        '<a href="register.html" class="button">Register Anyway</a>';
+                    return;
+                }
+
+                // Store referral code for later use
+                localStorage.setItem('nemex_referral_code', referralCode);
+                
+                document.getElementById('message').innerHTML = '✅ Valid referral code detected!';
+                document.getElementById('referralInfo').style.display = 'block';
+                document.getElementById('codeDisplay').textContent = `Referral Code: ${referralCode}`;
+                
+                if (referrer.full_name) {
+                    document.getElementById('codeDisplay').textContent += ` (from ${referrer.full_name})`;
+                }
+                
+                // Set up buttons
+                document.getElementById('telegramBtn').href = `https://t.me/SiNemexbot?start=${referralCode}`;
+                document.getElementById('webBtn').href = `register.html?ref=${referralCode}`;
+                
+                // If we're already in Telegram, auto-redirect to registration
+                if (window.Telegram && window.Telegram.WebApp) {
+                    setTimeout(() => {
+                        window.location.href = `register.html?ref=${referralCode}`;
+                    }, 2000);
+                }
+
+            } catch (error) {
+                document.getElementById('message').innerHTML = 
+                    '❌ Error verifying referral code.<br><br>' +
+                    '<a href="register.html" class="button">Register Anyway</a>';
+            }
+        }
+
+        handleReferral();
+    </script>
+</body>
+</html>
