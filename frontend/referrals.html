@@ -577,38 +577,67 @@
             }
         }
 
-        // ========== FIXED SHARE FUNCTIONS ==========
-        
+        // ========== UPDATED SHARE FUNCTIONS WITH UNIVERSAL LINKS ==========
+
         function shareWhatsApp() {
-            const message = `Join me on NemexCoin and earn NMX tokens! Use my referral link: https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
+            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
+            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
+            const message = `Join me on NemexCoin and earn NMX tokens! 
+
+🔗 My referral link: ${universalLink}
+
+📱 Register and we both get 30 NMX bonus!
+Max 10 referrals per user.`;
+            
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareTelegram() {
-            const telegramUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
+            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
+            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
             
-            // FIXED: Use openLink instead of openTelegramLink to avoid navigation blocking
+            const message = `Join me on NemexCoin and earn NMX tokens! 🚀
+
+Use my referral link: ${universalLink}
+
+We both get 30 NMX bonus!`;
+            
             if (window.Telegram && window.Telegram.WebApp) {
-                // Use Telegram's share feature for better user experience
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
                 window.Telegram.WebApp.openLink(shareUrl);
             } else {
-                // Regular web sharing
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
                 window.open(shareUrl, '_blank');
             }
         }
 
         function shareTwitter() {
-            const message = `Join me on NemexCoin and earn NMX tokens! 🚀 Use my referral: https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
+            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
+            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
+            const message = `Join me on NemexCoin and earn NMX tokens! 🚀 
+
+Use my referral: ${universalLink}
+
+We both get 30 NMX bonuses!`;
+            
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareEmail() {
+            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
+            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
             const subject = 'Join me on NemexCoin!';
-            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can join using my referral link:\nhttps://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}\n\nWe'll both get ${REFERRAL_BONUS} NMX bonuses when you join!`;
+            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.
+
+You can join using my referral link:
+${universalLink}
+
+We'll both get 30 NMX bonuses when you join!
+
+You can register via Telegram or directly on the website.`;
+            
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = url;
         }
