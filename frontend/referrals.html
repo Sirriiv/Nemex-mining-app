@@ -319,8 +319,8 @@
                 <div class="referral-card">
                     <div class="referral-title">Invite Friends & Earn</div>
                     <div class="referral-desc">
-                        Share your referral link and earn <strong>30 NMX</strong> for each active friend!<br>
-                        <small>Max 10 referrals per user for fair distribution</small>
+                        Share your referral link and earn <strong>30 NMXp</strong> for each active friend!<br>
+                        <small>Max 10 referrals per user</small>
                     </div>
 
                     <div class="referral-link-container">
@@ -543,7 +543,7 @@
                                     📅 ${referralDate}
                                 </div>
                                 <div class="referral-earned">
-                                    💰 +${REFERRAL_BONUS} NMX
+                                    💰 +${REFERRAL_BONUS} NMXp
                                 </div>
                             </div>
                         </div>
@@ -581,12 +581,12 @@
 
         function shareWhatsApp() {
             // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
-            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
-            const message = `Join me on NemexCoin and earn NMX tokens! 
+            const universalLink = `https://nemex-backend.onrender.com/referral.html?ref=${referralData?.referral_code}`;
+            const message = `Join me on NemexCoin and earn NMXp
 
 🔗 My referral link: ${universalLink}
 
-📱 Register and we both get 30 NMX bonus!
+📱 Register and we both get 30 NMXp bonus!
 Max 10 referrals per user.`;
             
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -595,19 +595,19 @@ Max 10 referrals per user.`;
 
         function shareTelegram() {
             // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
-            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
+            const universalLink = `https://nemex-backend.onrender.com/referral.html?ref=${referralData?.referral_code}`;
             
-            const message = `Join me on NemexCoin and earn NMX tokens! 🚀
+            const message = `Join me on NemexCoin and earn NMXp ! 🚀
 
 Use my referral link: ${universalLink}
 
-We both get 30 NMX bonus!`;
+We both get 30 NMXp bonus!`;
             
             if (window.Telegram && window.Telegram.WebApp) {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp ! 🚀')}`;
                 window.Telegram.WebApp.openLink(shareUrl);
             } else {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp ! 🚀')}`;
                 window.open(shareUrl, '_blank');
             }
         }
@@ -615,11 +615,11 @@ We both get 30 NMX bonus!`;
         function shareTwitter() {
             // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
             const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
-            const message = `Join me on NemexCoin and earn NMX tokens! 🚀 
+            const message = `Join me on NemexCoin and earn NMXp ! 🚀 
 
 Use my referral: ${universalLink}
 
-We both get 30 NMX bonuses!`;
+We both get 30 NMXp bonuses!`;
             
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
@@ -627,14 +627,14 @@ We both get 30 NMX bonuses!`;
 
         function shareEmail() {
             // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
-            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
+            const universalLink = `https://nemex-backend.onrender.com/referral.html?ref=${referralData?.referral_code}`;
             const subject = 'Join me on NemexCoin!';
             const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.
 
 You can join using my referral link:
 ${universalLink}
 
-We'll both get 30 NMX bonuses when you join!
+We'll both get 30 NMXp bonuses when you join!
 
 You can register via Telegram or directly on the website.`;
             
