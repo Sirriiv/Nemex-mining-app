@@ -376,7 +376,7 @@
         let user = null;
         let referralData = null;
         const REFERRAL_BONUS = 30;
-        
+
         // FIXED: Use your ACTUAL bot username
         const TELEGRAM_BOT_USERNAME = 'SiNemexbot'; // Your actual bot username
 
@@ -464,7 +464,7 @@
                 // FIXED: Use your ACTUAL Telegram bot username
                 const telegramReferralUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${stats.referral_code}`;
                 document.getElementById('referralLink').value = telegramReferralUrl;
-                
+
                 console.log('🔗 Generated Telegram referral link:', telegramReferralUrl);
 
                 // Load referrals list
@@ -577,9 +577,10 @@
             }
         }
 
-        // FIXED: Share functions with your ACTUAL Telegram bot username
+        // ========== FIXED SHARE FUNCTIONS ==========
+        
         function shareWhatsApp() {
-            const message = `Join me on NemexCoin and earn NMX tokens! Use my Telegram bot: https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
+            const message = `Join me on NemexCoin and earn NMX tokens! Use my referral link: https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
@@ -587,26 +588,27 @@
         function shareTelegram() {
             const telegramUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
             
-            // If in Telegram app, use Telegram's sharing
+            // FIXED: Use openLink instead of openTelegramLink to avoid navigation blocking
             if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.openTelegramLink(telegramUrl);
+                // Use Telegram's share feature for better user experience
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
+                window.Telegram.WebApp.openLink(shareUrl);
             } else {
                 // Regular web sharing
-                const message = `Join me on NemexCoin and earn NMX tokens!`;
-                const url = `https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}&text=${encodeURIComponent(message)}`;
-                window.open(url, '_blank');
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(telegramUrl)}&text=${encodeURIComponent('Join NemexCoin and earn NMX tokens! 🚀')}`;
+                window.open(shareUrl, '_blank');
             }
         }
 
         function shareTwitter() {
-            const message = `Join me on NemexCoin and earn NMX tokens! 🚀 Use my referral code: ${referralData?.referral_code}\n\nhttps://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
+            const message = `Join me on NemexCoin and earn NMX tokens! 🚀 Use my referral: https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareEmail() {
             const subject = 'Join me on NemexCoin!';
-            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can join using my Telegram bot:\nhttps://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}\n\nWe'll both get ${REFERRAL_BONUS} NMX bonuses when you join!`;
+            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.\n\nYou can join using my referral link:\nhttps://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData?.referral_code}\n\nWe'll both get ${REFERRAL_BONUS} NMX bonuses when you join!`;
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = url;
         }
