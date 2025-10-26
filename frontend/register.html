@@ -379,9 +379,10 @@
             return false;
         }
 
-        // FIXED: Process referral bonus with DEBUGGING
+        // ========== DEBUG VERSION: Process referral bonus ==========
         async function processReferralBonus(newUserId, referralCode) {
             try {
+                console.log('🔴🔴🔴 REFERRAL PROCESSING STARTED!');
                 console.log('💰 PROCESSING REFERRAL BONUS:', { newUserId, referralCode });
                 
                 if (!newUserId || !referralCode) {
@@ -390,6 +391,7 @@
                 }
 
                 // Find the referrer by their referral code
+                console.log('🔍 Searching for referrer with code:', referralCode);
                 const { data: referrer, error: referrerError } = await supabaseClient
                     .from('profiles')
                     .select('id, telegram_id, used_slots, referral_slots, balance, total_earned_from_refs, referral_code')
@@ -418,6 +420,7 @@
                 console.log('✅ Referrer has available slots:', availableSlots);
 
                 // Create referral record
+                console.log('📝 Creating referral record...');
                 const { data: referralRecord, error: referralError } = await supabaseClient
                     .from('referrals')
                     .insert([{
@@ -439,6 +442,7 @@
                 console.log('✅ Referral record created:', referralRecord);
 
                 // Update referrer's stats and balance
+                console.log('🔄 Updating referrer stats...');
                 const { error: updateError } = await supabaseClient
                     .from('profiles')
                     .update({
@@ -457,6 +461,7 @@
                 console.log('✅ Referrer stats updated');
 
                 // Award bonus to new user
+                console.log('🎁 Awarding bonus to new user...');
                 const { error: userBonusError } = await supabaseClient
                     .from('profiles')
                     .update({
@@ -482,7 +487,7 @@
             }
         }
 
-        // FIXED: Create new Telegram user with correct column names
+        // Create new Telegram user
         async function createTelegramUser(telegramUser) {
             const userReferralCode = generateReferralCode();
 
@@ -500,8 +505,8 @@
                             balance: 0,
                             last_claim: null,
                             referral_code: userReferralCode,
-                            referral_slots: 10, // FIXED: referral_slots (plural)
-                            used_slots: 0,      // FIXED: used_slots (plural)
+                            referral_slots: 10,
+                            used_slots: 0,
                             created_via: 'telegram',
                             referred_by: referralCode || null
                         }
@@ -756,7 +761,7 @@
             return true;
         }
 
-        // FIXED: Registration function for email/password with correct column names
+        // Registration function for email/password
         async function registerUser(email, password, fullName) {
             try {
                 const userReferralCode = generateReferralCode();
@@ -778,6 +783,7 @@
 
                 // Create user profile with referral code
                 if (data.user) {
+                    console.log('👤 Creating user profile...');
                     const { error: profileError } = await supabaseClient
                         .from('profiles')
                         .insert([
@@ -788,8 +794,8 @@
                                 balance: 0,
                                 last_claim: null,
                                 referral_code: userReferralCode,
-                                referral_slots: 10, // FIXED: referral_slots (plural)
-                                used_slots: 0,      // FIXED: used_slots (plural)
+                                referral_slots: 10,
+                                used_slots: 0,
                                 referred_by: referralCode || null
                             }
                         ]);
