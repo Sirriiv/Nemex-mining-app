@@ -6,7 +6,7 @@
     <title>NemexCoin - Mining Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS styles - REMOVED referral stats section */
+        /* Your existing CSS styles */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -69,7 +69,7 @@
             text-align: center;
         }
         .balance-display {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .balance-label {
             font-size: 16px;
@@ -82,6 +82,52 @@
             color: var(--gold);
             line-height: 1;
             font-family: 'Courier New', monospace;
+        }
+
+        /* NEW: Referral Stats Styles */
+        .referral-stats {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            width: 100%;
+            max-width: 280px;
+        }
+        .referral-stats-title {
+            font-size: 14px;
+            color: var(--gold);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .referral-stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+        }
+        .referral-stat {
+            text-align: center;
+        }
+        .referral-stat-label {
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+        .referral-stat-value {
+            color: var(--gold);
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .referral-link {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .referral-link a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 600;
         }
 
         .nemex-logo{width:140px;height:140px;margin:25px auto;position:relative;display:flex;align-items:center;justify-content:center}
@@ -373,6 +419,24 @@
                     <div class="balance-amount" id="balanceAmount">0</div>
                 </div>
 
+                <!-- NEW: Referral Stats Section -->
+                <div class="referral-stats" id="referralStats" style="display: none;">
+                    <div class="referral-stats-title">👥 Referral Progress</div>
+                    <div class="referral-stats-grid">
+                        <div class="referral-stat">
+                            <div class="referral-stat-label">Referrals</div>
+                            <div class="referral-stat-value" id="referralCount">0/10</div>
+                        </div>
+                        <div class="referral-stat">
+                            <div class="referral-stat-label">Earned</div>
+                            <div class="referral-stat-value" id="referralEarned">0 NMX</div>
+                        </div>
+                    </div>
+                    <div class="referral-link">
+                        Earn 30 NMX per referral • <a href="referrals.html">Invite Friends →</a>
+                    </div>
+                </div>
+
                 <!-- NEMEXCOIN LOGO -->
                 <div class="nemex-logo">
                     <div class="logo-container">
@@ -481,7 +545,7 @@
             return result;
         }
 
-        // FIXED: Load user data with proper balance refresh
+        // FIXED: Load user data with referral stats
         async function loadUserData() {
             try {
                 console.log('🔄 Loading user data...');
@@ -493,7 +557,7 @@
                     // For Telegram users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim, total_earned_from_refs')
+                        .select('id, referral_code, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
                         .eq('telegram_id', telegramUser.id)
                         .single();
 
@@ -508,7 +572,7 @@
                     // For web users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim, total_earned_from_refs')
+                        .select('id, referral_code, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
                         .eq('id', user.id)
                         .single();
 
@@ -529,7 +593,22 @@
 
                 console.log('💰 Balance loaded from database:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
-                console.log('🎁 Total earned from referrals:', profile.total_earned_from_refs || 0);
+                
+                // FIXED: LOAD AND DISPLAY REFERRAL STATS
+                const referralEarned = profile.total_earned_from_refs || 0;
+                const usedSlots = profile.used_slots || 0;
+                const totalSlots = profile.referral_slots || 10;
+                
+                console.log('🎁 Referral stats:', {
+                    earned: referralEarned,
+                    referrals: usedSlots,
+                    slots: totalSlots
+                });
+
+                // UPDATE REFERRAL STATS DISPLAY
+                document.getElementById('referralCount').textContent = `${usedSlots}/${totalSlots}`;
+                document.getElementById('referralEarned').textContent = `${referralEarned} NMX`;
+                document.getElementById('referralStats').style.display = 'block';
 
                 // Generate referral code if it doesn't exist
                 if (!profile.referral_code) {
@@ -541,7 +620,8 @@
                         .update({ 
                             referral_code: referralCode,
                             referral_slots: 10,
-                            used_slots: 0
+                            used_slots: 0,
+                            total_earned_from_refs: 0
                         })
                         .eq('id', userId);
 
@@ -563,26 +643,32 @@
             }
         }
 
-        // FIXED: Refresh balance function - called when returning from referrals
+        // FIXED: Refresh balance and referral stats
         async function refreshBalance() {
             try {
-                console.log('🔄 Refreshing balance...');
+                console.log('🔄 Refreshing balance and referral stats...');
                 const profile = await loadUserData();
-                
+
                 if (profile) {
                     // Show notification if referral earnings increased
                     const currentBalance = parseFloat(profile.balance) || 0;
+                    const currentReferralEarned = profile.total_earned_from_refs || 0;
+                    
                     if (currentBalance > userBalance) {
                         const bonusEarned = currentBalance - userBalance;
                         console.log('🎉 New referral bonus detected:', bonusEarned);
-                        
+
                         if (bonusEarned > 0) {
                             showSuccess(`🎉 Referral bonus! +${bonusEarned} NMX from your referrals!`);
                         }
                     }
-                    
+
                     userBalance = currentBalance;
                     document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                    
+                    // Update referral stats display
+                    document.getElementById('referralCount').textContent = `${profile.used_slots || 0}/${profile.referral_slots || 10}`;
+                    document.getElementById('referralEarned').textContent = `${currentReferralEarned} NMX`;
                 }
             } catch (error) {
                 console.error('Error refreshing balance:', error);
