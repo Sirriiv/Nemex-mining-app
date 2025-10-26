@@ -364,7 +364,7 @@
 
             if (refCode) {
                 referralCode = refCode.toUpperCase();
-                
+
                 // Show referral banner
                 const referralBanner = document.getElementById('referralBanner');
                 referralBanner.style.display = 'block';
@@ -379,10 +379,13 @@
             return false;
         }
 
-        // FIXED: Process referral bonus
+        // FIXED: Process referral bonus with DEBUGGING
         async function processReferralBonus(newUserId, referralCode) {
             try {
+                console.log('💰 PROCESSING REFERRAL BONUS:', { newUserId, referralCode });
+                
                 if (!newUserId || !referralCode) {
+                    console.error('❌ Missing required data');
                     return false;
                 }
 
@@ -393,15 +396,26 @@
                     .eq('referral_code', referralCode)
                     .single();
 
-                if (referrerError || !referrer) {
+                if (referrerError) {
+                    console.error('❌ Error finding referrer:', referrerError);
                     return false;
                 }
+
+                if (!referrer) {
+                    console.error('❌ Referrer not found for code:', referralCode);
+                    return false;
+                }
+
+                console.log('🎯 Referrer found:', referrer);
 
                 // Check if referrer has available slots
                 const availableSlots = (referrer.referral_slots || 10) - (referrer.used_slots || 0);
                 if (availableSlots <= 0) {
+                    console.error('❌ Referrer has no available slots');
                     return false;
                 }
+
+                console.log('✅ Referrer has available slots:', availableSlots);
 
                 // Create referral record
                 const { data: referralRecord, error: referralError } = await supabaseClient
@@ -418,8 +432,11 @@
                     .single();
 
                 if (referralError) {
+                    console.error('❌ Error creating referral record:', referralError);
                     return false;
                 }
+
+                console.log('✅ Referral record created:', referralRecord);
 
                 // Update referrer's stats and balance
                 const { error: updateError } = await supabaseClient
@@ -433,8 +450,11 @@
                     .eq('id', referrer.id);
 
                 if (updateError) {
+                    console.error('❌ Error updating referrer stats:', updateError);
                     return false;
                 }
+
+                console.log('✅ Referrer stats updated');
 
                 // Award bonus to new user
                 const { error: userBonusError } = await supabaseClient
@@ -447,21 +467,28 @@
                     .eq('id', newUserId);
 
                 if (userBonusError) {
+                    console.error('❌ Error awarding bonus to new user:', userBonusError);
                     return false;
                 }
+
+                console.log('✅ New user bonus awarded');
+                console.log('🎉 REFERRAL BONUS PROCESSING COMPLETE!');
 
                 return true;
 
             } catch (error) {
+                console.error('❌ CRITICAL ERROR in processReferralBonus:', error);
                 return false;
             }
         }
 
-        // Create new Telegram user
+        // FIXED: Create new Telegram user with correct column names
         async function createTelegramUser(telegramUser) {
             const userReferralCode = generateReferralCode();
 
             try {
+                console.log('📱 Creating Telegram user with code:', userReferralCode);
+
                 const { data: newUser, error: createError } = await supabaseClient
                     .from('profiles')
                     .insert([
@@ -473,8 +500,8 @@
                             balance: 0,
                             last_claim: null,
                             referral_code: userReferralCode,
-                            referral_slots: 10,
-                            used_slots: 0,
+                            referral_slots: 10, // FIXED: referral_slots (plural)
+                            used_slots: 0,      // FIXED: used_slots (plural)
                             created_via: 'telegram',
                             referred_by: referralCode || null
                         }
@@ -483,27 +510,28 @@
                     .single();
 
                 if (createError) {
+                    console.error('❌ Error creating Telegram user:', createError);
                     return { data: null, error: createError };
                 }
 
+                console.log('✅ Telegram user created:', newUser);
+
                 // Process referral bonus if applicable
                 if (referralCode && newUser) {
+                    console.log('🎁 Processing referral bonus for Telegram user...');
                     const bonusSuccess = await processReferralBonus(newUser.id, referralCode);
+                    
                     if (bonusSuccess) {
-                        // Update the user's balance to show they got the bonus
-                        await supabaseClient
-                            .from('profiles')
-                            .update({ 
-                                balance: REFERRAL_BONUS,
-                                referred_by: referralCode 
-                            })
-                            .eq('id', newUser.id);
+                        console.log('✅ Referral bonus applied successfully for Telegram user!');
+                    } else {
+                        console.log('⚠️ Referral bonus failed for Telegram user');
                     }
                 }
 
                 return { data: newUser, error: null };
 
             } catch (error) {
+                console.error('❌ Error in createTelegramUser:', error);
                 return { data: null, error: error };
             }
         }
@@ -728,10 +756,11 @@
             return true;
         }
 
-        // Registration function for email/password
+        // FIXED: Registration function for email/password with correct column names
         async function registerUser(email, password, fullName) {
             try {
                 const userReferralCode = generateReferralCode();
+                console.log('📝 Starting email registration with code:', userReferralCode);
 
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
@@ -759,21 +788,35 @@
                                 balance: 0,
                                 last_claim: null,
                                 referral_code: userReferralCode,
-                                referral_slots: 10,
-                                used_slots: 0,
+                                referral_slots: 10, // FIXED: referral_slots (plural)
+                                used_slots: 0,      // FIXED: used_slots (plural)
                                 referred_by: referralCode || null
                             }
                         ]);
 
-                    if (!profileError && referralCode) {
-                        // Process referral bonus for email users
-                        await processReferralBonus(data.user.id, referralCode);
+                    if (profileError) {
+                        console.error('Error creating profile:', profileError);
+                        // Continue anyway
+                    }
+
+                    // Process referral bonus for email users
+                    if (referralCode) {
+                        console.log('🎁 Processing referral bonus for email user...');
+                        const bonusSuccess = await processReferralBonus(data.user.id, referralCode);
+                        
+                        if (bonusSuccess) {
+                            console.log('✅ Referral bonus applied successfully for email user!');
+                        } else {
+                            console.log('⚠️ Referral bonus failed for email user');
+                        }
                     }
                 }
 
+                console.log('✅ Registration successful:', data);
                 return data;
 
             } catch (error) {
+                console.error('❌ Registration failed:', error);
                 throw error;
             }
         }
