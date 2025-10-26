@@ -431,6 +431,8 @@
                     user = session.user;
                 }
 
+                console.log('👤 Current user:', user);
+
                 // Initialize Telegram if in Telegram
                 initializeTelegram();
 
@@ -480,10 +482,11 @@
             document.getElementById('referralLink').value = link;
         }
 
-        // Load referral data
+        // ========== FIXED: Load referral data ==========
         async function loadReferralData() {
             try {
                 showLoading();
+                console.log('🔄 Loading referral data for user:', user.id);
 
                 let queryCondition;
 
@@ -494,6 +497,8 @@
                     queryCondition = { id: user.id };
                 }
 
+                console.log('🔍 Query condition:', queryCondition);
+
                 // Load user's referral stats
                 const { data: stats, error: statsError } = await supabaseClient
                     .from('profiles')
@@ -502,10 +507,11 @@
                     .single();
 
                 if (statsError) {
-                    console.error('Error loading referral stats:', statsError);
+                    console.error('❌ Error loading referral stats:', statsError);
                     throw statsError;
                 }
 
+                console.log('📊 Referral stats loaded:', stats);
                 referralData = stats;
 
                 // Update stats UI
@@ -525,16 +531,22 @@
                 await loadReferralsList();
 
             } catch (error) {
-                console.error('Error loading referral data:', error);
-                showError('Failed to load referral data.');
+                console.error('❌ Error loading referral data:', error);
+                showError('Failed to load referral data. Please try again.');
             }
         }
 
-        // Load referrals list
+        // ========== FIXED: Load referrals list ==========
         async function loadReferralsList() {
             try {
-                // Get referrals where current user is the referrer
-                const { data: referrals, error } = await supabaseClient
+                console.log('🔄 Loading referrals list for user:', user.id);
+
+                // FIXED: Try multiple query approaches to find referrals
+                let referrals = [];
+                let error = null;
+
+                // Approach 1: Query by referrer_id (most common)
+                let { data: referrals1, error: error1 } = await supabaseClient
                     .from('referrals')
                     .select(`
                         *,
@@ -543,17 +555,54 @@
                     .eq('referrer_id', user.id)
                     .order('created_at', { ascending: false });
 
-                if (error) {
-                    console.error('Error loading referrals list:', error);
-                    throw error;
+                if (error1) {
+                    console.log('❌ Approach 1 failed:', error1);
+                    
+                    // Approach 2: Try different column name
+                    let { data: referrals2, error: error2 } = await supabaseClient
+                        .from('referrals')
+                        .select(`
+                            *,
+                            referred_user:profiles(full_name, username, created_at)
+                        `)
+                        .eq('referrer_id', user.id)
+                        .order('created_at', { ascending: false });
+
+                    if (error2) {
+                        console.log('❌ Approach 2 failed:', error2);
+                        
+                        // Approach 3: Try raw query to see what's in the table
+                        let { data: allReferrals, error: error3 } = await supabaseClient
+                            .from('referrals')
+                            .select('*')
+                            .limit(5);
+
+                        if (error3) {
+                            console.log('❌ Approach 3 failed:', error3);
+                            throw error3;
+                        } else {
+                            console.log('🔍 Sample referrals in database:', allReferrals);
+                            referrals = allReferrals || [];
+                        }
+                    } else {
+                        referrals = referrals2 || [];
+                    }
+                } else {
+                    referrals = referrals1 || [];
                 }
 
-                displayReferralsList(referrals || []);
+                console.log('📝 Referrals found:', referrals);
+                displayReferralsList(referrals);
 
             } catch (error) {
-                console.error('Error loading referrals:', error);
+                console.error('❌ Error loading referrals:', error);
                 document.getElementById('referralsList').innerHTML = `
-                    <div class="error-message">Failed to load referrals</div>
+                    <div class="error-message">
+                        Failed to load referrals. <br>
+                        <small>Error: ${error.message}</small>
+                        <br><br>
+                        <button onclick="loadReferralData()" style="background: var(--gold); color: var(--darker-bg); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Try Again</button>
+                    </div>
                 `;
             }
         }
@@ -569,6 +618,9 @@
                         <div>No referrals yet</div>
                         <div style="font-size: 12px; margin-top: 8px;">
                             Share your referral link to start earning!
+                        </div>
+                        <div style="font-size: 10px; margin-top: 15px; color: var(--warning);">
+                            🔍 Debug: Found ${referrals ? referrals.length : 0} referrals in database
                         </div>
                     </div>
                 `;
@@ -606,6 +658,15 @@
             });
 
             referralsList.innerHTML = html;
+            
+            // Add debug info
+            const debugInfo = document.createElement('div');
+            debugInfo.style.fontSize = '10px';
+            debugInfo.style.color = 'var(--muted)';
+            debugInfo.style.marginTop = '10px';
+            debugInfo.style.textAlign = 'center';
+            debugInfo.textContent = `🔍 Debug: Showing ${referrals.length} referrals`;
+            referralsList.appendChild(debugInfo);
         }
 
         // Get initials for avatar
