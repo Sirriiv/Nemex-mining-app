@@ -170,6 +170,30 @@
             background: rgba(212, 175, 55, 0.1);
             border-color: var(--gold);
         }
+        /* NEW: Link type selector */
+        .link-type-selector {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 15px;
+        }
+        .link-type-btn {
+            flex: 1;
+            padding: 8px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        .link-type-btn.active {
+            background: var(--gold);
+            color: var(--darker-bg);
+            font-weight: 600;
+        }
         /* REMOVED: .bonus-info styles */
         .referrals-list {
             margin-top: 25px;
@@ -323,6 +347,12 @@
                         <small>Max 10 referrals per user</small>
                     </div>
 
+                    <!-- NEW: Link Type Selector -->
+                    <div class="link-type-selector">
+                        <button class="link-type-btn active" onclick="switchLinkType('direct')">🌐 Web Link</button>
+                        <button class="link-type-btn" onclick="switchLinkType('telegram')">📱 Telegram Link</button>
+                    </div>
+
                     <div class="referral-link-container">
                         <input type="text" class="referral-link" id="referralLink" readonly>
                         <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
@@ -375,10 +405,9 @@
 
         let user = null;
         let referralData = null;
+        let currentLinkType = 'direct'; // 'direct' or 'telegram'
         const REFERRAL_BONUS = 30;
-
-        // FIXED: Use your ACTUAL bot username
-        const TELEGRAM_BOT_USERNAME = 'SiNemexbot'; // Your actual bot username
+        const TELEGRAM_BOT_USERNAME = 'SiNemexbot';
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
@@ -389,7 +418,7 @@
         // Initialize page
         async function initializePage() {
             try {
-                // Check authentication - FIXED: Check both session types
+                // Check authentication
                 const telegramUserData = localStorage.getItem('nemex_telegram_user');
                 if (telegramUserData) {
                     user = JSON.parse(telegramUserData);
@@ -423,22 +452,45 @@
             }
         }
 
-        // FIXED: Load referral data with proper user identification
+        // NEW: Switch between link types
+        function switchLinkType(type) {
+            currentLinkType = type;
+            
+            // Update button states
+            document.querySelectorAll('.link-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update displayed link
+            updateReferralLink();
+        }
+
+        // NEW: Update referral link based on type
+        function updateReferralLink() {
+            if (!referralData) return;
+            
+            let link = '';
+            if (currentLinkType === 'telegram') {
+                link = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData.referral_code}`;
+            } else {
+                link = `https://nemex-backend.onrender.com/register.html?ref=${referralData.referral_code}`;
+            }
+            
+            document.getElementById('referralLink').value = link;
+        }
+
+        // Load referral data
         async function loadReferralData() {
             try {
                 showLoading();
 
-                let userId;
                 let queryCondition;
 
                 // Determine user ID based on authentication type
                 if (user.telegram_id) {
-                    // Telegram user
-                    userId = user.id;
                     queryCondition = { telegram_id: user.telegram_id };
                 } else {
-                    // Web user
-                    userId = user.id;
                     queryCondition = { id: user.id };
                 }
 
@@ -461,11 +513,13 @@
                 document.getElementById('availableSlots').textContent = (stats.referral_slots || 10) - (stats.used_slots || 0);
                 document.getElementById('totalEarned').textContent = (stats.total_earned_from_refs || 0).toLocaleString();
 
-                // FIXED: Use your ACTUAL Telegram bot username
-                const telegramReferralUrl = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${stats.referral_code}`;
-                document.getElementById('referralLink').value = telegramReferralUrl;
+                // Update referral link
+                updateReferralLink();
 
-                console.log('🔗 Generated Telegram referral link:', telegramReferralUrl);
+                console.log('🔗 Generated referral links:', {
+                    telegram: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${stats.referral_code}`,
+                    direct: `https://nemex-backend.onrender.com/register.html?ref=${stats.referral_code}`
+                });
 
                 // Load referrals list
                 await loadReferralsList();
@@ -563,81 +617,74 @@
                 .substring(0, 2);
         }
 
-        // Copy referral link
+        // ========== ENHANCED COPY FUNCTION ==========
         async function copyReferralLink() {
-            const referralLink = document.getElementById('referralLink');
+            const link = document.getElementById('referralLink').value;
+            
             try {
-                await navigator.clipboard.writeText(referralLink.value);
-                showSuccess('Telegram referral link copied to clipboard! 📋');
+                await navigator.clipboard.writeText(link);
+                showSuccess('Referral link copied to clipboard! 📋');
             } catch (error) {
                 // Fallback
-                referralLink.select();
+                const tempInput = document.createElement('input');
+                tempInput.value = link;
+                document.body.appendChild(tempInput);
+                tempInput.select();
                 document.execCommand('copy');
-                showSuccess('Telegram referral link copied to clipboard! 📋');
+                document.body.removeChild(tempInput);
+                showSuccess('Referral link copied to clipboard! 📋');
             }
         }
 
-        // ========== UPDATED SHARE FUNCTIONS WITH UNIVERSAL LINKS ==========
-
+        // ========== ENHANCED SHARE FUNCTIONS ==========
         function shareWhatsApp() {
-            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
-            const universalLink = `https://nemex-backend.onrender.com/referral.html?ref=${referralData?.referral_code}`;
-            const message = `Join me on NemexCoin and earn NMXp
+            const link = document.getElementById('referralLink').value;
+            const message = `Join me on NemexCoin and earn NMXp! 
 
-🔗 My referral link: ${universalLink}
+🔗 Register here: ${link}
 
-📱 Register and we both get 30 NMXp bonus!
+We both get 30 NMXp bonus! 🚀
 Max 10 referrals per user.`;
-            
+
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareTelegram() {
-            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
-            const universalLink = `https://nemex-backend.onrender.com/referral.html?ref=${referralData?.referral_code}`;
-            
-            const message = `Join me on NemexCoin and earn NMXp ! 🚀
-
-Use my referral link: ${universalLink}
-
-We both get 30 NMXp bonus!`;
+            const link = document.getElementById('referralLink').value;
             
             if (window.Telegram && window.Telegram.WebApp) {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp ! 🚀')}`;
+                // In Telegram - use native sharing
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp! 🚀')}`;
                 window.Telegram.WebApp.openLink(shareUrl);
             } else {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(universalLink)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp ! 🚀')}`;
+                // Outside Telegram - open share dialog
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp! 🚀')}`;
                 window.open(shareUrl, '_blank');
             }
         }
 
         function shareTwitter() {
-            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
-            const universalLink = `https://YOUR-ACTUAL-DOMAIN.com/referral.html?ref=${referralData?.referral_code}`;
-            const message = `Join me on NemexCoin and earn NMXp ! 🚀 
+            const link = document.getElementById('referralLink').value;
+            const message = `Join me on NemexCoin and earn NMXp! 🚀 
 
-Use my referral: ${universalLink}
+Register here: ${link}
 
 We both get 30 NMXp bonuses!`;
-            
+
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareEmail() {
-            // Replace YOUR-ACTUAL-DOMAIN.com with your real domain
-            const universalLink = `https://nemex-backend.onrender.com/referral.html?ref=${referralData?.referral_code}`;
+            const link = document.getElementById('referralLink').value;
             const subject = 'Join me on NemexCoin!';
-            const body = `Hi! I've been using NemexCoin to earn cryptocurrency and thought you might be interested too.
+            const body = `Hi! Join me on NemexCoin and earn cryptocurrency!
 
-You can join using my referral link:
-${universalLink}
+Register here: ${link}
 
-We'll both get 30 NMXp bonuses when you join!
+We'll both get 30 NMXp bonuses when you join!`;
 
-You can register via Telegram or directly on the website.`;
-            
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = url;
         }
@@ -659,11 +706,6 @@ You can register via Telegram or directly on the website.`;
             successElement.textContent = message;
             successElement.style.display = 'block';
             setTimeout(() => successElement.style.display = 'none', 5000);
-        }
-
-        function hideMessages() {
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
         }
     </script>
 </body>
