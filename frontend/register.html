@@ -6,7 +6,7 @@
     <title>NemexCoin - Register</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS styles remain exactly the same */
+        /* Your existing CSS remains exactly the same */
         * {
             margin: 0;
             padding: 0;
@@ -344,7 +344,7 @@
         let supabaseClient;
         let isTelegramApp = false;
         let telegramUser = null;
-        let referralCode = null; // Store the referral code from URL
+        let referralCode = null;
         const REFERRAL_BONUS = 30;
 
         // Generate random referral code
@@ -357,37 +357,14 @@
             return result;
         }
 
-        // FIXED: Better referral code detection for Telegram
+        // Detect referral code from URL
         function detectReferralCode() {
-            console.log('🔍 Detecting referral code from URL...');
-
-            // Get current URL
-            const currentUrl = window.location.href;
-            console.log('📄 Current URL:', currentUrl);
-
-            // FIXED: Better Telegram parameter detection
             const urlParams = new URLSearchParams(window.location.search);
-            
-            // Telegram uses "start" parameter for deep linking
-            let refCode = urlParams.get('start');
-            
-            // Also check for other common referral parameters
-            if (!refCode) {
-                refCode = urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('referral');
-            }
-
-            console.log('📋 URL Parameters found:', {
-                start: urlParams.get('start'),
-                ref: urlParams.get('ref'),
-                startapp: urlParams.get('startapp'),
-                referral: urlParams.get('referral'),
-                finalRefCode: refCode
-            });
+            let refCode = urlParams.get('start') || urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('referral');
 
             if (refCode) {
                 referralCode = refCode.toUpperCase();
-                console.log('🎯 Referral code detected:', referralCode);
-
+                
                 // Show referral banner
                 const referralBanner = document.getElementById('referralBanner');
                 referralBanner.style.display = 'block';
@@ -397,56 +374,52 @@
                 welcomeTitle.textContent = `Create Account - Referred by ${referralCode}`;
 
                 showSuccess(`🎉 You were referred by ${referralCode}! You'll get bonus NMX after registration.`);
-
                 return true;
-            } else {
-                console.log('❌ No referral code detected in URL');
-                return false;
             }
+            return false;
         }
 
-        // FIXED: Process referral bonus - COMPLETELY REWRITTEN
+        // FIXED: Process referral bonus
         async function processReferralBonus(newUserId, referralCode) {
             try {
-                console.log('💰 Processing referral bonus for user:', newUserId, 'with code:', referralCode);
+                if (!newUserId || !referralCode) {
+                    return false;
+                }
 
                 // Find the referrer by their referral code
                 const { data: referrer, error: referrerError } = await supabaseClient
                     .from('profiles')
-                    .select('id, used_slots, referral_slots, balance, total_earned_from_refs')
+                    .select('id, telegram_id, used_slots, referral_slots, balance, total_earned_from_refs, referral_code')
                     .eq('referral_code', referralCode)
                     .single();
 
                 if (referrerError || !referrer) {
-                    console.error('❌ Referrer not found:', referrerError);
                     return false;
                 }
 
-                console.log('🎯 Referrer found:', referrer.id);
-
                 // Check if referrer has available slots
-                if (referrer.used_slots >= referrer.referral_slots) {
-                    console.error('❌ Referrer has no available slots');
+                const availableSlots = (referrer.referral_slots || 10) - (referrer.used_slots || 0);
+                if (availableSlots <= 0) {
                     return false;
                 }
 
                 // Create referral record
-                const { error: referralError } = await supabaseClient
+                const { data: referralRecord, error: referralError } = await supabaseClient
                     .from('referrals')
                     .insert([{
                         referrer_id: referrer.id,
                         referred_id: newUserId,
-                        referral_code_used: referralCode,
+                        referral_code: referralCode,
                         bonus_amount: REFERRAL_BONUS,
-                        bonus_claimed: true
-                    }]);
+                        bonus_claimed: true,
+                        status: 'completed'
+                    }])
+                    .select()
+                    .single();
 
                 if (referralError) {
-                    console.error('❌ Error creating referral record:', referralError);
                     return false;
                 }
-
-                console.log('📝 Referral record created');
 
                 // Update referrer's stats and balance
                 const { error: updateError } = await supabaseClient
@@ -454,32 +427,41 @@
                     .update({
                         used_slots: (referrer.used_slots || 0) + 1,
                         balance: (referrer.balance || 0) + REFERRAL_BONUS,
-                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS
+                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS,
+                        updated_at: new Date().toISOString()
                     })
                     .eq('id', referrer.id);
 
                 if (updateError) {
-                    console.error('❌ Error updating referrer stats:', updateError);
                     return false;
                 }
 
-                console.log('✅ Referral bonus processed successfully! Referrer got', REFERRAL_BONUS, 'NMX');
+                // Award bonus to new user
+                const { error: userBonusError } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        balance: REFERRAL_BONUS,
+                        referred_by: referralCode,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', newUserId);
+
+                if (userBonusError) {
+                    return false;
+                }
+
                 return true;
 
             } catch (error) {
-                console.error('❌ Error processing referral bonus:', error);
                 return false;
             }
         }
 
-        // FIXED: Create new Telegram user with referral processing
+        // Create new Telegram user
         async function createTelegramUser(telegramUser) {
             const userReferralCode = generateReferralCode();
 
             try {
-                console.log('📱 Creating Telegram user with referral code:', userReferralCode);
-
-                // FIXED: Starting balance set to 0 as requested
                 const { data: newUser, error: createError } = await supabaseClient
                     .from('profiles')
                     .insert([
@@ -488,7 +470,7 @@
                             username: telegramUser.username || `tg_${telegramUser.id}`,
                             full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
                             avatar_url: telegramUser.photo_url,
-                            balance: 0, // FIXED: Starting balance set to 0
+                            balance: 0,
                             last_claim: null,
                             referral_code: userReferralCode,
                             referral_slots: 10,
@@ -501,35 +483,33 @@
                     .single();
 
                 if (createError) {
-                    console.error('❌ Error creating Telegram user:', createError);
                     return { data: null, error: createError };
                 }
 
-                console.log('✅ Telegram user created:', newUser);
-
                 // Process referral bonus if applicable
                 if (referralCode && newUser) {
-                    console.log('🎁 Processing referral bonus for new user...');
                     const bonusSuccess = await processReferralBonus(newUser.id, referralCode);
                     if (bonusSuccess) {
-                        console.log('✅ Referral bonus applied successfully!');
-                    } else {
-                        console.log('⚠️ Referral bonus failed, but user was created');
+                        // Update the user's balance to show they got the bonus
+                        await supabaseClient
+                            .from('profiles')
+                            .update({ 
+                                balance: REFERRAL_BONUS,
+                                referred_by: referralCode 
+                            })
+                            .eq('id', newUser.id);
                     }
                 }
 
                 return { data: newUser, error: null };
 
             } catch (error) {
-                console.error('❌ Error in createTelegramUser:', error);
                 return { data: null, error: error };
             }
         }
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing NemexCoin Registration...');
-
             try {
                 // Initialize Supabase client
                 supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
@@ -539,19 +519,16 @@
                     }
                 });
 
-                console.log('✅ Supabase client created successfully');
-
-                // FIXED: Detect referral code FIRST - before anything else
+                // Detect referral code FIRST
                 detectReferralCode();
 
-                // Initialize Telegram first
+                // Initialize Telegram
                 initializeTelegram();
 
-                // Check if user is already logged in (after Telegram check)
+                // Check if user is already logged in
                 setTimeout(() => checkExistingSession(), 500);
 
             } catch (error) {
-                console.error('❌ Initialization failed:', error);
                 showError('Failed to initialize. Please refresh the page.');
             }
         });
@@ -559,36 +536,26 @@
         // Initialize Telegram Web App
         function initializeTelegram() {
             if (window.Telegram && window.Telegram.WebApp) {
-                console.log('📱 Telegram Web App detected');
                 isTelegramApp = true;
 
                 const tg = window.Telegram.WebApp;
 
                 try {
-                    // Expand to full screen
                     tg.expand();
-
-                    // Set theme colors
                     tg.setHeaderColor('#FFD700');
                     tg.setBackgroundColor('#0f0f23');
 
-                    // Get user info
                     telegramUser = tg.initDataUnsafe?.user;
 
                     if (telegramUser) {
-                        console.log('👤 Telegram user detected:', telegramUser);
                         handleTelegramUser();
                     }
 
-                    // Add Telegram class to body for specific styling
                     document.body.classList.add('telegram-app');
 
                 } catch (error) {
-                    console.error('❌ Telegram initialization error:', error);
+                    console.error('Telegram initialization error:', error);
                 }
-            } else {
-                console.log('🌐 Running in regular browser');
-                isTelegramApp = false;
             }
         }
 
@@ -596,7 +563,6 @@
         function handleTelegramUser() {
             if (!telegramUser) return;
 
-            // Show Telegram info
             const telegramInfo = document.getElementById('telegramInfo');
             const welcomeTitle = document.getElementById('welcomeTitle');
             const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
@@ -604,7 +570,6 @@
 
             telegramInfo.style.display = 'block';
 
-            // Update welcome title to include referral info if applicable
             if (referralCode) {
                 welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referralCode}`;
             } else {
@@ -612,33 +577,25 @@
             }
 
             telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
-
-            // Pre-fill full name for Telegram users
             fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
         }
 
-        // FIXED: Check if user is already logged in
+        // Check if user is already logged in
         async function checkExistingSession() {
             try {
-                // Check for Telegram session first
                 const telegramUserData = localStorage.getItem('nemex_telegram_user');
                 if (telegramUserData) {
-                    console.log('📱 Found Telegram session, redirecting...');
                     window.location.href = 'dashboard.html';
                     return;
                 }
 
-                // Check for web session
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
-                    console.log('🔑 Found web session, redirecting...');
                     window.location.href = 'dashboard.html';
                     return;
                 }
 
-                // If we're in Telegram with a user, check if they have an account
                 if (isTelegramApp && telegramUser) {
-                    console.log('📱 Telegram user detected, checking account...');
                     await checkTelegramAccount();
                 }
 
@@ -657,15 +614,11 @@
                     .single();
 
                 if (existingUser) {
-                    // User already has an account - redirect to login
-                    console.log('Telegram user already has account, redirecting to login...');
                     showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting to login...`);
-
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 2000);
                 }
-                // If no account found, continue with registration
 
             } catch (error) {
                 if (error.code !== 'PGRST116') {
@@ -674,7 +627,7 @@
             }
         }
 
-        // FIXED: Telegram registration button handler
+        // Telegram registration button handler
         document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
             const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
             const loading = document.getElementById('loading');
@@ -687,8 +640,6 @@
                 if (!telegramUser) {
                     throw new Error('Telegram user not available');
                 }
-
-                console.log('📱 Processing Telegram registration...');
 
                 // Check if Telegram user already exists
                 const { data: existingUser, error: checkError } = await supabaseClient
@@ -703,20 +654,16 @@
 
                 if (checkError && checkError.code === 'PGRST116') {
                     // Create new Telegram user
-                    console.log('Creating new Telegram user account...');
                     const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
 
                     if (createError) {
                         throw createError;
                     }
 
-                    console.log('✅ Telegram user account created:', newUser);
-
                     // Set session and redirect to dashboard
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
                     localStorage.setItem('isLoggedIn', 'true');
 
-                    // Show success message with referral info if applicable
                     let successMessage = 'Account created successfully! Welcome to NemexCoin! 🚀';
                     if (referralCode) {
                         successMessage += ` You were referred by ${referralCode} - 30 NMX bonus applied! 🎉`;
@@ -734,8 +681,6 @@
                 }
 
             } catch (error) {
-                console.error('❌ Telegram registration failed:', error);
-
                 if (error.message.includes('already exists')) {
                     showError('This Telegram account is already registered. Please login instead.');
                     setTimeout(() => {
@@ -783,15 +728,9 @@
             return true;
         }
 
-        // FIXED: Registration function for email/password
+        // Registration function for email/password
         async function registerUser(email, password, fullName) {
             try {
-                console.log('📝 Starting email registration...');
-
-                if (!supabaseClient) {
-                    throw new Error('Authentication service not available');
-                }
-
                 const userReferralCode = generateReferralCode();
 
                 const { data, error } = await supabaseClient.auth.signUp({
@@ -817,7 +756,7 @@
                                 id: data.user.id,
                                 email: email,
                                 full_name: fullName,
-                                balance: 0, // FIXED: Starting balance set to 0
+                                balance: 0,
                                 last_claim: null,
                                 referral_code: userReferralCode,
                                 referral_slots: 10,
@@ -826,28 +765,15 @@
                             }
                         ]);
 
-                    if (profileError) {
-                        console.error('Error creating profile:', profileError);
-                        // Continue anyway, profile can be created later
-                    } else {
-                        // FIXED: Process referral bonus for email users
-                        if (referralCode) {
-                            console.log('🎁 Processing referral bonus for email user...');
-                            const bonusSuccess = await processReferralBonus(data.user.id, referralCode);
-                            if (bonusSuccess) {
-                                console.log('✅ Referral bonus applied successfully!');
-                            } else {
-                                console.log('⚠️ Referral bonus failed for email user');
-                            }
-                        }
+                    if (!profileError && referralCode) {
+                        // Process referral bonus for email users
+                        await processReferralBonus(data.user.id, referralCode);
                     }
                 }
 
-                console.log('✅ Registration successful:', data);
                 return data;
 
             } catch (error) {
-                console.error('❌ Registration failed:', error);
                 throw error;
             }
         }
@@ -892,8 +818,6 @@
                 }
 
             } catch (error) {
-                console.error('Registration error:', error);
-
                 if (error.message.includes('already registered') || error.message.includes('already exists')) {
                     showError('An account with this email already exists. Please sign in instead.');
                 } else if (error.message.includes('invalid email')) {
