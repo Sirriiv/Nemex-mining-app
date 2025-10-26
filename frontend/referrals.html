@@ -3,332 +3,392 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin - Register</title>
+    <title>Referrals - NemexCoin</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS remains exactly the same */
-        * {
-            margin: 0;
+        /* Your existing CSS remains the same */
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --error: #ff4444;
+            --warning: #ffbb33;
+        }
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
             padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
         }
-
-        body {
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
-            color: #ffffff;
-            min-height: 100vh;
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            flex-direction: column;
         }
-
-        .register-container {
-            width: 100%;
-            max-width: 400px;
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
+        .back-btn {
+            font-size: 20px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        .content-wrapper {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .referral-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 15px;
             text-align: center;
         }
-
-        .logo {
-            margin-bottom: 30px;
+        .stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
         }
-
-        .logo h1 {
-            font-size: 32px;
-            font-weight: bold;
-            color: #FFD700;
-            margin-bottom: 8px;
+        .stat-label {
+            font-size: 11px;
+            color: var(--muted);
         }
-
-        .logo .subtitle {
-            color: #cccccc;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .register-card {
-            background: rgba(13, 13, 28, 0.95);
-            padding: 40px 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        .register-card h2 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 30px;
-            color: #ffffff;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .input-field {
-            width: 100%;
-            padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        .referral-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid var(--gold);
             border-radius: 12px;
-            color: #ffffff;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: #FFD700;
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .input-field::placeholder {
-            color: #888888;
-        }
-
-        .register-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #FFD700, #b8941f);
-            color: #0f0f23;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        .register-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
-        }
-
-        .register-btn:disabled {
-            background: #666666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .divider {
-            position: relative;
-            margin: 25px 0;
-            color: #888888;
-            font-size: 14px;
-        }
-
-        .divider::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .divider span {
-            background: rgba(13, 13, 28, 0.95);
-            padding: 0 20px;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            padding: 20px;
+            text-align: center;
             margin-bottom: 25px;
+        }
+        .referral-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--gold);
+        }
+        .referral-desc {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .referral-link-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .referral-link {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            color: var(--muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .copy-btn {
+            background: var(--gold);
+            color: var(--darker-bg);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 15px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .copy-btn:hover {
+            background: #b8941f;
+        }
+        .share-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .share-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 8px;
         }
-
-        .social-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.2);
+        .share-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
         }
-
-        .social-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        /* NEW: Link type selector */
+        .link-type-selector {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 15px;
         }
-
-        .telegram-btn {
-            background: linear-gradient(135deg, #0088cc, #006699);
-            border: 1px solid rgba(0, 136, 204, 0.3);
+        .link-type-btn {
+            flex: 1;
+            padding: 8px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 11px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.3s;
         }
-
-        .telegram-btn:hover {
-            background: linear-gradient(135deg, #0099e6, #0077b3);
-            border-color: rgba(0, 136, 204, 0.5);
-        }
-
-        .signin-link {
-            margin-top: 20px;
-            color: #cccccc;
-            font-size: 14px;
-        }
-
-        .signin-link a {
-            color: #FFD700;
-            text-decoration: none;
+        .link-type-btn.active {
+            background: var(--gold);
+            color: var(--darker-bg);
             font-weight: 600;
         }
-
-        .signin-link a:hover {
-            text-decoration: underline;
+        /* REMOVED: .bonus-info styles */
+        .referrals-list {
+            margin-top: 25px;
         }
-
-        .error-message {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid rgba(255, 68, 68, 0.3);
-            color: #ff4444;
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: var(--gold);
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .referral-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            position: relative;
+        }
+        .referral-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            color: var(--darker-bg);
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .referral-info {
+            flex: 1;
+        }
+        .referral-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+            font-size: 14px;
+        }
+        .referral-details {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .referral-date, .referral-earned {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .referral-status {
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        .status-active {
+            background: var(--success);
+            color: var(--darker-bg);
+        }
+        .status-inactive {
+            background: var(--warning);
+            color: var(--darker-bg);
+        }
+        .status-pending {
+            background: var(--muted);
+            color: var(--dark-bg);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+        }
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--gold);
+        }
+        .message {
             padding: 12px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin: 10px 0;
             font-size: 14px;
+            text-align: center;
             display: none;
         }
-
         .success-message {
             background: rgba(0, 200, 81, 0.1);
-            border: 1px solid rgba(0, 200, 81, 0.3);
-            color: #00C851;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
+            border: 1px solid var(--success);
+            color: var(--success);
         }
-
-        .loading {
-            color: #FFD700;
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
+        .error-message {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
         }
-
-        .telegram-info {
-            background: rgba(0, 136, 204, 0.1);
-            border: 1px solid rgba(0, 136, 204, 0.3);
-            color: #0088cc;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .referral-banner {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .referral-banner h3 {
-            color: #FFD700;
-            margin-bottom: 8px;
-            font-size: 16px;
-        }
-
-        .referral-banner p {
-            color: #cccccc;
-            font-size: 14px;
-            margin: 0;
-        }
-
-        @media (max-width: 480px) {
-            .register-card {
-                padding: 30px 20px;
-            }
-
-            .register-container {
-                padding: 10px;
-            }
+        .telegram-app .header {
+            padding-top: 20px !important;
         }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <div class="logo">
-            <h1>NemexCoin</h1>
-            <div class="subtitle">Create Account</div>
-        </div>
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <a href="dashboard.html" class="back-btn">←</a>
+                <div class="header-title">👥 Referrals</div>
+                <div style="width: 20px;"></div>
+            </header>
 
-        <div class="register-card">
-            <h2 id="welcomeTitle">Create Your Account</h2>
-
-            <!-- Referral Banner (Shows when referred by someone) -->
-            <div class="referral-banner" id="referralBanner" style="display: none;">
-                <h3>🎉 You've been referred!</h3>
-                <p>You'll get <strong>30 NMX</strong> bonus after registration!</p>
-            </div>
-
-            <!-- Telegram Info Message -->
-            <div class="telegram-info" id="telegramInfo">
-                📱 <strong>Telegram User Detected!</strong><br>
-                You can create an account with Telegram or use email/password.
-            </div>
-
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
-
-            <form id="registerForm">
-                <div class="form-group">
-                    <input type="text" class="input-field" id="fullName" placeholder="Full Name" required>
+            <div class="referral-section">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalReferrals">0</div>
+                        <div class="stat-label">Total Referrals</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="availableSlots">10</div>
+                        <div class="stat-label">Available Slots</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalEarned">0</div>
+                        <div class="stat-label">Bonus Earned</div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <input type="email" class="input-field" id="email" placeholder="Email Address" required>
+                <!-- Referral Sharing Card -->
+                <div class="referral-card">
+                    <div class="referral-title">Invite Friends & Earn</div>
+                    <div class="referral-desc">
+                        Share your referral link and earn <strong>30 NMXp</strong> for each active friend!<br>
+                        <small>Max 10 referrals per user</small>
+                    </div>
+
+                    <!-- NEW: Link Type Selector -->
+                    <div class="link-type-selector">
+                        <button class="link-type-btn active" onclick="switchLinkType('direct')">🌐 Web Link</button>
+                        <button class="link-type-btn" onclick="switchLinkType('telegram')">📱 Telegram Link</button>
+                    </div>
+
+                    <div class="referral-link-container">
+                        <input type="text" class="referral-link" id="referralLink" readonly>
+                        <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
+                    </div>
+
+                    <div class="share-buttons">
+                        <button class="share-btn" onclick="shareWhatsApp()">
+                            📱 WhatsApp
+                        </button>
+                        <button class="share-btn" onclick="shareTelegram()">
+                            ✈️ Telegram
+                        </button>
+                        <button class="share-btn" onclick="shareTwitter()">
+                            🐦 Twitter
+                        </button>
+                        <button class="share-btn" onclick="shareEmail()">
+                            📧 Email
+                        </button>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <input type="password" class="input-field" id="password" placeholder="Password" required minlength="6">
+                <!-- Messages -->
+                <div class="message success-message" id="successMessage"></div>
+                <div class="message error-message" id="errorMessage"></div>
+
+                <!-- Referrals List -->
+                <div class="referrals-list">
+                    <div class="section-title">
+                        Your Referrals
+                        <button class="refresh-btn" onclick="loadReferralData()">🔄</button>
+                    </div>
+
+                    <div id="referralsList">
+                        <div class="loading">Loading referrals...</div>
+                    </div>
                 </div>
-
-                <div class="form-group">
-                    <input type="password" class="input-field" id="confirmPassword" placeholder="Confirm Password" required>
-                </div>
-
-                <button type="submit" class="register-btn" id="registerBtn">
-                    Create Account
-                </button>
-
-                <div class="loading" id="loading">
-                    🔄 Creating your account...
-                </div>
-            </form>
-
-            <div class="divider">
-                <span>OR CONTINUE WITH</span>
-            </div>
-
-            <!-- Telegram Registration Button -->
-            <button class="social-btn telegram-btn" id="telegramRegisterBtn">
-                <span>📱</span> Register with Telegram
-            </button>
-
-            <button class="social-btn" disabled>
-                <span>🔍</span> Continue with Google
-            </button>
-
-            <div class="signin-link">
-                Already have an account? <a href="login.html">Sign In</a>
             </div>
         </div>
     </div>
@@ -341,588 +401,374 @@
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
-        let supabaseClient;
-        let isTelegramApp = false;
-        let telegramUser = null;
-        let referralCode = null;
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let user = null;
+        let referralData = null;
+        let currentLinkType = 'direct'; // 'direct' or 'telegram'
         const REFERRAL_BONUS = 30;
-
-        // Generate random referral code
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        // Detect referral code from URL
-        function detectReferralCode() {
-            const urlParams = new URLSearchParams(window.location.search);
-            let refCode = urlParams.get('start') || urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('referral');
-
-            if (refCode) {
-                referralCode = refCode.toUpperCase();
-
-                // Show referral banner
-                const referralBanner = document.getElementById('referralBanner');
-                referralBanner.style.display = 'block';
-
-                // Update welcome message
-                const welcomeTitle = document.getElementById('welcomeTitle');
-                welcomeTitle.textContent = `Create Account - Referred by ${referralCode}`;
-
-                showSuccess(`🎉 You were referred by ${referralCode}! You'll get bonus NMX after registration.`);
-                return true;
-            }
-            return false;
-        }
-
-        // ========== DEBUG VERSION: Process referral bonus ==========
-        async function processReferralBonus(newUserId, referralCode) {
-            try {
-                console.log('🔴🔴🔴 REFERRAL PROCESSING STARTED!');
-                console.log('💰 PROCESSING REFERRAL BONUS:', { newUserId, referralCode });
-                
-                if (!newUserId || !referralCode) {
-                    console.error('❌ Missing required data');
-                    return false;
-                }
-
-                // Find the referrer by their referral code
-                console.log('🔍 Searching for referrer with code:', referralCode);
-                const { data: referrer, error: referrerError } = await supabaseClient
-                    .from('profiles')
-                    .select('id, telegram_id, used_slots, referral_slots, balance, total_earned_from_refs, referral_code')
-                    .eq('referral_code', referralCode)
-                    .single();
-
-                if (referrerError) {
-                    console.error('❌ Error finding referrer:', referrerError);
-                    return false;
-                }
-
-                if (!referrer) {
-                    console.error('❌ Referrer not found for code:', referralCode);
-                    return false;
-                }
-
-                console.log('🎯 Referrer found:', referrer);
-
-                // Check if referrer has available slots
-                const availableSlots = (referrer.referral_slots || 10) - (referrer.used_slots || 0);
-                if (availableSlots <= 0) {
-                    console.error('❌ Referrer has no available slots');
-                    return false;
-                }
-
-                console.log('✅ Referrer has available slots:', availableSlots);
-
-                // Create referral record
-                console.log('📝 Creating referral record...');
-                const { data: referralRecord, error: referralError } = await supabaseClient
-                    .from('referrals')
-                    .insert([{
-                        referrer_id: referrer.id,
-                        referred_id: newUserId,
-                        referral_code: referralCode,
-                        bonus_amount: REFERRAL_BONUS,
-                        bonus_claimed: true,
-                        status: 'completed'
-                    }])
-                    .select()
-                    .single();
-
-                if (referralError) {
-                    console.error('❌ Error creating referral record:', referralError);
-                    return false;
-                }
-
-                console.log('✅ Referral record created:', referralRecord);
-
-                // Update referrer's stats and balance
-                console.log('🔄 Updating referrer stats...');
-                const { error: updateError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        used_slots: (referrer.used_slots || 0) + 1,
-                        balance: (referrer.balance || 0) + REFERRAL_BONUS,
-                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', referrer.id);
-
-                if (updateError) {
-                    console.error('❌ Error updating referrer stats:', updateError);
-                    return false;
-                }
-
-                console.log('✅ Referrer stats updated');
-
-                // Award bonus to new user
-                console.log('🎁 Awarding bonus to new user...');
-                const { error: userBonusError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        balance: REFERRAL_BONUS,
-                        referred_by: referralCode,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', newUserId);
-
-                if (userBonusError) {
-                    console.error('❌ Error awarding bonus to new user:', userBonusError);
-                    return false;
-                }
-
-                console.log('✅ New user bonus awarded');
-                console.log('🎉 REFERRAL BONUS PROCESSING COMPLETE!');
-
-                return true;
-
-            } catch (error) {
-                console.error('❌ CRITICAL ERROR in processReferralBonus:', error);
-                return false;
-            }
-        }
-
-        // Create new Telegram user
-        async function createTelegramUser(telegramUser) {
-            const userReferralCode = generateReferralCode();
-
-            try {
-                console.log('📱 Creating Telegram user with code:', userReferralCode);
-
-                const { data: newUser, error: createError } = await supabaseClient
-                    .from('profiles')
-                    .insert([
-                        {
-                            telegram_id: telegramUser.id,
-                            username: telegramUser.username || `tg_${telegramUser.id}`,
-                            full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                            avatar_url: telegramUser.photo_url,
-                            balance: 0,
-                            last_claim: null,
-                            referral_code: userReferralCode,
-                            referral_slots: 10,
-                            used_slots: 0,
-                            created_via: 'telegram',
-                            referred_by: referralCode || null
-                        }
-                    ])
-                    .select()
-                    .single();
-
-                if (createError) {
-                    console.error('❌ Error creating Telegram user:', createError);
-                    return { data: null, error: createError };
-                }
-
-                console.log('✅ Telegram user created:', newUser);
-
-                // Process referral bonus if applicable
-                if (referralCode && newUser) {
-                    console.log('🎁 Processing referral bonus for Telegram user...');
-                    const bonusSuccess = await processReferralBonus(newUser.id, referralCode);
-                    
-                    if (bonusSuccess) {
-                        console.log('✅ Referral bonus applied successfully for Telegram user!');
-                    } else {
-                        console.log('⚠️ Referral bonus failed for Telegram user');
-                    }
-                }
-
-                return { data: newUser, error: null };
-
-            } catch (error) {
-                console.error('❌ Error in createTelegramUser:', error);
-                return { data: null, error: error };
-            }
-        }
+        const TELEGRAM_BOT_USERNAME = 'SiNemexbot';
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            try {
-                // Initialize Supabase client
-                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
-                    auth: {
-                        persistSession: true,
-                        autoRefreshToken: true
-                    }
-                });
-
-                // Detect referral code FIRST
-                detectReferralCode();
-
-                // Initialize Telegram
-                initializeTelegram();
-
-                // Check if user is already logged in
-                setTimeout(() => checkExistingSession(), 500);
-
-            } catch (error) {
-                showError('Failed to initialize. Please refresh the page.');
-            }
+            console.log('🚀 Initializing Referrals Page...');
+            initializePage();
         });
 
-        // Initialize Telegram Web App
-        function initializeTelegram() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                isTelegramApp = true;
-
-                const tg = window.Telegram.WebApp;
-
-                try {
-                    tg.expand();
-                    tg.setHeaderColor('#FFD700');
-                    tg.setBackgroundColor('#0f0f23');
-
-                    telegramUser = tg.initDataUnsafe?.user;
-
-                    if (telegramUser) {
-                        handleTelegramUser();
-                    }
-
-                    document.body.classList.add('telegram-app');
-
-                } catch (error) {
-                    console.error('Telegram initialization error:', error);
-                }
-            }
-        }
-
-        // Handle Telegram user
-        function handleTelegramUser() {
-            if (!telegramUser) return;
-
-            const telegramInfo = document.getElementById('telegramInfo');
-            const welcomeTitle = document.getElementById('welcomeTitle');
-            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
-            const fullNameField = document.getElementById('fullName');
-
-            telegramInfo.style.display = 'block';
-
-            if (referralCode) {
-                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referralCode}`;
-            } else {
-                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
-            }
-
-            telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
-            fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
-        }
-
-        // Check if user is already logged in
-        async function checkExistingSession() {
+        // Initialize page
+        async function initializePage() {
             try {
+                // Check authentication
                 const telegramUserData = localStorage.getItem('nemex_telegram_user');
                 if (telegramUserData) {
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                if (isTelegramApp && telegramUser) {
-                    await checkTelegramAccount();
-                }
-
-            } catch (error) {
-                console.error('Session check error:', error);
-            }
-        }
-
-        // Check if Telegram user already has an account
-        async function checkTelegramAccount() {
-            try {
-                const { data: existingUser, error } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (existingUser) {
-                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting to login...`);
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                }
-
-            } catch (error) {
-                if (error.code !== 'PGRST116') {
-                    console.error('Error checking Telegram account:', error);
-                }
-            }
-        }
-
-        // Telegram registration button handler
-        document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
-            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
-            const loading = document.getElementById('loading');
-
-            telegramRegisterBtn.disabled = true;
-            loading.style.display = 'block';
-            hideMessages();
-
-            try {
-                if (!telegramUser) {
-                    throw new Error('Telegram user not available');
-                }
-
-                // Check if Telegram user already exists
-                const { data: existingUser, error: checkError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (existingUser) {
-                    throw new Error('Telegram account already exists. Please login instead.');
-                }
-
-                if (checkError && checkError.code === 'PGRST116') {
-                    // Create new Telegram user
-                    const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
-
-                    if (createError) {
-                        throw createError;
-                    }
-
-                    // Set session and redirect to dashboard
-                    localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
-                    localStorage.setItem('isLoggedIn', 'true');
-
-                    let successMessage = 'Account created successfully! Welcome to NemexCoin! 🚀';
-                    if (referralCode) {
-                        successMessage += ` You were referred by ${referralCode} - 30 NMX bonus applied! 🎉`;
-                    }
-
-                    showSuccess(successMessage);
-
-                    // Redirect to dashboard
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-
-                } else if (checkError) {
-                    throw checkError;
-                }
-
-            } catch (error) {
-                if (error.message.includes('already exists')) {
-                    showError('This Telegram account is already registered. Please login instead.');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
+                    user = JSON.parse(telegramUserData);
                 } else {
-                    showError('Failed to register with Telegram: ' + error.message);
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (!session) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    user = session.user;
                 }
-            } finally {
-                telegramRegisterBtn.disabled = false;
-                loading.style.display = 'none';
+
+                console.log('👤 Current user:', user);
+
+                // Initialize Telegram if in Telegram
+                initializeTelegram();
+
+                // Load referral data
+                await loadReferralData();
+
+            } catch (error) {
+                console.error('❌ Page initialization failed:', error);
+                showError('Failed to load referrals. Please refresh.');
             }
-        });
-
-        // Password validation
-        function validateForm(fullName, email, password, confirmPassword) {
-            hideMessages();
-
-            if (!fullName.trim()) {
-                showError('Please enter your full name');
-                return false;
-            }
-
-            if (!email.trim()) {
-                showError('Please enter your email address');
-                return false;
-            }
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showError('Please enter a valid email address');
-                return false;
-            }
-
-            if (password.length < 6) {
-                showError('Password must be at least 6 characters long');
-                return false;
-            }
-
-            if (password !== confirmPassword) {
-                showError('Passwords do not match');
-                return false;
-            }
-
-            return true;
         }
 
-        // Registration function for email/password
-        async function registerUser(email, password, fullName) {
-            try {
-                const userReferralCode = generateReferralCode();
-                console.log('📝 Starting email registration with code:', userReferralCode);
+        // Initialize Telegram
+        function initializeTelegram() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                const tg = window.Telegram.WebApp;
+                tg.expand();
+                document.body.classList.add('telegram-app');
+            }
+        }
 
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
-                            full_name: fullName
-                        }
-                    }
+        // NEW: Switch between link types
+        function switchLinkType(type) {
+            currentLinkType = type;
+
+            // Update button states
+            document.querySelectorAll('.link-type-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update displayed link
+            updateReferralLink();
+        }
+
+        // NEW: Update referral link based on type
+        function updateReferralLink() {
+            if (!referralData) return;
+
+            let link = '';
+            if (currentLinkType === 'telegram') {
+                link = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${referralData.referral_code}`;
+            } else {
+                link = `https://nemex-backend.onrender.com/register.html?ref=${referralData.referral_code}`;
+            }
+
+            document.getElementById('referralLink').value = link;
+        }
+
+        // ========== FIXED: Load referral data ==========
+        async function loadReferralData() {
+            try {
+                showLoading();
+                console.log('🔄 Loading referral data for user:', user.id);
+
+                let queryCondition;
+
+                // Determine user ID based on authentication type
+                if (user.telegram_id) {
+                    queryCondition = { telegram_id: user.telegram_id };
+                } else {
+                    queryCondition = { id: user.id };
+                }
+
+                console.log('🔍 Query condition:', queryCondition);
+
+                // Load user's referral stats
+                const { data: stats, error: statsError } = await supabaseClient
+                    .from('profiles')
+                    .select('referral_code, referral_slots, used_slots, total_earned_from_refs')
+                    .match(queryCondition)
+                    .single();
+
+                if (statsError) {
+                    console.error('❌ Error loading referral stats:', statsError);
+                    throw statsError;
+                }
+
+                console.log('📊 Referral stats loaded:', stats);
+                referralData = stats;
+
+                // Update stats UI
+                document.getElementById('totalReferrals').textContent = stats.used_slots || 0;
+                document.getElementById('availableSlots').textContent = (stats.referral_slots || 10) - (stats.used_slots || 0);
+                document.getElementById('totalEarned').textContent = (stats.total_earned_from_refs || 0).toLocaleString();
+
+                // Update referral link
+                updateReferralLink();
+
+                console.log('🔗 Generated referral links:', {
+                    telegram: `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${stats.referral_code}`,
+                    direct: `https://nemex-backend.onrender.com/register.html?ref=${stats.referral_code}`
                 });
 
-                if (error) {
-                    throw error;
-                }
-
-                // Create user profile with referral code
-                if (data.user) {
-                    console.log('👤 Creating user profile...');
-                    const { error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .insert([
-                            {
-                                id: data.user.id,
-                                email: email,
-                                full_name: fullName,
-                                balance: 0,
-                                last_claim: null,
-                                referral_code: userReferralCode,
-                                referral_slots: 10,
-                                used_slots: 0,
-                                referred_by: referralCode || null
-                            }
-                        ]);
-
-                    if (profileError) {
-                        console.error('Error creating profile:', profileError);
-                        // Continue anyway
-                    }
-
-                    // Process referral bonus for email users
-                    if (referralCode) {
-                        console.log('🎁 Processing referral bonus for email user...');
-                        const bonusSuccess = await processReferralBonus(data.user.id, referralCode);
-                        
-                        if (bonusSuccess) {
-                            console.log('✅ Referral bonus applied successfully for email user!');
-                        } else {
-                            console.log('⚠️ Referral bonus failed for email user');
-                        }
-                    }
-                }
-
-                console.log('✅ Registration successful:', data);
-                return data;
+                // Load referrals list
+                await loadReferralsList();
 
             } catch (error) {
-                console.error('❌ Registration failed:', error);
-                throw error;
+                console.error('❌ Error loading referral data:', error);
+                showError('Failed to load referral data. Please try again.');
             }
         }
 
-        // Form submission for email/password registration
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const fullName = document.getElementById('fullName').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const registerBtn = document.getElementById('registerBtn');
-            const loading = document.getElementById('loading');
-
-            hideMessages();
-            registerBtn.disabled = true;
-            loading.style.display = 'block';
-
+        // ========== FIXED: Load referrals list ==========
+        async function loadReferralsList() {
             try {
-                if (!validateForm(fullName, email, password, confirmPassword)) {
-                    return;
-                }
+                console.log('🔄 Loading referrals list for user:', user.id);
 
-                const result = await registerUser(email, password, fullName);
+                // FIXED: Try multiple query approaches to find referrals
+                let referrals = [];
+                let error = null;
 
-                if (result.user) {
-                    let successMessage = '✅ Account created successfully! Please check your email to verify your account.';
-                    if (referralCode) {
-                        successMessage += ` You were referred by ${referralCode} - 30 NMX bonus applied! 🎉`;
+                // Approach 1: Query by referrer_id (most common)
+                let { data: referrals1, error: error1 } = await supabaseClient
+                    .from('referrals')
+                    .select(`
+                        *,
+                        referred_user:profiles!referrals_referred_id_fkey(full_name, username, created_at)
+                    `)
+                    .eq('referrer_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error1) {
+                    console.log('❌ Approach 1 failed:', error1);
+
+                    // Approach 2: Try different column name
+                    let { data: referrals2, error: error2 } = await supabaseClient
+                        .from('referrals')
+                        .select(`
+                            *,
+                            referred_user:profiles(full_name, username, created_at)
+                        `)
+                        .eq('referrer_id', user.id)
+                        .order('created_at', { ascending: false });
+
+                    if (error2) {
+                        console.log('❌ Approach 2 failed:', error2);
+
+                        // Approach 3: Try raw query to see what's in the table
+                        let { data: allReferrals, error: error3 } = await supabaseClient
+                            .from('referrals')
+                            .select('*')
+                            .limit(5);
+
+                        if (error3) {
+                            console.log('❌ Approach 3 failed:', error3);
+                            throw error3;
+                        } else {
+                            console.log('🔍 Sample referrals in database:', allReferrals);
+                            referrals = allReferrals || [];
+                        }
+                    } else {
+                        referrals = referrals2 || [];
                     }
-
-                    showSuccess(successMessage);
-
-                    // Clear form
-                    document.getElementById('registerForm').reset();
-
-                    // Redirect to login after 3 seconds
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 3000);
+                } else {
+                    referrals = referrals1 || [];
                 }
+
+                console.log('📝 Referrals found:', referrals);
+                displayReferralsList(referrals);
 
             } catch (error) {
-                if (error.message.includes('already registered') || error.message.includes('already exists')) {
-                    showError('An account with this email already exists. Please sign in instead.');
-                } else if (error.message.includes('invalid email')) {
-                    showError('Please enter a valid email address.');
-                } else if (error.message.includes('password')) {
-                    showError('Password is too weak. Please use a stronger password.');
-                } else if (error.message.includes('not available')) {
-                    showError('Authentication service unavailable. Please try again later.');
-                } else {
-                    showError('Registration failed: ' + error.message);
-                }
-
-            } finally {
-                registerBtn.disabled = false;
-                loading.style.display = 'none';
+                console.error('❌ Error loading referrals:', error);
+                document.getElementById('referralsList').innerHTML = `
+                    <div class="error-message">
+                        Failed to load referrals. <br>
+                        <small>Error: ${error.message}</small>
+                        <br><br>
+                        <button onclick="loadReferralData()" style="background: var(--gold); color: var(--darker-bg); border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer;">Try Again</button>
+                    </div>
+                `;
             }
-        });
+        }
 
-        // Real-time password validation
-        document.getElementById('confirmPassword').addEventListener('input', function() {
-            const password = document.getElementById('password').value;
-            const confirmPassword = this.value;
+        // Display referrals list
+        function displayReferralsList(referrals) {
+            const referralsList = document.getElementById('referralsList');
 
-            if (confirmPassword && password !== confirmPassword) {
-                this.style.borderColor = '#ff4444';
-            } else if (confirmPassword && password === confirmPassword) {
-                this.style.borderColor = '#00C851';
+            if (!referrals || referrals.length === 0) {
+                referralsList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">👥</div>
+                        <div>No referrals yet</div>
+                        <div style="font-size: 12px; margin-top: 8px;">
+                            Share your referral link to start earning!
+                        </div>
+                        <div style="font-size: 10px; margin-top: 15px; color: var(--warning);">
+                            🔍 Debug: Found ${referrals ? referrals.length : 0} referrals in database
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            referrals.forEach((referral, index) => {
+                const referredUser = referral.referred_user;
+                const referralDate = new Date(referral.created_at).toLocaleDateString();
+                const initials = getInitials(referredUser?.full_name || referredUser?.username || 'Unknown');
+                const status = referral.bonus_claimed ? 'active' : 'pending';
+
+                html += `
+                    <div class="referral-item">
+                        <div class="referral-avatar">${initials}</div>
+                        <div class="referral-info">
+                            <div class="referral-name">
+                                ${referredUser?.full_name || referredUser?.username || 'Unknown User'}
+                                <span class="referral-status status-${status}">
+                                    ${status.toUpperCase()}
+                                </span>
+                            </div>
+                            <div class="referral-details">
+                                <div class="referral-date">
+                                    📅 ${referralDate}
+                                </div>
+                                <div class="referral-earned">
+                                    💰 +${REFERRAL_BONUS} NMXp
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            referralsList.innerHTML = html;
+
+            // Add debug info
+            const debugInfo = document.createElement('div');
+            debugInfo.style.fontSize = '10px';
+            debugInfo.style.color = 'var(--muted)';
+            debugInfo.style.marginTop = '10px';
+            debugInfo.style.textAlign = 'center';
+            debugInfo.textContent = `🔍 Debug: Showing ${referrals.length} referrals`;
+            referralsList.appendChild(debugInfo);
+        }
+
+        // Get initials for avatar
+        function getInitials(name) {
+            return name.split(' ')
+                .map(word => word.charAt(0))
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+
+        // ========== ENHANCED COPY FUNCTION ==========
+        async function copyReferralLink() {
+            const link = document.getElementById('referralLink').value;
+
+            try {
+                await navigator.clipboard.writeText(link);
+                showSuccess('Referral link copied to clipboard! 📋');
+            } catch (error) {
+                // Fallback
+                const tempInput = document.createElement('input');
+                tempInput.value = link;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+                showSuccess('Referral link copied to clipboard! 📋');
+            }
+        }
+
+        // ========== ENHANCED SHARE FUNCTIONS ==========
+        function shareWhatsApp() {
+            const link = document.getElementById('referralLink').value;
+            const message = `Join me on NemexCoin and earn NMXp! 
+
+🔗 Register here: ${link}
+
+We both get 30 NMXp bonus! 🚀
+Max 10 referrals per user.`;
+
+            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareTelegram() {
+            const link = document.getElementById('referralLink').value;
+
+            if (window.Telegram && window.Telegram.WebApp) {
+                // In Telegram - use native sharing
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp! 🚀')}`;
+                window.Telegram.WebApp.openLink(shareUrl);
             } else {
-                this.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                // Outside Telegram - open share dialog
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp! 🚀')}`;
+                window.open(shareUrl, '_blank');
             }
-        });
+        }
+
+        function shareTwitter() {
+            const link = document.getElementById('referralLink').value;
+            const message = `Join me on NemexCoin and earn NMXp! 🚀 
+
+Register here: ${link}
+
+We both get 30 NMXp bonuses!`;
+
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareEmail() {
+            const link = document.getElementById('referralLink').value;
+            const subject = 'Join me on NemexCoin!';
+            const body = `Hi! Join me on NemexCoin and earn cryptocurrency!
+
+Register here: ${link}
+
+We'll both get 30 NMXp bonuses when you join!`;
+
+            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = url;
+        }
 
         // Helper functions
+        function showLoading() {
+            document.getElementById('referralsList').innerHTML = '<div class="loading">Loading referrals...</div>';
+        }
+
         function showError(message) {
             const errorElement = document.getElementById('errorMessage');
             errorElement.textContent = message;
             errorElement.style.display = 'block';
+            setTimeout(() => errorElement.style.display = 'none', 5000);
         }
 
         function showSuccess(message) {
             const successElement = document.getElementById('successMessage');
             successElement.textContent = message;
             successElement.style.display = 'block';
+            setTimeout(() => successElement.style.display = 'none', 5000);
         }
-
-        function hideMessages() {
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-        }
-
-        // Enter key support
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('registerForm').dispatchEvent(new Event('submit'));
-            }
-        });
     </script>
 </body>
-</html>
+</html> 
+
