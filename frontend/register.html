@@ -379,7 +379,7 @@
             return false;
         }
 
-        // ========== DEBUG VERSION: Process referral bonus ==========
+        // ========== FIXED VERSION: Process referral bonus ==========
         async function processReferralBonus(newUserId, referralCode) {
             try {
                 console.log('🔴🔴🔴 REFERRAL PROCESSING STARTED!');
@@ -419,7 +419,7 @@
 
                 console.log('✅ Referrer has available slots:', availableSlots);
 
-                // Create referral record
+                // Create referral record (with error handling for foreign key issues)
                 console.log('📝 Creating referral record...');
                 const { data: referralRecord, error: referralError } = await supabaseClient
                     .from('referrals')
@@ -436,6 +436,44 @@
 
                 if (referralError) {
                     console.error('❌ Error creating referral record:', referralError);
+                    
+                    // If foreign key error, try alternative approach
+                    if (referralError.code === 'PGRST200' || referralError.message.includes('foreign key')) {
+                        console.log('🔄 Trying alternative referral tracking...');
+                        
+                        // Update both users directly without referral table
+                        const { error: updateError } = await supabaseClient
+                            .from('profiles')
+                            .update({
+                                used_slots: (referrer.used_slots || 0) + 1,
+                                balance: (referrer.balance || 0) + REFERRAL_BONUS,
+                                total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', referrer.id);
+
+                        if (updateError) {
+                            console.error('❌ Error updating referrer stats:', updateError);
+                            return false;
+                        }
+
+                        const { error: userBonusError } = await supabaseClient
+                            .from('profiles')
+                            .update({
+                                balance: REFERRAL_BONUS,
+                                referred_by: referralCode,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', newUserId);
+
+                        if (userBonusError) {
+                            console.error('❌ Error awarding bonus to new user:', userBonusError);
+                            return false;
+                        }
+
+                        console.log('✅ Referral bonus applied via direct update');
+                        return true;
+                    }
                     return false;
                 }
 
@@ -528,8 +566,10 @@
                     
                     if (bonusSuccess) {
                         console.log('✅ Referral bonus applied successfully for Telegram user!');
+                        showSuccess(`🎉 Referral bonus applied! You received ${REFERRAL_BONUS} NMX!`);
                     } else {
                         console.log('⚠️ Referral bonus failed for Telegram user');
+                        showError('⚠️ Referral bonus could not be applied. Please contact support.');
                     }
                 }
 
@@ -812,8 +852,10 @@
                         
                         if (bonusSuccess) {
                             console.log('✅ Referral bonus applied successfully for email user!');
+                            showSuccess(`🎉 Referral bonus applied! You received ${REFERRAL_BONUS} NMX!`);
                         } else {
                             console.log('⚠️ Referral bonus failed for email user');
+                            showError('⚠️ Referral bonus could not be applied. Please contact support.');
                         }
                     }
                 }
