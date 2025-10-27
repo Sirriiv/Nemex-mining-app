@@ -84,41 +84,66 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* REMOVED: Referral Stats Styles */
+        /* NEW: Referral Quick Stats */
+        .referral-quick-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 280px;
+        }
+        .quick-stat {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+        .quick-stat-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+        .quick-stat-label {
+            font-size: 10px;
+            color: var(--muted);
+        }
 
         /* ENLARGED: NEMEXCOIN LOGO */
         .nemex-logo{
-            width: 180px; /* Increased from 140px */
-            height: 180px; /* Increased from 140px */
-            margin: 30px auto; /* Increased margin */
+            width: 180px;
+            height: 180px;
+            margin: 30px auto;
             position:relative;
             display:flex;
             align-items:center;
             justify-content:center
         }
         .logo-container{
-            width: 160px; /* Increased from 120px */
-            height: 160px; /* Increased from 120px */
+            width: 160px;
+            height: 160px;
             position:relative;
-            filter:drop-shadow(0 0 20px rgba(212,175,55,0.5)) /* Enhanced shadow */
+            filter:drop-shadow(0 0 20px rgba(212,175,55,0.5))
         }
         .logo-base{
             width:100%;
             height:100%;
             background:var(--darker-bg);
             border-radius:50%;
-            border:4px solid var(--gold); /* Thicker border */
+            border:4px solid var(--gold);
             position:relative;
             overflow:hidden;
-            box-shadow:inset 0 0 30px rgba(212,175,55,0.15),0 0 40px rgba(212,175,55,0.3) /* Enhanced glow */
+            box-shadow:inset 0 0 30px rgba(212,175,55,0.15),0 0 40px rgba(212,175,55,0.3)
         }
         .logo-center{
             position:absolute;
             top:50%;
             left:50%;
             transform:translate(-50%,-50%);
-            width: 70px; /* Increased from 50px */
-            height: 70px; /* Increased from 50px */
+            width: 70px;
+            height: 70px;
         }
         .infinity-symbol{
             width:100%;
@@ -128,9 +153,9 @@
         .infinity-symbol::before,.infinity-symbol::after{
             content:'';
             position:absolute;
-            width: 35px; /* Increased from 25px */
-            height: 35px; /* Increased from 25px */
-            border:4px solid var(--gold); /* Thicker border */
+            width: 35px;
+            height: 35px;
+            border:4px solid var(--gold);
             border-radius:50%;
             border-top-color:transparent;
             border-left-color:transparent;
@@ -158,7 +183,7 @@
         .circuit-line{
             position:absolute;
             background:var(--gold);
-            opacity:0.7 /* Increased opacity */
+            opacity:0.7
         }
         .circuit-line:nth-child(1){top:20%;left:10%;width:18px;height:2px;transform:rotate(30deg)}
         .circuit-line:nth-child(2){top:30%;right:15%;width:15px;height:2px;transform:rotate(-45deg)}
@@ -167,11 +192,11 @@
         .circuit-line:nth-child(5){top:45%;left:5%;width:10px;height:2px;transform:rotate(75deg)}
         .circuit-pad{
             position:absolute;
-            width:5px; /* Increased from 4px */
-            height:5px; /* Increased from 4px */
+            width:5px;
+            height:5px;
             background:var(--gold);
             border-radius:50%;
-            opacity:0.9 /* Increased opacity */
+            opacity:0.9
         }
         .circuit-pad:nth-child(6){top:15%;left:25%}
         .circuit-pad:nth-child(7){top:35%;right:20%}
@@ -179,12 +204,12 @@
         .circuit-pad:nth-child(9){bottom:20%;right:30%}
         .logo-glow{
             position:absolute;
-            top:-15px; /* Increased from -10px */
-            left:-15px; /* Increased from -10px */
-            right:-15px; /* Increased from -10px */
-            bottom:-15px; /* Increased from -10px */
+            top:-15px;
+            left:-15px;
+            right:-15px;
+            bottom:-15px;
             border-radius:50%;
-            background:radial-gradient(circle,rgba(212,175,55,0.3)0%,rgba(212,175,55,0)70%); /* Enhanced glow */
+            background:radial-gradient(circle,rgba(212,175,55,0.3)0%,rgba(212,175,55,0)70%);
             animation:glowPulse 3s ease-in-out infinite;
             z-index:-1
         }
@@ -459,7 +484,17 @@
                     <div class="balance-amount" id="balanceAmount">0</div>
                 </div>
 
-                <!-- REMOVED: Referral Stats Section -->
+                <!-- NEW: Referral Quick Stats -->
+                <div class="referral-quick-stats">
+                    <div class="quick-stat">
+                        <div class="quick-stat-number" id="referralCount">0</div>
+                        <div class="quick-stat-label">Referrals</div>
+                    </div>
+                    <div class="quick-stat">
+                        <div class="quick-stat-number" id="referralEarned">0</div>
+                        <div class="quick-stat-label">Earned</div>
+                    </div>
+                </div>
 
                 <!-- ENLARGED NEMEXCOIN LOGO -->
                 <div class="nemex-logo">
@@ -553,6 +588,7 @@
         let telegramUser = null;
         const CLAIM_AMOUNT = 30;
         const CLAIM_COOLDOWN = 12 * 60 * 60 * 1000;
+        const MAX_REFERRAL_SLOTS = 10; // BLUM-style limit
 
         // Format number with commas
         function formatNumber(number) {
@@ -564,11 +600,11 @@
             if (telegramUser && telegramUser.username) {
                 return telegramUser.username;
             }
-            
+
             if (telegramUser) {
                 return `tg_${telegramUser.id}`;
             }
-            
+
             // For web users, generate a random username
             const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
             let result = 'user_';
@@ -578,10 +614,10 @@
             return result;
         }
 
-        // FIXED: Load user data with username-based referral system
+        // ========== BLUM-STYLE: Enhanced User Data Loading ==========
         async function loadUserData() {
             try {
-                console.log('🔄 Loading user data...');
+                console.log('🔄 Loading user data with BLUM-style referral system...');
 
                 let profile;
                 let userId;
@@ -619,14 +655,20 @@
                     userId = data.id;
                 }
 
-                // FIXED: Update UI with actual data from database
+                // Update UI with actual data from database
                 userBalance = parseFloat(profile.balance) || 0;
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
-                console.log('💰 Balance loaded from database:', userBalance);
-                console.log('⏰ Last claim:', lastClaimTime);
+                // NEW: Update referral quick stats
+                updateReferralQuickStats(profile);
+
+                console.log('💰 Balance loaded:', userBalance);
                 console.log('👤 Username:', profile.username);
+                console.log('📊 Referral stats:', {
+                    used_slots: profile.used_slots,
+                    total_earned: profile.total_earned_from_refs
+                });
 
                 // Generate username if it doesn't exist
                 if (!profile.username) {
@@ -637,7 +679,7 @@
                         .from('profiles')
                         .update({ 
                             username: username,
-                            referral_slots: 10,
+                            referral_slots: MAX_REFERRAL_SLOTS,
                             used_slots: 0,
                             total_earned_from_refs: 0
                         })
@@ -649,8 +691,6 @@
                     }
 
                     console.log('✅ Username generated:', username);
-                } else {
-                    console.log('✅ Username exists:', profile.username);
                 }
 
                 return profile;
@@ -658,6 +698,30 @@
             } catch (error) {
                 console.error('❌ Error loading user data:', error);
                 return null;
+            }
+        }
+
+        // NEW: Update referral quick stats
+        function updateReferralQuickStats(profile) {
+            const referralCount = profile.used_slots || 0;
+            const referralEarned = profile.total_earned_from_refs || 0;
+
+            document.getElementById('referralCount').textContent = referralCount;
+            document.getElementById('referralEarned').textContent = formatNumber(referralEarned);
+
+            // Show notification if new referrals detected
+            checkForNewReferrals(profile);
+        }
+
+        // NEW: Check for new referrals and show notifications
+        function checkForNewReferrals(currentProfile) {
+            const currentReferralCount = currentProfile.used_slots || 0;
+            const currentEarned = currentProfile.total_earned_from_refs || 0;
+
+            // You can add logic here to compare with previous state
+            // and show notifications for new referrals
+            if (currentReferralCount > 0) {
+                console.log(`🎉 You have ${currentReferralCount} referrals!`);
             }
         }
 
@@ -691,12 +755,12 @@
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing NemexCoin Dashboard...');
+            console.log('🚀 Initializing NemexCoin Dashboard with BLUM-style referrals...');
             initializeDashboard();
             initializeNavigation();
         });
 
-        // ========== FIXED: Initialize navigation with referrals support ==========
+        // ========== BLUM-STYLE: Enhanced Navigation ==========
         function initializeNavigation() {
             // Settings modal functionality
             const settingsIcon = document.querySelector('.settings-icon');
@@ -722,7 +786,7 @@
                 try {
                     if (isTelegramApp) {
                         localStorage.removeItem('nemex_telegram_user');
-                        localStorage.removeItem('current_user_data'); // Clear referral data
+                        localStorage.removeItem('current_user_data');
                         showSuccess('Logged out successfully!');
                         setTimeout(() => {
                             if (window.Telegram && window.Telegram.WebApp) {
@@ -736,7 +800,7 @@
                         localStorage.removeItem('isLoggedIn');
                         localStorage.removeItem('userEmail');
                         localStorage.removeItem('userId');
-                        localStorage.removeItem('current_user_data'); // Clear referral data
+                        localStorage.removeItem('current_user_data');
                         window.location.href = 'login.html';
                     }
                 } catch (error) {
@@ -745,7 +809,7 @@
                 }
             });
 
-            // FIXED: Enhanced referrals navigation
+            // Enhanced referrals navigation with BLUM-style data
             const referralsLink = document.querySelector('a[href="referrals.html"]');
             referralsLink.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -753,10 +817,10 @@
             });
         }
 
-        // ========== NEW: Navigate to referrals with proper data ==========
+        // ========== BLUM-STYLE: Navigate to referrals with proper data ==========
         async function navigateToReferrals() {
             try {
-                console.log('🔗 Navigating to referrals page...');
+                console.log('🔗 Navigating to BLUM-style referrals page...');
 
                 // Get current user data
                 let userData = null;
@@ -782,11 +846,14 @@
                 if (userData) {
                     console.log('👤 Passing user data to referrals:', userData);
 
-                    // Store user data for referrals page
+                    // Store comprehensive user data for referrals page
                     localStorage.setItem('current_user_data', JSON.stringify({
                         id: userData.id,
                         telegram_id: userData.telegram_id,
-                        username: userData.username // Using username instead of referral_code
+                        username: userData.username,
+                        used_slots: userData.used_slots,
+                        referral_slots: userData.referral_slots,
+                        total_earned_from_refs: userData.total_earned_from_refs
                     }));
 
                     // Navigate to referrals
@@ -823,13 +890,13 @@
                     console.log('👤 Web User:', user.id);
                 }
 
-                // FIXED: Load user data with balance refresh
+                // Load user data with balance refresh
                 await loadUserData();
 
                 // Start countdown timer
                 startCountdownTimer();
 
-                // FIXED: Refresh balance when page becomes visible (returning from referrals)
+                // Refresh balance when page becomes visible (returning from referrals)
                 document.addEventListener('visibilitychange', function() {
                     if (!document.hidden) {
                         console.log('📄 Page visible - refreshing balance...');
@@ -916,7 +983,7 @@
                         avatar_url: telegramUser.photo_url,
                         balance: 0,
                         last_claim: null,
-                        referral_slots: 10,
+                        referral_slots: MAX_REFERRAL_SLOTS,
                         used_slots: 0,
                         total_earned_from_refs: 0,
                         created_via: 'telegram'
@@ -952,7 +1019,7 @@
                             full_name: user.user_metadata?.full_name || 'User',
                             balance: 0,
                             last_claim: null,
-                            referral_slots: 10,
+                            referral_slots: MAX_REFERRAL_SLOTS,
                             used_slots: 0,
                             total_earned_from_refs: 0
                         }
@@ -1132,12 +1199,12 @@
         // Event Listeners
         document.getElementById('claimButton').addEventListener('click', claimNMX);
 
-        // FIXED: Auto-refresh balance every 10 seconds (instead of 30)
+        // Auto-refresh balance every 10 seconds
         setInterval(async () => {
             await refreshBalance();
         }, 10000);
 
-        // FIXED: Refresh balance when returning from referrals page
+        // Refresh balance when returning from referrals page
         window.addEventListener('focus', refreshBalance);
     </script>
 </body>
