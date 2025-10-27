@@ -353,6 +353,45 @@
         let telegramUser = null;
         let referrerUsername = null;
 
+        // ========== DATABASE DIAGNOSTICS ==========
+        async function testDatabaseConnection() {
+            try {
+                console.log('🔍 Testing database connection...');
+                
+                // Test profiles table
+                const { data: profiles, error: profilesError } = await supabaseClient
+                    .from('profiles')
+                    .select('count')
+                    .limit(1);
+
+                if (profilesError) {
+                    console.error('❌ Profiles table error:', profilesError);
+                    return false;
+                }
+
+                console.log('✅ Profiles table accessible');
+
+                // Test if referred_by column exists
+                const { data: sampleProfile, error: sampleError } = await supabaseClient
+                    .from('profiles')
+                    .select('referred_by')
+                    .limit(1);
+
+                if (sampleError && sampleError.message.includes('column')) {
+                    console.error('❌ referred_by column might not exist');
+                    // Continue anyway - we'll handle it
+                } else {
+                    console.log('✅ referred_by column exists');
+                }
+
+                return true;
+
+            } catch (error) {
+                console.error('❌ Database connection test failed:', error);
+                return false;
+            }
+        }
+
         // ========== BLUM-STYLE REFERRAL SYSTEM ==========
 
         // Detect referral from URL parameters
@@ -384,7 +423,7 @@
                 
                 const { data: referrer, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, used_slots, referral_slots')
+                    .select('id, username, used_slots, referral_slots, balance')
                     .eq('username', username)
                     .single();
 
@@ -397,13 +436,15 @@
                     return { valid: false, error: 'Referrer not found' };
                 }
 
+                console.log('✅ Referrer found:', referrer);
+
                 // Check if referrer has available slots (BLUM-style: max 10)
-                const availableSlots = (referrer.referral_slots || 10) - (referrer.used_slots || 0);
+                const availableSlots = 10 - (referrer.used_slots || 0);
                 if (availableSlots <= 0) {
                     return { valid: false, error: 'Referrer has no available slots' };
                 }
 
-                console.log('✅ Referrer validated:', referrer);
+                console.log('✅ Referrer validated - available slots:', availableSlots);
                 return { valid: true, referrer: referrer, availableSlots: availableSlots };
 
             } catch (error) {
@@ -427,13 +468,15 @@
 
                 const referrer = validation.referrer;
 
-                // 2. Update referrer's used_slots
-                console.log('📊 Updating referrer slots...');
+                // 2. Update referrer's used_slots and give bonus
+                console.log('💰 Giving bonuses...');
+                
                 const { error: updateError } = await supabaseClient
                     .from('profiles')
                     .update({
                         used_slots: (referrer.used_slots || 0) + 1,
-                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + 30
+                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + 30,
+                        balance: (referrer.balance || 0) + 30 // 30 NMX bonus for referrer
                     })
                     .eq('id', referrer.id);
 
@@ -442,8 +485,8 @@
                     return { success: false, error: 'Failed to update referrer' };
                 }
 
-                // 3. Give bonus to new user (BLUM-style: both get rewards)
-                console.log('💰 Giving bonus to new user...');
+                // 3. Give bonus to new user and set referred_by
+                console.log('🎁 Giving bonus to new user...');
                 const { error: bonusError } = await supabaseClient
                     .from('profiles')
                     .update({
@@ -453,29 +496,21 @@
                     .eq('id', newUserId);
 
                 if (bonusError) {
-                    console.error('❌ Error giving bonus:', bonusError);
+                    console.error('❌ Error giving bonus to new user:', bonusError);
                     // Continue anyway - the main referral is tracked
                 }
 
-                // 4. Give bonus to referrer
-                console.log('💰 Giving bonus to referrer...');
-                const { error: referrerBonusError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        balance: (referrer.balance || 0) + 30 // 30 NMX bonus for referrer
-                    })
-                    .eq('id', referrer.id);
-
-                if (referrerBonusError) {
-                    console.error('❌ Error giving referrer bonus:', referrerBonusError);
-                }
-
                 console.log('🎉 REFERRAL PROCESSING COMPLETE!');
+                console.log('📊 Referrer stats updated:');
+                console.log('   - Used slots:', (referrer.used_slots || 0) + 1);
+                console.log('   - Total earned:', (referrer.total_earned_from_refs || 0) + 30);
+                console.log('   - New balance:', (referrer.balance || 0) + 30);
+
                 return { success: true, referrer: referrer };
 
             } catch (error) {
                 console.error('❌ CRITICAL ERROR in processReferral:', error);
-                return { success: false, error: 'Referral processing failed' };
+                return { success: false, error: 'Referral processing failed: ' + error.message };
             }
         }
 
@@ -488,7 +523,7 @@
                 .substring(0, 15);
 
             if (username.length < 3) {
-                username += Math.floor(100 + Math.random() * 900);
+                username += Math.floor(1000 + Math.random() * 9000);
             }
 
             return username;
@@ -519,7 +554,7 @@
             }
         }
 
-        // ========== FIXED: Email registration with duplicate key handling ==========
+        // ========== FIXED: Email registration with proper database integration ==========
         async function registerUser(email, password, fullName, username) {
             try {
                 console.log('📝 Starting email registration with username:', username);
@@ -553,72 +588,48 @@
 
                 console.log('✅ Auth user created:', authData.user.id);
 
-                // Step 2: Check if profile already exists (to avoid duplicate key error)
-                const { data: existingProfile, error: checkError } = await supabaseClient
+                // Step 2: Create user profile
+                console.log('👤 Creating user profile...');
+                const profileData = {
+                    id: authData.user.id,
+                    email: email,
+                    username: username,
+                    full_name: fullName,
+                    balance: 0,
+                    last_claim: null,
+                    referral_slots: 10,
+                    used_slots: 0,
+                    total_earned_from_refs: 0
+                };
+
+                const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
-                    .select('id')
-                    .eq('id', authData.user.id)
+                    .insert([profileData])
+                    .select()
                     .single();
 
-                if (existingProfile) {
-                    console.log('⚠️ Profile already exists, updating instead...');
-                    // Update existing profile
-                    const { error: updateError } = await supabaseClient
-                        .from('profiles')
-                        .update({
-                            email: email,
-                            username: username,
-                            full_name: fullName,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', authData.user.id);
+                if (profileError) {
+                    console.error('❌ Profile creation error:', profileError);
+                    
+                    // If duplicate key, try to update instead
+                    if (profileError.code === '23505') {
+                        console.log('🔄 Profile already exists, updating...');
+                        const { data: updatedProfile, error: updateError } = await supabaseClient
+                            .from('profiles')
+                            .update(profileData)
+                            .eq('id', authData.user.id)
+                            .select()
+                            .single();
 
-                    if (updateError) {
-                        console.error('Error updating profile:', updateError);
-                        throw updateError;
+                        if (updateError) {
+                            throw updateError;
+                        }
+                        console.log('✅ Profile updated:', updatedProfile);
+                    } else {
+                        throw profileError;
                     }
                 } else {
-                    // Create new profile
-                    console.log('👤 Creating new profile...');
-                    const { error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .insert([
-                            {
-                                id: authData.user.id,
-                                email: email,
-                                username: username,
-                                full_name: fullName,
-                                balance: 0,
-                                last_claim: null,
-                                referral_slots: 10,
-                                used_slots: 0,
-                                total_earned_from_refs: 0
-                            }
-                        ]);
-
-                    if (profileError) {
-                        console.error('❌ Profile creation error:', profileError);
-                        
-                        // If it's a duplicate key error, try updating instead
-                        if (profileError.code === '23505') {
-                            console.log('🔄 Duplicate key detected, updating existing profile...');
-                            const { error: updateError } = await supabaseClient
-                                .from('profiles')
-                                .update({
-                                    email: email,
-                                    username: username,
-                                    full_name: fullName,
-                                    updated_at: new Date().toISOString()
-                                })
-                                .eq('id', authData.user.id);
-
-                            if (updateError) {
-                                throw updateError;
-                            }
-                        } else {
-                            throw profileError;
-                        }
-                    }
+                    console.log('✅ Profile created:', profile);
                 }
 
                 // Step 3: Process referral if applicable
@@ -642,7 +653,7 @@
             }
         }
 
-        // ========== FIXED: Create Telegram user with duplicate handling ==========
+        // ========== FIXED: Create Telegram user with proper database integration ==========
         async function createTelegramUser(telegramUser) {
             const username = telegramUser.username || generateUsername(telegramUser.first_name);
 
@@ -665,45 +676,32 @@
                 const usernameCheck = await checkUsernameAvailability(username);
                 if (!usernameCheck.available) {
                     // If username taken, generate a unique one
-                    const uniqueUsername = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
-                    console.log('🔄 Username taken, using:', uniqueUsername);
+                    username = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
+                    console.log('🔄 Username taken, using:', username);
                 }
 
                 // Create new user
+                const userData = {
+                    telegram_id: telegramUser.id,
+                    username: username,
+                    full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                    avatar_url: telegramUser.photo_url,
+                    balance: 0,
+                    last_claim: null,
+                    referral_slots: 10,
+                    used_slots: 0,
+                    total_earned_from_refs: 0,
+                    created_via: 'telegram'
+                };
+
                 const { data: newUser, error: createError } = await supabaseClient
                     .from('profiles')
-                    .insert([
-                        {
-                            telegram_id: telegramUser.id,
-                            username: username,
-                            full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                            avatar_url: telegramUser.photo_url,
-                            balance: 0,
-                            last_claim: null,
-                            referral_slots: 10,
-                            used_slots: 0,
-                            created_via: 'telegram'
-                        }
-                    ])
+                    .insert([userData])
                     .select()
                     .single();
 
                 if (createError) {
                     console.error('❌ Error creating Telegram user:', createError);
-                    
-                    // If duplicate, try to get existing user
-                    if (createError.code === '23505') {
-                        console.log('🔄 Duplicate detected, fetching existing user...');
-                        const { data: existingUser } = await supabaseClient
-                            .from('profiles')
-                            .select('*')
-                            .eq('telegram_id', telegramUser.id)
-                            .single();
-                        
-                        if (existingUser) {
-                            return { data: existingUser, error: null };
-                        }
-                    }
                     return { data: null, error: createError };
                 }
 
@@ -731,7 +729,7 @@
 
         // ========== INITIALIZATION ==========
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             try {
                 // Initialize Supabase client
                 supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
@@ -740,6 +738,14 @@
                         autoRefreshToken: true
                     }
                 });
+
+                console.log('🔧 Testing database connection...');
+                const dbConnected = await testDatabaseConnection();
+                
+                if (!dbConnected) {
+                    showError('Database connection issue. Please refresh the page.');
+                    return;
+                }
 
                 // Detect referral FIRST
                 detectReferral();
@@ -882,12 +888,13 @@
 
                 if (checkError && checkError.code === 'PGRST116') {
                     // Create new Telegram user
-                    const username = telegramUser.username || generateUsername(telegramUser.first_name);
+                    let username = telegramUser.username || generateUsername(telegramUser.first_name);
                     
                     // Check username availability
                     const usernameCheck = await checkUsernameAvailability(username);
                     if (!usernameCheck.available) {
-                        throw new Error(usernameCheck.error);
+                        username = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
+                        console.log('🔄 Username taken, using:', username);
                     }
 
                     const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
