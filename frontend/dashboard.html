@@ -84,73 +84,113 @@
             font-family: 'Courier New', monospace;
         }
 
-        /* NEW: Referral Stats Styles */
-        .referral-stats {
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 12px;
-            padding: 15px;
-            margin: 15px 0;
-            text-align: center;
-            width: 100%;
-            max-width: 280px;
-        }
-        .referral-stats-title {
-            font-size: 14px;
-            color: var(--gold);
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
-        .referral-stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            font-size: 12px;
-        }
-        .referral-stat {
-            text-align: center;
-        }
-        .referral-stat-label {
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-        .referral-stat-value {
-            color: var(--gold);
-            font-weight: 600;
-            font-size: 16px;
-        }
-        .referral-link {
-            margin-top: 10px;
-            font-size: 11px;
-            color: var(--muted);
-        }
-        .referral-link a {
-            color: var(--gold);
-            text-decoration: none;
-            font-weight: 600;
-        }
+        /* REMOVED: Referral Stats Styles */
 
-        .nemex-logo{width:140px;height:140px;margin:25px auto;position:relative;display:flex;align-items:center;justify-content:center}
-        .logo-container{width:120px;height:120px;position:relative;filter:drop-shadow(0 0 15px rgba(212,175,55,0.4))}
-        .logo-base{width:100%;height:100%;background:var(--darker-bg);border-radius:50%;border:3px solid var(--gold);position:relative;overflow:hidden;box-shadow:inset 0 0 20px rgba(212,175,55,0.1),0 0 30px rgba(212,175,55,0.2)}
-        .logo-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px}
-        .infinity-symbol{width:100%;height:100%;position:relative}
-        .infinity-symbol::before,.infinity-symbol::after{content:'';position:absolute;width:25px;height:25px;border:3px solid var(--gold);border-radius:50%;border-top-color:transparent;border-left-color:transparent;animation:rotate 8s linear infinite}
-        .infinity-symbol::before{top:0;left:0;transform:rotate(45deg);animation-delay:0s}
-        .infinity-symbol::after{bottom:0;right:0;transform:rotate(225deg);animation-delay:-4s}
-        .circuit-lines{position:absolute;top:0;left:0;width:100%;height:100%}
-        .circuit-line{position:absolute;background:var(--gold);opacity:0.6}
-        .circuit-line:nth-child(1){top:20%;left:10%;width:15px;height:2px;transform:rotate(30deg)}
-        .circuit-line:nth-child(2){top:30%;right:15%;width:12px;height:2px;transform:rotate(-45deg)}
-        .circuit-line:nth-child(3){bottom:25%;left:20%;width:18px;height:2px;transform:rotate(15deg)}
-        .circuit-line:nth-child(4){bottom:15%;right:10%;width:10px;height:2px;transform:rotate(-60deg)}
-        .circuit-line:nth-child(5){top:45%;left:5%;width:8px;height:2px;transform:rotate(75deg)}
-        .circuit-pad{position:absolute;width:4px;height:4px;background:var(--gold);border-radius:50%;opacity:0.8}
-        .circuit-pad:nth-child(6){top:15%;left:25%}.circuit-pad:nth-child(7){top:35%;right:20%}
-        .circuit-pad:nth-child(8){bottom:40%;left:15%}.circuit-pad:nth-child(9){bottom:20%;right:30%}
-        .logo-glow{position:absolute;top:-10px;left:-10px;right:-10px;bottom:-10px;border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,0.2)0%,rgba(212,175,55,0)70%);animation:glowPulse 3s ease-in-out infinite;z-index:-1}
+        /* ENLARGED: NEMEXCOIN LOGO */
+        .nemex-logo{
+            width: 180px; /* Increased from 140px */
+            height: 180px; /* Increased from 140px */
+            margin: 30px auto; /* Increased margin */
+            position:relative;
+            display:flex;
+            align-items:center;
+            justify-content:center
+        }
+        .logo-container{
+            width: 160px; /* Increased from 120px */
+            height: 160px; /* Increased from 120px */
+            position:relative;
+            filter:drop-shadow(0 0 20px rgba(212,175,55,0.5)) /* Enhanced shadow */
+        }
+        .logo-base{
+            width:100%;
+            height:100%;
+            background:var(--darker-bg);
+            border-radius:50%;
+            border:4px solid var(--gold); /* Thicker border */
+            position:relative;
+            overflow:hidden;
+            box-shadow:inset 0 0 30px rgba(212,175,55,0.15),0 0 40px rgba(212,175,55,0.3) /* Enhanced glow */
+        }
+        .logo-center{
+            position:absolute;
+            top:50%;
+            left:50%;
+            transform:translate(-50%,-50%);
+            width: 70px; /* Increased from 50px */
+            height: 70px; /* Increased from 50px */
+        }
+        .infinity-symbol{
+            width:100%;
+            height:100%;
+            position:relative
+        }
+        .infinity-symbol::before,.infinity-symbol::after{
+            content:'';
+            position:absolute;
+            width: 35px; /* Increased from 25px */
+            height: 35px; /* Increased from 25px */
+            border:4px solid var(--gold); /* Thicker border */
+            border-radius:50%;
+            border-top-color:transparent;
+            border-left-color:transparent;
+            animation:rotate 8s linear infinite
+        }
+        .infinity-symbol::before{
+            top:0;
+            left:0;
+            transform:rotate(45deg);
+            animation-delay:0s
+        }
+        .infinity-symbol::after{
+            bottom:0;
+            right:0;
+            transform:rotate(225deg);
+            animation-delay:-4s
+        }
+        .circuit-lines{
+            position:absolute;
+            top:0;
+            left:0;
+            width:100%;
+            height:100%
+        }
+        .circuit-line{
+            position:absolute;
+            background:var(--gold);
+            opacity:0.7 /* Increased opacity */
+        }
+        .circuit-line:nth-child(1){top:20%;left:10%;width:18px;height:2px;transform:rotate(30deg)}
+        .circuit-line:nth-child(2){top:30%;right:15%;width:15px;height:2px;transform:rotate(-45deg)}
+        .circuit-line:nth-child(3){bottom:25%;left:20%;width:22px;height:2px;transform:rotate(15deg)}
+        .circuit-line:nth-child(4){bottom:15%;right:10%;width:12px;height:2px;transform:rotate(-60deg)}
+        .circuit-line:nth-child(5){top:45%;left:5%;width:10px;height:2px;transform:rotate(75deg)}
+        .circuit-pad{
+            position:absolute;
+            width:5px; /* Increased from 4px */
+            height:5px; /* Increased from 4px */
+            background:var(--gold);
+            border-radius:50%;
+            opacity:0.9 /* Increased opacity */
+        }
+        .circuit-pad:nth-child(6){top:15%;left:25%}
+        .circuit-pad:nth-child(7){top:35%;right:20%}
+        .circuit-pad:nth-child(8){bottom:40%;left:15%}
+        .circuit-pad:nth-child(9){bottom:20%;right:30%}
+        .logo-glow{
+            position:absolute;
+            top:-15px; /* Increased from -10px */
+            left:-15px; /* Increased from -10px */
+            right:-15px; /* Increased from -10px */
+            bottom:-15px; /* Increased from -10px */
+            border-radius:50%;
+            background:radial-gradient(circle,rgba(212,175,55,0.3)0%,rgba(212,175,55,0)70%); /* Enhanced glow */
+            animation:glowPulse 3s ease-in-out infinite;
+            z-index:-1
+        }
         @keyframes rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-        @keyframes glowPulse{0%,100%{opacity:0.5;transform:scale(1)}50%{opacity:0.8;transform:scale(1.05)}}
+        @keyframes glowPulse{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:0.9;transform:scale(1.08)}}
+        
         .countdown-section {
             margin-bottom: 30px;
         }
@@ -419,25 +459,9 @@
                     <div class="balance-amount" id="balanceAmount">0</div>
                 </div>
 
-                <!-- NEW: Referral Stats Section -->
-                <div class="referral-stats" id="referralStats" style="display: none;">
-                    <div class="referral-stats-title">👥 Referral Progress</div>
-                    <div class="referral-stats-grid">
-                        <div class="referral-stat">
-                            <div class="referral-stat-label">Referrals</div>
-                            <div class="referral-stat-value" id="referralCount">0/10</div>
-                        </div>
-                        <div class="referral-stat">
-                            <div class="referral-stat-label">Earned</div>
-                            <div class="referral-stat-value" id="referralEarned">0 NMX</div>
-                        </div>
-                    </div>
-                    <div class="referral-link">
-                        Earn 30 NMX per referral • <a href="referrals.html">Invite Friends →</a>
-                    </div>
-                </div>
+                <!-- REMOVED: Referral Stats Section -->
 
-                <!-- NEMEXCOIN LOGO -->
+                <!-- ENLARGED NEMEXCOIN LOGO -->
                 <div class="nemex-logo">
                     <div class="logo-container">
                         <div class="logo-base">
@@ -593,22 +617,6 @@
 
                 console.log('💰 Balance loaded from database:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
-                
-                // FIXED: LOAD AND DISPLAY REFERRAL STATS
-                const referralEarned = profile.total_earned_from_refs || 0;
-                const usedSlots = profile.used_slots || 0;
-                const totalSlots = profile.referral_slots || 10;
-                
-                console.log('🎁 Referral stats:', {
-                    earned: referralEarned,
-                    referrals: usedSlots,
-                    slots: totalSlots
-                });
-
-                // UPDATE REFERRAL STATS DISPLAY
-                document.getElementById('referralCount').textContent = `${usedSlots}/${totalSlots}`;
-                document.getElementById('referralEarned').textContent = `${referralEarned} NMX`;
-                document.getElementById('referralStats').style.display = 'block';
 
                 // Generate referral code if it doesn't exist
                 if (!profile.referral_code) {
@@ -653,7 +661,7 @@
                     // Show notification if referral earnings increased
                     const currentBalance = parseFloat(profile.balance) || 0;
                     const currentReferralEarned = profile.total_earned_from_refs || 0;
-                    
+
                     if (currentBalance > userBalance) {
                         const bonusEarned = currentBalance - userBalance;
                         console.log('🎉 New referral bonus detected:', bonusEarned);
@@ -665,10 +673,6 @@
 
                     userBalance = currentBalance;
                     document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
-                    
-                    // Update referral stats display
-                    document.getElementById('referralCount').textContent = `${profile.used_slots || 0}/${profile.referral_slots || 10}`;
-                    document.getElementById('referralEarned').textContent = `${currentReferralEarned} NMX`;
                 }
             } catch (error) {
                 console.error('Error refreshing balance:', error);
@@ -682,7 +686,7 @@
             initializeNavigation();
         });
 
-        // Initialize navigation and settings
+        // ========== FIXED: Initialize navigation with referrals support ==========
         function initializeNavigation() {
             // Settings modal functionality
             const settingsIcon = document.querySelector('.settings-icon');
@@ -708,6 +712,7 @@
                 try {
                     if (isTelegramApp) {
                         localStorage.removeItem('nemex_telegram_user');
+                        localStorage.removeItem('current_user_data'); // Clear referral data
                         showSuccess('Logged out successfully!');
                         setTimeout(() => {
                             if (window.Telegram && window.Telegram.WebApp) {
@@ -721,6 +726,7 @@
                         localStorage.removeItem('isLoggedIn');
                         localStorage.removeItem('userEmail');
                         localStorage.removeItem('userId');
+                        localStorage.removeItem('current_user_data'); // Clear referral data
                         window.location.href = 'login.html';
                     }
                 } catch (error) {
@@ -728,6 +734,62 @@
                     showError('Logout failed. Please try again.');
                 }
             });
+
+            // FIXED: Enhanced referrals navigation
+            const referralsLink = document.querySelector('a[href="referrals.html"]');
+            referralsLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                navigateToReferrals();
+            });
+        }
+
+        // ========== NEW: Navigate to referrals with proper data ==========
+        async function navigateToReferrals() {
+            try {
+                console.log('🔗 Navigating to referrals page...');
+                
+                // Get current user data
+                let userData = null;
+                
+                if (isTelegramApp && telegramUser) {
+                    // For Telegram users
+                    const { data } = await supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('telegram_id', telegramUser.id)
+                        .single();
+                    userData = data;
+                } else {
+                    // For web users
+                    const { data } = await supabaseClient
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                    userData = data;
+                }
+
+                if (userData) {
+                    console.log('👤 Passing user data to referrals:', userData);
+                    
+                    // Store user data for referrals page
+                    localStorage.setItem('current_user_data', JSON.stringify({
+                        id: userData.id,
+                        telegram_id: userData.telegram_id,
+                        referral_code: userData.referral_code
+                    }));
+                    
+                    // Navigate to referrals
+                    window.location.href = 'referrals.html';
+                } else {
+                    console.error('❌ No user data found for referrals');
+                    showError('Unable to load referral data. Please try again.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error navigating to referrals:', error);
+                showError('Navigation failed. Please try again.');
+            }
         }
 
         // Initialize dashboard
