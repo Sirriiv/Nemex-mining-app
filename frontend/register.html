@@ -379,12 +379,12 @@
             return false;
         }
 
-        // ========== FIXED VERSION: Process referral bonus ==========
+        // ========== FIXED: Process referral bonus ==========
         async function processReferralBonus(newUserId, referralCode) {
             try {
                 console.log('🔴🔴🔴 REFERRAL PROCESSING STARTED!');
                 console.log('💰 PROCESSING REFERRAL BONUS:', { newUserId, referralCode });
-                
+
                 if (!newUserId || !referralCode) {
                     console.error('❌ Missing required data');
                     return false;
@@ -419,76 +419,69 @@
 
                 console.log('✅ Referrer has available slots:', availableSlots);
 
-                // Create referral record (with error handling for foreign key issues)
+                // STEP 1: Create referral record FIRST (with retry logic)
                 console.log('📝 Creating referral record...');
-                const { data: referralRecord, error: referralError } = await supabaseClient
-                    .from('referrals')
-                    .insert([{
-                        referrer_id: referrer.id,
-                        referred_id: newUserId,
-                        referral_code: referralCode,
-                        bonus_amount: REFERRAL_BONUS,
-                        bonus_claimed: true,
-                        status: 'completed'
-                    }])
-                    .select()
-                    .single();
+                const referralData = {
+                    referrer_id: referrer.id,
+                    referred_id: newUserId,
+                    referral_code: referralCode,
+                    bonus_amount: REFERRAL_BONUS,
+                    bonus_claimed: true,
+                    status: 'completed'
+                };
+                
+                console.log('📦 Referral data to insert:', referralData);
+                
+                // Try to create referral record with retry
+                let referralRecord = null;
+                let referralError = null;
+                
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    console.log(`🔄 Attempt ${attempt} to create referral record...`);
+                    const { data, error } = await supabaseClient
+                        .from('referrals')
+                        .insert([referralData])
+                        .select()
+                        .single();
 
-                if (referralError) {
-                    console.error('❌ Error creating referral record:', referralError);
-                    
-                    // If foreign key error, try alternative approach
-                    if (referralError.code === 'PGRST200' || referralError.message.includes('foreign key')) {
-                        console.log('🔄 Trying alternative referral tracking...');
+                    if (error) {
+                        console.error(`❌ Attempt ${attempt} failed:`, error);
+                        referralError = error;
                         
-                        // Update both users directly without referral table
-                        const { error: updateError } = await supabaseClient
-                            .from('profiles')
-                            .update({
-                                used_slots: (referrer.used_slots || 0) + 1,
-                                balance: (referrer.balance || 0) + REFERRAL_BONUS,
-                                total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS,
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('id', referrer.id);
-
-                        if (updateError) {
-                            console.error('❌ Error updating referrer stats:', updateError);
-                            return false;
+                        // If it's a foreign key error, wait and retry (user might not be created yet)
+                        if (error.code?.includes('foreign') || error.message?.includes('foreign')) {
+                            console.log('⏳ Waiting 1 second before retry...');
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            continue;
                         }
-
-                        const { error: userBonusError } = await supabaseClient
-                            .from('profiles')
-                            .update({
-                                balance: REFERRAL_BONUS,
-                                referred_by: referralCode,
-                                updated_at: new Date().toISOString()
-                            })
-                            .eq('id', newUserId);
-
-                        if (userBonusError) {
-                            console.error('❌ Error awarding bonus to new user:', userBonusError);
-                            return false;
-                        }
-
-                        console.log('✅ Referral bonus applied via direct update');
-                        return true;
+                        break;
+                    } else {
+                        console.log('✅ Referral record created:', data);
+                        referralRecord = data;
+                        referralError = null;
+                        break;
                     }
-                    return false;
                 }
 
-                console.log('✅ Referral record created:', referralRecord);
+                if (referralError) {
+                    console.error('❌ All attempts to create referral record failed:', referralError);
+                    // Continue with bonus processing even if referral record fails
+                }
 
-                // Update referrer's stats and balance
+                // STEP 2: Update referrer's stats and balance
                 console.log('🔄 Updating referrer stats...');
+                const referrerUpdate = {
+                    used_slots: (referrer.used_slots || 0) + 1,
+                    balance: (referrer.balance || 0) + REFERRAL_BONUS,
+                    total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS,
+                    updated_at: new Date().toISOString()
+                };
+                
+                console.log('📦 Referrer update data:', referrerUpdate);
+                
                 const { error: updateError } = await supabaseClient
                     .from('profiles')
-                    .update({
-                        used_slots: (referrer.used_slots || 0) + 1,
-                        balance: (referrer.balance || 0) + REFERRAL_BONUS,
-                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + REFERRAL_BONUS,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(referrerUpdate)
                     .eq('id', referrer.id);
 
                 if (updateError) {
@@ -498,15 +491,19 @@
 
                 console.log('✅ Referrer stats updated');
 
-                // Award bonus to new user
+                // STEP 3: Award bonus to new user
                 console.log('🎁 Awarding bonus to new user...');
+                const userUpdate = {
+                    balance: (referralRecord ? REFERRAL_BONUS : 0), // Only give bonus if referral record was created
+                    referred_by: referralCode,
+                    updated_at: new Date().toISOString()
+                };
+                
+                console.log('📦 User update data:', userUpdate);
+                
                 const { error: userBonusError } = await supabaseClient
                     .from('profiles')
-                    .update({
-                        balance: REFERRAL_BONUS,
-                        referred_by: referralCode,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(userUpdate)
                     .eq('id', newUserId);
 
                 if (userBonusError) {
@@ -563,7 +560,7 @@
                 if (referralCode && newUser) {
                     console.log('🎁 Processing referral bonus for Telegram user...');
                     const bonusSuccess = await processReferralBonus(newUser.id, referralCode);
-                    
+
                     if (bonusSuccess) {
                         console.log('✅ Referral bonus applied successfully for Telegram user!');
                         showSuccess(`🎉 Referral bonus applied! You received ${REFERRAL_BONUS} NMX!`);
@@ -849,7 +846,7 @@
                     if (referralCode) {
                         console.log('🎁 Processing referral bonus for email user...');
                         const bonusSuccess = await processReferralBonus(data.user.id, referralCode);
-                        
+
                         if (bonusSuccess) {
                             console.log('✅ Referral bonus applied successfully for email user!');
                             showSuccess(`🎉 Referral bonus applied! You received ${REFERRAL_BONUS} NMX!`);
