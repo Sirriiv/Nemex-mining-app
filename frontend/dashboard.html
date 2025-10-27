@@ -190,7 +190,7 @@
         }
         @keyframes rotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
         @keyframes glowPulse{0%,100%{opacity:0.6;transform:scale(1)}50%{opacity:0.9;transform:scale(1.08)}}
-        
+
         .countdown-section {
             margin-bottom: 30px;
         }
@@ -559,17 +559,26 @@
             return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
-        // Generate random referral code (8 characters: letters + numbers)
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
+        // Generate username if it doesn't exist
+        function generateUsername(telegramUser = null) {
+            if (telegramUser && telegramUser.username) {
+                return telegramUser.username;
+            }
+            
+            if (telegramUser) {
+                return `tg_${telegramUser.id}`;
+            }
+            
+            // For web users, generate a random username
+            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+            let result = 'user_';
+            for (let i = 0; i < 6; i++) {
                 result += chars.charAt(Math.floor(Math.random() * chars.length));
             }
             return result;
         }
 
-        // FIXED: Load user data with referral stats
+        // FIXED: Load user data with username-based referral system
         async function loadUserData() {
             try {
                 console.log('🔄 Loading user data...');
@@ -581,7 +590,7 @@
                     // For Telegram users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
+                        .select('id, username, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
                         .eq('telegram_id', telegramUser.id)
                         .single();
 
@@ -596,7 +605,7 @@
                     // For web users
                     const { data, error } = await supabaseClient
                         .from('profiles')
-                        .select('id, referral_code, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
+                        .select('id, username, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
                         .eq('id', user.id)
                         .single();
 
@@ -617,16 +626,17 @@
 
                 console.log('💰 Balance loaded from database:', userBalance);
                 console.log('⏰ Last claim:', lastClaimTime);
+                console.log('👤 Username:', profile.username);
 
-                // Generate referral code if it doesn't exist
-                if (!profile.referral_code) {
-                    console.log('📝 Generating new referral code...');
-                    const referralCode = generateReferralCode();
+                // Generate username if it doesn't exist
+                if (!profile.username) {
+                    console.log('📝 Generating username...');
+                    const username = generateUsername(telegramUser);
 
                     const { error: updateError } = await supabaseClient
                         .from('profiles')
                         .update({ 
-                            referral_code: referralCode,
+                            username: username,
                             referral_slots: 10,
                             used_slots: 0,
                             total_earned_from_refs: 0
@@ -634,13 +644,13 @@
                         .eq('id', userId);
 
                     if (updateError) {
-                        console.error('Error updating referral code:', updateError);
+                        console.error('Error updating username:', updateError);
                         return;
                     }
 
-                    console.log('✅ Referral code generated:', referralCode);
+                    console.log('✅ Username generated:', username);
                 } else {
-                    console.log('✅ Referral code exists:', profile.referral_code);
+                    console.log('✅ Username exists:', profile.username);
                 }
 
                 return profile;
@@ -747,10 +757,10 @@
         async function navigateToReferrals() {
             try {
                 console.log('🔗 Navigating to referrals page...');
-                
+
                 // Get current user data
                 let userData = null;
-                
+
                 if (isTelegramApp && telegramUser) {
                     // For Telegram users
                     const { data } = await supabaseClient
@@ -771,21 +781,21 @@
 
                 if (userData) {
                     console.log('👤 Passing user data to referrals:', userData);
-                    
+
                     // Store user data for referrals page
                     localStorage.setItem('current_user_data', JSON.stringify({
                         id: userData.id,
                         telegram_id: userData.telegram_id,
-                        referral_code: userData.referral_code
+                        username: userData.username // Using username instead of referral_code
                     }));
-                    
+
                     // Navigate to referrals
                     window.location.href = 'referrals.html';
                 } else {
                     console.error('❌ No user data found for referrals');
                     showError('Unable to load referral data. Please try again.');
                 }
-                
+
             } catch (error) {
                 console.error('❌ Error navigating to referrals:', error);
                 showError('Navigation failed. Please try again.');
@@ -894,21 +904,21 @@
 
         // Create new Telegram user
         async function createTelegramUser(telegramUser) {
-            const referralCode = generateReferralCode();
+            const username = generateUsername(telegramUser);
 
             const { data, error } = await supabaseClient
                 .from('profiles')
                 .insert([
                     {
                         telegram_id: telegramUser.id,
-                        username: telegramUser.username || `tg_${telegramUser.id}`,
+                        username: username,
                         full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
                         avatar_url: telegramUser.photo_url,
                         balance: 0,
                         last_claim: null,
-                        referral_code: referralCode,
                         referral_slots: 10,
                         used_slots: 0,
+                        total_earned_from_refs: 0,
                         created_via: 'telegram'
                     }
                 ])
@@ -930,7 +940,7 @@
             try {
                 console.log('📝 Creating user profile...');
 
-                const referralCode = generateReferralCode();
+                const username = generateUsername();
 
                 const { data, error } = await supabaseClient
                     .from('profiles')
@@ -938,12 +948,13 @@
                         {
                             id: user.id,
                             email: user.email,
+                            username: username,
                             full_name: user.user_metadata?.full_name || 'User',
                             balance: 0,
                             last_claim: null,
-                            referral_code: referralCode,
                             referral_slots: 10,
-                            used_slots: 0
+                            used_slots: 0,
+                            total_earned_from_refs: 0
                         }
                     ])
                     .select()
