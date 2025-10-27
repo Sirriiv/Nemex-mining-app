@@ -343,7 +343,7 @@
                 <div class="referral-card">
                     <div class="referral-title">Invite Friends & Earn</div>
                     <div class="referral-desc">
-                        Share your referral link and earn <strong>30 NMXp</strong> for each active friend!<br>
+                        Share your referral link and track your referrals!<br>
                         <small>Max 10 referrals per user</small>
                     </div>
 
@@ -406,7 +406,6 @@
         let user = null;
         let userData = null;
         let currentLinkType = 'direct'; // 'direct' or 'telegram'
-        const REFERRAL_BONUS = 30;
         const TELEGRAM_BOT_USERNAME = 'SiNemexbot';
 
         // Wait for DOM to load
@@ -482,7 +481,7 @@
             document.getElementById('referralLink').value = link;
         }
 
-        // ========== FIXED: Load referral data ==========
+        // ========== SIMPLIFIED: Load referral data ==========
         async function loadReferralData() {
             try {
                 showLoading();
@@ -536,31 +535,16 @@
             }
         }
 
-        // ========== FIXED: Load referrals list ==========
+        // ========== SIMPLIFIED: Load referrals list ==========
         async function loadReferralsList() {
             try {
                 console.log('🔄 Loading referrals list for user:', user.id);
 
-                // APPROACH 1: Try to get referrals from referrals table
-                console.log('🔍 Checking referrals table...');
-                const { data: referrals, error: referralsError } = await supabaseClient
-                    .from('referrals')
-                    .select('*')
-                    .eq('referrer_id', user.id)
-                    .order('created_at', { ascending: false });
-
-                if (!referralsError && referrals && referrals.length > 0) {
-                    console.log('✅ Found referrals in table:', referrals.length);
-                    displayReferralsFromTable(referrals);
-                    return;
-                }
-
-                console.log('📭 No referrals found in table, checking profiles...');
-
-                // APPROACH 2: Fallback - get users who used this referral code
+                // APPROACH 1: Get users who used this referral code (from profiles table)
+                console.log('🔍 Checking profiles table for referred users...');
                 const { data: referredUsers, error: profilesError } = await supabaseClient
                     .from('profiles')
-                    .select('id, full_name, email, created_at, balance, telegram_id, username')
+                    .select('id, full_name, email, created_at, telegram_id, username')
                     .eq('referred_by', userData.referral_code)
                     .order('created_at', { ascending: false });
 
@@ -578,7 +562,6 @@
                     // Update stats to show actual count
                     document.getElementById('totalReferrals').textContent = referredUsers.length;
                     document.getElementById('availableSlots').textContent = (userData.referral_slots || 10) - referredUsers.length;
-                    document.getElementById('totalEarned').textContent = (referredUsers.length * REFERRAL_BONUS).toLocaleString();
                     
                     console.log('🎯 Stats updated - used slots:', referredUsers.length);
                 } else {
@@ -591,45 +574,7 @@
             }
         }
 
-        // Display referrals from referrals table
-        function displayReferralsFromTable(referrals) {
-            const referralsList = document.getElementById('referralsList');
-            
-            const referralsHtml = referrals.map(referral => `
-                <div class="referral-item">
-                    <div class="referral-avatar">U</div>
-                    <div class="referral-info">
-                        <div class="referral-name">
-                            Referred User
-                            <span class="referral-status status-active">
-                                ACTIVE
-                            </span>
-                        </div>
-                        <div class="referral-details">
-                            <div class="referral-date">
-                                📅 ${new Date(referral.created_at).toLocaleDateString()}
-                            </div>
-                            <div class="referral-earned">
-                                💰 +${referral.bonus_amount || 30} NMXp
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-
-            referralsList.innerHTML = referralsHtml;
-            
-            // Add debug info
-            const debugInfo = document.createElement('div');
-            debugInfo.style.fontSize = '10px';
-            debugInfo.style.color = 'var(--muted)';
-            debugInfo.style.marginTop = '10px';
-            debugInfo.style.textAlign = 'center';
-            debugInfo.textContent = `🔍 From referrals table: ${referrals.length} records`;
-            referralsList.appendChild(debugInfo);
-        }
-
-        // Display referred users from profiles table (fallback)
+        // Display referred users from profiles table
         function displayReferredUsersAsReferrals(referredUsers) {
             const referralsList = document.getElementById('referralsList');
             
@@ -655,7 +600,7 @@
                                     📅 ${new Date(user.created_at).toLocaleDateString()}
                                 </div>
                                 <div class="referral-earned">
-                                    💰 +30 NMXp
+                                    👤 ${source}
                                 </div>
                             </div>
                         </div>
@@ -671,7 +616,7 @@
             debugInfo.style.color = 'var(--muted)';
             debugInfo.style.marginTop = '10px';
             debugInfo.style.textAlign = 'center';
-            debugInfo.textContent = `🔍 From profiles table: ${referredUsers.length} users with your referral code`;
+            debugInfo.textContent = `🔍 Found ${referredUsers.length} users with your referral code`;
             referralsList.appendChild(debugInfo);
         }
 
@@ -682,10 +627,10 @@
                     <div class="empty-icon">👥</div>
                     <div>No referrals yet</div>
                     <div style="font-size: 12px; margin-top: 8px;">
-                        Share your referral link to start earning!
+                        Share your referral link to start tracking!
                     </div>
                     <div style="font-size: 10px; margin-top: 15px; color: var(--warning);">
-                        🔍 Debug: No referrals found in database
+                        🔍 Debug: Looking for users with referral code: ${userData?.referral_code}
                     </div>
                 </div>
             `;
@@ -722,12 +667,11 @@
         // ========== ENHANCED SHARE FUNCTIONS ==========
         function shareWhatsApp() {
             const link = document.getElementById('referralLink').value;
-            const message = `Join me on NemexCoin and earn NMXp! 
+            const message = `Join me on NemexCoin! 
 
 🔗 Register here: ${link}
 
-We both get 30 NMXp bonus! 🚀
-Max 10 referrals per user.`;
+Track your referrals and grow together! 🚀`;
 
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
@@ -738,22 +682,22 @@ Max 10 referrals per user.`;
 
             if (window.Telegram && window.Telegram.WebApp) {
                 // In Telegram - use native sharing
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! 🚀')}`;
                 window.Telegram.WebApp.openLink(shareUrl);
             } else {
                 // Outside Telegram - open share dialog
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin and earn NMXp! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! 🚀')}`;
                 window.open(shareUrl, '_blank');
             }
         }
 
         function shareTwitter() {
             const link = document.getElementById('referralLink').value;
-            const message = `Join me on NemexCoin and earn NMXp! 🚀 
+            const message = `Join me on NemexCoin! 🚀 
 
 Register here: ${link}
 
-We both get 30 NMXp bonuses!`;
+Track your referrals and grow together!`;
 
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
@@ -762,11 +706,11 @@ We both get 30 NMXp bonuses!`;
         function shareEmail() {
             const link = document.getElementById('referralLink').value;
             const subject = 'Join me on NemexCoin!';
-            const body = `Hi! Join me on NemexCoin and earn cryptocurrency!
+            const body = `Hi! Join me on NemexCoin!
 
 Register here: ${link}
 
-We'll both get 30 NMXp bonuses when you join!`;
+Track your referrals and grow together!`;
 
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = url;
