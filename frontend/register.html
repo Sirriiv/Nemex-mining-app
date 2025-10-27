@@ -294,6 +294,10 @@
                 </div>
 
                 <div class="form-group">
+                    <input type="text" class="input-field" id="username" placeholder="Username (will be your referral code)" required>
+                </div>
+
+                <div class="form-group">
                     <input type="email" class="input-field" id="email" placeholder="Email Address" required>
                 </div>
 
@@ -344,25 +348,31 @@
         let supabaseClient;
         let isTelegramApp = false;
         let telegramUser = null;
-        let referralCode = null;
+        let referralUsername = null; // Changed from referralCode to referralUsername
 
-        // Generate random referral code
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
+        // NEW: Generate username from full name
+        function generateUsername(fullName) {
+            // Remove spaces and special characters, convert to lowercase
+            let username = fullName
+                .toLowerCase()
+                .replace(/\s+/g, '')
+                .replace(/[^a-z0-9]/g, '');
+            
+            // If username is too short, add random numbers
+            if (username.length < 3) {
+                username += Math.floor(100 + Math.random() * 900);
             }
-            return result;
+            
+            return username;
         }
 
-        // Detect referral code from URL
-        function detectReferralCode() {
+        // Detect referral username from URL
+        function detectReferral() {
             const urlParams = new URLSearchParams(window.location.search);
-            let refCode = urlParams.get('start') || urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('referral');
+            let refUsername = urlParams.get('start') || urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('referral');
 
-            if (refCode) {
-                referralCode = refCode.toUpperCase();
+            if (refUsername) {
+                referralUsername = refUsername.toLowerCase();
 
                 // Show referral banner
                 const referralBanner = document.getElementById('referralBanner');
@@ -370,31 +380,31 @@
 
                 // Update welcome message
                 const welcomeTitle = document.getElementById('welcomeTitle');
-                welcomeTitle.textContent = `Create Account - Referred by ${referralCode}`;
+                welcomeTitle.textContent = `Create Account - Referred by ${referralUsername}`;
 
-                showSuccess(`🎉 You were referred by ${referralCode}!`);
+                showSuccess(`🎉 You were referred by ${referralUsername}!`);
                 return true;
             }
             return false;
         }
 
-        // ========== SIMPLIFIED: Track referral only (no bonus) ==========
-        async function trackReferral(newUserId, referralCode) {
+        // ========== SIMPLIFIED: Track referral using username ==========
+        async function trackReferral(newUserId, referrerUsername) {
             try {
                 console.log('🔴🔴🔴 REFERRAL TRACKING STARTED!');
-                console.log('💰 TRACKING REFERRAL:', { newUserId, referralCode });
+                console.log('💰 TRACKING REFERRAL:', { newUserId, referrerUsername });
 
-                if (!newUserId || !referralCode) {
+                if (!newUserId || !referrerUsername) {
                     console.error('❌ Missing required data for referral tracking');
                     return false;
                 }
 
-                // Find the referrer by their referral code
-                console.log('🔍 Searching for referrer with code:', referralCode);
+                // Find the referrer by their username
+                console.log('🔍 Searching for referrer with username:', referrerUsername);
                 const { data: referrer, error: referrerError } = await supabaseClient
                     .from('profiles')
-                    .select('id, telegram_id, used_slots, referral_slots, referral_code')
-                    .eq('referral_code', referralCode)
+                    .select('id, username, used_slots, referral_slots')
+                    .eq('username', referrerUsername)
                     .single();
 
                 if (referrerError) {
@@ -403,7 +413,7 @@
                 }
 
                 if (!referrer) {
-                    console.error('❌ Referrer not found for code:', referralCode);
+                    console.error('❌ Referrer not found for username:', referrerUsername);
                     return false;
                 }
 
@@ -414,7 +424,7 @@
                 const referralData = {
                     referrer_id: referrer.id,
                     referred_id: newUserId,
-                    referral_code: referralCode,
+                    referral_username: referrerUsername, // Store username instead of code
                     status: 'completed'
                 };
                 
@@ -461,26 +471,26 @@
 
         // Create new Telegram user
         async function createTelegramUser(telegramUser) {
-            const userReferralCode = generateReferralCode();
+            // Use Telegram username or generate from first name
+            const userUsername = telegramUser.username || generateUsername(telegramUser.first_name);
 
             try {
-                console.log('📱 Creating Telegram user with code:', userReferralCode);
+                console.log('📱 Creating Telegram user with username:', userUsername);
 
                 const { data: newUser, error: createError } = await supabaseClient
                     .from('profiles')
                     .insert([
                         {
                             telegram_id: telegramUser.id,
-                            username: telegramUser.username || `tg_${telegramUser.id}`,
+                            username: userUsername,
                             full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
                             avatar_url: telegramUser.photo_url,
                             balance: 0,
                             last_claim: null,
-                            referral_code: userReferralCode,
                             referral_slots: 10,
                             used_slots: 0,
                             created_via: 'telegram',
-                            referred_by: referralCode || null
+                            referred_by: referralUsername || null // Store referrer's username
                         }
                     ])
                     .select()
@@ -494,9 +504,9 @@
                 console.log('✅ Telegram user created:', newUser);
 
                 // Track referral if applicable
-                if (referralCode && newUser) {
+                if (referralUsername && newUser) {
                     console.log('🎁 Tracking referral for Telegram user...');
-                    const trackingSuccess = await trackReferral(newUser.id, referralCode);
+                    const trackingSuccess = await trackReferral(newUser.id, referralUsername);
                     
                     if (trackingSuccess) {
                         console.log('✅ Referral tracked successfully for Telegram user!');
@@ -524,8 +534,8 @@
                     }
                 });
 
-                // Detect referral code FIRST
-                detectReferralCode();
+                // Detect referral username FIRST
+                detectReferral();
 
                 // Initialize Telegram
                 initializeTelegram();
@@ -572,17 +582,22 @@
             const welcomeTitle = document.getElementById('welcomeTitle');
             const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
             const fullNameField = document.getElementById('fullName');
+            const usernameField = document.getElementById('username');
 
             telegramInfo.style.display = 'block';
 
-            if (referralCode) {
-                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referralCode}`;
+            if (referralUsername) {
+                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referralUsername}`;
             } else {
                 welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
             }
 
             telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
             fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
+            
+            // Auto-generate username for Telegram users
+            const telegramUsername = telegramUser.username || generateUsername(telegramUser.first_name);
+            usernameField.value = telegramUsername;
         }
 
         // Check if user is already logged in
@@ -670,8 +685,8 @@
                     localStorage.setItem('isLoggedIn', 'true');
 
                     let successMessage = 'Account created successfully! Welcome to NemexCoin! 🚀';
-                    if (referralCode) {
-                        successMessage += ` You were referred by ${referralCode}!`;
+                    if (referralUsername) {
+                        successMessage += ` You were referred by ${referralUsername}!`;
                     }
 
                     showSuccess(successMessage);
@@ -701,11 +716,27 @@
         });
 
         // Password validation
-        function validateForm(fullName, email, password, confirmPassword) {
+        function validateForm(fullName, username, email, password, confirmPassword) {
             hideMessages();
 
             if (!fullName.trim()) {
                 showError('Please enter your full name');
+                return false;
+            }
+
+            if (!username.trim()) {
+                showError('Please enter a username');
+                return false;
+            }
+
+            // Username validation
+            if (username.length < 3) {
+                showError('Username must be at least 3 characters long');
+                return false;
+            }
+
+            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+                showError('Username can only contain letters, numbers, and underscores');
                 return false;
             }
 
@@ -734,17 +765,17 @@
         }
 
         // Registration function for email/password
-        async function registerUser(email, password, fullName) {
+        async function registerUser(email, password, fullName, username) {
             try {
-                const userReferralCode = generateReferralCode();
-                console.log('📝 Starting email registration with code:', userReferralCode);
+                console.log('📝 Starting email registration with username:', username);
 
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                     options: {
                         data: {
-                            full_name: fullName
+                            full_name: fullName,
+                            username: username
                         }
                     }
                 });
@@ -753,7 +784,7 @@
                     throw error;
                 }
 
-                // Create user profile with referral code
+                // Create user profile with username as referral code
                 if (data.user) {
                     console.log('👤 Creating user profile...');
                     const { error: profileError } = await supabaseClient
@@ -762,13 +793,13 @@
                             {
                                 id: data.user.id,
                                 email: email,
+                                username: username,
                                 full_name: fullName,
                                 balance: 0,
                                 last_claim: null,
-                                referral_code: userReferralCode,
                                 referral_slots: 10,
                                 used_slots: 0,
-                                referred_by: referralCode || null
+                                referred_by: referralUsername || null // Store referrer's username
                             }
                         ]);
 
@@ -778,9 +809,9 @@
                     }
 
                     // Track referral for email users
-                    if (referralCode) {
+                    if (referralUsername) {
                         console.log('🎁 Tracking referral for email user...');
-                        const trackingSuccess = await trackReferral(data.user.id, referralCode);
+                        const trackingSuccess = await trackReferral(data.user.id, referralUsername);
                         
                         if (trackingSuccess) {
                             console.log('✅ Referral tracked successfully for email user!');
@@ -804,6 +835,7 @@
             e.preventDefault();
 
             const fullName = document.getElementById('fullName').value;
+            const username = document.getElementById('username').value;
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
@@ -815,16 +847,16 @@
             loading.style.display = 'block';
 
             try {
-                if (!validateForm(fullName, email, password, confirmPassword)) {
+                if (!validateForm(fullName, username, email, password, confirmPassword)) {
                     return;
                 }
 
-                const result = await registerUser(email, password, fullName);
+                const result = await registerUser(email, password, fullName, username);
 
                 if (result.user) {
                     let successMessage = '✅ Account created successfully! Please check your email to verify your account.';
-                    if (referralCode) {
-                        successMessage += ` You were referred by ${referralCode}!`;
+                    if (referralUsername) {
+                        successMessage += ` You were referred by ${referralUsername}!`;
                     }
 
                     showSuccess(successMessage);
@@ -840,7 +872,7 @@
 
             } catch (error) {
                 if (error.message.includes('already registered') || error.message.includes('already exists')) {
-                    showError('An account with this email already exists. Please sign in instead.');
+                    showError('An account with this email or username already exists. Please sign in instead.');
                 } else if (error.message.includes('invalid email')) {
                     showError('Please enter a valid email address.');
                 } else if (error.message.includes('password')) {
@@ -868,6 +900,16 @@
                 this.style.borderColor = '#00C851';
             } else {
                 this.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+            }
+        });
+
+        // Auto-generate username from full name
+        document.getElementById('fullName').addEventListener('input', function() {
+            const fullName = this.value;
+            const usernameField = document.getElementById('username');
+            
+            if (fullName && (!usernameField.value || usernameField.value === generateUsername(usernameField.value))) {
+                usernameField.value = generateUsername(fullName);
             }
         });
 
