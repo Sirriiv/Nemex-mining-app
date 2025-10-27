@@ -519,6 +519,216 @@
             }
         }
 
+        // ========== FIXED: Email registration with duplicate key handling ==========
+        async function registerUser(email, password, fullName, username) {
+            try {
+                console.log('📝 Starting email registration with username:', username);
+
+                // Check username availability first
+                const usernameCheck = await checkUsernameAvailability(username);
+                if (!usernameCheck.available) {
+                    throw new Error(usernameCheck.error);
+                }
+
+                // Step 1: Create auth user
+                const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            username: username
+                        }
+                    }
+                });
+
+                if (authError) {
+                    console.error('❌ Auth creation error:', authError);
+                    throw authError;
+                }
+
+                if (!authData.user) {
+                    throw new Error('No user data returned from authentication');
+                }
+
+                console.log('✅ Auth user created:', authData.user.id);
+
+                // Step 2: Check if profile already exists (to avoid duplicate key error)
+                const { data: existingProfile, error: checkError } = await supabaseClient
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', authData.user.id)
+                    .single();
+
+                if (existingProfile) {
+                    console.log('⚠️ Profile already exists, updating instead...');
+                    // Update existing profile
+                    const { error: updateError } = await supabaseClient
+                        .from('profiles')
+                        .update({
+                            email: email,
+                            username: username,
+                            full_name: fullName,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', authData.user.id);
+
+                    if (updateError) {
+                        console.error('Error updating profile:', updateError);
+                        throw updateError;
+                    }
+                } else {
+                    // Create new profile
+                    console.log('👤 Creating new profile...');
+                    const { error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .insert([
+                            {
+                                id: authData.user.id,
+                                email: email,
+                                username: username,
+                                full_name: fullName,
+                                balance: 0,
+                                last_claim: null,
+                                referral_slots: 10,
+                                used_slots: 0,
+                                total_earned_from_refs: 0
+                            }
+                        ]);
+
+                    if (profileError) {
+                        console.error('❌ Profile creation error:', profileError);
+                        
+                        // If it's a duplicate key error, try updating instead
+                        if (profileError.code === '23505') {
+                            console.log('🔄 Duplicate key detected, updating existing profile...');
+                            const { error: updateError } = await supabaseClient
+                                .from('profiles')
+                                .update({
+                                    email: email,
+                                    username: username,
+                                    full_name: fullName,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', authData.user.id);
+
+                            if (updateError) {
+                                throw updateError;
+                            }
+                        } else {
+                            throw profileError;
+                        }
+                    }
+                }
+
+                // Step 3: Process referral if applicable
+                if (referrerUsername) {
+                    console.log('🎁 Processing referral for new user...');
+                    const referralResult = await processReferral(authData.user.id, referrerUsername);
+                    
+                    if (referralResult.success) {
+                        console.log('✅ Referral processed successfully!');
+                    } else {
+                        console.log('⚠️ Referral processing failed:', referralResult.error);
+                    }
+                }
+
+                console.log('✅ Registration successful');
+                return authData;
+
+            } catch (error) {
+                console.error('❌ Registration failed:', error);
+                throw error;
+            }
+        }
+
+        // ========== FIXED: Create Telegram user with duplicate handling ==========
+        async function createTelegramUser(telegramUser) {
+            const username = telegramUser.username || generateUsername(telegramUser.first_name);
+
+            try {
+                console.log('📱 Creating Telegram user with username:', username);
+
+                // First check if user already exists
+                const { data: existingUser, error: checkError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('telegram_id', telegramUser.id)
+                    .single();
+
+                if (existingUser) {
+                    console.log('✅ Telegram user already exists:', existingUser);
+                    return { data: existingUser, error: null };
+                }
+
+                // Check username availability
+                const usernameCheck = await checkUsernameAvailability(username);
+                if (!usernameCheck.available) {
+                    // If username taken, generate a unique one
+                    const uniqueUsername = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
+                    console.log('🔄 Username taken, using:', uniqueUsername);
+                }
+
+                // Create new user
+                const { data: newUser, error: createError } = await supabaseClient
+                    .from('profiles')
+                    .insert([
+                        {
+                            telegram_id: telegramUser.id,
+                            username: username,
+                            full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                            avatar_url: telegramUser.photo_url,
+                            balance: 0,
+                            last_claim: null,
+                            referral_slots: 10,
+                            used_slots: 0,
+                            created_via: 'telegram'
+                        }
+                    ])
+                    .select()
+                    .single();
+
+                if (createError) {
+                    console.error('❌ Error creating Telegram user:', createError);
+                    
+                    // If duplicate, try to get existing user
+                    if (createError.code === '23505') {
+                        console.log('🔄 Duplicate detected, fetching existing user...');
+                        const { data: existingUser } = await supabaseClient
+                            .from('profiles')
+                            .select('*')
+                            .eq('telegram_id', telegramUser.id)
+                            .single();
+                        
+                        if (existingUser) {
+                            return { data: existingUser, error: null };
+                        }
+                    }
+                    return { data: null, error: createError };
+                }
+
+                console.log('✅ Telegram user created:', newUser);
+
+                // Process referral if applicable
+                if (referrerUsername && newUser) {
+                    console.log('🎁 Tracking referral for Telegram user...');
+                    const referralResult = await processReferral(newUser.id, referrerUsername);
+
+                    if (referralResult.success) {
+                        console.log('✅ Referral tracked successfully for Telegram user!');
+                    } else {
+                        console.log('⚠️ Referral tracking failed for Telegram user');
+                    }
+                }
+
+                return { data: newUser, error: null };
+
+            } catch (error) {
+                console.error('❌ Error in createTelegramUser:', error);
+                return { data: null, error: error };
+            }
+        }
+
         // ========== INITIALIZATION ==========
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -680,23 +890,7 @@
                         throw new Error(usernameCheck.error);
                     }
 
-                    const { data: newUser, error: createError } = await supabaseClient
-                        .from('profiles')
-                        .insert([
-                            {
-                                telegram_id: telegramUser.id,
-                                username: username,
-                                full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                                avatar_url: telegramUser.photo_url,
-                                balance: 0,
-                                last_claim: null,
-                                referral_slots: 10,
-                                used_slots: 0,
-                                created_via: 'telegram'
-                            }
-                        ])
-                        .select()
-                        .single();
+                    const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
 
                     if (createError) {
                         throw createError;
@@ -793,77 +987,6 @@
             }
 
             return true;
-        }
-
-        // Email registration
-        async function registerUser(email, password, fullName, username) {
-            try {
-                console.log('📝 Starting email registration with username:', username);
-
-                // Check username availability first
-                const usernameCheck = await checkUsernameAvailability(username);
-                if (!usernameCheck.available) {
-                    throw new Error(usernameCheck.error);
-                }
-
-                const { data, error } = await supabaseClient.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
-                            full_name: fullName,
-                            username: username
-                        }
-                    }
-                });
-
-                if (error) {
-                    throw error;
-                }
-
-                // Create user profile
-                if (data.user) {
-                    console.log('👤 Creating user profile...');
-                    const { error: profileError } = await supabaseClient
-                        .from('profiles')
-                        .insert([
-                            {
-                                id: data.user.id,
-                                email: email,
-                                username: username,
-                                full_name: fullName,
-                                balance: 0,
-                                last_claim: null,
-                                referral_slots: 10,
-                                used_slots: 0
-                            }
-                        ]);
-
-                    if (profileError) {
-                        console.error('Error creating profile:', profileError);
-                        throw profileError;
-                    }
-
-                    // Process referral if applicable
-                    if (referrerUsername) {
-                        console.log('🎁 Processing referral for email user...');
-                        const referralResult = await processReferral(data.user.id, referrerUsername);
-                        
-                        if (referralResult.success) {
-                            console.log('✅ Referral processed successfully!');
-                        } else {
-                            console.log('⚠️ Referral processing failed:', referralResult.error);
-                        }
-                    }
-                }
-
-                console.log('✅ Registration successful:', data);
-                return data;
-
-            } catch (error) {
-                console.error('❌ Registration failed:', error);
-                throw error;
-            }
         }
 
         // Form submission
