@@ -294,7 +294,10 @@
                 </div>
 
                 <div class="form-group">
-                    <input type="text" class="input-field" id="username" placeholder="Username (will be your referral code)" required>
+                    <input type="text" class="input-field" id="username" placeholder="Username (for referrals)" required>
+                    <small style="color: #888; font-size: 12px; margin-top: 5px; display: block;">
+                        This will be your unique referral identifier
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -348,182 +351,176 @@
         let supabaseClient;
         let isTelegramApp = false;
         let telegramUser = null;
-        let referralUsername = null; // Changed from referralCode to referralUsername
+        let referrerUsername = null;
 
-        // NEW: Generate username from full name
-        function generateUsername(fullName) {
-            // Remove spaces and special characters, convert to lowercase
-            let username = fullName
-                .toLowerCase()
-                .replace(/\s+/g, '')
-                .replace(/[^a-z0-9]/g, '');
-            
-            // If username is too short, add random numbers
-            if (username.length < 3) {
-                username += Math.floor(100 + Math.random() * 900);
-            }
-            
-            return username;
-        }
+        // ========== BLUM-STYLE REFERRAL SYSTEM ==========
 
-        // Detect referral username from URL
+        // Detect referral from URL parameters
         function detectReferral() {
             const urlParams = new URLSearchParams(window.location.search);
-            let refUsername = urlParams.get('start') || urlParams.get('ref') || urlParams.get('startapp') || urlParams.get('referral');
+            referrerUsername = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('start');
 
-            if (refUsername) {
-                referralUsername = refUsername.toLowerCase();
-
+            if (referrerUsername) {
+                referrerUsername = referrerUsername.toLowerCase().trim();
+                
                 // Show referral banner
                 const referralBanner = document.getElementById('referralBanner');
                 referralBanner.style.display = 'block';
 
                 // Update welcome message
                 const welcomeTitle = document.getElementById('welcomeTitle');
-                welcomeTitle.textContent = `Create Account - Referred by ${referralUsername}`;
+                welcomeTitle.textContent = `Join NemexCoin - Referred by ${referrerUsername}`;
 
-                showSuccess(`🎉 You were referred by ${referralUsername}!`);
+                console.log('🎯 Referral detected from:', referrerUsername);
                 return true;
             }
             return false;
         }
 
-        // ========== SIMPLIFIED: Track referral using username ==========
-        async function trackReferral(newUserId, referrerUsername) {
+        // Check if referrer exists and has available slots
+        async function validateReferrer(username) {
             try {
-                console.log('🔴🔴🔴 REFERRAL TRACKING STARTED!');
-                console.log('💰 TRACKING REFERRAL:', { newUserId, referrerUsername });
-
-                if (!newUserId || !referrerUsername) {
-                    console.error('❌ Missing required data for referral tracking');
-                    return false;
-                }
-
-                // Find the referrer by their username
-                console.log('🔍 Searching for referrer with username:', referrerUsername);
-                const { data: referrer, error: referrerError } = await supabaseClient
+                console.log('🔍 Validating referrer:', username);
+                
+                const { data: referrer, error } = await supabaseClient
                     .from('profiles')
                     .select('id, username, used_slots, referral_slots')
-                    .eq('username', referrerUsername)
+                    .eq('username', username)
                     .single();
 
-                if (referrerError) {
-                    console.error('❌ Error finding referrer:', referrerError);
-                    return false;
+                if (error) {
+                    console.error('❌ Referrer validation error:', error);
+                    return { valid: false, error: 'Referrer not found' };
                 }
 
                 if (!referrer) {
-                    console.error('❌ Referrer not found for username:', referrerUsername);
-                    return false;
+                    return { valid: false, error: 'Referrer not found' };
                 }
 
-                console.log('🎯 Referrer found:', referrer);
-
-                // STEP 1: Create simple referral record
-                console.log('📝 Creating referral record...');
-                const referralData = {
-                    referrer_id: referrer.id,
-                    referred_id: newUserId,
-                    referral_username: referrerUsername, // Store username instead of code
-                    status: 'completed'
-                };
-                
-                console.log('📦 Referral data to insert:', referralData);
-                
-                const { data: referralRecord, error: referralError } = await supabaseClient
-                    .from('referrals')
-                    .insert([referralData])
-                    .select()
-                    .single();
-
-                if (referralError) {
-                    console.error('❌ Error creating referral record:', referralError);
-                    // Continue anyway - we'll track via profiles table
-                } else {
-                    console.log('✅ Referral record created:', referralRecord);
+                // Check if referrer has available slots (BLUM-style: max 10)
+                const availableSlots = (referrer.referral_slots || 10) - (referrer.used_slots || 0);
+                if (availableSlots <= 0) {
+                    return { valid: false, error: 'Referrer has no available slots' };
                 }
 
-                // STEP 2: Update referrer's used_slots count
-                console.log('🔄 Updating referrer used_slots...');
+                console.log('✅ Referrer validated:', referrer);
+                return { valid: true, referrer: referrer, availableSlots: availableSlots };
+
+            } catch (error) {
+                console.error('❌ Error validating referrer:', error);
+                return { valid: false, error: 'Error validating referrer' };
+            }
+        }
+
+        // BLUM-STYLE: Simple referral tracking
+        async function processReferral(newUserId, referrerUsername) {
+            try {
+                console.log('🚀 PROCESSING REFERRAL FOR NEW USER:', newUserId);
+                console.log('🎯 REFERRED BY:', referrerUsername);
+
+                // 1. Validate referrer first
+                const validation = await validateReferrer(referrerUsername);
+                if (!validation.valid) {
+                    console.error('❌ Referrer validation failed:', validation.error);
+                    return { success: false, error: validation.error };
+                }
+
+                const referrer = validation.referrer;
+
+                // 2. Update referrer's used_slots
+                console.log('📊 Updating referrer slots...');
                 const { error: updateError } = await supabaseClient
                     .from('profiles')
                     .update({
                         used_slots: (referrer.used_slots || 0) + 1,
-                        updated_at: new Date().toISOString()
+                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + 30
                     })
                     .eq('id', referrer.id);
 
                 if (updateError) {
-                    console.error('❌ Error updating referrer stats:', updateError);
-                    return false;
+                    console.error('❌ Error updating referrer:', updateError);
+                    return { success: false, error: 'Failed to update referrer' };
                 }
 
-                console.log('✅ Referrer stats updated');
-                console.log('🎉 REFERRAL TRACKING COMPLETE!');
+                // 3. Give bonus to new user (BLUM-style: both get rewards)
+                console.log('💰 Giving bonus to new user...');
+                const { error: bonusError } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        balance: 30, // 30 NMX bonus for referred user
+                        referred_by: referrerUsername
+                    })
+                    .eq('id', newUserId);
 
-                return true;
+                if (bonusError) {
+                    console.error('❌ Error giving bonus:', bonusError);
+                    // Continue anyway - the main referral is tracked
+                }
+
+                // 4. Give bonus to referrer
+                console.log('💰 Giving bonus to referrer...');
+                const { error: referrerBonusError } = await supabaseClient
+                    .from('profiles')
+                    .update({
+                        balance: (referrer.balance || 0) + 30 // 30 NMX bonus for referrer
+                    })
+                    .eq('id', referrer.id);
+
+                if (referrerBonusError) {
+                    console.error('❌ Error giving referrer bonus:', referrerBonusError);
+                }
+
+                console.log('🎉 REFERRAL PROCESSING COMPLETE!');
+                return { success: true, referrer: referrer };
 
             } catch (error) {
-                console.error('❌ CRITICAL ERROR in trackReferral:', error);
-                return false;
+                console.error('❌ CRITICAL ERROR in processReferral:', error);
+                return { success: false, error: 'Referral processing failed' };
             }
         }
 
-        // Create new Telegram user
-        async function createTelegramUser(telegramUser) {
-            // Use Telegram username or generate from first name
-            const userUsername = telegramUser.username || generateUsername(telegramUser.first_name);
+        // Generate username from full name
+        function generateUsername(fullName) {
+            let username = fullName
+                .toLowerCase()
+                .replace(/\s+/g, '')
+                .replace(/[^a-z0-9_]/g, '')
+                .substring(0, 15);
 
+            if (username.length < 3) {
+                username += Math.floor(100 + Math.random() * 900);
+            }
+
+            return username;
+        }
+
+        // Check if username is available
+        async function checkUsernameAvailability(username) {
             try {
-                console.log('📱 Creating Telegram user with username:', userUsername);
-
-                const { data: newUser, error: createError } = await supabaseClient
+                const { data, error } = await supabaseClient
                     .from('profiles')
-                    .insert([
-                        {
-                            telegram_id: telegramUser.id,
-                            username: userUsername,
-                            full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                            avatar_url: telegramUser.photo_url,
-                            balance: 0,
-                            last_claim: null,
-                            referral_slots: 10,
-                            used_slots: 0,
-                            created_via: 'telegram',
-                            referred_by: referralUsername || null // Store referrer's username
-                        }
-                    ])
-                    .select()
+                    .select('username')
+                    .eq('username', username.toLowerCase())
                     .single();
 
-                if (createError) {
-                    console.error('❌ Error creating Telegram user:', createError);
-                    return { data: null, error: createError };
+                if (error && error.code === 'PGRST116') {
+                    return { available: true }; // Username available
                 }
 
-                console.log('✅ Telegram user created:', newUser);
-
-                // Track referral if applicable
-                if (referralUsername && newUser) {
-                    console.log('🎁 Tracking referral for Telegram user...');
-                    const trackingSuccess = await trackReferral(newUser.id, referralUsername);
-                    
-                    if (trackingSuccess) {
-                        console.log('✅ Referral tracked successfully for Telegram user!');
-                    } else {
-                        console.log('⚠️ Referral tracking failed for Telegram user');
-                    }
+                if (data) {
+                    return { available: false, error: 'Username already taken' };
                 }
 
-                return { data: newUser, error: null };
+                return { available: true };
 
             } catch (error) {
-                console.error('❌ Error in createTelegramUser:', error);
-                return { data: null, error: error };
+                console.error('Error checking username:', error);
+                return { available: false, error: 'Error checking username' };
             }
         }
 
-        // Wait for DOM to load
+        // ========== INITIALIZATION ==========
+
         document.addEventListener('DOMContentLoaded', function() {
             try {
                 // Initialize Supabase client
@@ -534,7 +531,7 @@
                     }
                 });
 
-                // Detect referral username FIRST
+                // Detect referral FIRST
                 detectReferral();
 
                 // Initialize Telegram
@@ -586,15 +583,15 @@
 
             telegramInfo.style.display = 'block';
 
-            if (referralUsername) {
-                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referralUsername}`;
+            if (referrerUsername) {
+                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referrerUsername}`;
             } else {
                 welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
             }
 
             telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
             fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
-            
+
             // Auto-generate username for Telegram users
             const telegramUsername = telegramUser.username || generateUsername(telegramUser.first_name);
             usernameField.value = telegramUsername;
@@ -647,7 +644,8 @@
             }
         }
 
-        // Telegram registration button handler
+        // ========== TELEGRAM REGISTRATION ==========
+
         document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
             const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
             const loading = document.getElementById('loading');
@@ -674,27 +672,59 @@
 
                 if (checkError && checkError.code === 'PGRST116') {
                     // Create new Telegram user
-                    const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
+                    const username = telegramUser.username || generateUsername(telegramUser.first_name);
+                    
+                    // Check username availability
+                    const usernameCheck = await checkUsernameAvailability(username);
+                    if (!usernameCheck.available) {
+                        throw new Error(usernameCheck.error);
+                    }
+
+                    const { data: newUser, error: createError } = await supabaseClient
+                        .from('profiles')
+                        .insert([
+                            {
+                                telegram_id: telegramUser.id,
+                                username: username,
+                                full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
+                                avatar_url: telegramUser.photo_url,
+                                balance: 0,
+                                last_claim: null,
+                                referral_slots: 10,
+                                used_slots: 0,
+                                created_via: 'telegram'
+                            }
+                        ])
+                        .select()
+                        .single();
 
                     if (createError) {
                         throw createError;
                     }
 
-                    // Set session and redirect to dashboard
+                    console.log('✅ Telegram user created:', newUser);
+
+                    // Process referral if applicable
+                    if (referrerUsername) {
+                        console.log('🎁 Processing referral for Telegram user...');
+                        const referralResult = await processReferral(newUser.id, referrerUsername);
+                        
+                        if (referralResult.success) {
+                            showSuccess(`Account created! 🎉 You received 30 NMX bonus from ${referrerUsername}!`);
+                        } else {
+                            showSuccess('Account created! Referral bonus failed but account is active.');
+                        }
+                    } else {
+                        showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
+                    }
+
+                    // Set session and redirect
                     localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
                     localStorage.setItem('isLoggedIn', 'true');
 
-                    let successMessage = 'Account created successfully! Welcome to NemexCoin! 🚀';
-                    if (referralUsername) {
-                        successMessage += ` You were referred by ${referralUsername}!`;
-                    }
-
-                    showSuccess(successMessage);
-
-                    // Redirect to dashboard
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
-                    }, 1500);
+                    }, 2000);
 
                 } else if (checkError) {
                     throw checkError;
@@ -715,7 +745,9 @@
             }
         });
 
-        // Password validation
+        // ========== EMAIL/PASSWORD REGISTRATION ==========
+
+        // Form validation
         function validateForm(fullName, username, email, password, confirmPassword) {
             hideMessages();
 
@@ -729,7 +761,6 @@
                 return false;
             }
 
-            // Username validation
             if (username.length < 3) {
                 showError('Username must be at least 3 characters long');
                 return false;
@@ -764,10 +795,16 @@
             return true;
         }
 
-        // Registration function for email/password
+        // Email registration
         async function registerUser(email, password, fullName, username) {
             try {
                 console.log('📝 Starting email registration with username:', username);
+
+                // Check username availability first
+                const usernameCheck = await checkUsernameAvailability(username);
+                if (!usernameCheck.available) {
+                    throw new Error(usernameCheck.error);
+                }
 
                 const { data, error } = await supabaseClient.auth.signUp({
                     email: email,
@@ -784,7 +821,7 @@
                     throw error;
                 }
 
-                // Create user profile with username as referral code
+                // Create user profile
                 if (data.user) {
                     console.log('👤 Creating user profile...');
                     const { error: profileError } = await supabaseClient
@@ -798,25 +835,24 @@
                                 balance: 0,
                                 last_claim: null,
                                 referral_slots: 10,
-                                used_slots: 0,
-                                referred_by: referralUsername || null // Store referrer's username
+                                used_slots: 0
                             }
                         ]);
 
                     if (profileError) {
                         console.error('Error creating profile:', profileError);
-                        // Continue anyway
+                        throw profileError;
                     }
 
-                    // Track referral for email users
-                    if (referralUsername) {
-                        console.log('🎁 Tracking referral for email user...');
-                        const trackingSuccess = await trackReferral(data.user.id, referralUsername);
+                    // Process referral if applicable
+                    if (referrerUsername) {
+                        console.log('🎁 Processing referral for email user...');
+                        const referralResult = await processReferral(data.user.id, referrerUsername);
                         
-                        if (trackingSuccess) {
-                            console.log('✅ Referral tracked successfully for email user!');
+                        if (referralResult.success) {
+                            console.log('✅ Referral processed successfully!');
                         } else {
-                            console.log('⚠️ Referral tracking failed for email user');
+                            console.log('⚠️ Referral processing failed:', referralResult.error);
                         }
                     }
                 }
@@ -830,7 +866,7 @@
             }
         }
 
-        // Form submission for email/password registration
+        // Form submission
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -855,8 +891,8 @@
 
                 if (result.user) {
                     let successMessage = '✅ Account created successfully! Please check your email to verify your account.';
-                    if (referralUsername) {
-                        successMessage += ` You were referred by ${referralUsername}!`;
+                    if (referrerUsername) {
+                        successMessage += ` You'll receive 30 NMX bonus from ${referrerUsername} after email verification!`;
                     }
 
                     showSuccess(successMessage);
@@ -867,7 +903,7 @@
                     // Redirect to login after 3 seconds
                     setTimeout(() => {
                         window.location.href = 'login.html';
-                    }, 3000);
+                    }, 4000);
                 }
 
             } catch (error) {
@@ -877,8 +913,8 @@
                     showError('Please enter a valid email address.');
                 } else if (error.message.includes('password')) {
                     showError('Password is too weak. Please use a stronger password.');
-                } else if (error.message.includes('not available')) {
-                    showError('Authentication service unavailable. Please try again later.');
+                } else if (error.message.includes('Username already taken')) {
+                    showError('Username is already taken. Please choose a different username.');
                 } else {
                     showError('Registration failed: ' + error.message);
                 }
@@ -907,7 +943,7 @@
         document.getElementById('fullName').addEventListener('input', function() {
             const fullName = this.value;
             const usernameField = document.getElementById('username');
-            
+
             if (fullName && (!usernameField.value || usernameField.value === generateUsername(usernameField.value))) {
                 usernameField.value = generateUsername(fullName);
             }
