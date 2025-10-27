@@ -371,17 +371,16 @@
 
                 console.log('✅ Profiles table accessible');
 
-                // Test if referred_by column exists
-                const { data: sampleProfile, error: sampleError } = await supabaseClient
-                    .from('profiles')
-                    .select('referred_by')
+                // Test referrals table
+                const { data: referrals, error: referralsError } = await supabaseClient
+                    .from('referrals')
+                    .select('count')
                     .limit(1);
 
-                if (sampleError && sampleError.message.includes('column')) {
-                    console.error('❌ referred_by column might not exist');
-                    // Continue anyway - we'll handle it
+                if (referralsError) {
+                    console.log('ℹ️ Referrals table not accessible (may not exist):', referralsError.message);
                 } else {
-                    console.log('✅ referred_by column exists');
+                    console.log('✅ Referrals table accessible');
                 }
 
                 return true;
@@ -423,7 +422,7 @@
                 
                 const { data: referrer, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, used_slots, referral_slots, balance')
+                    .select('id, username, used_slots, referral_slots, balance, total_earned_from_refs')
                     .eq('username', username)
                     .single();
 
@@ -453,7 +452,7 @@
             }
         }
 
-        // BLUM-STYLE: Simple referral tracking
+        // FIXED: BLUM-STYLE referral tracking with proper database records
         async function processReferral(newUserId, referrerUsername) {
             try {
                 console.log('🚀 PROCESSING REFERRAL FOR NEW USER:', newUserId);
@@ -468,8 +467,38 @@
 
                 const referrer = validation.referrer;
 
-                // 2. Update referrer's used_slots and give bonus
-                console.log('💰 Giving bonuses...');
+                // 2. Create referral record in referrals table
+                console.log('📝 Creating referral record...');
+                const referralRecord = {
+                    referrer_id: referrer.id,
+                    referred_user_id: newUserId,
+                    referrer_username: referrer.username,
+                    status: 'completed',
+                    bonus_amount: 30,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data: newReferral, error: referralError } = await supabaseClient
+                    .from('referrals')
+                    .insert([referralRecord])
+                    .select()
+                    .single();
+
+                if (referralError) {
+                    console.error('❌ Error creating referral record:', referralError);
+                    
+                    // If referrals table doesn't exist, continue with profile updates only
+                    if (referralError.message.includes('relation') || referralError.message.includes('does not exist')) {
+                        console.log('⚠️ Referrals table not found, continuing with profile updates only...');
+                    } else {
+                        return { success: false, error: 'Failed to create referral record' };
+                    }
+                } else {
+                    console.log('✅ Referral record created:', newReferral);
+                }
+
+                // 3. Update referrer's stats and give bonus
+                console.log('💰 Updating referrer stats and giving bonus...');
                 
                 const { error: updateError } = await supabaseClient
                     .from('profiles')
@@ -485,7 +514,7 @@
                     return { success: false, error: 'Failed to update referrer' };
                 }
 
-                // 3. Give bonus to new user and set referred_by
+                // 4. Give bonus to new user and set referred_by
                 console.log('🎁 Giving bonus to new user...');
                 const { error: bonusError } = await supabaseClient
                     .from('profiles')
@@ -503,7 +532,7 @@
                 console.log('🎉 REFERRAL PROCESSING COMPLETE!');
                 console.log('📊 Referrer stats updated:');
                 console.log('   - Used slots:', (referrer.used_slots || 0) + 1);
-                console.log('   - Total earned:', (referrer.total_earned_from_refs || 0) + 30);
+                console.log('   - Total earned from refs:', (referrer.total_earned_from_refs || 0) + 30);
                 console.log('   - New balance:', (referrer.balance || 0) + 30);
 
                 return { success: true, referrer: referrer };
@@ -639,12 +668,18 @@
                     
                     if (referralResult.success) {
                         console.log('✅ Referral processed successfully!');
+                        // Show success message with bonus info
+                        showSuccess(`Account created! 🎉 You received 30 NMX bonus from ${referrerUsername}!`);
                     } else {
                         console.log('⚠️ Referral processing failed:', referralResult.error);
+                        showSuccess('Account created! Referral bonus failed but account is active.');
                     }
+                } else {
+                    console.log('✅ Registration successful - no referral');
+                    showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
                 }
 
-                console.log('✅ Registration successful');
+                console.log('✅ Registration completed');
                 return authData;
 
             } catch (error) {
@@ -655,7 +690,7 @@
 
         // ========== FIXED: Create Telegram user with proper database integration ==========
         async function createTelegramUser(telegramUser) {
-            const username = telegramUser.username || generateUsername(telegramUser.first_name);
+            let username = telegramUser.username || generateUsername(telegramUser.first_name);
 
             try {
                 console.log('📱 Creating Telegram user with username:', username);
@@ -1020,13 +1055,7 @@
                 const result = await registerUser(email, password, fullName, username);
 
                 if (result.user) {
-                    let successMessage = '✅ Account created successfully! Please check your email to verify your account.';
-                    if (referrerUsername) {
-                        successMessage += ` You'll receive 30 NMX bonus from ${referrerUsername} after email verification!`;
-                    }
-
-                    showSuccess(successMessage);
-
+                    // Success message is shown inside registerUser function now
                     // Clear form
                     document.getElementById('registerForm').reset();
 
