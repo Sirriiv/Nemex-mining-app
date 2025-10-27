@@ -342,7 +342,7 @@
                     <div class="referral-title">Invite Friends & Earn</div>
                     <div class="referral-desc">
                         Share your referral link and track your referrals!<br>
-                        <small>Max 10 referrals per user</small>
+                        <small>Your username: <strong id="userUsername">Loading...</strong></small>
                     </div>
 
                     <!-- Link Type Selector -->
@@ -482,19 +482,19 @@
 
         // Update referral link based on type
         function updateReferralLink() {
-            if (!userData) return;
+            if (!userData || !userData.username) return;
 
             let link = '';
             if (currentLinkType === 'telegram') {
-                link = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${userData.referral_code}`;
+                link = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${userData.username}`;
             } else {
-                link = `https://nemex-backend.onrender.com/register.html?ref=${userData.referral_code}`;
+                link = `https://nemex-backend.onrender.com/register.html?ref=${userData.username}`;
             }
 
             document.getElementById('referralLink').value = link;
         }
 
-        // ========== FIXED: Load referral data with proper user identification ==========
+        // ========== FIXED: Load referral data with username-based system ==========
         async function loadReferralData() {
             try {
                 showLoading();
@@ -520,7 +520,7 @@
                 // Load user's referral stats
                 const { data: stats, error: statsError } = await supabaseClient
                     .from('profiles')
-                    .select('referral_code, referral_slots, used_slots, total_earned_from_refs')
+                    .select('username, referral_slots, used_slots, total_earned_from_refs')
                     .match(queryCondition)
                     .single();
 
@@ -529,8 +529,11 @@
                     throw statsError;
                 }
 
-                console.log('📊 Referral stats loaded:', stats);
+                console.log('📊 User stats loaded:', stats);
                 userData = stats;
+
+                // Update username display
+                document.getElementById('userUsername').textContent = stats.username || 'Not set';
 
                 // Update stats UI
                 document.getElementById('totalReferrals').textContent = stats.used_slots || 0;
@@ -540,7 +543,7 @@
                 // Update referral link
                 updateReferralLink();
 
-                console.log('🔗 Generated referral links for code:', stats.referral_code);
+                console.log('🔗 Generated referral links for username:', stats.username);
 
                 // Load referrals list
                 await loadReferralsList();
@@ -551,24 +554,24 @@
             }
         }
 
-        // ========== FIXED: Load referrals list with better debugging ==========
+        // ========== FIXED: Load referrals list using username-based tracking ==========
         async function loadReferralsList() {
             try {
                 console.log('🔄 Loading referrals list...');
                 console.log('👤 Current user data:', currentUser);
-                console.log('🎯 User referral code:', userData?.referral_code);
+                console.log('🎯 User username:', userData?.username);
 
-                if (!userData || !userData.referral_code) {
-                    console.error('❌ No referral code available');
+                if (!userData || !userData.username) {
+                    console.error('❌ No username available');
                     displayEmptyReferrals();
                     return;
                 }
 
-                // Get users who used this referral code
+                // Get users who used this username as referral
                 const { data: referredUsers, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, full_name, email, created_at, telegram_id, username, referred_by')
-                    .eq('referred_by', userData.referral_code)
+                    .select('id, username, full_name, email, created_at, telegram_id, referred_by')
+                    .eq('referred_by', userData.username) // Changed from referral_code to username
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -604,8 +607,8 @@
             console.log('📊 Displaying referred users:', referredUsers);
 
             const referralsHtml = referredUsers.map(user => {
-                const initials = getInitials(user.full_name || user.username || 'Unknown');
-                const name = user.full_name || user.username || (user.telegram_id ? 'Telegram User' : 'Unknown User');
+                const initials = getInitials(user.username || user.full_name || 'Unknown');
+                const name = user.username || user.full_name || (user.telegram_id ? 'Telegram User' : 'Unknown User');
                 const source = user.email ? 'Email' : (user.telegram_id ? 'Telegram' : 'Unknown');
                 
                 return `
@@ -639,7 +642,7 @@
             debugInfo.style.color = 'var(--muted)';
             debugInfo.style.marginTop = '10px';
             debugInfo.style.textAlign = 'center';
-            debugInfo.textContent = `🔍 Found ${referredUsers.length} users with referral code: ${userData.referral_code}`;
+            debugInfo.textContent = `🔍 Found ${referredUsers.length} users referred by your username: ${userData.username}`;
             referralsList.appendChild(debugInfo);
         }
 
@@ -653,7 +656,7 @@
                         Share your referral link to start tracking!
                     </div>
                     <div style="font-size: 10px; margin-top: 15px; color: var(--warning);">
-                        🔍 Debug: Looking for users with referral code: ${userData?.referral_code || 'Unknown'}
+                        🔍 Debug: Looking for users referred by username: ${userData?.username || 'Unknown'}
                     </div>
                     <div style="font-size: 9px; margin-top: 8px; color: var(--muted);">
                         User ID: ${currentUser?.id || 'Unknown'} | Telegram ID: ${currentUser?.telegram_id || 'None'}
@@ -697,6 +700,8 @@
 
 🔗 Register here: ${link}
 
+Use my username as referral: ${userData?.username}
+
 Track your referrals and grow together! 🚀`;
 
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -707,10 +712,10 @@ Track your referrals and grow together! 🚀`;
             const link = document.getElementById('referralLink').value;
 
             if (window.Telegram && window.Telegram.WebApp) {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! Use my username as referral 🚀')}`;
                 window.Telegram.WebApp.openLink(shareUrl);
             } else {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! 🚀')}`;
+                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! Use my username as referral 🚀')}`;
                 window.open(shareUrl, '_blank');
             }
         }
@@ -720,6 +725,8 @@ Track your referrals and grow together! 🚀`;
             const message = `Join me on NemexCoin! 🚀 
 
 Register here: ${link}
+
+Use my username as referral: ${userData?.username}
 
 Track your referrals and grow together!`;
 
@@ -733,6 +740,8 @@ Track your referrals and grow together!`;
             const body = `Hi! Join me on NemexCoin!
 
 Register here: ${link}
+
+Use my username as referral: ${userData?.username}
 
 Track your referrals and grow together!`;
 
