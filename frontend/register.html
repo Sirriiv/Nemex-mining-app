@@ -276,7 +276,7 @@
             <!-- Referral Banner (Shows when referred by someone) -->
             <div class="referral-banner" id="referralBanner" style="display: none;">
                 <h3>🎉 You've been referred!</h3>
-                <p>You'll get <strong>30 NMX</strong> bonus after registration!</p>
+                <p>Tracked by: <strong id="referrerName">Loading...</strong></p>
             </div>
 
             <!-- Telegram Info Message -->
@@ -352,6 +352,7 @@
         let isTelegramApp = false;
         let telegramUser = null;
         let referrerUsername = null;
+        let referrerData = null;
 
         // ========== DATABASE DIAGNOSTICS ==========
         async function testDatabaseConnection() {
@@ -394,28 +395,42 @@
         // ========== BLUM-STYLE REFERRAL SYSTEM ==========
 
         // Detect referral from URL parameters
-        function detectReferral() {
+        async function detectReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             referrerUsername = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('start');
 
             if (referrerUsername) {
                 referrerUsername = referrerUsername.toLowerCase().trim();
                 
-                // Show referral banner
-                const referralBanner = document.getElementById('referralBanner');
-                referralBanner.style.display = 'block';
-
-                // Update welcome message
-                const welcomeTitle = document.getElementById('welcomeTitle');
-                welcomeTitle.textContent = `Join NemexCoin - Referred by ${referrerUsername}`;
-
                 console.log('🎯 Referral detected from:', referrerUsername);
-                return true;
+
+                // Validate the referrer exists
+                const validation = await validateReferrer(referrerUsername);
+                if (validation.valid) {
+                    referrerData = validation.referrer;
+                    
+                    // Show referral banner
+                    const referralBanner = document.getElementById('referralBanner');
+                    const referrerName = document.getElementById('referrerName');
+                    referralBanner.style.display = 'block';
+                    referrerName.textContent = referrerData.username;
+
+                    // Update welcome message
+                    const welcomeTitle = document.getElementById('welcomeTitle');
+                    welcomeTitle.textContent = `Join NemexCoin - Referred by ${referrerData.username}`;
+
+                    console.log('✅ Referrer validated and banner shown');
+                    return true;
+                } else {
+                    console.error('❌ Referrer validation failed:', validation.error);
+                    showError(`Referrer "${referrerUsername}" not found. Creating account without referral.`);
+                    referrerUsername = null; // Clear invalid referrer
+                }
             }
             return false;
         }
 
-        // Check if referrer exists and has available slots
+        // Check if referrer exists
         async function validateReferrer(username) {
             try {
                 console.log('🔍 Validating referrer:', username);
@@ -436,15 +451,7 @@
                 }
 
                 console.log('✅ Referrer found:', referrer);
-
-                // Check if referrer has available slots (BLUM-style: max 10)
-                const availableSlots = 10 - (referrer.used_slots || 0);
-                if (availableSlots <= 0) {
-                    return { valid: false, error: 'Referrer has no available slots' };
-                }
-
-                console.log('✅ Referrer validated - available slots:', availableSlots);
-                return { valid: true, referrer: referrer, availableSlots: availableSlots };
+                return { valid: true, referrer: referrer };
 
             } catch (error) {
                 console.error('❌ Error validating referrer:', error);
@@ -452,31 +459,26 @@
             }
         }
 
-        // FIXED: BLUM-STYLE referral tracking with proper database records
-        async function processReferral(newUserId, referrerUsername) {
+        // SIMPLIFIED: Create referral record only
+        async function createReferralRecord(newUserId, referrerUsername, referrerData) {
             try {
-                console.log('🚀 PROCESSING REFERRAL FOR NEW USER:', newUserId);
-                console.log('🎯 REFERRED BY:', referrerUsername);
+                console.log('🚀 CREATING REFERRAL RECORD');
+                console.log('👤 New User ID:', newUserId);
+                console.log('🎯 Referrer Username:', referrerUsername);
+                console.log('📊 Referrer Data:', referrerData);
 
-                // 1. Validate referrer first
-                const validation = await validateReferrer(referrerUsername);
-                if (!validation.valid) {
-                    console.error('❌ Referrer validation failed:', validation.error);
-                    return { success: false, error: validation.error };
-                }
-
-                const referrer = validation.referrer;
-
-                // 2. Create referral record in referrals table
+                // Create referral record in referrals table
                 console.log('📝 Creating referral record...');
                 const referralRecord = {
-                    referrer_id: referrer.id,
+                    referrer_id: referrerData.id,
                     referred_user_id: newUserId,
-                    referrer_username: referrer.username,
+                    referrer_username: referrerData.username,
                     status: 'completed',
                     bonus_amount: 30,
                     created_at: new Date().toISOString()
                 };
+
+                console.log('📦 Referral data to insert:', referralRecord);
 
                 const { data: newReferral, error: referralError } = await supabaseClient
                     .from('referrals')
@@ -486,60 +488,15 @@
 
                 if (referralError) {
                     console.error('❌ Error creating referral record:', referralError);
-                    
-                    // If referrals table doesn't exist, continue with profile updates only
-                    if (referralError.message.includes('relation') || referralError.message.includes('does not exist')) {
-                        console.log('⚠️ Referrals table not found, continuing with profile updates only...');
-                    } else {
-                        return { success: false, error: 'Failed to create referral record' };
-                    }
-                } else {
-                    console.log('✅ Referral record created:', newReferral);
+                    return { success: false, error: referralError.message };
                 }
 
-                // 3. Update referrer's stats and give bonus
-                console.log('💰 Updating referrer stats and giving bonus...');
-                
-                const { error: updateError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        used_slots: (referrer.used_slots || 0) + 1,
-                        total_earned_from_refs: (referrer.total_earned_from_refs || 0) + 30,
-                        balance: (referrer.balance || 0) + 30 // 30 NMX bonus for referrer
-                    })
-                    .eq('id', referrer.id);
-
-                if (updateError) {
-                    console.error('❌ Error updating referrer:', updateError);
-                    return { success: false, error: 'Failed to update referrer' };
-                }
-
-                // 4. Give bonus to new user and set referred_by
-                console.log('🎁 Giving bonus to new user...');
-                const { error: bonusError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        balance: 30, // 30 NMX bonus for referred user
-                        referred_by: referrerUsername
-                    })
-                    .eq('id', newUserId);
-
-                if (bonusError) {
-                    console.error('❌ Error giving bonus to new user:', bonusError);
-                    // Continue anyway - the main referral is tracked
-                }
-
-                console.log('🎉 REFERRAL PROCESSING COMPLETE!');
-                console.log('📊 Referrer stats updated:');
-                console.log('   - Used slots:', (referrer.used_slots || 0) + 1);
-                console.log('   - Total earned from refs:', (referrer.total_earned_from_refs || 0) + 30);
-                console.log('   - New balance:', (referrer.balance || 0) + 30);
-
-                return { success: true, referrer: referrer };
+                console.log('✅ REFERRAL RECORD CREATED:', newReferral);
+                return { success: true, referral: newReferral };
 
             } catch (error) {
-                console.error('❌ CRITICAL ERROR in processReferral:', error);
-                return { success: false, error: 'Referral processing failed: ' + error.message };
+                console.error('❌ CRITICAL ERROR in createReferralRecord:', error);
+                return { success: false, error: error.message };
             }
         }
 
@@ -583,7 +540,7 @@
             }
         }
 
-        // ========== FIXED: Email registration with proper database integration ==========
+        // ========== SIMPLIFIED: Email registration ==========
         async function registerUser(email, password, fullName, username) {
             try {
                 console.log('📝 Starting email registration with username:', username);
@@ -628,7 +585,8 @@
                     last_claim: null,
                     referral_slots: 10,
                     used_slots: 0,
-                    total_earned_from_refs: 0
+                    total_earned_from_refs: 0,
+                    referred_by: referrerUsername || null // Track who referred this user
                 };
 
                 const { data: profile, error: profileError } = await supabaseClient
@@ -639,40 +597,22 @@
 
                 if (profileError) {
                     console.error('❌ Profile creation error:', profileError);
-                    
-                    // If duplicate key, try to update instead
-                    if (profileError.code === '23505') {
-                        console.log('🔄 Profile already exists, updating...');
-                        const { data: updatedProfile, error: updateError } = await supabaseClient
-                            .from('profiles')
-                            .update(profileData)
-                            .eq('id', authData.user.id)
-                            .select()
-                            .single();
-
-                        if (updateError) {
-                            throw updateError;
-                        }
-                        console.log('✅ Profile updated:', updatedProfile);
-                    } else {
-                        throw profileError;
-                    }
-                } else {
-                    console.log('✅ Profile created:', profile);
+                    throw profileError;
                 }
 
-                // Step 3: Process referral if applicable
-                if (referrerUsername) {
-                    console.log('🎁 Processing referral for new user...');
-                    const referralResult = await processReferral(authData.user.id, referrerUsername);
+                console.log('✅ Profile created:', profile);
+
+                // Step 3: Create referral record if applicable
+                if (referrerUsername && referrerData) {
+                    console.log('🎁 Creating referral record...');
+                    const referralResult = await createReferralRecord(authData.user.id, referrerUsername, referrerData);
                     
                     if (referralResult.success) {
-                        console.log('✅ Referral processed successfully!');
-                        // Show success message with bonus info
-                        showSuccess(`Account created! 🎉 You received 30 NMX bonus from ${referrerUsername}!`);
+                        console.log('✅ REFERRAL SUCCESS! Record created in database');
+                        showSuccess(`Account created! 🎉 Referral tracked from ${referrerUsername}!`);
                     } else {
-                        console.log('⚠️ Referral processing failed:', referralResult.error);
-                        showSuccess('Account created! Referral bonus failed but account is active.');
+                        console.log('⚠️ Referral record creation failed:', referralResult.error);
+                        showSuccess('Account created! Referral tracking failed but account is active.');
                     }
                 } else {
                     console.log('✅ Registration successful - no referral');
@@ -688,7 +628,7 @@
             }
         }
 
-        // ========== FIXED: Create Telegram user with proper database integration ==========
+        // ========== SIMPLIFIED: Create Telegram user ==========
         async function createTelegramUser(telegramUser) {
             let username = telegramUser.username || generateUsername(telegramUser.first_name);
 
@@ -726,6 +666,7 @@
                     referral_slots: 10,
                     used_slots: 0,
                     total_earned_from_refs: 0,
+                    referred_by: referrerUsername || null,
                     created_via: 'telegram'
                 };
 
@@ -742,15 +683,15 @@
 
                 console.log('✅ Telegram user created:', newUser);
 
-                // Process referral if applicable
-                if (referrerUsername && newUser) {
-                    console.log('🎁 Tracking referral for Telegram user...');
-                    const referralResult = await processReferral(newUser.id, referrerUsername);
+                // Create referral record if applicable
+                if (referrerUsername && referrerData) {
+                    console.log('🎁 Creating referral record for Telegram user...');
+                    const referralResult = await createReferralRecord(newUser.id, referrerUsername, referrerData);
 
                     if (referralResult.success) {
-                        console.log('✅ Referral tracked successfully for Telegram user!');
+                        console.log('✅ REFERRAL SUCCESS! Record created in database');
                     } else {
-                        console.log('⚠️ Referral tracking failed for Telegram user');
+                        console.log('⚠️ Referral record creation failed:', referralResult.error);
                     }
                 }
 
@@ -783,7 +724,7 @@
                 }
 
                 // Detect referral FIRST
-                detectReferral();
+                await detectReferral();
 
                 // Initialize Telegram
                 initializeTelegram();
@@ -834,8 +775,8 @@
 
             telegramInfo.style.display = 'block';
 
-            if (referrerUsername) {
-                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referrerUsername}`;
+            if (referrerUsername && referrerData) {
+                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referrerData.username}`;
             } else {
                 welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
             }
@@ -940,16 +881,9 @@
 
                     console.log('✅ Telegram user created:', newUser);
 
-                    // Process referral if applicable
-                    if (referrerUsername) {
-                        console.log('🎁 Processing referral for Telegram user...');
-                        const referralResult = await processReferral(newUser.id, referrerUsername);
-                        
-                        if (referralResult.success) {
-                            showSuccess(`Account created! 🎉 You received 30 NMX bonus from ${referrerUsername}!`);
-                        } else {
-                            showSuccess('Account created! Referral bonus failed but account is active.');
-                        }
+                    // Show success message
+                    if (referrerUsername && referrerData) {
+                        showSuccess(`Account created! 🎉 Referral tracked from ${referrerData.username}!`);
                     } else {
                         showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
                     }
