@@ -6,6 +6,7 @@
     <title>NemexCoin - Mining Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* Your existing CSS styles remain exactly the same */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -554,64 +555,27 @@
             return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
-        // Generate username if it doesn't exist
-        function generateUsername(telegramUser = null) {
-            if (telegramUser && telegramUser.username) {
-                return telegramUser.username;
-            }
-
-            if (telegramUser) {
-                return `tg_${telegramUser.id}`;
-            }
-
-            // For web users, generate a random username
-            const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-            let result = 'user_';
-            for (let i = 0; i < 6; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
-        // Load user data
+        // ========== FIXED: DATABASE-ONLY USER DATA ==========
         async function loadUserData() {
             try {
-                console.log('🔄 Loading user data...');
+                console.log('🔄 Loading user data from DATABASE...');
 
-                let profile;
-                let userId;
+                // Get current session
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    throw new Error('No user session found');
+                }
 
-                if (isTelegramApp && telegramUser) {
-                    // For Telegram users
-                    const { data, error } = await supabaseClient
-                        .from('profiles')
-                        .select('id, username, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
-                        .eq('telegram_id', telegramUser.id)
-                        .single();
+                // Load fresh data DIRECTLY from database
+                const { data: profile, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, balance, last_claim, total_earned_from_refs, used_slots, referral_slots, telegram_id')
+                    .eq('id', session.user.id)
+                    .single();
 
-                    if (error) {
-                        console.error('Error loading Telegram profile:', error);
-                        return await createTelegramUser(telegramUser);
-                    }
-
-                    profile = data;
-                    userId = data.id;
-                } else {
-                    // For web users
-                    const { data, error } = await supabaseClient
-                        .from('profiles')
-                        .select('id, username, balance, last_claim, total_earned_from_refs, used_slots, referral_slots')
-                        .eq('id', user.id)
-                        .single();
-
-                    if (error) {
-                        console.error('Error loading profile:', error);
-                        await createUserProfile();
-                        return;
-                    }
-
-                    profile = data;
-                    userId = data.id;
+                if (error) {
+                    console.error('Error loading profile:', error);
+                    throw error;
                 }
 
                 // Update UI with actual data from database
@@ -619,29 +583,8 @@
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
-                console.log('💰 Balance loaded:', userBalance);
-                console.log('👤 Username:', profile.username);
-
-                // Generate username if it doesn't exist
-                if (!profile.username) {
-                    console.log('📝 Generating username...');
-                    const username = generateUsername(telegramUser);
-
-                    const { error: updateError } = await supabaseClient
-                        .from('profiles')
-                        .update({ 
-                            username: username,
-                            referral_slots: 10,
-                            used_slots: 0,
-                            total_earned_from_refs: 0
-                        })
-                        .eq('id', userId);
-
-                    if (updateError) {
-                        console.error('Error updating username:', updateError);
-                        return;
-                    }
-                }
+                console.log('💰 Balance loaded from DATABASE:', userBalance);
+                console.log('👤 Username from DATABASE:', profile.username);
 
                 return profile;
 
@@ -654,7 +597,7 @@
         // Refresh balance
         async function refreshBalance() {
             try {
-                console.log('🔄 Refreshing balance...');
+                console.log('🔄 Refreshing balance from DATABASE...');
                 const profile = await loadUserData();
 
                 if (profile) {
@@ -708,25 +651,17 @@
 
             logoutButton.addEventListener('click', async function() {
                 try {
-                    if (isTelegramApp) {
-                        localStorage.removeItem('nemex_telegram_user');
-                        localStorage.removeItem('current_user_data');
-                        showSuccess('Logged out successfully!');
-                        setTimeout(() => {
-                            if (window.Telegram && window.Telegram.WebApp) {
-                                window.Telegram.WebApp.close();
-                            } else {
-                                window.location.reload();
-                            }
-                        }, 1500);
-                    } else {
-                        await supabaseClient.auth.signOut();
-                        localStorage.removeItem('isLoggedIn');
-                        localStorage.removeItem('userEmail');
-                        localStorage.removeItem('userId');
-                        localStorage.removeItem('current_user_data');
+                    // FIXED: Remove ONLY authentication data from localStorage
+                    await supabaseClient.auth.signOut();
+                    
+                    // Clear only auth-related localStorage items
+                    localStorage.removeItem('supabase.auth.token');
+                    
+                    showSuccess('Logged out successfully!');
+                    setTimeout(() => {
                         window.location.href = 'login.html';
-                    }
+                    }, 1500);
+                    
                 } catch (error) {
                     console.error('Logout error:', error);
                     showError('Logout failed. Please try again.');
@@ -741,51 +676,34 @@
             });
         }
 
-        // Navigate to referrals with proper data
+        // ========== FIXED: Navigate to referrals with DATABASE data ==========
         async function navigateToReferrals() {
             try {
                 console.log('🔗 Navigating to referrals page...');
 
-                // Get current user data
-                let userData = null;
-
-                if (isTelegramApp && telegramUser) {
-                    // For Telegram users
-                    const { data } = await supabaseClient
-                        .from('profiles')
-                        .select('*')
-                        .eq('telegram_id', telegramUser.id)
-                        .single();
-                    userData = data;
-                } else {
-                    // For web users
-                    const { data } = await supabaseClient
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', user.id)
-                        .single();
-                    userData = data;
+                // Get current user data DIRECTLY from database
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    showError('Please login first');
+                    return;
                 }
 
-                if (userData) {
-                    console.log('👤 Passing user data to referrals:', userData);
+                const { data: userData, error } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
 
-                    // Store comprehensive user data for referrals page
-                    localStorage.setItem('current_user_data', JSON.stringify({
-                        id: userData.id,
-                        telegram_id: userData.telegram_id,
-                        username: userData.username,
-                        used_slots: userData.used_slots,
-                        referral_slots: userData.referral_slots,
-                        total_earned_from_refs: userData.total_earned_from_refs
-                    }));
-
-                    // Navigate to referrals
-                    window.location.href = 'referrals.html';
-                } else {
-                    console.error('❌ No user data found for referrals');
-                    showError('Unable to load referral data. Please try again.');
+                if (error) {
+                    console.error('❌ Error loading user data:', error);
+                    showError('Unable to load user data. Please try again.');
+                    return;
                 }
+
+                console.log('👤 Passing user data to referrals:', userData);
+
+                // Navigate to referrals - NO localStorage storage
+                window.location.href = 'referrals.html';
 
             } catch (error) {
                 console.error('❌ Error navigating to referrals:', error);
@@ -793,26 +711,21 @@
             }
         }
 
-        // Initialize dashboard
+        // ========== FIXED: DATABASE-ONLY Dashboard Initialization ==========
         async function initializeDashboard() {
             try {
                 // Initialize Telegram first
                 initializeTelegram();
 
-                // If we're in Telegram with a user, handle Telegram auth
-                if (isTelegramApp && telegramUser) {
-                    console.log('📱 Telegram user detected, handling Telegram auth...');
-                    await handleTelegramAuth();
-                } else {
-                    // Regular web authentication
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    if (!session) {
-                        window.location.href = 'login.html';
-                        return;
-                    }
-                    user = session.user;
-                    console.log('👤 Web User:', user.id);
+                // Check authentication - DATABASE ONLY
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
                 }
+
+                user = session.user;
+                console.log('👤 Web User:', user.id);
 
                 // Load user data with balance refresh
                 await loadUserData();
@@ -820,7 +733,7 @@
                 // Start countdown timer
                 startCountdownTimer();
 
-                // Refresh balance when page becomes visible (returning from referrals)
+                // Refresh balance when page becomes visible
                 document.addEventListener('visibilitychange', function() {
                     if (!document.hidden) {
                         console.log('📄 Page visible - refreshing balance...');
@@ -864,103 +777,6 @@
             } else {
                 console.log('🌐 Running in regular browser');
                 isTelegramApp = false;
-            }
-        }
-
-        // Handle Telegram user authentication
-        async function handleTelegramAuth() {
-            try {
-                console.log('🔐 Handling Telegram user authentication...');
-
-                const { data: existingUser, error } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (error && error.code === 'PGRST116') {
-                    console.log('Creating new Telegram user...');
-                    await createTelegramUser(telegramUser);
-                } else if (existingUser) {
-                    console.log('Telegram user found:', existingUser);
-                    user = { id: existingUser.id };
-                } else if (error) {
-                    console.error('Error checking Telegram user:', error);
-                }
-
-            } catch (error) {
-                console.error('Telegram auth error:', error);
-            }
-        }
-
-        // Create new Telegram user
-        async function createTelegramUser(telegramUser) {
-            const username = generateUsername(telegramUser);
-
-            const { data, error } = await supabaseClient
-                .from('profiles')
-                .insert([
-                    {
-                        telegram_id: telegramUser.id,
-                        username: username,
-                        full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                        avatar_url: telegramUser.photo_url,
-                        balance: 0,
-                        last_claim: null,
-                        referral_slots: 10,
-                        used_slots: 0,
-                        total_earned_from_refs: 0,
-                        created_via: 'telegram'
-                    }
-                ])
-                .select()
-                .single();
-
-            if (error) {
-                console.error('Error creating Telegram user:', error);
-                user = { id: `telegram_${telegramUser.id}` };
-            } else {
-                console.log('✅ Telegram user created:', data);
-                user = { id: data.id };
-                localStorage.setItem('nemex_telegram_user', JSON.stringify(data));
-            }
-        }
-
-        // Create user profile if it doesn't exist (for web users)
-        async function createUserProfile() {
-            try {
-                console.log('📝 Creating user profile...');
-
-                const username = generateUsername();
-
-                const { data, error } = await supabaseClient
-                    .from('profiles')
-                    .insert([
-                        {
-                            id: user.id,
-                            username: username,
-                            balance: 0,
-                            last_claim: null,
-                            referral_slots: 10,
-                            used_slots: 0,
-                            total_earned_from_refs: 0,
-                            created_via: 'web'
-                        }
-                    ])
-                    .select()
-                    .single();
-
-                if (error) {
-                    console.error('Error creating user profile:', error);
-                    throw error;
-                }
-
-                console.log('✅ User profile created:', data);
-                return data;
-
-            } catch (error) {
-                console.error('❌ Error creating user profile:', error);
-                throw error;
             }
         }
 
@@ -1054,12 +870,10 @@
                 const newBalance = userBalance + CLAIM_AMOUNT;
                 const now = new Date();
 
-                let updateCondition;
-
-                if (isTelegramApp && telegramUser) {
-                    updateCondition = { telegram_id: telegramUser.id };
-                } else {
-                    updateCondition = { id: user.id };
+                // Get current user ID from session
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    throw new Error('No user session');
                 }
 
                 const { data, error } = await supabaseClient
@@ -1068,7 +882,7 @@
                         balance: newBalance,
                         last_claim: now.toISOString()
                     })
-                    .match(updateCondition)
+                    .eq('id', session.user.id)
                     .select()
                     .single();
 
