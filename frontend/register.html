@@ -273,10 +273,10 @@
         <div class="register-card">
             <h2 id="welcomeTitle">Create Your Account</h2>
 
-            <!-- Referral Banner (Shows when referred by someone) -->
+            <!-- Referral Banner -->
             <div class="referral-banner" id="referralBanner" style="display: none;">
                 <h3>🎉 You've been referred!</h3>
-                <p>Tracked by: <strong id="referrerName">Loading...</strong></p>
+                <p>Referral will be tracked for: <strong id="referrerName">Loading...</strong></p>
             </div>
 
             <!-- Telegram Info Message -->
@@ -348,174 +348,113 @@
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
-        let supabaseClient;
-        let isTelegramApp = false;
-        let telegramUser = null;
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
         let referrerUsername = null;
-        let referrerData = null;
 
-        // ========== DATABASE DIAGNOSTICS ==========
-        async function testDatabaseConnection() {
-            try {
-                console.log('🔍 Testing database connection...');
-                
-                // Test profiles table
-                const { data: profiles, error: profilesError } = await supabaseClient
-                    .from('profiles')
-                    .select('count')
-                    .limit(1);
+        // ========== SIMPLE REFERRAL SYSTEM ==========
 
-                if (profilesError) {
-                    console.error('❌ Profiles table error:', profilesError);
-                    return false;
-                }
-
-                console.log('✅ Profiles table accessible');
-
-                // Test referrals table
-                const { data: referrals, error: referralsError } = await supabaseClient
-                    .from('referrals')
-                    .select('count')
-                    .limit(1);
-
-                if (referralsError) {
-                    console.log('ℹ️ Referrals table not accessible (may not exist):', referralsError.message);
-                } else {
-                    console.log('✅ Referrals table accessible');
-                }
-
-                return true;
-
-            } catch (error) {
-                console.error('❌ Database connection test failed:', error);
-                return false;
-            }
-        }
-
-        // ========== BLUM-STYLE REFERRAL SYSTEM ==========
-
-        // Detect referral from URL parameters
+        // Detect referral from URL
         async function detectReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             referrerUsername = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('start');
 
             if (referrerUsername) {
                 referrerUsername = referrerUsername.toLowerCase().trim();
-                
                 console.log('🎯 Referral detected from:', referrerUsername);
 
-                // Validate the referrer exists
-                const validation = await validateReferrer(referrerUsername);
-                if (validation.valid) {
-                    referrerData = validation.referrer;
-                    
-                    // Show referral banner
-                    const referralBanner = document.getElementById('referralBanner');
-                    const referrerName = document.getElementById('referrerName');
-                    referralBanner.style.display = 'block';
-                    referrerName.textContent = referrerData.username;
+                // Show banner immediately - we'll validate later
+                const referralBanner = document.getElementById('referralBanner');
+                const referrerName = document.getElementById('referrerName');
+                referralBanner.style.display = 'block';
+                referrerName.textContent = referrerUsername;
 
-                    // Update welcome message
-                    const welcomeTitle = document.getElementById('welcomeTitle');
-                    welcomeTitle.textContent = `Join NemexCoin - Referred by ${referrerData.username}`;
+                // Update welcome message
+                const welcomeTitle = document.getElementById('welcomeTitle');
+                welcomeTitle.textContent = `Join NemexCoin - Referred by ${referrerUsername}`;
 
-                    console.log('✅ Referrer validated and banner shown');
-                    return true;
-                } else {
-                    console.error('❌ Referrer validation failed:', validation.error);
-                    showError(`Referrer "${referrerUsername}" not found. Creating account without referral.`);
-                    referrerUsername = null; // Clear invalid referrer
-                }
+                return true;
             }
             return false;
         }
 
-        // Check if referrer exists
-        async function validateReferrer(username) {
+        // FIXED: Matches YOUR referrals table structure exactly
+        async function createReferralRecord(newUserId, referrerUsername) {
             try {
-                console.log('🔍 Validating referrer:', username);
-                
-                const { data: referrer, error } = await supabaseClient
+                console.log('🚀 Creating referral record...');
+                console.log('👤 New User:', newUserId);
+                console.log('🎯 Referrer:', referrerUsername);
+
+                // First, let's find the referrer by username
+                console.log('🔍 Searching for referrer...');
+                const { data: referrer, error: findError } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, used_slots, referral_slots, balance, total_earned_from_refs')
-                    .eq('username', username)
+                    .select('id, username')
+                    .eq('username', referrerUsername)
                     .single();
 
-                if (error) {
-                    console.error('❌ Referrer validation error:', error);
-                    return { valid: false, error: 'Referrer not found' };
+                if (findError || !referrer) {
+                    console.log('❌ Referrer not found, trying case-insensitive search...');
+                    
+                    // Try case-insensitive search
+                    const { data: allUsers } = await supabaseClient
+                        .from('profiles')
+                        .select('id, username');
+                    
+                    const foundReferrer = allUsers.find(user => 
+                        user.username.toLowerCase() === referrerUsername.toLowerCase()
+                    );
+                    
+                    if (!foundReferrer) {
+                        console.log('❌ Referrer not found in database');
+                        return { success: false, error: 'Referrer not found' };
+                    }
+                    
+                    console.log('✅ Referrer found (case-insensitive):', foundReferrer);
+                    referrer = foundReferrer;
+                } else {
+                    console.log('✅ Referrer found:', referrer);
                 }
 
-                if (!referrer) {
-                    return { valid: false, error: 'Referrer not found' };
-                }
-
-                console.log('✅ Referrer found:', referrer);
-                return { valid: true, referrer: referrer };
-
-            } catch (error) {
-                console.error('❌ Error validating referrer:', error);
-                return { valid: false, error: 'Error validating referrer' };
-            }
-        }
-
-        // SIMPLIFIED: Create referral record only
-        async function createReferralRecord(newUserId, referrerUsername, referrerData) {
-            try {
-                console.log('🚀 CREATING REFERRAL RECORD');
-                console.log('👤 New User ID:', newUserId);
-                console.log('🎯 Referrer Username:', referrerUsername);
-                console.log('📊 Referrer Data:', referrerData);
-
-                // Create referral record in referrals table
-                console.log('📝 Creating referral record...');
-                const referralRecord = {
-                    referrer_id: referrerData.id,
-                    referred_user_id: newUserId,
-                    referrer_username: referrerData.username,
-                    status: 'completed',
+                // Create the referral record - USING YOUR EXACT TABLE COLUMN NAMES
+                const referralData = {
+                    referrer_id: referrer.id,
+                    referred_id: newUserId,  // MATCHES YOUR COLUMN: referred_id
+                    referral_code_used: referrer.username,  // MATCHES YOUR COLUMN: referral_code_used
                     bonus_amount: 30,
+                    bonus_claimed: false,  // MATCHES YOUR COLUMN: bonus_claimed
                     created_at: new Date().toISOString()
                 };
 
-                console.log('📦 Referral data to insert:', referralRecord);
+                console.log('📦 Inserting referral data (YOUR SCHEMA):', referralData);
 
-                const { data: newReferral, error: referralError } = await supabaseClient
+                const { data: referral, error } = await supabaseClient
                     .from('referrals')
-                    .insert([referralRecord])
+                    .insert([referralData])
                     .select()
                     .single();
 
-                if (referralError) {
-                    console.error('❌ Error creating referral record:', referralError);
-                    return { success: false, error: referralError.message };
+                if (error) {
+                    console.error('❌ Error creating referral:', error);
+                    return { success: false, error: error.message };
                 }
 
-                console.log('✅ REFERRAL RECORD CREATED:', newReferral);
-                return { success: true, referral: newReferral };
+                console.log('✅ REFERRAL CREATED SUCCESSFULLY:', referral);
+                return { success: true, referral: referral };
 
             } catch (error) {
-                console.error('❌ CRITICAL ERROR in createReferralRecord:', error);
+                console.error('❌ Error in createReferralRecord:', error);
                 return { success: false, error: error.message };
             }
         }
 
-        // Generate username from full name
+        // Generate username
         function generateUsername(fullName) {
-            let username = fullName
-                .toLowerCase()
-                .replace(/\s+/g, '')
-                .replace(/[^a-z0-9_]/g, '')
-                .substring(0, 15);
-
-            if (username.length < 3) {
-                username += Math.floor(1000 + Math.random() * 9000);
-            }
-
+            let username = fullName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '').substring(0, 15);
+            if (username.length < 3) username += Math.floor(1000 + Math.random() * 9000);
             return username;
         }
 
-        // Check if username is available
+        // Check username availability
         async function checkUsernameAvailability(username) {
             try {
                 const { data, error } = await supabaseClient
@@ -524,58 +463,36 @@
                     .eq('username', username.toLowerCase())
                     .single();
 
-                if (error && error.code === 'PGRST116') {
-                    return { available: true }; // Username available
-                }
-
-                if (data) {
-                    return { available: false, error: 'Username already taken' };
-                }
-
+                if (error && error.code === 'PGRST116') return { available: true };
+                if (data) return { available: false, error: 'Username taken' };
                 return { available: true };
-
             } catch (error) {
-                console.error('Error checking username:', error);
                 return { available: false, error: 'Error checking username' };
             }
         }
 
-        // ========== SIMPLIFIED: Email registration ==========
+        // ========== SIMPLE REGISTRATION ==========
         async function registerUser(email, password, fullName, username) {
             try {
-                console.log('📝 Starting email registration with username:', username);
+                console.log('📝 Starting registration...');
 
-                // Check username availability first
+                // Check username
                 const usernameCheck = await checkUsernameAvailability(username);
-                if (!usernameCheck.available) {
-                    throw new Error(usernameCheck.error);
-                }
+                if (!usernameCheck.available) throw new Error(usernameCheck.error);
 
-                // Step 1: Create auth user
+                // Create auth user
                 const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
-                    options: {
-                        data: {
-                            full_name: fullName,
-                            username: username
-                        }
-                    }
+                    options: { data: { full_name: fullName, username: username } }
                 });
 
-                if (authError) {
-                    console.error('❌ Auth creation error:', authError);
-                    throw authError;
-                }
-
-                if (!authData.user) {
-                    throw new Error('No user data returned from authentication');
-                }
+                if (authError) throw authError;
+                if (!authData.user) throw new Error('No user data returned');
 
                 console.log('✅ Auth user created:', authData.user.id);
 
-                // Step 2: Create user profile
-                console.log('👤 Creating user profile...');
+                // Create profile
                 const profileData = {
                     id: authData.user.id,
                     email: email,
@@ -586,7 +503,7 @@
                     referral_slots: 10,
                     used_slots: 0,
                     total_earned_from_refs: 0,
-                    referred_by: referrerUsername || null // Track who referred this user
+                    referred_by: referrerUsername || null
                 };
 
                 const { data: profile, error: profileError } = await supabaseClient
@@ -595,31 +512,25 @@
                     .select()
                     .single();
 
-                if (profileError) {
-                    console.error('❌ Profile creation error:', profileError);
-                    throw profileError;
-                }
-
+                if (profileError) throw profileError;
                 console.log('✅ Profile created:', profile);
 
-                // Step 3: Create referral record if applicable
-                if (referrerUsername && referrerData) {
+                // Create referral record if we have a referrer
+                if (referrerUsername) {
                     console.log('🎁 Creating referral record...');
-                    const referralResult = await createReferralRecord(authData.user.id, referrerUsername, referrerData);
+                    const referralResult = await createReferralRecord(authData.user.id, referrerUsername);
                     
                     if (referralResult.success) {
-                        console.log('✅ REFERRAL SUCCESS! Record created in database');
-                        showSuccess(`Account created! 🎉 Referral tracked from ${referrerUsername}!`);
+                        console.log('🎉 REFERRAL SUCCESS!');
+                        showSuccess(`Account created! 🎉 Referral from ${referrerUsername} tracked!`);
                     } else {
-                        console.log('⚠️ Referral record creation failed:', referralResult.error);
-                        showSuccess('Account created! Referral tracking failed but account is active.');
+                        console.log('⚠️ Referral failed:', referralResult.error);
+                        showSuccess('Account created! (Referral tracking failed)');
                     }
                 } else {
-                    console.log('✅ Registration successful - no referral');
-                    showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
+                    showSuccess('Account created successfully! 🚀');
                 }
 
-                console.log('✅ Registration completed');
                 return authData;
 
             } catch (error) {
@@ -628,444 +539,74 @@
             }
         }
 
-        // ========== SIMPLIFIED: Create Telegram user ==========
-        async function createTelegramUser(telegramUser) {
-            let username = telegramUser.username || generateUsername(telegramUser.first_name);
-
-            try {
-                console.log('📱 Creating Telegram user with username:', username);
-
-                // First check if user already exists
-                const { data: existingUser, error: checkError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (existingUser) {
-                    console.log('✅ Telegram user already exists:', existingUser);
-                    return { data: existingUser, error: null };
-                }
-
-                // Check username availability
-                const usernameCheck = await checkUsernameAvailability(username);
-                if (!usernameCheck.available) {
-                    // If username taken, generate a unique one
-                    username = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
-                    console.log('🔄 Username taken, using:', username);
-                }
-
-                // Create new user
-                const userData = {
-                    telegram_id: telegramUser.id,
-                    username: username,
-                    full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                    avatar_url: telegramUser.photo_url,
-                    balance: 0,
-                    last_claim: null,
-                    referral_slots: 10,
-                    used_slots: 0,
-                    total_earned_from_refs: 0,
-                    referred_by: referrerUsername || null,
-                    created_via: 'telegram'
-                };
-
-                const { data: newUser, error: createError } = await supabaseClient
-                    .from('profiles')
-                    .insert([userData])
-                    .select()
-                    .single();
-
-                if (createError) {
-                    console.error('❌ Error creating Telegram user:', createError);
-                    return { data: null, error: createError };
-                }
-
-                console.log('✅ Telegram user created:', newUser);
-
-                // Create referral record if applicable
-                if (referrerUsername && referrerData) {
-                    console.log('🎁 Creating referral record for Telegram user...');
-                    const referralResult = await createReferralRecord(newUser.id, referrerUsername, referrerData);
-
-                    if (referralResult.success) {
-                        console.log('✅ REFERRAL SUCCESS! Record created in database');
-                    } else {
-                        console.log('⚠️ Referral record creation failed:', referralResult.error);
-                    }
-                }
-
-                return { data: newUser, error: null };
-
-            } catch (error) {
-                console.error('❌ Error in createTelegramUser:', error);
-                return { data: null, error: error };
-            }
-        }
-
         // ========== INITIALIZATION ==========
-
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                // Initialize Supabase client
-                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
-                    auth: {
-                        persistSession: true,
-                        autoRefreshToken: true
-                    }
-                });
-
-                console.log('🔧 Testing database connection...');
-                const dbConnected = await testDatabaseConnection();
+        document.addEventListener('DOMContentLoaded', function() {
+            detectReferral();
+            
+            // Form submission
+            document.getElementById('registerForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
                 
-                if (!dbConnected) {
-                    showError('Database connection issue. Please refresh the page.');
+                const fullName = document.getElementById('fullName').value;
+                const username = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                const registerBtn = document.getElementById('registerBtn');
+                const loading = document.getElementById('loading');
+
+                // Basic validation
+                if (password !== confirmPassword) {
+                    showError('Passwords do not match');
                     return;
                 }
 
-                // Detect referral FIRST
-                await detectReferral();
+                if (password.length < 6) {
+                    showError('Password must be at least 6 characters');
+                    return;
+                }
 
-                // Initialize Telegram
-                initializeTelegram();
-
-                // Check if user is already logged in
-                setTimeout(() => checkExistingSession(), 500);
-
-            } catch (error) {
-                showError('Failed to initialize. Please refresh the page.');
-            }
-        });
-
-        // Initialize Telegram Web App
-        function initializeTelegram() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                isTelegramApp = true;
-
-                const tg = window.Telegram.WebApp;
+                registerBtn.disabled = true;
+                loading.style.display = 'block';
+                hideMessages();
 
                 try {
-                    tg.expand();
-                    tg.setHeaderColor('#FFD700');
-                    tg.setBackgroundColor('#0f0f23');
-
-                    telegramUser = tg.initDataUnsafe?.user;
-
-                    if (telegramUser) {
-                        handleTelegramUser();
-                    }
-
-                    document.body.classList.add('telegram-app');
-
-                } catch (error) {
-                    console.error('Telegram initialization error:', error);
-                }
-            }
-        }
-
-        // Handle Telegram user
-        function handleTelegramUser() {
-            if (!telegramUser) return;
-
-            const telegramInfo = document.getElementById('telegramInfo');
-            const welcomeTitle = document.getElementById('welcomeTitle');
-            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
-            const fullNameField = document.getElementById('fullName');
-            const usernameField = document.getElementById('username');
-
-            telegramInfo.style.display = 'block';
-
-            if (referrerUsername && referrerData) {
-                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}! - Referred by ${referrerData.username}`;
-            } else {
-                welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
-            }
-
-            telegramRegisterBtn.innerHTML = `<span>📱</span> Register as ${telegramUser.first_name}`;
-            fullNameField.value = `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim();
-
-            // Auto-generate username for Telegram users
-            const telegramUsername = telegramUser.username || generateUsername(telegramUser.first_name);
-            usernameField.value = telegramUsername;
-        }
-
-        // Check if user is already logged in
-        async function checkExistingSession() {
-            try {
-                const telegramUserData = localStorage.getItem('nemex_telegram_user');
-                if (telegramUserData) {
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                if (isTelegramApp && telegramUser) {
-                    await checkTelegramAccount();
-                }
-
-            } catch (error) {
-                console.error('Session check error:', error);
-            }
-        }
-
-        // Check if Telegram user already has an account
-        async function checkTelegramAccount() {
-            try {
-                const { data: existingUser, error } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (existingUser) {
-                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting to login...`);
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                }
-
-            } catch (error) {
-                if (error.code !== 'PGRST116') {
-                    console.error('Error checking Telegram account:', error);
-                }
-            }
-        }
-
-        // ========== TELEGRAM REGISTRATION ==========
-
-        document.getElementById('telegramRegisterBtn').addEventListener('click', async function() {
-            const telegramRegisterBtn = document.getElementById('telegramRegisterBtn');
-            const loading = document.getElementById('loading');
-
-            telegramRegisterBtn.disabled = true;
-            loading.style.display = 'block';
-            hideMessages();
-
-            try {
-                if (!telegramUser) {
-                    throw new Error('Telegram user not available');
-                }
-
-                // Check if Telegram user already exists
-                const { data: existingUser, error: checkError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (existingUser) {
-                    throw new Error('Telegram account already exists. Please login instead.');
-                }
-
-                if (checkError && checkError.code === 'PGRST116') {
-                    // Create new Telegram user
-                    let username = telegramUser.username || generateUsername(telegramUser.first_name);
-                    
-                    // Check username availability
-                    const usernameCheck = await checkUsernameAvailability(username);
-                    if (!usernameCheck.available) {
-                        username = `${username}_${Math.floor(1000 + Math.random() * 9000)}`;
-                        console.log('🔄 Username taken, using:', username);
-                    }
-
-                    const { data: newUser, error: createError } = await createTelegramUser(telegramUser);
-
-                    if (createError) {
-                        throw createError;
-                    }
-
-                    console.log('✅ Telegram user created:', newUser);
-
-                    // Show success message
-                    if (referrerUsername && referrerData) {
-                        showSuccess(`Account created! 🎉 Referral tracked from ${referrerData.username}!`);
-                    } else {
-                        showSuccess('Account created successfully! Welcome to NemexCoin! 🚀');
-                    }
-
-                    // Set session and redirect
-                    localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
-                    localStorage.setItem('isLoggedIn', 'true');
-
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 2000);
-
-                } else if (checkError) {
-                    throw checkError;
-                }
-
-            } catch (error) {
-                if (error.message.includes('already exists')) {
-                    showError('This Telegram account is already registered. Please login instead.');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                } else {
-                    showError('Failed to register with Telegram: ' + error.message);
-                }
-            } finally {
-                telegramRegisterBtn.disabled = false;
-                loading.style.display = 'none';
-            }
-        });
-
-        // ========== EMAIL/PASSWORD REGISTRATION ==========
-
-        // Form validation
-        function validateForm(fullName, username, email, password, confirmPassword) {
-            hideMessages();
-
-            if (!fullName.trim()) {
-                showError('Please enter your full name');
-                return false;
-            }
-
-            if (!username.trim()) {
-                showError('Please enter a username');
-                return false;
-            }
-
-            if (username.length < 3) {
-                showError('Username must be at least 3 characters long');
-                return false;
-            }
-
-            if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-                showError('Username can only contain letters, numbers, and underscores');
-                return false;
-            }
-
-            if (!email.trim()) {
-                showError('Please enter your email address');
-                return false;
-            }
-
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                showError('Please enter a valid email address');
-                return false;
-            }
-
-            if (password.length < 6) {
-                showError('Password must be at least 6 characters long');
-                return false;
-            }
-
-            if (password !== confirmPassword) {
-                showError('Passwords do not match');
-                return false;
-            }
-
-            return true;
-        }
-
-        // Form submission
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const fullName = document.getElementById('fullName').value;
-            const username = document.getElementById('username').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const registerBtn = document.getElementById('registerBtn');
-            const loading = document.getElementById('loading');
-
-            hideMessages();
-            registerBtn.disabled = true;
-            loading.style.display = 'block';
-
-            try {
-                if (!validateForm(fullName, username, email, password, confirmPassword)) {
-                    return;
-                }
-
-                const result = await registerUser(email, password, fullName, username);
-
-                if (result.user) {
-                    // Success message is shown inside registerUser function now
-                    // Clear form
+                    await registerUser(email, password, fullName, username);
                     document.getElementById('registerForm').reset();
-
-                    // Redirect to login after 3 seconds
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 4000);
-                }
-
-            } catch (error) {
-                if (error.message.includes('already registered') || error.message.includes('already exists')) {
-                    showError('An account with this email or username already exists. Please sign in instead.');
-                } else if (error.message.includes('invalid email')) {
-                    showError('Please enter a valid email address.');
-                } else if (error.message.includes('password')) {
-                    showError('Password is too weak. Please use a stronger password.');
-                } else if (error.message.includes('Username already taken')) {
-                    showError('Username is already taken. Please choose a different username.');
-                } else {
+                    setTimeout(() => window.location.href = 'login.html', 3000);
+                } catch (error) {
                     showError('Registration failed: ' + error.message);
+                } finally {
+                    registerBtn.disabled = false;
+                    loading.style.display = 'none';
                 }
+            });
 
-            } finally {
-                registerBtn.disabled = false;
-                loading.style.display = 'none';
-            }
-        });
-
-        // Real-time password validation
-        document.getElementById('confirmPassword').addEventListener('input', function() {
-            const password = document.getElementById('password').value;
-            const confirmPassword = this.value;
-
-            if (confirmPassword && password !== confirmPassword) {
-                this.style.borderColor = '#ff4444';
-            } else if (confirmPassword && password === confirmPassword) {
-                this.style.borderColor = '#00C851';
-            } else {
-                this.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-            }
-        });
-
-        // Auto-generate username from full name
-        document.getElementById('fullName').addEventListener('input', function() {
-            const fullName = this.value;
-            const usernameField = document.getElementById('username');
-
-            if (fullName && (!usernameField.value || usernameField.value === generateUsername(usernameField.value))) {
-                usernameField.value = generateUsername(fullName);
-            }
+            // Auto-generate username
+            document.getElementById('fullName').addEventListener('input', function() {
+                const fullName = this.value;
+                const usernameField = document.getElementById('username');
+                if (fullName && (!usernameField.value)) {
+                    usernameField.value = generateUsername(fullName);
+                }
+            });
         });
 
         // Helper functions
         function showError(message) {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorMessage').style.display = 'block';
         }
 
         function showSuccess(message) {
-            const successElement = document.getElementById('successMessage');
-            successElement.textContent = message;
-            successElement.style.display = 'block';
+            document.getElementById('successMessage').textContent = message;
+            document.getElementById('successMessage').style.display = 'block';
         }
 
         function hideMessages() {
             document.getElementById('errorMessage').style.display = 'none';
             document.getElementById('successMessage').style.display = 'none';
         }
-
-        // Enter key support
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('registerForm').dispatchEvent(new Event('submit'));
-            }
-        });
     </script>
 </body>
 </html>
