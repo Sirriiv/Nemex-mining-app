@@ -431,7 +431,7 @@
                     queryCondition = { id: currentUser.id };
                 }
 
-                // Load user's profile data
+                // Load user's profile data - FIXED: Get ACTUAL username from database
                 const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
                     .select('username, referral_slots, used_slots, total_earned_from_refs')
@@ -449,7 +449,7 @@
                 document.getElementById('availableSlots').textContent = 10 - (profile.used_slots || 0);
                 document.getElementById('totalEarned').textContent = (profile.total_earned_from_refs || 0).toLocaleString();
 
-                // Update referral link
+                // FIXED: Update referral link with ACTUAL username
                 updateReferralLink();
 
                 // Load referrals from REFERRALS table
@@ -459,6 +459,27 @@
                 console.error('❌ Error loading referral data:', error);
                 showError('Failed to load referral data: ' + error.message);
             }
+        }
+
+        // ========== FIXED: Update referral link with ACTUAL username ==========
+        function updateReferralLink() {
+            if (!userData) return;
+            
+            // Use the actual username from the database, not generated one
+            const actualUsername = userData.username;
+            console.log('🔗 Generating referral link with ACTUAL username:', actualUsername);
+            
+            if (!actualUsername) {
+                console.error('❌ No username found for referral link');
+                document.getElementById('referralLink').value = 'Please set a username first';
+                return;
+            }
+            
+            const link = `${window.location.origin}/register.html?ref=${encodeURIComponent(actualUsername)}`;
+            document.getElementById('referralLink').value = link;
+            document.getElementById('userUsername').textContent = actualUsername;
+            
+            console.log('✅ Referral link generated:', link);
         }
 
         // ========== NEW: Load referrals from REFERRALS table ==========
@@ -559,14 +580,6 @@
             `;
         }
 
-        // Update referral link
-        function updateReferralLink() {
-            if (!userData || !userData.username) return;
-            
-            const link = `${window.location.origin}/register.html?ref=${userData.username}`;
-            document.getElementById('referralLink').value = link;
-        }
-
         // Get initials for avatar
         function getInitials(name) {
             return name.split(' ')
@@ -579,6 +592,13 @@
         // Copy referral link
         async function copyReferralLink() {
             const link = document.getElementById('referralLink').value;
+            
+            // Check if it's a valid link
+            if (link.includes('Please set a username first')) {
+                showError('Please set a username first to generate referral link');
+                return;
+            }
+            
             try {
                 await navigator.clipboard.writeText(link);
                 showSuccess('Referral link copied! 📋');
@@ -597,6 +617,10 @@
         // Share functions
         function shareWhatsApp() {
             const link = document.getElementById('referralLink').value;
+            if (link.includes('Please set a username first')) {
+                showError('Please set a username first to generate referral link');
+                return;
+            }
             const message = `Join me on NemexCoin! Use my referral: ${link}`;
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
@@ -604,12 +628,20 @@
 
         function shareTelegram() {
             const link = document.getElementById('referralLink').value;
+            if (link.includes('Please set a username first')) {
+                showError('Please set a username first to generate referral link');
+                return;
+            }
             const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! 🚀')}`;
             window.open(shareUrl, '_blank');
         }
 
         function shareTwitter() {
             const link = document.getElementById('referralLink').value;
+            if (link.includes('Please set a username first')) {
+                showError('Please set a username first to generate referral link');
+                return;
+            }
             const message = `Join me on NemexCoin! 🚀 ${link}`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
@@ -617,6 +649,10 @@
 
         function shareEmail() {
             const link = document.getElementById('referralLink').value;
+            if (link.includes('Please set a username first')) {
+                showError('Please set a username first to generate referral link');
+                return;
+            }
             const subject = 'Join me on NemexCoin!';
             const body = `Join me on NemexCoin! Use my referral: ${link}`;
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
