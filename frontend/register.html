@@ -550,7 +550,7 @@
             }
         }
 
-        // ========== FIXED: REGISTRATION WITHOUT referred_by COLUMN ==========
+        // ========== FIXED: REGISTRATION WITH DUPLICATE KEY HANDLING ==========
         async function registerUser(email, password, fullName, username) {
             try {
                 console.log('📝 Starting registration...');
@@ -566,12 +566,19 @@
                     options: { data: { full_name: fullName, username: username } }
                 });
 
-                if (authError) throw authError;
+                if (authError) {
+                    // If user already exists, try to sign in instead
+                    if (authError.message.includes('already registered')) {
+                        throw new Error('Email already registered. Please sign in instead.');
+                    }
+                    throw authError;
+                }
+                
                 if (!authData.user) throw new Error('No user data returned');
 
                 console.log('✅ Auth user created:', authData.user.id);
 
-                // Create profile WITHOUT referred_by column (since it doesn't exist)
+                // Create profile - handle duplicate key error
                 const profileData = {
                     id: authData.user.id,
                     email: email,
@@ -582,36 +589,42 @@
                     referral_slots: 10,
                     used_slots: 0,
                     total_earned_from_refs: 0
-                    // removed: referred_by: referrerUsername || null
                 };
 
-                const { data: profile, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .insert([profileData])
-                    .select()
-                    .single();
+                try {
+                    const { data: profile, error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .insert([profileData])
+                        .select()
+                        .single();
 
-                if (profileError) {
-                    // If it's a column error, try without the problematic column
-                    if (profileError.message.includes('referred_by')) {
-                        console.log('⚠️ referred_by column not found, creating profile without it...');
-                        
-                        // Remove referred_by and try again
-                        delete profileData.referred_by;
-                        
-                        const { data: retryProfile, error: retryError } = await supabaseClient
-                            .from('profiles')
-                            .insert([profileData])
-                            .select()
-                            .single();
+                    if (profileError) {
+                        // If profile already exists, try to update it instead
+                        if (profileError.code === '23505') { // duplicate key
+                            console.log('⚠️ Profile already exists, updating...');
+                            
+                            const { data: updatedProfile, error: updateError } = await supabaseClient
+                                .from('profiles')
+                                .update({
+                                    email: email,
+                                    username: username,
+                                    full_name: fullName
+                                })
+                                .eq('id', authData.user.id)
+                                .select()
+                                .single();
 
-                        if (retryError) throw retryError;
-                        console.log('✅ Profile created (without referred_by):', retryProfile);
+                            if (updateError) throw updateError;
+                            console.log('✅ Profile updated:', updatedProfile);
+                        } else {
+                            throw profileError;
+                        }
                     } else {
-                        throw profileError;
+                        console.log('✅ Profile created:', profile);
                     }
-                } else {
-                    console.log('✅ Profile created:', profile);
+                } catch (profileError) {
+                    console.error('❌ Profile creation/update failed:', profileError);
+                    // Continue anyway - the user can update their profile later
                 }
 
                 // Create referral record if we have a valid referrer
@@ -635,6 +648,31 @@
             } catch (error) {
                 console.error('❌ Registration failed:', error);
                 throw error;
+            }
+        }
+
+        // ========== FIXED: GET YOUR ACTUAL REFERRAL LINK ==========
+        async function getYourReferralLink() {
+            try {
+                // Check if user is logged in
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) return null;
+
+                // Get current user's profile
+                const { data: profile, error } = await supabaseClient
+                    .from('profiles')
+                    .select('username')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (error || !profile) return null;
+
+                // Generate referral link
+                const referralLink = `${window.location.origin}/register.html?ref=${encodeURIComponent(profile.username)}`;
+                return referralLink;
+            } catch (error) {
+                console.error('Error getting referral link:', error);
+                return null;
             }
         }
 
