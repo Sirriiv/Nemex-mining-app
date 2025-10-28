@@ -6,7 +6,6 @@
     <title>NemexCoin - Mining Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS styles */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -82,33 +81,6 @@
             color: var(--gold);
             line-height: 1;
             font-family: 'Courier New', monospace;
-        }
-
-        /* NEW: Referral Quick Stats */
-        .referral-quick-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 280px;
-        }
-        .quick-stat {
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-        }
-        .quick-stat-number {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 4px;
-        }
-        .quick-stat-label {
-            font-size: 10px;
-            color: var(--muted);
         }
 
         /* ENLARGED: NEMEXCOIN LOGO */
@@ -484,18 +456,6 @@
                     <div class="balance-amount" id="balanceAmount">0</div>
                 </div>
 
-                <!-- NEW: Referral Quick Stats -->
-                <div class="referral-quick-stats">
-                    <div class="quick-stat">
-                        <div class="quick-stat-number" id="referralCount">0</div>
-                        <div class="quick-stat-label">Referrals</div>
-                    </div>
-                    <div class="quick-stat">
-                        <div class="quick-stat-number" id="referralEarned">0</div>
-                        <div class="quick-stat-label">Earned</div>
-                    </div>
-                </div>
-
                 <!-- ENLARGED NEMEXCOIN LOGO -->
                 <div class="nemex-logo">
                     <div class="logo-container">
@@ -588,7 +548,6 @@
         let telegramUser = null;
         const CLAIM_AMOUNT = 30;
         const CLAIM_COOLDOWN = 12 * 60 * 60 * 1000;
-        const MAX_REFERRAL_SLOTS = 10; // BLUM-style limit
 
         // Format number with commas
         function formatNumber(number) {
@@ -614,10 +573,10 @@
             return result;
         }
 
-        // ========== BLUM-STYLE: Enhanced User Data Loading ==========
+        // Load user data
         async function loadUserData() {
             try {
-                console.log('🔄 Loading user data with BLUM-style referral system...');
+                console.log('🔄 Loading user data...');
 
                 let profile;
                 let userId;
@@ -660,15 +619,8 @@
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
-                // NEW: Update referral quick stats
-                updateReferralQuickStats(profile);
-
                 console.log('💰 Balance loaded:', userBalance);
                 console.log('👤 Username:', profile.username);
-                console.log('📊 Referral stats:', {
-                    used_slots: profile.used_slots,
-                    total_earned: profile.total_earned_from_refs
-                });
 
                 // Generate username if it doesn't exist
                 if (!profile.username) {
@@ -679,7 +631,7 @@
                         .from('profiles')
                         .update({ 
                             username: username,
-                            referral_slots: MAX_REFERRAL_SLOTS,
+                            referral_slots: 10,
                             used_slots: 0,
                             total_earned_from_refs: 0
                         })
@@ -689,8 +641,6 @@
                         console.error('Error updating username:', updateError);
                         return;
                     }
-
-                    console.log('✅ Username generated:', username);
                 }
 
                 return profile;
@@ -701,40 +651,14 @@
             }
         }
 
-        // NEW: Update referral quick stats
-        function updateReferralQuickStats(profile) {
-            const referralCount = profile.used_slots || 0;
-            const referralEarned = profile.total_earned_from_refs || 0;
-
-            document.getElementById('referralCount').textContent = referralCount;
-            document.getElementById('referralEarned').textContent = formatNumber(referralEarned);
-
-            // Show notification if new referrals detected
-            checkForNewReferrals(profile);
-        }
-
-        // NEW: Check for new referrals and show notifications
-        function checkForNewReferrals(currentProfile) {
-            const currentReferralCount = currentProfile.used_slots || 0;
-            const currentEarned = currentProfile.total_earned_from_refs || 0;
-
-            // You can add logic here to compare with previous state
-            // and show notifications for new referrals
-            if (currentReferralCount > 0) {
-                console.log(`🎉 You have ${currentReferralCount} referrals!`);
-            }
-        }
-
-        // FIXED: Refresh balance and referral stats
+        // Refresh balance
         async function refreshBalance() {
             try {
-                console.log('🔄 Refreshing balance and referral stats...');
+                console.log('🔄 Refreshing balance...');
                 const profile = await loadUserData();
 
                 if (profile) {
-                    // Show notification if referral earnings increased
                     const currentBalance = parseFloat(profile.balance) || 0;
-                    const currentReferralEarned = profile.total_earned_from_refs || 0;
 
                     if (currentBalance > userBalance) {
                         const bonusEarned = currentBalance - userBalance;
@@ -755,12 +679,12 @@
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing NemexCoin Dashboard with BLUM-style referrals...');
+            console.log('🚀 Initializing NemexCoin Dashboard...');
             initializeDashboard();
             initializeNavigation();
         });
 
-        // ========== BLUM-STYLE: Enhanced Navigation ==========
+        // Initialize navigation
         function initializeNavigation() {
             // Settings modal functionality
             const settingsIcon = document.querySelector('.settings-icon');
@@ -809,7 +733,7 @@
                 }
             });
 
-            // Enhanced referrals navigation with BLUM-style data
+            // Enhanced referrals navigation
             const referralsLink = document.querySelector('a[href="referrals.html"]');
             referralsLink.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -817,10 +741,10 @@
             });
         }
 
-        // ========== BLUM-STYLE: Navigate to referrals with proper data ==========
+        // Navigate to referrals with proper data
         async function navigateToReferrals() {
             try {
-                console.log('🔗 Navigating to BLUM-style referrals page...');
+                console.log('🔗 Navigating to referrals page...');
 
                 // Get current user data
                 let userData = null;
@@ -983,7 +907,7 @@
                         avatar_url: telegramUser.photo_url,
                         balance: 0,
                         last_claim: null,
-                        referral_slots: MAX_REFERRAL_SLOTS,
+                        referral_slots: 10,
                         used_slots: 0,
                         total_earned_from_refs: 0,
                         created_via: 'telegram'
@@ -1014,198 +938,164 @@
                     .insert([
                         {
                             id: user.id,
-                            email: user.email,
                             username: username,
-                            full_name: user.user_metadata?.full_name || 'User',
                             balance: 0,
                             last_claim: null,
-                            referral_slots: MAX_REFERRAL_SLOTS,
+                            referral_slots: 10,
                             used_slots: 0,
-                            total_earned_from_refs: 0
+                            total_earned_from_refs: 0,
+                            created_via: 'web'
                         }
                     ])
                     .select()
                     .single();
 
                 if (error) {
-                    console.error('Error creating profile:', error);
+                    console.error('Error creating user profile:', error);
                     throw error;
                 }
 
-                console.log('✅ Profile created:', data);
-                userBalance = 0;
-                lastClaimTime = null;
-                document.getElementById('balanceAmount').textContent = '0';
+                console.log('✅ User profile created:', data);
+                return data;
 
             } catch (error) {
-                console.error('Error creating profile:', error);
+                console.error('❌ Error creating user profile:', error);
                 throw error;
             }
         }
 
         // Show Telegram user info
-        function showTelegramUserInfo(user) {
-            const userInfoElement = document.getElementById('telegramUserInfo');
-            const avatarElement = document.getElementById('telegramAvatar');
-            const welcomeElement = document.getElementById('telegramWelcome');
-            const usernameElement = document.getElementById('telegramUsername');
+        function showTelegramUserInfo(telegramUser) {
+            const telegramUserInfo = document.getElementById('telegramUserInfo');
+            const telegramAvatar = document.getElementById('telegramAvatar');
+            const telegramWelcome = document.getElementById('telegramWelcome');
+            const telegramUsername = document.getElementById('telegramUsername');
 
-            userInfoElement.style.display = 'block';
-
-            if (user.photo_url) {
-                avatarElement.src = user.photo_url;
-                avatarElement.style.display = 'block';
+            if (telegramUser.photo_url) {
+                telegramAvatar.src = telegramUser.photo_url;
+            } else {
+                telegramAvatar.style.display = 'none';
             }
 
-            welcomeElement.textContent = `Welcome, ${user.first_name}! 🎉`;
-            usernameElement.textContent = `@${user.username || 'user'}`;
+            telegramWelcome.textContent = `Welcome, ${telegramUser.first_name}!`;
+            telegramUsername.textContent = telegramUser.username ? `@${telegramUser.username}` : '';
 
-            showSuccess(`Hello ${user.first_name}! Welcome to NemexCoin! 🚀`);
+            telegramUserInfo.style.display = 'block';
         }
 
         // Start countdown timer
         function startCountdownTimer() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-            }
+            updateCountdownTimer();
 
-            countdownInterval = setInterval(updateCountdown, 1000);
-            updateCountdown();
+            countdownInterval = setInterval(updateCountdownTimer, 1000);
         }
 
         // Update countdown timer
-        function updateCountdown() {
-            const countdownElement = document.getElementById('countdownTimer');
-            const claimBtn = document.getElementById('claimButton');
+        function updateCountdownTimer() {
+            const countdownTimer = document.getElementById('countdownTimer');
+            const claimButton = document.getElementById('claimButton');
 
             if (!lastClaimTime) {
-                countdownElement.textContent = 'READY!';
-                countdownElement.style.color = '#00C851';
-                claimBtn.disabled = false;
+                countdownTimer.textContent = 'Ready!';
+                claimButton.disabled = false;
+                claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
                 return;
             }
 
             const now = new Date();
-            const timeSinceLastClaim = now.getTime() - new Date(lastClaimTime).getTime();
+            const timeSinceLastClaim = now - new Date(lastClaimTime);
             const timeRemaining = CLAIM_COOLDOWN - timeSinceLastClaim;
 
             if (timeRemaining <= 0) {
-                countdownElement.textContent = 'READY!';
-                countdownElement.style.color = '#00C851';
-                claimBtn.disabled = false;
-            } else {
-                const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-                const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-                countdownElement.textContent = 
-                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-                countdownElement.style.color = '#d4af37';
-                claimBtn.disabled = true;
+                countdownTimer.textContent = 'Ready!';
+                claimButton.disabled = false;
+                claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+                return;
             }
+
+            // Calculate hours, minutes, seconds
+            const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+            const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+
+            countdownTimer.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            claimButton.disabled = true;
+            claimButton.textContent = 'Claim Cooldown';
         }
 
-        // Claim NMX function
-        async function claimNMX() {
-            const claimBtn = document.getElementById('claimButton');
-            const loading = document.getElementById('loadingIndicator');
+        // Show success message
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+            setTimeout(() => successElement.style.display = 'none', 5000);
+        }
 
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            setTimeout(() => errorElement.style.display = 'none', 5000);
+        }
+
+        // Claim mining reward
+        async function claimMiningReward() {
             try {
-                claimBtn.disabled = true;
-                loading.style.display = 'block';
-                hideMessages();
+                const loadingIndicator = document.getElementById('loadingIndicator');
+                const claimButton = document.getElementById('claimButton');
 
-                console.log('💰 Claiming NMX...');
+                loadingIndicator.style.display = 'block';
+                claimButton.disabled = true;
 
+                console.log('💰 Claiming mining reward...');
+
+                // Update balance in database
                 const newBalance = userBalance + CLAIM_AMOUNT;
-                const now = new Date().toISOString();
+                const now = new Date();
 
-                // Determine user ID for update
-                let userId;
                 let updateCondition;
 
                 if (isTelegramApp && telegramUser) {
-                    userId = user.id;
                     updateCondition = { telegram_id: telegramUser.id };
                 } else {
-                    userId = user.id;
                     updateCondition = { id: user.id };
                 }
 
-                // Update balance and last claim
                 const { data, error } = await supabaseClient
                     .from('profiles')
                     .update({
                         balance: newBalance,
-                        last_claim: now
+                        last_claim: now.toISOString()
                     })
                     .match(updateCondition)
                     .select()
                     .single();
 
                 if (error) {
-                    console.error('❌ Database update error:', error);
-                    throw new Error(`Database error: ${error.message}`);
+                    throw error;
                 }
 
-                console.log('✅ Database update successful:', data);
+                console.log('✅ Mining reward claimed successfully');
+                userBalance = newBalance;
+                lastClaimTime = now;
 
-                // Update local state
-                userBalance = parseFloat(data.balance) || newBalance;
-                lastClaimTime = new Date(now);
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                showSuccess(`🎉 Successfully claimed ${CLAIM_AMOUNT} NMX!`);
 
-                showSuccess(`✅ Successfully claimed ${CLAIM_AMOUNT} NMX! New balance: ${formatNumber(userBalance)} NMX`);
-
-                console.log('✅ Claim successful, new balance:', userBalance);
-
-                // Restart countdown
-                startCountdownTimer();
+                // Update countdown timer
+                updateCountdownTimer();
 
             } catch (error) {
-                console.error('❌ Claim failed:', error);
-                showError(`Claim failed: ${error.message}`);
+                console.error('❌ Error claiming mining reward:', error);
+                showError('Failed to claim reward. Please try again.');
             } finally {
-                loading.style.display = 'none';
-                updateCountdown();
+                document.getElementById('loadingIndicator').style.display = 'none';
             }
         }
 
-        // Helper functions
-        function showError(message) {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-            setTimeout(() => {
-                errorElement.style.display = 'none';
-            }, 5000);
-        }
-
-        function showSuccess(message) {
-            const successElement = document.getElementById('successMessage');
-            successElement.textContent = message;
-            successElement.style.display = 'block';
-            setTimeout(() => {
-                successElement.style.display = 'none';
-            }, 5000);
-        }
-
-        function hideMessages() {
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-        }
-
-        // Event Listeners
-        document.getElementById('claimButton').addEventListener('click', claimNMX);
-
-        // Auto-refresh balance every 10 seconds
-        setInterval(async () => {
-            await refreshBalance();
-        }, 10000);
-
-        // Refresh balance when returning from referrals page
-        window.addEventListener('focus', refreshBalance);
+        // Add click event to claim button
+        document.getElementById('claimButton').addEventListener('click', claimMiningReward);
     </script>
 </body>
 </html>
