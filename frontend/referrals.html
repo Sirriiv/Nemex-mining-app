@@ -170,29 +170,6 @@
             background: rgba(212, 175, 55, 0.1);
             border-color: var(--gold);
         }
-        .link-type-selector {
-            display: flex;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            padding: 4px;
-            margin-bottom: 15px;
-        }
-        .link-type-btn {
-            flex: 1;
-            padding: 8px;
-            background: none;
-            border: none;
-            color: var(--muted);
-            font-size: 11px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.3s;
-        }
-        .link-type-btn.active {
-            background: var(--gold);
-            color: var(--darker-bg);
-            font-weight: 600;
-        }
         .referrals-list {
             margin-top: 25px;
         }
@@ -220,7 +197,6 @@
             border-radius: 10px;
             margin-bottom: 10px;
             border: 1px solid var(--border-color);
-            position: relative;
         }
         .referral-avatar {
             width: 40px;
@@ -249,29 +225,15 @@
             font-size: 11px;
             color: var(--muted);
         }
-        .referral-date, .referral-earned {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
         .referral-status {
             padding: 4px 8px;
             border-radius: 8px;
             font-size: 10px;
             font-weight: 600;
-            margin-right: 10px;
         }
         .status-active {
             background: var(--success);
             color: var(--darker-bg);
-        }
-        .status-inactive {
-            background: var(--warning);
-            color: var(--darker-bg);
-        }
-        .status-pending {
-            background: var(--muted);
-            color: var(--dark-bg);
         }
         .empty-state {
             text-align: center;
@@ -306,59 +268,6 @@
             border: 1px solid var(--error);
             color: var(--error);
         }
-        .telegram-app .header {
-            padding-top: 20px !important;
-        }
-        
-        /* NEW: Progress bar styles */
-        .progress-container {
-            margin: 15px 0;
-        }
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 12px;
-            color: var(--muted);
-        }
-        .progress-bar {
-            height: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--gold), #b8941f);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-        
-        /* NEW: Tier system styles */
-        .tier-system {
-            background: rgba(212, 175, 55, 0.05);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-            border-radius: 10px;
-            padding: 15px;
-            margin: 15px 0;
-        }
-        .tier-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--gold);
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        .tier-levels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10px;
-            color: var(--muted);
-        }
-        .tier-level.active {
-            color: var(--gold);
-            font-weight: 600;
-        }
     </style>
 </head>
 <body>
@@ -387,39 +296,12 @@
                     </div>
                 </div>
 
-                <!-- NEW: Progress Bar -->
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>Referral Progress</span>
-                        <span id="progressText">0/10</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                    </div>
-                </div>
-
                 <!-- Referral Sharing Card -->
                 <div class="referral-card">
                     <div class="referral-title">Invite Friends & Earn</div>
                     <div class="referral-desc">
-                        Share your username and earn <strong>30 NMX</strong> for each friend who joins!<br>
-                        <small>Your referral username: <strong id="userUsername" style="color: var(--gold);">Loading...</strong></small>
-                    </div>
-
-                    <!-- NEW: Tier System -->
-                    <div class="tier-system">
-                        <div class="tier-title">🎯 BLUM-Style Referral System</div>
-                        <div class="tier-levels">
-                            <div class="tier-level" id="tier1">Tier 1<br>0-3</div>
-                            <div class="tier-level" id="tier2">Tier 2<br>4-7</div>
-                            <div class="tier-level" id="tier3">Tier 3<br>8-10</div>
-                        </div>
-                    </div>
-
-                    <!-- Link Type Selector -->
-                    <div class="link-type-selector">
-                        <button class="link-type-btn active" onclick="switchLinkType('direct')">🌐 Web Link</button>
-                        <button class="link-type-btn" onclick="switchLinkType('telegram')">📱 Telegram Link</button>
+                        Share your referral link and track your referrals!<br>
+                        <small>Your username: <strong id="userUsername">Loading...</strong></small>
                     </div>
 
                     <div class="referral-link-container">
@@ -471,24 +353,19 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
         let currentUser = null;
         let userData = null;
-        let currentLinkType = 'direct';
-        const TELEGRAM_BOT_USERNAME = 'SiNemexbot';
-        const MAX_REFERRAL_SLOTS = 10; // BLUM-style limit
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing BLUM-Style Referrals Page...');
+            console.log('🚀 Initializing Referrals Page...');
             initializePage();
-            initializeTelegram();
         });
 
-        // ========== BLUM-STYLE: Simplified User Detection ==========
+        // ========== FIXED: Initialize page ==========
         async function initializePage() {
             try {
-                console.log('🔍 Detecting user authentication...');
+                console.log('🔍 Detecting user...');
 
                 // METHOD 1: Check localStorage for user data
                 const storedUserData = localStorage.getItem('current_user_data');
@@ -512,8 +389,6 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
                     console.log('👤 Using Supabase session');
-                    
-                    // Get user profile data
                     const { data: profile } = await supabaseClient
                         .from('profiles')
                         .select('*')
@@ -538,50 +413,47 @@
             }
         }
 
-        // Initialize Telegram
-        function initializeTelegram() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.expand();
-                document.body.classList.add('telegram-app');
-            }
-        }
-
-        // ========== BLUM-STYLE: Load Referral Data ==========
+        // ========== FIXED: Load referral data from REFERRALS table ==========
         async function loadReferralData() {
             try {
-                showLoading();
-                console.log('🔄 Loading BLUM-style referral data...');
+                console.log('🔄 Loading referral data...');
 
                 if (!currentUser) {
                     throw new Error('No user data available');
                 }
 
-                // Determine query condition
                 let queryCondition;
+
+                // Determine query based on available user data
                 if (currentUser.telegram_id) {
                     queryCondition = { telegram_id: currentUser.telegram_id };
                 } else {
                     queryCondition = { id: currentUser.id };
                 }
 
-                // Load user profile with referral stats
-                const { data: profile, error } = await supabaseClient
+                // Load user's profile data
+                const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
-                    .select('username, referral_slots, used_slots, total_earned_from_refs, balance')
+                    .select('username, referral_slots, used_slots, total_earned_from_refs')
                     .match(queryCondition)
                     .single();
 
-                if (error) throw error;
+                if (profileError) throw profileError;
 
                 console.log('📊 User profile loaded:', profile);
                 userData = profile;
 
                 // Update UI with user data
-                updateUserInterface(profile);
+                document.getElementById('userUsername').textContent = profile.username || 'Not set';
+                document.getElementById('totalReferrals').textContent = profile.used_slots || 0;
+                document.getElementById('availableSlots').textContent = 10 - (profile.used_slots || 0);
+                document.getElementById('totalEarned').textContent = (profile.total_earned_from_refs || 0).toLocaleString();
 
-                // Load referrals list
-                await loadReferralsList();
+                // Update referral link
+                updateReferralLink();
+
+                // Load referrals from REFERRALS table
+                await loadReferralsFromTable();
 
             } catch (error) {
                 console.error('❌ Error loading referral data:', error);
@@ -589,140 +461,78 @@
             }
         }
 
-        // Update UI with user data
-        function updateUserInterface(profile) {
-            // Basic stats
-            const totalReferrals = profile.used_slots || 0;
-            const availableSlots = MAX_REFERRAL_SLOTS - totalReferrals;
-            const totalEarned = profile.total_earned_from_refs || 0;
-
-            document.getElementById('totalReferrals').textContent = totalReferrals;
-            document.getElementById('availableSlots').textContent = availableSlots;
-            document.getElementById('totalEarned').textContent = totalEarned.toLocaleString();
-            document.getElementById('userUsername').textContent = profile.username || 'Not set';
-
-            // Progress bar
-            const progressPercent = (totalReferrals / MAX_REFERRAL_SLOTS) * 100;
-            document.getElementById('progressFill').style.width = `${progressPercent}%`;
-            document.getElementById('progressText').textContent = `${totalReferrals}/${MAX_REFERRAL_SLOTS}`;
-
-            // Update tier indicators
-            updateTierIndicators(totalReferrals);
-
-            // Update referral link
-            updateReferralLink();
-        }
-
-        // Update tier indicators based on referral count
-        function updateTierIndicators(totalReferrals) {
-            const tiers = ['tier1', 'tier2', 'tier3'];
-            
-            tiers.forEach((tierId, index) => {
-                const tierElement = document.getElementById(tierId);
-                const minReferrals = index * 4; // Tier 1: 0-3, Tier 2: 4-7, Tier 3: 8-10
-                
-                if (totalReferrals >= minReferrals) {
-                    tierElement.classList.add('active');
-                } else {
-                    tierElement.classList.remove('active');
-                }
-            });
-        }
-
-        // Switch between link types
-        function switchLinkType(type) {
-            currentLinkType = type;
-
-            // Update button states
-            document.querySelectorAll('.link-type-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Update displayed link
-            updateReferralLink();
-        }
-
-        // Update referral link based on type
-        function updateReferralLink() {
-            if (!userData || !userData.username) return;
-
-            let link = '';
-            if (currentLinkType === 'telegram') {
-                link = `https://t.me/${TELEGRAM_BOT_USERNAME}?start=${userData.username}`;
-            } else {
-                link = `${window.location.origin}/register.html?ref=${userData.username}`;
-            }
-
-            document.getElementById('referralLink').value = link;
-        }
-
-        // ========== BLUM-STYLE: Load Referrals List ==========
-        async function loadReferralsList() {
+        // ========== NEW: Load referrals from REFERRALS table ==========
+        async function loadReferralsFromTable() {
             try {
-                console.log('🔄 Loading referrals list...');
+                console.log('🔄 Loading referrals from referrals table...');
 
-                if (!userData || !userData.username) {
-                    console.error('❌ No username available');
+                if (!currentUser) {
+                    console.error('❌ No current user');
                     displayEmptyReferrals();
                     return;
                 }
 
-                // Get users who were referred by this username (BLUM-style)
-                const { data: referredUsers, error } = await supabaseClient
-                    .from('profiles')
-                    .select('id, username, full_name, email, created_at, telegram_id, referred_by, balance')
-                    .eq('referred_by', userData.username)
+                // Get referrals where this user is the referrer
+                const { data: referrals, error } = await supabaseClient
+                    .from('referrals')
+                    .select(`
+                        id,
+                        referred_id,
+                        referral_code_used,
+                        bonus_amount,
+                        bonus_claimed,
+                        created_at,
+                        profiles:referred_id (username, full_name, email, telegram_id)
+                    `)
+                    .eq('referrer_id', currentUser.id)
                     .order('created_at', { ascending: false });
 
                 if (error) {
-                    console.error('❌ Error loading referred users:', error);
+                    console.error('❌ Error loading referrals:', error);
                     displayEmptyReferrals();
                     return;
                 }
 
-                console.log('✅ Referred users found:', referredUsers);
+                console.log('✅ Referrals loaded:', referrals);
 
-                if (referredUsers && referredUsers.length > 0) {
-                    displayReferredUsers(referredUsers);
-                    updateStatsAfterLoad(referredUsers.length);
+                if (referrals && referrals.length > 0) {
+                    displayReferralsList(referrals);
                 } else {
                     displayEmptyReferrals();
                 }
 
             } catch (error) {
-                console.error('❌ Error loading referrals list:', error);
+                console.error('❌ Error loading referrals from table:', error);
                 displayEmptyReferrals();
             }
         }
 
-        // Display referred users
-        function displayReferredUsers(referredUsers) {
+        // Display referrals list
+        function displayReferralsList(referrals) {
             const referralsList = document.getElementById('referralsList');
 
-            const referralsHtml = referredUsers.map((user, index) => {
-                const initials = getInitials(user.username || user.full_name || 'Unknown');
-                const name = user.username || user.full_name || (user.telegram_id ? 'Telegram User' : 'Unknown User');
-                const source = user.email ? 'Email' : (user.telegram_id ? 'Telegram' : 'Unknown');
-                const joinDate = new Date(user.created_at).toLocaleDateString();
-                const bonusEarned = user.balance >= 30 ? '30 NMX' : 'Pending';
+            const referralsHtml = referrals.map(ref => {
+                const referredUser = ref.profiles;
+                const initials = getInitials(referredUser?.username || referredUser?.full_name || 'Unknown');
+                const name = referredUser?.username || referredUser?.full_name || 'Unknown User';
+                const source = referredUser?.email ? 'Email' : (referredUser?.telegram_id ? 'Telegram' : 'Unknown');
 
                 return `
                     <div class="referral-item">
-                        <div class="referral-avatar" style="background: ${getAvatarColor(index)}">${initials}</div>
+                        <div class="referral-avatar">${initials}</div>
                         <div class="referral-info">
                             <div class="referral-name">
                                 ${name}
                                 <span class="referral-status status-active">
-                                    ACTIVE
+                                    ${ref.bonus_claimed ? 'CLAIMED' : 'ACTIVE'}
                                 </span>
                             </div>
                             <div class="referral-details">
                                 <div class="referral-date">
-                                    📅 ${joinDate}
+                                    📅 ${new Date(ref.created_at).toLocaleDateString()}
                                 </div>
                                 <div class="referral-earned">
-                                    💰 ${bonusEarned}
+                                    💰 ${ref.bonus_amount} NMX
                                 </div>
                                 <div class="referral-source">
                                     👤 ${source}
@@ -736,50 +546,25 @@
             referralsList.innerHTML = referralsHtml;
         }
 
-        // Update stats after loading referrals
-        function updateStatsAfterLoad(actualReferralsCount) {
-            // Ensure UI matches actual database count
-            document.getElementById('totalReferrals').textContent = actualReferralsCount;
-            document.getElementById('availableSlots').textContent = MAX_REFERRAL_SLOTS - actualReferralsCount;
-            
-            const progressPercent = (actualReferralsCount / MAX_REFERRAL_SLOTS) * 100;
-            document.getElementById('progressFill').style.width = `${progressPercent}%`;
-            document.getElementById('progressText').textContent = `${actualReferralsCount}/${MAX_REFERRAL_SLOTS}`;
-            
-            updateTierIndicators(actualReferralsCount);
-        }
-
         function displayEmptyReferrals() {
             const referralsList = document.getElementById('referralsList');
             referralsList.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">👥</div>
                     <div>No referrals yet</div>
-                    <div style="font-size: 12px; margin-top: 8px; color: var(--gold);">
-                        Share your username to invite friends!
-                    </div>
-                    <div style="font-size: 11px; margin-top: 15px; color: var(--muted);">
-                        🎯 BLUM-Style: Max ${MAX_REFERRAL_SLOTS} referrals per account
-                    </div>
-                    <div style="font-size: 10px; margin-top: 8px; color: var(--muted);">
-                        Your username: <strong>${userData?.username || 'Unknown'}</strong>
+                    <div style="font-size: 12px; margin-top: 8px;">
+                        Share your referral link to start earning!
                     </div>
                 </div>
             `;
         }
 
-        // Helper function for avatar colors
-        function getAvatarColor(index) {
-            const colors = [
-                'linear-gradient(135deg, #FF6B6B, #FF8E8E)',
-                'linear-gradient(135deg, #4ECDC4, #88D9D9)',
-                'linear-gradient(135deg, #45B7D1, #7BC8E0)',
-                'linear-gradient(135deg, #96CEB4, #B8E0C9)',
-                'linear-gradient(135deg, #FFEAA7, #FFEFC1)',
-                'linear-gradient(135deg, #DDA0DD, #E6B8E6)',
-                'linear-gradient(135deg, #87CEEB, #A8D8F0)'
-            ];
-            return colors[index % colors.length];
+        // Update referral link
+        function updateReferralLink() {
+            if (!userData || !userData.username) return;
+            
+            const link = `${window.location.origin}/register.html?ref=${userData.username}`;
+            document.getElementById('referralLink').value = link;
         }
 
         // Get initials for avatar
@@ -794,10 +579,9 @@
         // Copy referral link
         async function copyReferralLink() {
             const link = document.getElementById('referralLink').value;
-
             try {
                 await navigator.clipboard.writeText(link);
-                showSuccess('Referral link copied to clipboard! 📋');
+                showSuccess('Referral link copied! 📋');
             } catch (error) {
                 // Fallback
                 const tempInput = document.createElement('input');
@@ -806,85 +590,40 @@
                 tempInput.select();
                 document.execCommand('copy');
                 document.body.removeChild(tempInput);
-                showSuccess('Referral link copied to clipboard! 📋');
+                showSuccess('Referral link copied! 📋');
             }
         }
 
-        // ========== BLUM-STYLE: Enhanced Share Functions ==========
+        // Share functions
         function shareWhatsApp() {
             const link = document.getElementById('referralLink').value;
-            const message = `Join me on NemexCoin! 🚀
-
-💰 Earn crypto by mining and referring friends!
-🔗 Use my referral: ${link}
-
-My username: ${userData?.username}
-
-Let's grow together! 💫`;
-
+            const message = `Join me on NemexCoin! Use my referral: ${link}`;
             const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareTelegram() {
             const link = document.getElementById('referralLink').value;
-            const message = `Join NemexCoin and start earning crypto! 🚀
-
-Use my username as referral: ${userData?.username}
-🔗 ${link}
-
-Limited slots available! 🎯`;
-
-            if (window.Telegram && window.Telegram.WebApp) {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`;
-                window.Telegram.WebApp.openLink(shareUrl);
-            } else {
-                const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`;
-                window.open(shareUrl, '_blank');
-            }
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! 🚀')}`;
+            window.open(shareUrl, '_blank');
         }
 
         function shareTwitter() {
             const link = document.getElementById('referralLink').value;
-            const message = `🚀 Join me on NemexCoin - The next big crypto project!
-
-Use my username: ${userData?.username}
-🔗 ${link}
-
-Limited referral slots! ⚡ #NemexCoin #Crypto`;
-
+            const message = `Join me on NemexCoin! 🚀 ${link}`;
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
             window.open(url, '_blank');
         }
 
         function shareEmail() {
             const link = document.getElementById('referralLink').value;
-            const subject = 'Join me on NemexCoin! 🚀';
-            const body = `Hi!
-
-I wanted to invite you to join NemexCoin - an exciting new crypto project where you can earn by mining and referring friends!
-
-💰 Features:
-• Daily mining rewards
-• Referral bonuses
-• Limited slots system (like BLUM)
-
-Use my username as referral: ${userData?.username}
-Register here: ${link}
-
-Only 10 slots available per account, so join soon!
-
-Let's earn together! 💫`;
-
+            const subject = 'Join me on NemexCoin!';
+            const body = `Join me on NemexCoin! Use my referral: ${link}`;
             const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
             window.location.href = url;
         }
 
         // Helper functions
-        function showLoading() {
-            document.getElementById('referralsList').innerHTML = '<div class="loading">Loading referrals...</div>';
-        }
-
         function showError(message) {
             const errorElement = document.getElementById('errorMessage');
             errorElement.textContent = message;
