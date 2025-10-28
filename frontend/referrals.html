@@ -353,8 +353,6 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-        let currentUser = null;
-        let userData = null;
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
@@ -362,43 +360,32 @@
             initializePage();
         });
 
-        // ========== FIXED: Initialize page ==========
+        // ========== FIXED: Initialize page - NO LOCALSTORAGE ==========
         async function initializePage() {
             try {
-                console.log('🔍 Detecting user...');
+                console.log('🔍 Initializing referrals page...');
 
-                // METHOD 1: Check localStorage for user data
-                const storedUserData = localStorage.getItem('current_user_data');
-                if (storedUserData) {
-                    currentUser = JSON.parse(storedUserData);
-                    console.log('📦 Using stored user data:', currentUser);
-                    
-                    // FIXED: Always refresh user data from database to get correct username
-                    await refreshUserDataFromDatabase();
+                // Check if user is authenticated
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                
+                if (sessionError) {
+                    console.error('❌ Session error:', sessionError);
+                    showError('Authentication error. Please login again.');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
                     return;
                 }
 
-                // METHOD 2: Check Telegram user
-                const telegramUserData = localStorage.getItem('nemex_telegram_user');
-                if (telegramUserData) {
-                    currentUser = JSON.parse(telegramUserData);
-                    console.log('📱 Using Telegram user data');
-                    await refreshUserDataFromDatabase();
+                if (!session) {
+                    console.error('❌ No session found');
+                    showError('Please login first');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
                     return;
                 }
 
-                // METHOD 3: Check Supabase session
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    console.log('👤 Using Supabase session');
-                    await refreshUserDataFromDatabase();
-                    return;
-                }
-
-                // No authentication found
-                console.error('❌ No authentication found');
-                showError('Please login first');
-                setTimeout(() => window.location.href = 'login.html', 2000);
+                console.log('✅ User authenticated:', session.user.id);
+                
+                // Load fresh data directly from database
+                await loadReferralData();
 
             } catch (error) {
                 console.error('❌ Page initialization failed:', error);
@@ -406,95 +393,42 @@
             }
         }
 
-        // ========== NEW: Refresh user data from database to get CORRECT username ==========
-        async function refreshUserDataFromDatabase() {
-            try {
-                console.log('🔄 Refreshing user data from database...');
-                
-                let queryCondition;
-
-                if (currentUser && currentUser.telegram_id) {
-                    queryCondition = { telegram_id: currentUser.telegram_id };
-                } else if (currentUser && currentUser.id) {
-                    queryCondition = { id: currentUser.id };
-                } else {
-                    // Get current session user
-                    const { data: { session } } = await supabaseClient.auth.getSession();
-                    if (session) {
-                        queryCondition = { id: session.user.id };
-                    } else {
-                        throw new Error('No user session found');
-                    }
-                }
-
-                // Get FRESH data from database
-                const { data: profile, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .match(queryCondition)
-                    .single();
-
-                if (profileError) throw profileError;
-
-                console.log('✅ Fresh user data from database:', profile);
-                
-                // Update currentUser with fresh data
-                currentUser = profile;
-                
-                // Update localStorage with correct data
-                localStorage.setItem('current_user_data', JSON.stringify(profile));
-                
-                // Load referral data with correct username
-                await loadReferralData();
-
-            } catch (error) {
-                console.error('❌ Error refreshing user data:', error);
-                // Fallback to existing data
-                await loadReferralData();
-            }
-        }
-
-        // ========== FIXED: Load referral data from REFERRALS table ==========
+        // ========== FIXED: Load referral data from DATABASE ONLY ==========
         async function loadReferralData() {
             try {
-                console.log('🔄 Loading referral data...');
+                console.log('🔄 Loading referral data from database...');
 
-                if (!currentUser) {
-                    throw new Error('No user data available');
+                // Get current session
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    throw new Error('No user session');
                 }
 
-                let queryCondition;
-
-                // Determine query based on available user data
-                if (currentUser.telegram_id) {
-                    queryCondition = { telegram_id: currentUser.telegram_id };
-                } else {
-                    queryCondition = { id: currentUser.id };
-                }
-
-                // Load user's profile data - FIXED: Get ACTUAL username from database
+                // Load user's profile data DIRECTLY from database
                 const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
-                    .select('username, referral_slots, used_slots, total_earned_from_refs')
-                    .match(queryCondition)
+                    .select('id, username, referral_slots, used_slots, total_earned_from_refs, telegram_id')
+                    .eq('id', session.user.id)
                     .single();
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('❌ Error loading profile:', profileError);
+                    throw profileError;
+                }
 
-                console.log('📊 User profile loaded:', profile);
-                userData = profile;
+                console.log('📊 User profile loaded from DATABASE:', profile);
 
-                // Update UI with user data
+                // Update UI with FRESH data from database
                 document.getElementById('userUsername').textContent = profile.username || 'Not set';
                 document.getElementById('totalReferrals').textContent = profile.used_slots || 0;
                 document.getElementById('availableSlots').textContent = 10 - (profile.used_slots || 0);
                 document.getElementById('totalEarned').textContent = (profile.total_earned_from_refs || 0).toLocaleString();
 
-                // FIXED: Update referral link with ACTUAL username
-                updateReferralLink();
+                // FIXED: Update referral link with ACTUAL username from DATABASE
+                updateReferralLink(profile.username);
 
                 // Load referrals from REFERRALS table
-                await loadReferralsFromTable();
+                await loadReferralsFromTable(profile.id);
 
             } catch (error) {
                 console.error('❌ Error loading referral data:', error);
@@ -502,39 +436,29 @@
             }
         }
 
-        // ========== FIXED: Update referral link with ACTUAL username ==========
-        function updateReferralLink() {
-            if (!userData) return;
-            
-            // Use the actual username from the database, not generated one
-            const actualUsername = userData.username;
-            console.log('🔗 Generating referral link with ACTUAL username:', actualUsername);
-            
-            if (!actualUsername) {
-                console.error('❌ No username found for referral link');
+        // ========== FIXED: Update referral link with ACTUAL username from DATABASE ==========
+        function updateReferralLink(username) {
+            if (!username) {
+                console.error('❌ No username provided for referral link');
                 document.getElementById('referralLink').value = 'Please set a username first';
+                document.getElementById('userUsername').textContent = 'Not set';
                 return;
             }
             
-            const link = `https://nemex-backend.onrender.com/register.html?ref=${encodeURIComponent(actualUsername)}`;
+            console.log('🔗 Generating referral link with DATABASE username:', username);
+            
+            const link = `https://nemex-backend.onrender.com/register.html?ref=${encodeURIComponent(username)}`;
             document.getElementById('referralLink').value = link;
-            document.getElementById('userUsername').textContent = actualUsername;
+            document.getElementById('userUsername').textContent = username;
             
             console.log('✅ Referral link generated:', link);
         }
 
-        // ========== NEW: Load referrals from REFERRALS table ==========
-        async function loadReferralsFromTable() {
+        // ========== FIXED: Load referrals from REFERRALS table ==========
+        async function loadReferralsFromTable(userId) {
             try {
-                console.log('🔄 Loading referrals from referrals table...');
+                console.log('🔄 Loading referrals from referrals table for user:', userId);
 
-                if (!currentUser) {
-                    console.error('❌ No current user');
-                    displayEmptyReferrals();
-                    return;
-                }
-
-                // Get referrals where this user is the referrer
                 const { data: referrals, error } = await supabaseClient
                     .from('referrals')
                     .select(`
@@ -546,7 +470,7 @@
                         created_at,
                         profiles:referred_id (username, full_name, email, telegram_id)
                     `)
-                    .eq('referrer_id', currentUser.id)
+                    .eq('referrer_id', userId)
                     .order('created_at', { ascending: false });
 
                 if (error) {
