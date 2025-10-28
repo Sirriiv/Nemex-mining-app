@@ -372,7 +372,9 @@
                 if (storedUserData) {
                     currentUser = JSON.parse(storedUserData);
                     console.log('📦 Using stored user data:', currentUser);
-                    await loadReferralData();
+                    
+                    // FIXED: Always refresh user data from database to get correct username
+                    await refreshUserDataFromDatabase();
                     return;
                 }
 
@@ -381,7 +383,7 @@
                 if (telegramUserData) {
                     currentUser = JSON.parse(telegramUserData);
                     console.log('📱 Using Telegram user data');
-                    await loadReferralData();
+                    await refreshUserDataFromDatabase();
                     return;
                 }
 
@@ -389,17 +391,8 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
                     console.log('👤 Using Supabase session');
-                    const { data: profile } = await supabaseClient
-                        .from('profiles')
-                        .select('*')
-                        .eq('id', session.user.id)
-                        .single();
-                    
-                    if (profile) {
-                        currentUser = profile;
-                        await loadReferralData();
-                        return;
-                    }
+                    await refreshUserDataFromDatabase();
+                    return;
                 }
 
                 // No authentication found
@@ -410,6 +403,54 @@
             } catch (error) {
                 console.error('❌ Page initialization failed:', error);
                 showError('Failed to load referrals. Please try again.');
+            }
+        }
+
+        // ========== NEW: Refresh user data from database to get CORRECT username ==========
+        async function refreshUserDataFromDatabase() {
+            try {
+                console.log('🔄 Refreshing user data from database...');
+                
+                let queryCondition;
+
+                if (currentUser && currentUser.telegram_id) {
+                    queryCondition = { telegram_id: currentUser.telegram_id };
+                } else if (currentUser && currentUser.id) {
+                    queryCondition = { id: currentUser.id };
+                } else {
+                    // Get current session user
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    if (session) {
+                        queryCondition = { id: session.user.id };
+                    } else {
+                        throw new Error('No user session found');
+                    }
+                }
+
+                // Get FRESH data from database
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .match(queryCondition)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                console.log('✅ Fresh user data from database:', profile);
+                
+                // Update currentUser with fresh data
+                currentUser = profile;
+                
+                // Update localStorage with correct data
+                localStorage.setItem('current_user_data', JSON.stringify(profile));
+                
+                // Load referral data with correct username
+                await loadReferralData();
+
+            } catch (error) {
+                console.error('❌ Error refreshing user data:', error);
+                // Fallback to existing data
+                await loadReferralData();
             }
         }
 
@@ -475,7 +516,7 @@
                 return;
             }
             
-            const link = `${window.location.origin}/register.html?ref=${encodeURIComponent(actualUsername)}`;
+            const link = `https://nemex-backend.onrender.com/register.html?ref=${encodeURIComponent(actualUsername)}`;
             document.getElementById('referralLink').value = link;
             document.getElementById('userUsername').textContent = actualUsername;
             
