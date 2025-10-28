@@ -353,7 +353,7 @@
         let referrerId = null;
         let referrerData = null;
 
-        // ========== FIXED: BETTER REFERRAL DETECTION ==========
+        // ========== FIXED: DATABASE-ONLY REFERRAL SYSTEM ==========
 
         // Detect and validate referral from URL
         async function detectReferral() {
@@ -374,17 +374,17 @@
                 const welcomeTitle = document.getElementById('welcomeTitle');
                 welcomeTitle.textContent = `Join NemexCoin - Referred by ${referrerUsername}`;
 
-                // Validate referrer exists
+                // Validate referrer exists - DATABASE ONLY
                 await validateReferrer();
                 return true;
             }
             return false;
         }
 
-        // Validate referrer exists - FIXED FOR CASE SENSITIVITY
+        // Validate referrer exists - DATABASE ONLY
         async function validateReferrer() {
             try {
-                console.log('🔍 Validating referrer:', referrerUsername);
+                console.log('🔍 Validating referrer in DATABASE:', referrerUsername);
                 
                 // First try exact match
                 let { data: referrer, error } = await supabaseClient
@@ -395,7 +395,7 @@
 
                 // If exact match fails, try case-insensitive search
                 if (error || !referrer) {
-                    console.log('🔍 Trying case-insensitive search...');
+                    console.log('🔍 Trying case-insensitive search in DATABASE...');
                     
                     const { data: allUsers, error: searchError } = await supabaseClient
                         .from('profiles')
@@ -462,7 +462,7 @@
             referrerData = null;
         }
 
-        // ========== FIXED: REFERRAL CREATION ==========
+        // ========== FIXED: REFERRAL CREATION - DATABASE ONLY ==========
         async function createReferralRecord(newUserId, newUserUsername) {
             try {
                 if (!referrerId || !referrerData) {
@@ -533,7 +533,7 @@
             return username;
         }
 
-        // Check username availability
+        // Check username availability - DATABASE ONLY
         async function checkUsernameAvailability(username) {
             try {
                 const { data, error } = await supabaseClient
@@ -550,7 +550,7 @@
             }
         }
 
-        // ========== FIXED: REGISTRATION WITH DUPLICATE KEY HANDLING ==========
+        // ========== FIXED: REGISTRATION - DATABASE ONLY ==========
         async function registerUser(email, password, fullName, username) {
             try {
                 console.log('📝 Starting registration...');
@@ -578,7 +578,7 @@
 
                 console.log('✅ Auth user created:', authData.user.id);
 
-                // Create profile - handle duplicate key error
+                // Create profile - DATABASE ONLY
                 const profileData = {
                     id: authData.user.id,
                     email: email,
@@ -648,31 +648,6 @@
             } catch (error) {
                 console.error('❌ Registration failed:', error);
                 throw error;
-            }
-        }
-
-        // ========== FIXED: GET YOUR ACTUAL REFERRAL LINK ==========
-        async function getYourReferralLink() {
-            try {
-                // Check if user is logged in
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (!session) return null;
-
-                // Get current user's profile
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('username')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (error || !profile) return null;
-
-                // Generate referral link
-                const referralLink = `${window.location.origin}/register.html?ref=${encodeURIComponent(profile.username)}`;
-                return referralLink;
-            } catch (error) {
-                console.error('Error getting referral link:', error);
-                return null;
             }
         }
 
