@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- CACHE CONTROL META TAGS -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <!-- AGGRESSIVE CACHE CONTROL -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Referrals - NemexCoin</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        /* Your existing CSS remains exactly the same */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -351,6 +352,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
+        // ========== AGGRESSIVE CACHE BUSTING ==========
+        console.log('💥 FORCE LOADING FRESH VERSION - ' + new Date().toISOString());
+        console.log('🚨 CACHE BUSTING ACTIVATED');
+        
+        // Clear any cached user data
+        if (localStorage.getItem('current_user_data')) {
+            console.log('🧹 Clearing cached user data from localStorage');
+            localStorage.removeItem('current_user_data');
+        }
+        
+        if (localStorage.getItem('nemex_telegram_user')) {
+            console.log('🧹 Clearing cached Telegram data from localStorage');
+            localStorage.removeItem('nemex_telegram_user');
+        }
+
         // Initialize Supabase
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
@@ -359,8 +375,7 @@
 
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing Referrals Page...');
-            console.log('🆕 LOADING FRESH REFERRALS.HTML - DATABASE ONLY VERSION - ' + new Date().toISOString());
+            console.log('🚀 Initializing Referrals Page - FRESH VERSION');
             initializePage();
         });
 
@@ -421,6 +436,7 @@
                 }
 
                 console.log('📊 User profile loaded from DATABASE:', profile);
+                console.log('🎯 ACTUAL USERNAME FROM DATABASE:', profile.username);
 
                 // Update UI with FRESH data from database
                 document.getElementById('userUsername').textContent = profile.username || 'Not set';
@@ -456,6 +472,7 @@
             document.getElementById('userUsername').textContent = username;
             
             console.log('✅ Referral link generated:', link);
+            console.log('🎉 SHOULD NOW SHOW: https://nemex-backend.onrender.com/register.html?ref=' + username);
         }
 
         // ========== FIXED: Load referrals from REFERRALS table ==========
