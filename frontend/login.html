@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin</title>
-
-    <!-- Add Telegram Web App script -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
     <style>
+        /* Your existing CSS remains exactly the same */
         * {
             margin: 0;
             padding: 0;
@@ -332,16 +330,6 @@
         let isTelegramApp = false;
         let telegramUser = null;
 
-        // Generate random referral code
-        function generateReferralCode() {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 8; i++) {
-                result += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return result;
-        }
-
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Login...');
@@ -419,18 +407,10 @@
             telegramLoginBtn.innerHTML = `<span>📱</span> Continue as ${telegramUser.first_name}`;
         }
 
-        // FIXED: Check if user is already logged in
+        // FIXED: Check if user is already logged in - DATABASE ONLY
         async function checkExistingSession() {
             try {
-                // Check for Telegram session first
-                const telegramUserData = localStorage.getItem('nemex_telegram_user');
-                if (telegramUserData) {
-                    console.log('📱 Found Telegram session, redirecting...');
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                // Check for web session
+                // Check for web session only - no localStorage checks
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
                     console.log('🔑 Found web session, redirecting...');
@@ -449,7 +429,7 @@
             }
         }
 
-        // NEW: Check if Telegram user has an account
+        // Check if Telegram user has an account
         async function checkTelegramAccount() {
             try {
                 const { data: existingUser, error } = await supabaseClient
@@ -469,7 +449,7 @@
             }
         }
 
-        // FIXED: Telegram login button handler
+        // FIXED: Telegram login button handler - DATABASE ONLY
         document.getElementById('telegramLoginBtn').addEventListener('click', async function() {
             const telegramLoginBtn = document.getElementById('telegramLoginBtn');
             const loading = document.getElementById('loading');
@@ -495,21 +475,23 @@
                 if (checkError && checkError.code === 'PGRST116') {
                     // User doesn't exist - create new account
                     console.log('Creating new Telegram user...');
-                    const referralCode = generateReferralCode();
                     
+                    // Generate username from Telegram data
+                    const username = telegramUser.username || `tg_${telegramUser.id}`;
+
                     const { data: newUser, error: createError } = await supabaseClient
                         .from('profiles')
                         .insert([
                             {
                                 telegram_id: telegramUser.id,
-                                username: telegramUser.username || `tg_${telegramUser.id}`,
+                                username: username,
                                 full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
                                 avatar_url: telegramUser.photo_url,
                                 balance: 0,
                                 last_claim: null,
-                                referral_code: referralCode,
                                 referral_slots: 10,
                                 used_slots: 0,
+                                total_earned_from_refs: 0,
                                 created_via: 'telegram'
                             }
                         ])
@@ -522,10 +504,6 @@
 
                     console.log('✅ Telegram user created:', newUser);
 
-                    // Set session and redirect
-                    localStorage.setItem('nemex_telegram_user', JSON.stringify(newUser));
-                    localStorage.setItem('isLoggedIn', 'true');
-
                     showSuccess('Account created successfully! Redirecting...');
 
                     setTimeout(() => {
@@ -535,9 +513,6 @@
                 } else if (existingUser) {
                     // Login existing user
                     console.log('✅ Logging in existing Telegram user...');
-
-                    localStorage.setItem('nemex_telegram_user', JSON.stringify(existingUser));
-                    localStorage.setItem('isLoggedIn', 'true');
 
                     showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting...`);
 
@@ -558,7 +533,7 @@
             }
         });
 
-        // FIXED: Form submission for email/password login
+        // FIXED: Form submission for email/password login - DATABASE ONLY
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -588,11 +563,6 @@
                 }
 
                 console.log('✅ Login successful:', data.user);
-
-                // Store user session
-                localStorage.setItem('userEmail', data.user.email);
-                localStorage.setItem('userId', data.user.id);
-                localStorage.setItem('isLoggedIn', 'true');
 
                 showSuccess('Login successful! Redirecting...');
 
