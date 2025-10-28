@@ -351,8 +351,9 @@
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
         let referrerUsername = null;
         let referrerId = null;
+        let referrerData = null;
 
-        // ========== FIXED: ENHANCED REFERRAL SYSTEM ==========
+        // ========== FIXED: BETTER REFERRAL DETECTION ==========
 
         // Detect and validate referral from URL
         async function detectReferral() {
@@ -360,7 +361,7 @@
             referrerUsername = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('start');
 
             if (referrerUsername) {
-                referrerUsername = referrerUsername.toLowerCase().trim();
+                referrerUsername = referrerUsername.trim();
                 console.log('🎯 Referral detected from:', referrerUsername);
 
                 // Show banner immediately
@@ -380,24 +381,31 @@
             return false;
         }
 
-        // Validate referrer exists
+        // Validate referrer exists - FIXED FOR CASE SENSITIVITY
         async function validateReferrer() {
             try {
-                console.log('🔍 Validating referrer...');
+                console.log('🔍 Validating referrer:', referrerUsername);
                 
-                const { data: referrer, error } = await supabaseClient
+                // First try exact match
+                let { data: referrer, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, referral_slots, used_slots')
+                    .select('id, username, full_name, referral_slots, used_slots')
                     .eq('username', referrerUsername)
                     .single();
 
+                // If exact match fails, try case-insensitive search
                 if (error || !referrer) {
-                    console.log('❌ Referrer not found, trying case-insensitive search...');
+                    console.log('🔍 Trying case-insensitive search...');
                     
-                    // Try case-insensitive search
-                    const { data: allUsers } = await supabaseClient
+                    const { data: allUsers, error: searchError } = await supabaseClient
                         .from('profiles')
-                        .select('id, username, referral_slots, used_slots');
+                        .select('id, username, full_name, referral_slots, used_slots');
+
+                    if (searchError) {
+                        console.error('❌ Error searching users:', searchError);
+                        showInvalidReferral();
+                        return;
+                    }
 
                     const foundReferrer = allUsers.find(user => 
                         user.username && user.username.toLowerCase() === referrerUsername.toLowerCase()
@@ -405,22 +413,23 @@
 
                     if (!foundReferrer) {
                         console.log('❌ Referrer not found in database');
-                        document.getElementById('referralBanner').innerHTML = `
-                            <h3>⚠️ Invalid Referral</h3>
-                            <p>Referrer not found. You can still register normally.</p>
-                        `;
-                        referrerUsername = null;
-                        referrerId = null;
+                        showInvalidReferral();
                         return;
                     }
 
                     console.log('✅ Referrer found (case-insensitive):', foundReferrer);
-                    referrerId = foundReferrer.id;
-                    referrerUsername = foundReferrer.username;
+                    referrer = foundReferrer;
+                    referrerUsername = foundReferrer.username; // Use the correct case
                 } else {
-                    console.log('✅ Referrer found:', referrer);
-                    referrerId = referrer.id;
+                    console.log('✅ Referrer found (exact match):', referrer);
                 }
+
+                // Store referrer data
+                referrerData = referrer;
+                referrerId = referrer.id;
+
+                // Update banner with correct username
+                document.getElementById('referrerName').textContent = referrer.username;
 
                 // Check if referrer has available slots
                 const availableSlots = (referrer.referral_slots || 10) - (referrer.used_slots || 0);
@@ -428,30 +437,42 @@
                     console.log('❌ Referrer has no available slots');
                     document.getElementById('referralBanner').innerHTML = `
                         <h3>⚠️ Referral Limit Reached</h3>
-                        <p>Referrer has no available slots. You can still register normally.</p>
+                        <p>${referrer.username} has no available referral slots. You can still register normally.</p>
                     `;
                     referrerUsername = null;
                     referrerId = null;
+                    referrerData = null;
+                } else {
+                    console.log(`✅ Referrer has ${availableSlots} available slots`);
                 }
 
             } catch (error) {
                 console.error('❌ Error validating referrer:', error);
-                referrerUsername = null;
-                referrerId = null;
+                showInvalidReferral();
             }
         }
 
-        // ========== FIXED: COMPLETE REFERRAL CREATION ==========
+        function showInvalidReferral() {
+            document.getElementById('referralBanner').innerHTML = `
+                <h3>⚠️ Invalid Referral</h3>
+                <p>Referrer "${referrerUsername}" not found. You can still register normally.</p>
+            `;
+            referrerUsername = null;
+            referrerId = null;
+            referrerData = null;
+        }
+
+        // ========== FIXED: REFERRAL CREATION ==========
         async function createReferralRecord(newUserId, newUserUsername) {
             try {
-                if (!referrerId || !referrerUsername) {
+                if (!referrerId || !referrerData) {
                     console.log('❌ No valid referrer found');
                     return { success: false, error: 'No valid referrer' };
                 }
 
                 console.log('🚀 Creating complete referral record...');
                 console.log('👤 New User ID:', newUserId);
-                console.log('🎯 Referrer ID:', referrerId);
+                console.log('🎯 Referrer:', referrerData.username, referrerData.id);
 
                 const BONUS_AMOUNT = 30;
 
@@ -459,7 +480,7 @@
                 const referralData = {
                     referrer_id: referrerId,
                     referred_id: newUserId,
-                    referral_code_used: referrerUsername,
+                    referral_code_used: referrerData.username,
                     bonus_amount: BONUS_AMOUNT,
                     bonus_claimed: false,
                     created_at: new Date().toISOString()
@@ -529,7 +550,7 @@
             }
         }
 
-        // ========== FIXED: REGISTRATION WITH COMPLETE REFERRAL SUPPORT ==========
+        // ========== FIXED: REGISTRATION WITHOUT referred_by COLUMN ==========
         async function registerUser(email, password, fullName, username) {
             try {
                 console.log('📝 Starting registration...');
@@ -550,7 +571,7 @@
 
                 console.log('✅ Auth user created:', authData.user.id);
 
-                // Create profile with referral data
+                // Create profile WITHOUT referred_by column (since it doesn't exist)
                 const profileData = {
                     id: authData.user.id,
                     email: email,
@@ -560,8 +581,8 @@
                     last_claim: null,
                     referral_slots: 10,
                     used_slots: 0,
-                    total_earned_from_refs: 0,
-                    referred_by: referrerUsername || null
+                    total_earned_from_refs: 0
+                    // removed: referred_by: referrerUsername || null
                 };
 
                 const { data: profile, error: profileError } = await supabaseClient
@@ -570,17 +591,37 @@
                     .select()
                     .single();
 
-                if (profileError) throw profileError;
-                console.log('✅ Profile created:', profile);
+                if (profileError) {
+                    // If it's a column error, try without the problematic column
+                    if (profileError.message.includes('referred_by')) {
+                        console.log('⚠️ referred_by column not found, creating profile without it...');
+                        
+                        // Remove referred_by and try again
+                        delete profileData.referred_by;
+                        
+                        const { data: retryProfile, error: retryError } = await supabaseClient
+                            .from('profiles')
+                            .insert([profileData])
+                            .select()
+                            .single();
+
+                        if (retryError) throw retryError;
+                        console.log('✅ Profile created (without referred_by):', retryProfile);
+                    } else {
+                        throw profileError;
+                    }
+                } else {
+                    console.log('✅ Profile created:', profile);
+                }
 
                 // Create referral record if we have a valid referrer
-                if (referrerId && referrerUsername) {
+                if (referrerId && referrerData) {
                     console.log('🎁 Creating referral record and awarding bonus...');
                     const referralResult = await createReferralRecord(authData.user.id, username);
 
                     if (referralResult.success) {
                         console.log('🎉 REFERRAL SUCCESS!');
-                        showSuccess(`Account created! 🎉 +30 NMX bonus awarded to ${referrerUsername}!`);
+                        showSuccess(`Account created! 🎉 +30 NMX bonus awarded to ${referrerData.username}!`);
                     } else {
                         console.log('⚠️ Referral failed:', referralResult.error);
                         showSuccess('Account created successfully! (Referral tracking failed)');
