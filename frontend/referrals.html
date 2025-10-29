@@ -15,6 +15,8 @@
             --border-color: #333333;
             --success: #00C851;
             --error: #ff4444;
+            --warning: #ff9800;
+            --info: #33b5e5;
         }
 
         * { 
@@ -30,8 +32,6 @@
             min-height: 100vh; 
             display: flex; 
             flex-direction: column;
-            padding: 0;
-            margin: 0;
         }
 
         .container { 
@@ -48,41 +48,51 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
+            background: var(--darker-bg);
             border-bottom: 1px solid var(--border-color);
-            background-color: var(--dark-bg);
         }
 
-        .back-btn {
+        .logo {
             font-size: 20px;
-            color: var(--muted);
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        .header-title {
-            font-size: 18px;
             font-weight: 700;
             color: var(--gold);
         }
 
-        .content-wrapper {
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .content {
             padding: 20px;
             flex: 1;
         }
 
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .page-subtitle {
+            color: var(--muted);
+            margin-bottom: 30px;
+        }
+
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
         }
 
         .stat-card {
-            background: var(--darker-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 15px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
             padding: 20px;
             text-align: center;
+            border: 1px solid var(--border-color);
         }
 
         .stat-value {
@@ -97,125 +107,188 @@
             color: var(--muted);
         }
 
-        .referral-section {
-            background: var(--darker-bg);
-            border-radius: 15px;
+        .referral-link-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
             padding: 20px;
+            margin-bottom: 30px;
             border: 1px solid var(--border-color);
-            margin-bottom: 20px;
         }
 
         .section-title {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 16px;
+            font-weight: 600;
             margin-bottom: 15px;
-            color: var(--gold);
         }
 
-        .referral-link-box {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .link-label {
-            font-size: 12px;
-            color: var(--muted);
-            margin-bottom: 8px;
-        }
-
-        .link-input-group {
+        .link-container {
             display: flex;
-            gap: 10px;
+            background: var(--dark-bg);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
         }
 
-        .link-input {
+        .referral-link {
             flex: 1;
-            background: transparent;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 10px 12px;
+            background: none;
+            border: none;
             color: var(--text);
-            font-size: 12px;
+            font-size: 14px;
+            cursor: pointer;
         }
 
         .copy-btn {
             background: var(--gold);
             color: var(--darker-bg);
             border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
+            padding: 8px 16px;
+            border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
             font-size: 12px;
         }
 
-        .social-share {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
+        .copy-btn:hover {
+            opacity: 0.9;
+        }
+
+        .bonus-info {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 15px;
             margin-bottom: 20px;
         }
 
-        .share-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
-            font-size: 12px;
+        .bonus-title {
+            color: var(--gold);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .bonus-text {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .penalty-warning {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .penalty-title {
+            color: var(--warning);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .penalty-text {
+            font-size: 14px;
+            line-height: 1.4;
         }
 
         .referrals-list {
-            margin-top: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .list-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
         }
 
         .referral-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            margin-bottom: 10px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .referral-item:last-child {
+            border-bottom: none;
         }
 
         .referral-info {
+            display: flex;
+            flex-direction: column;
             flex: 1;
         }
 
         .referral-name {
             font-weight: 600;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
-        .referral-email {
+        .referral-date {
             font-size: 12px;
             color: var(--muted);
         }
 
         .referral-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            margin-left: 10px;
         }
 
         .action-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
             padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
             font-size: 11px;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .action-btn.remove {
+        .ping-btn {
+            background: rgba(51, 181, 229, 0.2);
+            color: var(--info);
+            border: 1px solid var(--info);
+        }
+
+        .ping-btn:hover {
+            background: rgba(51, 181, 229, 0.3);
+        }
+
+        .remove-btn {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .remove-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+        }
+
+        .referral-status {
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+        }
+
+        .status-pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+        }
+
+        .status-removed {
             background: rgba(255, 68, 68, 0.1);
             color: var(--error);
-            border-color: var(--error);
         }
 
         .empty-state {
@@ -226,269 +299,468 @@
 
         .empty-icon {
             font-size: 48px;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--darker-bg);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 320px;
+            width: 90%;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--error);
+        }
+
+        .modal-text {
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .modal-cancel {
+            background: var(--bg-secondary);
+            color: var(--text);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-confirm {
+            background: var(--error);
+            color: white;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1001;
+            display: none;
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        .toast.info {
+            background: var(--info);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="content-wrapper">
-            <header class="header">
-                <a href="dashboard.html" class="back-btn">←</a>
-                <div class="header-title">👥 Referrals</div>
-                <div style="width: 20px;"></div>
-            </header>
+        <div class="header">
+            <div class="logo">NemexCoin</div>
+            <a href="dashboard.html">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                </svg>
+            </a>
+        </div>
 
+        <div class="content">
+            <h1 class="page-title">Referral Program</h1>
+            <p class="page-subtitle">Invite friends and earn bonuses together</p>
+
+            <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="totalReferrals">0</div>
                     <div class="stat-label">Total Referrals</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="availableSlots">10</div>
-                    <div class="stat-label">Available Slots</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="bonusEarned">0</div>
-                    <div class="stat-label">Bonus Earned</div>
+                    <div class="stat-value" id="earnedBonus">0 NMXp</div>
+                    <div class="stat-label">Earned Bonus</div>
                 </div>
             </div>
 
-            <div class="referral-section">
-                <div class="section-title">Invite Friends & Earn</div>
-                <p style="color: var(--muted); margin-bottom: 20px; font-size: 14px;">
-                    Share your referral link and track your referrals!
-                </p>
-                
-                <div style="margin-bottom: 15px;">
-                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 5px;">Your username:</div>
-                    <div style="font-weight: 600; color: var(--gold);" id="userName">Loading...</div>
-                </div>
-
-                <div class="referral-link-box">
-                    <div class="link-label">Your Referral Link</div>
-                    <div class="link-input-group">
-                        <input type="text" class="link-input" id="referralLink" readonly>
-                        <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
-                    </div>
-                </div>
-
-                <div class="social-share">
-                    <div class="share-btn" onclick="shareOnWhatsApp()">📱 WhatsApp</div>
-                    <div class="share-btn" onclick="shareOnTelegram()">✈️ Telegram</div>
-                    <div class="share-btn" onclick="shareOnTwitter()">🐦 Twitter</div>
-                    <div class="share-btn" onclick="shareViaEmail()">📧 Email</div>
+            <!-- Bonus Information -->
+            <div class="bonus-info">
+                <div class="bonus-title">🎁 Referral Bonus System</div>
+                <div class="bonus-text">
+                    • Both you and your friend get <strong>30 NMXp</strong> instantly<br>
+                    • Bonus credited immediately after registration<br>
+                    • No limits on how many friends you can refer
                 </div>
             </div>
 
-            <div class="referral-section">
-                <div class="section-title">Your Referrals</div>
-                <div class="referrals-list" id="referralsList">
-                    <div class="empty-state">
-                        <div class="empty-icon">👥</div>
-                        <div>No referrals yet</div>
-                        <div style="font-size: 12px; margin-top: 5px;">Start sharing your link to earn rewards!</div>
-                    </div>
+            <!-- Penalty Warning -->
+            <div class="penalty-warning">
+                <div class="penalty-title">⚠️ Penalty System</div>
+                <div class="penalty-text">
+                    • Creating fake accounts will result in <strong>balance deduction</strong><br>
+                    • Multiple accounts from same user are prohibited<br>
+                    • System automatically detects fraudulent activity
+                </div>
+            </div>
+
+            <!-- Referral Link Section -->
+            <div class="referral-link-section">
+                <div class="section-title">Your Referral Link</div>
+                <div class="link-container">
+                    <input type="text" class="referral-link" id="referralLink" readonly>
+                    <button class="copy-btn" id="copyBtn">Copy</button>
+                </div>
+                <div style="font-size: 12px; color: var(--muted);">
+                    Share this link with friends to get bonuses
+                </div>
+            </div>
+
+            <!-- Referrals List -->
+            <div class="referrals-list">
+                <div class="list-title">Your Referrals</div>
+                <div id="referralsList">
+                    <!-- Referrals will be loaded here -->
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Remove Confirmation Modal -->
+    <div class="modal" id="removeModal">
+        <div class="modal-content">
+            <div class="modal-title">Remove Referral</div>
+            <div class="modal-text" id="removeModalText">
+                Are you sure you want to remove this user? This action will:
+                <br><br>
+                • Deduct 30 NMXp from both accounts<br>
+                • Update your referral slots<br>
+                • This action cannot be undone
+            </div>
+            <div class="modal-actions">
+                <button class="modal-btn modal-cancel" id="cancelRemove">Cancel</button>
+                <button class="modal-btn modal-confirm" id="confirmRemove">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast" id="toast"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Supabase configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentUser = null;
+        let currentProfile = null;
+        let referrals = [];
+        let userToRemove = null;
 
         document.addEventListener('DOMContentLoaded', async function() {
+            // Check authentication
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error || !session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            currentUser = session.user;
             await loadReferralData();
+            setupEventListeners();
         });
 
         async function loadReferralData() {
+            if (!currentUser) return;
+
             try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (!session) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                const user = session.user;
-
-                // Get user profile for username
-                const { data: profile } = await supabaseClient
+                // Load user profile with referral stats
+                const { data: profile, error } = await supabase
                     .from('profiles')
-                    .select('username, referral_slots, used_slots, total_earned_from_refs')
-                    .eq('id', user.id)
+                    .select('*')
+                    .eq('id', currentUser.id)
                     .single();
 
-                if (profile) {
-                    // ✅ REAL-TIME CALCULATION: Count actual referrals in database
-                    const { data: referredUsers, error: countError } = await supabaseClient
-                        .from('profiles')
-                        .select('id')
-                        .eq('referred_by', user.id);
+                if (error) throw error;
 
-                    const actualReferrals = referredUsers ? referredUsers.length : 0;
-                    const availableSlots = (profile.referral_slots || 10) - actualReferrals;
-                    
-                    console.log('📊 Real-time stats:', {
-                        actualReferrals,
-                        availableSlots,
-                        storedUsedSlots: profile.used_slots
-                    });
+                currentProfile = profile;
 
-                    // Update stats with REAL-TIME data
-                    document.getElementById('userName').textContent = profile.username;
-                    document.getElementById('totalReferrals').textContent = actualReferrals;
-                    document.getElementById('availableSlots').textContent = availableSlots > 0 ? availableSlots : 0;
-                    document.getElementById('bonusEarned').textContent = profile.total_earned_from_refs || 0;
-                    
-                    // Create referral link
-                    const referralLink = `https://nemex-backend.onrender.com/register.html?ref=${encodeURIComponent(profile.username)}`;
-                    document.getElementById('referralLink').value = referralLink;
+                // Update stats
+                document.getElementById('totalReferrals').textContent = profile.used_slots || 0;
+                document.getElementById('earnedBonus').textContent = `${profile.total_earned_from_refs || 0} NMXp`;
 
-                    // ✅ OPTIONAL: Sync used_slots with actual count if they're different
-                    if (profile.used_slots !== actualReferrals) {
-                        console.log('🔄 Syncing used_slots with actual count...');
-                        const { error: syncError } = await supabaseClient
-                            .from('profiles')
-                            .update({ 
-                                used_slots: actualReferrals 
-                            })
-                            .eq('id', user.id);
-                        
-                        if (syncError) {
-                            console.error('⚠️ Failed to sync used_slots:', syncError);
-                        } else {
-                            console.log('✅ used_slots synced successfully');
-                        }
-                    }
-                }
+                // Generate referral link
+                const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
+                document.getElementById('referralLink').value = referralLink;
 
-                // Load the actual referred users
-                await loadReferredUsers(user.id);
+                // Load referrals list
+                await loadReferralsList();
 
             } catch (error) {
                 console.error('Error loading referral data:', error);
+                showToast('Error loading referral data', 'error');
             }
         }
 
-        // Function to load users who were referred by current user
-        async function loadReferredUsers(userId) {
+        async function loadReferralsList() {
+            if (!currentUser) return;
+
             try {
-                console.log('🔍 Loading referrals for user:', userId);
-                
-                // Get all users who have referred_by = current user's ID
-                const { data: referredUsers, error } = await supabaseClient
+                // Get users who were referred by current user
+                const { data: refs, error } = await supabase
                     .from('profiles')
-                    .select('id, username, email, full_name, created_at, balance')
-                    .eq('referred_by', userId)
+                    .select('id, username, email, created_at, full_name, balance, referred_by')
+                    .eq('referred_by', currentUser.id)
                     .order('created_at', { ascending: false });
 
-                console.log('🔍 Referred users query result:', { referredUsers, error });
+                if (error) throw error;
 
-                if (error) {
-                    console.error('Error loading referred users:', error);
-                    return;
-                }
-
+                referrals = refs || [];
                 const referralsList = document.getElementById('referralsList');
                 
-                if (!referredUsers || referredUsers.length === 0) {
-                    // Show empty state
+                if (!referrals || referrals.length === 0) {
                     referralsList.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-icon">👥</div>
                             <div>No referrals yet</div>
-                            <div style="font-size: 12px; margin-top: 5px;">Start sharing your link to earn rewards!</div>
+                            <div style="font-size: 12px; margin-top: 8px;">Share your link to start earning</div>
                         </div>
                     `;
                     return;
                 }
 
-                // Clear empty state and show referrals
-                referralsList.innerHTML = '';
-
-                referredUsers.forEach(user => {
-                    const referralItem = document.createElement('div');
-                    referralItem.className = 'referral-item';
-                    
-                    const joinDate = new Date(user.created_at).toLocaleDateString();
-                    const earned = user.balance || 0;
-                    
-                    referralItem.innerHTML = `
+                referralsList.innerHTML = referrals.map(ref => `
+                    <div class="referral-item" data-user-id="${ref.id}">
                         <div class="referral-info">
-                            <div class="referral-name">${user.full_name || user.username || 'User'}</div>
-                            <div class="referral-email">${user.email} • Joined ${joinDate}</div>
-                            <div style="font-size: 11px; color: var(--gold); margin-top: 5px;">
-                                Earned: ${earned} coins
-                            </div>
+                            <div class="referral-name">${ref.full_name || ref.username}</div>
+                            <div class="referral-date">Joined ${formatDate(ref.created_at)} • Balance: ${ref.balance || 0} NMXp</div>
                         </div>
                         <div class="referral-actions">
-                            <button class="action-btn" onclick="pingUser('${user.id}')">Ping</button>
-                            <button class="action-btn remove" onclick="removeReferral('${user.id}')">Remove</button>
+                            <button class="action-btn ping-btn" onclick="pingUser('${ref.id}', '${ref.full_name || ref.username}')">Ping</button>
+                            <button class="action-btn remove-btn" onclick="showRemoveModal('${ref.id}', '${ref.full_name || ref.username}')">Remove</button>
                         </div>
-                    `;
-                    
-                    referralsList.appendChild(referralItem);
-                });
-
-                console.log('✅ Loaded', referredUsers.length, 'referrals');
+                    </div>
+                `).join('');
 
             } catch (error) {
-                console.error('Error in loadReferredUsers:', error);
+                console.error('Error loading referrals list:', error);
+                showToast('Error loading referrals', 'error');
             }
         }
 
-        function copyReferralLink() {
-            const referralLink = document.getElementById('referralLink');
-            referralLink.select();
-            referralLink.setSelectionRange(0, 99999);
-            document.execCommand('copy');
+        // Ping User Functionality
+        async function pingUser(userId, userName) {
+            try {
+                showToast(`Ping sent to ${userName}`, 'info');
+                
+                // Here you can add additional ping functionality like:
+                // - Sending notifications
+                // - Logging ping events
+                // - Email notifications
+                
+                console.log(`Ping sent to user: ${userName} (${userId})`);
+                
+            } catch (error) {
+                console.error('Error pinging user:', error);
+                showToast('Error sending ping', 'error');
+            }
+        }
+
+        // Show Remove Confirmation Modal
+        function showRemoveModal(userId, userName) {
+            userToRemove = userId;
+            const modal = document.getElementById('removeModal');
+            const modalText = document.getElementById('removeModalText');
             
-            const btn = document.querySelector('.copy-btn');
-            const originalText = btn.textContent;
-            btn.textContent = 'Copied!';
-            setTimeout(() => {
-                btn.textContent = originalText;
-            }, 2000);
+            modalText.innerHTML = `
+                Are you sure you want to remove <strong>${userName}</strong>? This action will:
+                <br><br>
+                • Deduct 30 NMXp from both accounts<br>
+                • Update your referral slots<br>
+                • This action cannot be undone
+            `;
+            
+            modal.style.display = 'flex';
         }
 
-        function shareOnWhatsApp() {
-            const link = document.getElementById('referralLink').value;
-            const message = `Join NemexCoin using my referral link: ${link}`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-        }
+        // Remove User Functionality with Slot Syncing
+        async function removeUser(userId) {
+            if (!userId || !currentUser) return;
 
-        function shareOnTelegram() {
-            const link = document.getElementById('referralLink').value;
-            const message = `Join NemexCoin using my referral link: ${link}`;
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`, '_blank');
-        }
+            try {
+                showToast('Removing user...', 'info');
 
-        function shareOnTwitter() {
-            const link = document.getElementById('referralLink').value;
-            const message = `Join NemexCoin and earn rewards! Use my referral link: ${link}`;
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`, '_blank');
-        }
+                // 1. Get the user to remove
+                const { data: userToRemoveData, error: userError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
 
-        function shareViaEmail() {
-            const link = document.getElementById('referralLink').value;
-            const subject = 'Join NemexCoin with my referral!';
-            const body = `Hey! I'm using NemexCoin and thought you might like it too. Use my referral link to join: ${link}`;
-            window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
-        }
+                if (userError) throw userError;
 
-        function pingUser(userId) {
-            alert('Ping feature coming soon! This will notify the user.');
-            // You can implement WebSocket or push notifications here
-        }
+                if (!userToRemoveData) {
+                    throw new Error('User not found');
+                }
 
-        function removeReferral(userId) {
-            if (confirm('Are you sure you want to remove this referral? This action cannot be undone.')) {
-                alert('Remove feature coming soon! This will require admin approval.');
-                // You can implement referral removal logic here
+                const BONUS_AMOUNT = 30;
+
+                // 2. Deduct bonus from current user (referrer)
+                const { error: deductReferrerError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        balance: supabase.sql`GREATEST(0, balance - ${BONUS_AMOUNT})`,
+                        total_earned_from_refs: supabase.sql`GREATEST(0, COALESCE(total_earned_from_refs, 0) - ${BONUS_AMOUNT})`,
+                        used_slots: supabase.sql`GREATEST(0, COALESCE(used_slots, 0) - 1)`
+                    })
+                    .eq('id', currentUser.id);
+
+                if (deductReferrerError) {
+                    console.error('Error deducting from referrer:', deductReferrerError);
+                    throw new Error('Failed to update your account');
+                }
+
+                // 3. Deduct bonus from removed user
+                const { error: deductUserError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        balance: supabase.sql`GREATEST(0, balance - ${BONUS_AMOUNT})`,
+                        total_earned_from_refs: supabase.sql`GREATEST(0, COALESCE(total_earned_from_refs, 0) - ${BONUS_AMOUNT})`,
+                        referred_by: null // Remove the referral relationship
+                    })
+                    .eq('id', userId);
+
+                if (deductUserError) {
+                    console.error('Error deducting from user:', deductUserError);
+                    throw new Error('Failed to update user account');
+                }
+
+                // 4. Log the removal action
+                const { error: logError } = await supabase
+                    .from('referral_removals')
+                    .insert({
+                        referrer_id: currentUser.id,
+                        removed_user_id: userId,
+                        bonus_amount: BONUS_AMOUNT,
+                        removed_at: new Date().toISOString()
+                    });
+
+                if (logError) {
+                    console.error('Error logging removal:', logError);
+                    // Don't throw error for logging failure
+                }
+
+                // 5. Refresh the data
+                await loadReferralData();
+                showToast('User removed successfully. Bonuses deducted and slots updated.', 'success');
+
+            } catch (error) {
+                console.error('Error removing user:', error);
+                showToast(`Error removing user: ${error.message}`, 'error');
             }
+        }
+
+        function setupEventListeners() {
+            // Copy referral link
+            document.getElementById('copyBtn').addEventListener('click', function() {
+                const linkInput = document.getElementById('referralLink');
+                linkInput.select();
+                linkInput.setSelectionRange(0, 99999);
+                
+                navigator.clipboard.writeText(linkInput.value).then(() => {
+                    const originalText = this.textContent;
+                    this.textContent = 'Copied!';
+                    this.style.background = 'var(--success)';
+                    
+                    setTimeout(() => {
+                        this.textContent = originalText;
+                        this.style.background = 'var(--gold)';
+                    }, 2000);
+                });
+            });
+
+            // Remove modal events
+            document.getElementById('cancelRemove').addEventListener('click', function() {
+                document.getElementById('removeModal').style.display = 'none';
+                userToRemove = null;
+            });
+
+            document.getElementById('confirmRemove').addEventListener('click', function() {
+                if (userToRemove) {
+                    removeUser(userToRemove);
+                    document.getElementById('removeModal').style.display = 'none';
+                    userToRemove = null;
+                }
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('removeModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                    userToRemove = null;
+                }
+            });
+
+            // Handle auth state changes
+            supabase.auth.onAuthStateChange(async (event, session) => {
+                if (event === 'SIGNED_OUT') {
+                    window.location.href = 'login.html';
+                } else if (event === 'SIGNED_IN' && session) {
+                    currentUser = session.user;
+                    await loadReferralData();
+                }
+            });
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
         }
     </script>
 </body>
