@@ -75,11 +75,6 @@
             margin-bottom: 10px;
         }
 
-        .page-subtitle {
-            color: var(--muted);
-            margin-bottom: 30px;
-        }
-
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
@@ -107,7 +102,7 @@
             color: var(--muted);
         }
 
-        .referral-link-section {
+        .referral-section {
             background: var(--bg-secondary);
             border-radius: 12px;
             padding: 20px;
@@ -118,19 +113,34 @@
         .section-title {
             font-size: 16px;
             font-weight: 600;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            margin-bottom: 8px;
         }
 
-        .limit-badge {
-            background: var(--gold);
-            color: var(--darker-bg);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 11px;
+        .section-subtitle {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .username-display {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .username-label {
+            color: var(--gold);
             font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .username-value {
+            font-family: monospace;
+            font-size: 13px;
         }
 
         .link-container {
@@ -138,7 +148,7 @@
             background: var(--dark-bg);
             border-radius: 8px;
             padding: 12px;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             border: 1px solid var(--border-color);
         }
 
@@ -147,8 +157,9 @@
             background: none;
             border: none;
             color: var(--text);
-            font-size: 14px;
+            font-size: 12px;
             cursor: pointer;
+            font-family: monospace;
         }
 
         .copy-btn {
@@ -166,15 +177,36 @@
             opacity: 0.9;
         }
 
-        .referral-info {
-            font-size: 12px;
-            color: var(--muted);
-            line-height: 1.4;
+        .social-share {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        .referral-highlight {
-            color: var(--gold);
-            font-weight: 600;
+        .social-btn {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .social-btn:hover {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .social-icon {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .social-label {
+            font-size: 11px;
+            color: var(--muted);
         }
 
         .referrals-list {
@@ -202,7 +234,7 @@
             border-bottom: none;
         }
 
-        .referral-info-container {
+        .referral-info {
             display: flex;
             flex-direction: column;
             flex: 1;
@@ -348,22 +380,6 @@
         .toast.info {
             background: var(--info);
         }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: var(--border-color);
-            border-radius: 3px;
-            margin: 8px 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--gold);
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
     </style>
 </head>
 <body>
@@ -378,8 +394,7 @@
         </div>
 
         <div class="content">
-            <h1 class="page-title">Referral Program</h1>
-            <p class="page-subtitle">Invite friends and earn bonuses together</p>
+            <h1 class="page-title">Referrals</h1>
 
             <!-- Stats Grid -->
             <div class="stats-grid">
@@ -392,28 +407,43 @@
                     <div class="stat-label">Available Slots</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="earnedBonus">0 NMXp</div>
-                    <div class="stat-label">Earned Bonus</div>
+                    <div class="stat-value" id="earnedBonus">0</div>
+                    <div class="stat-label">Bonus Earned</div>
                 </div>
             </div>
 
-            <!-- Referral Link Section -->
-            <div class="referral-link-section">
-                <div class="section-title">
-                    Your Referral Link
-                    <div class="limit-badge" id="limitBadge">10 slots max</div>
+            <!-- Referral Section -->
+            <div class="referral-section">
+                <div class="section-title">Invite Friends & Earn</div>
+                <div class="section-subtitle">Share your referral link and track your referrals!</div>
+                
+                <div class="username-display">
+                    <div class="username-label">Your username:</div>
+                    <div class="username-value" id="usernameDisplay">user_qqx0bq</div>
                 </div>
+
                 <div class="link-container">
                     <input type="text" class="referral-link" id="referralLink" readonly>
                     <button class="copy-btn" id="copyBtn">Copy</button>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-                </div>
-                <div class="referral-info">
-                    • Earn <span class="referral-highlight">30 NMXp</span> for each successful referral<br>
-                    • Your friend also gets <span class="referral-highlight">30 NMXp</span> bonus<br>
-                    • Maximum <span class="referral-highlight">10 referrals</span> per account
+
+                <div class="social-share">
+                    <div class="social-btn" onclick="shareOnWhatsApp()">
+                        <div class="social-icon">📱</div>
+                        <div class="social-label">WhatsApp</div>
+                    </div>
+                    <div class="social-btn" onclick="shareOnTelegram()">
+                        <div class="social-icon">✈️</div>
+                        <div class="social-label">Telegram</div>
+                    </div>
+                    <div class="social-btn" onclick="shareOnTwitter()">
+                        <div class="social-icon">🐦</div>
+                        <div class="social-label">Twitter</div>
+                    </div>
+                    <div class="social-btn" onclick="shareViaEmail()">
+                        <div class="social-icon">✉️</div>
+                        <div class="social-label">Email</div>
+                    </div>
                 </div>
             </div>
 
@@ -496,15 +526,10 @@
                 // Update stats
                 document.getElementById('totalReferrals').textContent = usedSlots;
                 document.getElementById('availableSlots').textContent = availableSlots;
-                document.getElementById('earnedBonus').textContent = `${profile.total_earned_from_refs || 0} NMXp`;
+                document.getElementById('earnedBonus').textContent = profile.total_earned_from_refs || 0;
 
-                // Update progress bar
-                const progressPercentage = Math.min(100, (usedSlots / totalSlots) * 100);
-                document.getElementById('progressFill').style.width = `${progressPercentage}%`;
-
-                // Update limit badge
-                const limitBadge = document.getElementById('limitBadge');
-                limitBadge.textContent = `${availableSlots}/${totalSlots} slots`;
+                // Update username display
+                document.getElementById('usernameDisplay').textContent = profile.username;
 
                 // Generate referral link
                 const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
@@ -548,7 +573,7 @@
 
                 referralsList.innerHTML = referrals.map(ref => `
                     <div class="referral-item">
-                        <div class="referral-info-container">
+                        <div class="referral-info">
                             <div class="referral-name">${ref.full_name || ref.username}</div>
                             <div class="referral-date">Joined ${formatDate(ref.created_at)} • Balance: ${ref.balance || 0} NMXp</div>
                         </div>
@@ -670,6 +695,36 @@
                 console.error('Error removing user:', error);
                 showToast(`Error removing user: ${error.message}`, 'error');
             }
+        }
+
+        // Social Sharing Functions
+        function shareOnWhatsApp() {
+            const referralLink = document.getElementById('referralLink').value;
+            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`;
+            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareOnTelegram() {
+            const referralLink = document.getElementById('referralLink').value;
+            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`;
+            const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join NemexCoin and get 30 NMXp bonus!')}`;
+            window.open(url, '_blank');
+        }
+
+        function shareOnTwitter() {
+            const referralLink = document.getElementById('referralLink').value;
+            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`;
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareViaEmail() {
+            const referralLink = document.getElementById('referralLink').value;
+            const subject = 'Join NemexCoin and get 30 NMXp bonus!';
+            const body = `Hey! I'm using NemexCoin and thought you might like it too. Use my referral link to join and we both get 30 NMXp bonus:\n\n${referralLink}\n\nLet's earn together!`;
+            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = url;
         }
 
         function setupEventListeners() {
