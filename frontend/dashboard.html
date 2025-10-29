@@ -627,7 +627,7 @@
             initializeNavigation();
         });
 
-        // Initialize navigation
+        // Initialize navigation - SIMPLIFIED (removed referrals event listener)
         function initializeNavigation() {
             // Settings modal functionality
             const settingsIcon = document.querySelector('.settings-icon');
@@ -653,62 +653,23 @@
                 try {
                     // FIXED: Remove ONLY authentication data from localStorage
                     await supabaseClient.auth.signOut();
-                    
+
                     // Clear only auth-related localStorage items
                     localStorage.removeItem('supabase.auth.token');
-                    
+
                     showSuccess('Logged out successfully!');
                     setTimeout(() => {
                         window.location.href = 'login.html';
                     }, 1500);
-                    
+
                 } catch (error) {
                     console.error('Logout error:', error);
                     showError('Logout failed. Please try again.');
                 }
             });
 
-            // Enhanced referrals navigation
-            const referralsLink = document.querySelector('a[href="referrals.html"]');
-            referralsLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                navigateToReferrals();
-            });
-        }
-
-        // ========== FIXED: Navigate to referrals with DATABASE data ==========
-        async function navigateToReferrals() {
-            try {
-                console.log('🔗 Navigating to referrals page...');
-
-                // Get current user data DIRECTLY from database
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (!session) {
-                    showError('Please login first');
-                    return;
-                }
-
-                const { data: userData, error } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (error) {
-                    console.error('❌ Error loading user data:', error);
-                    showError('Unable to load user data. Please try again.');
-                    return;
-                }
-
-                console.log('👤 Passing user data to referrals:', userData);
-
-                // Navigate to referrals - NO localStorage storage
-                window.location.href = 'referrals.html';
-
-            } catch (error) {
-                console.error('❌ Error navigating to referrals:', error);
-                showError('Navigation failed. Please try again.');
-            }
+            // ✅ REMOVED: The problematic referrals navigation event listener
+            // Now the normal HTML link behavior will work perfectly
         }
 
         // ========== FIXED: DATABASE-ONLY Dashboard Initialization ==========
