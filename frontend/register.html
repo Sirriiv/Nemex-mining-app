@@ -354,9 +354,10 @@
                     updated_at: new Date().toISOString()
                 };
 
+                // ✅ FIXED: Correct spelling - "referred_by" not "rederred_by"
                 // Add referral data if applicable
                 if (referrerId) {
-                    profileData.referred_by = referrerId;
+                    profileData.referred_by = referrerId;  // ✅ CORRECT SPELLING
                     console.log('🔗 Adding referral from:', referrerId);
                 }
 
@@ -387,7 +388,7 @@
 
                 console.log('✅ Profile created successfully');
 
-                // ✅ FIXED: Update referrer's used_slots using Supabase client (not REST API)
+                // Update referrer's used_slots using Supabase client
                 if (referrerId) {
                     console.log('🔄 Updating referrer slots for:', referrerId);
                     
