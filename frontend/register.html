@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account - NemexCoin</title>
     <style>
-        /* Your existing CSS styles remain the same */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -226,7 +225,7 @@
             checkReferral();
         });
 
-        // Check for referral parameter in URL
+        // Check for referral parameter in URL - FIXED VERSION
         async function checkReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
@@ -235,32 +234,39 @@
             
             if (referralUsername) {
                 try {
-                    // Use Supabase client with proper RLS policies
-                    const { data: referrerProfile, error } = await supabase
+                    // FIX: Use .select() instead of .single() to handle multiple/no rows
+                    const { data: referrerProfiles, error } = await supabase
                         .from('profiles')
                         .select('id, username, email')
-                        .eq('username', referralUsername)
-                        .single();
+                        .eq('username', referralUsername);
 
-                    console.log('🔍 Referral query result:', { referrerProfile, error });
+                    console.log('🔍 Referral query result:', { referrerProfiles, error });
 
                     if (error) {
                         console.log('❌ Database error:', error.message);
-                        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
-                            showInvalidReferral(`Referral system configuration error. You can still register normally.`);
-                        } else {
-                            showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
-                        }
+                        showInvalidReferral(`Database error: ${error.message}. You can still register normally.`);
                         return;
                     }
 
-                    if (!referrerProfile) {
+                    if (!referrerProfiles || referrerProfiles.length === 0) {
                         console.log('❌ Referrer not found in database');
                         showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
                         return;
                     }
 
-                    // Valid referral found
+                    if (referrerProfiles.length > 1) {
+                        console.log('⚠️ Multiple users found with same username:', referrerProfiles);
+                        // Use the first one
+                        const referrerProfile = referrerProfiles[0];
+                        referrerId = referrerProfile.id;
+                        document.getElementById('referrerName').textContent = referrerProfile.username;
+                        document.getElementById('referralBanner').style.display = 'block';
+                        console.log('✅ Using first referral found:', referrerProfile.username);
+                        return;
+                    }
+
+                    // Single user found
+                    const referrerProfile = referrerProfiles[0];
                     referrerId = referrerProfile.id;
                     document.getElementById('referrerName').textContent = referrerProfile.username;
                     document.getElementById('referralBanner').style.display = 'block';
@@ -302,26 +308,24 @@
                     return;
                 }
 
-                // Check if username already exists
-                const { data: existingUsername, error: usernameError } = await supabase
+                // Check if username already exists - FIXED: use .select() not .single()
+                const { data: existingUsernames, error: usernameError } = await supabase
                     .from('profiles')
                     .select('id')
-                    .eq('username', username)
-                    .single();
+                    .eq('username', username);
 
-                if (existingUsername) {
+                if (existingUsernames && existingUsernames.length > 0) {
                     showError('usernameError', 'Username already taken');
                     return;
                 }
 
-                // Check if email already exists
-                const { data: existingEmail, error: emailError } = await supabase
+                // Check if email already exists - FIXED: use .select() not .single()
+                const { data: existingEmails, error: emailError } = await supabase
                     .from('profiles')
                     .select('id')
-                    .eq('email', email)
-                    .single();
+                    .eq('email', email);
 
-                if (existingEmail) {
+                if (existingEmails && existingEmails.length > 0) {
                     showError('emailError', 'Email already registered');
                     return;
                 }
