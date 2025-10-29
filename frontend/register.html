@@ -90,17 +90,6 @@
             color: var(--error);
         }
 
-        .debug-banner {
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid var(--success);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            font-family: monospace;
-            font-size: 12px;
-            color: var(--success);
-        }
-
         .form-group {
             margin-bottom: 20px;
         }
@@ -177,12 +166,6 @@
             <div class="title">Create Account</div>
         </div>
 
-        <!-- Debug Banner -->
-        <div class="debug-banner" id="debugBanner" style="display: none;">
-            <strong>Debug Info:</strong>
-            <div id="debugInfo"></div>
-        </div>
-
         <!-- Referral Banner -->
         <div class="referral-banner" id="referralBanner" style="display: none;">
             <div class="referral-text">Join NemexCoin - Referred by</div>
@@ -231,7 +214,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration
+        // Supabase configuration - PURE DATABASE, NO LOCALSTORAGE
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -239,84 +222,47 @@
         let referrerId = null;
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Clear any potential localStorage interference
+            if (typeof localStorage !== 'undefined') {
+                localStorage.removeItem('supabase.auth.token');
+                localStorage.removeItem('user');
+                localStorage.removeItem('currentUser');
+            }
             checkReferral();
         });
-
-        // Debug function
-        function showDebug(message) {
-            const debugBanner = document.getElementById('debugBanner');
-            const debugInfo = document.getElementById('debugInfo');
-            if (debugBanner && debugInfo) {
-                debugInfo.innerHTML += message + '<br>';
-                debugBanner.style.display = 'block';
-            }
-            console.log('🔍 DEBUG:', message);
-        }
 
         // Check for referral parameter in URL
         async function checkReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
             
-            showDebug(`Checking referral for: "${referralUsername}"`);
+            console.log('🔍 Checking referral for:', referralUsername);
             
             if (referralUsername) {
                 try {
-                    // First, let's check what's actually in the database
-                    showDebug('Fetching all users from database...');
-                    
-                    const allUsersResponse = await fetch(
-                        `${supabaseUrl}/rest/v1/profiles?select=id,username,email&order=username`,
-                        {
-                            headers: {
-                                'apikey': supabaseKey,
-                                'Authorization': `Bearer ${supabaseKey}`,
-                                'Content-Type': 'application/json'
-                            }
-                        }
-                    );
+                    // Check if referral username exists in database using Supabase client
+                    const { data: referrerProfile, error } = await supabase
+                        .from('profiles')
+                        .select('id, username, email')
+                        .eq('username', referralUsername)
+                        .single();
 
-                    if (allUsersResponse.ok) {
-                        const allUsers = await allUsersResponse.json();
-                        showDebug(`Total users in database: ${allUsers.length}`);
-                        showDebug(`All usernames: ${allUsers.map(u => `"${u.username}"`).join(', ')}`);
-                        
-                        // Now check for the specific referral
-                        showDebug(`Searching for username: "${referralUsername}"`);
-                        
-                        const referralResponse = await fetch(
-                            `${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(referralUsername)}&select=id,username,email`,
-                            {
-                                headers: {
-                                    'apikey': supabaseKey,
-                                    'Authorization': `Bearer ${supabaseKey}`,
-                                    'Content-Type': 'application/json'
-                                }
-                            }
-                        );
+                    console.log('🔍 Referral query result:', { referrerProfile, error });
 
-                        if (referralResponse.ok) {
-                            const referrerProfiles = await referralResponse.json();
-                            showDebug(`Found ${referrerProfiles.length} users with username "${referralUsername}"`);
-                            
-                            if (referrerProfiles.length === 0) {
-                                showDebug(`❌ Username "${referralUsername}" not found in database`);
-                                showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
-                                return;
-                            }
-
-                            const referrerProfile = referrerProfiles[0];
-                            referrerId = referrerProfile.id;
-                            document.getElementById('referrerName').textContent = referrerProfile.username;
-                            document.getElementById('referralBanner').style.display = 'block';
-                            
-                            showDebug(`✅ Valid referral found: ${referrerProfile.username} (ID: ${referrerProfile.id})`);
-                        }
+                    if (error || !referrerProfile) {
+                        console.log('Referrer not found in database');
+                        showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
+                        return;
                     }
+
+                    // Valid referral found
+                    referrerId = referrerProfile.id;
+                    document.getElementById('referrerName').textContent = referrerProfile.username;
+                    document.getElementById('referralBanner').style.display = 'block';
+                    console.log('✅ Valid referral found:', referrerProfile.username);
 
                 } catch (error) {
                     console.error('Error checking referral:', error);
-                    showDebug(`❌ Error: ${error.message}`);
                     showInvalidReferral(`Error checking referral. You can still register normally.`);
                 }
             }
@@ -351,43 +297,27 @@
                 }
 
                 // Check if username already exists
-                const usernameCheck = await fetch(
-                    `${supabaseUrl}/rest/v1/profiles?username=eq.${encodeURIComponent(username)}&select=id`,
-                    {
-                        headers: {
-                            'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
+                const { data: existingUsername, error: usernameError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('username', username)
+                    .single();
 
-                if (usernameCheck.ok) {
-                    const existingUsers = await usernameCheck.json();
-                    if (existingUsers && existingUsers.length > 0) {
-                        showError('usernameError', 'Username already taken');
-                        return;
-                    }
+                if (existingUsername) {
+                    showError('usernameError', 'Username already taken');
+                    return;
                 }
 
                 // Check if email already exists
-                const emailCheck = await fetch(
-                    `${supabaseUrl}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}&select=id`,
-                    {
-                        headers: {
-                            'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
+                const { data: existingEmail, error: emailError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('email', email)
+                    .single();
 
-                if (emailCheck.ok) {
-                    const existingEmails = await emailCheck.json();
-                    if (existingEmails && existingEmails.length > 0) {
-                        showError('emailError', 'Email already registered');
-                        return;
-                    }
+                if (existingEmail) {
+                    showError('emailError', 'Email already registered');
+                    return;
                 }
 
                 // Create auth user
@@ -408,8 +338,9 @@
                 }
 
                 const user = authData.user;
+                console.log('✅ Auth user created:', user.id);
 
-                // Create profile in database
+                // ✅ CRITICAL: Create profile in database
                 const profileData = {
                     id: user.id,
                     email: email,
@@ -427,43 +358,38 @@
                 // Add referral data if applicable
                 if (referrerId) {
                     profileData.referred_by = referrerId;
+                    console.log('🔗 Adding referral from:', referrerId);
                 }
 
-                const profileResponse = await fetch(
-                    `${supabaseUrl}/rest/v1/profiles`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=minimal'
-                        },
-                        body: JSON.stringify(profileData)
-                    }
-                );
+                // Insert profile into database
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .insert([profileData])
+                    .select()
+                    .single();
 
-                if (!profileResponse.ok) {
-                    throw new Error('Failed to create profile');
+                if (profileError) {
+                    console.error('❌ Profile creation failed:', profileError);
+                    showError('emailError', 'Failed to create user profile. Please try again.');
+                    return;
                 }
+
+                console.log('✅ Profile created successfully:', profile);
 
                 // Update referrer's used_slots if applicable
                 if (referrerId) {
-                    await fetch(
-                        `${supabaseUrl}/rest/v1/profiles?id=eq.${referrerId}`,
-                        {
-                            method: 'PATCH',
-                            headers: {
-                                'apikey': supabaseKey,
-                                'Authorization': `Bearer ${supabaseKey}`,
-                                'Content-Type': 'application/json',
-                                'Prefer': 'return=minimal'
-                            },
-                            body: JSON.stringify({
-                                used_slots: supabase.sql`used_slots + 1`
-                            })
-                        }
-                    );
+                    const { error: referralError } = await supabase
+                        .from('profiles')
+                        .update({ 
+                            used_slots: supabase.sql`used_slots + 1`
+                        })
+                        .eq('id', referrerId);
+
+                    if (referralError) {
+                        console.error('Referral update error:', referralError);
+                    } else {
+                        console.log('✅ Referral slots updated');
+                    }
                 }
 
                 // Success
@@ -490,6 +416,27 @@
             element.textContent = message;
             element.style.display = 'block';
         }
+
+        // Real-time username validation
+        document.getElementById('username').addEventListener('blur', async function() {
+            const username = this.value.trim();
+            if (username.length < 3) {
+                showError('usernameError', 'Username must be at least 3 characters');
+                return;
+            }
+
+            const { data: existingUser } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('username', username)
+                .single();
+
+            if (existingUser) {
+                showError('usernameError', 'Username already taken');
+            } else {
+                document.getElementById('usernameError').style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
