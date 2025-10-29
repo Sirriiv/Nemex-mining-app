@@ -52,22 +52,38 @@
         }
 
         .back-btn {
-            font-size: 20px;
+            width: 24px;
+            height: 24px;
             color: var(--muted);
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
         }
 
         .content-wrapper {
             padding: 20px;
             flex: 1;
             overflow-y: auto;
+            padding-bottom: 70px;
         }
 
         .support-section {
@@ -83,8 +99,10 @@
         }
 
         .support-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            color: var(--gold);
         }
 
         .support-title {
@@ -107,6 +125,14 @@
             font-weight: 600;
             margin-bottom: 15px;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
         }
 
         .faq-item {
@@ -115,6 +141,11 @@
             margin-bottom: 10px;
             border: 1px solid var(--border-color);
             overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item:hover {
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .faq-question {
@@ -124,6 +155,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .faq-question:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .faq-chevron {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.3s ease;
+        }
+
+        .faq-item.active .faq-chevron {
+            transform: rotate(180deg);
         }
 
         .faq-answer {
@@ -132,6 +178,10 @@
             font-size: 14px;
             line-height: 1.5;
             display: none;
+        }
+
+        .faq-item.active .faq-answer {
+            display: block;
         }
 
         .contact-methods {
@@ -148,18 +198,21 @@
             border: 1px solid var(--border-color);
             text-decoration: none;
             color: var(--text);
-            transition: all 0.3s;
+            transition: all 0.3s ease;
+            cursor: pointer;
         }
 
         .contact-item:hover {
             background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            transform: translateY(-2px);
         }
 
         .contact-icon {
-            font-size: 20px;
-            margin-right: 15px;
             width: 24px;
-            text-align: center;
+            height: 24px;
+            margin-right: 15px;
+            color: var(--gold);
         }
 
         .contact-info {
@@ -185,6 +238,82 @@
             margin-top: 20px;
             font-size: 12px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .quick-help-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
         }
     </style>
 </head>
@@ -192,25 +321,43 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">←</a>
-                <div class="header-title">💬 Support</div>
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Support
+                </div>
                 <div style="width: 20px;"></div>
             </header>
 
             <div class="support-section">
                 <div class="support-header">
-                    <div class="support-icon">💬</div>
+                    <svg class="support-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
                     <div class="support-title">Help & Support</div>
                     <div class="support-desc">We're here to help you with any issues</div>
                 </div>
 
                 <div class="faq-section">
-                    <div class="section-title">Frequently Asked Questions</div>
-                    
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Frequently Asked Questions
+                    </div>
+
                     <div class="faq-item">
                         <div class="faq-question" onclick="toggleFAQ(this)">
                             How do I claim my NMX tokens?
-                            <span>▼</span>
+                            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
                         </div>
                         <div class="faq-answer">
                             You can claim 30 NMX tokens every 12 hours by clicking the "Claim 30 NMX Now!" button on the mining dashboard. The timer will show you when your next claim is available.
@@ -220,7 +367,9 @@
                     <div class="faq-item">
                         <div class="faq-question" onclick="toggleFAQ(this)">
                             Why is my balance not updating?
-                            <span>▼</span>
+                            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
                         </div>
                         <div class="faq-answer">
                             Balance updates are instant. If you're experiencing delays, try refreshing the page or check your internet connection. All transactions are recorded on the blockchain.
@@ -230,7 +379,9 @@
                     <div class="faq-item">
                         <div class="faq-question" onclick="toggleFAQ(this)">
                             Is there a referral program?
-                            <span>▼</span>
+                            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
                         </div>
                         <div class="faq-answer">
                             Yes! You can earn bonus NMX by referring friends. Share your referral link from the Referrals section to get started.
@@ -240,7 +391,9 @@
                     <div class="faq-item">
                         <div class="faq-question" onclick="toggleFAQ(this)">
                             How secure is my account?
-                            <span>▼</span>
+                            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
                         </div>
                         <div class="faq-answer">
                             We use industry-standard security practices including encryption and secure authentication. Your data is protected and never shared with third parties.
@@ -249,10 +402,17 @@
                 </div>
 
                 <div class="contact-methods">
-                    <div class="section-title">Contact Support</div>
-                    
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Contact Support
+                    </div>
+
                     <a href="mailto:support@nemexcoin.com" class="contact-item">
-                        <div class="contact-icon">📧</div>
+                        <svg class="contact-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
                         <div class="contact-info">
                             <div class="contact-title">Email Support</div>
                             <div class="contact-desc">Get help via email</div>
@@ -260,7 +420,9 @@
                     </a>
 
                     <a href="#" class="contact-item" onclick="openChat()">
-                        <div class="contact-icon">💬</div>
+                        <svg class="contact-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
                         <div class="contact-info">
                             <div class="contact-title">Live Chat</div>
                             <div class="contact-desc">Chat with our support team</div>
@@ -268,7 +430,9 @@
                     </a>
 
                     <div class="contact-item" onclick="showCommunity()">
-                        <div class="contact-icon">👥</div>
+                        <svg class="contact-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
                         <div class="contact-info">
                             <div class="contact-title">Community Forum</div>
                             <div class="contact-desc">Connect with other users</div>
@@ -277,24 +441,63 @@
                 </div>
 
                 <div class="quick-help">
-                    💡 Quick Tip: Most issues can be resolved by refreshing the page or checking your internet connection.
+                    <svg class="quick-help-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    <span>Quick Tip: Most issues can be resolved by refreshing the page or checking your internet connection.</span>
                 </div>
             </div>
         </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
 
     <script>
         function toggleFAQ(element) {
-            const answer = element.nextElementSibling;
-            const isVisible = answer.style.display === 'block';
+            const faqItem = element.parentElement;
+            const isActive = faqItem.classList.contains('active');
             
             // Close all FAQs
-            document.querySelectorAll('.faq-answer').forEach(ans => {
-                ans.style.display = 'none';
+            document.querySelectorAll('.faq-item').forEach(item => {
+                item.classList.remove('active');
             });
             
-            // Toggle current FAQ
-            answer.style.display = isVisible ? 'none' : 'block';
+            // Open current FAQ if it wasn't active
+            if (!isActive) {
+                faqItem.classList.add('active');
+            }
         }
 
         function openChat() {
@@ -304,6 +507,21 @@
         function showCommunity() {
             alert('Community forum launching soon! Stay tuned for updates.');
         }
+
+        // Highlight current page in navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop() || 'support.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        });
     </script>
 </body>
 </html>
