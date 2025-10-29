@@ -53,22 +53,38 @@
         }
 
         .back-btn {
-            font-size: 20px;
+            width: 24px;
+            height: 24px;
             color: var(--muted);
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
         }
 
         .content-wrapper {
             padding: 20px;
             flex: 1;
             overflow-y: auto;
+            padding-bottom: 70px;
         }
 
         .wallet-section {
@@ -123,16 +139,22 @@
             transition: all 0.3s;
             text-decoration: none;
             color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
         }
 
         .action-btn:hover {
             background: rgba(212, 175, 55, 0.1);
             border-color: var(--gold);
+            transform: translateY(-2px);
         }
 
         .action-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
+            width: 28px;
+            height: 28px;
+            color: var(--gold);
         }
 
         .action-label {
@@ -149,6 +171,14 @@
             font-weight: 600;
             margin-bottom: 15px;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
         }
 
         .token-card {
@@ -159,6 +189,12 @@
             border-radius: 10px;
             margin-bottom: 10px;
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .token-card:hover {
+            background: rgba(212, 175, 55, 0.05);
+            border-color: var(--gold);
         }
 
         .token-icon {
@@ -172,6 +208,7 @@
             margin-right: 15px;
             font-weight: 600;
             color: var(--darker-bg);
+            font-size: 16px;
         }
 
         .token-info {
@@ -206,6 +243,11 @@
             border-radius: 8px;
             margin-bottom: 8px;
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .transaction-item:hover {
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .transaction-icon {
@@ -218,7 +260,6 @@
             justify-content: center;
             margin-right: 12px;
             color: var(--success);
-            font-size: 14px;
         }
 
         .transaction-icon.sent {
@@ -262,9 +303,78 @@
         }
 
         .empty-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 15px;
+            color: var(--muted);
             opacity: 0.5;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
         }
     </style>
 </head>
@@ -272,8 +382,17 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">←</a>
-                <div class="header-title">💰 Wallet</div>
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    Wallet
+                </div>
                 <div style="width: 20px;"></div>
             </header>
 
@@ -286,26 +405,39 @@
 
                 <div class="action-buttons">
                     <a href="buynmxp.html" class="action-btn">
-                        <div class="action-icon">💰</div>
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
                         <div class="action-label">Buy NMXp</div>
                     </a>
                     <a href="#" class="action-btn" onclick="showSend()">
-                        <div class="action-icon">📤</div>
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
                         <div class="action-label">Send</div>
                     </a>
                     <a href="#" class="action-btn" onclick="showReceive()">
-                        <div class="action-icon">📥</div>
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                        </svg>
                         <div class="action-label">Receive</div>
                     </a>
                     <a href="#" class="action-btn" onclick="showSwap()">
-                        <div class="action-icon">🔄</div>
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
                         <div class="action-label">Swap</div>
                     </a>
                 </div>
 
                 <div class="tokens-grid">
-                    <div class="section-title">Your Tokens</div>
-                    
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        Your Tokens
+                    </div>
+
                     <div class="token-card">
                         <div class="token-icon">N</div>
                         <div class="token-info">
@@ -326,10 +458,17 @@
                 </div>
 
                 <div class="transaction-history">
-                    <div class="section-title">Recent Transactions</div>
-                    
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        Recent Transactions
+                    </div>
+
                     <div class="transaction-item">
-                        <div class="transaction-icon">📥</div>
+                        <svg class="transaction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
                         <div class="transaction-details">
                             <div class="transaction-type">Mining Reward</div>
                             <div class="transaction-date">Today, 10:30 AM</div>
@@ -338,7 +477,9 @@
                     </div>
 
                     <div class="transaction-item">
-                        <div class="transaction-icon">🎁</div>
+                        <svg class="transaction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
+                        </svg>
                         <div class="transaction-details">
                             <div class="transaction-type">Referral Bonus</div>
                             <div class="transaction-date">Yesterday, 3:15 PM</div>
@@ -347,7 +488,9 @@
                     </div>
 
                     <div class="transaction-item">
-                        <div class="transaction-icon sent">📤</div>
+                        <svg class="transaction-icon sent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
                         <div class="transaction-details">
                             <div class="transaction-type">Sent to Friend</div>
                             <div class="transaction-date">2 days ago</div>
@@ -356,13 +499,49 @@
                     </div>
 
                     <div class="empty-state" id="emptyTransactions" style="display: none;">
-                        <div class="empty-icon">📭</div>
+                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                        </svg>
                         <div>No transactions yet</div>
                         <div style="font-size: 12px; margin-top: 5px;">Start mining to see your transactions here</div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item active">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
 
     <script>
@@ -385,12 +564,25 @@
             setTimeout(() => {
                 document.getElementById('totalBalance').textContent = '1,230 NMXp';
                 document.getElementById('nmxpBalance').textContent = '1,230';
-                
+
                 // Update USD value (example rate: 1 NMXp = $0.01)
                 const nmxpBalance = 1230;
                 const usdValue = (nmxpBalance * 0.01).toFixed(2);
                 document.querySelector('.balance-usd').textContent = `≈ $${usdValue} USD`;
             }, 500);
+
+            // Highlight current page in navigation
+            const currentPage = window.location.pathname.split('/').pop() || 'wallet.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
         });
     </script>
 </body>
