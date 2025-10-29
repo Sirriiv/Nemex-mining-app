@@ -62,17 +62,34 @@
             width: 24px;
             height: 24px;
             cursor: pointer;
+            color: var(--muted);
+            transition: all 0.3s ease;
+        }
+
+        .nav-icon:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .content {
             padding: 20px;
             flex: 1;
+            padding-bottom: 70px;
         }
 
         .page-title {
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-title-icon {
+            width: 28px;
+            height: 28px;
+            color: var(--gold);
         }
 
         .stats-grid {
@@ -171,10 +188,12 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 12px;
+            transition: all 0.3s ease;
         }
 
         .copy-btn:hover {
             opacity: 0.9;
+            transform: translateY(-1px);
         }
 
         .social-share {
@@ -188,25 +207,32 @@
             background: var(--dark-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 10px;
+            padding: 12px 8px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
         }
 
         .social-btn:hover {
             border-color: var(--gold);
             background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
         }
 
         .social-icon {
-            font-size: 18px;
-            margin-bottom: 4px;
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
         }
 
         .social-label {
             font-size: 11px;
             color: var(--muted);
+            font-weight: 600;
         }
 
         .referrals-list {
@@ -220,6 +246,15 @@
             font-size: 16px;
             font-weight: 600;
             margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .list-title-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
         }
 
         .referral-item {
@@ -228,6 +263,14 @@
             align-items: center;
             padding: 12px 0;
             border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .referral-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+            margin: 0 -10px;
+            padding: 12px 10px;
+            border-radius: 8px;
         }
 
         .referral-item:last-child {
@@ -263,7 +306,7 @@
             font-size: 11px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
         }
 
         .ping-btn {
@@ -274,6 +317,7 @@
 
         .ping-btn:hover {
             background: rgba(51, 181, 229, 0.3);
+            transform: translateY(-1px);
         }
 
         .remove-btn {
@@ -284,6 +328,7 @@
 
         .remove-btn:hover {
             background: rgba(255, 68, 68, 0.3);
+            transform: translateY(-1px);
         }
 
         .empty-state {
@@ -293,8 +338,10 @@
         }
 
         .empty-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 16px;
+            color: var(--muted);
             opacity: 0.5;
         }
 
@@ -346,6 +393,7 @@
             font-weight: 600;
             cursor: pointer;
             font-size: 14px;
+            transition: all 0.3s ease;
         }
 
         .modal-cancel {
@@ -354,9 +402,17 @@
             border: 1px solid var(--border-color);
         }
 
+        .modal-cancel:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
         .modal-confirm {
             background: var(--error);
             color: white;
+        }
+
+        .modal-confirm:hover {
+            background: #ff3333;
         }
 
         .toast {
@@ -380,6 +436,73 @@
         .toast.info {
             background: var(--info);
         }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -394,7 +517,12 @@
         </div>
 
         <div class="content">
-            <h1 class="page-title">Referrals</h1>
+            <h1 class="page-title">
+                <svg class="page-title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                Referrals
+            </h1>
 
             <!-- Stats Grid -->
             <div class="stats-grid">
@@ -416,7 +544,7 @@
             <div class="referral-section">
                 <div class="section-title">Invite Friends & Earn</div>
                 <div class="section-subtitle">Share your referral link and track your referrals!</div>
-                
+
                 <div class="username-display">
                     <div class="username-label">Your username:</div>
                     <div class="username-value" id="usernameDisplay">user_qqx0bq</div>
@@ -429,19 +557,27 @@
 
                 <div class="social-share">
                     <div class="social-btn" onclick="shareOnWhatsApp()">
-                        <div class="social-icon">📱</div>
+                        <svg class="social-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
                         <div class="social-label">WhatsApp</div>
                     </div>
                     <div class="social-btn" onclick="shareOnTelegram()">
-                        <div class="social-icon">✈️</div>
+                        <svg class="social-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
                         <div class="social-label">Telegram</div>
                     </div>
                     <div class="social-btn" onclick="shareOnTwitter()">
-                        <div class="social-icon">🐦</div>
+                        <svg class="social-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/>
+                        </svg>
                         <div class="social-label">Twitter</div>
                     </div>
                     <div class="social-btn" onclick="shareViaEmail()">
-                        <div class="social-icon">✉️</div>
+                        <svg class="social-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
                         <div class="social-label">Email</div>
                     </div>
                 </div>
@@ -449,12 +585,51 @@
 
             <!-- Referrals List -->
             <div class="referrals-list">
-                <div class="list-title">Your Referrals</div>
+                <div class="list-title">
+                    <svg class="list-title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Your Referrals
+                </div>
                 <div id="referralsList">
                     <!-- Referrals will be loaded here -->
                 </div>
             </div>
         </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item active">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
 
     <!-- Remove Confirmation Modal -->
@@ -493,7 +668,7 @@
         document.addEventListener('DOMContentLoaded', async function() {
             // Check authentication
             const { data: { session }, error } = await supabase.auth.getSession();
-            
+
             if (error || !session) {
                 window.location.href = 'login.html';
                 return;
@@ -502,6 +677,19 @@
             currentUser = session.user;
             await loadReferralData();
             setupEventListeners();
+
+            // Highlight current page in navigation
+            const currentPage = window.location.pathname.split('/').pop() || 'referrals.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
         });
 
         async function loadReferralData() {
@@ -559,11 +747,13 @@
 
                 referrals = refs || [];
                 const referralsList = document.getElementById('referralsList');
-                
+
                 if (!referrals || referrals.length === 0) {
                     referralsList.innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-icon">👥</div>
+                            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
                             <div>No referrals yet</div>
                             <div style="font-size: 12px; margin-top: 8px;">Share your link to start earning</div>
                         </div>
@@ -594,14 +784,14 @@
         async function pingUser(userId, userName) {
             try {
                 showToast(`Ping sent to ${userName}`, 'info');
-                
+
                 // Here you can add additional ping functionality like:
                 // - Sending notifications
                 // - Logging ping events
                 // - Email notifications
-                
+
                 console.log(`Ping sent to user: ${userName} (${userId})`);
-                
+
             } catch (error) {
                 console.error('Error pinging user:', error);
                 showToast('Error sending ping', 'error');
@@ -613,7 +803,7 @@
             userToRemove = { id: userId, name: userName };
             const modal = document.getElementById('removeModal');
             const modalText = document.getElementById('removeModalText');
-            
+
             modalText.innerHTML = `
                 Are you sure you want to remove <strong>${userName}</strong>? This action will:
                 <br><br>
@@ -621,7 +811,7 @@
                 • Free up one referral slot<br>
                 • This action cannot be undone
             `;
-            
+
             modal.style.display = 'flex';
         }
 
@@ -640,7 +830,7 @@
                 // 1. First get current user data
                 const { data: currentUserData, error: currentUserError } = await supabase
                     .from('profiles')
-                    .select('balance, total_earned_from_refs, used_slots, referral_slots')
+                     .select('balance, total_earned_from_refs, used_slots, referral_slots')
                     .eq('id', currentUser.id)
                     .single();
 
@@ -733,12 +923,12 @@
                 const linkInput = document.getElementById('referralLink');
                 linkInput.select();
                 linkInput.setSelectionRange(0, 99999);
-                
+
                 navigator.clipboard.writeText(linkInput.value).then(() => {
                     const originalText = this.textContent;
                     this.textContent = 'Copied!';
                     this.style.background = 'var(--success)';
-                    
+
                     setTimeout(() => {
                         this.textContent = originalText;
                         this.style.background = 'var(--gold)';
@@ -793,7 +983,7 @@
             toast.textContent = message;
             toast.className = `toast ${type}`;
             toast.style.display = 'block';
-            
+
             setTimeout(() => {
                 toast.style.display = 'none';
             }, 3000);
