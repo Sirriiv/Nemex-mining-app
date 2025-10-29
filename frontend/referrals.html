@@ -82,28 +82,28 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 30px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
         }
 
         .stat-card {
             background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
+            border-radius: 10px;
+            padding: 15px;
             text-align: center;
             border: 1px solid var(--border-color);
         }
 
         .stat-value {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--gold);
-            margin-bottom: 5px;
+            margin-bottom: 4px;
         }
 
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--muted);
         }
 
@@ -111,14 +111,26 @@
             background: var(--bg-secondary);
             border-radius: 12px;
             padding: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             border: 1px solid var(--border-color);
         }
 
         .section-title {
             font-size: 16px;
             font-weight: 600;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .limit-badge {
+            background: var(--gold);
+            color: var(--darker-bg);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
         }
 
         .link-container {
@@ -126,7 +138,7 @@
             background: var(--dark-bg);
             border-radius: 8px;
             padding: 12px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             border: 1px solid var(--border-color);
         }
 
@@ -154,42 +166,15 @@
             opacity: 0.9;
         }
 
-        .bonus-info {
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid var(--gold);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
+        .referral-info {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.4;
         }
 
-        .bonus-title {
+        .referral-highlight {
             color: var(--gold);
             font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .bonus-text {
-            font-size: 14px;
-            line-height: 1.4;
-        }
-
-        .penalty-warning {
-            background: rgba(255, 152, 0, 0.1);
-            border: 1px solid var(--warning);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .penalty-title {
-            color: var(--warning);
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .penalty-text {
-            font-size: 14px;
-            line-height: 1.4;
         }
 
         .referrals-list {
@@ -217,7 +202,7 @@
             border-bottom: none;
         }
 
-        .referral-info {
+        .referral-info-container {
             display: flex;
             flex-direction: column;
             flex: 1;
@@ -229,7 +214,7 @@
         }
 
         .referral-date {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--muted);
         }
 
@@ -313,6 +298,7 @@
         .modal-text {
             margin-bottom: 20px;
             line-height: 1.4;
+            font-size: 14px;
         }
 
         .modal-actions {
@@ -327,6 +313,7 @@
             border-radius: 6px;
             font-weight: 600;
             cursor: pointer;
+            font-size: 14px;
         }
 
         .modal-cancel {
@@ -361,6 +348,22 @@
         .toast.info {
             background: var(--info);
         }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--border-color);
+            border-radius: 3px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gold);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -385,40 +388,32 @@
                     <div class="stat-label">Total Referrals</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-value" id="availableSlots">10</div>
+                    <div class="stat-label">Available Slots</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-value" id="earnedBonus">0 NMXp</div>
                     <div class="stat-label">Earned Bonus</div>
                 </div>
             </div>
 
-            <!-- Bonus Information -->
-            <div class="bonus-info">
-                <div class="bonus-title">🎁 Referral Bonus System</div>
-                <div class="bonus-text">
-                    • Both you and your friend get <strong>30 NMXp</strong> instantly<br>
-                    • Bonus credited immediately after registration<br>
-                    • No limits on how many friends you can refer
-                </div>
-            </div>
-
-            <!-- Penalty Warning -->
-            <div class="penalty-warning">
-                <div class="penalty-title">⚠️ Penalty System</div>
-                <div class="penalty-text">
-                    • Creating fake accounts will result in <strong>balance deduction</strong><br>
-                    • Multiple accounts from same user are prohibited<br>
-                    • System automatically detects fraudulent activity
-                </div>
-            </div>
-
             <!-- Referral Link Section -->
             <div class="referral-link-section">
-                <div class="section-title">Your Referral Link</div>
+                <div class="section-title">
+                    Your Referral Link
+                    <div class="limit-badge" id="limitBadge">10 slots max</div>
+                </div>
                 <div class="link-container">
                     <input type="text" class="referral-link" id="referralLink" readonly>
                     <button class="copy-btn" id="copyBtn">Copy</button>
                 </div>
-                <div style="font-size: 12px; color: var(--muted);">
-                    Share this link with friends to get bonuses
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="referral-info">
+                    • Earn <span class="referral-highlight">30 NMXp</span> for each successful referral<br>
+                    • Your friend also gets <span class="referral-highlight">30 NMXp</span> bonus<br>
+                    • Maximum <span class="referral-highlight">10 referrals</span> per account
                 </div>
             </div>
 
@@ -440,7 +435,7 @@
                 Are you sure you want to remove this user? This action will:
                 <br><br>
                 • Deduct 30 NMXp from both accounts<br>
-                • Update your referral slots<br>
+                • Free up one referral slot<br>
                 • This action cannot be undone
             </div>
             <div class="modal-actions">
@@ -494,9 +489,22 @@
 
                 currentProfile = profile;
 
+                const usedSlots = profile.used_slots || 0;
+                const totalSlots = profile.referral_slots || 10;
+                const availableSlots = Math.max(0, totalSlots - usedSlots);
+
                 // Update stats
-                document.getElementById('totalReferrals').textContent = profile.used_slots || 0;
+                document.getElementById('totalReferrals').textContent = usedSlots;
+                document.getElementById('availableSlots').textContent = availableSlots;
                 document.getElementById('earnedBonus').textContent = `${profile.total_earned_from_refs || 0} NMXp`;
+
+                // Update progress bar
+                const progressPercentage = Math.min(100, (usedSlots / totalSlots) * 100);
+                document.getElementById('progressFill').style.width = `${progressPercentage}%`;
+
+                // Update limit badge
+                const limitBadge = document.getElementById('limitBadge');
+                limitBadge.textContent = `${availableSlots}/${totalSlots} slots`;
 
                 // Generate referral link
                 const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
@@ -540,7 +548,7 @@
 
                 referralsList.innerHTML = referrals.map(ref => `
                     <div class="referral-item">
-                        <div class="referral-info">
+                        <div class="referral-info-container">
                             <div class="referral-name">${ref.full_name || ref.username}</div>
                             <div class="referral-date">Joined ${formatDate(ref.created_at)} • Balance: ${ref.balance || 0} NMXp</div>
                         </div>
@@ -585,14 +593,14 @@
                 Are you sure you want to remove <strong>${userName}</strong>? This action will:
                 <br><br>
                 • Deduct 30 NMXp from both accounts<br>
-                • Update your referral slots<br>
+                • Free up one referral slot<br>
                 • This action cannot be undone
             `;
             
             modal.style.display = 'flex';
         }
 
-        // Remove User Functionality with Slot Syncing - FIXED VERSION
+        // Remove User Functionality with Slot Syncing
         async function removeUser(userId) {
             if (!userId || !currentUser) {
                 showToast('Error: Invalid user data', 'error');
@@ -607,7 +615,7 @@
                 // 1. First get current user data
                 const { data: currentUserData, error: currentUserError } = await supabase
                     .from('profiles')
-                    .select('balance, total_earned_from_refs, used_slots')
+                    .select('balance, total_earned_from_refs, used_slots, referral_slots')
                     .eq('id', currentUser.id)
                     .single();
 
@@ -656,7 +664,7 @@
 
                 // 6. Refresh the data
                 await loadReferralData();
-                showToast('User removed successfully. Bonuses deducted and slots updated.', 'success');
+                showToast('User removed successfully. Bonuses deducted and slot freed.', 'success');
 
             } catch (error) {
                 console.error('Error removing user:', error);
