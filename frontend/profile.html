@@ -194,7 +194,7 @@
                         <span class="info-value" id="memberSince">Loading...</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">User ID</span>
+                        <span class="info-label">Username</span>
                         <span class="info-value" id="userId" style="font-size: 12px;">Loading...</span>
                     </div>
                     <div class="info-item">
@@ -238,31 +238,35 @@
                 }
 
                 const user = session.user;
-                
-                // Update basic info
-                document.getElementById('userName').textContent = user.user_metadata?.full_name || 'User';
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('userId').textContent = user.id.substring(0, 8) + '...';
-                document.getElementById('memberSince').textContent = new Date(user.created_at).toLocaleDateString();
 
-                // Load profile stats
+                // ✅ FIX: Get user data from PROFILES table instead of auth metadata
                 const { data: profile } = await supabaseClient
                     .from('profiles')
-                    .select('balance, total_claimed')
+                    .select('*')
                     .eq('id', user.id)
                     .single();
 
-                if (profile) {
-                    document.getElementById('totalEarned').textContent = profile.balance || 0;
-                    
-                    // Get total claims count
-                    const { count } = await supabaseClient
-                        .from('claim_history')
-                        .select('*', { count: 'exact' })
-                        .eq('user_id', user.id);
-                    
-                    document.getElementById('totalClaims').textContent = count || 0;
+                if (!profile) {
+                    console.error('Profile not found');
+                    return;
                 }
+
+                // ✅ FIX: Use username from profiles table instead of auth user ID
+                document.getElementById('userName').textContent = profile.username || 'User';
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userId').textContent = profile.username || user.id.substring(0, 8) + '...';
+                document.getElementById('memberSince').textContent = new Date(user.created_at).toLocaleDateString();
+
+                // Load profile stats
+                document.getElementById('totalEarned').textContent = profile.balance || 0;
+
+                // Get total claims count
+                const { count } = await supabaseClient
+                    .from('claim_history')
+                    .select('*', { count: 'exact' })
+                    .eq('user_id', user.id);
+
+                document.getElementById('totalClaims').textContent = count || 0;
 
             } catch (error) {
                 console.error('Error loading profile:', error);
