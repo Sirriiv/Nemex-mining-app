@@ -272,7 +272,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // Handle form submission - COMPLETELY REWRITTEN
+        // Handle form submission - WITH AUTOMATIC BONUS SYSTEM
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -339,19 +339,19 @@
                 const user = authData.user;
                 console.log('✅ Auth user created:', user.id);
 
-                // ✅ FIXED: Create profile using Supabase Client (NOT REST API)
+                // Create profile using Supabase Client
                 const profileData = {
                     id: user.id,
                     email: email,
                     full_name: fullName,
-                    username: username, // ✅ THIS WAS MISSING!
+                    username: username,
                     balance: 0,
                     referral_slots: 10,
                     used_slots: 0,
                     created_via: 'website'
                 };
 
-                // ✅ FIXED: Add referral data
+                // Add referral data if applicable
                 if (referrerId) {
                     profileData.referred_by = referrerId;
                     console.log('✅ SETTING referred_by to:', referrerId);
@@ -359,7 +359,7 @@
 
                 console.log('📝 Creating profile with data:', profileData);
 
-                // ✅ FIXED: Use Supabase Client instead of REST API
+                // Use Supabase Client instead of REST API
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .insert([profileData])
@@ -390,7 +390,49 @@
                     console.log('✅ Profile created successfully:', profile);
                 }
 
-                // ✅ FIXED: Update referrer's used_slots
+                // ✅ AUTOMATIC REFERRAL BONUS SYSTEM
+                if (referrerId) {
+                    console.log('🎁 Giving referral bonuses...');
+                    
+                    const BONUS_AMOUNT = 30;
+                    
+                    try {
+                        // Give bonus to NEW USER (the one being referred)
+                        const { error: newUserBonusError } = await supabase
+                            .from('profiles')
+                            .update({ 
+                                balance: supabase.sql`balance + ${BONUS_AMOUNT}`,
+                                total_earned_from_refs: supabase.sql`COALESCE(total_earned_from_refs, 0) + ${BONUS_AMOUNT}`
+                            })
+                            .eq('id', user.id);
+
+                        if (newUserBonusError) {
+                            console.error('❌ Failed to give bonus to new user:', newUserBonusError);
+                        } else {
+                            console.log('✅ New user received bonus:', BONUS_AMOUNT, 'NMXp');
+                        }
+
+                        // Give bonus to REFERRER (the one who referred)
+                        const { error: referrerBonusError } = await supabase
+                            .from('profiles')
+                            .update({ 
+                                balance: supabase.sql`balance + ${BONUS_AMOUNT}`,
+                                total_earned_from_refs: supabase.sql`COALESCE(total_earned_from_refs, 0) + ${BONUS_AMOUNT}`
+                            })
+                            .eq('id', referrerId);
+
+                        if (referrerBonusError) {
+                            console.error('❌ Failed to give bonus to referrer:', referrerBonusError);
+                        } else {
+                            console.log('✅ Referrer received bonus:', BONUS_AMOUNT, 'NMXp');
+                        }
+
+                    } catch (bonusError) {
+                        console.error('❌ Bonus system error:', bonusError);
+                    }
+                }
+
+                // Update referrer's used_slots
                 if (referrerId) {
                     console.log('🔄 Updating referrer slots for:', referrerId);
                     
@@ -419,8 +461,13 @@
                     }
                 }
 
-                // Success
-                alert('Account created successfully! Please check your email for verification.');
+                // Success message with bonus notification
+                if (referrerId) {
+                    alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Please check your email for verification.');
+                } else {
+                    alert('Account created successfully! Please check your email for verification.');
+                }
+                
                 window.location.href = 'login.html';
 
             } catch (error) {
