@@ -3,557 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Login - NemexCoin</title>
     <style>
-        /* Your existing CSS remains exactly the same */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --error: #ff4444;
         }
 
-        body {
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
             padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
 
-        .login-container {
-            width: 100%;
-            max-width: 400px;
+        .header {
             text-align: center;
+            padding: 30px 0;
         }
 
         .logo {
-            margin-bottom: 40px;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 10px;
         }
 
-        .logo h1 {
-            font-size: 32px;
-            font-weight: bold;
-            color: #FFD700;
-            margin-bottom: 8px;
-        }
-
-        .logo .subtitle {
-            color: #cccccc;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .login-card {
-            background: rgba(13, 13, 28, 0.95);
-            padding: 40px 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        .login-card h2 {
+        .title {
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 30px;
-            color: #ffffff;
         }
 
         .form-group {
             margin-bottom: 20px;
-            text-align: left;
         }
 
-        .input-field {
-            width: 100%;
-            padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: #FFD700;
-            background: rgba(255, 255, 255, 0.12);
-        }
-
-        .input-field::placeholder {
-            color: #888888;
-        }
-
-        .forgot-password {
-            text-align: right;
-            margin-bottom: 25px;
-        }
-
-        .forgot-password a {
-            color: #FFD700;
-            text-decoration: none;
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
             font-size: 14px;
-            font-weight: 500;
         }
 
-        .forgot-password a:hover {
-            text-decoration: underline;
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
         }
 
         .login-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #FFD700, #b8941f);
-            color: #0f0f23;
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            padding: 15px;
+            border-radius: 25px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 25px;
-        }
-
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
         }
 
         .login-btn:disabled {
-            background: #666666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .divider {
-            position: relative;
-            margin: 30px 0;
-            color: #888888;
-            font-size: 14px;
-        }
-
-        .divider::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .divider span {
-            background: rgba(13, 13, 28, 0.95);
-            padding: 0 20px;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-
-        .social-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .social-btn:disabled {
-            opacity: 0.6;
+            background: var(--muted);
             cursor: not-allowed;
         }
 
-        .telegram-btn {
-            background: linear-gradient(135deg, #0088cc, #006699);
-            border: 1px solid rgba(0, 136, 204, 0.3);
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--muted);
         }
 
-        .telegram-btn:hover {
-            background: linear-gradient(135deg, #0099e6, #0077b3);
-            border-color: rgba(0, 136, 204, 0.5);
-        }
-
-        .signup-link {
-            margin-top: 30px;
-            color: #cccccc;
-            font-size: 14px;
-        }
-
-        .signup-link a {
-            color: #FFD700;
+        .register-link a {
+            color: var(--gold);
             text-decoration: none;
-            font-weight: 600;
-        }
-
-        .signup-link a:hover {
-            text-decoration: underline;
         }
 
         .error-message {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            text-align: center;
             background: rgba(255, 68, 68, 0.1);
-            border: 1px solid rgba(255, 68, 68, 0.3);
-            color: #ff4444;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .success-message {
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid rgba(0, 200, 81, 0.3);
-            color: #00C851;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .loading {
-            color: #FFD700;
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .telegram-info {
-            background: rgba(0, 136, 204, 0.1);
-            border: 1px solid rgba(0, 136, 204, 0.3);
-            color: #0088cc;
-            padding: 15px;
+            border: 1px solid var(--error);
             border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
+            padding: 10px;
+            margin-bottom: 15px;
         }
 
-        @media (max-width: 480px) {
-            .login-card {
-                padding: 30px 20px;
-            }
+        .forgot-password {
+            text-align: center;
+            margin-top: 15px;
+        }
 
-            .login-container {
-                padding: 10px;
-            }
+        .forgot-password a {
+            color: var(--gold);
+            text-decoration: none;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo">
-            <h1>NemexCoin</h1>
-            <div class="subtitle">NMX</div>
+    <div class="container">
+        <div class="header">
+            <div class="logo">NemexCoin</div>
+            <div class="title">Welcome Back</div>
         </div>
 
-        <div class="login-card">
-            <h2 id="welcomeTitle">Welcome Back</h2>
+        <div class="error-message" id="errorMessage"></div>
 
-            <!-- Telegram Info Message -->
-            <div class="telegram-info" id="telegramInfo">
-                📱 <strong>Telegram User Detected!</strong><br>
-                You can login with your Telegram account or use email/password.
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input" id="email" required>
             </div>
 
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
-
-            <form id="loginForm">
-                <div class="form-group">
-                    <input type="email" class="input-field" id="email" placeholder="Email Address" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input-field" id="password" placeholder="Password" required>
-                </div>
-
-                <div class="forgot-password">
-                    <a href="#" id="forgotPassword">Forgot password?</a>
-                </div>
-
-                <button type="submit" class="login-btn" id="loginBtn">
-                    Sign In
-                </button>
-
-                <div class="loading" id="loading">
-                    🔄 Signing you in...
-                </div>
-            </form>
-
-            <div class="divider">
-                <span>OR CONTINUE WITH</span>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-input" id="password" required>
             </div>
 
-            <!-- Telegram Login Button -->
-            <button class="social-btn telegram-btn" id="telegramLoginBtn">
-                <span>📱</span> Continue with Telegram
-            </button>
+            <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+        </form>
 
-            <button class="social-btn" disabled>
-                <span>🔍</span> Continue with Google
-            </button>
+        <div class="forgot-password">
+            <a href="forgot-password.html">Forgot your password?</a>
+        </div>
 
-            <div class="signup-link">
-                Don't have an account? <a href="register.html">Sign Up</a>
-            </div>
+        <div class="register-link">
+            Don't have an account? <a href="register.html">Create Account</a>
         </div>
     </div>
 
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
-        // Initialize Supabase
+        // Supabase configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        let supabaseClient;
-        let isTelegramApp = false;
-        let telegramUser = null;
-
-        // Wait for DOM to load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing NemexCoin Login...');
-
-            try {
-                // Initialize Supabase client
-                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
-                    auth: {
-                        persistSession: true,
-                        autoRefreshToken: true
-                    }
-                });
-
-                console.log('✅ Supabase client created successfully');
-
-                // Initialize Telegram first
-                initializeTelegram();
-
-                // Check if user is already logged in (after Telegram check)
-                setTimeout(() => checkExistingSession(), 500);
-
-            } catch (error) {
-                console.error('❌ Initialization failed:', error);
-                showError('Failed to initialize. Please refresh the page.');
-            }
-        });
-
-        // Initialize Telegram Web App
-        function initializeTelegram() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                console.log('📱 Telegram Web App detected');
-                isTelegramApp = true;
-
-                const tg = window.Telegram.WebApp;
-
-                try {
-                    // Expand to full screen
-                    tg.expand();
-
-                    // Set theme colors
-                    tg.setHeaderColor('#FFD700');
-                    tg.setBackgroundColor('#0f0f23');
-
-                    // Get user info
-                    telegramUser = tg.initDataUnsafe?.user;
-
-                    if (telegramUser) {
-                        console.log('👤 Telegram user detected:', telegramUser);
-                        handleTelegramUser();
-                    }
-
-                    // Add Telegram class to body for specific styling
-                    document.body.classList.add('telegram-app');
-
-                } catch (error) {
-                    console.error('❌ Telegram initialization error:', error);
-                }
-            } else {
-                console.log('🌐 Running in regular browser');
-                isTelegramApp = false;
-            }
-        }
-
-        // Handle Telegram user
-        function handleTelegramUser() {
-            if (!telegramUser) return;
-
-            // Show Telegram info
-            const telegramInfo = document.getElementById('telegramInfo');
-            const welcomeTitle = document.getElementById('welcomeTitle');
-            const telegramLoginBtn = document.getElementById('telegramLoginBtn');
-
-            telegramInfo.style.display = 'block';
-            welcomeTitle.textContent = `Welcome, ${telegramUser.first_name}!`;
-            telegramLoginBtn.innerHTML = `<span>📱</span> Continue as ${telegramUser.first_name}`;
-        }
-
-        // FIXED: Check if user is already logged in - DATABASE ONLY
+        // Check if user is already logged in
         async function checkExistingSession() {
-            try {
-                // Check for web session only - no localStorage checks
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    console.log('🔑 Found web session, redirecting...');
-                    window.location.href = 'dashboard.html';
-                    return;
-                }
-
-                // If we're in Telegram with a user, check if they have an account
-                if (isTelegramApp && telegramUser) {
-                    console.log('📱 Telegram user detected, checking account...');
-                    await checkTelegramAccount();
-                }
-
-            } catch (error) {
-                console.error('Session check error:', error);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                window.location.href = 'dashboard.html';
             }
         }
 
-        // Check if Telegram user has an account
-        async function checkTelegramAccount() {
-            try {
-                const { data: existingUser, error } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (existingUser) {
-                    console.log('✅ Telegram user has account, enabling quick login');
-                    showSuccess(`Welcome back ${telegramUser.first_name}! Click "Continue as ${telegramUser.first_name}" to login.`);
-                }
-                // If no account found, do nothing - user can still register
-            } catch (error) {
-                // User doesn't exist or other error - that's fine
-                console.log('ℹ️ Telegram user not registered yet');
-            }
-        }
-
-        // FIXED: Telegram login button handler - DATABASE ONLY
-        document.getElementById('telegramLoginBtn').addEventListener('click', async function() {
-            const telegramLoginBtn = document.getElementById('telegramLoginBtn');
-            const loading = document.getElementById('loading');
-
-            telegramLoginBtn.disabled = true;
-            loading.style.display = 'block';
-            hideMessages();
-
-            try {
-                if (!telegramUser) {
-                    throw new Error('Telegram user not available');
-                }
-
-                console.log('📱 Processing Telegram login...');
-
-                // Check if user exists
-                const { data: existingUser, error: checkError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('telegram_id', telegramUser.id)
-                    .single();
-
-                if (checkError && checkError.code === 'PGRST116') {
-                    // User doesn't exist - create new account
-                    console.log('Creating new Telegram user...');
-                    
-                    // Generate username from Telegram data
-                    const username = telegramUser.username || `tg_${telegramUser.id}`;
-
-                    const { data: newUser, error: createError } = await supabaseClient
-                        .from('profiles')
-                        .insert([
-                            {
-                                telegram_id: telegramUser.id,
-                                username: username,
-                                full_name: `${telegramUser.first_name} ${telegramUser.last_name || ''}`.trim(),
-                                avatar_url: telegramUser.photo_url,
-                                balance: 0,
-                                last_claim: null,
-                                referral_slots: 10,
-                                used_slots: 0,
-                                total_earned_from_refs: 0,
-                                created_via: 'telegram'
-                            }
-                        ])
-                        .select()
-                        .single();
-
-                    if (createError) {
-                        throw createError;
-                    }
-
-                    console.log('✅ Telegram user created:', newUser);
-
-                    showSuccess('Account created successfully! Redirecting...');
-
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-
-                } else if (existingUser) {
-                    // Login existing user
-                    console.log('✅ Logging in existing Telegram user...');
-
-                    showSuccess(`Welcome back ${telegramUser.first_name}! Redirecting...`);
-
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
-
-                } else if (checkError) {
-                    throw checkError;
-                }
-
-            } catch (error) {
-                console.error('❌ Telegram login failed:', error);
-                showError('Failed to login with Telegram: ' + error.message);
-            } finally {
-                telegramLoginBtn.disabled = false;
-                loading.style.display = 'none';
-            }
+        document.addEventListener('DOMContentLoaded', function() {
+            checkExistingSession();
         });
 
-        // FIXED: Form submission for email/password login - DATABASE ONLY
+        // Handle form submission
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            
             const loginBtn = document.getElementById('loginBtn');
-            const loading = document.getElementById('loading');
-
-            hideMessages();
+            const errorMessage = document.getElementById('errorMessage');
+            
             loginBtn.disabled = true;
-            loading.style.display = 'block';
-
+            loginBtn.textContent = 'Signing In...';
+            errorMessage.style.display = 'none';
+            
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const password = document.getElementById('password').value;
+            
             try {
-                if (!email || !password) {
-                    throw new Error('Please fill in all fields');
-                }
-
-                console.log('🔐 Attempting email login...');
-
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                // Sign in with Supabase Auth
+                const { data, error } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
@@ -562,70 +217,28 @@
                     throw error;
                 }
 
-                console.log('✅ Login successful:', data.user);
-
-                showSuccess('Login successful! Redirecting...');
+                // Update last login in profiles table
+                await supabase
+                    .from('profiles')
+                    .update({ 
+                        last_login: new Date().toISOString()
+                    })
+                    .eq('id', data.user.id);
 
                 // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
+                window.location.href = 'dashboard.html';
 
             } catch (error) {
                 console.error('Login error:', error);
-
-                if (error.message.includes('Invalid login credentials')) {
-                    showError('Invalid email or password. Please try again.');
-                } else if (error.message.includes('Email not confirmed')) {
-                    showError('Please verify your email address before logging in.');
-                } else {
-                    showError('Login failed: ' + error.message);
-                }
-
+                errorMessage.textContent = error.message || 'Login failed. Please check your credentials.';
+                errorMessage.style.display = 'block';
             } finally {
                 loginBtn.disabled = false;
-                loading.style.display = 'none';
+                loginBtn.textContent = 'Sign In';
             }
         });
 
-        // Forgot password
-        document.getElementById('forgotPassword').addEventListener('click', async function(e) {
-            e.preventDefault();
-            const email = prompt('Please enter your email address to reset your password:');
-
-            if (email && supabaseClient) {
-                try {
-                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
-                    if (error) {
-                        alert('Error sending reset email: ' + error.message);
-                    } else {
-                        alert('Password reset email sent! Please check your inbox.');
-                    }
-                } catch (error) {
-                    alert('Error: ' + error.message);
-                }
-            }
-        });
-
-        // Helper functions
-        function showError(message) {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-        }
-
-        function showSuccess(message) {
-            const successElement = document.getElementById('successMessage');
-            successElement.textContent = message;
-            successElement.style.display = 'block';
-        }
-
-        function hideMessages() {
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-        }
-
-        // Enter key support
+        // Handle Enter key press
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
