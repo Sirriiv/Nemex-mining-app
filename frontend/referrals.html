@@ -269,28 +269,6 @@
             background: rgba(255, 68, 68, 0.3);
         }
 
-        .referral-status {
-            font-size: 12px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: 600;
-        }
-
-        .status-active {
-            background: rgba(0, 200, 81, 0.1);
-            color: var(--success);
-        }
-
-        .status-pending {
-            background: rgba(255, 152, 0, 0.1);
-            color: var(--warning);
-        }
-
-        .status-removed {
-            background: rgba(255, 68, 68, 0.1);
-            color: var(--error);
-        }
-
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -561,7 +539,7 @@
                 }
 
                 referralsList.innerHTML = referrals.map(ref => `
-                    <div class="referral-item" data-user-id="${ref.id}">
+                    <div class="referral-item">
                         <div class="referral-info">
                             <div class="referral-name">${ref.full_name || ref.username}</div>
                             <div class="referral-date">Joined ${formatDate(ref.created_at)} • Balance: ${ref.balance || 0} NMXp</div>
@@ -599,7 +577,7 @@
 
         // Show Remove Confirmation Modal
         function showRemoveModal(userId, userName) {
-            userToRemove = userId;
+            userToRemove = { id: userId, name: userName };
             const modal = document.getElementById('removeModal');
             const modalText = document.getElementById('removeModalText');
             
@@ -614,74 +592,69 @@
             modal.style.display = 'flex';
         }
 
-        // Remove User Functionality with Slot Syncing
+        // Remove User Functionality with Slot Syncing - FIXED VERSION
         async function removeUser(userId) {
-            if (!userId || !currentUser) return;
+            if (!userId || !currentUser) {
+                showToast('Error: Invalid user data', 'error');
+                return;
+            }
 
             try {
                 showToast('Removing user...', 'info');
 
-                // 1. Get the user to remove
+                const BONUS_AMOUNT = 30;
+
+                // 1. First get current user data
+                const { data: currentUserData, error: currentUserError } = await supabase
+                    .from('profiles')
+                    .select('balance, total_earned_from_refs, used_slots')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (currentUserError) throw currentUserError;
+
+                // 2. Get the user to remove data
                 const { data: userToRemoveData, error: userError } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select('balance, total_earned_from_refs')
                     .eq('id', userId)
                     .single();
 
                 if (userError) throw userError;
 
-                if (!userToRemoveData) {
-                    throw new Error('User not found');
-                }
+                // 3. Calculate new values
+                const newReferrerBalance = Math.max(0, (currentUserData.balance || 0) - BONUS_AMOUNT);
+                const newReferrerEarned = Math.max(0, (currentUserData.total_earned_from_refs || 0) - BONUS_AMOUNT);
+                const newUsedSlots = Math.max(0, (currentUserData.used_slots || 0) - 1);
 
-                const BONUS_AMOUNT = 30;
+                const newUserBalance = Math.max(0, (userToRemoveData.balance || 0) - BONUS_AMOUNT);
+                const newUserEarned = Math.max(0, (userToRemoveData.total_earned_from_refs || 0) - BONUS_AMOUNT);
 
-                // 2. Deduct bonus from current user (referrer)
-                const { error: deductReferrerError } = await supabase
+                // 4. Update referrer (current user)
+                const { error: referrerUpdateError } = await supabase
                     .from('profiles')
                     .update({ 
-                        balance: supabase.sql`GREATEST(0, balance - ${BONUS_AMOUNT})`,
-                        total_earned_from_refs: supabase.sql`GREATEST(0, COALESCE(total_earned_from_refs, 0) - ${BONUS_AMOUNT})`,
-                        used_slots: supabase.sql`GREATEST(0, COALESCE(used_slots, 0) - 1)`
+                        balance: newReferrerBalance,
+                        total_earned_from_refs: newReferrerEarned,
+                        used_slots: newUsedSlots
                     })
                     .eq('id', currentUser.id);
 
-                if (deductReferrerError) {
-                    console.error('Error deducting from referrer:', deductReferrerError);
-                    throw new Error('Failed to update your account');
-                }
+                if (referrerUpdateError) throw referrerUpdateError;
 
-                // 3. Deduct bonus from removed user
-                const { error: deductUserError } = await supabase
+                // 5. Update removed user
+                const { error: userUpdateError } = await supabase
                     .from('profiles')
                     .update({ 
-                        balance: supabase.sql`GREATEST(0, balance - ${BONUS_AMOUNT})`,
-                        total_earned_from_refs: supabase.sql`GREATEST(0, COALESCE(total_earned_from_refs, 0) - ${BONUS_AMOUNT})`,
-                        referred_by: null // Remove the referral relationship
+                        balance: newUserBalance,
+                        total_earned_from_refs: newUserEarned,
+                        referred_by: null
                     })
                     .eq('id', userId);
 
-                if (deductUserError) {
-                    console.error('Error deducting from user:', deductUserError);
-                    throw new Error('Failed to update user account');
-                }
+                if (userUpdateError) throw userUpdateError;
 
-                // 4. Log the removal action
-                const { error: logError } = await supabase
-                    .from('referral_removals')
-                    .insert({
-                        referrer_id: currentUser.id,
-                        removed_user_id: userId,
-                        bonus_amount: BONUS_AMOUNT,
-                        removed_at: new Date().toISOString()
-                    });
-
-                if (logError) {
-                    console.error('Error logging removal:', logError);
-                    // Don't throw error for logging failure
-                }
-
-                // 5. Refresh the data
+                // 6. Refresh the data
                 await loadReferralData();
                 showToast('User removed successfully. Bonuses deducted and slots updated.', 'success');
 
@@ -717,8 +690,8 @@
             });
 
             document.getElementById('confirmRemove').addEventListener('click', function() {
-                if (userToRemove) {
-                    removeUser(userToRemove);
+                if (userToRemove && userToRemove.id) {
+                    removeUser(userToRemove.id);
                     document.getElementById('removeModal').style.display = 'none';
                     userToRemove = null;
                 }
