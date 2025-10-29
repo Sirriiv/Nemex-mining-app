@@ -144,6 +144,11 @@
             width: 100%;
         }
 
+        .edit-btn:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -169,6 +174,117 @@
         .stat-label {
             font-size: 12px;
             color: var(--muted);
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid var(--border-color);
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .success-message {
+            color: var(--success);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
         }
     </style>
 </head>
@@ -214,8 +330,39 @@
                     </div>
                 </div>
 
-                <button class="edit-btn" onclick="editProfile()">Edit Profile</button>
+                <button class="edit-btn" onclick="openEditModal()">Edit Profile</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Edit Profile</div>
+                <button class="close-btn" onclick="closeEditModal()">×</button>
+            </div>
+            
+            <form id="editForm">
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="editUsername" required>
+                    <div class="error-message" id="usernameError"></div>
+                    <div class="success-message" id="usernameSuccess"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" id="editEmail" required>
+                    <div class="error-message" id="emailError"></div>
+                    <div class="success-message" id="emailSuccess"></div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="save-btn" id="saveBtn">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -224,6 +371,9 @@
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentUser = null;
+        let currentProfile = null;
 
         document.addEventListener('DOMContentLoaded', async function() {
             await loadUserProfile();
@@ -237,13 +387,13 @@
                     return;
                 }
 
-                const user = session.user;
+                currentUser = session.user;
 
-                // ✅ FIX: Get user data from PROFILES table instead of auth metadata
+                // Get user data from PROFILES table
                 const { data: profile } = await supabaseClient
                     .from('profiles')
                     .select('*')
-                    .eq('id', user.id)
+                    .eq('id', currentUser.id)
                     .single();
 
                 if (!profile) {
@@ -251,11 +401,13 @@
                     return;
                 }
 
-                // ✅ FIX: Use username from profiles table instead of auth user ID
+                currentProfile = profile;
+
+                // Update display with data from profiles table
                 document.getElementById('userName').textContent = profile.username || 'User';
-                document.getElementById('userEmail').textContent = user.email;
-                document.getElementById('userId').textContent = profile.username || user.id.substring(0, 8) + '...';
-                document.getElementById('memberSince').textContent = new Date(user.created_at).toLocaleDateString();
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userId').textContent = profile.username || currentUser.id.substring(0, 8) + '...';
+                document.getElementById('memberSince').textContent = new Date(currentUser.created_at).toLocaleDateString();
 
                 // Load profile stats
                 document.getElementById('totalEarned').textContent = profile.balance || 0;
@@ -264,7 +416,7 @@
                 const { count } = await supabaseClient
                     .from('claim_history')
                     .select('*', { count: 'exact' })
-                    .eq('user_id', user.id);
+                    .eq('user_id', currentUser.id);
 
                 document.getElementById('totalClaims').textContent = count || 0;
 
@@ -273,10 +425,136 @@
             }
         }
 
-        function editProfile() {
-            alert('Profile editing feature coming soon!');
-            // You can implement a modal for editing profile here
+        function openEditModal() {
+            if (!currentProfile) return;
+            
+            // Fill form with current data
+            document.getElementById('editUsername').value = currentProfile.username || '';
+            document.getElementById('editEmail').value = currentUser.email || '';
+            
+            // Clear messages
+            clearMessages();
+            
+            // Show modal
+            document.getElementById('editModal').style.display = 'flex';
         }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            clearMessages();
+        }
+
+        function clearMessages() {
+            document.getElementById('usernameError').style.display = 'none';
+            document.getElementById('emailError').style.display = 'none';
+            document.getElementById('usernameSuccess').style.display = 'none';
+            document.getElementById('emailSuccess').style.display = 'none';
+        }
+
+        // Handle form submission
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            
+            const newUsername = document.getElementById('editUsername').value.trim();
+            const newEmail = document.getElementById('editEmail').value.trim();
+            
+            clearMessages();
+            
+            try {
+                let updatesMade = false;
+                
+                // Update username if changed
+                if (newUsername !== currentProfile.username) {
+                    if (newUsername.length < 3) {
+                        showError('usernameError', 'Username must be at least 3 characters');
+                        return;
+                    }
+                    
+                    // Check if username is available
+                    const { data: existingUser } = await supabaseClient
+                        .from('profiles')
+                        .select('id')
+                        .eq('username', newUsername)
+                        .neq('id', currentUser.id)
+                        .single();
+                    
+                    if (existingUser) {
+                        showError('usernameError', 'Username already taken');
+                        return;
+                    }
+                    
+                    // Update username in profiles table
+                    const { error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .update({ username: newUsername })
+                        .eq('id', currentUser.id);
+                    
+                    if (profileError) throw profileError;
+                    
+                    showSuccess('usernameSuccess', 'Username updated successfully!');
+                    updatesMade = true;
+                    
+                    // Update current profile data
+                    currentProfile.username = newUsername;
+                }
+                
+                // Update email if changed
+                if (newEmail !== currentUser.email) {
+                    const { error: emailError } = await supabaseClient.auth.updateUser({
+                        email: newEmail
+                    });
+                    
+                    if (emailError) {
+                        showError('emailError', emailError.message);
+                        return;
+                    }
+                    
+                    showSuccess('emailSuccess', 'Email update initiated - please check your email for confirmation');
+                    updatesMade = true;
+                }
+                
+                if (updatesMade) {
+                    // Reload profile data
+                    setTimeout(() => {
+                        loadUserProfile();
+                        closeEditModal();
+                        alert('Profile updated successfully! Your referral links will now use your new username.');
+                    }, 1000);
+                } else {
+                    closeEditModal();
+                }
+                
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showError('usernameError', 'Failed to update profile');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save Changes';
+            }
+        });
+
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function showSuccess(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('editModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditModal();
+            }
+        });
     </script>
 </body>
 </html>
