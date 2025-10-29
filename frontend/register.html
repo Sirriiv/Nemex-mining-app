@@ -80,6 +80,20 @@
             font-size: 18px;
         }
 
+        .bonus-notification {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .bonus-text {
+            color: var(--success);
+            font-weight: 600;
+        }
+
         .error-banner {
             background: rgba(255, 68, 68, 0.1);
             border: 1px solid var(--error);
@@ -172,6 +186,11 @@
             <div class="referral-name" id="referrerName"></div>
         </div>
 
+        <!-- Bonus Notification -->
+        <div class="bonus-notification" id="bonusNotification" style="display: none;">
+            <div class="bonus-text">🎉 You'll receive 30 NMXp bonus for joining via referral!</div>
+        </div>
+
         <!-- Invalid Referral Banner -->
         <div class="error-banner" id="invalidReferralBanner" style="display: none;">
             <strong>Invalid Referral</strong>
@@ -257,6 +276,7 @@
                     referrerId = referrerProfile.id;
                     document.getElementById('referrerName').textContent = referrerProfile.username;
                     document.getElementById('referralBanner').style.display = 'block';
+                    document.getElementById('bonusNotification').style.display = 'block';
                     
                     console.log('✅ Valid referral found:', referrerProfile.username, 'ID:', referrerId);
 
@@ -272,7 +292,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // Handle form submission - WITH AUTOMATIC BONUS SYSTEM
+        // Handle form submission - FIXED BONUS SYSTEM
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -339,15 +359,20 @@
                 const user = authData.user;
                 console.log('✅ Auth user created:', user.id);
 
+                // ✅ FIXED: Calculate initial balance based on referral
+                const initialBalance = referrerId ? 30 : 0; // Give 30 NMXp if referred, 0 otherwise
+                const totalEarnedFromRefs = referrerId ? 30 : 0;
+
                 // Create profile using Supabase Client
                 const profileData = {
                     id: user.id,
                     email: email,
                     full_name: fullName,
                     username: username,
-                    balance: 0,
+                    balance: initialBalance,
                     referral_slots: 10,
                     used_slots: 0,
+                    total_earned_from_refs: totalEarnedFromRefs,
                     created_via: 'website'
                 };
 
@@ -390,74 +415,55 @@
                     console.log('✅ Profile created successfully:', profile);
                 }
 
-                // ✅ AUTOMATIC REFERRAL BONUS SYSTEM
+                // ✅ FIXED: AUTOMATIC REFERRAL BONUS SYSTEM
                 if (referrerId) {
-                    console.log('🎁 Giving referral bonuses...');
+                    console.log('🎁 Processing referral bonuses...');
                     
                     const BONUS_AMOUNT = 30;
                     
                     try {
-                        // Give bonus to NEW USER (the one being referred)
-                        const { error: newUserBonusError } = await supabase
-                            .from('profiles')
-                            .update({ 
-                                balance: supabase.sql`balance + ${BONUS_AMOUNT}`,
-                                total_earned_from_refs: supabase.sql`COALESCE(total_earned_from_refs, 0) + ${BONUS_AMOUNT}`
-                            })
-                            .eq('id', user.id);
-
-                        if (newUserBonusError) {
-                            console.error('❌ Failed to give bonus to new user:', newUserBonusError);
-                        } else {
-                            console.log('✅ New user received bonus:', BONUS_AMOUNT, 'NMXp');
-                        }
-
                         // Give bonus to REFERRER (the one who referred)
-                        const { error: referrerBonusError } = await supabase
+                        // First get current referrer data
+                        const { data: referrerData, error: referrerFetchError } = await supabase
                             .from('profiles')
-                            .update({ 
-                                balance: supabase.sql`balance + ${BONUS_AMOUNT}`,
-                                total_earned_from_refs: supabase.sql`COALESCE(total_earned_from_refs, 0) + ${BONUS_AMOUNT}`
-                            })
-                            .eq('id', referrerId);
+                            .select('balance, total_earned_from_refs, used_slots, referral_slots')
+                            .eq('id', referrerId)
+                            .single();
 
-                        if (referrerBonusError) {
-                            console.error('❌ Failed to give bonus to referrer:', referrerBonusError);
+                        if (referrerFetchError) {
+                            console.error('❌ Failed to fetch referrer data:', referrerFetchError);
                         } else {
-                            console.log('✅ Referrer received bonus:', BONUS_AMOUNT, 'NMXp');
+                            // Calculate new values for referrer
+                            const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
+                            const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
+                            const newUsedSlots = (referrerData.used_slots || 0) + 1;
+
+                            // Check if referrer has available slots
+                            const availableSlots = (referrerData.referral_slots || 10) - (referrerData.used_slots || 0);
+                            
+                            if (availableSlots > 0) {
+                                // Update referrer with bonus
+                                const { error: referrerBonusError } = await supabase
+                                    .from('profiles')
+                                    .update({ 
+                                        balance: newReferrerBalance,
+                                        total_earned_from_refs: newReferrerEarned,
+                                        used_slots: newUsedSlots
+                                    })
+                                    .eq('id', referrerId);
+
+                                if (referrerBonusError) {
+                                    console.error('❌ Failed to give bonus to referrer:', referrerBonusError);
+                                } else {
+                                    console.log('✅ Referrer received bonus:', BONUS_AMOUNT, 'NMXp. New balance:', newReferrerBalance);
+                                }
+                            } else {
+                                console.log('⚠️ Referrer has no available slots, bonus not given');
+                            }
                         }
 
                     } catch (bonusError) {
                         console.error('❌ Bonus system error:', bonusError);
-                    }
-                }
-
-                // Update referrer's used_slots
-                if (referrerId) {
-                    console.log('🔄 Updating referrer slots for:', referrerId);
-                    
-                    const { data: referrerData } = await supabase
-                        .from('profiles')
-                        .select('used_slots')
-                        .eq('id', referrerId)
-                        .single();
-
-                    if (referrerData) {
-                        const newUsedSlots = (referrerData.used_slots || 0) + 1;
-                        console.log('📊 Updating used_slots to:', newUsedSlots);
-                        
-                        const { error: updateError } = await supabase
-                            .from('profiles')
-                            .update({ 
-                                used_slots: newUsedSlots
-                            })
-                            .eq('id', referrerId);
-
-                        if (updateError) {
-                            console.error('⚠️ Referral update failed:', updateError);
-                        } else {
-                            console.log('✅ Referral slots updated successfully');
-                        }
                     }
                 }
 
