@@ -225,7 +225,7 @@
             checkReferral();
         });
 
-        // Check for referral parameter in URL - FIXED VERSION
+        // Check for referral parameter in URL
         async function checkReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
@@ -234,7 +234,6 @@
             
             if (referralUsername) {
                 try {
-                    // FIX: Use .select() instead of .single() to handle multiple/no rows
                     const { data: referrerProfiles, error } = await supabase
                         .from('profiles')
                         .select('id, username, email')
@@ -254,18 +253,6 @@
                         return;
                     }
 
-                    if (referrerProfiles.length > 1) {
-                        console.log('⚠️ Multiple users found with same username:', referrerProfiles);
-                        // Use the first one
-                        const referrerProfile = referrerProfiles[0];
-                        referrerId = referrerProfile.id;
-                        document.getElementById('referrerName').textContent = referrerProfile.username;
-                        document.getElementById('referralBanner').style.display = 'block';
-                        console.log('✅ Using first referral found:', referrerProfile.username);
-                        return;
-                    }
-
-                    // Single user found
                     const referrerProfile = referrerProfiles[0];
                     referrerId = referrerProfile.id;
                     document.getElementById('referrerName').textContent = referrerProfile.username;
@@ -285,7 +272,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // Handle form submission
+        // Handle form submission - COMPLETELY FIXED VERSION
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -308,7 +295,7 @@
                     return;
                 }
 
-                // Check if username already exists - FIXED: use .select() not .single()
+                // Check if username already exists
                 const { data: existingUsernames, error: usernameError } = await supabase
                     .from('profiles')
                     .select('id')
@@ -319,7 +306,7 @@
                     return;
                 }
 
-                // Check if email already exists - FIXED: use .select() not .single()
+                // Check if email already exists
                 const { data: existingEmails, error: emailError } = await supabase
                     .from('profiles')
                     .select('id')
@@ -329,6 +316,8 @@
                     showError('emailError', 'Email already registered');
                     return;
                 }
+
+                console.log('🔐 Creating auth user...');
 
                 // Create auth user
                 const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -343,13 +332,15 @@
                 });
 
                 if (authError) {
+                    console.error('❌ Auth error:', authError);
                     showError('emailError', authError.message);
                     return;
                 }
 
                 const user = authData.user;
+                console.log('✅ Auth user created:', user.id);
 
-                // Create profile in database
+                // Create profile in database using REST API
                 const profileData = {
                     id: user.id,
                     email: email,
@@ -366,35 +357,72 @@
                 // Add referral data if applicable
                 if (referrerId) {
                     profileData.referred_by = referrerId;
+                    console.log('🔗 Adding referral from:', referrerId);
                 }
 
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .insert([profileData])
-                    .select()
-                    .single();
+                console.log('📝 Creating profile with data:', profileData);
 
-                if (profileError) {
-                    console.error('❌ Profile creation failed:', profileError);
-                    showError('emailError', 'Failed to create user profile. Please try again.');
-                    return;
+                // Use REST API with service key to create profile
+                const profileResponse = await fetch(
+                    `${supabaseUrl}/rest/v1/profiles`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'apikey': supabaseKey,
+                            'Authorization': `Bearer ${supabaseKey}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify(profileData)
+                    }
+                );
+
+                console.log('📝 Profile creation response status:', profileResponse.status);
+
+                if (!profileResponse.ok) {
+                    const errorText = await profileResponse.text();
+                    console.error('❌ Profile creation failed:', errorText);
+                    throw new Error(`Failed to create profile: ${profileResponse.status} ${errorText}`);
                 }
 
-                console.log('✅ Profile created successfully:', profile);
+                console.log('✅ Profile created successfully');
 
-                // Update referrer's used_slots if applicable
+                // ✅ FIXED: Update referrer's used_slots using Supabase client (not REST API)
                 if (referrerId) {
-                    const { error: referralError } = await supabase
-                        .from('profiles')
-                        .update({ 
-                            used_slots: supabase.sql`used_slots + 1`
-                        })
-                        .eq('id', referrerId);
+                    console.log('🔄 Updating referrer slots for:', referrerId);
+                    
+                    try {
+                        // First get current used_slots value
+                        const { data: referrerData, error: getError } = await supabase
+                            .from('profiles')
+                            .select('used_slots')
+                            .eq('id', referrerId)
+                            .single();
 
-                    if (referralError) {
-                        console.error('Referral update error:', referralError);
-                    } else {
-                        console.log('✅ Referral slots updated');
+                        if (getError) {
+                            console.error('⚠️ Failed to get referrer data:', getError);
+                        } else {
+                            // Update with new value using Supabase client
+                            const newUsedSlots = (referrerData.used_slots || 0) + 1;
+                            console.log('📊 Updating used_slots from', referrerData.used_slots, 'to', newUsedSlots);
+                            
+                            const { error: updateError } = await supabase
+                                .from('profiles')
+                                .update({ 
+                                    used_slots: newUsedSlots
+                                })
+                                .eq('id', referrerId);
+
+                            if (updateError) {
+                                console.error('⚠️ Referral update failed:', updateError);
+                                // Don't throw error - user was created successfully
+                            } else {
+                                console.log('✅ Referral slots updated successfully');
+                            }
+                        }
+                    } catch (updateError) {
+                        console.error('⚠️ Error updating referral slots:', updateError);
+                        // Don't throw error - user was created successfully
                     }
                 }
 
@@ -403,8 +431,8 @@
                 window.location.href = 'login.html';
 
             } catch (error) {
-                console.error('Registration error:', error);
-                showError('emailError', 'Registration failed. Please try again.');
+                console.error('❌ Registration error:', error);
+                showError('emailError', 'Registration failed: ' + error.message);
             } finally {
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Create Account';
