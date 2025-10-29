@@ -51,16 +51,31 @@
         }
 
         .back-btn {
-            font-size: 20px;
+            width: 24px;
+            height: 24px;
             color: var(--muted);
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
         }
 
         .content-wrapper {
@@ -82,8 +97,10 @@
         }
 
         .coming-icon {
-            font-size: 64px;
-            margin-bottom: 20px;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            color: var(--gold);
         }
 
         .coming-title {
@@ -110,6 +127,87 @@
             cursor: pointer;
             text-decoration: none;
             display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
+        }
+
+        .content-wrapper {
+            padding-bottom: 70px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
     </style>
 </head>
@@ -117,13 +215,24 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">←</a>
-                <div class="header-title">📋 Tasks</div>
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    Tasks
+                </div>
                 <div style="width: 20px;"></div>
             </header>
 
             <div class="coming-soon">
-                <div class="coming-icon">🚧</div>
+                <svg class="coming-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                </svg>
                 <div class="coming-title">Coming Soon</div>
                 <div class="coming-desc">
                     The Tasks section is currently under development. You'll soon be able to complete various tasks to earn additional NMX rewards!
@@ -131,6 +240,57 @@
                 <a href="dashboard.html" class="back-button">Back to Dashboard</a>
             </div>
         </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item active">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
+
+    <script>
+        // Highlight current page in navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop() || 'tasks.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
