@@ -51,22 +51,38 @@
         }
 
         .back-btn {
-            font-size: 20px;
+            width: 24px;
+            height: 24px;
             color: var(--muted);
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
         }
 
         .content-wrapper {
             padding: 20px;
             flex: 1;
             overflow-y: auto;
+            padding-bottom: 70px;
         }
 
         .about-section {
@@ -83,8 +99,10 @@
         }
 
         .logo-large {
-            font-size: 48px;
-            margin-bottom: 10px;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            color: var(--gold);
         }
 
         .app-name {
@@ -110,6 +128,14 @@
             color: var(--gold);
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
         }
 
         .info-text {
@@ -129,13 +155,21 @@
             align-items: center;
             margin-bottom: 12px;
             font-size: 14px;
+            color: var(--muted);
+            transition: all 0.3s ease;
         }
 
-        .feature-item::before {
-            content: "✓";
+        .feature-item:hover {
+            color: var(--text);
+            transform: translateX(5px);
+        }
+
+        .feature-icon {
+            width: 16px;
+            height: 16px;
             color: var(--gold);
-            font-weight: bold;
-            margin-right: 10px;
+            margin-right: 12px;
+            flex-shrink: 0;
         }
 
         .stats-grid {
@@ -151,6 +185,12 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
         }
 
         .stat-number {
@@ -175,6 +215,74 @@
         .version {
             color: var(--muted);
             font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
         }
     </style>
 </head>
@@ -182,34 +290,86 @@
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">←</a>
-                <div class="header-title">ℹ️ About</div>
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    About
+                </div>
                 <div style="width: 20px;"></div>
             </header>
 
             <div class="about-section">
                 <div class="app-logo">
-                    <div class="logo-large">〽️</div>
+                    <svg class="logo-large" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v7m0 0h-7m7 0l-7-7"/>
+                    </svg>
                     <div class="app-name">NEMEXCOIN</div>
                     <div class="app-tagline">Crypto Mining Revolution</div>
                 </div>
 
                 <div class="info-section">
-                    <div class="section-title">About NemexCoin</div>
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        About NemexCoin
+                    </div>
                     <div class="info-text">
                         NemexCoin is a revolutionary cryptocurrency mining platform that allows users to earn NMX tokens through simple, accessible mining operations. Our mission is to make cryptocurrency mining available to everyone, regardless of technical expertise.
                     </div>
                 </div>
 
                 <div class="info-section">
-                    <div class="section-title">Key Features</div>
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        Key Features
+                    </div>
                     <ul class="feature-list">
-                        <li class="feature-item">Easy-to-use mining interface</li>
-                        <li class="feature-item">12-hour claim cycles</li>
-                        <li class="feature-item">Secure wallet integration</li>
-                        <li class="feature-item">Referral bonus system</li>
-                        <li class="feature-item">Real-time balance tracking</li>
-                        <li class="feature-item">Multi-platform support</li>
+                        <li class="feature-item">
+                            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                            </svg>
+                            Easy-to-use mining interface
+                        </li>
+                        <li class="feature-item">
+                            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            12-hour claim cycles
+                        </li>
+                        <li class="feature-item">
+                            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            Secure wallet integration
+                        </li>
+                        <li class="feature-item">
+                            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                            </svg>
+                            Referral bonus system
+                        </li>
+                        <li class="feature-item">
+                            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Real-time balance tracking
+                        </li>
+                        <li class="feature-item">
+                            <svg class="feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/>
+                            </svg>
+                            Multi-platform support
+                        </li>
                     </ul>
                 </div>
 
@@ -225,7 +385,12 @@
                 </div>
 
                 <div class="info-section">
-                    <div class="section-title">Technology</div>
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                        </svg>
+                        Technology
+                    </div>
                     <div class="info-text">
                         Built on modern web technologies with secure Supabase backend integration. Our platform ensures maximum security and performance for all users.
                     </div>
@@ -237,6 +402,57 @@
                 </div>
             </div>
         </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
+
+    <script>
+        // Highlight current page in navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop() || 'about.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
