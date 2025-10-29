@@ -53,21 +53,37 @@
         }
 
         .back-btn {
-            font-size: 20px;
+            width: 24px;
+            height: 24px;
             color: var(--muted);
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
         }
 
         .content-wrapper {
             padding: 20px;
             flex: 1;
+            padding-bottom: 70px;
         }
 
         .profile-section {
@@ -91,9 +107,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
             margin: 0 auto 15px;
             color: var(--darker-bg);
+        }
+
+        .avatar-icon {
+            width: 40px;
+            height: 40px;
         }
 
         .profile-name {
@@ -120,11 +140,24 @@
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .info-item:hover {
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .info-label {
             color: var(--muted);
             font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-icon {
+            width: 16px;
+            height: 16px;
         }
 
         .info-value {
@@ -142,11 +175,28 @@
             cursor: pointer;
             margin-top: 20px;
             width: 100%;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .edit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
         }
 
         .edit-btn:disabled {
             background: var(--muted);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .edit-icon {
+            width: 18px;
+            height: 18px;
         }
 
         .stats-grid {
@@ -162,6 +212,11 @@
             border-radius: 10px;
             text-align: center;
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .stat-value {
@@ -210,6 +265,14 @@
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .modal-icon {
+            width: 20px;
+            height: 20px;
         }
 
         .close-btn {
@@ -218,6 +281,17 @@
             color: var(--muted);
             font-size: 24px;
             cursor: pointer;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .form-group {
@@ -229,6 +303,14 @@
             margin-bottom: 8px;
             color: var(--muted);
             font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-label-icon {
+            width: 16px;
+            height: 16px;
         }
 
         .form-input {
@@ -239,11 +321,13 @@
             border-radius: 10px;
             color: var(--text);
             font-size: 14px;
+            transition: all 0.3s ease;
         }
 
         .form-input:focus {
             outline: none;
             border-color: var(--gold);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .modal-actions {
@@ -260,6 +344,28 @@
             font-weight: 600;
             cursor: pointer;
             flex: 1;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .save-btn:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .save-icon {
+            width: 16px;
+            height: 16px;
         }
 
         .cancel-btn {
@@ -271,6 +377,12 @@
             font-weight: 600;
             cursor: pointer;
             flex: 1;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
         .error-message {
@@ -286,35 +398,130 @@
             margin-top: 5px;
             display: none;
         }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">←</a>
-                <div class="header-title">👤 Profile</div>
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    Profile
+                </div>
                 <div style="width: 20px;"></div> <!-- Spacer for alignment -->
             </header>
 
             <div class="profile-section">
                 <div class="profile-header">
-                    <div class="profile-avatar">👤</div>
+                    <div class="profile-avatar">
+                        <svg class="avatar-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                    </div>
                     <div class="profile-name" id="userName">Loading...</div>
                     <div class="profile-email" id="userEmail">Loading...</div>
                 </div>
 
                 <div class="info-grid">
                     <div class="info-item">
-                        <span class="info-label">Member Since</span>
+                        <span class="info-label">
+                            <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            Member Since
+                        </span>
                         <span class="info-value" id="memberSince">Loading...</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Username</span>
+                        <span class="info-label">
+                            <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                            </svg>
+                            Username
+                        </span>
                         <span class="info-value" id="userId" style="font-size: 12px;">Loading...</span>
                     </div>
                     <div class="info-item">
-                        <span class="info-label">Status</span>
+                        <span class="info-label">
+                            <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                            </svg>
+                            Status
+                        </span>
                         <span class="info-value" style="color: var(--success);">Verified</span>
                     </div>
                 </div>
@@ -330,37 +537,100 @@
                     </div>
                 </div>
 
-                <button class="edit-btn" onclick="openEditModal()">Edit Profile</button>
+                <button class="edit-btn" onclick="openEditModal()">
+                    <svg class="edit-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit Profile
+                </button>
             </div>
         </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
 
     <!-- Edit Profile Modal -->
     <div class="modal-overlay" id="editModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">Edit Profile</div>
-                <button class="close-btn" onclick="closeEditModal()">×</button>
+                <div class="modal-title">
+                    <svg class="modal-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit Profile
+                </div>
+                <button class="close-btn" onclick="closeEditModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
             </div>
-            
+
             <form id="editForm">
                 <div class="form-group">
-                    <label class="form-label">Username</label>
+                    <label class="form-label">
+                        <svg class="form-label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                        </svg>
+                        Username
+                    </label>
                     <input type="text" class="form-input" id="editUsername" required>
                     <div class="error-message" id="usernameError"></div>
                     <div class="success-message" id="usernameSuccess"></div>
                 </div>
-                
+
                 <div class="form-group">
-                    <label class="form-label">Email</label>
+                    <label class="form-label">
+                        <svg class="form-label-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                        Email
+                    </label>
                     <input type="email" class="form-input" id="editEmail" required>
                     <div class="error-message" id="emailError"></div>
                     <div class="success-message" id="emailSuccess"></div>
                 </div>
-                
+
                 <div class="modal-actions">
                     <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
-                    <button type="submit" class="save-btn" id="saveBtn">Save Changes</button>
+                    <button type="submit" class="save-btn" id="saveBtn">
+                        <svg class="save-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Save Changes
+                    </button>
                 </div>
             </form>
         </div>
@@ -377,6 +647,19 @@
 
         document.addEventListener('DOMContentLoaded', async function() {
             await loadUserProfile();
+
+            // Highlight current page in navigation
+            const currentPage = window.location.pathname.split('/').pop() || 'profile.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
         });
 
         async function loadUserProfile() {
@@ -427,14 +710,14 @@
 
         function openEditModal() {
             if (!currentProfile) return;
-            
+
             // Fill form with current data
             document.getElementById('editUsername').value = currentProfile.username || '';
             document.getElementById('editEmail').value = currentUser.email || '';
-            
+
             // Clear messages
             clearMessages();
-            
+
             // Show modal
             document.getElementById('editModal').style.display = 'flex';
         }
@@ -454,26 +737,26 @@
         // Handle form submission
         document.getElementById('editForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving...';
-            
+
             const newUsername = document.getElementById('editUsername').value.trim();
             const newEmail = document.getElementById('editEmail').value.trim();
-            
+
             clearMessages();
-            
+
             try {
                 let updatesMade = false;
-                
+
                 // Update username if changed
                 if (newUsername !== currentProfile.username) {
                     if (newUsername.length < 3) {
                         showError('usernameError', 'Username must be at least 3 characters');
                         return;
                     }
-                    
+
                     // Check if username is available
                     const { data: existingUser } = await supabaseClient
                         .from('profiles')
@@ -481,42 +764,42 @@
                         .eq('username', newUsername)
                         .neq('id', currentUser.id)
                         .single();
-                    
+
                     if (existingUser) {
                         showError('usernameError', 'Username already taken');
                         return;
                     }
-                    
+
                     // Update username in profiles table
                     const { error: profileError } = await supabaseClient
                         .from('profiles')
                         .update({ username: newUsername })
                         .eq('id', currentUser.id);
-                    
+
                     if (profileError) throw profileError;
-                    
+
                     showSuccess('usernameSuccess', 'Username updated successfully!');
                     updatesMade = true;
-                    
+
                     // Update current profile data
                     currentProfile.username = newUsername;
                 }
-                
+
                 // Update email if changed
                 if (newEmail !== currentUser.email) {
                     const { error: emailError } = await supabaseClient.auth.updateUser({
                         email: newEmail
                     });
-                    
+
                     if (emailError) {
                         showError('emailError', emailError.message);
                         return;
                     }
-                    
+
                     showSuccess('emailSuccess', 'Email update initiated - please check your email for confirmation');
                     updatesMade = true;
                 }
-                
+
                 if (updatesMade) {
                     // Reload profile data
                     setTimeout(() => {
@@ -527,13 +810,18 @@
                 } else {
                     closeEditModal();
                 }
-                
+
             } catch (error) {
                 console.error('Error updating profile:', error);
                 showError('usernameError', 'Failed to update profile');
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'Save Changes';
+                saveBtn.innerHTML = `
+                    <svg class="save-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Save Changes
+                `;
             }
         });
 
