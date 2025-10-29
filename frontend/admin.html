@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - NemexCoin</title>
+    <!-- Same CSS as before, but adding mock data functionality -->
+    <style>
+        /* All the same CSS styles from the previous admin panel */
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --danger: #ff4444;
+            --warning: #ffbb33;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            width: 100%;
+        }
+
+        /* ... (all the same CSS styles from before) ... */
+        
+        .demo-notice {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--gold);
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Demo Notice -->
+        <div class="demo-notice">
+            🔧 DEMO MODE - Using Mock Data. Connect to your backend when ready.
+        </div>
+
+        <!-- Rest of the admin panel HTML (same as before) -->
+        <header class="admin-header">
+            <div class="admin-title">
+                <svg class="admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Admin Panel
+            </div>
+            <div class="admin-actions">
+                <button class="admin-btn" onclick="refreshData()">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                    Refresh
+                </button>
+                <button class="admin-btn" onclick="toggleDataSource()" id="dataSourceBtn">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    </svg>
+                    Switch to Backend
+                </button>
+            </div>
+        </header>
+
+        <!-- Rest of the admin panel remains the same -->
+        <!-- ... -->
+    </div>
+
+    <script>
+        let useMockData = true;
+        let allUsers = [];
+        let currentTab = 'allUsers';
+        let currentFilter = '';
+
+        // Initialize admin panel
+        document.addEventListener('DOMContentLoaded', function() {
+            // Skip admin check in demo mode
+            loadUsersData();
+        });
+
+        // Toggle between mock data and real backend
+        function toggleDataSource() {
+            useMockData = !useMockData;
+            const btn = document.getElementById('dataSourceBtn');
+            btn.innerHTML = useMockData ? 
+                `<svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                </svg> Switch to Backend` :
+                `<svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg> Switch to Mock Data`;
+            
+            // Update demo notice
+            const notice = document.querySelector('.demo-notice');
+            notice.textContent = useMockData ? 
+                '🔧 DEMO MODE - Using Mock Data. Connect to your backend when ready.' :
+                '🔗 CONNECTED MODE - Using Real Backend Data';
+            
+            loadUsersData();
+        }
+
+        // Load users data - either from mock or real backend
+        async function loadUsersData() {
+            try {
+                showLoading();
+                
+                if (useMockData) {
+                    // Use mock data for demo
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate loading
+                    allUsers = generateMockUsers();
+                    updateStatistics(calculateMockStats());
+                    renderUsersTable();
+                } else {
+                    // Use real backend
+                    const response = await fetch('https://nemex-backend.onrender.com/api/admin/users', {
+                        headers: {
+                            'Authorization': 'Bearer ' + localStorage.getItem('adminToken'),
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        allUsers = data.users;
+                        updateStatistics(data.stats);
+                        renderUsersTable();
+                    } else {
+                        throw new Error('Failed to load users data');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showError('Failed to load users data. Please try again.');
+            }
+        }
+
+        // Generate mock users data for demo
+        function generateMockUsers() {
+            const names = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Alex Brown', 'Emma Davis', 'Chris Lee', 'Lisa Garcia'];
+            const domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+            
+            return Array.from({ length: 50 }, (_, i) => {
+                const name = names[Math.floor(Math.random() * names.length)];
+                const email = name.toLowerCase().replace(' ', '.') + Math.floor(Math.random() * 1000) + '@' + domains[Math.floor(Math.random() * domains.length)];
+                const hasReferral = Math.random() > 0.4; // 60% have referrals
+                
+                return {
+                    id: 'user_' + (i + 1),
+                    name: name,
+                    email: email,
+                    balance: Math.floor(Math.random() * 1000),
+                    joinedDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    hasReferral: hasReferral
+                };
+            });
+        }
+
+        // Calculate mock statistics
+        function calculateMockStats() {
+            return {
+                totalUsers: allUsers.length,
+                withReferrals: allUsers.filter(u => u.hasReferral).length,
+                withoutReferrals: allUsers.filter(u => !u.hasReferral).length,
+                totalNMX: allUsers.reduce((sum, user) => sum + user.balance, 0)
+            };
+        }
+
+        // The rest of your JavaScript functions remain the same...
+        // updateStatistics(), renderUsersTable(), switchTab(), filterUsers(), etc.
+        // (Copy all the previous JavaScript functions here)
+    </script>
+</body>
+</html>
