@@ -214,7 +214,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration
+        // Supabase configuration - PURE DATABASE, NO LOCALSTORAGE
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -230,27 +230,35 @@
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
             
+            console.log('Checking referral for:', referralUsername);
+            
             if (referralUsername) {
-                console.log('Checking referral for username:', referralUsername);
-                
-                // Check if referral username exists in database
-                const { data: referrerProfile, error } = await supabase
-                    .from('profiles')
-                    .select('id, username, email')
-                    .eq('username', referralUsername)
-                    .single();
+                try {
+                    // Check if referral username exists in database
+                    const { data: referrerProfile, error } = await supabase
+                        .from('profiles')
+                        .select('id, username, email')
+                        .eq('username', referralUsername)
+                        .single();
 
-                if (error || !referrerProfile) {
-                    console.log('Referrer not found:', referralUsername);
-                    showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
-                    return;
+                    console.log('Referral check result:', { referrerProfile, error });
+
+                    if (error || !referrerProfile) {
+                        console.log('Referrer not found in database');
+                        showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
+                        return;
+                    }
+
+                    // Valid referral found
+                    referrerId = referrerProfile.id;
+                    document.getElementById('referrerName').textContent = referrerProfile.username;
+                    document.getElementById('referralBanner').style.display = 'block';
+                    console.log('Valid referral found:', referrerProfile.username);
+                    
+                } catch (error) {
+                    console.error('Error checking referral:', error);
+                    showInvalidReferral(`Error checking referral. You can still register normally.`);
                 }
-
-                // Valid referral found
-                referrerId = referrerProfile.id;
-                document.getElementById('referrerName').textContent = referrerProfile.username;
-                document.getElementById('referralBanner').style.display = 'block';
-                console.log('Valid referral found:', referrerProfile.username);
             }
         }
 
@@ -335,9 +343,7 @@
                     referral_slots: 10,
                     used_slots: 0,
                     total_earned: 0,
-                    created_via: 'website',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
+                    created_via: 'website'
                 };
 
                 // Add referral data if applicable
