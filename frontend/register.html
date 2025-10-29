@@ -272,7 +272,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // Handle form submission - FIXED REFERRAL TRACKING
+        // Handle form submission - COMPLETELY REWRITTEN
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -296,7 +296,7 @@
                 }
 
                 // Check if username already exists
-                const { data: existingUsernames, error: usernameError } = await supabase
+                const { data: existingUsernames } = await supabase
                     .from('profiles')
                     .select('id')
                     .eq('username', username);
@@ -307,7 +307,7 @@
                 }
 
                 // Check if email already exists
-                const { data: existingEmails, error: emailError } = await supabase
+                const { data: existingEmails } = await supabase
                     .from('profiles')
                     .select('id')
                     .eq('email', email);
@@ -339,95 +339,83 @@
                 const user = authData.user;
                 console.log('✅ Auth user created:', user.id);
 
-                // ✅ FIXED: Create profile with PROPER referral tracking
+                // ✅ FIXED: Create profile using Supabase Client (NOT REST API)
                 const profileData = {
                     id: user.id,
                     email: email,
                     full_name: fullName,
-                    username: username,
+                    username: username, // ✅ THIS WAS MISSING!
                     balance: 0,
                     referral_slots: 10,
                     used_slots: 0,
-                    created_via: 'website',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
+                    created_via: 'website'
                 };
 
-                // ✅ FIXED: Ensure referred_by is ALWAYS properly set when referrer exists
+                // ✅ FIXED: Add referral data
                 if (referrerId) {
                     profileData.referred_by = referrerId;
                     console.log('✅ SETTING referred_by to:', referrerId);
-                } else {
-                    console.log('ℹ️ No referrer ID - normal registration');
                 }
 
                 console.log('📝 Creating profile with data:', profileData);
 
-                // Use REST API with service key to create profile
-                const profileResponse = await fetch(
-                    `${supabaseUrl}/rest/v1/profiles`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=minimal'
-                        },
-                        body: JSON.stringify(profileData)
-                    }
-                );
+                // ✅ FIXED: Use Supabase Client instead of REST API
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .insert([profileData])
+                    .select()
+                    .single();
 
-                console.log('📝 Profile creation response status:', profileResponse.status);
-
-                if (!profileResponse.ok) {
-                    const errorText = await profileResponse.text();
-                    console.error('❌ Profile creation failed:', errorText);
+                if (profileError) {
+                    console.error('❌ PROFILE CREATION FAILED:', profileError);
                     
-                    // If it's a duplicate key error, continue anyway
-                    if (profileResponse.status === 409) {
-                        console.log('⚠️ Profile might already exist, continuing...');
+                    // If it's a duplicate, try to update instead
+                    if (profileError.code === '23505') {
+                        console.log('🔄 Profile exists, updating instead...');
+                        const { data: updatedProfile, error: updateError } = await supabase
+                            .from('profiles')
+                            .update(profileData)
+                            .eq('id', user.id)
+                            .select()
+                            .single();
+                            
+                        if (updateError) {
+                            throw new Error(`Failed to update profile: ${updateError.message}`);
+                        }
+                        console.log('✅ Profile updated successfully');
                     } else {
-                        throw new Error(`Failed to create profile: ${profileResponse.status} ${errorText}`);
+                        throw new Error(`Failed to create profile: ${profileError.message}`);
                     }
                 } else {
-                    console.log('✅ Profile created successfully');
+                    console.log('✅ Profile created successfully:', profile);
                 }
 
-                // ✅ FIXED: Update referrer's used_slots if applicable
+                // ✅ FIXED: Update referrer's used_slots
                 if (referrerId) {
                     console.log('🔄 Updating referrer slots for:', referrerId);
                     
-                    try {
-                        // First get current used_slots value
-                        const { data: referrerData, error: getError } = await supabase
+                    const { data: referrerData } = await supabase
+                        .from('profiles')
+                        .select('used_slots')
+                        .eq('id', referrerId)
+                        .single();
+
+                    if (referrerData) {
+                        const newUsedSlots = (referrerData.used_slots || 0) + 1;
+                        console.log('📊 Updating used_slots to:', newUsedSlots);
+                        
+                        const { error: updateError } = await supabase
                             .from('profiles')
-                            .select('used_slots')
-                            .eq('id', referrerId)
-                            .single();
+                            .update({ 
+                                used_slots: newUsedSlots
+                            })
+                            .eq('id', referrerId);
 
-                        if (getError) {
-                            console.error('⚠️ Failed to get referrer data:', getError);
+                        if (updateError) {
+                            console.error('⚠️ Referral update failed:', updateError);
                         } else {
-                            // Update with new value using Supabase client
-                            const newUsedSlots = (referrerData.used_slots || 0) + 1;
-                            console.log('📊 Updating used_slots from', referrerData.used_slots, 'to', newUsedSlots);
-                            
-                            const { error: updateError } = await supabase
-                                .from('profiles')
-                                .update({ 
-                                    used_slots: newUsedSlots
-                                })
-                                .eq('id', referrerId);
-
-                            if (updateError) {
-                                console.error('⚠️ Referral update failed:', updateError);
-                            } else {
-                                console.log('✅ Referral slots updated successfully');
-                            }
+                            console.log('✅ Referral slots updated successfully');
                         }
-                    } catch (updateError) {
-                        console.error('⚠️ Error updating referral slots:', updateError);
                     }
                 }
 
