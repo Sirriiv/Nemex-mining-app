@@ -3,14 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- AGGRESSIVE CACHE CONTROL -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>Referrals - NemexCoin</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* Your existing CSS remains exactly the same */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -21,14 +15,15 @@
             --border-color: #333333;
             --success: #00C851;
             --error: #ff4444;
-            --warning: #ffbb33;
         }
+
         * { 
             margin: 0; 
             padding: 0; 
             box-sizing: border-box; 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
         }
+
         body { 
             background: var(--dark-bg); 
             color: var(--text); 
@@ -38,6 +33,7 @@
             padding: 0;
             margin: 0;
         }
+
         .container { 
             width: 100%; 
             max-width: 400px; 
@@ -46,6 +42,7 @@
             display: flex;
             flex-direction: column;
         }
+
         .header {
             display: flex;
             justify-content: space-between;
@@ -54,223 +51,182 @@
             border-bottom: 1px solid var(--border-color);
             background-color: var(--dark-bg);
         }
+
         .back-btn {
             font-size: 20px;
             color: var(--muted);
             cursor: pointer;
             text-decoration: none;
         }
+
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
         }
+
         .content-wrapper {
             padding: 20px;
             flex: 1;
-            overflow-y: auto;
         }
-        .referral-section {
-            background: var(--darker-bg);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid var(--border-color);
-        }
+
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
+            gap: 15px;
             margin-bottom: 25px;
         }
+
         .stat-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--darker-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 15px;
+            border-radius: 15px;
+            padding: 20px;
             text-align: center;
         }
-        .stat-number {
-            font-size: 20px;
+
+        .stat-value {
+            font-size: 24px;
             font-weight: 700;
             color: var(--gold);
             margin-bottom: 5px;
         }
+
         .stat-label {
-            font-size: 11px;
-            color: var(--muted);
-        }
-        .referral-card {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
-            border: 1px solid var(--gold);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        .referral-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: var(--gold);
-        }
-        .referral-desc {
-            color: var(--muted);
-            font-size: 14px;
-            margin-bottom: 20px;
-            line-height: 1.5;
-        }
-        .referral-link-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .referral-link {
-            flex: 1;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
             font-size: 12px;
             color: var(--muted);
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
+
+        .referral-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--gold);
+        }
+
+        .referral-link-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .link-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .link-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .link-input {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text);
+            font-size: 12px;
+        }
+
         .copy-btn {
             background: var(--gold);
             color: var(--darker-bg);
             border: none;
             border-radius: 8px;
-            padding: 12px 15px;
-            font-size: 12px;
+            padding: 10px 15px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            font-size: 12px;
         }
-        .copy-btn:hover {
-            background: #b8941f;
-        }
-        .share-buttons {
+
+        .social-share {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-bottom: 20px;
         }
+
         .share-btn {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 12px;
-            font-size: 12px;
-            font-weight: 600;
+            text-align: center;
             cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            font-size: 12px;
         }
-        .share-btn:hover {
-            background: rgba(212, 175, 55, 0.1);
-            border-color: var(--gold);
-        }
+
         .referrals-list {
-            margin-top: 25px;
+            margin-top: 20px;
         }
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: var(--gold);
+
+        .referral-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .refresh-btn {
-            background: none;
-            border: none;
-            color: var(--gold);
-            cursor: pointer;
-            font-size: 16px;
-        }
-        .referral-item {
-            display: flex;
-            align-items: center;
             padding: 15px;
             background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
             border-radius: 10px;
             margin-bottom: 10px;
-            border: 1px solid var(--border-color);
         }
-        .referral-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--gold), #b8941f);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            color: var(--darker-bg);
-            font-weight: 600;
-            font-size: 14px;
-        }
+
         .referral-info {
             flex: 1;
         }
+
         .referral-name {
             font-weight: 600;
-            margin-bottom: 3px;
-            font-size: 14px;
+            margin-bottom: 5px;
         }
-        .referral-details {
-            display: flex;
-            gap: 15px;
-            font-size: 11px;
+
+        .referral-email {
+            font-size: 12px;
             color: var(--muted);
         }
-        .referral-status {
-            padding: 4px 8px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 600;
+
+        .referral-actions {
+            display: flex;
+            gap: 10px;
         }
-        .status-active {
-            background: var(--success);
-            color: var(--darker-bg);
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 11px;
+            cursor: pointer;
         }
+
+        .action-btn.remove {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+            border-color: var(--error);
+        }
+
         .empty-state {
             text-align: center;
             padding: 40px 20px;
             color: var(--muted);
         }
+
         .empty-icon {
             font-size: 48px;
             margin-bottom: 15px;
-            opacity: 0.5;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: var(--gold);
-        }
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 14px;
-            text-align: center;
-            display: none;
-        }
-        .success-message {
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-        }
-        .error-message {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
         }
     </style>
 </head>
@@ -283,381 +239,223 @@
                 <div style="width: 20px;"></div>
             </header>
 
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalReferrals">0</div>
+                    <div class="stat-label">Total Referrals</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="availableSlots">10</div>
+                    <div class="stat-label">Available Slots</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="bonusEarned">0</div>
+                    <div class="stat-label">Bonus Earned</div>
+                </div>
+            </div>
+
             <div class="referral-section">
-                <!-- Stats Grid -->
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalReferrals">0</div>
-                        <div class="stat-label">Total Referrals</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="availableSlots">10</div>
-                        <div class="stat-label">Available Slots</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number" id="totalEarned">0</div>
-                        <div class="stat-label">Bonus Earned</div>
-                    </div>
+                <div class="section-title">Invite Friends & Earn</div>
+                <p style="color: var(--muted); margin-bottom: 20px; font-size: 14px;">
+                    Share your referral link and track your referrals!
+                </p>
+                
+                <div style="margin-bottom: 15px;">
+                    <div style="font-size: 12px; color: var(--muted); margin-bottom: 5px;">Your username:</div>
+                    <div style="font-weight: 600; color: var(--gold);" id="userName">Loading...</div>
                 </div>
 
-                <!-- Referral Sharing Card -->
-                <div class="referral-card">
-                    <div class="referral-title">Invite Friends & Earn</div>
-                    <div class="referral-desc">
-                        Share your referral link and track your referrals!<br>
-                        <small>Your username: <strong id="userUsername">Loading...</strong></small>
-                    </div>
-
-                    <div class="referral-link-container">
-                        <input type="text" class="referral-link" id="referralLink" readonly>
+                <div class="referral-link-box">
+                    <div class="link-label">Your Referral Link</div>
+                    <div class="link-input-group">
+                        <input type="text" class="link-input" id="referralLink" readonly>
                         <button class="copy-btn" onclick="copyReferralLink()">Copy</button>
                     </div>
-
-                    <div class="share-buttons">
-                        <button class="share-btn" onclick="shareWhatsApp()">
-                            📱 WhatsApp
-                        </button>
-                        <button class="share-btn" onclick="shareTelegram()">
-                            ✈️ Telegram
-                        </button>
-                        <button class="share-btn" onclick="shareTwitter()">
-                            🐦 Twitter
-                        </button>
-                        <button class="share-btn" onclick="shareEmail()">
-                            📧 Email
-                        </button>
-                    </div>
                 </div>
 
-                <!-- Messages -->
-                <div class="message success-message" id="successMessage"></div>
-                <div class="message error-message" id="errorMessage"></div>
+                <div class="social-share">
+                    <div class="share-btn" onclick="shareOnWhatsApp()">📱 WhatsApp</div>
+                    <div class="share-btn" onclick="shareOnTelegram()">✈️ Telegram</div>
+                    <div class="share-btn" onclick="shareOnTwitter()">🐦 Twitter</div>
+                    <div class="share-btn" onclick="shareViaEmail()">📧 Email</div>
+                </div>
+            </div>
 
-                <!-- Referrals List -->
-                <div class="referrals-list">
-                    <div class="section-title">
-                        Your Referrals
-                        <button class="refresh-btn" onclick="loadReferralData()">🔄</button>
-                    </div>
-
-                    <div id="referralsList">
-                        <div class="loading">Loading referrals...</div>
+            <div class="referral-section">
+                <div class="section-title">Your Referrals</div>
+                <div class="referrals-list" id="referralsList">
+                    <div class="empty-state">
+                        <div class="empty-icon">👥</div>
+                        <div>No referrals yet</div>
+                        <div style="font-size: 12px; margin-top: 5px;">Start sharing your link to earn rewards!</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
-        // ========== AGGRESSIVE CACHE BUSTING ==========
-        console.log('💥 FORCE LOADING FRESH VERSION - ' + new Date().toISOString());
-        console.log('🚨 CACHE BUSTING ACTIVATED');
-        
-        // Clear any cached user data
-        if (localStorage.getItem('current_user_data')) {
-            console.log('🧹 Clearing cached user data from localStorage');
-            localStorage.removeItem('current_user_data');
-        }
-        
-        if (localStorage.getItem('nemex_telegram_user')) {
-            console.log('🧹 Clearing cached Telegram data from localStorage');
-            localStorage.removeItem('nemex_telegram_user');
-        }
-
-        // Initialize Supabase
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Wait for DOM to load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing Referrals Page - FRESH VERSION');
-            initializePage();
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadReferralData();
         });
 
-        // ========== FIXED: Initialize page - NO LOCALSTORAGE ==========
-        async function initializePage() {
-            try {
-                console.log('🔍 Initializing referrals page - DATABASE ONLY...');
-
-                // Check if user is authenticated
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-                
-                if (sessionError) {
-                    console.error('❌ Session error:', sessionError);
-                    showError('Authentication error. Please login again.');
-                    setTimeout(() => window.location.href = 'login.html', 2000);
-                    return;
-                }
-
-                if (!session) {
-                    console.error('❌ No session found');
-                    showError('Please login first');
-                    setTimeout(() => window.location.href = 'login.html', 2000);
-                    return;
-                }
-
-                console.log('✅ User authenticated:', session.user.id);
-                
-                // Load fresh data directly from database
-                await loadReferralData();
-
-            } catch (error) {
-                console.error('❌ Page initialization failed:', error);
-                showError('Failed to load referrals. Please try again.');
-            }
-        }
-
-        // ========== FIXED: Load referral data from DATABASE ONLY ==========
         async function loadReferralData() {
             try {
-                console.log('🔄 Loading referral data from DATABASE...');
-
-                // Get current session
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) {
-                    throw new Error('No user session');
-                }
-
-                // Load user's profile data DIRECTLY from database
-                const { data: profile, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .select('id, username, referral_slots, used_slots, total_earned_from_refs, telegram_id')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (profileError) {
-                    console.error('❌ Error loading profile:', profileError);
-                    throw profileError;
-                }
-
-                console.log('📊 User profile loaded from DATABASE:', profile);
-                console.log('🎯 ACTUAL USERNAME FROM DATABASE:', profile.username);
-
-                // Update UI with FRESH data from database
-                document.getElementById('userUsername').textContent = profile.username || 'Not set';
-                document.getElementById('totalReferrals').textContent = profile.used_slots || 0;
-                document.getElementById('availableSlots').textContent = 10 - (profile.used_slots || 0);
-                document.getElementById('totalEarned').textContent = (profile.total_earned_from_refs || 0).toLocaleString();
-
-                // FIXED: Update referral link with ACTUAL username from DATABASE
-                updateReferralLink(profile.username);
-
-                // Load referrals from REFERRALS table
-                await loadReferralsFromTable(profile.id);
-
-            } catch (error) {
-                console.error('❌ Error loading referral data:', error);
-                showError('Failed to load referral data: ' + error.message);
-            }
-        }
-
-        // ========== FIXED: Update referral link with ACTUAL username from DATABASE ==========
-        function updateReferralLink(username) {
-            if (!username) {
-                console.error('❌ No username provided for referral link');
-                document.getElementById('referralLink').value = 'Please set a username first';
-                document.getElementById('userUsername').textContent = 'Not set';
-                return;
-            }
-            
-            console.log('🔗 Generating referral link with DATABASE username:', username);
-            
-            const link = `https://nemex-backend.onrender.com/register.html?ref=${encodeURIComponent(username)}`;
-            document.getElementById('referralLink').value = link;
-            document.getElementById('userUsername').textContent = username;
-            
-            console.log('✅ Referral link generated:', link);
-            console.log('🎉 SHOULD NOW SHOW: https://nemex-backend.onrender.com/register.html?ref=' + username);
-        }
-
-        // ========== FIXED: Load referrals from REFERRALS table ==========
-        async function loadReferralsFromTable(userId) {
-            try {
-                console.log('🔄 Loading referrals from referrals table for user:', userId);
-
-                const { data: referrals, error } = await supabaseClient
-                    .from('referrals')
-                    .select(`
-                        id,
-                        referred_id,
-                        referral_code_used,
-                        bonus_amount,
-                        bonus_claimed,
-                        created_at,
-                        profiles:referred_id (username, full_name, email, telegram_id)
-                    `)
-                    .eq('referrer_id', userId)
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error('❌ Error loading referrals:', error);
-                    displayEmptyReferrals();
+                    window.location.href = 'login.html';
                     return;
                 }
 
-                console.log('✅ Referrals loaded:', referrals);
+                const user = session.user;
 
-                if (referrals && referrals.length > 0) {
-                    displayReferralsList(referrals);
-                } else {
-                    displayEmptyReferrals();
+                // Get user profile for username
+                const { data: profile } = await supabaseClient
+                    .from('profiles')
+                    .select('username, referral_slots, used_slots')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    // Update username and stats
+                    document.getElementById('userName').textContent = profile.username;
+                    document.getElementById('totalReferrals').textContent = profile.used_slots || 0;
+                    document.getElementById('availableSlots').textContent = (profile.referral_slots || 10) - (profile.used_slots || 0);
+                    
+                    // Create referral link
+                    const referralLink = `https://nemex-backend.onrender.com/register.html?ref=${encodeURIComponent(profile.username)}`;
+                    document.getElementById('referralLink').value = referralLink;
                 }
 
+                // ✅ FIXED: Load referred users (people who registered using this user's referral)
+                await loadReferredUsers(user.id);
+
             } catch (error) {
-                console.error('❌ Error loading referrals from table:', error);
-                displayEmptyReferrals();
+                console.error('Error loading referral data:', error);
             }
         }
 
-        // Display referrals list
-        function displayReferralsList(referrals) {
-            const referralsList = document.getElementById('referralsList');
+        // ✅ FIXED: Function to load users who were referred by current user
+        async function loadReferredUsers(userId) {
+            try {
+                console.log('🔍 Loading referrals for user:', userId);
+                
+                // Get all users who have referred_by = current user's ID
+                const { data: referredUsers, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, full_name, created_at, balance')
+                    .eq('referred_by', userId)
+                    .order('created_at', { ascending: false });
 
-            const referralsHtml = referrals.map(ref => {
-                const referredUser = ref.profiles;
-                const initials = getInitials(referredUser?.username || referredUser?.full_name || 'Unknown');
-                const name = referredUser?.username || referredUser?.full_name || 'Unknown User';
-                const source = referredUser?.email ? 'Email' : (referredUser?.telegram_id ? 'Telegram' : 'Unknown');
+                console.log('🔍 Referred users query result:', { referredUsers, error });
 
-                return `
-                    <div class="referral-item">
-                        <div class="referral-avatar">${initials}</div>
+                if (error) {
+                    console.error('Error loading referred users:', error);
+                    return;
+                }
+
+                const referralsList = document.getElementById('referralsList');
+                
+                if (!referredUsers || referredUsers.length === 0) {
+                    // Show empty state
+                    referralsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">👥</div>
+                            <div>No referrals yet</div>
+                            <div style="font-size: 12px; margin-top: 5px;">Start sharing your link to earn rewards!</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Clear empty state and show referrals
+                referralsList.innerHTML = '';
+
+                referredUsers.forEach(user => {
+                    const referralItem = document.createElement('div');
+                    referralItem.className = 'referral-item';
+                    
+                    const joinDate = new Date(user.created_at).toLocaleDateString();
+                    const earned = user.balance || 0;
+                    
+                    referralItem.innerHTML = `
                         <div class="referral-info">
-                            <div class="referral-name">
-                                ${name}
-                                <span class="referral-status status-active">
-                                    ${ref.bonus_claimed ? 'CLAIMED' : 'ACTIVE'}
-                                </span>
-                            </div>
-                            <div class="referral-details">
-                                <div class="referral-date">
-                                    📅 ${new Date(ref.created_at).toLocaleDateString()}
-                                </div>
-                                <div class="referral-earned">
-                                    💰 ${ref.bonus_amount} NMX
-                                </div>
-                                <div class="referral-source">
-                                    👤 ${source}
-                                </div>
+                            <div class="referral-name">${user.full_name || user.username || 'User'}</div>
+                            <div class="referral-email">${user.email} • Joined ${joinDate}</div>
+                            <div style="font-size: 11px; color: var(--gold); margin-top: 5px;">
+                                Earned: ${earned} coins
                             </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
+                        <div class="referral-actions">
+                            <button class="action-btn" onclick="pingUser('${user.id}')">Ping</button>
+                            <button class="action-btn remove" onclick="removeReferral('${user.id}')">Remove</button>
+                        </div>
+                    `;
+                    
+                    referralsList.appendChild(referralItem);
+                });
 
-            referralsList.innerHTML = referralsHtml;
-        }
+                console.log('✅ Loaded', referredUsers.length, 'referrals');
 
-        function displayEmptyReferrals() {
-            const referralsList = document.getElementById('referralsList');
-            referralsList.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">👥</div>
-                    <div>No referrals yet</div>
-                    <div style="font-size: 12px; margin-top: 8px;">
-                        Share your referral link to start earning!
-                    </div>
-                </div>
-            `;
-        }
-
-        // Get initials for avatar
-        function getInitials(name) {
-            return name.split(' ')
-                .map(word => word.charAt(0))
-                .join('')
-                .toUpperCase()
-                .substring(0, 2);
-        }
-
-        // Copy referral link
-        async function copyReferralLink() {
-            const link = document.getElementById('referralLink').value;
-            
-            // Check if it's a valid link
-            if (link.includes('Please set a username first')) {
-                showError('Please set a username first to generate referral link');
-                return;
-            }
-            
-            try {
-                await navigator.clipboard.writeText(link);
-                showSuccess('Referral link copied! 📋');
             } catch (error) {
-                // Fallback
-                const tempInput = document.createElement('input');
-                tempInput.value = link;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-                showSuccess('Referral link copied! 📋');
+                console.error('Error in loadReferredUsers:', error);
             }
         }
 
-        // Share functions
-        function shareWhatsApp() {
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink');
+            referralLink.select();
+            referralLink.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            
+            const btn = document.querySelector('.copy-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+
+        function shareOnWhatsApp() {
             const link = document.getElementById('referralLink').value;
-            if (link.includes('Please set a username first')) {
-                showError('Please set a username first to generate referral link');
-                return;
-            }
-            const message = `Join me on NemexCoin! Use my referral: ${link}`;
-            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
+            const message = `Join NemexCoin using my referral link: ${link}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        function shareTelegram() {
+        function shareOnTelegram() {
             const link = document.getElementById('referralLink').value;
-            if (link.includes('Please set a username first')) {
-                showError('Please set a username first to generate referral link');
-                return;
-            }
-            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join NemexCoin! 🚀')}`;
-            window.open(shareUrl, '_blank');
+            const message = `Join NemexCoin using my referral link: ${link}`;
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        function shareTwitter() {
+        function shareOnTwitter() {
             const link = document.getElementById('referralLink').value;
-            if (link.includes('Please set a username first')) {
-                showError('Please set a username first to generate referral link');
-                return;
-            }
-            const message = `Join me on NemexCoin! 🚀 ${link}`;
-            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
+            const message = `Join NemexCoin and earn rewards! Use my referral link: ${link}`;
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`, '_blank');
         }
 
-        function shareEmail() {
+        function shareViaEmail() {
             const link = document.getElementById('referralLink').value;
-            if (link.includes('Please set a username first')) {
-                showError('Please set a username first to generate referral link');
-                return;
+            const subject = 'Join NemexCoin with my referral!';
+            const body = `Hey! I'm using NemexCoin and thought you might like it too. Use my referral link to join: ${link}`;
+            window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`, '_blank');
+        }
+
+        function pingUser(userId) {
+            alert('Ping feature coming soon! This will notify the user.');
+            // You can implement WebSocket or push notifications here
+        }
+
+        function removeReferral(userId) {
+            if (confirm('Are you sure you want to remove this referral? This action cannot be undone.')) {
+                alert('Remove feature coming soon! This will require admin approval.');
+                // You can implement referral removal logic here
             }
-            const subject = 'Join me on NemexCoin!';
-            const body = `Join me on NemexCoin! Use my referral: ${link}`;
-            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            window.location.href = url;
-        }
-
-        // Helper functions
-        function showError(message) {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-            setTimeout(() => errorElement.style.display = 'none', 5000);
-        }
-
-        function showSuccess(message) {
-            const successElement = document.getElementById('successMessage');
-            successElement.textContent = message;
-            successElement.style.display = 'block';
-            setTimeout(() => successElement.style.display = 'none', 5000);
         }
     </script>
 </body>
