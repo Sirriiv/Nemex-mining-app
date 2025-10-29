@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account - NemexCoin</title>
     <style>
+        /* Your existing CSS styles remain the same */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -214,7 +215,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration - PURE DATABASE, NO LOCALSTORAGE
+        // Supabase configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -222,12 +223,6 @@
         let referrerId = null;
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Clear any potential localStorage interference
-            if (typeof localStorage !== 'undefined') {
-                localStorage.removeItem('supabase.auth.token');
-                localStorage.removeItem('user');
-                localStorage.removeItem('currentUser');
-            }
             checkReferral();
         });
 
@@ -240,7 +235,7 @@
             
             if (referralUsername) {
                 try {
-                    // Check if referral username exists in database using Supabase client
+                    // Use Supabase client with proper RLS policies
                     const { data: referrerProfile, error } = await supabase
                         .from('profiles')
                         .select('id, username, email')
@@ -249,8 +244,18 @@
 
                     console.log('🔍 Referral query result:', { referrerProfile, error });
 
-                    if (error || !referrerProfile) {
-                        console.log('Referrer not found in database');
+                    if (error) {
+                        console.log('❌ Database error:', error.message);
+                        if (error.code === 'PGRST301' || error.message.includes('row-level security')) {
+                            showInvalidReferral(`Referral system configuration error. You can still register normally.`);
+                        } else {
+                            showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
+                        }
+                        return;
+                    }
+
+                    if (!referrerProfile) {
+                        console.log('❌ Referrer not found in database');
                         showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
                         return;
                     }
@@ -259,10 +264,11 @@
                     referrerId = referrerProfile.id;
                     document.getElementById('referrerName').textContent = referrerProfile.username;
                     document.getElementById('referralBanner').style.display = 'block';
+                    
                     console.log('✅ Valid referral found:', referrerProfile.username);
 
                 } catch (error) {
-                    console.error('Error checking referral:', error);
+                    console.error('❌ Error checking referral:', error);
                     showInvalidReferral(`Error checking referral. You can still register normally.`);
                 }
             }
@@ -338,9 +344,8 @@
                 }
 
                 const user = authData.user;
-                console.log('✅ Auth user created:', user.id);
 
-                // ✅ CRITICAL: Create profile in database
+                // Create profile in database
                 const profileData = {
                     id: user.id,
                     email: email,
@@ -349,7 +354,6 @@
                     balance: 0,
                     referral_slots: 10,
                     used_slots: 0,
-                    total_earned: 0,
                     created_via: 'website',
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
@@ -358,10 +362,8 @@
                 // Add referral data if applicable
                 if (referrerId) {
                     profileData.referred_by = referrerId;
-                    console.log('🔗 Adding referral from:', referrerId);
                 }
 
-                // Insert profile into database
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .insert([profileData])
@@ -416,27 +418,6 @@
             element.textContent = message;
             element.style.display = 'block';
         }
-
-        // Real-time username validation
-        document.getElementById('username').addEventListener('blur', async function() {
-            const username = this.value.trim();
-            if (username.length < 3) {
-                showError('usernameError', 'Username must be at least 3 characters');
-                return;
-            }
-
-            const { data: existingUser } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('username', username)
-                .single();
-
-            if (existingUser) {
-                showError('usernameError', 'Username already taken');
-            } else {
-                document.getElementById('usernameError').style.display = 'none';
-            }
-        });
     </script>
 </body>
 </html>
