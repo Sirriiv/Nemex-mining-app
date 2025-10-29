@@ -53,21 +53,37 @@
         }
 
         .back-btn {
-            font-size: 20px;
+            width: 24px;
+            height: 24px;
             color: var(--muted);
             cursor: pointer;
             text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
         }
 
         .header-title {
             font-size: 18px;
             font-weight: 700;
             color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
         }
 
         .content-wrapper {
             padding: 20px;
             flex: 1;
+            padding-bottom: 70px;
         }
 
         .security-section {
@@ -83,6 +99,14 @@
             align-items: center;
             padding: 15px 0;
             border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .security-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+            margin: 0 -10px;
+            padding: 15px 10px;
+            border-radius: 8px;
         }
 
         .security-item:last-child {
@@ -90,6 +114,20 @@
         }
 
         .security-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .security-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+            flex-shrink: 0;
+        }
+
+        .security-text {
             flex: 1;
         }
 
@@ -109,6 +147,10 @@
             font-weight: 600;
         }
 
+        .security-status.inactive {
+            color: var(--error);
+        }
+
         .security-btn {
             background: transparent;
             border: 1px solid var(--gold);
@@ -124,6 +166,7 @@
         .security-btn:hover {
             background: var(--gold);
             color: var(--darker-bg);
+            transform: translateY(-1px);
         }
 
         .security-warning {
@@ -135,6 +178,15 @@
             margin-top: 20px;
             font-size: 12px;
             text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .warning-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
         }
 
         .session-list {
@@ -150,6 +202,11 @@
             border-radius: 8px;
             margin-bottom: 10px;
             border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .session-item:hover {
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .session-info {
@@ -171,46 +228,142 @@
             font-size: 10px;
             font-weight: 600;
         }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">←</a>
-                <div class="header-title">🔒 Security</div>
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    Security
+                </div>
                 <div style="width: 20px;"></div>
             </header>
 
             <div class="security-section">
                 <div class="security-item">
                     <div class="security-info">
-                        <div class="security-title">Password</div>
-                        <div class="security-desc">Last changed: Recently</div>
+                        <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        <div class="security-text">
+                            <div class="security-title">Password</div>
+                            <div class="security-desc">Last changed: Recently</div>
+                        </div>
                     </div>
                     <button class="security-btn" onclick="changePassword()">Change</button>
                 </div>
 
                 <div class="security-item">
                     <div class="security-info">
-                        <div class="security-title">Two-Factor Authentication</div>
-                        <div class="security-desc">Add an extra layer of security</div>
+                        <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/>
+                        </svg>
+                        <div class="security-text">
+                            <div class="security-title">Two-Factor Authentication</div>
+                            <div class="security-desc">Add an extra layer of security</div>
+                        </div>
                     </div>
-                    <div class="security-status">Inactive</div>
+                    <div class="security-status inactive">Inactive</div>
                 </div>
 
                 <div class="security-item">
                     <div class="security-info">
-                        <div class="security-title">Login Sessions</div>
-                        <div class="security-desc">Manage your active sessions</div>
+                        <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <div class="security-text">
+                            <div class="security-title">Login Sessions</div>
+                            <div class="security-desc">Manage your active sessions</div>
+                        </div>
                     </div>
                     <button class="security-btn" onclick="viewSessions()">View</button>
                 </div>
 
                 <div class="security-item">
                     <div class="security-info">
-                        <div class="security-title">Account Recovery</div>
-                        <div class="security-desc">Set up recovery options</div>
+                        <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                        <div class="security-text">
+                            <div class="security-title">Account Recovery</div>
+                            <div class="security-desc">Set up recovery options</div>
+                        </div>
                     </div>
                     <button class="security-btn" onclick="setupRecovery()">Setup</button>
                 </div>
@@ -233,10 +386,47 @@
                 </div>
 
                 <div class="security-warning">
-                    ⚠️ For your security, never share your password or 2FA codes with anyone.
+                    <svg class="warning-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <span>For your security, never share your password or 2FA codes with anyone.</span>
                 </div>
             </div>
         </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
     </div>
 
     <script>
@@ -259,6 +449,21 @@
         function setupRecovery() {
             alert('Account recovery setup coming soon!');
         }
+
+        // Highlight current page in navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPage = window.location.pathname.split('/').pop() || 'security.html';
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        });
     </script>
 </body>
 </html>
