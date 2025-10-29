@@ -3,727 +3,411 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin - Register</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Create Account - NemexCoin</title>
     <style>
-        /* Your existing CSS remains exactly the same */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --error: #ff4444;
         }
 
-        body {
-            background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
-            color: #ffffff;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
             padding: 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        .register-container {
-            width: 100%;
-            max-width: 400px;
+        .header {
             text-align: center;
+            padding: 30px 0;
         }
 
         .logo {
-            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 10px;
         }
 
-        .logo h1 {
-            font-size: 32px;
-            font-weight: bold;
-            color: #FFD700;
-            margin-bottom: 8px;
-        }
-
-        .logo .subtitle {
-            color: #cccccc;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .register-card {
-            background: rgba(13, 13, 28, 0.95);
-            padding: 40px 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(255, 215, 0, 0.2);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-        }
-
-        .register-card h2 {
+        .title {
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 30px;
-            color: #ffffff;
+        }
+
+        .referral-banner {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .referral-text {
+            color: var(--gold);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .referral-name {
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .error-banner {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: var(--error);
         }
 
         .form-group {
             margin-bottom: 20px;
-            text-align: left;
         }
 
-        .input-field {
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .form-input {
             width: 100%;
-            padding: 16px 20px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #ffffff;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text);
             font-size: 16px;
-            transition: all 0.3s ease;
         }
 
-        .input-field:focus {
+        .form-input:focus {
             outline: none;
-            border-color: #FFD700;
-            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--gold);
         }
 
-        .input-field::placeholder {
-            color: #888888;
+        .password-hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 5px;
         }
 
         .register-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #FFD700, #b8941f);
-            color: #0f0f23;
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
+            padding: 15px;
+            border-radius: 25px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 20px;
-        }
-
-        .register-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
         }
 
         .register-btn:disabled {
-            background: #666666;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .divider {
-            position: relative;
-            margin: 25px 0;
-            color: #888888;
-            font-size: 14px;
-        }
-
-        .divider::before {
-            content: "";
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .divider span {
-            background: rgba(13, 13, 28, 0.95);
-            padding: 0 20px;
-        }
-
-        .social-btn {
-            width: 100%;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            color: #ffffff;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-        }
-
-        .social-btn:hover {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .social-btn:disabled {
-            opacity: 0.6;
+            background: var(--muted);
             cursor: not-allowed;
         }
 
-        .telegram-btn {
-            background: linear-gradient(135deg, #0088cc, #006699);
-            border: 1px solid rgba(0, 136, 204, 0.3);
-        }
-
-        .telegram-btn:hover {
-            background: linear-gradient(135deg, #0099e6, #0077b3);
-            border-color: rgba(0, 136, 204, 0.5);
-        }
-
-        .signin-link {
+        .login-link {
+            text-align: center;
             margin-top: 20px;
-            color: #cccccc;
-            font-size: 14px;
+            color: var(--muted);
         }
 
-        .signin-link a {
-            color: #FFD700;
+        .login-link a {
+            color: var(--gold);
             text-decoration: none;
-            font-weight: 600;
-        }
-
-        .signin-link a:hover {
-            text-decoration: underline;
         }
 
         .error-message {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid rgba(255, 68, 68, 0.3);
-            color: #ff4444;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 5px;
             display: none;
-        }
-
-        .success-message {
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid rgba(0, 200, 81, 0.3);
-            color: #00C851;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .loading {
-            color: #FFD700;
-            margin-top: 15px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .telegram-info {
-            background: rgba(0, 136, 204, 0.1);
-            border: 1px solid rgba(0, 136, 204, 0.3);
-            color: #0088cc;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            display: none;
-        }
-
-        .referral-banner {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .referral-banner h3 {
-            color: #FFD700;
-            margin-bottom: 8px;
-            font-size: 16px;
-        }
-
-        .referral-banner p {
-            color: #cccccc;
-            font-size: 14px;
-            margin: 0;
-        }
-
-        @media (max-width: 480px) {
-            .register-card {
-                padding: 30px 20px;
-            }
-
-            .register-container {
-                padding: 10px;
-            }
         }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <div class="logo">
-            <h1>NemexCoin</h1>
-            <div class="subtitle">Create Account</div>
+    <div class="container">
+        <div class="header">
+            <div class="logo">NemexCoin</div>
+            <div class="title">Create Account</div>
         </div>
 
-        <div class="register-card">
-            <h2 id="welcomeTitle">Create Your Account</h2>
+        <!-- Referral Banner -->
+        <div class="referral-banner" id="referralBanner" style="display: none;">
+            <div class="referral-text">Join NemexCoin - Referred by</div>
+            <div class="referral-name" id="referrerName"></div>
+        </div>
 
-            <!-- Referral Banner -->
-            <div class="referral-banner" id="referralBanner" style="display: none;">
-                <h3>🎉 You've been referred!</h3>
-                <p>Referral will be tracked for: <strong id="referrerName">Loading...</strong></p>
+        <!-- Invalid Referral Banner -->
+        <div class="error-banner" id="invalidReferralBanner" style="display: none;">
+            <strong>Invalid Referral</strong>
+            <div id="invalidReferralMessage"></div>
+        </div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-input" id="fullName" required>
             </div>
 
-            <!-- Telegram Info Message -->
-            <div class="telegram-info" id="telegramInfo">
-                📱 <strong>Telegram User Detected!</strong><br>
-                You can create an account with Telegram or use email/password.
+            <div class="form-group">
+                <label class="form-label">Username (for referrals)</label>
+                <input type="text" class="form-input" id="username" required>
+                <div class="password-hint">This will be your unique referral identifier</div>
+                <div class="error-message" id="usernameError"></div>
             </div>
 
-            <div class="error-message" id="errorMessage"></div>
-            <div class="success-message" id="successMessage"></div>
-
-            <form id="registerForm">
-                <div class="form-group">
-                    <input type="text" class="input-field" id="fullName" placeholder="Full Name" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="text" class="input-field" id="username" placeholder="Username (for referrals)" required>
-                    <small style="color: #888; font-size: 12px; margin-top: 5px; display: block;">
-                        This will be your unique referral identifier
-                    </small>
-                </div>
-
-                <div class="form-group">
-                    <input type="email" class="input-field" id="email" placeholder="Email Address" required>
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input-field" id="password" placeholder="Password" required minlength="6">
-                </div>
-
-                <div class="form-group">
-                    <input type="password" class="input-field" id="confirmPassword" placeholder="Confirm Password" required>
-                </div>
-
-                <button type="submit" class="register-btn" id="registerBtn">
-                    Create Account
-                </button>
-
-                <div class="loading" id="loading">
-                    🔄 Creating your account...
-                </div>
-            </form>
-
-            <div class="divider">
-                <span>OR CONTINUE WITH</span>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input" id="email" required>
+                <div class="error-message" id="emailError"></div>
             </div>
 
-            <!-- Telegram Registration Button -->
-            <button class="social-btn telegram-btn" id="telegramRegisterBtn">
-                <span>📱</span> Register with Telegram
-            </button>
-
-            <button class="social-btn" disabled>
-                <span>🔍</span> Continue with Google
-            </button>
-
-            <div class="signin-link">
-                Already have an account? <a href="login.html">Sign In</a>
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-input" id="password" required minlength="6">
+                <div class="password-hint">Must be at least 6 characters</div>
+                <div class="error-message" id="passwordError"></div>
             </div>
+
+            <button type="submit" class="register-btn" id="registerBtn">Create Account</button>
+        </form>
+
+        <div class="login-link">
+            Already have an account? <a href="login.html">Sign In</a>
         </div>
     </div>
 
-    <!-- Supabase CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
-        // Initialize Supabase
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-        let referrerUsername = null;
+
         let referrerId = null;
-        let referrerData = null;
 
-        // ========== FIXED: DATABASE-ONLY REFERRAL SYSTEM ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            checkReferral();
+        });
 
-        // Detect and validate referral from URL
-        async function detectReferral() {
+        // Check for referral parameter in URL
+        async function checkReferral() {
             const urlParams = new URLSearchParams(window.location.search);
-            referrerUsername = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('start');
-
-            if (referrerUsername) {
-                referrerUsername = referrerUsername.trim();
-                console.log('🎯 Referral detected from:', referrerUsername);
-
-                // Show banner immediately
-                const referralBanner = document.getElementById('referralBanner');
-                const referrerName = document.getElementById('referrerName');
-                referralBanner.style.display = 'block';
-                referrerName.textContent = referrerUsername;
-
-                // Update welcome message
-                const welcomeTitle = document.getElementById('welcomeTitle');
-                welcomeTitle.textContent = `Join NemexCoin - Referred by ${referrerUsername}`;
-
-                // Validate referrer exists - DATABASE ONLY
-                await validateReferrer();
-                return true;
-            }
-            return false;
-        }
-
-        // Validate referrer exists - DATABASE ONLY
-        async function validateReferrer() {
-            try {
-                console.log('🔍 Validating referrer in DATABASE:', referrerUsername);
+            const referralUsername = urlParams.get('ref');
+            
+            if (referralUsername) {
+                console.log('Checking referral for username:', referralUsername);
                 
-                // First try exact match
-                let { data: referrer, error } = await supabaseClient
+                // ✅ FIX: Properly check if referral username exists in profiles table
+                const { data: referrerProfile, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, full_name, referral_slots, used_slots')
-                    .eq('username', referrerUsername)
+                    .select('id, username, email')
+                    .eq('username', referralUsername)
                     .single();
 
-                // If exact match fails, try case-insensitive search
-                if (error || !referrer) {
-                    console.log('🔍 Trying case-insensitive search in DATABASE...');
-                    
-                    const { data: allUsers, error: searchError } = await supabaseClient
-                        .from('profiles')
-                        .select('id, username, full_name, referral_slots, used_slots');
-
-                    if (searchError) {
-                        console.error('❌ Error searching users:', searchError);
-                        showInvalidReferral();
-                        return;
-                    }
-
-                    const foundReferrer = allUsers.find(user => 
-                        user.username && user.username.toLowerCase() === referrerUsername.toLowerCase()
-                    );
-
-                    if (!foundReferrer) {
-                        console.log('❌ Referrer not found in database');
-                        showInvalidReferral();
-                        return;
-                    }
-
-                    console.log('✅ Referrer found (case-insensitive):', foundReferrer);
-                    referrer = foundReferrer;
-                    referrerUsername = foundReferrer.username; // Use the correct case
-                } else {
-                    console.log('✅ Referrer found (exact match):', referrer);
+                if (error || !referrerProfile) {
+                    console.error('Referrer not found:', error);
+                    showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
+                    return;
                 }
 
-                // Store referrer data
-                referrerData = referrer;
-                referrerId = referrer.id;
-
-                // Update banner with correct username
-                document.getElementById('referrerName').textContent = referrer.username;
-
-                // Check if referrer has available slots
-                const availableSlots = (referrer.referral_slots || 10) - (referrer.used_slots || 0);
-                if (availableSlots <= 0) {
-                    console.log('❌ Referrer has no available slots');
-                    document.getElementById('referralBanner').innerHTML = `
-                        <h3>⚠️ Referral Limit Reached</h3>
-                        <p>${referrer.username} has no available referral slots. You can still register normally.</p>
-                    `;
-                    referrerUsername = null;
-                    referrerId = null;
-                    referrerData = null;
-                } else {
-                    console.log(`✅ Referrer has ${availableSlots} available slots`);
-                }
-
-            } catch (error) {
-                console.error('❌ Error validating referrer:', error);
-                showInvalidReferral();
+                // Valid referral found
+                referrerId = referrerProfile.id;
+                document.getElementById('referrerName').textContent = referrerProfile.username;
+                document.getElementById('referralBanner').style.display = 'block';
+                
+                console.log('Valid referral found:', referrerProfile.username, 'ID:', referrerId);
             }
         }
 
-        function showInvalidReferral() {
-            document.getElementById('referralBanner').innerHTML = `
-                <h3>⚠️ Invalid Referral</h3>
-                <p>Referrer "${referrerUsername}" not found. You can still register normally.</p>
-            `;
-            referrerUsername = null;
-            referrerId = null;
-            referrerData = null;
+        function showInvalidReferral(message) {
+            document.getElementById('invalidReferralMessage').textContent = message;
+            document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // ========== FIXED: REFERRAL CREATION - DATABASE ONLY ==========
-        async function createReferralRecord(newUserId, newUserUsername) {
+        // Handle form submission
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const registerBtn = document.getElementById('registerBtn');
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Creating Account...';
+            
+            const fullName = document.getElementById('fullName').value.trim();
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Clear previous errors
+            clearErrors();
+            
             try {
-                if (!referrerId || !referrerData) {
-                    console.log('❌ No valid referrer found');
-                    return { success: false, error: 'No valid referrer' };
-                }
-
-                console.log('🚀 Creating complete referral record...');
-                console.log('👤 New User ID:', newUserId);
-                console.log('🎯 Referrer:', referrerData.username, referrerData.id);
-
-                const BONUS_AMOUNT = 30;
-
-                // 1. Create the referral record
-                const referralData = {
-                    referrer_id: referrerId,
-                    referred_id: newUserId,
-                    referral_code_used: referrerData.username,
-                    bonus_amount: BONUS_AMOUNT,
-                    bonus_claimed: false,
-                    created_at: new Date().toISOString()
-                };
-
-                console.log('📦 Inserting referral data:', referralData);
-
-                const { data: referral, error: referralError } = await supabaseClient
-                    .from('referrals')
-                    .insert([referralData])
-                    .select()
+                // Validate username availability
+                const { data: existingUsername } = await supabaseClient
+                    .from('profiles')
+                    .select('id')
+                    .eq('username', username)
                     .single();
 
-                if (referralError) {
-                    console.error('❌ Error creating referral:', referralError);
-                    return { success: false, error: referralError.message };
+                if (existingUsername) {
+                    showError('usernameError', 'Username already taken');
+                    return;
                 }
 
-                console.log('✅ Referral record created:', referral);
-
-                // 2. Update referrer's stats and balance
-                const { error: updateError } = await supabaseClient
+                // Validate email availability
+                const { data: existingEmail } = await supabaseClient
                     .from('profiles')
-                    .update({
-                        used_slots: supabaseClient.raw('COALESCE(used_slots, 0) + 1'),
-                        total_earned_from_refs: supabaseClient.raw(`COALESCE(total_earned_from_refs, 0) + ${BONUS_AMOUNT}`),
-                        balance: supabaseClient.raw(`COALESCE(balance, 0) + ${BONUS_AMOUNT}`)
-                    })
-                    .eq('id', referrerId);
-
-                if (updateError) {
-                    console.error('❌ Error updating referrer stats:', updateError);
-                    // Don't fail the whole process if this fails
-                } else {
-                    console.log('✅ Referrer stats updated successfully');
-                }
-
-                return { success: true, referral: referral, bonus: BONUS_AMOUNT };
-
-            } catch (error) {
-                console.error('❌ Error in createReferralRecord:', error);
-                return { success: false, error: error.message };
-            }
-        }
-
-        // Generate username
-        function generateUsername(fullName) {
-            let username = fullName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '').substring(0, 15);
-            if (username.length < 3) username += Math.floor(1000 + Math.random() * 9000);
-            return username;
-        }
-
-        // Check username availability - DATABASE ONLY
-        async function checkUsernameAvailability(username) {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('profiles')
-                    .select('username')
-                    .eq('username', username.toLowerCase())
+                    .select('id')
+                    .eq('email', email)
                     .single();
 
-                if (error && error.code === 'PGRST116') return { available: true };
-                if (data) return { available: false, error: 'Username taken' };
-                return { available: true };
-            } catch (error) {
-                return { available: false, error: 'Error checking username' };
-            }
-        }
-
-        // ========== FIXED: REGISTRATION - DATABASE ONLY ==========
-        async function registerUser(email, password, fullName, username) {
-            try {
-                console.log('📝 Starting registration...');
-
-                // Check username
-                const usernameCheck = await checkUsernameAvailability(username);
-                if (!usernameCheck.available) throw new Error(usernameCheck.error);
+                if (existingEmail) {
+                    showError('emailError', 'Email already registered');
+                    return;
+                }
 
                 // Create auth user
                 const { data: authData, error: authError } = await supabaseClient.auth.signUp({
                     email: email,
                     password: password,
-                    options: { data: { full_name: fullName, username: username } }
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            username: username
+                        }
+                    }
                 });
 
                 if (authError) {
-                    // If user already exists, try to sign in instead
-                    if (authError.message.includes('already registered')) {
-                        throw new Error('Email already registered. Please sign in instead.');
-                    }
-                    throw authError;
+                    showError('emailError', authError.message);
+                    return;
                 }
-                
-                if (!authData.user) throw new Error('No user data returned');
 
-                console.log('✅ Auth user created:', authData.user.id);
+                const user = authData.user;
 
-                // Create profile - DATABASE ONLY
+                // ✅ FIX: Create profile with referral data
                 const profileData = {
-                    id: authData.user.id,
+                    id: user.id,
                     email: email,
-                    username: username,
                     full_name: fullName,
+                    username: username,
                     balance: 0,
-                    last_claim: null,
                     referral_slots: 10,
                     used_slots: 0,
-                    total_earned_from_refs: 0
+                    total_earned: 0,
+                    created_via: 'website'
                 };
 
-                try {
-                    const { data: profile, error: profileError } = await supabaseClient
+                // Add referral data if applicable
+                if (referrerId) {
+                    profileData.referred_by = referrerId;
+                }
+
+                const { error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .insert([profileData]);
+
+                if (profileError) {
+                    console.error('Profile creation error:', profileError);
+                    // If profile creation fails, delete the auth user
+                    await supabaseClient.auth.admin.deleteUser(user.id);
+                    showError('emailError', 'Failed to create profile. Please try again.');
+                    return;
+                }
+
+                // ✅ FIX: Update referrer's used_slots if applicable
+                if (referrerId) {
+                    const { error: referralError } = await supabaseClient
                         .from('profiles')
-                        .insert([profileData])
-                        .select()
-                        .single();
+                        .update({ 
+                            used_slots: supabaseClient.sql`used_slots + 1`
+                        })
+                        .eq('id', referrerId);
 
-                    if (profileError) {
-                        // If profile already exists, try to update it instead
-                        if (profileError.code === '23505') { // duplicate key
-                            console.log('⚠️ Profile already exists, updating...');
-                            
-                            const { data: updatedProfile, error: updateError } = await supabaseClient
-                                .from('profiles')
-                                .update({
-                                    email: email,
-                                    username: username,
-                                    full_name: fullName
-                                })
-                                .eq('id', authData.user.id)
-                                .select()
-                                .single();
-
-                            if (updateError) throw updateError;
-                            console.log('✅ Profile updated:', updatedProfile);
-                        } else {
-                            throw profileError;
-                        }
-                    } else {
-                        console.log('✅ Profile created:', profile);
+                    if (referralError) {
+                        console.error('Referral update error:', referralError);
                     }
-                } catch (profileError) {
-                    console.error('❌ Profile creation/update failed:', profileError);
-                    // Continue anyway - the user can update their profile later
                 }
 
-                // Create referral record if we have a valid referrer
-                if (referrerId && referrerData) {
-                    console.log('🎁 Creating referral record and awarding bonus...');
-                    const referralResult = await createReferralRecord(authData.user.id, username);
-
-                    if (referralResult.success) {
-                        console.log('🎉 REFERRAL SUCCESS!');
-                        showSuccess(`Account created! 🎉 +30 NMX bonus awarded to ${referrerData.username}!`);
-                    } else {
-                        console.log('⚠️ Referral failed:', referralResult.error);
-                        showSuccess('Account created successfully! (Referral tracking failed)');
-                    }
-                } else {
-                    showSuccess('Account created successfully! 🚀');
-                }
-
-                return authData;
+                // Success
+                alert('Account created successfully! Please check your email for verification.');
+                window.location.href = 'login.html';
 
             } catch (error) {
-                console.error('❌ Registration failed:', error);
-                throw error;
+                console.error('Registration error:', error);
+                showError('emailError', 'Registration failed. Please try again.');
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Create Account';
             }
-        }
-
-        // ========== INITIALIZATION ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            detectReferral();
-
-            // Form submission
-            document.getElementById('registerForm').addEventListener('submit', async function(e) {
-                e.preventDefault();
-
-                const fullName = document.getElementById('fullName').value;
-                const username = document.getElementById('username').value;
-                const email = document.getElementById('email').value;
-                const password = document.getElementById('password').value;
-                const confirmPassword = document.getElementById('confirmPassword').value;
-                const registerBtn = document.getElementById('registerBtn');
-                const loading = document.getElementById('loading');
-
-                // Basic validation
-                if (password !== confirmPassword) {
-                    showError('Passwords do not match');
-                    return;
-                }
-
-                if (password.length < 6) {
-                    showError('Password must be at least 6 characters');
-                    return;
-                }
-
-                registerBtn.disabled = true;
-                loading.style.display = 'block';
-                hideMessages();
-
-                try {
-                    await registerUser(email, password, fullName, username);
-                    document.getElementById('registerForm').reset();
-                    setTimeout(() => window.location.href = 'login.html', 3000);
-                } catch (error) {
-                    showError('Registration failed: ' + error.message);
-                } finally {
-                    registerBtn.disabled = false;
-                    loading.style.display = 'none';
-                }
-            });
-
-            // Auto-generate username
-            document.getElementById('fullName').addEventListener('input', function() {
-                const fullName = this.value;
-                const usernameField = document.getElementById('username');
-                if (fullName && (!usernameField.value)) {
-                    usernameField.value = generateUsername(fullName);
-                }
-            });
-
-            // Telegram registration button
-            document.getElementById('telegramRegisterBtn').addEventListener('click', function() {
-                showError('Telegram registration coming soon! Use email for now.');
-            });
         });
 
-        // Helper functions
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('errorMessage').style.display = 'block';
+        function clearErrors() {
+            document.getElementById('usernameError').style.display = 'none';
+            document.getElementById('emailError').style.display = 'none';
+            document.getElementById('passwordError').style.display = 'none';
         }
 
-        function showSuccess(message) {
-            document.getElementById('successMessage').textContent = message;
-            document.getElementById('successMessage').style.display = 'block';
+        function showError(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
         }
 
-        function hideMessages() {
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
-        }
+        // Real-time username validation
+        document.getElementById('username').addEventListener('blur', async function() {
+            const username = this.value.trim();
+            if (username.length < 3) {
+                showError('usernameError', 'Username must be at least 3 characters');
+                return;
+            }
+
+            const { data: existingUser } = await supabaseClient
+                .from('profiles')
+                .select('id')
+                .eq('username', username)
+                .single();
+
+            if (existingUser) {
+                showError('usernameError', 'Username already taken');
+            } else {
+                document.getElementById('usernameError').style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
