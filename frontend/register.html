@@ -272,7 +272,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // Handle form submission - COMPLETELY FIXED VERSION
+        // Handle form submission - FIXED DUPLICATE KEY ISSUE
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -340,53 +340,69 @@
                 const user = authData.user;
                 console.log('✅ Auth user created:', user.id);
 
-                // Create profile in database using REST API
-                const profileData = {
-                    id: user.id,
-                    email: email,
-                    full_name: fullName,
-                    username: username,
-                    balance: 0,
-                    referral_slots: 10,
-                    used_slots: 0,
-                    created_via: 'website',
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                };
+                // ✅ FIX: Check if profile already exists before creating
+                const { data: existingProfile, error: profileCheckError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('id', user.id)
+                    .single();
 
-                // ✅ FIXED: Correct spelling - "referred_by" not "rederred_by"
-                // Add referral data if applicable
-                if (referrerId) {
-                    profileData.referred_by = referrerId;  // ✅ CORRECT SPELLING
-                    console.log('🔗 Adding referral from:', referrerId);
-                }
+                if (existingProfile) {
+                    console.log('⚠️ Profile already exists, proceeding...');
+                    // Profile already exists, continue with the process
+                } else {
+                    // Create profile in database using REST API
+                    const profileData = {
+                        id: user.id,
+                        email: email,
+                        full_name: fullName,
+                        username: username,
+                        balance: 0,
+                        referral_slots: 10,
+                        used_slots: 0,
+                        created_via: 'website',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
 
-                console.log('📝 Creating profile with data:', profileData);
-
-                // Use REST API with service key to create profile
-                const profileResponse = await fetch(
-                    `${supabaseUrl}/rest/v1/profiles`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'apikey': supabaseKey,
-                            'Authorization': `Bearer ${supabaseKey}`,
-                            'Content-Type': 'application/json',
-                            'Prefer': 'return=minimal'
-                        },
-                        body: JSON.stringify(profileData)
+                    // Add referral data if applicable
+                    if (referrerId) {
+                        profileData.referred_by = referrerId;
+                        console.log('🔗 Adding referral from:', referrerId);
                     }
-                );
 
-                console.log('📝 Profile creation response status:', profileResponse.status);
+                    console.log('📝 Creating profile with data:', profileData);
 
-                if (!profileResponse.ok) {
-                    const errorText = await profileResponse.text();
-                    console.error('❌ Profile creation failed:', errorText);
-                    throw new Error(`Failed to create profile: ${profileResponse.status} ${errorText}`);
+                    // Use REST API with service key to create profile
+                    const profileResponse = await fetch(
+                        `${supabaseUrl}/rest/v1/profiles`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'apikey': supabaseKey,
+                                'Authorization': `Bearer ${supabaseKey}`,
+                                'Content-Type': 'application/json',
+                                'Prefer': 'return=minimal'
+                            },
+                            body: JSON.stringify(profileData)
+                        }
+                    );
+
+                    console.log('📝 Profile creation response status:', profileResponse.status);
+
+                    if (!profileResponse.ok) {
+                        // If it's a duplicate key error, continue anyway (profile might exist)
+                        if (profileResponse.status === 409) {
+                            console.log('⚠️ Profile might already exist, continuing...');
+                        } else {
+                            const errorText = await profileResponse.text();
+                            console.error('❌ Profile creation failed:', errorText);
+                            throw new Error(`Failed to create profile: ${profileResponse.status} ${errorText}`);
+                        }
+                    } else {
+                        console.log('✅ Profile created successfully');
+                    }
                 }
-
-                console.log('✅ Profile created successfully');
 
                 // Update referrer's used_slots using Supabase client
                 if (referrerId) {
@@ -416,14 +432,12 @@
 
                             if (updateError) {
                                 console.error('⚠️ Referral update failed:', updateError);
-                                // Don't throw error - user was created successfully
                             } else {
                                 console.log('✅ Referral slots updated successfully');
                             }
                         }
                     } catch (updateError) {
                         console.error('⚠️ Error updating referral slots:', updateError);
-                        // Don't throw error - user was created successfully
                     }
                 }
 
