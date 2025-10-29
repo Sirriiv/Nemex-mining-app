@@ -317,22 +317,55 @@
                 // Get user profile for username
                 const { data: profile } = await supabaseClient
                     .from('profiles')
-                    .select('username, referral_slots, used_slots')
+                    .select('username, referral_slots, used_slots, total_earned_from_refs')
                     .eq('id', user.id)
                     .single();
 
                 if (profile) {
-                    // Update username and stats
+                    // ✅ REAL-TIME CALCULATION: Count actual referrals in database
+                    const { data: referredUsers, error: countError } = await supabaseClient
+                        .from('profiles')
+                        .select('id')
+                        .eq('referred_by', user.id);
+
+                    const actualReferrals = referredUsers ? referredUsers.length : 0;
+                    const availableSlots = (profile.referral_slots || 10) - actualReferrals;
+                    
+                    console.log('📊 Real-time stats:', {
+                        actualReferrals,
+                        availableSlots,
+                        storedUsedSlots: profile.used_slots
+                    });
+
+                    // Update stats with REAL-TIME data
                     document.getElementById('userName').textContent = profile.username;
-                    document.getElementById('totalReferrals').textContent = profile.used_slots || 0;
-                    document.getElementById('availableSlots').textContent = (profile.referral_slots || 10) - (profile.used_slots || 0);
+                    document.getElementById('totalReferrals').textContent = actualReferrals;
+                    document.getElementById('availableSlots').textContent = availableSlots > 0 ? availableSlots : 0;
+                    document.getElementById('bonusEarned').textContent = profile.total_earned_from_refs || 0;
                     
                     // Create referral link
                     const referralLink = `https://nemex-backend.onrender.com/register.html?ref=${encodeURIComponent(profile.username)}`;
                     document.getElementById('referralLink').value = referralLink;
+
+                    // ✅ OPTIONAL: Sync used_slots with actual count if they're different
+                    if (profile.used_slots !== actualReferrals) {
+                        console.log('🔄 Syncing used_slots with actual count...');
+                        const { error: syncError } = await supabaseClient
+                            .from('profiles')
+                            .update({ 
+                                used_slots: actualReferrals 
+                            })
+                            .eq('id', user.id);
+                        
+                        if (syncError) {
+                            console.error('⚠️ Failed to sync used_slots:', syncError);
+                        } else {
+                            console.log('✅ used_slots synced successfully');
+                        }
+                    }
                 }
 
-                // ✅ FIXED: Load referred users (people who registered using this user's referral)
+                // Load the actual referred users
                 await loadReferredUsers(user.id);
 
             } catch (error) {
@@ -340,7 +373,7 @@
             }
         }
 
-        // ✅ FIXED: Function to load users who were referred by current user
+        // Function to load users who were referred by current user
         async function loadReferredUsers(userId) {
             try {
                 console.log('🔍 Loading referrals for user:', userId);
