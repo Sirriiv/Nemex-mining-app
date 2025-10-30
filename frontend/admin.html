@@ -16,7 +16,6 @@
             --success: #00C851;
             --danger: #ff4444;
             --warning: #ffbb33;
-            --vip: #9b59b6;
         }
 
         * { 
@@ -114,38 +113,6 @@
             height: 18px;
         }
 
-        /* Maintenance Button */
-        .maintenance-btn {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .maintenance-btn:hover {
-            background: var(--danger);
-            color: var(--dark-bg);
-            transform: translateY(-2px);
-        }
-
-        .maintenance-btn.active {
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-        }
-
-        .maintenance-btn.active:hover {
-            background: var(--success);
-            color: var(--dark-bg);
-        }
-
         /* Mini Navigation */
         .mini-nav {
             display: flex;
@@ -235,95 +202,35 @@
             color: var(--danger);
         }
 
-        /* Section Styles */
-        .section-content {
-            display: block;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .section-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .section-icon {
-            width: 24px;
-            height: 24px;
-        }
-
-        /* Purchase Tracking Styles */
-        .purchases-section {
+        /* Referral Tree Styles */
+        .referral-tree-container {
             background: var(--darker-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 25px;
+            max-height: 600px;
+            overflow-y: auto;
         }
 
-        .purchases-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .purchases-controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .filter-select {
-            background: var(--dark-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .purchases-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .purchases-table th {
+        .tree-node {
+            margin: 15px 0;
+            padding: 15px;
             background: rgba(255, 255, 255, 0.05);
-            padding: 12px 15px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--gold);
-            border-bottom: 2px solid var(--border-color);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
-        .purchases-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .purchases-table tr:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .user-cell {
+        .node-main {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            margin-bottom: 10px;
         }
 
-        .user-avatar-small {
-            width: 32px;
-            height: 32px;
+        .node-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: var(--gold);
             display: flex;
@@ -331,52 +238,94 @@
             justify-content: center;
             font-weight: 700;
             color: var(--dark-bg);
-            font-size: 14px;
+            font-size: 16px;
         }
 
-        .vip-badge {
-            background: rgba(155, 89, 182, 0.2);
-            color: var(--vip);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
+        .node-info {
+            flex: 1;
         }
 
-        .amount-cell {
-            font-weight: 700;
-            color: var(--gold);
-        }
-
-        .bonus-cell {
-            color: var(--success);
+        .node-name {
             font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
         }
 
-        .price-cell {
-            font-weight: 600;
-        }
-
-        .method-cell {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .method-card { background: rgba(212, 175, 55, 0.1); color: var(--gold); }
-        .method-paypal { background: rgba(0, 87, 184, 0.1); color: #0057b8; }
-        .method-crypto { background: rgba(247, 147, 26, 0.1); color: #f7931a; }
-        .method-bank { background: rgba(0, 200, 81, 0.1); color: var(--success); }
-
-        .date-cell {
+        .node-email {
             color: var(--muted);
             font-size: 12px;
         }
 
-        /* Users Grid */
+        .node-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+        }
+
+        .node-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .node-stat-value {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .children-container {
+            margin-left: 40px;
+            border-left: 2px solid var(--border-color);
+            padding-left: 20px;
+        }
+
+        .child-node {
+            margin: 10px 0;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .no-referrals {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        /* Users Without Referrers Section */
+        .no-referrers-section {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            width: 24px;
+            height: 24px;
+        }
+
         .users-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -384,11 +333,12 @@
         }
 
         .user-card {
-            background: var(--darker-bg);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 20px;
             transition: all 0.3s ease;
+            cursor: pointer;
         }
 
         .user-card:hover {
@@ -399,7 +349,7 @@
         .user-card-header {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
             margin-bottom: 15px;
         }
 
@@ -421,7 +371,8 @@
         }
 
         .user-name {
-            font-weight: 700;
+            font-weight: 600;
+            font-size: 16px;
             margin-bottom: 4px;
         }
 
@@ -481,6 +432,28 @@
             color: var(--warning);
         }
 
+        .status-no-referrer {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .view-details-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-details-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
         /* Loading State */
         .loading {
             text-align: center;
@@ -508,24 +481,27 @@
             .admin-container {
                 padding: 15px;
             }
-
+            
             .admin-header {
                 flex-direction: column;
                 gap: 15px;
                 text-align: center;
             }
-
+            
             .stats-grid {
                 grid-template-columns: 1fr;
             }
-
-            .purchases-table {
-                display: block;
-                overflow-x: auto;
-            }
-
+            
             .users-grid {
                 grid-template-columns: 1fr;
+            }
+            
+            .children-container {
+                margin-left: 20px;
+            }
+            
+            .mini-nav {
+                overflow-x: auto;
             }
         }
     </style>
@@ -548,12 +524,6 @@
                 </div>
             </div>
             <div class="admin-actions">
-                <button class="maintenance-btn" id="maintenanceToggle" onclick="toggleMaintenanceMode()">
-                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                    </svg>
-                    <span id="maintenanceText">Enable Maintenance</span>
-                </button>
                 <button class="admin-btn" onclick="refreshData()">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -571,11 +541,17 @@
                 </svg>
                 Overview
             </button>
-            <button class="mini-nav-btn" onclick="showSection('purchases')">
+            <button class="mini-nav-btn" onclick="showSection('referralTree')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                 </svg>
-                NMXp Purchases
+                Complete Referral Tree
+            </button>
+            <button class="mini-nav-btn" onclick="showSection('noReferrers')">
+                <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                Users Without Referrers
             </button>
             <button class="mini-nav-btn" onclick="showSection('allUsers')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -595,72 +571,65 @@
                     <div class="stat-trend trend-up" id="usersTrend">Loading...</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="totalRevenue">$0</div>
-                    <div class="stat-label">Total Revenue</div>
-                    <div class="stat-trend trend-up" id="revenueTrend">Loading...</div>
+                    <div class="stat-number" id="usersWithReferrals">0</div>
+                    <div class="stat-label">Users with Referrals</div>
+                    <div class="stat-trend trend-up" id="referralsTrend">Loading...</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="totalPurchases">0</div>
-                    <div class="stat-label">Total Purchases</div>
-                    <div class="stat-trend trend-up" id="purchasesTrend">Loading...</div>
+                    <div class="stat-number" id="usersWithoutReferrals">0</div>
+                    <div class="stat-label">Users without Referrals</div>
+                    <div class="stat-trend trend-down" id="noReferralsTrend">Loading...</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="vipUsers">0</div>
-                    <div class="stat-label">VIP Users</div>
-                    <div class="stat-trend trend-up" id="vipTrend">Loading...</div>
+                    <div class="stat-number" id="usersWithoutReferrers">0</div>
+                    <div class="stat-label">Users without Referrers</div>
+                    <div class="stat-trend trend-down" id="noReferrersTrend">Loading...</div>
                 </div>
             </div>
 
-            <!-- Recent Purchases Preview -->
-            <div class="purchases-section">
-                <div class="section-header">
-                    <h2 class="section-title">
-                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                        Recent NMXp Purchases
-                    </h2>
-                    <button class="admin-btn" onclick="showSection('purchases')">
-                        View All
-                    </button>
-                </div>
-                <div id="recentPurchases">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        Loading recent purchases...
-                    </div>
+            <!-- User Cards Grid -->
+            <div class="users-grid" id="usersGrid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading users from database...
                 </div>
             </div>
         </div>
 
-        <!-- NMXp Purchases Section -->
-        <div id="purchasesSection" class="section-content" style="display: none;">
-            <div class="purchases-section">
-                <div class="purchases-header">
+        <!-- Complete Referral Tree Section -->
+        <div id="referralTreeSection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Complete Referral Tree
+                </h2>
+            </div>
+            <div class="referral-tree-container" id="referralTree">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Building referral tree...
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Without Referrers Section -->
+        <div id="noReferrersSection" class="section-content" style="display: none;">
+            <div class="no-referrers-section">
+                <div class="section-header">
                     <h2 class="section-title">
                         <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                         </svg>
-                        NMXp Purchase History
+                        Users Without Referrers (Root Users)
                     </h2>
-                    <div class="purchases-controls">
-                        <select class="filter-select" id="timeFilter" onchange="filterPurchases()">
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                        </select>
-                        <select class="filter-select" id="packageFilter" onchange="filterPurchases()">
-                            <option value="all">All Packages</option>
-                            <option value="basic">Basic Packages</option>
-                            <option value="vip">VIP Packages</option>
-                        </select>
-                    </div>
+                    <div class="stat-number" id="noReferrersCount">0</div>
                 </div>
-                <div id="purchasesTableContainer">
+                <div class="users-grid" id="noReferrersGrid">
                     <div class="loading">
                         <div class="loading-spinner"></div>
-                        Loading purchase history...
+                        Loading users without referrers...
                     </div>
                 </div>
             </div>
@@ -668,7 +637,7 @@
 
         <!-- All Users Section -->
         <div id="allUsersSection" class="section-content" style="display: none;">
-            <div class="purchases-section">
+            <div class="no-referrers-section">
                 <div class="section-header">
                     <h2 class="section-title">
                         <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -697,372 +666,275 @@
 
         // Global variables
         let allUsers = [];
-        let allPurchases = [];
+        let referralsMap = new Map(); // referrer_id -> [referred_users]
+        let referrerMap = new Map(); // referred_user_id -> referrer_id
         let currentSection = 'overview';
-        let maintenanceMode = false;
 
         // Initialize admin panel
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔄 Admin Panel Initializing...');
-            checkMaintenanceStatus();
-            loadAdminData();
+            loadUsersData();
         });
 
-        // Check maintenance status from database
-        async function checkMaintenanceStatus() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('settings')
-                    .select('*')
-                    .eq('key', 'maintenance_mode')
-                    .single();
-
-                if (error && error.code !== 'PGRST116') {
-                    console.error('Error checking maintenance status:', error);
-                    return;
-                }
-
-                maintenanceMode = data ? data.value : false;
-                updateMaintenanceButton();
-            } catch (error) {
-                console.error('Error checking maintenance status:', error);
+        // Show section
+        function showSection(section) {
+            currentSection = section;
+            
+            // Update mini nav
+            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Show selected section
+            document.querySelectorAll('.section-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(section + 'Section').style.display = 'block';
+            
+            // Load section-specific data
+            if (section === 'referralTree') {
+                buildReferralTree();
+            } else if (section === 'noReferrers') {
+                showUsersWithoutReferrers();
+            } else if (section === 'allUsers') {
+                showAllUsers();
             }
         }
 
-        // Toggle maintenance mode
-        async function toggleMaintenanceMode() {
-            try {
-                maintenanceMode = !maintenanceMode;
-
-                // Update database
-                const { error } = await supabaseClient
-                    .from('settings')
-                    .upsert({
-                        key: 'maintenance_mode',
-                        value: maintenanceMode,
-                        updated_at: new Date().toISOString()
-                    });
-
-                if (error) {
-                    console.error('Error updating maintenance mode:', error);
-                    maintenanceMode = !maintenanceMode; // Revert on error
-                    return;
-                }
-
-                updateMaintenanceButton();
-
-                // Show confirmation
-                if (maintenanceMode) {
-                    alert('✅ Maintenance mode enabled! All user activities will be paused.');
-                } else {
-                    alert('✅ Maintenance mode disabled! All user activities are now active.');
-                }
-            } catch (error) {
-                console.error('Error toggling maintenance mode:', error);
-                alert('❌ Failed to update maintenance mode. Please try again.');
-            }
-        }
-
-        // Update maintenance button appearance
-        function updateMaintenanceButton() {
-            const button = document.getElementById('maintenanceToggle');
-            const text = document.getElementById('maintenanceText');
-
-            if (maintenanceMode) {
-                button.classList.add('active');
-                text.textContent = 'Disable Maintenance';
-            } else {
-                button.classList.remove('active');
-                text.textContent = 'Enable Maintenance';
-            }
-        }
-
-        // Load all admin data
-        async function loadAdminData() {
+        // Load users data from database
+        async function loadUsersData() {
             try {
                 showLoading();
+                
                 console.log('🔄 Loading admin data from database...');
 
-                // Load users
-                const { data: users, error: usersError } = await supabaseClient
+                // Get all users from profiles table
+                const { data: users, error } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (usersError) throw new Error('Users error: ' + usersError.message);
+                if (error) {
+                    console.error('❌ Error loading profiles:', error);
+                    throw new Error('Database error: ' + error.message);
+                }
 
-                // Load purchases
-                const { data: purchases, error: purchasesError } = await supabaseClient
-                    .from('purchases')
-                    .select(`
-                        *,
-                        profiles:user_id (
-                            username,
-                            email
-                        )
-                    `)
-                    .order('purchased_at', { ascending: false });
+                console.log('✅ Loaded users:', users);
 
-                if (purchasesError) throw new Error('Purchases error: ' + purchasesError.message);
+                if (!users || users.length === 0) {
+                    throw new Error('No users found in database');
+                }
 
-                console.log('✅ Loaded data:', { users: users?.length, purchases: purchases?.length });
+                // Get referral data
+                const { data: referrals, error: refError } = await supabaseClient
+                    .from('referrals')
+                    .select('*')
+                    .limit(1000);
 
-                allUsers = users || [];
-                allPurchases = purchases || [];
+                if (refError) {
+                    console.warn('⚠️ Could not load referrals:', refError);
+                }
 
-                updateStatistics();
-                showRecentPurchases();
-                showPurchasesTable();
+                console.log('✅ Loaded referrals:', referrals);
+
+                // Build referral maps
+                referralsMap.clear();
+                referrerMap.clear();
+                
+                if (referrals) {
+                    referrals.forEach(ref => {
+                        // Map referrer to their referrals
+                        if (!referralsMap.has(ref.referrer_id)) {
+                            referralsMap.set(ref.referrer_id, []);
+                        }
+                        referralsMap.get(ref.referrer_id).push(ref.referred_user_id);
+                        
+                        // Map referred user to their referrer
+                        referrerMap.set(ref.referred_user_id, ref.referrer_id);
+                    });
+                }
+
+                // Process users data
+                allUsers = users.map(user => {
+                    const referredUsers = referralsMap.get(user.id) || [];
+                    const hasReferrer = referrerMap.has(user.id);
+                    
+                    return {
+                        id: user.id,
+                        name: user.username || user.email || 'Unknown User',
+                        email: user.email || 'No email',
+                        balance: parseFloat(user.balance) || 0,
+                        nmxpBalance: parseFloat(user.nmxp_balance) || 0,
+                        joinedDate: user.created_at,
+                        hasReferral: referredUsers.length > 0,
+                        hasReferrer: hasReferrer,
+                        referrerId: referrerMap.get(user.id) || null,
+                        telegramId: user.telegram_id || 'Not connected',
+                        referralSlots: user.referral_slots || 5,
+                        usedSlots: user.used_slots || referredUsers.length,
+                        totalEarnedFromRefs: user.total_earned_from_refs || 0,
+                        referredUsers: referredUsers
+                    };
+                });
+
+                // Calculate statistics
+                const usersWithoutReferrers = allUsers.filter(user => !user.hasReferrer);
+                const stats = {
+                    totalUsers: allUsers.length,
+                    withReferrals: allUsers.filter(u => u.hasReferral).length,
+                    withoutReferrals: allUsers.filter(u => !u.hasReferral).length,
+                    withoutReferrers: usersWithoutReferrers.length,
+                    totalNMX: allUsers.reduce((sum, user) => sum + user.balance, 0),
+                    totalNMXp: allUsers.reduce((sum, user) => sum + user.nmxpBalance, 0),
+                    totalReferralEarnings: allUsers.reduce((sum, user) => sum + (user.totalEarnedFromRefs || 0), 0)
+                };
+
+                console.log('📊 Calculated stats:', stats);
+
+                updateStatistics(stats);
+                renderUserCards();
+                buildReferralTree();
+                showUsersWithoutReferrers();
                 showAllUsers();
 
                 console.log('✅ Admin panel loaded successfully');
 
             } catch (error) {
                 console.error('❌ Error loading admin data:', error);
-                showError('Failed to load data: ' + error.message);
+                showError('Failed to load users data: ' + error.message);
             }
         }
 
         // Update statistics
-        function updateStatistics() {
-            // Calculate stats
-            const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.price_usd || 0), 0);
-            const totalPurchases = allPurchases.length;
-            const vipUsers = allUsers.filter(user => user.is_vip).length;
-            const todayPurchases = allPurchases.filter(p => {
-                const purchaseDate = new Date(p.purchased_at);
-                const today = new Date();
-                return purchaseDate.toDateString() === today.toDateString();
-            }).length;
-
-            // Update DOM
-            document.getElementById('totalUsers').textContent = allUsers.length.toLocaleString();
-            document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toLocaleString();
-            document.getElementById('totalPurchases').textContent = totalPurchases.toLocaleString();
-            document.getElementById('vipUsers').textContent = vipUsers.toLocaleString();
-
-            // Update trends
-            document.getElementById('usersTrend').textContent = `${allUsers.length} total`;
-            document.getElementById('revenueTrend').textContent = `$${totalRevenue.toLocaleString()} revenue`;
-            document.getElementById('purchasesTrend').textContent = `${todayPurchases} today`;
-            document.getElementById('vipTrend').textContent = `${vipUsers} VIPs`;
+        function updateStatistics(stats) {
+            document.getElementById('totalUsers').textContent = stats.totalUsers.toLocaleString();
+            document.getElementById('usersWithReferrals').textContent = stats.withReferrals.toLocaleString();
+            document.getElementById('usersWithoutReferrals').textContent = stats.withoutReferrals.toLocaleString();
+            document.getElementById('usersWithoutReferrers').textContent = stats.withoutReferrers.toLocaleString();
+            
+            // Update trends with real data
+            document.getElementById('usersTrend').textContent = `${stats.totalUsers} total`;
+            document.getElementById('referralsTrend').textContent = `${stats.withReferrals} active`;
+            document.getElementById('noReferralsTrend').textContent = `${stats.withoutReferrals} inactive`;
+            document.getElementById('noReferrersTrend').textContent = `${stats.withoutReferrers} root users`;
         }
 
-        // Show recent purchases in overview
-        function showRecentPurchases() {
-            const container = document.getElementById('recentPurchases');
-            const recentPurchases = allPurchases.slice(0, 5);
+        // Build complete referral tree
+        function buildReferralTree() {
+            const treeContainer = document.getElementById('referralTree');
+            if (!treeContainer) return;
 
-            if (recentPurchases.length === 0) {
-                container.innerHTML = '<div class="loading">No purchases found</div>';
+            // Find root users (users without referrers)
+            const rootUsers = allUsers.filter(user => !user.hasReferrer);
+
+            if (rootUsers.length === 0) {
+                treeContainer.innerHTML = '<div class="no-referrals">No users found in database</div>';
                 return;
             }
 
-            container.innerHTML = `
-                <table class="purchases-table">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Package</th>
-                            <th>Amount</th>
-                            <th>Price</th>
-                            <th>Method</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${recentPurchases.map(purchase => `
-                            <tr>
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-avatar-small">
-                                            ${(purchase.profiles?.username || purchase.profiles?.email || 'U').charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div>${purchase.profiles?.username || 'Unknown User'}</div>
-                                            <div style="font-size: 11px; color: var(--muted);">${purchase.profiles?.email || 'No email'}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    ${purchase.is_vip_package ? '<span class="vip-badge">VIP</span>' : 'Basic'}
-                                </td>
-                                <td class="amount-cell">
-                                    ${(purchase.total_amount || 0).toLocaleString()} NMXp
-                                    ${purchase.bonus_amount > 0 ? 
-                                        `<div class="bonus-cell" style="font-size: 11px;">+${purchase.bonus_amount} bonus</div>` : ''}
-                                </td>
-                                <td class="price-cell">$${purchase.price_usd || 0}</td>
-                                <td>
-                                    <span class="method-cell method-${purchase.payment_method || 'card'}">
-                                        ${purchase.payment_method || 'card'}
-                                    </span>
-                                </td>
-                                <td class="date-cell">
-                                    ${formatDate(purchase.purchased_at)}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
+            let treeHTML = '';
+
+            rootUsers.forEach(rootUser => {
+                treeHTML += buildTreeNode(rootUser, 0);
+            });
+
+            treeContainer.innerHTML = treeHTML;
         }
 
-        // Show full purchases table
-        function showPurchasesTable() {
-            const container = document.getElementById('purchasesTableContainer');
-
-            if (allPurchases.length === 0) {
-                container.innerHTML = '<div class="loading">No purchases found</div>';
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="purchases-table">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Package</th>
-                            <th>Base Amount</th>
-                            <th>Bonus</th>
-                            <th>Total</th>
-                            <th>Price</th>
-                            <th>Method</th>
-                            <th>VIP</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${allPurchases.map(purchase => `
-                            <tr>
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-avatar-small">
-                                            ${(purchase.profiles?.username || purchase.profiles?.email || 'U').charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div>${purchase.profiles?.username || 'Unknown User'}</div>
-                                            <div style="font-size: 11px; color: var(--muted);">${purchase.profiles?.email || 'No email'}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    ${purchase.is_vip_package ? '<span class="vip-badge">VIP</span>' : 'Basic'}
-                                </td>
-                                <td class="amount-cell">${(purchase.package_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="bonus-cell">+${purchase.bonus_amount || 0}</td>
-                                <td class="amount-cell">${(purchase.total_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="price-cell">$${purchase.price_usd || 0}</td>
-                                <td>
-                                    <span class="method-cell method-${purchase.payment_method || 'card'}">
-                                        ${purchase.payment_method || 'card'}
-                                    </span>
-                                </td>
-                                <td>${purchase.is_vip_package ? '✅' : '❌'}</td>
-                                <td class="date-cell">
-                                    ${formatDate(purchase.purchased_at)}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+        // Recursive function to build tree nodes
+        function buildTreeNode(user, level) {
+            const referredUsers = allUsers.filter(u => user.referredUsers.includes(u.id));
+            
+            let nodeHTML = `
+                <div class="tree-node">
+                    <div class="node-main">
+                        <div class="node-avatar">${user.name.charAt(0).toUpperCase()}</div>
+                        <div class="node-info">
+                            <div class="node-name">${user.name}</div>
+                            <div class="node-email">${user.email}</div>
+                            <div class="node-stats">
+                                <div class="node-stat">
+                                    <span class="node-stat-value">${Math.round(user.balance)}</span>
+                                    <span>NMX</span>
+                                </div>
+                                <div class="node-stat">
+                                    <span class="node-stat-value">${user.referredUsers.length}</span>
+                                    <span>Referrals</span>
+                                </div>
+                                <div class="node-stat">
+                                    <span class="node-stat-value">${Math.round(user.totalEarnedFromRefs)}</span>
+                                    <span>Earnings</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
             `;
-        }
 
-        // Filter purchases
-        function filterPurchases() {
-            const timeFilter = document.getElementById('timeFilter').value;
-            const packageFilter = document.getElementById('packageFilter').value;
-
-            let filteredPurchases = [...allPurchases];
-
-            // Apply time filter
-            if (timeFilter !== 'all') {
-                const now = new Date();
-                filteredPurchases = filteredPurchases.filter(purchase => {
-                    const purchaseDate = new Date(purchase.purchased_at);
-
-                    switch (timeFilter) {
-                        case 'today':
-                            return purchaseDate.toDateString() === now.toDateString();
-                        case 'week':
-                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                            return purchaseDate >= weekAgo;
-                        case 'month':
-                            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                            return purchaseDate >= monthAgo;
-                        default:
-                            return true;
-                    }
+            if (referredUsers.length > 0) {
+                nodeHTML += '<div class="children-container">';
+                referredUsers.forEach(child => {
+                    nodeHTML += buildTreeNode(child, level + 1);
                 });
+                nodeHTML += '</div>';
             }
 
-            // Apply package filter
-            if (packageFilter !== 'all') {
-                filteredPurchases = filteredPurchases.filter(purchase => {
-                    if (packageFilter === 'vip') return purchase.is_vip_package;
-                    if (packageFilter === 'basic') return !purchase.is_vip_package;
-                    return true;
-                });
-            }
+            nodeHTML += '</div>';
+            return nodeHTML;
+        }
 
-            // Update table
-            const container = document.getElementById('purchasesTableContainer');
-            if (filteredPurchases.length === 0) {
-                container.innerHTML = '<div class="loading">No purchases match the selected filters</div>';
+        // Show users without referrers
+        function showUsersWithoutReferrers() {
+            const container = document.getElementById('noReferrersGrid');
+            const countElement = document.getElementById('noReferrersCount');
+            if (!container) return;
+
+            const usersWithoutReferrers = allUsers.filter(user => !user.hasReferrer);
+
+            countElement.textContent = usersWithoutReferrers.length;
+
+            if (usersWithoutReferrers.length === 0) {
+                container.innerHTML = '<div class="loading">No users without referrers found</div>';
                 return;
             }
 
-            container.innerHTML = `
-                <table class="purchases-table">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Package</th>
-                            <th>Base Amount</th>
-                            <th>Bonus</th>
-                            <th>Total</th>
-                            <th>Price</th>
-                            <th>Method</th>
-                            <th>VIP</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${filteredPurchases.map(purchase => `
-                            <tr>
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-avatar-small">
-                                            ${(purchase.profiles?.username || purchase.profiles?.email || 'U').charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div>${purchase.profiles?.username || 'Unknown User'}</div>
-                                            <div style="font-size: 11px; color: var(--muted);">${purchase.profiles?.email || 'No email'}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    ${purchase.is_vip_package ? '<span class="vip-badge">VIP</span>' : 'Basic'}
-                                </td>
-                                <td class="amount-cell">${(purchase.package_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="bonus-cell">+${purchase.bonus_amount || 0}</td>
-                                <td class="amount-cell">${(purchase.total_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="price-cell">$${purchase.price_usd || 0}</td>
-                                <td>
-                                    <span class="method-cell method-${purchase.payment_method || 'card'}">
-                                        ${purchase.payment_method || 'card'}
-                                    </span>
-                                </td>
-                                <td>${purchase.is_vip_package ? '✅' : '❌'}</td>
-                                <td class="date-cell">
-                                    ${formatDate(purchase.purchased_at)}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
+            container.innerHTML = usersWithoutReferrers.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.name.charAt(0).toUpperCase()}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user.name}</div>
+                            <div class="user-email">${user.email}</div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.balance)}</div>
+                            <div class="user-stat-label">NMX</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.nmxpBalance)}</div>
+                            <div class="user-stat-label">NMXp</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referredUsers.length}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.totalEarnedFromRefs)}</div>
+                            <div class="user-stat-label">Ref Earnings</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <span class="referral-status status-no-referrer">
+                            Root User
+                        </span>
+                        <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
+                            ${user.referredUsers.length} Referrals
+                        </span>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // Show all users
@@ -1081,86 +953,104 @@
             container.innerHTML = allUsers.map(user => `
                 <div class="user-card">
                     <div class="user-card-header">
-                        <div class="user-avatar">
-                            ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
-                        </div>
+                        <div class="user-avatar">${user.name.charAt(0).toUpperCase()}</div>
                         <div class="user-info">
-                            <div class="user-name">${user.username || 'Unknown User'}</div>
-                            <div class="user-email">${user.email || 'No email'}</div>
+                            <div class="user-name">${user.name}</div>
+                            <div class="user-email">${user.email}</div>
                         </div>
                     </div>
                     <div class="user-stats">
                         <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.nmxp_balance || 0)}</div>
-                            <div class="user-stat-label">NMXp</div>
+                            <div class="user-stat-value">${Math.round(user.balance)}</div>
+                            <div class="user-stat-label">NMX</div>
                         </div>
                         <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.total_nmxp_purchased || 0)}</div>
-                            <div class="user-stat-label">Purchased</div>
+                            <div class="user-stat-value">${user.referredUsers.length}</div>
+                            <div class="user-stat-label">Referrals</div>
                         </div>
                         <div class="user-stat">
-                            <div class="user-stat-value">${user.is_vip ? 'Yes' : 'No'}</div>
-                            <div class="user-stat-label">VIP</div>
-                        </div>
-                        <div class="user-stat">
-                            <div class="user-stat-value">${new Date(user.last_purchase || user.created_at).toLocaleDateString()}</div>
-                            <div class="user-stat-label">Last Purchase</div>
+                            <div class="user-stat-value">${Math.round(user.totalEarnedFromRefs)}</div>
+                            <div class="user-stat-label">Ref Earnings</div>
                         </div>
                     </div>
                     <div class="user-card-footer">
-                        <span class="referral-status ${user.is_vip ? 'status-referred' : 'status-not-referred'}">
-                            ${user.is_vip ? 'VIP User' : 'Standard User'}
+                        <span class="referral-status ${user.hasReferrer ? 'status-referred' : 'status-no-referrer'}">
+                            ${user.hasReferrer ? 'Referred' : 'Root User'}
                         </span>
-                        <span class="referral-status status-referred">
-                            Joined ${new Date(user.created_at).toLocaleDateString()}
+                        <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
+                            ${user.referredUsers.length} Referred
                         </span>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Show section
-        function showSection(section) {
-            currentSection = section;
+        // Render user cards for overview
+        function renderUserCards() {
+            const usersGrid = document.getElementById('usersGrid');
+            if (!usersGrid) return;
 
-            // Update mini nav
-            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Show selected section
-            document.querySelectorAll('.section-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            document.getElementById(section + 'Section').style.display = 'block';
-
-            // Load section-specific data if needed
-            if (section === 'purchases') {
-                showPurchasesTable();
-            } else if (section === 'allUsers') {
-                showAllUsers();
+            if (allUsers.length === 0) {
+                usersGrid.innerHTML = '<div class="loading">No users found in database</div>';
+                return;
             }
-        }
 
-        // Format date
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // Show all users or top 12 by balance
+            const displayUsers = allUsers.length > 12 ? 
+                [...allUsers].sort((a, b) => b.balance - a.balance).slice(0, 12) : 
+                allUsers;
+
+            usersGrid.innerHTML = displayUsers.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.name.charAt(0).toUpperCase()}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user.name}</div>
+                            <div class="user-email">${user.email}</div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.balance)}</div>
+                            <div class="user-stat-label">NMX</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.nmxpBalance)}</div>
+                            <div class="user-stat-label">NMXp</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referredUsers.length}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.totalEarnedFromRefs)}</div>
+                            <div class="user-stat-label">Ref Earnings</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <span class="referral-status ${user.hasReferrer ? 'status-referred' : 'status-no-referrer'}">
+                            ${user.hasReferrer ? 'Referred' : 'Root'}
+                        </span>
+                        <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
+                            ${user.referredUsers.length} Ref
+                        </span>
+                    </div>
+                </div>
+            `).join('');
         }
 
         // Refresh data
         function refreshData() {
             console.log('🔄 Refreshing data...');
             showLoading();
-            loadAdminData();
+            loadUsersData();
         }
 
         function showLoading() {
             const elements = [
-                'recentPurchases', 'purchasesTableContainer', 'allUsersGrid'
+                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid'
             ];
-
+            
             elements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
@@ -1176,9 +1066,9 @@
 
         function showError(message) {
             const elements = [
-                'recentPurchases', 'purchasesTableContainer', 'allUsersGrid'
+                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid'
             ];
-
+            
             elements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
