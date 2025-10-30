@@ -235,6 +235,32 @@
             color: var(--danger);
         }
 
+        /* Section Styles */
+        .section-content {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-icon {
+            width: 24px;
+            height: 24px;
+        }
+
         /* Purchase Tracking Styles */
         .purchases-section {
             background: var(--darker-bg);
@@ -350,6 +376,111 @@
             font-size: 12px;
         }
 
+        /* Users Grid */
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .user-card {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .user-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        .user-card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--dark-bg);
+            font-size: 18px;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .user-email {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .user-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .user-stat {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .user-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .user-stat-label {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .user-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .referral-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-referred {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+        }
+
+        .status-not-referred {
+            background: rgba(255, 187, 51, 0.1);
+            color: var(--warning);
+        }
+
         /* Loading State */
         .loading {
             text-align: center;
@@ -391,6 +522,10 @@
             .purchases-table {
                 display: block;
                 overflow-x: auto;
+            }
+
+            .users-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -441,12 +576,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
                 NMXp Purchases
-            </button>
-            <button class="mini-nav-btn" onclick="showSection('referralTree')">
-                <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                Referral Tree
             </button>
             <button class="mini-nav-btn" onclick="showSection('allUsers')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -604,7 +733,7 @@
         async function toggleMaintenanceMode() {
             try {
                 maintenanceMode = !maintenanceMode;
-                
+
                 // Update database
                 const { error } = await supabaseClient
                     .from('settings')
@@ -621,7 +750,7 @@
                 }
 
                 updateMaintenanceButton();
-                
+
                 // Show confirmation
                 if (maintenanceMode) {
                     alert('✅ Maintenance mode enabled! All user activities will be paused.');
@@ -638,7 +767,7 @@
         function updateMaintenanceButton() {
             const button = document.getElementById('maintenanceToggle');
             const text = document.getElementById('maintenanceText');
-            
+
             if (maintenanceMode) {
                 button.classList.add('active');
                 text.textContent = 'Disable Maintenance';
@@ -782,7 +911,7 @@
         // Show full purchases table
         function showPurchasesTable() {
             const container = document.getElementById('purchasesTableContainer');
-            
+
             if (allPurchases.length === 0) {
                 container.innerHTML = '<div class="loading">No purchases found</div>';
                 return;
@@ -844,15 +973,15 @@
         function filterPurchases() {
             const timeFilter = document.getElementById('timeFilter').value;
             const packageFilter = document.getElementById('packageFilter').value;
-            
+
             let filteredPurchases = [...allPurchases];
-            
+
             // Apply time filter
             if (timeFilter !== 'all') {
                 const now = new Date();
                 filteredPurchases = filteredPurchases.filter(purchase => {
                     const purchaseDate = new Date(purchase.purchased_at);
-                    
+
                     switch (timeFilter) {
                         case 'today':
                             return purchaseDate.toDateString() === now.toDateString();
@@ -867,7 +996,7 @@
                     }
                 });
             }
-            
+
             // Apply package filter
             if (packageFilter !== 'all') {
                 filteredPurchases = filteredPurchases.filter(purchase => {
@@ -876,14 +1005,14 @@
                     return true;
                 });
             }
-            
+
             // Update table
             const container = document.getElementById('purchasesTableContainer');
             if (filteredPurchases.length === 0) {
                 container.innerHTML = '<div class="loading">No purchases match the selected filters</div>';
                 return;
             }
-            
+
             container.innerHTML = `
                 <table class="purchases-table">
                     <thead>
@@ -950,9 +1079,9 @@
             }
 
             container.innerHTML = allUsers.map(user => `
-                <div class="user-card" style="background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+                <div class="user-card">
                     <div class="user-card-header">
-                        <div class="user-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--dark-bg); font-size: 18px;">
+                        <div class="user-avatar">
                             ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
                         </div>
                         <div class="user-info">
@@ -960,29 +1089,29 @@
                             <div class="user-email">${user.email || 'No email'}</div>
                         </div>
                     </div>
-                    <div class="user-stats" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-                        <div class="user-stat" style="text-align: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
-                            <div class="user-stat-value" style="font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">${Math.round(user.nmxp_balance || 0)}</div>
-                            <div class="user-stat-label" style="font-size: 11px; color: var(--muted);">NMXp</div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.nmxp_balance || 0)}</div>
+                            <div class="user-stat-label">NMXp</div>
                         </div>
-                        <div class="user-stat" style="text-align: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
-                            <div class="user-stat-value" style="font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">${Math.round(user.total_nmxp_purchased || 0)}</div>
-                            <div class="user-stat-label" style="font-size: 11px; color: var(--muted);">Purchased</div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${Math.round(user.total_nmxp_purchased || 0)}</div>
+                            <div class="user-stat-label">Purchased</div>
                         </div>
-                        <div class="user-stat" style="text-align: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
-                            <div class="user-stat-value" style="font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">${user.is_vip ? 'Yes' : 'No'}</div>
-                            <div class="user-stat-label" style="font-size: 11px; color: var(--muted);">VIP</div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.is_vip ? 'Yes' : 'No'}</div>
+                            <div class="user-stat-label">VIP</div>
                         </div>
-                        <div class="user-stat" style="text-align: center; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
-                            <div class="user-stat-value" style="font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">${new Date(user.last_purchase || user.created_at).toLocaleDateString()}</div>
-                            <div class="user-stat-label" style="font-size: 11px; color: var(--muted);">Last Purchase</div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${new Date(user.last_purchase || user.created_at).toLocaleDateString()}</div>
+                            <div class="user-stat-label">Last Purchase</div>
                         </div>
                     </div>
-                    <div class="user-card-footer" style="display: flex; justify-content: space-between; align-items: center; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                        <span class="referral-status ${user.is_vip ? 'status-referred' : 'status-not-referred'}" style="padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${user.is_vip ? 'rgba(155, 89, 182, 0.1)' : 'rgba(255, 187, 51, 0.1)'}; color: ${user.is_vip ? 'var(--vip)' : 'var(--warning)'};">
+                    <div class="user-card-footer">
+                        <span class="referral-status ${user.is_vip ? 'status-referred' : 'status-not-referred'}">
                             ${user.is_vip ? 'VIP User' : 'Standard User'}
                         </span>
-                        <span class="referral-status status-referred" style="padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; background: rgba(0, 200, 81, 0.1); color: var(--success);">
+                        <span class="referral-status status-referred">
                             Joined ${new Date(user.created_at).toLocaleDateString()}
                         </span>
                     </div>
