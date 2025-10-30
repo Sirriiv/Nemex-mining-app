@@ -423,8 +423,8 @@
                 <div class="stat-trend trend-down" id="noReferralsTrend">-5% this week</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number" id="totalNMXMined">0</div>
-                <div class="stat-label">Total NMX Mined</div>
+                <div class="stat-number" id="totalNMXpMined">0</div>
+                <div class="stat-label">Total NMXp Mined</div>
                 <div class="stat-trend trend-up" id="miningTrend">+15% this week</div>
             </div>
         </div>
@@ -557,7 +557,7 @@
             document.getElementById('totalUsers').textContent = stats.totalUsers.toLocaleString();
             document.getElementById('usersWithReferrals').textContent = stats.withReferrals.toLocaleString();
             document.getElementById('usersWithoutReferrals').textContent = stats.withoutReferrals.toLocaleString();
-            document.getElementById('totalNMXMined').textContent = stats.totalNMX.toLocaleString();
+            document.getElementById('totalNMXpMined').textContent = stats.totalNMXp.toLocaleString();
         }
 
         // Render users table based on current tab and filter
@@ -611,7 +611,7 @@
                     </td>
                     <td>${user.email}</td>
                     <td>
-                        <div class="balance-amount">${user.balance} NMX</div>
+                        <div class="balance-amount">${user.balance} NMXp</div>
                     </td>
                     <td>
                         <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
