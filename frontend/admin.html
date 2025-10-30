@@ -607,18 +607,6 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* Connection Status */
-        .connection-status {
-            background: rgba(0, 200, 81, 0.1);
-            border: 1px solid var(--success);
-            color: var(--success);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-weight: 600;
-        }
-
         /* Responsive */
         @media (max-width: 768px) {
             .admin-container {
@@ -687,11 +675,6 @@
             </div>
         </header>
 
-        <!-- Connection Status -->
-        <div class="connection-status" id="connectionStatus">
-            ✅ CONNECTED - Live Data from Database
-        </div>
-
         <!-- Mini Navigation -->
         <nav class="mini-nav">
             <button class="mini-nav-btn active" onclick="showSection('overview')">
@@ -718,31 +701,34 @@
         <div id="overviewSection" class="section-content">
             <!-- Statistics Overview -->
             <div class="stats-grid">
-                <div class="stat-card" onclick="showUserSection('totalUsers')">
+                <div class="stat-card">
                     <div class="stat-number" id="totalUsers">0</div>
                     <div class="stat-label">Total Users</div>
-                    <div class="stat-trend trend-up" id="usersTrend">Live Data</div>
+                    <div class="stat-trend trend-up" id="usersTrend">Loading...</div>
                 </div>
-                <div class="stat-card" onclick="showUserSection('withReferrals')">
+                <div class="stat-card">
                     <div class="stat-number" id="usersWithReferrals">0</div>
                     <div class="stat-label">Users with Referrals</div>
-                    <div class="stat-trend trend-up" id="referralsTrend">Live Data</div>
+                    <div class="stat-trend trend-up" id="referralsTrend">Loading...</div>
                 </div>
-                <div class="stat-card" onclick="showUserSection('withoutReferrals')">
+                <div class="stat-card">
                     <div class="stat-number" id="usersWithoutReferrals">0</div>
                     <div class="stat-label">Users without Referrals</div>
-                    <div class="stat-trend trend-down" id="noReferralsTrend">Live Data</div>
+                    <div class="stat-trend trend-down" id="noReferralsTrend">Loading...</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="totalNMXMined">0</div>
                     <div class="stat-label">Total NMX Mined</div>
-                    <div class="stat-trend trend-up" id="miningTrend">Live Data</div>
+                    <div class="stat-trend trend-up" id="miningTrend">Loading...</div>
                 </div>
             </div>
 
             <!-- User Cards Grid -->
             <div class="users-grid" id="usersGrid">
-                <!-- User cards will be loaded here -->
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading users from database...
+                </div>
             </div>
         </div>
 
@@ -793,7 +779,10 @@
         <!-- Referral Network Section -->
         <div id="referralsSection" class="section-content" style="display: none;">
             <div class="users-grid" id="referralNetworkGrid">
-                <!-- Referral network cards will be loaded here -->
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading referral network...
+                </div>
             </div>
         </div>
     </div>
@@ -879,6 +868,7 @@
 
         // Initialize admin panel
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🔄 Admin Panel Initializing...');
             loadUsersData();
         });
 
@@ -904,7 +894,7 @@
             }
         }
 
-        // Load users data from database
+        // Load users data from database - FIXED VERSION
         async function loadUsersData() {
             try {
                 showLoading();
@@ -914,55 +904,64 @@
                 // Get all users from profiles table
                 const { data: users, error } = await supabaseClient
                     .from('profiles')
-                    .select(`
-                        id,
-                        email,
-                        username,
-                        balance,
-                        nmxp_balance,
-                        created_at,
-                        telegram_id,
-                        referral_slots,
-                        used_slots,
-                        total_earned_from_refs
-                    `)
+                    .select('*')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Error loading profiles:', error);
+                    throw new Error('Database error: ' + error.message);
+                }
+
+                console.log('✅ Loaded users:', users);
+
+                if (!users || users.length === 0) {
+                    throw new Error('No users found in database');
+                }
 
                 // Get referral data
                 const { data: referrals, error: refError } = await supabaseClient
                     .from('referrals')
-                    .select('*');
+                    .select('*')
+                    .limit(1000);
 
-                const usersWithReferrals = new Set();
-                const referralMap = new Map();
-
-                if (referrals) {
-                    referrals.forEach(ref => {
-                        usersWithReferrals.add(ref.referred_user_id);
-                        if (!referralMap.has(ref.referrer_id)) {
-                            referralMap.set(ref.referrer_id, []);
-                        }
-                        referralMap.get(ref.referrer_id).push(ref.referred_user_id);
-                    });
+                if (refError) {
+                    console.warn('⚠️ Could not load referrals:', refError);
                 }
 
+                console.log('✅ Loaded referrals:', referrals);
+
                 // Process users data
-                allUsers = users.map(user => ({
-                    id: user.id,
-                    name: user.username || user.email || 'Unknown User',
-                    email: user.email || 'No email',
-                    balance: parseFloat(user.balance) || 0,
-                    nmxpBalance: parseFloat(user.nmxp_balance) || 0,
-                    joinedDate: user.created_at,
-                    hasReferral: usersWithReferrals.has(user.id),
-                    telegramId: user.telegram_id,
-                    referralSlots: user.referral_slots || 0,
-                    usedSlots: user.used_slots || 0,
-                    totalEarnedFromRefs: user.total_earned_from_refs || 0,
-                    referredUsers: referralMap.get(user.id) || []
-                }));
+                allUsers = users.map(user => {
+                    // Check if user has referrals
+                    let hasReferral = false;
+                    let referredUsers = [];
+                    
+                    if (referrals) {
+                        // Check if this user was referred by someone
+                        const wasReferred = referrals.find(ref => ref.referred_user_id === user.id);
+                        hasReferral = !!wasReferred;
+                        
+                        // Find users this user referred
+                        referredUsers = referrals
+                            .filter(ref => ref.referrer_id === user.id)
+                            .map(ref => ref.referred_user_id);
+                    }
+
+                    return {
+                        id: user.id,
+                        name: user.username || user.email || 'Unknown User',
+                        email: user.email || 'No email',
+                        balance: parseFloat(user.balance) || 0,
+                        nmxpBalance: parseFloat(user.nmxp_balance) || 0,
+                        joinedDate: user.created_at,
+                        hasReferral: hasReferral,
+                        telegramId: user.telegram_id || 'Not connected',
+                        referralSlots: user.referral_slots || 5,
+                        usedSlots: user.used_slots || referredUsers.length,
+                        totalEarnedFromRefs: user.total_earned_from_refs || 0,
+                        referredUsers: referredUsers
+                    };
+                });
 
                 // Calculate statistics
                 const stats = {
@@ -974,16 +973,18 @@
                     totalReferralEarnings: allUsers.reduce((sum, user) => sum + (user.totalEarnedFromRefs || 0), 0)
                 };
 
+                console.log('📊 Calculated stats:', stats);
+
                 updateStatistics(stats);
                 renderUserCards();
                 renderUsersTable();
                 loadReferralNetwork();
 
-                console.log('✅ Admin data loaded successfully:', stats);
+                console.log('✅ Admin panel loaded successfully');
 
             } catch (error) {
                 console.error('❌ Error loading admin data:', error);
-                showError('Failed to load users data. Please check database connection.');
+                showError('Failed to load users data: ' + error.message);
             }
         }
 
@@ -993,6 +994,12 @@
             document.getElementById('usersWithReferrals').textContent = stats.withReferrals.toLocaleString();
             document.getElementById('usersWithoutReferrals').textContent = stats.withoutReferrals.toLocaleString();
             document.getElementById('totalNMXMined').textContent = Math.round(stats.totalNMX).toLocaleString();
+            
+            // Update trends with real data
+            document.getElementById('usersTrend').textContent = `${stats.totalUsers} users total`;
+            document.getElementById('referralsTrend').textContent = `${stats.withReferrals} with referrals`;
+            document.getElementById('noReferralsTrend').textContent = `${stats.withoutReferrals} without referrals`;
+            document.getElementById('miningTrend').textContent = `${Math.round(stats.totalNMX)} total NMX`;
         }
 
         // Render user cards for overview
@@ -1000,22 +1007,21 @@
             const usersGrid = document.getElementById('usersGrid');
             if (!usersGrid) return;
 
-            // Show top 12 users by balance
-            const topUsers = [...allUsers]
-                .sort((a, b) => b.balance - a.balance)
-                .slice(0, 12);
-
-            if (topUsers.length === 0) {
+            if (allUsers.length === 0) {
                 usersGrid.innerHTML = `
                     <div class="loading">
-                        <div class="loading-spinner"></div>
-                        No users found
+                        No users found in database
                     </div>
                 `;
                 return;
             }
 
-            usersGrid.innerHTML = topUsers.map(user => `
+            // Show all users or top 12 by balance
+            const displayUsers = allUsers.length > 12 ? 
+                [...allUsers].sort((a, b) => b.balance - a.balance).slice(0, 12) : 
+                allUsers;
+
+            usersGrid.innerHTML = displayUsers.map(user => `
                 <div class="user-card" onclick="showUserDetails('${user.id}')">
                     <div class="user-card-header">
                         <div class="user-avatar">
@@ -1068,7 +1074,6 @@
             if (usersWithReferrals.length === 0) {
                 referralGrid.innerHTML = `
                     <div class="loading">
-                        <div class="loading-spinner"></div>
                         No users with referrals found
                     </div>
                 `;
@@ -1121,7 +1126,7 @@
                 document.getElementById('detailUserId').textContent = user.id;
                 document.getElementById('detailName').textContent = user.name;
                 document.getElementById('detailEmail').textContent = user.email;
-                document.getElementById('detailTelegramId').textContent = user.telegramId || 'Not connected';
+                document.getElementById('detailTelegramId').textContent = user.telegramId;
                 document.getElementById('detailBalance').textContent = Math.round(user.balance) + ' NMX';
                 document.getElementById('detailNMXp').textContent = Math.round(user.nmxpBalance) + ' NMXp';
                 document.getElementById('detailSlots').textContent = `${user.usedSlots}/${user.referralSlots}`;
@@ -1155,7 +1160,7 @@
 
             } catch (error) {
                 console.error('Error showing user details:', error);
-                alert('Failed to load user details');
+                alert('Failed to load user details: ' + error.message);
             }
         }
 
@@ -1255,11 +1260,19 @@
             renderUsersTable();
         }
 
+        // FIXED: Refresh button now works
         function refreshData() {
+            console.log('🔄 Refreshing data...');
+            showLoading();
             loadUsersData();
         }
 
         function exportData() {
+            if (allUsers.length === 0) {
+                alert('No data to export');
+                return;
+            }
+            
             const dataStr = JSON.stringify(allUsers, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
@@ -1282,6 +1295,16 @@
                     </tr>
                 `;
             }
+            
+            const usersGrid = document.getElementById('usersGrid');
+            if (usersGrid) {
+                usersGrid.innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        Loading users from database...
+                    </div>
+                `;
+            }
         }
 
         function showError(message) {
@@ -1293,6 +1316,15 @@
                             ${message}
                         </td>
                     </tr>
+                `;
+            }
+            
+            const usersGrid = document.getElementById('usersGrid');
+            if (usersGrid) {
+                usersGrid.innerHTML = `
+                    <div class="loading" style="color: var(--danger);">
+                        ${message}
+                    </div>
                 `;
             }
         }
