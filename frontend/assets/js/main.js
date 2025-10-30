@@ -90,7 +90,7 @@ async function checkAdminAccess() {
         }
 
         // Your admin emails - UPDATE THESE WITH YOUR ACTUAL EMAILS
-        const adminEmails = ['your-actual-email@gmail.com', 'admin@nemexcoin.com'];
+        const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
         
         if (adminEmails.includes(user.email)) {
             console.log('✅ Admin access granted for:', user.email);
