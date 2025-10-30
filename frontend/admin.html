@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - NemexCoin</title>
-    <!-- Same CSS as before, but adding mock data functionality -->
     <style>
-        /* All the same CSS styles from the previous admin panel */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -42,28 +40,347 @@
             width: 100%;
         }
 
-        /* ... (all the same CSS styles from before) ... */
-        
-        .demo-notice {
+        /* Header Styles */
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+        }
+
+        .admin-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .admin-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .admin-btn {
             background: rgba(212, 175, 55, 0.1);
             border: 1px solid var(--gold);
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-            text-align: center;
             color: var(--gold);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
             font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .stat-trend {
+            margin-top: 8px;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+
+        .trend-up {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+        }
+
+        .trend-down {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* Tabs Navigation */
+        .admin-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            padding: 15px 25px;
+            cursor: pointer;
+            font-weight: 600;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+        }
+
+        .tab-icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Table Styles */
+        .table-container {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .users-table th {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .users-table td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .users-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .users-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--dark-bg);
+            font-size: 14px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        .user-email {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .balance-amount {
+            font-weight: 700;
+            color: var(--gold);
+            font-family: 'Courier New', monospace;
+        }
+
+        .referral-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-referred {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+        }
+
+        .status-not-referred {
+            background: rgba(255, 187, 51, 0.1);
+            color: var(--warning);
+        }
+
+        /* Search and Filters */
+        .table-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-box {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 40px 12px 15px;
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--muted);
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+        }
+
+        .filter-select {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text);
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(212, 175, 55, 0.3);
+            border-top: 3px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 15px;
+            }
+            
+            .admin-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-controls {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .search-box {
+                width: 100%;
+            }
+            
+            .admin-tabs {
+                overflow-x: auto;
+            }
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <!-- Demo Notice -->
-        <div class="demo-notice">
-            🔧 DEMO MODE - Using Mock Data. Connect to your backend when ready.
-        </div>
-
-        <!-- Rest of the admin panel HTML (same as before) -->
+        <!-- Admin Header -->
         <header class="admin-header">
             <div class="admin-title">
                 <svg class="admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,80 +396,155 @@
                     </svg>
                     Refresh
                 </button>
-                <button class="admin-btn" onclick="toggleDataSource()" id="dataSourceBtn">
+                <button class="admin-btn" onclick="exportData()">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    Switch to Backend
+                    Export
                 </button>
             </div>
         </header>
 
-        <!-- Rest of the admin panel remains the same -->
-        <!-- ... -->
+        <!-- Statistics Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalUsers">0</div>
+                <div class="stat-label">Total Users</div>
+                <div class="stat-trend trend-up" id="usersTrend">+12% this week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="usersWithReferrals">0</div>
+                <div class="stat-label">Users with Referrals</div>
+                <div class="stat-trend trend-up" id="referralsTrend">+8% this week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="usersWithoutReferrals">0</div>
+                <div class="stat-label">Users without Referrals</div>
+                <div class="stat-trend trend-down" id="noReferralsTrend">-5% this week</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalNMXMined">0</div>
+                <div class="stat-label">Total NMX Mined</div>
+                <div class="stat-trend trend-up" id="miningTrend">+15% this week</div>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="admin-tabs">
+            <button class="tab-btn active" onclick="switchTab('allUsers')">
+                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                All Users
+            </button>
+            <button class="tab-btn" onclick="switchTab('withReferrals')">
+                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                With Referrals
+            </button>
+            <button class="tab-btn" onclick="switchTab('withoutReferrals')">
+                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+                Without Referrals
+            </button>
+        </div>
+
+        <!-- Table Controls -->
+        <div class="table-controls">
+            <div class="search-box">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search users by name or email..." onkeyup="filterUsers()">
+                <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+            </div>
+            <div class="filters">
+                <select class="filter-select" id="sortSelect" onchange="sortUsers()">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="balance-high">Balance: High to Low</option>
+                    <option value="balance-low">Balance: Low to High</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="table-container">
+            <table class="users-table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Email</th>
+                        <th>Balance</th>
+                        <th>Referral Status</th>
+                        <th>Joined Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <!-- Users will be loaded here dynamically -->
+                    <tr>
+                        <td colspan="6" class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading users data...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <script>
-        let useMockData = true;
+        // Global variables
         let allUsers = [];
         let currentTab = 'allUsers';
         let currentFilter = '';
 
         // Initialize admin panel
         document.addEventListener('DOMContentLoaded', function() {
-            // Skip admin check in demo mode
+            checkAdminAccess();
             loadUsersData();
         });
 
-        // Toggle between mock data and real backend
-        function toggleDataSource() {
-            useMockData = !useMockData;
-            const btn = document.getElementById('dataSourceBtn');
-            btn.innerHTML = useMockData ? 
-                `<svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                </svg> Switch to Backend` :
-                `<svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg> Switch to Mock Data`;
-            
-            // Update demo notice
-            const notice = document.querySelector('.demo-notice');
-            notice.textContent = useMockData ? 
-                '🔧 DEMO MODE - Using Mock Data. Connect to your backend when ready.' :
-                '🔗 CONNECTED MODE - Using Real Backend Data';
-            
-            loadUsersData();
+        // Check if user is admin (you'll implement this based on your auth system)
+        async function checkAdminAccess() {
+            try {
+                // This should check if the current user has admin privileges
+                const response = await fetch('https://nemex-backend.onrender.com/api/admin/check-access', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('adminToken')
+                    }
+                });
+                
+                if (!response.ok) {
+                    window.location.href = 'dashboard.html'; // Redirect if not admin
+                }
+            } catch (error) {
+                console.error('Admin access check failed:', error);
+                window.location.href = 'dashboard.html';
+            }
         }
 
-        // Load users data - either from mock or real backend
+        // Load users data from backend
         async function loadUsersData() {
             try {
                 showLoading();
                 
-                if (useMockData) {
-                    // Use mock data for demo
-                    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate loading
-                    allUsers = generateMockUsers();
-                    updateStatistics(calculateMockStats());
+                const response = await fetch('https://nemex-backend.onrender.com/api/admin/users', {
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('adminToken'),
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    allUsers = data.users;
+                    updateStatistics(data.stats);
                     renderUsersTable();
                 } else {
-                    // Use real backend
-                    const response = await fetch('https://nemex-backend.onrender.com/api/admin/users', {
-                        headers: {
-                            'Authorization': 'Bearer ' + localStorage.getItem('adminToken'),
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        allUsers = data.users;
-                        updateStatistics(data.stats);
-                        renderUsersTable();
-                    } else {
-                        throw new Error('Failed to load users data');
-                    }
+                    throw new Error('Failed to load users data');
                 }
             } catch (error) {
                 console.error('Error loading users:', error);
@@ -160,40 +552,163 @@
             }
         }
 
-        // Generate mock users data for demo
-        function generateMockUsers() {
-            const names = ['John Doe', 'Jane Smith', 'Mike Johnson', 'Sarah Wilson', 'Alex Brown', 'Emma Davis', 'Chris Lee', 'Lisa Garcia'];
-            const domains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+        // Update statistics cards
+        function updateStatistics(stats) {
+            document.getElementById('totalUsers').textContent = stats.totalUsers.toLocaleString();
+            document.getElementById('usersWithReferrals').textContent = stats.withReferrals.toLocaleString();
+            document.getElementById('usersWithoutReferrals').textContent = stats.withoutReferrals.toLocaleString();
+            document.getElementById('totalNMXMined').textContent = stats.totalNMX.toLocaleString();
+        }
+
+        // Render users table based on current tab and filter
+        function renderUsersTable() {
+            const tableBody = document.getElementById('usersTableBody');
+            let filteredUsers = [...allUsers];
+
+            // Apply tab filter
+            if (currentTab === 'withReferrals') {
+                filteredUsers = filteredUsers.filter(user => user.hasReferral);
+            } else if (currentTab === 'withoutReferrals') {
+                filteredUsers = filteredUsers.filter(user => !user.hasReferral);
+            }
+
+            // Apply search filter
+            if (currentFilter) {
+                const searchTerm = currentFilter.toLowerCase();
+                filteredUsers = filteredUsers.filter(user => 
+                    user.name.toLowerCase().includes(searchTerm) ||
+                    user.email.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            // Apply sorting
+            applySorting(filteredUsers);
+
+            // Render table rows
+            if (filteredUsers.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px; color: var(--muted);">
+                            No users found matching your criteria.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tableBody.innerHTML = filteredUsers.map(user => `
+                <tr>
+                    <td>
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                ${user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <div class="user-name">${user.name}</div>
+                                <div class="user-email">ID: ${user.id}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${user.email}</td>
+                    <td>
+                        <div class="balance-amount">${user.balance} NMX</div>
+                    </td>
+                    <td>
+                        <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
+                            ${user.hasReferral ? 'Referred' : 'Not Referred'}
+                        </span>
+                    </td>
+                    <td>${new Date(user.joinedDate).toLocaleDateString()}</td>
+                    <td>
+                        <button class="admin-btn" onclick="viewUserDetails('${user.id}')" style="padding: 6px 12px; font-size: 12px;">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Apply sorting to users array
+        function applySorting(users) {
+            const sortValue = document.getElementById('sortSelect').value;
             
-            return Array.from({ length: 50 }, (_, i) => {
-                const name = names[Math.floor(Math.random() * names.length)];
-                const email = name.toLowerCase().replace(' ', '.') + Math.floor(Math.random() * 1000) + '@' + domains[Math.floor(Math.random() * domains.length)];
-                const hasReferral = Math.random() > 0.4; // 60% have referrals
-                
-                return {
-                    id: 'user_' + (i + 1),
-                    name: name,
-                    email: email,
-                    balance: Math.floor(Math.random() * 1000),
-                    joinedDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-                    hasReferral: hasReferral
-                };
+            switch (sortValue) {
+                case 'newest':
+                    users.sort((a, b) => new Date(b.joinedDate) - new Date(a.joinedDate));
+                    break;
+                case 'oldest':
+                    users.sort((a, b) => new Date(a.joinedDate) - new Date(b.joinedDate));
+                    break;
+                case 'balance-high':
+                    users.sort((a, b) => b.balance - a.balance);
+                    break;
+                case 'balance-low':
+                    users.sort((a, b) => a.balance - b.balance);
+                    break;
+            }
+        }
+
+        // Tab switching
+        function switchTab(tabName) {
+            currentTab = tabName;
+            
+            // Update active tab
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
             });
+            event.target.classList.add('active');
+            
+            renderUsersTable();
         }
 
-        // Calculate mock statistics
-        function calculateMockStats() {
-            return {
-                totalUsers: allUsers.length,
-                withReferrals: allUsers.filter(u => u.hasReferral).length,
-                withoutReferrals: allUsers.filter(u => !u.hasReferral).length,
-                totalNMX: allUsers.reduce((sum, user) => sum + user.balance, 0)
-            };
+        // Filter users based on search input
+        function filterUsers() {
+            currentFilter = document.getElementById('searchInput').value;
+            renderUsersTable();
         }
 
-        // The rest of your JavaScript functions remain the same...
-        // updateStatistics(), renderUsersTable(), switchTab(), filterUsers(), etc.
-        // (Copy all the previous JavaScript functions here)
+        // Sort users
+        function sortUsers() {
+            renderUsersTable();
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadUsersData();
+        }
+
+        // Export data (placeholder)
+        function exportData() {
+            alert('Export functionality will be implemented soon!');
+        }
+
+        // View user details (placeholder)
+        function viewUserDetails(userId) {
+            alert(`Viewing details for user: ${userId}\n\nThis will show detailed user information, mining history, and referral details.`);
+        }
+
+        // Show loading state
+        function showLoading() {
+            document.getElementById('usersTableBody').innerHTML = `
+                <tr>
+                    <td colspan="6" class="loading">
+                        <div class="loading-spinner"></div>
+                        Loading users data...
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Show error state
+        function showError(message) {
+            document.getElementById('usersTableBody').innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--danger);">
+                        ${message}
+                    </td>
+                </tr>
+            `;
+        }
     </script>
 </body>
 </html>
