@@ -49,14 +49,19 @@
             border-bottom: 1px solid var(--border-color);
             background-color: var(--dark-bg);
         }
-        .settings-icon {
+        .header-icons {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .settings-icon, .admin-icon {
             width: 24px;
             height: 24px;
             color: var(--muted);
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .settings-icon:hover {
+        .settings-icon:hover, .admin-icon:hover {
             color: var(--gold);
             transform: scale(1.1);
         }
@@ -469,10 +474,18 @@
         <div class="content-wrapper">
             <header class="header">
                 <div class="header-title">〽️ NEMEXCOIN <span id="telegramBadge" class="telegram-badge" style="display: none;">Telegram</span></div>
-                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="settingsButton">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
+                <div class="header-icons">
+                    <!-- ADMIN ICON - Only visible to you -->
+                    <svg class="admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="adminButton" style="display: none;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                    <!-- SETTINGS ICON -->
+                    <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="settingsButton">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                </div>
             </header>
 
             <main class="main-content">
@@ -497,8 +510,7 @@
                             <div class="logo-center">
                                 <div class="infinity-symbol"></div>
                             </div>
-                            <div class="circuit-lines">
-                                <div class="circuit-line"></div>
+                            <div class="circuit-lines">                                <div class="circuit-line"></div>
                                 <div class="circuit-line"></div>
                                 <div class="circuit-line"></div>
                                 <div class="circuit-line"></div>
@@ -748,7 +760,7 @@
             // Highlight current page in navigation
             const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
             const navItems = document.querySelectorAll('.nav-item');
-            
+
             navItems.forEach(item => {
                 const href = item.getAttribute('href');
                 if (href === currentPage || (currentPage === 'dashboard.html' && href === '#')) {
@@ -778,6 +790,9 @@
                 // Load user data with balance refresh
                 await loadUserData();
 
+                // Check if user is admin and show admin icon
+                checkAdminAccess();
+
                 // Start countdown timer
                 startCountdownTimer();
 
@@ -792,6 +807,32 @@
             } catch (error) {
                 console.error('❌ Dashboard initialization failed:', error);
                 showError('Failed to load dashboard. Please refresh the page.');
+            }
+        }
+
+        // Check if user is admin and show admin icon
+        function checkAdminAccess() {
+            try {
+                // Get current user email from Supabase session
+                const userEmail = user?.email;
+                
+                // Your admin emails - UPDATE THESE WITH YOUR ACTUAL EMAILS
+                const adminEmails = ['your-actual-email@gmail.com', 'admin@nemexcoin.com'];
+                
+                if (userEmail && adminEmails.includes(userEmail)) {
+                    // Show admin icon
+                    const adminButton = document.getElementById('adminButton');
+                    adminButton.style.display = 'block';
+                    
+                    // Add click event to redirect to admin panel
+                    adminButton.addEventListener('click', function() {
+                        window.location.href = 'admin.html';
+                    });
+                    
+                    console.log('👑 Admin access granted for:', userEmail);
+                }
+            } catch (error) {
+                console.error('Error checking admin access:', error);
             }
         }
 
@@ -899,8 +940,7 @@
         function showError(message) {
             const errorElement = document.getElementById('errorMessage');
             errorElement.textContent = message;
-            errorElement.style.display = 'block';
-            setTimeout(() => errorElement.style.display = 'none', 5000);
+            errorElement.style.display = 'block';            setTimeout(() => errorElement.style.display = 'none', 5000);
         }
 
         // Claim mining reward
