@@ -467,9 +467,67 @@
             margin-left: 8px;
             display: inline-block;
         }
+
+        /* MAINTENANCE MODE STYLES */
+        .maintenance-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 15, 0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+        .maintenance-content {
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 350px;
+            width: 90%;
+        }
+        .maintenance-icon {
+            width: 80px;
+            height: 80px;
+            color: var(--gold);
+            margin: 0 auto 20px;
+        }
+        .maintenance-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 15px;
+        }
+        .maintenance-message {
+            color: var(--muted);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
     </style>
 </head>
 <body>
+    <!-- Maintenance Mode Overlay -->
+    <div class="maintenance-overlay" id="maintenanceOverlay">
+        <div class="maintenance-content">
+            <svg class="maintenance-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+            <h2 class="maintenance-title">Under Maintenance</h2>
+            <p class="maintenance-message">
+                NemexCoin is currently undergoing maintenance. We'll be back soon with exciting updates!
+            </p>
+            <button class="claim-btn" onclick="checkMaintenanceStatus()" style="margin: 10px 0;">
+                Check Status
+            </button>
+        </div>
+    </div>
+
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
@@ -497,7 +555,6 @@
                 </div>
 
                 <div class="connection-status" id="connectionStatus">Connecting to database...</div>
-
                 <div class="balance-display">
                     <div class="balance-label">Your Balance</div>
                     <div class="balance-amount" id="balanceAmount">0</div>
@@ -644,6 +701,39 @@
             return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
+        // ========== FIXED: CHECK MAINTENANCE MODE FIRST ==========
+        async function checkMaintenanceStatus() {
+            try {
+                console.log('🔧 Checking maintenance status...');
+                
+                const { data, error } = await supabaseClient
+                    .from('settings')
+                    .select('*')
+                    .eq('key', 'maintenance_mode')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error checking maintenance status:', error);
+                    return false;
+                }
+
+                const isMaintenance = data ? data.value : false;
+                
+                if (isMaintenance) {
+                    console.log('🚧 MAINTENANCE MODE ACTIVE - Showing maintenance overlay');
+                    document.getElementById('maintenanceOverlay').style.display = 'flex';
+                    return true;
+                } else {
+                    console.log('✅ Maintenance mode is OFF - Proceeding normally');
+                    document.getElementById('maintenanceOverlay').style.display = 'none';
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error checking maintenance status:', error);
+                return false;
+            }
+        }
+
         // ========== FIXED: DATABASE-ONLY USER DATA ==========
         async function loadUserData() {
             try {
@@ -677,7 +767,7 @@
 
                 return profile;
 
-                        } catch (error) {
+            } catch (error) {
                 console.error('❌ Error loading user data:', error);
                 return null;
             }
@@ -774,6 +864,13 @@
         // ========== FIXED: DATABASE-ONLY Dashboard Initialization ==========
         async function initializeDashboard() {
             try {
+                // FIRST: Check maintenance mode before doing anything else
+                const isMaintenance = await checkMaintenanceStatus();
+                if (isMaintenance) {
+                    console.log('🚧 Dashboard initialization paused - Maintenance mode active');
+                    return;
+                }
+
                 // Initialize Telegram first
                 initializeTelegram();
 
@@ -815,20 +912,20 @@
             try {
                 // Get current user email from Supabase session
                 const userEmail = user?.email;
-                
+
                 // Your admin emails - UPDATE THESE WITH YOUR ACTUAL EMAILS
                 const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
-                
+
                 if (userEmail && adminEmails.includes(userEmail)) {
                     // Show admin icon
                     const adminButton = document.getElementById('adminButton');
                     adminButton.style.display = 'block';
-                    
+
                     // Add click event to redirect to admin panel
                     adminButton.addEventListener('click', function() {
                         window.location.href = 'admin.html';
                     });
-                    
+
                     console.log('👑 Admin access granted for:', userEmail);
                 }
             } catch (error) {
@@ -940,7 +1037,8 @@
         function showError(message) {
             const errorElement = document.getElementById('errorMessage');
             errorElement.textContent = message;
-            errorElement.style.display = 'block';            setTimeout(() => errorElement.style.display = 'none', 5000);
+            errorElement.style.display = 'block';            
+            setTimeout(() => errorElement.style.display = 'none', 5000);
         }
 
         // Claim mining reward
