@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin - Admin Dashboard</title>
+    <title>NemexCoin - Ultimate Admin Dashboard</title>
     <style>
         :root { 
             --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; --text: #f5f5f5; --muted: #aaa; 
@@ -28,6 +28,11 @@
         .maintenance-btn:hover { background: var(--danger); color: var(--dark-bg); transform: translateY(-2px); }
         .maintenance-btn.active { background: rgba(0, 200, 81, 0.1); border: 1px solid var(--success); color: var(--success); }
         .maintenance-btn.active:hover { background: var(--success); color: var(--dark-bg); }
+
+        /* Real-time indicator */
+        .realtime-indicator { position: fixed; top: 10px; right: 10px; background: var(--success); color: white; padding: 5px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; z-index: 1000; display: flex; align-items: center; gap: 5px; animation: pulse 2s infinite; }
+        .realtime-dot { width: 6px; height: 6px; background: white; border-radius: 50%; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
 
         /* Enhanced Navigation */
         .mini-nav { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; flex-wrap: wrap; }
@@ -131,10 +136,17 @@
             .users-grid { grid-template-columns: 1fr; }
             .analytics-grid { grid-template-columns: 1fr; }
             .search-controls { flex-direction: column; }
+            .realtime-indicator { top: 5px; right: 5px; font-size: 8px; }
         }
     </style>
 </head>
 <body>
+    <!-- Real-time Indicator -->
+    <div class="realtime-indicator" id="realtimeIndicator" style="display: none;">
+        <div class="realtime-dot"></div>
+        LIVE
+    </div>
+
     <div class="admin-container">
         <header class="admin-header">
             <div class="header-left">
@@ -147,7 +159,7 @@
                     <svg class="admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
-                    NemexCoin - Admin Dashboard
+                    NemexCoin - Ultimate Admin Dashboard
                 </div>
             </div>
             <div class="admin-actions">
@@ -540,11 +552,72 @@
 
         // Initialize Admin Panel
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀  Admin Panel Initializing...');
+            console.log('🚀 Ultimate Admin Panel Initializing...');
             checkMaintenanceStatus();
             loadCompleteDashboardData();
             setupNavigation();
+            setupRealtimeUpdates(); // 🆕 REAL-TIME UPDATES ADDED
         });
+
+        // 🆕 REAL-TIME UPDATES FUNCTION
+        function setupRealtimeUpdates() {
+            console.log('📡 Setting up real-time updates...');
+            
+            // Real-time subscription for profiles table
+            supabaseClient
+                .channel('profiles-changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'profiles' },
+                    (payload) => {
+                        console.log('🔄 Real-time user update detected:', payload);
+                        showRealtimeNotification('User data updated');
+                        refreshData();
+                    }
+                )
+                .subscribe();
+
+            // Real-time subscription for purchases table
+            supabaseClient
+                .channel('purchases-changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'purchases' },
+                    (payload) => {
+                        console.log('💰 Real-time purchase update detected:', payload);
+                        showRealtimeNotification('Purchase data updated');
+                        refreshData();
+                    }
+                )
+                .subscribe();
+
+            // Real-time subscription for referral_network table
+            supabaseClient
+                .channel('referral-changes')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'referral_network' },
+                    (payload) => {
+                        console.log('🌐 Real-time referral update detected:', payload);
+                        showRealtimeNotification('Referral data updated');
+                        refreshData();
+                    }
+                )
+                .subscribe();
+
+            console.log('✅ Real-time updates enabled');
+            document.getElementById('realtimeIndicator').style.display = 'flex';
+        }
+
+        // 🆕 REAL-TIME NOTIFICATION
+        function showRealtimeNotification(message) {
+            const indicator = document.getElementById('realtimeIndicator');
+            indicator.innerHTML = `<div class="realtime-dot"></div>${message}`;
+            indicator.style.background = 'var(--info)';
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+                indicator.innerHTML = '<div class="realtime-dot"></div>LIVE';
+                indicator.style.background = 'var(--success)';
+            }, 3000);
+        }
 
         // Setup Navigation Event Listeners
         function setupNavigation() {
@@ -794,7 +867,7 @@
                         <div class="user-stats">
                             <div class="user-stat">
                                 <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
-                                <div class="user-stat-label">NMXp</div>
+                                <div class="user-stat-label">NMX</div>
                             </div>
                             <div class="user-stat">
                                 <div class="user-stat-value">${userReferrals.length}</div>
@@ -1110,7 +1183,7 @@
                             <div class="node-stats">
                                 <div class="node-stat">
                                     <span class="node-stat-value">${Math.round(user.balance || 0)}</span>
-                                    <span>NMXp</span>
+                                    <span>NMX</span>
                                 </div>
                                 <div class="node-stat">
                                     <span class="node-stat-value">${userReferrals.length}</span>
@@ -1173,7 +1246,7 @@
                         <div class="user-stats">
                             <div class="user-stat">
                                 <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
-                                <div class="user-stat-label">NMXp</div>
+                                <div class="user-stat-label">NMX</div>
                             </div>
                             <div class="user-stat">
                                 <div class="user-stat-value">${userReferrals.length}</div>
@@ -1233,7 +1306,7 @@
                         <div class="user-stats">
                             <div class="user-stat">
                                 <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
-                                <div class="user-stat-label">NMXp</div>
+                                <div class="user-stat-label">NMX</div>
                             </div>
                             <div class="user-stat">
                                 <div class="user-stat-value">0</div>
