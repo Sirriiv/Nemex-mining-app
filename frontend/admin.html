@@ -263,8 +263,8 @@
             height: 24px;
         }
 
-        /* Purchase Tracking Styles */
-        .purchases-section {
+        /* Token Distribution Styles */
+        .distribution-section {
             background: var(--darker-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
@@ -272,213 +272,112 @@
             margin-bottom: 25px;
         }
 
-        .purchases-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .purchases-controls {
+        .distribution-controls {
             display: flex;
             gap: 15px;
-            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
         }
 
-        .filter-select {
+        .distribution-input {
             background: var(--dark-bg);
             border: 1px solid var(--border-color);
             color: var(--text);
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 10px 15px;
+            border-radius: 8px;
             font-size: 14px;
+            flex: 1;
+            min-width: 200px;
         }
 
-        .purchases-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .purchases-table th {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 12px 15px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--gold);
-            border-bottom: 2px solid var(--border-color);
-        }
-
-        .purchases-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .purchases-table tr:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        .user-cell {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .user-avatar-small {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: var(--gold);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: var(--dark-bg);
-            font-size: 14px;
-        }
-
-        .vip-badge {
-            background: rgba(155, 89, 182, 0.2);
-            color: var(--vip);
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .amount-cell {
-            font-weight: 700;
-            color: var(--gold);
-        }
-
-        .bonus-cell {
+        .distribution-btn {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
             color: var(--success);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
             font-weight: 600;
+            transition: all 0.3s ease;
         }
 
-        .price-cell {
-            font-weight: 600;
+        .distribution-btn:hover {
+            background: var(--success);
+            color: var(--dark-bg);
         }
 
-        .method-cell {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
+        .distribution-btn.danger {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
         }
 
-        .method-card { background: rgba(212, 175, 55, 0.1); color: var(--gold); }
-        .method-paypal { background: rgba(0, 87, 184, 0.1); color: #0057b8; }
-        .method-crypto { background: rgba(247, 147, 26, 0.1); color: #f7931a; }
-        .method-bank { background: rgba(0, 200, 81, 0.1); color: var(--success); }
+        .distribution-btn.danger:hover {
+            background: var(--danger);
+            color: var(--dark-bg);
+        }
 
-        .date-cell {
-            color: var(--muted);
+        .distribution-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .distribution-stat {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .distribution-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .distribution-stat-label {
             font-size: 12px;
+            color: var(--muted);
         }
 
-        /* Referral Tree Styles */
-        .referral-tree-container {
+        /* Export Section */
+        .export-section {
             background: var(--darker-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 25px;
-            max-height: 600px;
-            overflow-y: auto;
         }
 
-        .tree-node {
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
-
-        .node-main {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 10px;
-        }
-
-        .node-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--gold);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: var(--dark-bg);
-            font-size: 16px;
-        }
-
-        .node-info {
-            flex: 1;
-        }
-
-        .node-name {
-            font-weight: 600;
-            font-size: 16px;
-            margin-bottom: 4px;
-        }
-
-        .node-email {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        .node-stats {
+        .export-options {
             display: flex;
             gap: 15px;
-            font-size: 12px;
+            flex-wrap: wrap;
         }
 
-        .node-stat {
+        .export-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 8px;
         }
 
-        .node-stat-value {
-            color: var(--gold);
-            font-weight: 600;
+        .export-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
         }
 
-        .children-container {
-            margin-left: 40px;
-            border-left: 2px solid var(--border-color);
-            padding-left: 20px;
-        }
-
-        .child-node {
-            margin: 10px 0;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
-            border: 1px solid var(--border-color);
-        }
-
-        .no-referrals {
-            text-align: center;
-            padding: 40px;
-            color: var(--muted);
-            font-style: italic;
-        }
-
-        /* Users Without Referrers Section */
-        .no-referrers-section {
-            background: var(--darker-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 25px;
-        }
-
+        /* Users Grid */
         .users-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -486,12 +385,11 @@
         }
 
         .user-card {
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--darker-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
             padding: 20px;
             transition: all 0.3s ease;
-            cursor: pointer;
         }
 
         .user-card:hover {
@@ -590,23 +488,6 @@
             color: var(--danger);
         }
 
-        .view-details-btn {
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid var(--gold);
-            color: var(--gold);
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .view-details-btn:hover {
-            background: var(--gold);
-            color: var(--dark-bg);
-        }
-
         /* Loading State */
         .loading {
             text-align: center;
@@ -649,24 +530,19 @@
                 grid-template-columns: 1fr;
             }
 
-            .children-container {
-                margin-left: 20px;
+            .distribution-controls {
+                flex-direction: column;
             }
 
-            .mini-nav {
-                overflow-x: auto;
-            }
-
-            .purchases-table {
-                display: block;
-                overflow-x: auto;
+            .export-options {
+                flex-direction: column;
             }
         }
     </style>
 </head>
 <body>
     <div class="admin-container">
-        <!-- Admin Header with Back Button -->
+        <!-- Admin Header -->
         <header class="admin-header">
             <div class="header-left">
                 <a href="dashboard.html" class="back-btn">
@@ -705,23 +581,11 @@
                 </svg>
                 Overview
             </button>
-            <button class="mini-nav-btn" onclick="showSection('purchases')">
+            <button class="mini-nav-btn" onclick="showSection('tokenDistribution')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
-                NMXp Purchases
-            </button>
-            <button class="mini-nav-btn" onclick="showSection('referralTree')">
-                <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                Complete Referral Tree
-            </button>
-            <button class="mini-nav-btn" onclick="showSection('noReferrers')">
-                <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
-                Users Without Referrers
+                Token Distribution
             </button>
             <button class="mini-nav-btn" onclick="showSection('allUsers')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -733,7 +597,6 @@
 
         <!-- Overview Section -->
         <div id="overviewSection" class="section-content">
-            <!-- Statistics Overview -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-number" id="totalUsers">0</div>
@@ -741,98 +604,118 @@
                     <div class="stat-trend trend-up" id="usersTrend">Loading...</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="usersWithReferrals">0</div>
-                    <div class="stat-label">Users with Referrals</div>
+                    <div class="stat-number" id="totalBalance">0</div>
+                    <div class="stat-label">Total NMX Balance</div>
+                    <div class="stat-trend trend-up" id="balanceTrend">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="activeUsers">0</div>
+                    <div class="stat-label">Active Users</div>
+                    <div class="stat-trend trend-up" id="activeTrend">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalReferrals">0</div>
+                    <div class="stat-label">Total Referrals</div>
                     <div class="stat-trend trend-up" id="referralsTrend">Loading...</div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="totalRevenue">$0</div>
-                    <div class="stat-label">Total Revenue</div>
-                    <div class="stat-trend trend-up" id="revenueTrend">Loading...</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="usersWithoutReferrers">0</div>
-                    <div class="stat-label">Users without Referrers</div>
-                    <div class="stat-trend trend-down" id="noReferrersTrend">Loading...</div>
-                </div>
             </div>
 
-            <!-- User Cards Grid -->
-            <div class="users-grid" id="usersGrid">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
-                    Loading users from database...
-                </div>
-            </div>
-        </div>
-
-        <!-- NMXp Purchases Section -->
-        <div id="purchasesSection" class="section-content" style="display: none;">
-            <div class="purchases-section">
-                <div class="purchases-header">
+            <!-- Quick Distribution -->
+            <div class="distribution-section">
+                <div class="section-header">
                     <h2 class="section-title">
                         <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                         </svg>
-                        NMXp Purchase History
+                        Quick Token Distribution
                     </h2>
-                    <div class="purchases-controls">
-                        <select class="filter-select" id="timeFilter" onchange="filterPurchases()">
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                        </select>
-                        <select class="filter-select" id="packageFilter" onchange="filterPurchases()">
-                            <option value="all">All Packages</option>
-                            <option value="basic">Basic Packages</option>
-                            <option value="vip">VIP Packages</option>
-                        </select>
-                    </div>
                 </div>
-                <div id="purchasesTableContainer">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        Loading purchase history...
+                <div class="distribution-controls">
+                    <input type="number" class="distribution-input" id="tokenAmount" placeholder="Token amount per user" min="1">
+                    <button class="distribution-btn" onclick="distributeTokens()">Distribute to All Users</button>
+                    <button class="distribution-btn danger" onclick="resetAllBalances()">Reset All Balances</button>
+                </div>
+                <div class="distribution-stats" id="distributionStats">
+                    <div class="distribution-stat">
+                        <div class="distribution-stat-value" id="totalToDistribute">0</div>
+                        <div class="distribution-stat-label">Total Tokens to Distribute</div>
+                    </div>
+                    <div class="distribution-stat">
+                        <div class="distribution-stat-value" id="usersToReceive">0</div>
+                        <div class="distribution-stat-label">Users to Receive</div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Complete Referral Tree Section -->
-        <div id="referralTreeSection" class="section-content" style="display: none;">
-            <div class="section-header">
-                <h2 class="section-title">
-                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Complete Referral Tree
-                </h2>
-            </div>
-            <div class="referral-tree-container" id="referralTree">
-                <div class="loading">
-                    <div class="loading-spinner"></div>
-                    Building referral tree...
-                </div>
-            </div>
-        </div>
-
-        <!-- Users Without Referrers Section -->
-        <div id="noReferrersSection" class="section-content" style="display: none;">
-            <div class="no-referrers-section">
+            <!-- Export Data -->
+            <div class="export-section">
                 <div class="section-header">
                     <h2 class="section-title">
                         <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                         </svg>
-                        Users Without Referrers (Root Users)
+                        Export User Data
                     </h2>
-                    <div class="stat-number" id="noReferrersCount">0</div>
                 </div>
-                <div class="users-grid" id="noReferrersGrid">
-                    <div class="loading">
-                        <div class="loading-spinner"></div>
-                        Loading users without referrers...
+                <div class="export-options">
+                    <button class="export-btn" onclick="exportUserData('csv')">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Export CSV
+                    </button>
+                    <button class="export-btn" onclick="exportUserData('json')">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Export JSON
+                    </button>
+                    <button class="export-btn" onclick="exportUserData('excel')">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        Export Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Token Distribution Section -->
+        <div id="tokenDistributionSection" class="section-content" style="display: none;">
+            <div class="distribution-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                        Advanced Token Distribution
+                    </h2>
+                </div>
+                
+                <div class="distribution-controls">
+                    <input type="number" class="distribution-input" id="customTokenAmount" placeholder="Token amount" min="1">
+                    <select class="distribution-input" id="distributionType">
+                        <option value="all">All Users</option>
+                        <option value="active">Active Users Only</option>
+                        <option value="withReferrals">Users with Referrals</option>
+                        <option value="specific">Specific User</option>
+                    </select>
+                    <input type="text" class="distribution-input" id="specificUser" placeholder="User Email or ID" style="display: none;">
+                    <button class="distribution-btn" onclick="customDistribution()">Distribute Tokens</button>
+                </div>
+
+                <div class="distribution-stats">
+                    <div class="distribution-stat">
+                        <div class="distribution-stat-value" id="totalDistributed">0</div>
+                        <div class="distribution-stat-label">Total Distributed</div>
+                    </div>
+                    <div class="distribution-stat">
+                        <div class="distribution-stat-value" id="remainingBalance">0</div>
+                        <div class="distribution-stat-label">Remaining Supply</div>
+                    </div>
+                    <div class="distribution-stat">
+                        <div class="distribution-stat-value" id="averageBalance">0</div>
+                        <div class="distribution-stat-label">Average per User</div>
                     </div>
                 </div>
             </div>
@@ -840,13 +723,13 @@
 
         <!-- All Users Section -->
         <div id="allUsersSection" class="section-content" style="display: none;">
-            <div class="no-referrers-section">
+            <div class="distribution-section">
                 <div class="section-header">
                     <h2 class="section-title">
                         <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                         </svg>
-                        All Users
+                        All Users & Balances
                     </h2>
                     <div class="stat-number" id="allUsersCount">0</div>
                 </div>
@@ -869,10 +752,6 @@
 
         // Global variables
         let allUsers = [];
-        let allPurchases = [];
-        let referralsMap = new Map();
-        let referrerMap = new Map();
-        let currentSection = 'overview';
         let maintenanceMode = false;
 
         // Initialize admin panel
@@ -882,7 +761,7 @@
             loadAdminData();
         });
 
-        // Check maintenance status from database
+        // Check maintenance status
         async function checkMaintenanceStatus() {
             try {
                 const { data, error } = await supabaseClient
@@ -908,7 +787,6 @@
             try {
                 maintenanceMode = !maintenanceMode;
 
-                // Update database
                 const { error } = await supabaseClient
                     .from('settings')
                     .upsert({
@@ -919,25 +797,24 @@
 
                 if (error) {
                     console.error('Error updating maintenance mode:', error);
-                    maintenanceMode = !maintenanceMode; // Revert on error
+                    maintenanceMode = !maintenanceMode;
                     return;
                 }
 
                 updateMaintenanceButton();
 
-                // Show confirmation
                 if (maintenanceMode) {
-                    alert('✅ Maintenance mode enabled! All user activities will be paused.');
+                    alert('✅ Maintenance mode enabled!');
                 } else {
-                    alert('✅ Maintenance mode disabled! All user activities are now active.');
+                    alert('✅ Maintenance mode disabled!');
                 }
             } catch (error) {
                 console.error('Error toggling maintenance mode:', error);
-                alert('❌ Failed to update maintenance mode. Please try again.');
+                alert('❌ Failed to update maintenance mode.');
             }
         }
 
-        // Update maintenance button appearance
+        // Update maintenance button
         function updateMaintenanceButton() {
             const button = document.getElementById('maintenanceToggle');
             const text = document.getElementById('maintenanceText');
@@ -957,7 +834,7 @@
                 showLoading();
                 console.log('🔄 Loading admin data from database...');
 
-                // Load users
+                // Load users with their complete data
                 const { data: users, error: usersError } = await supabaseClient
                     .from('profiles')
                     .select('*')
@@ -965,85 +842,45 @@
 
                 if (usersError) throw new Error('Users error: ' + usersError.message);
 
-                // Load purchases
-                const { data: purchases, error: purchasesError } = await supabaseClient
-                    .from('purchases')
-                    .select(`
-                        *,
-                        profiles:user_id (
-                            username,
-                            email
-                        )
-                    `)
-                    .order('purchased_at', { ascending: false });
-
-                if (purchasesError) {
-                    console.warn('⚠️ Could not load purchases:', purchasesError);
-                    // Continue without purchases
-                }
-
-                // Load referral data
+                // Load referrals to calculate network
                 const { data: referrals, error: refError } = await supabaseClient
                     .from('referrals')
-                    .select('*')
-                    .limit(1000);
+                    .select('*');
 
                 if (refError) {
                     console.warn('⚠️ Could not load referrals:', refError);
                 }
 
-                console.log('✅ Loaded data:', { 
-                    users: users?.length, 
-                    purchases: purchases?.length,
-                    referrals: referrals?.length 
-                });
+                console.log('✅ Loaded data:', { users: users?.length, referrals: referrals?.length });
 
                 allUsers = users || [];
-                allPurchases = purchases || [];
 
-                // Build referral maps
-                referralsMap.clear();
-                referrerMap.clear();
-
+                // Build referral map
+                const referralMap = new Map();
                 if (referrals) {
                     referrals.forEach(ref => {
-                        if (!referralsMap.has(ref.referrer_id)) {
-                            referralsMap.set(ref.referrer_id, []);
+                        if (!referralMap.has(ref.referrer_id)) {
+                            referralMap.set(ref.referrer_id, []);
                         }
-                        referralsMap.get(ref.referrer_id).push(ref.referred_user_id);
-                        referrerMap.set(ref.referred_user_id, ref.referrer_id);
+                        referralMap.get(ref.referrer_id).push(ref.referred_user_id);
                     });
                 }
 
-                // Process users data
+                // Enhance user data with referral information
                 allUsers = allUsers.map(user => {
-                    const referredUsers = referralsMap.get(user.id) || [];
-                    const hasReferrer = referrerMap.has(user.id);
-
+                    const userReferrals = referralMap.get(user.id) || [];
                     return {
-                        id: user.id,
-                        name: user.username || user.email || 'Unknown User',
-                        email: user.email || 'No email',
-                        balance: parseFloat(user.balance) || 0,
-                        nmxpBalance: parseFloat(user.nmxp_balance) || 0,
-                        joinedDate: user.created_at,
-                        hasReferral: referredUsers.length > 0,
-                        hasReferrer: hasReferrer,
-                        referrerId: referrerMap.get(user.id) || null,
-                        telegramId: user.telegram_id || 'Not connected',
-                        referralSlots: user.referral_slots || 5,
-                        usedSlots: user.used_slots || referredUsers.length,
-                        totalEarnedFromRefs: user.total_earned_from_refs || 0,
-                        referredUsers: referredUsers
+                        ...user,
+                        referralCount: userReferrals.length,
+                        referredUsers: userReferrals,
+                        totalEarned: user.total_earned_from_refs || 0,
+                        isActive: user.last_claim && (Date.now() - new Date(user.last_claim).getTime() < 7 * 24 * 60 * 60 * 1000)
                     };
                 });
 
                 updateStatistics();
-                renderUserCards();
-                buildReferralTree();
-                showUsersWithoutReferrers();
                 showAllUsers();
-                showPurchasesTable();
+                updateDistributionStats();
 
                 console.log('✅ Admin panel loaded successfully');
 
@@ -1055,334 +892,33 @@
 
         // Update statistics
         function updateStatistics() {
-            const usersWithoutReferrers = allUsers.filter(user => !user.hasReferrer);
-            const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (parseFloat(purchase.price_usd) || 0), 0);
+            const totalBalance = allUsers.reduce((sum, user) => sum + (parseFloat(user.balance) || 0), 0);
+            const activeUsers = allUsers.filter(user => user.isActive).length;
+            const totalReferrals = allUsers.reduce((sum, user) => sum + (user.referralCount || 0), 0);
 
-            const stats = {
-                totalUsers: allUsers.length,
-                withReferrals: allUsers.filter(u => u.hasReferral).length,
-                withoutReferrals: allUsers.filter(u => !u.hasReferral).length,
-                withoutReferrers: usersWithoutReferrers.length,
-                totalRevenue: totalRevenue
-            };
+            document.getElementById('totalUsers').textContent = allUsers.length.toLocaleString();
+            document.getElementById('totalBalance').textContent = Math.round(totalBalance).toLocaleString();
+            document.getElementById('activeUsers').textContent = activeUsers.toLocaleString();
+            document.getElementById('totalReferrals').textContent = totalReferrals.toLocaleString();
 
-            document.getElementById('totalUsers').textContent = stats.totalUsers.toLocaleString();
-            document.getElementById('usersWithReferrals').textContent = stats.withReferrals.toLocaleString();
-            document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toLocaleString();
-            document.getElementById('usersWithoutReferrers').textContent = stats.withoutReferrers.toLocaleString();
-
-            // Update trends
-            document.getElementById('usersTrend').textContent = `${stats.totalUsers} total`;
-            document.getElementById('referralsTrend').textContent = `${stats.withReferrals} active`;
-            document.getElementById('revenueTrend').textContent = `$${totalRevenue.toLocaleString()} revenue`;
-            document.getElementById('noReferrersTrend').textContent = `${stats.withoutReferrers} root users`;
+            document.getElementById('usersTrend').textContent = `${allUsers.length} total`;
+            document.getElementById('balanceTrend').textContent = `${Math.round(totalBalance)} NMX`;
+            document.getElementById('activeTrend').textContent = `${activeUsers} active`;
+            document.getElementById('referralsTrend').textContent = `${totalReferrals} referrals`;
         }
 
-        // Show NMXp purchases table
-        function showPurchasesTable() {
-            const container = document.getElementById('purchasesTableContainer');
+        // Update distribution statistics
+        function updateDistributionStats() {
+            const tokenAmount = parseInt(document.getElementById('tokenAmount').value) || 0;
+            const totalToDistribute = tokenAmount * allUsers.length;
+            const totalDistributed = allUsers.reduce((sum, user) => sum + (parseFloat(user.balance) || 0), 0);
+            const averageBalance = allUsers.length > 0 ? totalDistributed / allUsers.length : 0;
 
-            if (allPurchases.length === 0) {
-                container.innerHTML = '<div class="loading">No purchases found</div>';
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="purchases-table">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Package</th>
-                            <th>Base Amount</th>
-                            <th>Bonus</th>
-                            <th>Total</th>
-                            <th>Price</th>
-                            <th>Method</th>
-                            <th>VIP</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${allPurchases.map(purchase => `
-                            <tr>
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-avatar-small">
-                                            ${(purchase.profiles?.username || purchase.profiles?.email || 'U').charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div>${purchase.profiles?.username || 'Unknown User'}</div>
-                                            <div style="font-size: 11px; color: var(--muted);">${purchase.profiles?.email || 'No email'}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    ${purchase.is_vip_package ? '<span class="vip-badge">VIP</span>' : 'Basic'}
-                                </td>
-                                <td class="amount-cell">${(purchase.package_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="bonus-cell">+${purchase.bonus_amount || 0}</td>
-                                <td class="amount-cell">${(purchase.total_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="price-cell">$${purchase.price_usd || 0}</td>
-                                <td>
-                                    <span class="method-cell method-${purchase.payment_method || 'card'}">
-                                        ${purchase.payment_method || 'card'}
-                                    </span>
-                                </td>
-                                <td>${purchase.is_vip_package ? '✅' : '❌'}</td>
-                                <td class="date-cell">
-                                    ${formatDate(purchase.purchased_at)}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        // Filter purchases
-        function filterPurchases() {
-            const timeFilter = document.getElementById('timeFilter').value;
-            const packageFilter = document.getElementById('packageFilter').value;
-
-            let filteredPurchases = [...allPurchases];
-
-            // Apply time filter
-            if (timeFilter !== 'all') {
-                const now = new Date();
-                filteredPurchases = filteredPurchases.filter(purchase => {
-                    const purchaseDate = new Date(purchase.purchased_at);
-
-                    switch (timeFilter) {
-                        case 'today':
-                            return purchaseDate.toDateString() === now.toDateString();
-                        case 'week':
-                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                            return purchaseDate >= weekAgo;
-                        case 'month':
-                            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-                            return purchaseDate >= monthAgo;
-                        default:
-                            return true;
-                    }
-                });
-            }
-
-            // Apply package filter
-            if (packageFilter !== 'all') {
-                filteredPurchases = filteredPurchases.filter(purchase => {
-                    if (packageFilter === 'vip') return purchase.is_vip_package;
-                    if (packageFilter === 'basic') return !purchase.is_vip_package;
-                    return true;
-                });
-            }
-
-            // Update table
-            const container = document.getElementById('purchasesTableContainer');
-            if (filteredPurchases.length === 0) {
-                container.innerHTML = '<div class="loading">No purchases match the selected filters</div>';
-                return;
-            }
-
-            container.innerHTML = `
-                <table class="purchases-table">
-                    <thead>
-                        <tr>
-                            <th>User</th>
-                            <th>Package</th>
-                            <th>Base Amount</th>
-                            <th>Bonus</th>
-                            <th>Total</th>
-                            <th>Price</th>
-                            <th>Method</th>
-                            <th>VIP</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${filteredPurchases.map(purchase => `
-                            <tr>
-                                <td>
-                                    <div class="user-cell">
-                                        <div class="user-avatar-small">
-                                            ${(purchase.profiles?.username || purchase.profiles?.email || 'U').charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <div>${purchase.profiles?.username || 'Unknown User'}</div>
-                                            <div style="font-size: 11px; color: var(--muted);">${purchase.profiles?.email || 'No email'}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    ${purchase.is_vip_package ? '<span class="vip-badge">VIP</span>' : 'Basic'}
-                                </td>
-                                <td class="amount-cell">${(purchase.package_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="bonus-cell">+${purchase.bonus_amount || 0}</td>
-                                <td class="amount-cell">${(purchase.total_amount || 0).toLocaleString()} NMXp</td>
-                                <td class="price-cell">$${purchase.price_usd || 0}</td>
-                                <td>
-                                    <span class="method-cell method-${purchase.payment_method || 'card'}">
-                                        ${purchase.payment_method || 'card'}
-                                    </span>
-                                </td>
-                                <td>${purchase.is_vip_package ? '✅' : '❌'}</td>
-                                <td class="date-cell">
-                                    ${formatDate(purchase.purchased_at)}
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        // Format date
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // Show section
-        function showSection(section) {
-            currentSection = section;
-
-            // Update mini nav
-            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // Show selected section
-            document.querySelectorAll('.section-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            document.getElementById(section + 'Section').style.display = 'block';
-
-            // Load section-specific data
-            if (section === 'referralTree') {
-                buildReferralTree();
-            } else if (section === 'noReferrers') {
-                showUsersWithoutReferrers();
-            } else if (section === 'allUsers') {
-                showAllUsers();
-            } else if (section === 'purchases') {
-                showPurchasesTable();
-            }
-        }
-
-        // Build complete referral tree
-        function buildReferralTree() {
-            const treeContainer = document.getElementById('referralTree');
-            if (!treeContainer) return;
-
-            const rootUsers = allUsers.filter(user => !user.hasReferrer);
-
-            if (rootUsers.length === 0) {
-                treeContainer.innerHTML = '<div class="no-referrals">No users found in database</div>';
-                return;
-            }
-
-            let treeHTML = '';
-
-            rootUsers.forEach(rootUser => {
-                treeHTML += buildTreeNode(rootUser, 0);
-            });
-
-            treeContainer.innerHTML = treeHTML;
-        }
-
-        // Recursive function to build tree nodes
-        function buildTreeNode(user, level) {
-            const referredUsers = allUsers.filter(u => user.referredUsers.includes(u.id));
-
-            let nodeHTML = `
-                <div class="tree-node">
-                    <div class="node-main">
-                        <div class="node-avatar">${user.name.charAt(0).toUpperCase()}</div>
-                        <div class="node-info">
-                            <div class="node-name">${user.name}</div>
-                            <div class="node-email">${user.email}</div>
-                            <div class="node-stats">
-                                <div class="node-stat">
-                                    <span class="node-stat-value">${Math.round(user.balance)}</span>
-                                    <span>NMX</span>
-                                </div>
-                                <div class="node-stat">
-                                    <span class="node-stat-value">${user.referredUsers.length}</span>
-                                    <span>Referrals</span>
-                                </div>
-                                <div class="node-stat">
-                                    <span class="node-stat-value">${Math.round(user.totalEarnedFromRefs)}</span>
-                                    <span>Earnings</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-            `;
-
-            if (referredUsers.length > 0) {
-                nodeHTML += '<div class="children-container">';
-                referredUsers.forEach(child => {
-                    nodeHTML += buildTreeNode(child, level + 1);
-                });
-                nodeHTML += '</div>';
-            }
-
-            nodeHTML += '</div>';
-            return nodeHTML;
-        }
-
-        // Show users without referrers
-        function showUsersWithoutReferrers() {
-            const container = document.getElementById('noReferrersGrid');
-            const countElement = document.getElementById('noReferrersCount');
-            if (!container) return;
-
-            const usersWithoutReferrers = allUsers.filter(user => !user.hasReferrer);
-
-            countElement.textContent = usersWithoutReferrers.length;
-
-            if (usersWithoutReferrers.length === 0) {
-                container.innerHTML = '<div class="loading">No users without referrers found</div>';
-                return;
-            }
-
-            container.innerHTML = usersWithoutReferrers.map(user => `
-                <div class="user-card">
-                    <div class="user-card-header">
-                        <div class="user-avatar">${user.name.charAt(0).toUpperCase()}</div>
-                        <div class="user-info">
-                            <div class="user-name">${user.name}</div>
-                            <div class="user-email">${user.email}</div>
-                        </div>
-                    </div>
-                    <div class="user-stats">
-                        <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.balance)}</div>
-                            <div class="user-stat-label">NMX</div>
-                        </div>
-                        <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.nmxpBalance)}</div>
-                            <div class="user-stat-label">NMXp</div>
-                        </div>
-                        <div class="user-stat">
-                            <div class="user-stat-value">${user.referredUsers.length}</div>
-                            <div class="user-stat-label">Referrals</div>
-                        </div>
-                        <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.totalEarnedFromRefs)}</div>
-                            <div class="user-stat-label">Ref Earnings</div>
-                        </div>
-                    </div>
-                    <div class="user-card-footer">
-                        <span class="referral-status status-no-referrer">
-                            Root User
-                        </span>
-                        <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
-                            ${user.referredUsers.length} Referrals
-                        </span>
-                    </div>
-                </div>
-            `).join('');
+            document.getElementById('totalToDistribute').textContent = totalToDistribute.toLocaleString();
+            document.getElementById('usersToReceive').textContent = allUsers.length.toLocaleString();
+            document.getElementById('totalDistributed').textContent = Math.round(totalDistributed).toLocaleString();
+            document.getElementById('averageBalance').textContent = Math.round(averageBalance).toLocaleString();
+            document.getElementById('remainingBalance').textContent = (1000000 - totalDistributed).toLocaleString(); // Assuming 1M token supply
         }
 
         // Show all users
@@ -1401,89 +937,213 @@
             container.innerHTML = allUsers.map(user => `
                 <div class="user-card">
                     <div class="user-card-header">
-                        <div class="user-avatar">${user.name.charAt(0).toUpperCase()}</div>
+                        <div class="user-avatar">
+                            ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
+                        </div>
                         <div class="user-info">
-                            <div class="user-name">${user.name}</div>
-                            <div class="user-email">${user.email}</div>
+                            <div class="user-name">${user.username || 'Unknown User'}</div>
+                            <div class="user-email">${user.email || 'No email'}</div>
                         </div>
                     </div>
                     <div class="user-stats">
                         <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.balance)}</div>
-                            <div class="user-stat-label">NMX</div>
+                            <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
+                            <div class="user-stat-label">NMX Balance</div>
                         </div>
                         <div class="user-stat">
-                            <div class="user-stat-value">${user.referredUsers.length}</div>
+                            <div class="user-stat-value">${user.referralCount || 0}</div>
                             <div class="user-stat-label">Referrals</div>
                         </div>
                         <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.totalEarnedFromRefs)}</div>
+                            <div class="user-stat-value">${Math.round(user.totalEarned || 0)}</div>
                             <div class="user-stat-label">Ref Earnings</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.isActive ? '✅' : '❌'}</div>
+                            <div class="user-stat-label">Active</div>
                         </div>
                     </div>
                     <div class="user-card-footer">
-                        <span class="referral-status ${user.hasReferrer ? 'status-referred' : 'status-no-referrer'}">
-                            ${user.hasReferrer ? 'Referred' : 'Root User'}
+                        <span class="referral-status ${user.referralCount > 0 ? 'status-referred' : 'status-not-referred'}">
+                            ${user.referralCount} Referred
                         </span>
-                        <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
-                            ${user.referredUsers.length} Referred
+                        <span class="referral-status ${user.isActive ? 'status-referred' : 'status-no-referrer'}">
+                            ${user.isActive ? 'Active' : 'Inactive'}
                         </span>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Render user cards for overview
-        function renderUserCards() {
-            const usersGrid = document.getElementById('usersGrid');
-            if (!usersGrid) return;
-
-            if (allUsers.length === 0) {
-                usersGrid.innerHTML = '<div class="loading">No users found in database</div>';
+        // Distribute tokens to all users
+        async function distributeTokens() {
+            const tokenAmount = parseInt(document.getElementById('tokenAmount').value);
+            
+            if (!tokenAmount || tokenAmount <= 0) {
+                alert('Please enter a valid token amount');
                 return;
             }
 
-            const displayUsers = allUsers.length > 12 ? 
-                [...allUsers].sort((a, b) => b.balance - a.balance).slice(0, 12) : 
-                allUsers;
+            if (!confirm(`Distribute ${tokenAmount} tokens to ALL ${allUsers.length} users? This will cost ${(tokenAmount * allUsers.length).toLocaleString()} tokens total.`)) {
+                return;
+            }
 
-            usersGrid.innerHTML = displayUsers.map(user => `
-                <div class="user-card">
-                    <div class="user-card-header">
-                        <div class="user-avatar">${user.name.charAt(0).toUpperCase()}</div>
-                        <div class="user-info">
-                            <div class="user-name">${user.name}</div>
-                            <div class="user-email">${user.email}</div>
-                        </div>
-                    </div>
-                    <div class="user-stats">
-                        <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.balance)}</div>
-                            <div class="user-stat-label">NMX</div>
-                        </div>
-                        <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.nmxpBalance)}</div>
-                            <div class="user-stat-label">NMXp</div>
-                        </div>
-                        <div class="user-stat">
-                            <div class="user-stat-value">${user.referredUsers.length}</div>
-                            <div class="user-stat-label">Referrals</div>
-                        </div>
-                        <div class="user-stat">
-                            <div class="user-stat-value">${Math.round(user.totalEarnedFromRefs)}</div>
-                            <div class="user-stat-label">Ref Earnings</div>
-                        </div>
-                    </div>
-                    <div class="user-card-footer">
-                        <span class="referral-status ${user.hasReferrer ? 'status-referred' : 'status-no-referrer'}">
-                            ${user.hasReferrer ? 'Referred' : 'Root'}
-                        </span>
-                        <span class="referral-status ${user.hasReferral ? 'status-referred' : 'status-not-referred'}">
-                            ${user.referredUsers.length} Ref
-                        </span>
-                    </div>
-                </div>
-            `).join('');
+            try {
+                showLoading();
+                console.log(`💰 Distributing ${tokenAmount} tokens to ${allUsers.length} users...`);
+
+                let successCount = 0;
+                let errorCount = 0;
+
+                // Process users in batches to avoid timeout
+                for (let i = 0; i < allUsers.length; i += 50) {
+                    const batch = allUsers.slice(i, i + 50);
+                    
+                    const updates = batch.map(user => {
+                        const newBalance = (parseFloat(user.balance) || 0) + tokenAmount;
+                        return supabaseClient
+                            .from('profiles')
+                            .update({ balance: newBalance })
+                            .eq('id', user.id);
+                    });
+
+                    const results = await Promise.allSettled(updates);
+                    
+                    results.forEach((result, index) => {
+                        if (result.status === 'fulfilled' && !result.value.error) {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                            console.error('Error updating user:', batch[index].email, result.value?.error);
+                        }
+                    });
+
+                    // Update progress
+                    const progress = Math.round(((i + batch.length) / allUsers.length) * 100);
+                    document.getElementById('loadingIndicator').innerHTML = 
+                        `<div class="loading-spinner"></div>Distributing tokens... ${progress}% (${successCount} successful, ${errorCount} failed)`;
+                }
+
+                alert(`✅ Distribution completed!\nSuccess: ${successCount} users\nFailed: ${errorCount} users`);
+                
+                // Refresh data
+                loadAdminData();
+
+            } catch (error) {
+                console.error('❌ Error distributing tokens:', error);
+                alert('Failed to distribute tokens. Please try again.');
+            }
+        }
+
+        // Reset all balances
+        async function resetAllBalances() {
+            if (!confirm('⚠️ DANGER: This will reset ALL user balances to ZERO. This action cannot be undone!')) {
+                return;
+            }
+
+            try {
+                showLoading();
+                console.log('🔄 Resetting all user balances...');
+
+                const { error } = await supabaseClient
+                    .from('profiles')
+                    .update({ balance: 0 });
+
+                if (error) throw error;
+
+                alert('✅ All user balances have been reset to zero!');
+                loadAdminData();
+
+            } catch (error) {
+                console.error('❌ Error resetting balances:', error);
+                alert('Failed to reset balances. Please try again.');
+            }
+        }
+
+        // Export user data
+        function exportUserData(format) {
+            const data = allUsers.map(user => ({
+                email: user.email,
+                username: user.username || 'N/A',
+                balance: user.balance || 0,
+                referrals: user.referralCount || 0,
+                totalEarned: user.totalEarned || 0,
+                joined: new Date(user.created_at).toLocaleDateString(),
+                lastActive: user.last_claim ? new Date(user.last_claim).toLocaleDateString() : 'Never',
+                isActive: user.isActive ? 'Yes' : 'No'
+            }));
+
+            let content, mimeType, filename;
+
+            switch (format) {
+                case 'csv':
+                    content = convertToCSV(data);
+                    mimeType = 'text/csv';
+                    filename = 'nemexcoin_users.csv';
+                    break;
+                case 'json':
+                    content = JSON.stringify(data, null, 2);
+                    mimeType = 'application/json';
+                    filename = 'nemexcoin_users.json';
+                    break;
+                case 'excel':
+                    content = convertToCSV(data);
+                    mimeType = 'application/vnd.ms-excel';
+                    filename = 'nemexcoin_users.xls';
+                    break;
+            }
+
+            downloadFile(content, mimeType, filename);
+        }
+
+        // Convert data to CSV
+        function convertToCSV(data) {
+            const headers = ['Email', 'Username', 'Balance', 'Referrals', 'Total Earned', 'Joined', 'Last Active', 'Active'];
+            const csv = [
+                headers.join(','),
+                ...data.map(row => [
+                    `"${row.email}"`,
+                    `"${row.username}"`,
+                    row.balance,
+                    row.referrals,
+                    row.totalEarned,
+                    `"${row.joined}"`,
+                    `"${row.lastActive}"`,
+                    `"${row.isActive}"`
+                ].join(','))
+            ].join('\n');
+            
+            return csv;
+        }
+
+        // Download file
+        function downloadFile(content, mimeType, filename) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Show section
+        function showSection(section) {
+            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.section-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(section + 'Section').style.display = 'block';
+
+            if (section === 'tokenDistribution') {
+                updateDistributionStats();
+            }
         }
 
         // Refresh data
@@ -1494,10 +1154,7 @@
         }
 
         function showLoading() {
-            const elements = [
-                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid', 'purchasesTableContainer'
-            ];
-
+            const elements = ['allUsersGrid'];
             elements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
@@ -1512,10 +1169,7 @@
         }
 
         function showError(message) {
-            const elements = [
-                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid', 'purchasesTableContainer'
-            ];
-
+            const elements = ['allUsersGrid'];
             elements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
