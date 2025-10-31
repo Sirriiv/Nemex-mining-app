@@ -16,6 +16,7 @@
             --success: #00C851;
             --danger: #ff4444;
             --warning: #ffbb33;
+            --vip: #9b59b6;
         }
 
         * { 
@@ -113,6 +114,38 @@
             height: 18px;
         }
 
+        /* Maintenance Button */
+        .maintenance-btn {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .maintenance-btn:hover {
+            background: var(--danger);
+            color: var(--dark-bg);
+            transform: translateY(-2px);
+        }
+
+        .maintenance-btn.active {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .maintenance-btn.active:hover {
+            background: var(--success);
+            color: var(--dark-bg);
+        }
+
         /* Mini Navigation */
         .mini-nav {
             display: flex;
@@ -200,6 +233,149 @@
         .trend-down {
             background: rgba(255, 68, 68, 0.1);
             color: var(--danger);
+        }
+
+        /* Section Styles */
+        .section-content {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Purchase Tracking Styles */
+        .purchases-section {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .purchases-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .purchases-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-select {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .purchases-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .purchases-table th {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gold);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .purchases-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .purchases-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .user-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--dark-bg);
+            font-size: 14px;
+        }
+
+        .vip-badge {
+            background: rgba(155, 89, 182, 0.2);
+            color: var(--vip);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .amount-cell {
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .bonus-cell {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .price-cell {
+            font-weight: 600;
+        }
+
+        .method-cell {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .method-card { background: rgba(212, 175, 55, 0.1); color: var(--gold); }
+        .method-paypal { background: rgba(0, 87, 184, 0.1); color: #0057b8; }
+        .method-crypto { background: rgba(247, 147, 26, 0.1); color: #f7931a; }
+        .method-bank { background: rgba(0, 200, 81, 0.1); color: var(--success); }
+
+        .date-cell {
+            color: var(--muted);
+            font-size: 12px;
         }
 
         /* Referral Tree Styles */
@@ -301,29 +477,6 @@
             border-radius: 12px;
             padding: 25px;
             margin-bottom: 25px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--gold);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .section-icon {
-            width: 24px;
-            height: 24px;
         }
 
         .users-grid {
@@ -481,26 +634,31 @@
             .admin-container {
                 padding: 15px;
             }
-            
+
             .admin-header {
                 flex-direction: column;
                 gap: 15px;
                 text-align: center;
             }
-            
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .users-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .children-container {
                 margin-left: 20px;
             }
-            
+
             .mini-nav {
+                overflow-x: auto;
+            }
+
+            .purchases-table {
+                display: block;
                 overflow-x: auto;
             }
         }
@@ -524,6 +682,12 @@
                 </div>
             </div>
             <div class="admin-actions">
+                <button class="maintenance-btn" id="maintenanceToggle" onclick="toggleMaintenanceMode()">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    <span id="maintenanceText">Enable Maintenance</span>
+                </button>
                 <button class="admin-btn" onclick="refreshData()">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
@@ -540,6 +704,12 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
                 Overview
+            </button>
+            <button class="mini-nav-btn" onclick="showSection('purchases')">
+                <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                NMXp Purchases
             </button>
             <button class="mini-nav-btn" onclick="showSection('referralTree')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -576,9 +746,9 @@
                     <div class="stat-trend trend-up" id="referralsTrend">Loading...</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="usersWithoutReferrals">0</div>
-                    <div class="stat-label">Users without Referrals</div>
-                    <div class="stat-trend trend-down" id="noReferralsTrend">Loading...</div>
+                    <div class="stat-number" id="totalRevenue">$0</div>
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-trend trend-up" id="revenueTrend">Loading...</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="usersWithoutReferrers">0</div>
@@ -592,6 +762,39 @@
                 <div class="loading">
                     <div class="loading-spinner"></div>
                     Loading users from database...
+                </div>
+            </div>
+        </div>
+
+        <!-- NMXp Purchases Section -->
+        <div id="purchasesSection" class="section-content" style="display: none;">
+            <div class="purchases-section">
+                <div class="purchases-header">
+                    <h2 class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                        NMXp Purchase History
+                    </h2>
+                    <div class="purchases-controls">
+                        <select class="filter-select" id="timeFilter" onchange="filterPurchases()">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                        <select class="filter-select" id="packageFilter" onchange="filterPurchases()">
+                            <option value="all">All Packages</option>
+                            <option value="basic">Basic Packages</option>
+                            <option value="vip">VIP Packages</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="purchasesTableContainer">
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        Loading purchase history...
+                    </div>
                 </div>
             </div>
         </div>
@@ -666,67 +869,120 @@
 
         // Global variables
         let allUsers = [];
-        let referralsMap = new Map(); // referrer_id -> [referred_users]
-        let referrerMap = new Map(); // referred_user_id -> referrer_id
+        let allPurchases = [];
+        let referralsMap = new Map();
+        let referrerMap = new Map();
         let currentSection = 'overview';
+        let maintenanceMode = false;
 
         // Initialize admin panel
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🔄 Admin Panel Initializing...');
-            loadUsersData();
+            checkMaintenanceStatus();
+            loadAdminData();
         });
 
-        // Show section
-        function showSection(section) {
-            currentSection = section;
-            
-            // Update mini nav
-            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-            
-            // Show selected section
-            document.querySelectorAll('.section-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            document.getElementById(section + 'Section').style.display = 'block';
-            
-            // Load section-specific data
-            if (section === 'referralTree') {
-                buildReferralTree();
-            } else if (section === 'noReferrers') {
-                showUsersWithoutReferrers();
-            } else if (section === 'allUsers') {
-                showAllUsers();
+        // Check maintenance status from database
+        async function checkMaintenanceStatus() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('settings')
+                    .select('*')
+                    .eq('key', 'maintenance_mode')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error checking maintenance status:', error);
+                    return;
+                }
+
+                maintenanceMode = data ? data.value : false;
+                updateMaintenanceButton();
+            } catch (error) {
+                console.error('Error checking maintenance status:', error);
             }
         }
 
-        // Load users data from database
-        async function loadUsersData() {
+        // Toggle maintenance mode
+        async function toggleMaintenanceMode() {
+            try {
+                maintenanceMode = !maintenanceMode;
+
+                // Update database
+                const { error } = await supabaseClient
+                    .from('settings')
+                    .upsert({
+                        key: 'maintenance_mode',
+                        value: maintenanceMode,
+                        updated_at: new Date().toISOString()
+                    });
+
+                if (error) {
+                    console.error('Error updating maintenance mode:', error);
+                    maintenanceMode = !maintenanceMode; // Revert on error
+                    return;
+                }
+
+                updateMaintenanceButton();
+
+                // Show confirmation
+                if (maintenanceMode) {
+                    alert('✅ Maintenance mode enabled! All user activities will be paused.');
+                } else {
+                    alert('✅ Maintenance mode disabled! All user activities are now active.');
+                }
+            } catch (error) {
+                console.error('Error toggling maintenance mode:', error);
+                alert('❌ Failed to update maintenance mode. Please try again.');
+            }
+        }
+
+        // Update maintenance button appearance
+        function updateMaintenanceButton() {
+            const button = document.getElementById('maintenanceToggle');
+            const text = document.getElementById('maintenanceText');
+
+            if (maintenanceMode) {
+                button.classList.add('active');
+                text.textContent = 'Disable Maintenance';
+            } else {
+                button.classList.remove('active');
+                text.textContent = 'Enable Maintenance';
+            }
+        }
+
+        // Load all admin data
+        async function loadAdminData() {
             try {
                 showLoading();
-                
                 console.log('🔄 Loading admin data from database...');
 
-                // Get all users from profiles table
-                const { data: users, error } = await supabaseClient
+                // Load users
+                const { data: users, error: usersError } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (error) {
-                    console.error('❌ Error loading profiles:', error);
-                    throw new Error('Database error: ' + error.message);
+                if (usersError) throw new Error('Users error: ' + usersError.message);
+
+                // Load purchases
+                const { data: purchases, error: purchasesError } = await supabaseClient
+                    .from('purchases')
+                    .select(`
+                        *,
+                        profiles:user_id (
+                            username,
+                            email
+                        )
+                    `)
+                    .order('purchased_at', { ascending: false });
+
+                if (purchasesError) {
+                    console.warn('⚠️ Could not load purchases:', purchasesError);
+                    // Continue without purchases
                 }
 
-                console.log('✅ Loaded users:', users);
-
-                if (!users || users.length === 0) {
-                    throw new Error('No users found in database');
-                }
-
-                // Get referral data
+                // Load referral data
                 const { data: referrals, error: refError } = await supabaseClient
                     .from('referrals')
                     .select('*')
@@ -736,30 +992,34 @@
                     console.warn('⚠️ Could not load referrals:', refError);
                 }
 
-                console.log('✅ Loaded referrals:', referrals);
+                console.log('✅ Loaded data:', { 
+                    users: users?.length, 
+                    purchases: purchases?.length,
+                    referrals: referrals?.length 
+                });
+
+                allUsers = users || [];
+                allPurchases = purchases || [];
 
                 // Build referral maps
                 referralsMap.clear();
                 referrerMap.clear();
-                
+
                 if (referrals) {
                     referrals.forEach(ref => {
-                        // Map referrer to their referrals
                         if (!referralsMap.has(ref.referrer_id)) {
                             referralsMap.set(ref.referrer_id, []);
                         }
                         referralsMap.get(ref.referrer_id).push(ref.referred_user_id);
-                        
-                        // Map referred user to their referrer
                         referrerMap.set(ref.referred_user_id, ref.referrer_id);
                     });
                 }
 
                 // Process users data
-                allUsers = users.map(user => {
+                allUsers = allUsers.map(user => {
                     const referredUsers = referralsMap.get(user.id) || [];
                     const hasReferrer = referrerMap.has(user.id);
-                    
+
                     return {
                         id: user.id,
                         name: user.username || user.email || 'Unknown User',
@@ -778,46 +1038,235 @@
                     };
                 });
 
-                // Calculate statistics
-                const usersWithoutReferrers = allUsers.filter(user => !user.hasReferrer);
-                const stats = {
-                    totalUsers: allUsers.length,
-                    withReferrals: allUsers.filter(u => u.hasReferral).length,
-                    withoutReferrals: allUsers.filter(u => !u.hasReferral).length,
-                    withoutReferrers: usersWithoutReferrers.length,
-                    totalNMX: allUsers.reduce((sum, user) => sum + user.balance, 0),
-                    totalNMXp: allUsers.reduce((sum, user) => sum + user.nmxpBalance, 0),
-                    totalReferralEarnings: allUsers.reduce((sum, user) => sum + (user.totalEarnedFromRefs || 0), 0)
-                };
-
-                console.log('📊 Calculated stats:', stats);
-
-                updateStatistics(stats);
+                updateStatistics();
                 renderUserCards();
                 buildReferralTree();
                 showUsersWithoutReferrers();
                 showAllUsers();
+                showPurchasesTable();
 
                 console.log('✅ Admin panel loaded successfully');
 
             } catch (error) {
                 console.error('❌ Error loading admin data:', error);
-                showError('Failed to load users data: ' + error.message);
+                showError('Failed to load data: ' + error.message);
             }
         }
 
         // Update statistics
-        function updateStatistics(stats) {
+        function updateStatistics() {
+            const usersWithoutReferrers = allUsers.filter(user => !user.hasReferrer);
+            const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (parseFloat(purchase.price_usd) || 0), 0);
+
+            const stats = {
+                totalUsers: allUsers.length,
+                withReferrals: allUsers.filter(u => u.hasReferral).length,
+                withoutReferrals: allUsers.filter(u => !u.hasReferral).length,
+                withoutReferrers: usersWithoutReferrers.length,
+                totalRevenue: totalRevenue
+            };
+
             document.getElementById('totalUsers').textContent = stats.totalUsers.toLocaleString();
             document.getElementById('usersWithReferrals').textContent = stats.withReferrals.toLocaleString();
-            document.getElementById('usersWithoutReferrals').textContent = stats.withoutReferrals.toLocaleString();
+            document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toLocaleString();
             document.getElementById('usersWithoutReferrers').textContent = stats.withoutReferrers.toLocaleString();
-            
-            // Update trends with real data
+
+            // Update trends
             document.getElementById('usersTrend').textContent = `${stats.totalUsers} total`;
             document.getElementById('referralsTrend').textContent = `${stats.withReferrals} active`;
-            document.getElementById('noReferralsTrend').textContent = `${stats.withoutReferrals} inactive`;
+            document.getElementById('revenueTrend').textContent = `$${totalRevenue.toLocaleString()} revenue`;
             document.getElementById('noReferrersTrend').textContent = `${stats.withoutReferrers} root users`;
+        }
+
+        // Show NMXp purchases table
+        function showPurchasesTable() {
+            const container = document.getElementById('purchasesTableContainer');
+
+            if (allPurchases.length === 0) {
+                container.innerHTML = '<div class="loading">No purchases found</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="purchases-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Package</th>
+                            <th>Base Amount</th>
+                            <th>Bonus</th>
+                            <th>Total</th>
+                            <th>Price</th>
+                            <th>Method</th>
+                            <th>VIP</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${allPurchases.map(purchase => `
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar-small">
+                                            ${(purchase.profiles?.username || purchase.profiles?.email || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div>${purchase.profiles?.username || 'Unknown User'}</div>
+                                            <div style="font-size: 11px; color: var(--muted);">${purchase.profiles?.email || 'No email'}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    ${purchase.is_vip_package ? '<span class="vip-badge">VIP</span>' : 'Basic'}
+                                </td>
+                                <td class="amount-cell">${(purchase.package_amount || 0).toLocaleString()} NMXp</td>
+                                <td class="bonus-cell">+${purchase.bonus_amount || 0}</td>
+                                <td class="amount-cell">${(purchase.total_amount || 0).toLocaleString()} NMXp</td>
+                                <td class="price-cell">$${purchase.price_usd || 0}</td>
+                                <td>
+                                    <span class="method-cell method-${purchase.payment_method || 'card'}">
+                                        ${purchase.payment_method || 'card'}
+                                    </span>
+                                </td>
+                                <td>${purchase.is_vip_package ? '✅' : '❌'}</td>
+                                <td class="date-cell">
+                                    ${formatDate(purchase.purchased_at)}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Filter purchases
+        function filterPurchases() {
+            const timeFilter = document.getElementById('timeFilter').value;
+            const packageFilter = document.getElementById('packageFilter').value;
+
+            let filteredPurchases = [...allPurchases];
+
+            // Apply time filter
+            if (timeFilter !== 'all') {
+                const now = new Date();
+                filteredPurchases = filteredPurchases.filter(purchase => {
+                    const purchaseDate = new Date(purchase.purchased_at);
+
+                    switch (timeFilter) {
+                        case 'today':
+                            return purchaseDate.toDateString() === now.toDateString();
+                        case 'week':
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            return purchaseDate >= weekAgo;
+                        case 'month':
+                            const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                            return purchaseDate >= monthAgo;
+                        default:
+                            return true;
+                    }
+                });
+            }
+
+            // Apply package filter
+            if (packageFilter !== 'all') {
+                filteredPurchases = filteredPurchases.filter(purchase => {
+                    if (packageFilter === 'vip') return purchase.is_vip_package;
+                    if (packageFilter === 'basic') return !purchase.is_vip_package;
+                    return true;
+                });
+            }
+
+            // Update table
+            const container = document.getElementById('purchasesTableContainer');
+            if (filteredPurchases.length === 0) {
+                container.innerHTML = '<div class="loading">No purchases match the selected filters</div>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table class="purchases-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Package</th>
+                            <th>Base Amount</th>
+                            <th>Bonus</th>
+                            <th>Total</th>
+                            <th>Price</th>
+                            <th>Method</th>
+                            <th>VIP</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredPurchases.map(purchase => `
+                            <tr>
+                                <td>
+                                    <div class="user-cell">
+                                        <div class="user-avatar-small">
+                                            ${(purchase.profiles?.username || purchase.profiles?.email || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div>${purchase.profiles?.username || 'Unknown User'}</div>
+                                            <div style="font-size: 11px; color: var(--muted);">${purchase.profiles?.email || 'No email'}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    ${purchase.is_vip_package ? '<span class="vip-badge">VIP</span>' : 'Basic'}
+                                </td>
+                                <td class="amount-cell">${(purchase.package_amount || 0).toLocaleString()} NMXp</td>
+                                <td class="bonus-cell">+${purchase.bonus_amount || 0}</td>
+                                <td class="amount-cell">${(purchase.total_amount || 0).toLocaleString()} NMXp</td>
+                                <td class="price-cell">$${purchase.price_usd || 0}</td>
+                                <td>
+                                    <span class="method-cell method-${purchase.payment_method || 'card'}">
+                                        ${purchase.payment_method || 'card'}
+                                    </span>
+                                </td>
+                                <td>${purchase.is_vip_package ? '✅' : '❌'}</td>
+                                <td class="date-cell">
+                                    ${formatDate(purchase.purchased_at)}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Show section
+        function showSection(section) {
+            currentSection = section;
+
+            // Update mini nav
+            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Show selected section
+            document.querySelectorAll('.section-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(section + 'Section').style.display = 'block';
+
+            // Load section-specific data
+            if (section === 'referralTree') {
+                buildReferralTree();
+            } else if (section === 'noReferrers') {
+                showUsersWithoutReferrers();
+            } else if (section === 'allUsers') {
+                showAllUsers();
+            } else if (section === 'purchases') {
+                showPurchasesTable();
+            }
         }
 
         // Build complete referral tree
@@ -825,7 +1274,6 @@
             const treeContainer = document.getElementById('referralTree');
             if (!treeContainer) return;
 
-            // Find root users (users without referrers)
             const rootUsers = allUsers.filter(user => !user.hasReferrer);
 
             if (rootUsers.length === 0) {
@@ -845,7 +1293,7 @@
         // Recursive function to build tree nodes
         function buildTreeNode(user, level) {
             const referredUsers = allUsers.filter(u => user.referredUsers.includes(u.id));
-            
+
             let nodeHTML = `
                 <div class="tree-node">
                     <div class="node-main">
@@ -995,7 +1443,6 @@
                 return;
             }
 
-            // Show all users or top 12 by balance
             const displayUsers = allUsers.length > 12 ? 
                 [...allUsers].sort((a, b) => b.balance - a.balance).slice(0, 12) : 
                 allUsers;
@@ -1043,14 +1490,14 @@
         function refreshData() {
             console.log('🔄 Refreshing data...');
             showLoading();
-            loadUsersData();
+            loadAdminData();
         }
 
         function showLoading() {
             const elements = [
-                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid'
+                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid', 'purchasesTableContainer'
             ];
-            
+
             elements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
@@ -1066,9 +1513,9 @@
 
         function showError(message) {
             const elements = [
-                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid'
+                'usersGrid', 'referralTree', 'noReferrersGrid', 'allUsersGrid', 'purchasesTableContainer'
             ];
-            
+
             elements.forEach(id => {
                 const element = document.getElementById(id);
                 if (element) {
