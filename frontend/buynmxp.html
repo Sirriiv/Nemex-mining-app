@@ -400,6 +400,29 @@
             margin-top: 2px;
             text-align: center;
         }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 10px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-top: 2px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -423,7 +446,12 @@
             <div class="buy-section">
                 <div class="balance-card">
                     <div class="balance-label">Your Current NMXp Balance</div>
-                    <div class="balance-amount" id="currentBalance">0 NMXp</div>
+                    <div class="balance-amount" id="currentBalance">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading balance...
+                        </div>
+                    </div>
                 </div>
 
                 <div class="section-title">
@@ -433,72 +461,66 @@
                     Select Package
                 </div>
                 <div class="packages-grid">
-                    <!-- Basic Packages -->
-                    <div class="package-card" onclick="selectPackage(this, 250, 0.5, 5)">
+                    <!-- Basic Packages - UPDATED PRICES -->
+                    <div class="package-card" onclick="selectPackage(this, 250, 0.2, 20)">
                         <div class="package-amount">250 NMXp</div>
-                        <div class="package-price">$0.50 USD</div>
-                        <div class="package-purchase-limit">Can purchase 5 times</div>
+                        <div class="package-price">$0.20 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 20 times</div>
                     </div>
 
-                    <div class="package-card" onclick="selectPackage(this, 500, 1, 2)">
+                    <div class="package-card" onclick="selectPackage(this, 500, 0.5, 10)">
                         <div class="package-amount">500 NMXp</div>
-                        <div class="package-price">$1.00 USD</div>
-                        <div class="package-purchase-limit">Can purchase 2 times</div>
-                    </div>
-
-                    <div class="package-card" onclick="selectPackage(this, 1000, 10, 10)">
-                        <div class="package-amount">1,000 NMXp</div>
-                        <div class="package-price">$10.00 USD</div>
+                        <div class="package-price">$0.50 USDT</div>
                         <div class="package-purchase-limit">Can purchase 10 times</div>
                     </div>
 
-                    <div class="package-card" onclick="selectPackage(this, 3000, 30, 3)">
+                    <div class="package-card" onclick="selectPackage(this, 1000, 1, 10)">
+                        <div class="package-amount">1,000 NMXp</div>
+                        <div class="package-price">$1.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 3000, 3, 10)">
                         <div class="package-amount">3,000 NMXp</div>
-                        <div class="package-price">$30.00 USD</div>
-                        <div class="package-purchase-limit">Can purchase 3 times</div>
+                        <div class="package-price">$3.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
                     </div>
 
-                    <div class="package-card" onclick="selectPackage(this, 5000, 50, 2)">
+                    <div class="package-card" onclick="selectPackage(this, 5000, 5, 10)">
                         <div class="package-amount">5,000 NMXp</div>
-                        <div class="package-price">$50.00 USD</div>
-                        <div class="package-purchase-limit">Can purchase 2 times</div>
+                        <div class="package-price">$5.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
                     </div>
 
-                    <div class="package-card" onclick="selectPackage(this, 7000, 70, 3, 500)">
-                        <div class="package-amount">7,000 NMXp</div>
-                        <div class="package-price">$70.00 USD</div>
-                        <div class="package-purchase-limit">Can purchase 3 times</div>
-                        <div class="package-bonus">+500 NMXp Bonus</div>
-                    </div>
+                    <!-- REMOVED: 7,000 NMXp package -->
 
-                    <div class="package-card" onclick="selectPackage(this, 10000, 100, 2, 1000)">
+                    <div class="package-card" onclick="selectPackage(this, 10000, 10, 10)">
                         <div class="package-amount">10,000 NMXp</div>
-                        <div class="package-price">$100.00 USD</div>
-                        <div class="package-purchase-limit">Can purchase 2 times</div>
-                        <div class="package-bonus">+1,000 NMXp Bonus</div>
+                        <div class="package-price">$10.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
                     </div>
 
-                    <!-- VIP Packages -->
-                    <div class="package-card vip" onclick="selectPackage(this, 100000, 500, 5)">
+                    <!-- VIP Packages - UPDATED PRICES -->
+                    <div class="package-card vip" onclick="selectPackage(this, 100000, 50, 5)">
                         <div class="vip-badge">VIP Package</div>
                         <div class="package-amount">100,000 NMXp</div>
-                        <div class="package-price">$500.00 USD</div>
+                        <div class="package-price">$50.00 USDT</div>
                         <div class="package-purchase-limit">Can purchase 5 times</div>
                         <div class="package-bonus">VIP Token Benefits</div>
                     </div>
 
-                    <div class="package-card vip" onclick="selectPackage(this, 500000, 1000, 5)">
+                    <div class="package-card vip" onclick="selectPackage(this, 500000, 100, 5)">
                         <div class="vip-badge">VIP Package</div>
                         <div class="package-amount">500,000 NMXp</div>
-                        <div class="package-price">$1,000.00 USD</div>
+                        <div class="package-price">$100.00 USDT</div>
                         <div class="package-purchase-limit">Can purchase 5 times</div>
                         <div class="package-bonus">VIP Token Benefits</div>
                     </div>
 
-                    <div class="package-card vip" onclick="selectPackage(this, 1000000, 2000, 5)">
+                    <div class="package-card vip" onclick="selectPackage(this, 1000000, 200, 5)">
                         <div class="vip-badge">VIP Package</div>
                         <div class="package-amount">1,000,000 NMXp</div>
-                        <div class="package-price">$2,000.00 USD</div>
+                        <div class="package-price">$200.00 USDT</div>
                         <div class="package-purchase-limit">Can purchase 5 times</div>
                         <div class="package-bonus">VIP Token Benefits</div>
                     </div>
@@ -600,13 +622,14 @@
         let selectedPackage = null;
         let selectedPayment = null;
         let currentUser = null;
+        let currentBalance = 0;
 
         // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            loadUserData();
+            initializePage();
         });
 
-        async function loadUserData() {
+        async function initializePage() {
             try {
                 // Get current user session
                 const { data: { session } } = await supabaseClient.auth.getSession();
@@ -617,7 +640,21 @@
 
                 currentUser = session.user;
 
-                // Load user's NMXp balance
+                // Load initial balance
+                await loadUserBalance();
+
+                // Set up real-time subscription for balance updates
+                setupRealtimeBalance();
+
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                document.getElementById('currentBalance').innerHTML = 
+                    '<span style="color: var(--danger);">Error loading balance</span>';
+            }
+        }
+
+        async function loadUserBalance() {
+            try {
                 const { data: profile, error } = await supabaseClient
                     .from('profiles')
                     .select('nmxp_balance')
@@ -626,12 +663,55 @@
 
                 if (error) throw error;
 
-                document.getElementById('currentBalance').textContent = 
-                    (profile.nmxp_balance || 0) + ' NMXp';
+                currentBalance = profile.nmxp_balance || 0;
+                updateBalanceDisplay();
 
             } catch (error) {
-                console.error('Error loading user data:', error);
+                console.error('Error loading balance:', error);
+                document.getElementById('currentBalance').innerHTML = 
+                    '<span style="color: var(--danger);">Error loading balance</span>';
             }
+        }
+
+        function setupRealtimeBalance() {
+            // Subscribe to profile changes for real-time balance updates
+            const subscription = supabaseClient
+                .channel('balance-updates')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: 'UPDATE',
+                        schema: 'public',
+                        table: 'profiles',
+                        filter: `id=eq.${currentUser.id}`
+                    },
+                    (payload) => {
+                        // Update balance when profile changes
+                        if (payload.new.nmxp_balance !== undefined) {
+                            currentBalance = payload.new.nmxp_balance || 0;
+                            updateBalanceDisplay();
+                        }
+                    }
+                )
+                .subscribe();
+
+            // Also refresh balance when page becomes visible
+            document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) {
+                    loadUserBalance();
+                }
+            });
+        }
+
+        function updateBalanceDisplay() {
+            const balanceElement = document.getElementById('currentBalance');
+            balanceElement.innerHTML = `${currentBalance.toLocaleString()} NMXp`;
+            
+            // Add animation for balance updates
+            balanceElement.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                balanceElement.style.transform = 'scale(1)';
+            }, 300);
         }
 
         function selectPackage(element, amount, price, purchaseLimit, bonus = 0) {
@@ -678,7 +758,7 @@
                     <svg class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                    Buy ${totalAmount} NMXp - $${selectedPackage.price} USD
+                    Buy ${totalAmount} NMXp - $${selectedPackage.price} USDT
                 `;
             } else {
                 buyButton.disabled = true;
@@ -704,10 +784,10 @@
                     Processing...
                 `;
 
-                // Get current balance
+                // Get current balance and purchase history
                 const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
-                    .select('nmxp_balance, total_nmxp_purchased')
+                    .select('nmxp_balance, total_nmxp_purchased, is_vip')
                     .eq('id', currentUser.id)
                     .single();
 
@@ -748,8 +828,9 @@
                     console.warn('Could not record purchase history:', purchaseError);
                 }
 
-                // Update UI
-                document.getElementById('currentBalance').textContent = newBalance + ' NMXp';
+                // Update local balance immediately
+                currentBalance = newBalance;
+                updateBalanceDisplay();
 
                 // Show success message
                 buyButton.innerHTML = `
@@ -775,7 +856,7 @@
             } catch (error) {
                 console.error('Purchase error:', error);
                 alert('❌ Purchase failed. Please try again.');
-                
+
                 const buyButton = document.getElementById('buyButton');
                 buyButton.disabled = false;
                 updateBuyButton();
