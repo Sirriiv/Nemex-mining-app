@@ -1,508 +1,77 @@
-<!DOCTYPE html>
+here is my referral.html code you can <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Referrals - NemexCoin</title>
     <style>
-        :root { 
-            --dark-bg: #0f0f0f; 
-            --darker-bg: #080808; 
-            --gold: #d4af37; 
-            --text: #f5f5f5; 
-            --muted: #aaa; 
-            --bg-secondary: #1a1a1a;
-            --border-color: #333333;
-            --success: #00C851;
-            --error: #ff4444;
-            --warning: #ff9800;
-            --info: #33b5e5;
-        }
-
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
-        }
-
-        body { 
-            background: var(--dark-bg); 
-            color: var(--text); 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column;
-        }
-
-        .container { 
-            width: 100%; 
-            max-width: 400px; 
-            margin: 0 auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px 20px;
-            background: var(--darker-bg);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .logo {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--gold);
-        }
-
-        .nav-icon {
-            width: 24px;
-            height: 24px;
-            cursor: pointer;
-            color: var(--muted);
-            transition: all 0.3s ease;
-        }
-
-        .nav-icon:hover {
-            color: var(--gold);
-            transform: scale(1.1);
-        }
-
-        .content {
-            padding: 20px;
-            flex: 1;
-            padding-bottom: 70px;
-        }
-
-        .page-title {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .page-title-icon {
-            width: 28px;
-            height: 28px;
-            color: var(--gold);
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-
-        .stat-card {
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            border: 1px solid var(--border-color);
-        }
-
-        .stat-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 4px;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        .referral-section {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border: 1px solid var(--border-color);
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .section-subtitle {
-            font-size: 14px;
-            color: var(--muted);
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
-
-        .username-display {
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid var(--gold);
-            border-radius: 8px;
-            padding: 10px 12px;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-
-        .username-label {
-            color: var(--gold);
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .username-value {
-            font-family: monospace;
-            font-size: 13px;
-        }
-
-        .link-container {
-            display: flex;
-            background: var(--dark-bg);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid var(--border-color);
-        }
-
-        .referral-link {
-            flex: 1;
-            background: none;
-            border: none;
-            color: var(--text);
-            font-size: 12px;
-            cursor: pointer;
-            font-family: monospace;
-        }
-
-        .copy-btn {
-            background: var(--gold);
-            color: var(--darker-bg);
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.3s ease;
-        }
-
-        .copy-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
-        }
-
-        .social-share {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .social-btn {
-            background: var(--dark-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .social-btn:hover {
-            border-color: var(--gold);
-            background: rgba(212, 175, 55, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .social-icon {
-            width: 20px;
-            height: 20px;
-            color: var(--gold);
-        }
-
-        .social-label {
-            font-size: 11px;
-            color: var(--muted);
-            font-weight: 600;
-        }
-
-        .referrals-list {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border-color);
-        }
-
-        .list-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .list-title-icon {
-            width: 20px;
-            height: 20px;
-            color: var(--gold);
-        }
-
-        .referral-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .referral-item:hover {
-            background: rgba(255, 255, 255, 0.02);
-            margin: 0 -10px;
-            padding: 12px 10px;
-            border-radius: 8px;
-        }
-
-        .referral-item:last-child {
-            border-bottom: none;
-        }
-
-        .referral-info {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-
-        .referral-name {
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .referral-date {
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        .referral-actions {
-            display: flex;
-            gap: 8px;
-            margin-left: 10px;
-        }
-
-        .action-btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .ping-btn {
-            background: rgba(51, 181, 229, 0.2);
-            color: var(--info);
-            border: 1px solid var(--info);
-        }
-
-        .ping-btn:hover {
-            background: rgba(51, 181, 229, 0.3);
-            transform: translateY(-1px);
-        }
-
-        .remove-btn {
-            background: rgba(255, 68, 68, 0.2);
-            color: var(--error);
-            border: 1px solid var(--error);
-        }
-
-        .remove-btn:hover {
-            background: rgba(255, 68, 68, 0.3);
-            transform: translateY(-1px);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted);
-        }
-
-        .empty-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 16px;
-            color: var(--muted);
-            opacity: 0.5;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: var(--darker-bg);
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 320px;
-            width: 90%;
-            border: 1px solid var(--border-color);
-        }
-
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: var(--error);
-        }
-
-        .modal-text {
-            margin-bottom: 20px;
-            line-height: 1.4;
-            font-size: 14px;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-        }
-
-        .modal-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .modal-cancel {
-            background: var(--bg-secondary);
-            color: var(--text);
-            border: 1px solid var(--border-color);
-        }
-
-        .modal-cancel:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .modal-confirm {
-            background: var(--error);
-            color: white;
-        }
-
-        .modal-confirm:hover {
-            background: #ff3333;
-        }
-
-        .toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--success);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            z-index: 1001;
-            display: none;
-        }
-
-        .toast.error {
-            background: var(--error);
-        }
-
-        .toast.info {
-            background: var(--info);
-        }
-
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
-            border-radius: 8px;
-            margin: 0 1px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-item.active {
-            color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
-            border-radius: 2px;
-        }
-
-        .nav-icon {
-            width: 22px;
-            height: 22px;
-            margin-bottom: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-item.active .nav-icon {
-            color: var(--gold);
-            transform: scale(1.1);
-        }
-
-        .nav-text {
-            margin-top: 2px;
-            text-align: center;
-        }
+        :root { --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; --text: #f5f5f5; --muted: #aaa; --bg-secondary: #1a1a1a; --border-color: #333333; --success: #00C851; --error: #ff4444; --warning: #ff9800; --info: #33b5e5; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
+        body { background: var(--dark-bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+        .container { width: 100%; max-width: 400px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--darker-bg); border-bottom: 1px solid var(--border-color); }
+        .logo { font-size: 20px; font-weight: 700; color: var(--gold); }
+        .nav-icon { width: 24px; height: 24px; cursor: pointer; color: var(--muted); transition: all 0.3s ease; }
+        .nav-icon:hover { color: var(--gold); transform: scale(1.1); }
+        .content { padding: 20px; flex: 1; padding-bottom: 70px; }
+        .page-title { font-size: 24px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .page-title-icon { width: 28px; height: 28px; color: var(--gold); }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        .stat-card { background: var(--bg-secondary); border-radius: 10px; padding: 15px; text-align: center; border: 1px solid var(--border-color); }
+        .stat-value { font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
+        .stat-label { font-size: 11px; color: var(--muted); }
+        .referral-section { background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin-bottom: 25px; border: 1px solid var(--border-color); }
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+        .section-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 15px; line-height: 1.4; }
+        .username-display { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); border-radius: 8px; padding: 10px 12px; margin-bottom: 15px; font-size: 14px; }
+        .username-label { color: var(--gold); font-weight: 600; margin-bottom: 4px; }
+        .username-value { font-family: monospace; font-size: 13px; }
+        .link-container { display: flex; background: var(--dark-bg); border-radius: 8px; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+        .referral-link { flex: 1; background: none; border: none; color: var(--text); font-size: 12px; cursor: pointer; font-family: monospace; }
+        .copy-btn { background: var(--gold); color: var(--darker-bg); border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; transition: all 0.3s ease; }
+        .copy-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .social-share { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .social-btn { background: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .social-btn:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.1); transform: translateY(-2px); }
+        .social-icon { width: 20px; height: 20px; color: var(--gold); }
+        .social-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+        .referrals-list { background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
+        .list-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .list-title-icon { width: 20px; height: 20px; color: var(--gold); }
+        .referral-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); transition: all 0.3s ease; }
+        .referral-item:hover { background: rgba(255, 255, 255, 0.02); margin: 0 -10px; padding: 12px 10px; border-radius: 8px; }
+        .referral-item:last-child { border-bottom: none; }
+        .referral-info { display: flex; flex-direction: column; flex: 1; }
+        .referral-name { font-weight: 600; margin-bottom: 4px; }
+        .referral-date { font-size: 11px; color: var(--muted); }
+        .referral-actions { display: flex; gap: 8px; margin-left: 10px; }
+        .action-btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
+        .ping-btn { background: rgba(51, 181, 229, 0.2); color: var(--info); border: 1px solid var(--info); }
+        .ping-btn:hover { background: rgba(51, 181, 229, 0.3); transform: translateY(-1px); }
+        .remove-btn { background: rgba(255, 68, 68, 0.2); color: var(--error); border: 1px solid var(--error); }
+        .remove-btn:hover { background: rgba(255, 68, 68, 0.3); transform: translateY(-1px); }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+        .empty-icon { width: 60px; height: 60px; margin: 0 auto 16px; color: var(--muted); opacity: 0.5; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--darker-bg); border-radius: 12px; padding: 24px; max-width: 320px; width: 90%; border: 1px solid var(--border-color); }
+        .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--error); }
+        .modal-text { margin-bottom: 20px; line-height: 1.4; font-size: 14px; }
+        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+        .modal-btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.3s ease; }
+        .modal-cancel { background: var(--bg-secondary); color: var(--text); border: 1px solid var(--border-color); }
+        .modal-cancel:hover { background: rgba(255, 255, 255, 0.1); }
+        .modal-confirm { background: var(--error); color: white; }
+        .modal-confirm:hover { background: #ff3333; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 12px 20px; border-radius: 8px; font-weight: 600; z-index: 1001; display: none; }
+        .toast.error { background: var(--error); }
+        .toast.info { background: var(--info); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 5px; z-index: 100; gap: 5px; max-width: 400px; margin: 0 auto; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--muted); font-size: 10px; font-weight: 600; flex: 1; padding: 8px 2px; border-radius: 8px; margin: 0 1px; transition: all 0.3s ease; }
+        .nav-item.active { color: var(--gold); background-color: rgba(212, 175, 55, 0.1); position: relative; }
+        .nav-item.active::after { content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 50%; height: 3px; background: var(--gold); border-radius: 2px; }
+        .nav-icon { width: 22px; height: 22px; margin-bottom: 4px; transition: all 0.3s ease; }
+        .nav-item.active .nav-icon { color: var(--gold); transform: scale(1.1); }
+        .nav-text { margin-top: 2px; text-align: center; }
     </style>
 </head>
 <body>
@@ -524,7 +93,6 @@
                 Referrals
             </h1>
 
-            <!-- Stats Grid -->
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="totalReferrals">0</div>
@@ -540,7 +108,6 @@
                 </div>
             </div>
 
-            <!-- Referral Section -->
             <div class="referral-section">
                 <div class="section-title">Invite Friends & Earn</div>
                 <div class="section-subtitle">Share your referral link and track your referrals!</div>
@@ -583,7 +150,6 @@
                 </div>
             </div>
 
-            <!-- Referrals List -->
             <div class="referrals-list">
                 <div class="list-title">
                     <svg class="list-title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -591,13 +157,10 @@
                     </svg>
                     Your Referrals
                 </div>
-                <div id="referralsList">
-                    <!-- Referrals will be loaded here -->
-                </div>
+                <div id="referralsList"></div>
             </div>
         </div>
 
-        <!-- Bottom Navigation -->
         <nav class="bottom-nav">
             <a href="dashboard.html" class="nav-item">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -632,17 +195,10 @@
         </nav>
     </div>
 
-    <!-- Remove Confirmation Modal -->
     <div class="modal" id="removeModal">
         <div class="modal-content">
             <div class="modal-title">Remove Referral</div>
-            <div class="modal-text" id="removeModalText">
-                Are you sure you want to remove this user? This action will:
-                <br><br>
-                • Deduct 30 NMXp from both accounts<br>
-                • Free up one referral slot<br>
-                • This action cannot be undone
-            </div>
+            <div class="modal-text" id="removeModalText">Are you sure you want to remove this user? This action will deduct 30 NMXp from both accounts and free up one referral slot.</div>
             <div class="modal-actions">
                 <button class="modal-btn modal-cancel" id="cancelRemove">Cancel</button>
                 <button class="modal-btn modal-confirm" id="confirmRemove">Remove</button>
@@ -650,12 +206,10 @@
         </div>
     </div>
 
-    <!-- Toast Notifications -->
     <div class="toast" id="toast"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -665,67 +219,62 @@
         let referrals = [];
         let userToRemove = null;
 
-        document.addEventListener('DOMContentLoaded', async function() {
-            // Check authentication
-            const { data: { session }, error } = await supabase.auth.getSession();
-
-            if (error || !session) {
-                window.location.href = 'login.html';
-                return;
+        // NEW: Function to record referral in BOTH tables
+        async function recordReferral(referrerId, referredUserId) {
+            try {
+                console.log('📝 Recording referral:', { referrerId, referredUserId });
+                const { data: referrerProfile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('used_slots, referral_slots')
+                    .eq('id', referrerId)
+                    .single();
+                if (profileError) throw profileError;
+                const newUsedSlots = (referrerProfile.used_slots || 0) + 1;
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ used_slots: newUsedSlots, updated_at: new Date().toISOString() })
+                    .eq('id', referrerId);
+                if (updateError) throw updateError;
+                const { error: referralError } = await supabase
+                    .from('referrals')
+                    .insert({ referrer_id: referrerId, referred_user_id: referredUserId, created_at: new Date().toISOString(), level: 1 });
+                if (referralError) throw referralError;
+                console.log('✅ Referral recorded successfully in both tables');
+                return true;
+            } catch (error) {
+                console.error('❌ Error recording referral:', error);
+                return false;
             }
+        }
 
+        document.addEventListener('DOMContentLoaded', async function() {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error || !session) { window.location.href = 'login.html'; return; }
             currentUser = session.user;
             await loadReferralData();
             setupEventListeners();
-
-            // Highlight current page in navigation
             const currentPage = window.location.pathname.split('/').pop() || 'referrals.html';
-            const navItems = document.querySelectorAll('.nav-item');
-            
-            navItems.forEach(item => {
-                const href = item.getAttribute('href');
-                if (href === currentPage) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('href') === currentPage);
             });
         });
 
         async function loadReferralData() {
             if (!currentUser) return;
-
             try {
-                // Load user profile with referral stats
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-
+                const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
                 if (error) throw error;
-
                 currentProfile = profile;
-
                 const usedSlots = profile.used_slots || 0;
                 const totalSlots = profile.referral_slots || 10;
                 const availableSlots = Math.max(0, totalSlots - usedSlots);
-
-                // Update stats
                 document.getElementById('totalReferrals').textContent = usedSlots;
                 document.getElementById('availableSlots').textContent = availableSlots;
                 document.getElementById('earnedBonus').textContent = profile.total_earned_from_refs || 0;
-
-                // Update username display
                 document.getElementById('usernameDisplay').textContent = profile.username;
-
-                // Generate referral link
                 const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
                 document.getElementById('referralLink').value = referralLink;
-
-                // Load referrals list
                 await loadReferralsList();
-
             } catch (error) {
                 console.error('Error loading referral data:', error);
                 showToast('Error loading referral data', 'error');
@@ -734,33 +283,19 @@
 
         async function loadReferralsList() {
             if (!currentUser) return;
-
             try {
-                // Get users who were referred by current user
                 const { data: refs, error } = await supabase
                     .from('profiles')
                     .select('id, username, email, created_at, full_name, balance, referred_by')
                     .eq('referred_by', currentUser.id)
                     .order('created_at', { ascending: false });
-
                 if (error) throw error;
-
                 referrals = refs || [];
                 const referralsList = document.getElementById('referralsList');
-
                 if (!referrals || referrals.length === 0) {
-                    referralsList.innerHTML = `
-                        <div class="empty-state">
-                            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                            <div>No referrals yet</div>
-                            <div style="font-size: 12px; margin-top: 8px;">Share your link to start earning</div>
-                        </div>
-                    `;
+                    referralsList.innerHTML = `<div class="empty-state"><svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg><div>No referrals yet</div><div style="font-size: 12px; margin-top: 8px;">Share your link to start earning</div></div>`;
                     return;
                 }
-
                 referralsList.innerHTML = referrals.map(ref => `
                     <div class="referral-item">
                         <div class="referral-info">
@@ -773,221 +308,91 @@
                         </div>
                     </div>
                 `).join('');
-
             } catch (error) {
                 console.error('Error loading referrals list:', error);
                 showToast('Error loading referrals', 'error');
             }
         }
 
-        // Ping User Functionality
         async function pingUser(userId, userName) {
-            try {
-                showToast(`Ping sent to ${userName}`, 'info');
-
-                // Here you can add additional ping functionality like:
-                // - Sending notifications
-                // - Logging ping events
-                // - Email notifications
-
-                console.log(`Ping sent to user: ${userName} (${userId})`);
-
-            } catch (error) {
-                console.error('Error pinging user:', error);
-                showToast('Error sending ping', 'error');
-            }
+            try { showToast(`Ping sent to ${userName}`, 'info'); console.log(`Ping sent to user: ${userName} (${userId})`); } 
+            catch (error) { console.error('Error pinging user:', error); showToast('Error sending ping', 'error'); }
         }
 
-        // Show Remove Confirmation Modal
         function showRemoveModal(userId, userName) {
             userToRemove = { id: userId, name: userName };
             const modal = document.getElementById('removeModal');
             const modalText = document.getElementById('removeModalText');
-
-            modalText.innerHTML = `
-                Are you sure you want to remove <strong>${userName}</strong>? This action will:
-                <br><br>
-                • Deduct 30 NMXp from both accounts<br>
-                • Free up one referral slot<br>
-                • This action cannot be undone
-            `;
-
+            modalText.innerHTML = `Are you sure you want to remove <strong>${userName}</strong>? This action will deduct 30 NMXp from both accounts and free up one referral slot.`;
             modal.style.display = 'flex';
         }
 
-        // Remove User Functionality with Slot Syncing
         async function removeUser(userId) {
-            if (!userId || !currentUser) {
-                showToast('Error: Invalid user data', 'error');
-                return;
-            }
-
+            if (!userId || !currentUser) { showToast('Error: Invalid user data', 'error'); return; }
             try {
                 showToast('Removing user...', 'info');
-
                 const BONUS_AMOUNT = 30;
-
-                // 1. First get current user data
                 const { data: currentUserData, error: currentUserError } = await supabase
-                    .from('profiles')
-                     .select('balance, total_earned_from_refs, used_slots, referral_slots')
-                    .eq('id', currentUser.id)
-                    .single();
-
+                    .from('profiles').select('balance, total_earned_from_refs, used_slots').eq('id', currentUser.id).single();
                 if (currentUserError) throw currentUserError;
-
-                // 2. Get the user to remove data
                 const { data: userToRemoveData, error: userError } = await supabase
-                    .from('profiles')
-                    .select('balance, total_earned_from_refs')
-                    .eq('id', userId)
-                    .single();
-
+                    .from('profiles').select('balance, total_earned_from_refs').eq('id', userId).single();
                 if (userError) throw userError;
-
-                // 3. Calculate new values
                 const newReferrerBalance = Math.max(0, (currentUserData.balance || 0) - BONUS_AMOUNT);
                 const newReferrerEarned = Math.max(0, (currentUserData.total_earned_from_refs || 0) - BONUS_AMOUNT);
                 const newUsedSlots = Math.max(0, (currentUserData.used_slots || 0) - 1);
-
                 const newUserBalance = Math.max(0, (userToRemoveData.balance || 0) - BONUS_AMOUNT);
                 const newUserEarned = Math.max(0, (userToRemoveData.total_earned_from_refs || 0) - BONUS_AMOUNT);
-
-                // 4. Update referrer (current user)
                 const { error: referrerUpdateError } = await supabase
                     .from('profiles')
-                    .update({ 
-                        balance: newReferrerBalance,
-                        total_earned_from_refs: newReferrerEarned,
-                        used_slots: newUsedSlots
-                    })
+                    .update({ balance: newReferrerBalance, total_earned_from_refs: newReferrerEarned, used_slots: newUsedSlots })
                     .eq('id', currentUser.id);
-
                 if (referrerUpdateError) throw referrerUpdateError;
-
-                // 5. Update removed user
                 const { error: userUpdateError } = await supabase
                     .from('profiles')
-                    .update({ 
-                        balance: newUserBalance,
-                        total_earned_from_refs: newUserEarned,
-                        referred_by: null
-                    })
+                    .update({ balance: newUserBalance, total_earned_from_refs: newUserEarned, referred_by: null })
                     .eq('id', userId);
-
                 if (userUpdateError) throw userUpdateError;
-
-                // 6. Refresh the data
+                // NEW: Also remove from referrals table
+                const { error: referralDeleteError } = await supabase
+                    .from('referrals')
+                    .delete()
+                    .eq('referrer_id', currentUser.id)
+                    .eq('referred_user_id', userId);
+                if (referralDeleteError) console.warn('Could not remove from referrals table:', referralDeleteError);
                 await loadReferralData();
                 showToast('User removed successfully. Bonuses deducted and slot freed.', 'success');
-
             } catch (error) {
                 console.error('Error removing user:', error);
                 showToast(`Error removing user: ${error.message}`, 'error');
             }
         }
 
-        // Social Sharing Functions
-        function shareOnWhatsApp() {
-            const referralLink = document.getElementById('referralLink').value;
-            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`;
-            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
-        }
-
-        function shareOnTelegram() {
-            const referralLink = document.getElementById('referralLink').value;
-            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`;
-            const url = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join NemexCoin and get 30 NMXp bonus!')}`;
-            window.open(url, '_blank');
-        }
-
-        function shareOnTwitter() {
-            const referralLink = document.getElementById('referralLink').value;
-            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`;
-            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
-            window.open(url, '_blank');
-        }
-
-        function shareViaEmail() {
-            const referralLink = document.getElementById('referralLink').value;
-            const subject = 'Join NemexCoin and get 30 NMXp bonus!';
-            const body = `Hey! I'm using NemexCoin and thought you might like it too. Use my referral link to join and we both get 30 NMXp bonus:\n\n${referralLink}\n\nLet's earn together!`;
-            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-            window.location.href = url;
-        }
+        function shareOnWhatsApp() { const referralLink = document.getElementById('referralLink').value; const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); }
+        function shareOnTelegram() { const referralLink = document.getElementById('referralLink').value; const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join NemexCoin and get 30 NMXp bonus!')}`, '_blank'); }
+        function shareOnTwitter() { const referralLink = document.getElementById('referralLink').value; const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`, '_blank'); }
+        function shareViaEmail() { const referralLink = document.getElementById('referralLink').value; const subject = 'Join NemexCoin and get 30 NMXp bonus!'; const body = `Hey! I'm using NemexCoin and thought you might like it too. Use my referral link to join and we both get 30 NMXp bonus:\n\n${referralLink}\n\nLet's earn together!`; window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; }
 
         function setupEventListeners() {
-            // Copy referral link
             document.getElementById('copyBtn').addEventListener('click', function() {
                 const linkInput = document.getElementById('referralLink');
-                linkInput.select();
-                linkInput.setSelectionRange(0, 99999);
-
+                linkInput.select(); linkInput.setSelectionRange(0, 99999);
                 navigator.clipboard.writeText(linkInput.value).then(() => {
-                    const originalText = this.textContent;
-                    this.textContent = 'Copied!';
-                    this.style.background = 'var(--success)';
-
-                    setTimeout(() => {
-                        this.textContent = originalText;
-                        this.style.background = 'var(--gold)';
-                    }, 2000);
+                    const originalText = this.textContent; this.textContent = 'Copied!'; this.style.background = 'var(--success)';
+                    setTimeout(() => { this.textContent = originalText; this.style.background = 'var(--gold)'; }, 2000);
                 });
             });
-
-            // Remove modal events
-            document.getElementById('cancelRemove').addEventListener('click', function() {
-                document.getElementById('removeModal').style.display = 'none';
-                userToRemove = null;
-            });
-
-            document.getElementById('confirmRemove').addEventListener('click', function() {
-                if (userToRemove && userToRemove.id) {
-                    removeUser(userToRemove.id);
-                    document.getElementById('removeModal').style.display = 'none';
-                    userToRemove = null;
-                }
-            });
-
-            // Close modal when clicking outside
-            document.getElementById('removeModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.style.display = 'none';
-                    userToRemove = null;
-                }
-            });
-
-            // Handle auth state changes
+            document.getElementById('cancelRemove').addEventListener('click', function() { document.getElementById('removeModal').style.display = 'none'; userToRemove = null; });
+            document.getElementById('confirmRemove').addEventListener('click', function() { if (userToRemove && userToRemove.id) { removeUser(userToRemove.id); document.getElementById('removeModal').style.display = 'none'; userToRemove = null; } });
+            document.getElementById('removeModal').addEventListener('click', function(e) { if (e.target === this) { this.style.display = 'none'; userToRemove = null; } });
             supabase.auth.onAuthStateChange(async (event, session) => {
-                if (event === 'SIGNED_OUT') {
-                    window.location.href = 'login.html';
-                } else if (event === 'SIGNED_IN' && session) {
-                    currentUser = session.user;
-                    await loadReferralData();
-                }
+                if (event === 'SIGNED_OUT') { window.location.href = 'login.html'; } 
+                else if (event === 'SIGNED_IN' && session) { currentUser = session.user; await loadReferralData(); }
             });
         }
 
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        }
-
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type}`;
-            toast.style.display = 'block';
-
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 3000);
-        }
+        function formatDate(dateString) { const date = new Date(dateString); return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+        function showToast(message, type = 'success') { const toast = document.getElementById('toast'); toast.textContent = message; toast.className = `toast ${type}`; toast.style.display = 'block'; setTimeout(() => { toast.style.display = 'none'; }, 3000); }
     </script>
 </body>
 </html>
