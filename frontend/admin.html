@@ -397,8 +397,7 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>User</th>
-                            <th>Package</th>
+                            <th>User</th>                            <th>Package</th>
                             <th>Amount</th>
                             <th>Price</th>
                             <th>Status</th>
@@ -447,7 +446,7 @@
         async function initializeSystem() {
             try {
                 updateSystemStatus('connecting', 'Connecting to database...');
-                
+
                 // Test database connection first
                 const { data: testData, error: testError } = await supabaseClient
                     .from('profiles')
@@ -459,7 +458,7 @@
                 }
 
                 updateSystemStatus('connected', 'CONNECTED');
-                
+
                 // Load all data
                 await checkMaintenanceStatus();
                 await loadCompleteDashboardData();
@@ -477,10 +476,10 @@
         function updateSystemStatus(status, message) {
             const indicator = document.getElementById('realtimeIndicator');
             const text = document.getElementById('realtimeText');
-            
+
             indicator.className = 'realtime-indicator';
             systemStatus = status;
-            
+
             switch(status) {
                 case 'connected':
                     indicator.classList.add('connected');
@@ -540,7 +539,7 @@
                         .from('purchases')
                         .select('*')
                         .order('created_at', { ascending: false });
-                    
+
                     if (!purchasesError) {
                         purchases = purchasesData || [];
                     }
@@ -555,7 +554,7 @@
                         .from('pending_payments')
                         .select('*')
                         .order('created_at', { ascending: false });
-                    
+
                     if (!pendingError) {
                         pendingPayments = pendingData || [];
                     }
@@ -598,11 +597,137 @@
             }
         }
 
+        // =============================================
+        // 🚀 CRITICAL MISSING FUNCTIONS - ADDED!
+        // =============================================
+
+        function buildComprehensiveReferralMaps() {
+            try {
+                console.log('🔄 Building referral maps...');
+                
+                referralMap.clear();
+                referrerMap.clear();
+                
+                allReferrals.forEach(ref => {
+                    if (!referralMap.has(ref.referrer_id)) {
+                        referralMap.set(ref.referrer_id, []);
+                    }
+                    referralMap.get(ref.referrer_id).push(ref.referred_id);
+                    referrerMap.set(ref.referred_id, ref.referrer_id);
+                });
+                
+                console.log('✅ Referral maps built');
+                
+            } catch (error) {
+                console.error('❌ Error building referral maps:', error);
+            }
+        }
+
+        function updatePurchaseHistory() {
+            try {
+                const container = document.getElementById('purchasesTable');
+                if (!container) return;
+                
+                if (allPurchases.length === 0) {
+                    container.innerHTML = '<tr><td colspan="6" class="loading">No purchase history found</td></tr>';
+                    return;
+                }
+                
+                container.innerHTML = allPurchases.map(purchase => {
+                    const user = allUsers.find(u => u.id === purchase.user_id) || {};
+                    return `
+                        <tr>
+                            <td>${user.username || 'Unknown'}</td>
+                            <td>${user.email || 'No email'}</td>
+                            <td>${purchase.package_name || 'N/A'}</td>
+                            <td>$${purchase.price_usd || purchase.amount || 0}</td>
+                            <td>${Math.round(purchase.nemex_coins || 0)} NMX</td>
+                            <td>${new Date(purchase.created_at).toLocaleDateString()}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error updating purchase history:', error);
+            }
+        }
+
+        function updateRevenueAnalytics() {
+            console.log('💰 Revenue analytics placeholder');
+        }
+
+        function updateProductPerformance() {
+            console.log('📈 Product performance placeholder');
+        }
+
+        function updateUserActivity() {
+            console.log('👥 User activity placeholder');
+        }
+
+        function loadPendingPayments() {
+            try {
+                const container = document.getElementById('pendingPaymentsTable');
+                if (!container) return;
+                
+                const pending = allPendingPayments.filter(p => p.status === 'pending_review');
+                
+                if (pending.length === 0) {
+                    container.innerHTML = '<tr><td colspan="7" class="loading">No pending payments requiring review</td></tr>';
+                    return;
+                }
+                
+                container.innerHTML = pending.map(payment => {
+                    const user = allUsers.find(u => u.id === payment.user_id) || {};
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${user.username || 'Unknown'}</strong><br>
+                                <small>${user.email || 'No email'}</small>
+                            </td>
+                            <td>${payment.package_name || 'N/A'}</td>
+                            <td>${payment.amount || 0}</td>
+                            <td>$${payment.price_usd || 0}</td>
+                            <td><span class="status-badge status-pending">Pending Review</span></td>
+                            <td>${new Date(payment.created_at).toLocaleDateString()}</td>
+                            <td class="action-buttons">
+                                <button class="action-btn approve-btn" onclick="approvePayment('${payment.id}')">Approve</button>
+                                <button class="action-btn reject-btn" onclick="rejectPayment('${payment.id}')">Reject</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading pending payments:', error);
+            }
+        }
+
+        function buildCompleteReferralTree() {
+            console.log('🌳 Referral tree placeholder');
+        }
+
+        function showOrphanedUsers() {
+            console.log('👤 Orphaned users placeholder');
+        }
+
+        function showNoReferralsUsers() {
+            console.log('🔍 No referrals users placeholder');
+        }
+
+        // Payment action functions
+        function approvePayment(paymentId) {
+            console.log('✅ Approving payment:', paymentId);
+            alert('Approve functionality will be implemented!');
+        }
+
+        function rejectPayment(paymentId) {
+            console.log('❌ Rejecting payment:', paymentId);
+            alert('Reject functionality will be implemented!');
+        }
+
         // 🆕 ENHANCED REAL-TIME UPDATES WITH ERROR HANDLING
         function setupRealtimeUpdates() {
             try {
                 console.log('📡 Setting up real-time updates...');
-                
+
                 // Real-time subscription for profiles table
                 const profilesSubscription = supabaseClient
                     .channel('profiles-changes')
@@ -671,14 +796,14 @@
         // 🆕 ENHANCED REAL-TIME NOTIFICATION
         function showRealtimeNotification(message) {
             if (systemStatus === 'error') return;
-            
+
             const indicator = document.getElementById('realtimeIndicator');
             const originalState = indicator.className;
             const originalText = document.getElementById('realtimeText').textContent;
-            
+
             indicator.style.background = 'var(--info)';
             document.getElementById('realtimeText').textContent = message;
-            
+
             // Reset after 3 seconds
             setTimeout(() => {
                 if (systemStatus === 'connected') {
@@ -697,8 +822,7 @@
                     .from('settings')
                     .upsert({
                         key: 'maintenance_mode',
-                        value: maintenanceMode,
-                        updated_at: new Date().toISOString()
+                        value: maintenanceMode,                        updated_at: new Date().toISOString()
                     });
 
                 if (error) {
@@ -727,7 +851,7 @@
             try {
                 const totalUsers = allUsers.length;
                 const totalReferrals = Array.from(referralMap.values()).reduce((sum, arr) => sum + arr.length, 0);
-                
+
                 // Calculate revenue and purchase stats
                 const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.amount || purchase.price_usd || 0), 0);
                 const totalPurchases = allPurchases.length;
@@ -837,8 +961,6 @@
             }
         }
 
-        // ... (Other existing functions with enhanced error handling)
-
         // 🆕 ENHANCED LOADING FUNCTION
         function showLoading() {
             const elements = [
@@ -847,8 +969,7 @@
             ];
 
             elements.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
+                const element = document.getElementById(id);                if (element) {
                     element.innerHTML = `
                         <div class="loading">
                             <div class="loading-spinner"></div>
@@ -877,8 +998,6 @@
                 }
             });
         }
-
-        // ... (Rest of your existing functions with proper error handling)
 
         // Maintenance mode functions
         async function checkMaintenanceStatus() {
@@ -954,7 +1073,7 @@
             document.querySelectorAll('.mini-nav-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
+
             const buttons = document.querySelectorAll('.mini-nav-btn');
             buttons.forEach(btn => {
                 if (btn.getAttribute('onclick')?.includes(section)) {
@@ -969,7 +1088,7 @@
             const targetSection = document.getElementById(section + 'Section');
             if (targetSection) {
                 targetSection.style.display = 'block';
-                
+
                 switch(section) {
                     case 'pendingPayments':
                         loadPendingPayments();
@@ -1000,8 +1119,6 @@
 
             console.log('🔀 Switched to section:', section);
         }
-
-        // ... (Include all your existing functions for other sections with proper error handling)
 
     </script>
 </body>
