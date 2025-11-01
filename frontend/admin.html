@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin - Admin Dashboard</title>
+    <title>NemexCoin - Ultimate Admin Dashboard</title>
     <style>
         :root { 
             --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; --text: #f5f5f5; --muted: #aaa; 
@@ -27,7 +27,21 @@
         .maintenance-btn { background: rgba(255, 68, 68, 0.1); border: 1px solid var(--danger); color: var(--danger); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; }
         .maintenance-btn:hover { background: var(--danger); color: var(--dark-bg); transform: translateY(-2px); }
         .maintenance-btn.active { background: rgba(0, 200, 81, 0.1); border: 1px solid var(--success); color: var(--success); }
-        .maintenance-btn.active:hover { background: var(--success); color: var(--dark-bg); }
+        .maintenance-btn.active:hover { background: var(--success); color: var(--dark-bg); transform: translateY(-2px); }
+
+        /* Debug Button */
+        .debug-btn { 
+            background: rgba(255, 68, 68, 0.1); 
+            border: 1px solid var(--danger); 
+            color: var(--danger); 
+            padding: 8px 15px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .debug-btn:hover { background: var(--danger); color: white; }
 
         /* Enhanced Real-time indicator */
         .realtime-indicator { position: fixed; top: 10px; right: 10px; padding: 8px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; z-index: 1000; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; }
@@ -186,6 +200,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
                     NemexCoin - Ultimate Admin Dashboard
+                    <button class="debug-btn" onclick="runDatabaseDiagnostics()">🔧 DEBUG REFERRALS</button>
                 </div>
             </div>
             <div class="admin-actions">
@@ -627,6 +642,232 @@
             initializeSystem();
         });
 
+        // =============================================
+        // 🚀 CRITICAL FIX: ADD MISSING FUNCTION
+        // =============================================
+
+        function updatePendingPayments() {
+            try {
+                const pending = allPendingPayments.filter(p => p.status === 'pending_review');
+                document.getElementById('pendingPaymentsCount').textContent = pending.length;
+                console.log('📋 Pending payments updated:', pending.length);
+            } catch (error) {
+                console.error('Error updating pending payments:', error);
+            }
+        }
+
+        // =============================================
+        // 🛠️ ENHANCED REFERRAL DIAGNOSTICS
+        // =============================================
+
+        async function runDatabaseDiagnostics() {
+            console.log('🔧 RUNNING REFERRAL DIAGNOSTICS...');
+            
+            try {
+                // 1. Check if referral_network table exists and has data
+                const { data: referralData, error: referralError } = await supabaseClient
+                    .from('referral_network')
+                    .select('*');
+
+                if (referralError) {
+                    console.error('❌ Referral table error:', referralError);
+                    alert('❌ REFERRAL TABLE ERROR: ' + referralError.message);
+                    return;
+                }
+
+                console.log('📊 Referral network data:', referralData);
+                
+                // 2. Check user profiles
+                const { data: userData, error: userError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, created_at')
+                    .limit(10);
+
+                if (userError) {
+                    console.error('❌ Users table error:', userError);
+                    alert('❌ USERS TABLE ERROR: ' + userError.message);
+                    return;
+                }
+
+                console.log('👥 Sample users:', userData);
+
+                // 3. Show diagnostic results
+                let diagnosticMessage = `
+🔍 REFERRAL DIAGNOSTICS RESULTS:
+
+📊 Referral Records: ${referralData.length}
+👥 Total Users: ${userData.length}
+
+`;
+
+                if (referralData.length === 0) {
+                    diagnosticMessage += `
+❌ ISSUE DETECTED: No referral records found!
+
+💡 SOLUTION: 
+Your referral_network table is empty. You need to:
+1. Check if users are being properly referred during signup
+2. Run the SQL below to check for existing relationships
+`;
+                } else {
+                    diagnosticMessage += `
+✅ Referral data found! Sample relationships:
+`;
+                    
+                    referralData.slice(0, 5).forEach(ref => {
+                        diagnosticMessage += `   - Referrer: ${ref.referrer_id} → Referred: ${ref.referred_id}\n`;
+                    });
+                }
+
+                alert(diagnosticMessage);
+
+                // 4. Offer to fix by migrating from user profiles
+                if (referralData.length === 0 && confirm('Do you want to try to rebuild referral data from user profiles?')) {
+                    await rebuildReferralData();
+                }
+
+            } catch (error) {
+                console.error('Diagnostic error:', error);
+                alert('❌ Diagnostic failed: ' + error.message);
+            }
+        }
+
+        // =============================================
+        // 🔄 REFERRAL DATA REBUILDER
+        // =============================================
+
+        async function rebuildReferralData() {
+            try {
+                console.log('🔄 Attempting to rebuild referral data...');
+                
+                // Get all users to check for referral relationships
+                const { data: allUsers, error: usersError } = await supabaseClient
+                    .from('profiles')
+                    .select('*');
+
+                if (usersError) throw usersError;
+
+                let createdCount = 0;
+                let skippedCount = 0;
+
+                // Check each user for referral relationships
+                for (const user of allUsers) {
+                    // Look for referral information in user data
+                    // This depends on how your referral system stores data
+                    
+                    // Example: If users have a 'referred_by' field
+                    if (user.referred_by) {
+                        console.log(`Found referral: ${user.referred_by} → ${user.id}`);
+                        
+                        // Create referral record
+                        const { error: insertError } = await supabaseClient
+                            .from('referral_network')
+                            .insert({
+                                referrer_id: user.referred_by,
+                                referred_id: user.id,
+                                level: 1,
+                                created_at: user.created_at
+                            });
+
+                        if (!insertError) {
+                            createdCount++;
+                        } else {
+                            console.error('Error creating referral:', insertError);
+                        }
+                    } else {
+                        skippedCount++;
+                    }
+                }
+
+                alert(`✅ Referral rebuild complete!\n\nCreated: ${createdCount} referral relationships\nSkipped: ${skippedCount} users (no referrer found)\n\nPlease refresh the admin panel.`);
+
+            } catch (error) {
+                console.error('Rebuild error:', error);
+                alert('❌ Failed to rebuild referral data: ' + error.message);
+            }
+        }
+
+        // =============================================
+        // 🎯 ENHANCED REFERRAL MAPPING
+        // =============================================
+
+        function buildComprehensiveReferralMaps() {
+            try {
+                console.log('🔄 Building enhanced referral maps...');
+                console.log('Raw referral data:', allReferrals);
+                
+                referralMap.clear();
+                referrerMap.clear();
+                
+                // Build maps from referral_network table
+                allReferrals.forEach(ref => {
+                    if (ref.referrer_id && ref.referred_id) {
+                        // Map referrer to their referrals
+                        if (!referralMap.has(ref.referrer_id)) {
+                            referralMap.set(ref.referrer_id, []);
+                        }
+                        referralMap.get(ref.referrer_id).push(ref.referred_id);
+                        
+                        // Map referred user to their referrer
+                        referrerMap.set(ref.referred_id, ref.referrer_id);
+                    }
+                });
+
+                // Debug: Show what was mapped
+                console.log('🎯 Referral Mapping Results:');
+                console.log('Referral Map (referrer → referrals):', Array.from(referralMap.entries()));
+                console.log('Referrer Map (referred → referrer):', Array.from(referrerMap.entries()));
+                console.log('Total referrers found:', referralMap.size);
+                console.log('Total referred users found:', referrerMap.size);
+
+                // Show specific debug info for your account
+                const myUserId = 'your-user-id-here'; // You'll need to replace this
+                if (referralMap.has(myUserId)) {
+                    console.log(`🎯 YOUR REFERRALS: ${referralMap.get(myUserId).length} users`);
+                    console.log('Your referred users:', referralMap.get(myUserId));
+                } else {
+                    console.log('❌ No referrals found for your account in the mapping');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error building referral maps:', error);
+            }
+        }
+
+        // =============================================
+        // 🎯 QUICK FIX: MANUAL REFERRAL CHECKER
+        // =============================================
+
+        async function checkMyReferrals() {
+            try {
+                // First, let's find your user ID
+                const { data: myProfile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email')
+                    .eq('email', 'your-email@example.com') // Replace with your email
+                    .single();
+
+                if (profileError) throw profileError;
+
+                console.log('🔍 Checking referrals for:', myProfile);
+
+                // Now check referrals for your account
+                const { data: myReferrals, error: refError } = await supabaseClient
+                    .from('referral_network')
+                    .select('*')
+                    .eq('referrer_id', myProfile.id);
+
+                if (refError) throw refError;
+
+                console.log('📊 Your referral data:', myReferrals);
+                alert(`Your referrals: ${myReferrals.length} users found`);
+
+            } catch (error) {
+                console.error('Error checking referrals:', error);
+                alert('Error checking your referrals: ' + error.message);
+            }
+        }
+
         // ENHANCED SYSTEM INITIALIZATION
         async function initializeSystem() {
             try {
@@ -779,32 +1020,6 @@
                 console.error('❌ Error loading dashboard data:', error);
                 updateSystemStatus('error', 'DATA LOAD ERROR');
                 showError('Failed to load data: ' + error.message);
-            }
-        }
-
-        // =============================================
-        // COMPLETE FUNCTION IMPLEMENTATIONS
-        // =============================================
-
-        function buildComprehensiveReferralMaps() {
-            try {
-                console.log('🔄 Building referral maps...');
-                
-                referralMap.clear();
-                referrerMap.clear();
-                
-                allReferrals.forEach(ref => {
-                    if (!referralMap.has(ref.referrer_id)) {
-                        referralMap.set(ref.referrer_id, []);
-                    }
-                    referralMap.get(ref.referrer_id).push(ref.referred_id);
-                    referrerMap.set(ref.referred_id, ref.referrer_id);
-                });
-                
-                console.log('✅ Referral maps built');
-                
-            } catch (error) {
-                console.error('❌ Error building referral maps:', error);
             }
         }
 
@@ -1305,8 +1520,6 @@
             console.log('❌ Rejecting payment:', paymentId);
             alert('Reject functionality will be implemented in the next version!');
         }
-
-        // ... (Rest of your existing functions - setupRealtimeUpdates, showLoading, etc.)
 
         // ENHANCED REAL-TIME UPDATES WITH ERROR HANDLING
         function setupRealtimeUpdates() {
