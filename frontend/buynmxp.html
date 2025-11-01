@@ -980,8 +980,8 @@
                 currentUser = session.user;
                 console.log('User ID:', currentUser.id);
 
-                // Load initial balance using localStorage (same as dashboard)
-                await loadUserBalance();
+                // Load balance immediately using the same method as dashboard
+                loadBalanceFromDashboard();
 
             } catch (error) {
                 console.error('Error initializing page:', error);
@@ -989,19 +989,45 @@
             }
         }
 
-        async function loadUserBalance() {
-            try {
-                console.log('Loading balance for user:', currentUser.id);
-                
-                // Try to get balance from localStorage first (same as dashboard)
-                const cachedBalance = localStorage.getItem('userBalance');
-                if (cachedBalance) {
-                    currentBalance = parseFloat(cachedBalance) || 0;
-                    updateBalanceDisplay();
-                    console.log('Using cached balance:', currentBalance);
-                }
+        function loadBalanceFromDashboard() {
+            // Try multiple methods to get the balance from dashboard
+            
+            // Method 1: Check localStorage (where dashboard stores balance)
+            const localStorageBalance = localStorage.getItem('userBalance') || localStorage.getItem('nmxpBalance') || localStorage.getItem('currentBalance');
+            
+            // Method 2: Check sessionStorage
+            const sessionStorageBalance = sessionStorage.getItem('userBalance') || sessionStorage.getItem('nmxpBalance') || sessionStorage.getItem('currentBalance');
+            
+            // Method 3: Check if there's a global variable set by dashboard
+            const globalBalance = window.userBalance || window.nmxpBalance || window.currentBalance;
+            
+            // Method 4: Try to get from the DOM if dashboard set it in a meta tag
+            const metaBalance = document.querySelector('meta[name="user-balance"]')?.getAttribute('content');
+            
+            console.log('Balance search results:', {
+                localStorage: localStorageBalance,
+                sessionStorage: sessionStorageBalance,
+                global: globalBalance,
+                meta: metaBalance
+            });
 
-                // Also try to fetch from database with better error handling
+            // Use the first available balance value
+            const balance = localStorageBalance || sessionStorageBalance || globalBalance || metaBalance;
+            
+            if (balance) {
+                currentBalance = parseFloat(balance) || 0;
+                updateBalanceDisplay();
+                console.log('Balance loaded from dashboard:', currentBalance);
+            } else {
+                // If no balance found, try to fetch from database as fallback
+                fetchBalanceFromDatabase();
+            }
+        }
+
+        async function fetchBalanceFromDatabase() {
+            try {
+                console.log('Fetching balance from database for user:', currentUser.id);
+                
                 const { data: profile, error } = await supabaseClient
                     .from('profiles')
                     .select('nmxp_balance')
@@ -1009,22 +1035,26 @@
                     .single();
 
                 if (error) {
-                    console.warn('Supabase error, using cached balance:', error);
-                    // Don't throw error, just use cached value
+                    console.warn('Database fetch failed:', error);
+                    // Set a default balance
+                    currentBalance = 0;
+                    updateBalanceDisplay();
                     return;
                 }
 
                 if (profile && profile.nmxp_balance !== undefined) {
                     currentBalance = profile.nmxp_balance || 0;
-                    // Update localStorage with fresh value
-                    localStorage.setItem('userBalance', currentBalance.toString());
                     updateBalanceDisplay();
-                    console.log('Updated balance from database:', currentBalance);
+                    console.log('Balance loaded from database:', currentBalance);
+                    
+                    // Also store it for future use
+                    localStorage.setItem('userBalance', currentBalance.toString());
                 }
 
             } catch (error) {
-                console.warn('Error loading balance, using cached value:', error);
-                // Don't show error, just use cached value
+                console.warn('Error fetching from database:', error);
+                currentBalance = 0;
+                updateBalanceDisplay();
             }
         }
 
@@ -1043,6 +1073,26 @@
                 balanceElement.style.transform = 'scale(1)';
             }, 300);
         }
+
+        // Listen for balance updates from dashboard
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'userBalance' || e.key === 'nmxpBalance' || e.key === 'currentBalance') {
+                currentBalance = parseFloat(e.newValue) || 0;
+                updateBalanceDisplay();
+                console.log('Balance updated from storage:', currentBalance);
+            }
+        });
+
+        // Also check for balance updates when page becomes visible
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                // Refresh balance when user returns to this page
+                loadBalanceFromDashboard();
+            }
+        });
+
+        // Periodically check for balance updates (every 30 seconds)
+        setInterval(loadBalanceFromDashboard, 30000);
 
         function selectPackage(element, amount, price, purchaseLimit, bonus = 0) {
             // Remove selected class from all packages
@@ -1114,7 +1164,7 @@
         async function processManualConfirmation() {
             try {
                 // Show processing state in modal
-                const confirmBtn = document.querySelector('.confirm-btn');
+                const confirmBtn = document.querySelector('.confirmBtn');
                 const originalText = confirmBtn.innerHTML;
                 confirmBtn.innerHTML = 'Processing...';
                 confirmBtn.disabled = true;
@@ -1161,7 +1211,7 @@
                 alert('❌ Confirmation failed. Please try again.');
 
                 // Reset button
-                const confirmBtn = document.querySelector('.confirm-btn');
+                const confirmBtn = document.querySelector('.confirmBtn');
                 confirmBtn.innerHTML = 'Yes, I Paid';
                 confirmBtn.disabled = false;
             }
@@ -1188,22 +1238,6 @@
                 alert('Failed to copy address. Please select and copy manually.');
             });
         }
-
-        // Listen for balance updates from other pages
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'userBalance') {
-                currentBalance = parseFloat(e.newValue) || 0;
-                updateBalanceDisplay();
-            }
-        });
-
-        // Also listen for custom events (if dashboard fires them)
-        window.addEventListener('balanceUpdated', function(e) {
-            if (e.detail && e.detail.balance !== undefined) {
-                currentBalance = e.detail.balance;
-                updateBalanceDisplay();
-            }
-        });
     </script>
 </body>
 </html>
