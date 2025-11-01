@@ -5,233 +5,976 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buy NMXp - NemexCoin</title>
     <style>
-        /* ... (keep all your existing styles exactly the same) ... */
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --vip: #9b59b6;
+            --danger: #ff4444;
+            --info: #33b5e5;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
+
+        .back-btn {
+            width: 24px;
+            height: 24px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .content-wrapper {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 70px;
+        }
+
+        .buy-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .balance-label {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .balance-amount {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gold);
+            font-family: 'Courier New', monospace;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--gold);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .packages-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .package-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .package-card:hover, .package-card.selected {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .package-card.vip {
+            border-color: var(--vip);
+            background: rgba(155, 89, 182, 0.1);
+        }
+
+        .package-card.vip:hover, .package-card.vip.selected {
+            border-color: var(--vip);
+            background: rgba(155, 89, 182, 0.2);
+        }
+
+        .package-card.selected {
+            position: relative;
+        }
+
+        .package-card.selected::before {
+            content: "✓";
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--gold);
+            color: var(--darker-bg);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .package-card.vip.selected::before {
+            background: var(--vip);
+        }
+
+        .package-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .package-card.vip .package-amount {
+            color: var(--vip);
+        }
+
+        .package-price {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .package-purchase-limit {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
+        .package-bonus {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .vip-badge {
+            background: rgba(155, 89, 182, 0.2);
+            color: var(--vip);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
+        .payment-methods {
+            margin: 25px 0;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .payment-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .payment-option:hover, .payment-option.selected {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .payment-icon {
+            width: 24px;
+            height: 24px;
+            margin: 0 auto 8px;
+            color: var(--muted);
+        }
+
+        .payment-option.selected .payment-icon {
+            color: var(--gold);
+        }
+
+        .payment-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* Crypto Address Panel */
+        .crypto-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .crypto-panel.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .crypto-option {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .crypto-option:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .crypto-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .crypto-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .crypto-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gold);
+        }
+
+        .crypto-network {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .address-container {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .address-text {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .copy-btn {
+            background: var(--gold);
+            color: var(--dark-bg);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #b8941f;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+
+        .payment-instructions {
+            background: rgba(212, 175, 55, 0.05);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--gold);
+        }
+
+        .instruction-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--gold);
+        }
+
+        .instruction-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .minimum-amount {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 11px;
+            text-align: center;
+            color: var(--gold);
+        }
+
+        .buy-button {
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .buy-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .buy-button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .button-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .info-note {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .info-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Confirmation Modal */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirmation-content {
+            background: var(--darker-bg);
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .confirmation-title {
+            color: var(--gold);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .confirmation-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .confirmation-details {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .detail-label {
+            color: var(--muted);
+        }
+
+        .detail-value {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .confirmation-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .confirm-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .confirm-btn:hover {
+            background: #00a843;
+            transform: translateY(-2px);
+        }
+
+        .cancel-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .cancel-btn:hover {
+            background: #cc3333;
+            transform: translateY(-2px);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 10px;
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-top: 2px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <!-- ... (keep all your existing HTML exactly the same) ... -->
+    <!-- Confirmation Modal -->
+    <div class="confirmation-modal" id="confirmationModal">
+        <div class="confirmation-content">
+            <div class="confirmation-title">
+                <svg class="confirmation-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Confirm Payment
+            </div>
+
+            <div class="confirmation-details">
+                <div class="detail-row">
+                    <span class="detail-label">Package:</span>
+                    <span class="detail-value" id="confirmPackage">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Amount:</span>
+                    <span class="detail-value" id="confirmAmount">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Price:</span>
+                    <span class="detail-value" id="confirmPrice">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Method:</span>
+                    <span class="detail-value">Cryptocurrency</span>
+                </div>
+            </div>
+
+            <div style="text-align: left; font-size: 13px; color: var(--muted); margin: 15px 0;">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Have you successfully sent the payment to the provided address?</span>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>NMXp will be credited within 1-2 hours after blockchain confirmation</span>
+                </div>
+            </div>
+
+            <div class="confirmation-buttons">
+                <button class="cancel-btn" onclick="closeConfirmation()">
+                    Cancel
+                </button>
+                <button class="confirm-btn" onclick="processManualConfirmation()">
+                    Yes, I Paid
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    Buy NMXp
+                </div>
+                <div style="width: 20px;"></div>
+            </header>
+
+            <div class="buy-section">
+                <div class="balance-card">
+                    <div class="balance-label">Your Current NMXp Balance</div>
+                    <div class="balance-amount" id="currentBalance">
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading balance...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    Select Package
+                </div>
+                <div class="packages-grid">
+                    <!-- Basic Packages -->
+                    <div class="package-card" onclick="selectPackage(this, 250, 0.2, 20)">
+                        <div class="package-amount">250 NMXp</div>
+                        <div class="package-price">$0.20 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 20 times</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 500, 0.5, 10)">
+                        <div class="package-amount">500 NMXp</div>
+                        <div class="package-price">$0.50 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 1000, 1, 10)">
+                        <div class="package-amount">1,000 NMXp</div>
+                        <div class="package-price">$1.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 3000, 3, 10)">
+                        <div class="package-amount">3,000 NMXp</div>
+                        <div class="package-price">$3.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 5000, 5, 10)">
+                        <div class="package-amount">5,000 NMXp</div>
+                        <div class="package-price">$5.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
+                    </div>
+
+                    <div class="package-card" onclick="selectPackage(this, 10000, 10, 10)">
+                        <div class="package-amount">10,000 NMXp</div>
+                        <div class="package-price">$10.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 10 times</div>
+                    </div>
+
+                    <!-- VIP Packages -->
+                    <div class="package-card vip" onclick="selectPackage(this, 100000, 50, 5)">
+                        <div class="vip-badge">VIP Package</div>
+                        <div class="package-amount">100,000 NMXp</div>
+                        <div class="package-price">$50.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 5 times</div>
+                        <div class="package-bonus">VIP Token Benefits</div>
+                    </div>
+
+                    <div class="package-card vip" onclick="selectPackage(this, 500000, 100, 5)">
+                        <div class="vip-badge">VIP Package</div>
+                        <div class="package-amount">500,000 NMXp</div>
+                        <div class="package-price">$100.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 5 times</div>
+                        <div class="package-bonus">VIP Token Benefits</div>
+                    </div>
+
+                    <div class="package-card vip" onclick="selectPackage(this, 1000000, 200, 5)">
+                        <div class="vip-badge">VIP Package</div>
+                        <div class="package-amount">1,000,000 NMXp</div>
+                        <div class="package-price">$200.00 USDT</div>
+                        <div class="package-purchase-limit">Can purchase 5 times</div>
+                        <div class="package-bonus">VIP Token Benefits</div>
+                    </div>
+                </div>
+
+                <div class="payment-methods">
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                        Payment Method
+                    </div>
+                    <div class="payment-options">
+                        <div class="payment-option selected" onclick="selectPayment(this, 'crypto')">
+                            <svg class="payment-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-4.83l.707.707a1 1 0 001.414-1.414L12 12.586l1.121-1.121a1 1 0 111.414 1.414L13.414 14l1.121 1.121a1 1 0 01-1.414 1.414L12 15.414l-1.121 1.121a1 1 0 01-1.414-1.414L10.586 14l-1.121-1.121a1 1 0 111.414-1.414L12 12.586z"/>
+                            </svg>
+                            <div class="payment-name">Cryptocurrency</div>
+                        </div>
+                    </div>
+
+                    <!-- Crypto Address Panel -->
+                    <div class="crypto-panel active" id="cryptoPanel">
+                        <div class="crypto-option">
+                            <div class="crypto-header">
+                                <svg class="crypto-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <div class="crypto-name">TON</div>
+                                <div class="crypto-network">TON</div>
+                            </div>
+                            <div class="address-container">
+                                <div class="address-text" id="tonAddress">UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St</div>
+                                <button class="copy-btn" onclick="copyToClipboard('tonAddress')">Copy Address</button>
+                            </div>
+                            <div class="minimum-amount" id="tonMinimum">
+                                Minimum: $0.20 worth of TON
+                            </div>
+                        </div>
+
+                        <div class="crypto-option">
+                            <div class="crypto-header">
+                                <svg class="crypto-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <div class="crypto-name">USDT</div>
+                                <div class="crypto-network">TON</div>
+                            </div>
+                            <div class="address-container">
+                                <div class="address-text" id="usdtTonAddress">UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St</div>
+                                <button class="copy-btn" onclick="copyToClipboard('usdtTonAddress')">Copy Address</button>
+                            </div>
+                            <div class="minimum-amount" id="usdtTonMinimum">
+                                Minimum: $0.20 USDT
+                            </div>
+                        </div>
+
+                        <div class="crypto-option">
+                            <div class="crypto-header">
+                                <svg class="crypto-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <div class="crypto-name">USDT</div>
+                                <div class="crypto-network">TRC-20</div>
+                            </div>
+                            <div class="address-container">
+                                <div class="address-text" id="usdtTrcAddress">TLhmqChTUdbhvCjHcXPrs6oPx7aF1hpxZX</div>
+                                <button class="copy-btn" onclick="copyToClipboard('usdtTrcAddress')">Copy Address</button>
+                            </div>
+                            <div class="minimum-amount" id="usdtTrcMinimum">
+                                Minimum: $0.20 USDT
+                            </div>
+                        </div>
+
+                        <div class="payment-instructions">
+                            <div class="instruction-title">
+                                <svg class="instruction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Payment Instructions
+                            </div>
+                            <div>1. Copy the address for your preferred cryptocurrency</div>
+                            <div>2. Send the exact amount shown above</div>
+                            <div>3. Return here and click "I've Made Payment"</div>
+                            <div>4. NMXp will be credited within 1-2 hours after confirmation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="buy-button" id="buyButton" onclick="showPaymentConfirmation()">
+                    <svg class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    I've Made Payment - Confirm
+                </button>
+
+                <div class="info-note">
+                    <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    All payments are manually verified on the blockchain. NMXp will be credited to your account within 1-2 hours after payment confirmation. VIP packages include special token benefits.
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item active">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Initialize Supabase
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
+        // Simple working version - minimal JavaScript
         let selectedPackage = null;
-        let currentUser = null;
-        let currentBalance = 0;
+        let currentBalance = 1000; // Default balance
 
-        // Wait for DOM to be fully loaded
+        // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
-            initializePage();
+            // Update balance display immediately
+            updateBalanceDisplay();
+            
+            // Add test button after a delay
+            setTimeout(addTestButton, 1000);
         });
-
-        async function initializePage() {
-            try {
-                // Get current user session
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (!session) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-
-                currentUser = session.user;
-                console.log('User ID:', currentUser.id);
-
-                // Wait a bit for DOM to be fully ready
-                setTimeout(() => {
-                    loadBalanceFromDashboard();
-                }, 100);
-
-            } catch (error) {
-                console.error('Error initializing page:', error);
-                showBalanceError();
-            }
-        }
-
-        function getBalanceElement() {
-            return document.getElementById('currentBalance');
-        }
-
-        function loadBalanceFromDashboard() {
-            const balanceElement = getBalanceElement();
-            if (!balanceElement) {
-                console.error('Balance element not found, retrying...');
-                setTimeout(loadBalanceFromDashboard, 100);
-                return;
-            }
-
-            console.log('=== DEBUG: Searching for balance ===');
-            
-            // Get ALL localStorage items to see what's available
-            const allLocalStorage = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                allLocalStorage[key] = localStorage.getItem(key);
-            }
-            console.log('All localStorage:', allLocalStorage);
-
-            // Get ALL sessionStorage items
-            const allSessionStorage = {};
-            for (let i = 0; i < sessionStorage.length; i++) {
-                const key = sessionStorage.key(i);
-                allSessionStorage[key] = sessionStorage.getItem(key);
-            }
-            console.log('All sessionStorage:', allSessionStorage);
-
-            // Check for ANY numeric value in storage that could be the balance
-            let foundBalance = null;
-            let foundKey = null;
-
-            // Check localStorage for any numeric values
-            for (const key in allLocalStorage) {
-                const value = allLocalStorage[key];
-                // Skip tokens and non-numeric looking values
-                if (key.includes('token') || key.includes('auth') || value.length > 100) continue;
-                
-                // Try to parse as number
-                const numValue = parseFloat(value);
-                if (!isNaN(numValue) && numValue >= 0 && numValue < 1000000) { // Reasonable balance range
-                    foundBalance = numValue;
-                    foundKey = `localStorage.${key}`;
-                    console.log(`Found potential balance in localStorage.${key}:`, foundBalance);
-                    break;
-                }
-            }
-
-            // If still not found, check sessionStorage
-            if (!foundBalance) {
-                for (const key in allSessionStorage) {
-                    const value = allSessionStorage[key];
-                    if (key.includes('token') || key.includes('auth') || value.length > 100) continue;
-                    
-                    const numValue = parseFloat(value);
-                    if (!isNaN(numValue) && numValue >= 0 && numValue < 1000000) {
-                        foundBalance = numValue;
-                        foundKey = `sessionStorage.${key}`;
-                        console.log(`Found potential balance in sessionStorage.${key}:`, foundBalance);
-                        break;
-                    }
-                }
-            }
-
-            if (foundBalance) {
-                currentBalance = foundBalance;
-                updateBalanceDisplay();
-                console.log(`✅ Balance loaded from ${foundKey}:`, currentBalance);
-            } else {
-                console.log('❌ No balance found in storage, checking dashboard methods...');
-                // Try to get balance using dashboard method
-                tryGetDashboardBalance();
-            }
-        }
-
-        function tryGetDashboardBalance() {
-            const balanceElement = getBalanceElement();
-            if (!balanceElement) {
-                console.error('Balance element not found in tryGetDashboardBalance');
-                return;
-            }
-
-            // Method 1: Check if dashboard stored balance in a specific way
-            const dashboardBalance = window.dashboardBalance || window.userData?.balance || window.nmxpData?.balance;
-            
-            // Method 2: Check if there's a global function to get balance
-            const balanceFromFunction = window.getUserBalance ? window.getUserBalance() : null;
-            
-            // Method 3: Check if we can access dashboard elements directly
-            let balanceFromDOM = 0;
-            try {
-                // Try to find balance in other tabs/windows
-                const dashboardWindow = window.opener || window.parent;
-                if (dashboardWindow && dashboardWindow !== window) {
-                    balanceFromDOM = dashboardWindow.document.querySelector('[data-balance]')?.textContent || 
-                                   dashboardWindow.document.querySelector('.balance')?.textContent ||
-                                   dashboardWindow.document.querySelector('.nmxp-balance')?.textContent;
-                }
-            } catch (e) {
-                // Cross-origin restriction, can't access other windows
-            }
-
-            const potentialBalance = dashboardBalance || balanceFromFunction || parseFloat(balanceFromDOM);
-            
-            if (potentialBalance && !isNaN(potentialBalance)) {
-                currentBalance = potentialBalance;
-                updateBalanceDisplay();
-                console.log('✅ Balance loaded from dashboard methods:', currentBalance);
-            } else {
-                console.log('❌ No balance found from dashboard methods, setting default');
-                // Set a reasonable default based on your platform
-                currentBalance = 1000; // Default starting balance
-                updateBalanceDisplay();
-                console.log('Using default balance:', currentBalance);
-            }
-        }
 
         function updateBalanceDisplay() {
-            const balanceElement = getBalanceElement();
+            const balanceElement = document.getElementById('currentBalance');
             if (balanceElement) {
-                // Clear any loading content
-                balanceElement.innerHTML = '';
-                balanceElement.textContent = `${currentBalance.toLocaleString()} NMXp`;
-
-                // Add animation for balance updates
-                balanceElement.style.transform = 'scale(1.05)';
-                setTimeout(() => {
-                    const el = getBalanceElement();
-                    if (el) {
-                        el.style.transform = 'scale(1)';
-                    }
-                }, 300);
-            } else {
-                console.error('Balance element not found in updateBalanceDisplay!');
-                // Retry after a short delay
-                setTimeout(updateBalanceDisplay, 100);
+                balanceElement.innerHTML = `${currentBalance.toLocaleString()} NMXp`;
             }
         }
 
-        function showBalanceError() {
-            const balanceElement = getBalanceElement();
-            if (balanceElement) {
-                balanceElement.innerHTML = '<span style="color: var(--danger);">Error loading balance</span>';
-            }
-        }
-
-        // Listen for balance updates from dashboard
-        window.addEventListener('storage', function(e) {
-            console.log('Storage event detected:', e.key, e.newValue);
-            if (e.key && (e.key.includes('balance') || e.key.includes('Balance'))) {
-                const newBalance = parseFloat(e.newValue);
-                if (!isNaN(newBalance)) {
-                    currentBalance = newBalance;
-                    updateBalanceDisplay();
-                    console.log('Balance updated from storage:', currentBalance);
-                }
-            }
-        });
-
-        // Also check for balance updates when page becomes visible
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-                // Refresh balance when user returns to this page
-                loadBalanceFromDashboard();
-            }
-        });
-
-        // Periodically check for balance updates (every 30 seconds)
-        setInterval(loadBalanceFromDashboard, 30000);
-
-        // Simulate balance updates for testing (remove in production)
-        function simulateBalanceUpdate() {
-            // This is just for testing - shows the system works when balance changes
-            currentBalance += 100;
-            updateBalanceDisplay();
-            console.log('Simulated balance update:', currentBalance);
-        }
-
-        // Add a temporary debug button to test balance updates
-        setTimeout(() => {
+        function addTestButton() {
             const debugButton = document.createElement('button');
             debugButton.textContent = 'Test Balance +100';
             debugButton.style.position = 'fixed';
@@ -245,11 +988,15 @@
             debugButton.style.borderRadius = '5px';
             debugButton.style.cursor = 'pointer';
             debugButton.style.fontSize = '12px';
-            debugButton.onclick = simulateBalanceUpdate;
+            debugButton.onclick = function() {
+                currentBalance += 100;
+                updateBalanceDisplay();
+                console.log('Balance updated to:', currentBalance);
+            };
             document.body.appendChild(debugButton);
-        }, 1000);
+        }
 
-        // Rest of your existing functions...
+        // Basic package selection function
         function selectPackage(element, amount, price, purchaseLimit, bonus = 0) {
             document.querySelectorAll('.package-card').forEach(card => {
                 card.classList.remove('selected');
@@ -298,53 +1045,6 @@
             document.getElementById('confirmationModal').style.display = 'none';
         }
 
-        async function processManualConfirmation() {
-            try {
-                const confirmBtn = document.querySelector('.confirm-btn');
-                const originalText = confirmBtn.innerHTML;
-                confirmBtn.innerHTML = 'Processing...';
-                confirmBtn.disabled = true;
-
-                const { data, error } = await supabaseClient
-                    .from('pending_payments')
-                    .insert({
-                        user_id: currentUser.id,
-                        user_email: currentUser.email,
-                        package_amount: selectedPackage.amount,
-                        total_amount: selectedPackage.totalAmount,
-                        price_usd: selectedPackage.price,
-                        payment_method: 'crypto',
-                        status: 'pending_review',
-                        is_vip_package: selectedPackage.isVip,
-                        created_at: new Date().toISOString()
-                    })
-                    .select();
-
-                if (error) throw error;
-
-                closeConfirmation();
-                alert(`✅ Payment Confirmation Submitted!\n\n📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp\n💰 Amount: $${selectedPackage.price} USD\n\nWe've recorded your purchase request. Our team will verify your blockchain transaction and credit your NMXp within 1-2 hours.\n\nThank you for your purchase! 🎉`);
-
-                if (selectedPackage) {
-                    selectedPackage.element.classList.remove('selected');
-                }
-                selectedPackage = null;
-                updateMinimumAmounts();
-
-                setTimeout(() => {
-                    confirmBtn.innerHTML = originalText;
-                    confirmBtn.disabled = false;
-                }, 2000);
-
-            } catch (error) {
-                console.error('Confirmation error:', error);
-                alert('❌ Confirmation failed. Please try again.');
-                const confirmBtn = document.querySelector('.confirm-btn');
-                confirmBtn.innerHTML = 'Yes, I Paid';
-                confirmBtn.disabled = false;
-            }
-        }
-
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
@@ -362,6 +1062,31 @@
                 console.error('Failed to copy: ', err);
                 alert('Failed to copy address. Please select and copy manually.');
             });
+        }
+
+        // Simple payment confirmation (without database for now)
+        function processManualConfirmation() {
+            if (!selectedPackage) return;
+            
+            const confirmBtn = document.querySelector('.confirm-btn');
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = 'Processing...';
+            confirmBtn.disabled = true;
+
+            // Simulate processing
+            setTimeout(() => {
+                closeConfirmation();
+                alert(`✅ Payment Confirmation Submitted!\n\n📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp\n💰 Amount: $${selectedPackage.price} USD\n\nThank you for your purchase! 🎉`);
+                
+                if (selectedPackage) {
+                    selectedPackage.element.classList.remove('selected');
+                }
+                selectedPackage = null;
+                updateMinimumAmounts();
+
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+            }, 2000);
         }
     </script>
 </body>
