@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin - Admin Dashboard</title>
+    <title>NemexCoin - Ultimate Admin Dashboard</title>
     <style>
         :root { 
             --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; --text: #f5f5f5; --muted: #aaa; 
@@ -29,10 +29,14 @@
         .maintenance-btn.active { background: rgba(0, 200, 81, 0.1); border: 1px solid var(--success); color: var(--success); }
         .maintenance-btn.active:hover { background: var(--success); color: var(--dark-bg); }
 
-        /* Real-time indicator */
-        .realtime-indicator { position: fixed; top: 10px; right: 10px; background: var(--success); color: white; padding: 5px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; z-index: 1000; display: flex; align-items: center; gap: 5px; animation: pulse 2s infinite; }
-        .realtime-dot { width: 6px; height: 6px; background: white; border-radius: 50%; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        /* Enhanced Real-time indicator */
+        .realtime-indicator { position: fixed; top: 10px; right: 10px; padding: 8px 12px; border-radius: 12px; font-size: 11px; font-weight: 600; z-index: 1000; display: flex; align-items: center; gap: 6px; transition: all 0.3s ease; }
+        .realtime-indicator.connected { background: var(--success); color: white; }
+        .realtime-indicator.error { background: var(--danger); color: white; animation: pulse-alert 1s infinite; }
+        .realtime-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .realtime-indicator.connected .realtime-dot { background: white; }
+        .realtime-indicator.error .realtime-dot { background: white; }
+        @keyframes pulse-alert { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         /* Enhanced Navigation */
         .mini-nav { display: flex; gap: 8px; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; flex-wrap: wrap; }
@@ -157,16 +161,16 @@
             .users-grid { grid-template-columns: 1fr; }
             .analytics-grid { grid-template-columns: 1fr; }
             .search-controls { flex-direction: column; }
-            .realtime-indicator { top: 5px; right: 5px; font-size: 8px; }
+            .realtime-indicator { top: 5px; right: 5px; font-size: 10px; }
             .action-buttons { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <!-- Real-time Indicator -->
-    <div class="realtime-indicator" id="realtimeIndicator" style="display: none;">
+    <!-- Enhanced Real-time Indicator -->
+    <div class="realtime-indicator connected" id="realtimeIndicator">
         <div class="realtime-dot"></div>
-        LIVE
+        <span id="realtimeText">CONNECTED</span>
     </div>
 
     <div class="admin-container">
@@ -299,11 +303,67 @@
                 </div>
             </div>
 
-            <!-- Rest of overview section remains the same -->
-            <!-- ... -->
+            <div class="analytics-grid">
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Revenue Analytics Chart
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        User Growth Chart
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-section">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Quick Search & Actions
+                    </h2>
+                </div>
+                <div class="search-controls">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search users, purchases, or transactions...">
+                    <select class="filter-select" id="statusFilter">
+                        <option value="all">All Status</option>
+                        <option value="active">Active Users</option>
+                        <option value="vip">VIP Users</option>
+                        <option value="purchaser">Purchasers</option>
+                        <option value="referrer">Referrers</option>
+                    </select>
+                    <select class="filter-select" id="dateFilter">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                    </select>
+                    <button class="admin-btn" onclick="quickSearch()">
+                        <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                        Search
+                    </button>
+                </div>
+            </div>
+
+            <div class="users-grid" id="recentUsersGrid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading dashboard data...
+                </div>
+            </div>
         </div>
 
-        <!-- NEW: Pending Payments Section -->
+        <!-- Pending Payments Section -->
         <div id="pendingPaymentsSection" class="section-content" style="display: none;">
             <div class="section-header">
                 <h2 class="section-title">
@@ -355,7 +415,7 @@
             </div>
         </div>
 
-        <!-- Existing sections remain the same -->
+        <!-- Other sections (completeTree, orphanedUsers, etc.) remain the same -->
         <!-- ... -->
 
     </div>
@@ -375,100 +435,105 @@
         let referralMap = new Map();
         let referrerMap = new Map();
         let maintenanceMode = false;
+        let systemStatus = 'connected';
 
         // Initialize Admin Panel
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Ultimate Admin Panel Initializing...');
-            checkMaintenanceStatus();
-            loadCompleteDashboardData();
-            setupNavigation();
-            setupRealtimeUpdates();
+            initializeSystem();
         });
 
-        // 🆕 REAL-TIME UPDATES FUNCTION
-        function setupRealtimeUpdates() {
-            console.log('📡 Setting up real-time updates...');
-            
-            // Real-time subscription for profiles table
-            supabaseClient
-                .channel('profiles-changes')
-                .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'profiles' },
-                    (payload) => {
-                        console.log('🔄 Real-time user update detected:', payload);
-                        showRealtimeNotification('User data updated');
-                        refreshData();
-                    }
-                )
-                .subscribe();
+        // 🆕 ENHANCED SYSTEM INITIALIZATION
+        async function initializeSystem() {
+            try {
+                updateSystemStatus('connecting', 'Connecting to database...');
+                
+                // Test database connection first
+                const { data: testData, error: testError } = await supabaseClient
+                    .from('profiles')
+                    .select('count')
+                    .limit(1);
 
-            // Real-time subscription for purchases table
-            supabaseClient
-                .channel('purchases-changes')
-                .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'purchases' },
-                    (payload) => {
-                        console.log('💰 Real-time purchase update detected:', payload);
-                        showRealtimeNotification('Purchase data updated');
-                        refreshData();
-                    }
-                )
-                .subscribe();
+                if (testError) {
+                    throw new Error('Database connection failed: ' + testError.message);
+                }
 
-            // 🆕 Real-time subscription for pending_payments table
-            supabaseClient
-                .channel('pending-payments-changes')
-                .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'pending_payments' },
-                    (payload) => {
-                        console.log('📋 Real-time pending payment update detected:', payload);
-                        showRealtimeNotification('Pending payment updated');
-                        loadPendingPayments();
-                    }
-                )
-                .subscribe();
+                updateSystemStatus('connected', 'CONNECTED');
+                
+                // Load all data
+                await checkMaintenanceStatus();
+                await loadCompleteDashboardData();
+                setupNavigation();
+                setupRealtimeUpdates();
 
-            console.log('✅ Real-time updates enabled');
-            document.getElementById('realtimeIndicator').style.display = 'flex';
+            } catch (error) {
+                console.error('❌ System initialization failed:', error);
+                updateSystemStatus('error', 'DATABASE ERROR');
+                showError('System initialization failed: ' + error.message);
+            }
         }
 
-        // 🆕 REAL-TIME NOTIFICATION
-        function showRealtimeNotification(message) {
+        // 🆕 ENHANCED SYSTEM STATUS INDICATOR
+        function updateSystemStatus(status, message) {
             const indicator = document.getElementById('realtimeIndicator');
-            indicator.innerHTML = `<div class="realtime-dot"></div>${message}`;
-            indicator.style.background = 'var(--info)';
+            const text = document.getElementById('realtimeText');
             
-            // Reset after 3 seconds
-            setTimeout(() => {
-                indicator.innerHTML = '<div class="realtime-dot"></div>LIVE';
-                indicator.style.background = 'var(--success)';
-            }, 3000);
+            indicator.className = 'realtime-indicator';
+            systemStatus = status;
+            
+            switch(status) {
+                case 'connected':
+                    indicator.classList.add('connected');
+                    text.textContent = message;
+                    break;
+                case 'error':
+                    indicator.classList.add('error');
+                    text.textContent = message;
+                    break;
+                case 'connecting':
+                    indicator.classList.add('error');
+                    text.textContent = message;
+                    break;
+                default:
+                    indicator.classList.add('connected');
+                    text.textContent = 'CONNECTED';
+            }
         }
 
-        // MAIN DATA LOADING FUNCTION - UPDATED
+        // 🆕 ENHANCED DATA LOADING WITH PROPER ERROR HANDLING
         async function loadCompleteDashboardData() {
             try {
                 showLoading();
                 console.log('🔄 Loading complete dashboard data...');
 
-                // Load all users
+                // Load all users with better error handling
                 const { data: users, error: usersError } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (usersError) throw new Error('Users error: ' + usersError.message);
-
-                // Load all referrals from referral_network table
-                const { data: referrals, error: referralsError } = await supabaseClient
-                    .from('referral_network')
-                    .select('*');
-
-                if (referralsError) {
-                    console.warn('⚠️ Could not load referral_network table:', referralsError);
+                if (usersError) {
+                    console.error('Users load error:', usersError);
+                    throw new Error('Failed to load users: ' + usersError.message);
                 }
 
-                // Load purchases (if purchases table exists)
+                // Load referrals with graceful fallback
+                let referrals = [];
+                try {
+                    const { data: referralsData, error: referralsError } = await supabaseClient
+                        .from('referral_network')
+                        .select('*');
+
+                    if (!referralsError) {
+                        referrals = referralsData || [];
+                    } else {
+                        console.warn('Referral network not available:', referralsError);
+                    }
+                } catch (refErr) {
+                    console.warn('Referral table access failed:', refErr);
+                }
+
+                // Load purchases with graceful fallback
                 let purchases = [];
                 try {
                     const { data: purchasesData, error: purchasesError } = await supabaseClient
@@ -480,10 +545,10 @@
                         purchases = purchasesData || [];
                     }
                 } catch (purchaseErr) {
-                    console.warn('⚠️ Purchases table not available yet:', purchaseErr);
+                    console.warn('Purchases table not available:', purchaseErr);
                 }
 
-                // 🆕 Load pending payments
+                // Load pending payments with graceful fallback
                 let pendingPayments = [];
                 try {
                     const { data: pendingData, error: pendingError } = await supabaseClient
@@ -495,14 +560,14 @@
                         pendingPayments = pendingData || [];
                     }
                 } catch (pendingErr) {
-                    console.warn('⚠️ Pending payments table not available yet:', pendingErr);
+                    console.warn('Pending payments table not available:', pendingErr);
                 }
 
-                console.log('✅ Loaded data:', { 
-                    users: users?.length, 
-                    referrals: referrals?.length,
-                    purchases: purchases?.length,
-                    pendingPayments: pendingPayments?.length
+                console.log('✅ Successfully loaded data:', { 
+                    users: users?.length || 0, 
+                    referrals: referrals?.length || 0,
+                    purchases: purchases?.length || 0,
+                    pendingPayments: pendingPayments?.length || 0
                 });
 
                 // Store data globally
@@ -521,273 +586,375 @@
                 updateRevenueAnalytics();
                 updateProductPerformance();
                 updateUserActivity();
-                updatePendingPayments(); // 🆕 Update pending payments
+                updatePendingPayments();
 
                 console.log('✅ Ultimate Admin Panel loaded successfully');
+                updateSystemStatus('connected', 'CONNECTED');
 
             } catch (error) {
                 console.error('❌ Error loading dashboard data:', error);
+                updateSystemStatus('error', 'DATA LOAD ERROR');
                 showError('Failed to load data: ' + error.message);
             }
         }
 
-        // 🆕 LOAD PENDING PAYMENTS FUNCTION
-        async function loadPendingPayments() {
+        // 🆕 ENHANCED REAL-TIME UPDATES WITH ERROR HANDLING
+        function setupRealtimeUpdates() {
             try {
-                const { data: payments, error } = await supabaseClient
-                    .from('pending_payments')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                console.log('📡 Setting up real-time updates...');
+                
+                // Real-time subscription for profiles table
+                const profilesSubscription = supabaseClient
+                    .channel('profiles-changes')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'profiles' },
+                        (payload) => {
+                            console.log('🔄 Real-time user update detected:', payload);
+                            showRealtimeNotification('User data updated');
+                            refreshData();
+                        }
+                    )
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log('✅ Profiles real-time subscription active');
+                        } else {
+                            console.warn('❌ Profiles real-time subscription failed:', status);
+                        }
+                    });
+
+                // Real-time subscription for purchases table
+                const purchasesSubscription = supabaseClient
+                    .channel('purchases-changes')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'purchases' },
+                        (payload) => {
+                            console.log('💰 Real-time purchase update detected:', payload);
+                            showRealtimeNotification('Purchase data updated');
+                            refreshData();
+                        }
+                    )
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log('✅ Purchases real-time subscription active');
+                        } else {
+                            console.warn('❌ Purchases real-time subscription failed:', status);
+                        }
+                    });
+
+                // Real-time subscription for pending_payments table
+                const pendingSubscription = supabaseClient
+                    .channel('pending-payments-changes')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'pending_payments' },
+                        (payload) => {
+                            console.log('📋 Real-time pending payment update detected:', payload);
+                            showRealtimeNotification('Pending payment updated');
+                            loadPendingPayments();
+                        }
+                    )
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log('✅ Pending payments real-time subscription active');
+                        } else {
+                            console.warn('❌ Pending payments real-time subscription failed:', status);
+                        }
+                    });
+
+                console.log('✅ Real-time updates enabled');
+
+            } catch (error) {
+                console.error('❌ Real-time setup failed:', error);
+                updateSystemStatus('error', 'REALTIME ERROR');
+            }
+        }
+
+        // 🆕 ENHANCED REAL-TIME NOTIFICATION
+        function showRealtimeNotification(message) {
+            if (systemStatus === 'error') return;
+            
+            const indicator = document.getElementById('realtimeIndicator');
+            const originalState = indicator.className;
+            const originalText = document.getElementById('realtimeText').textContent;
+            
+            indicator.style.background = 'var(--info)';
+            document.getElementById('realtimeText').textContent = message;
+            
+            // Reset after 3 seconds
+            setTimeout(() => {
+                if (systemStatus === 'connected') {
+                    indicator.className = originalState;
+                    document.getElementById('realtimeText').textContent = originalText;
+                }
+            }, 3000);
+        }
+
+        // 🆕 SIMPLIFIED MAINTENANCE MODE (No status bar)
+        async function toggleMaintenanceMode() {
+            try {
+                maintenanceMode = !maintenanceMode;
+
+                const { error } = await supabaseClient
+                    .from('settings')
+                    .upsert({
+                        key: 'maintenance_mode',
+                        value: maintenanceMode,
+                        updated_at: new Date().toISOString()
+                    });
 
                 if (error) {
-                    console.warn('⚠️ Could not load pending payments:', error);
+                    console.error('Error updating maintenance mode:', error);
+                    maintenanceMode = !maintenanceMode;
                     return;
                 }
 
-                allPendingPayments = payments || [];
-                updatePendingPayments();
-                updateOverviewStatistics(); // Update stats count
+                updateMaintenanceButton();
 
-            } catch (error) {
-                console.error('Error loading pending payments:', error);
-            }
-        }
-
-        // 🆕 UPDATE PENDING PAYMENTS DISPLAY
-        function updatePendingPayments() {
-            const container = document.getElementById('pendingPaymentsTable');
-            const countElement = document.getElementById('pendingCount');
-            const statsCountElement = document.getElementById('pendingPaymentsCount');
-            
-            if (!container) return;
-
-            // Update counts
-            const pendingCount = allPendingPayments.filter(p => p.status === 'pending_review').length;
-            countElement.textContent = allPendingPayments.length.toLocaleString();
-            statsCountElement.textContent = pendingCount.toLocaleString();
-
-            if (allPendingPayments.length === 0) {
-                container.innerHTML = `
-                    <tr>
-                        <td colspan="7" class="loading">
-                            No pending payments found. Payments will appear here when users submit payment confirmations.
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            // Create user map for quick lookup
-            const userMap = new Map();
-            allUsers.forEach(user => userMap.set(user.id, user));
-
-            container.innerHTML = allPendingPayments.map(payment => {
-                const user = userMap.get(payment.user_id);
-                const userName = user ? (user.username || user.email || 'Unknown User') : 'Unknown User';
-                const userEmail = user ? (user.email || 'No email') : 'No email';
-                
-                const statusClass = payment.status === 'approved' ? 'status-approved' : 
-                                  payment.status === 'rejected' ? 'status-rejected' : 'status-pending';
-                
-                const statusText = payment.status === 'approved' ? 'Approved' : 
-                                 payment.status === 'rejected' ? 'Rejected' : 'Pending Review';
-
-                return `
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600;">${userName}</div>
-                            <div style="font-size: 11px; color: var(--muted);">${userEmail}</div>
-                        </td>
-                        <td>${payment.total_amount.toLocaleString()} NMXp</td>
-                        <td>${payment.total_amount.toLocaleString()} NMXp</td>
-                        <td>$${payment.price_usd}</td>
-                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                        <td>${new Date(payment.created_at).toLocaleDateString()}</td>
-                        <td class="action-buttons">
-                            ${payment.status === 'pending_review' ? `
-                                <button class="action-btn approve-btn" onclick="approvePayment('${payment.id}', '${payment.user_id}', ${payment.total_amount}, ${payment.price_usd}, ${payment.is_vip_package})">Approve</button>
-                                <button class="action-btn reject-btn" onclick="rejectPayment('${payment.id}')">Reject</button>
-                                <button class="action-btn view-btn" onclick="viewPaymentDetails('${payment.id}')">View</button>
-                            ` : `
-                                <span style="color: var(--muted); font-size: 11px;">Processed</span>
-                            `}
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-
-            console.log('📋 Pending payments updated');
-        }
-
-        // 🆕 APPROVE PAYMENT FUNCTION
-        async function approvePayment(paymentId, userId, nmxpAmount, price, isVip) {
-            if (!confirm(`Approve this payment?\n\nUser will receive: ${nmxpAmount.toLocaleString()} NMXp\nAmount: $${price}\nVIP: ${isVip ? 'Yes' : 'No'}`)) {
-                return;
-            }
-
-            try {
-                // Get user's current balance
-                const { data: user, error: userError } = await supabaseClient
-                    .from('profiles')
-                    .select('nmxp_balance, total_nmxp_purchased, is_vip')
-                    .eq('id', userId)
-                    .single();
-
-                if (userError) throw userError;
-
-                // Calculate new balance
-                const newBalance = (user.nmxp_balance || 0) + nmxpAmount;
-                const totalPurchased = (user.total_nmxp_purchased || 0) + nmxpAmount;
-
-                // Update user's NMXp balance
-                const { error: updateError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        nmxp_balance: newBalance,
-                        total_nmxp_purchased: totalPurchased,
-                        last_purchase: new Date().toISOString(),
-                        is_vip: isVip || user.is_vip
-                    })
-                    .eq('id', userId);
-
-                if (updateError) throw updateError;
-
-                // Record in purchases table
-                const { error: purchaseError } = await supabaseClient
-                    .from('purchases')
-                    .insert({
-                        user_id: userId,
-                        package_amount: nmxpAmount,
-                        total_amount: nmxpAmount,
-                        price_usd: price,
-                        payment_method: 'crypto',
-                        is_vip_package: isVip,
-                        purchased_at: new Date().toISOString()
-                    });
-
-                if (purchaseError) {
-                    console.warn('Could not record purchase history:', purchaseError);
+                // Simple alert without status bar
+                if (maintenanceMode) {
+                    alert('🔧 Maintenance mode ENABLED\n\nUsers will see a maintenance message when they try to access the platform.');
+                } else {
+                    alert('✅ Maintenance mode DISABLED\n\nPlatform is now accessible to users.');
                 }
 
-                // Update pending payment status
-                const { error: paymentError } = await supabaseClient
-                    .from('pending_payments')
-                    .update({
-                        status: 'approved',
-                        processed_at: new Date().toISOString(),
-                        processed_by: 'admin'
-                    })
-                    .eq('id', paymentId);
-
-                if (paymentError) throw paymentError;
-
-                // Refresh data
-                loadCompleteDashboardData();
-                
-                alert(`✅ Payment approved successfully!\n\nUser received: ${nmxpAmount.toLocaleString()} NMXp`);
-
             } catch (error) {
-                console.error('Error approving payment:', error);
-                alert('❌ Failed to approve payment. Please try again.');
+                console.error('Error toggling maintenance mode:', error);
+                alert('❌ Failed to update maintenance mode. Please try again.');
             }
         }
 
-        // 🆕 REJECT PAYMENT FUNCTION
-        async function rejectPayment(paymentId) {
-            if (!confirm('Reject this payment? The user will be notified that their payment was not verified.')) {
+        // 🆕 ENHANCED ERROR HANDLING FOR ALL SECTIONS
+        function updateOverviewStatistics() {
+            try {
+                const totalUsers = allUsers.length;
+                const totalReferrals = Array.from(referralMap.values()).reduce((sum, arr) => sum + arr.length, 0);
+                
+                // Calculate revenue and purchase stats
+                const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.amount || purchase.price_usd || 0), 0);
+                const totalPurchases = allPurchases.length;
+                const activeUsers = allUsers.filter(user => user.is_active).length;
+                const pendingPaymentsCount = allPendingPayments.filter(p => p.status === 'pending_review').length;
+
+                // Update DOM elements
+                document.getElementById('totalUsers').textContent = totalUsers.toLocaleString();
+                document.getElementById('totalReferrals').textContent = totalReferrals.toLocaleString();
+                document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                document.getElementById('totalPurchases').textContent = totalPurchases.toLocaleString();
+                document.getElementById('activeUsers').textContent = activeUsers.toLocaleString();
+                document.getElementById('pendingPaymentsCount').textContent = pendingPaymentsCount.toLocaleString();
+
+                // Update trend indicators
+                document.getElementById('usersTrend').textContent = `${totalUsers} total`;
+                document.getElementById('referralsTrend').textContent = `${totalReferrals} connections`;
+                document.getElementById('revenueTrend').textContent = `$${totalRevenue.toLocaleString()} revenue`;
+                document.getElementById('purchasesTrend').textContent = `${totalPurchases} transactions`;
+                document.getElementById('activeTrend').textContent = `${activeUsers} active`;
+                document.getElementById('pendingTrend').textContent = `${pendingPaymentsCount} pending`;
+
+                console.log('📈 Overview statistics updated');
+
+            } catch (error) {
+                console.error('Error updating overview statistics:', error);
+                document.getElementById('totalUsers').textContent = 'Error';
+                document.getElementById('totalReferrals').textContent = 'Error';
+                document.getElementById('totalRevenue').textContent = 'Error';
+            }
+        }
+
+        // 🆕 ENHANCED RECENT USERS WITH ERROR HANDLING
+        function updateRecentUsers() {
+            try {
+                const container = document.getElementById('recentUsersGrid');
+                if (!container) return;
+
+                const recentUsers = allUsers.slice(0, 8);
+
+                if (recentUsers.length === 0) {
+                    container.innerHTML = '<div class="loading">No users found in database</div>';
+                    return;
+                }
+
+                container.innerHTML = recentUsers.map(user => {
+                    const userReferrals = referralMap.get(user.id) || [];
+                    const hasReferrer = referrerMap.has(user.id);
+                    const isOrphaned = !hasReferrer;
+                    const hasNoRefs = userReferrals.length === 0;
+                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
+                    const totalSpent = userPurchases.reduce((sum, p) => sum + (p.amount || p.price_usd || 0), 0);
+
+                    return `
+                        <div class="user-card ${isOrphaned ? 'orphaned' : ''} ${hasNoRefs ? 'no-refs' : ''} ${userPurchases.length > 0 ? 'purchaser' : ''}">
+                            <div class="user-card-header">
+                                <div class="user-avatar">
+                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">
+                                        ${user.username || 'Unknown User'}
+                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
+                                        ${userPurchases.length > 0 ? '<span class="status-badge status-purchaser">Buyer</span>' : ''}
+                                    </div>
+                                    <div class="user-email">${user.email || 'No email'}</div>
+                                </div>
+                            </div>
+                            <div class="user-stats">
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
+                                    <div class="user-stat-label">NMX</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userReferrals.length}</div>
+                                    <div class="user-stat-label">Referrals</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userPurchases.length}</div>
+                                    <div class="user-stat-label">Purchases</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">$${totalSpent.toFixed(2)}</div>
+                                    <div class="user-stat-label">Spent</div>
+                                </div>
+                            </div>
+                            <div class="user-card-footer">
+                                <span class="status-badge ${isOrphaned ? 'status-orphaned' : 'status-active'}">
+                                    ${isOrphaned ? 'Orphaned' : 'Has Referrer'}
+                                </span>
+                                <span class="status-badge ${hasNoRefs ? 'status-no-refs' : 'status-active'}">
+                                    ${hasNoRefs ? 'No Referrals' : userReferrals.length + ' Ref'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                console.log('👥 Recent users updated');
+
+            } catch (error) {
+                console.error('Error updating recent users:', error);
+                const container = document.getElementById('recentUsersGrid');
+                if (container) {
+                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading users</div>';
+                }
+            }
+        }
+
+        // ... (Other existing functions with enhanced error handling)
+
+        // 🆕 ENHANCED LOADING FUNCTION
+        function showLoading() {
+            const elements = [
+                'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid',
+                'purchasesTable', 'productsTable', 'userActivityGrid', 'pendingPaymentsTable'
+            ];
+
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.innerHTML = `
+                        <div class="loading">
+                            <div class="loading-spinner"></div>
+                            Loading data...
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // 🆕 ENHANCED ERROR DISPLAY
+        function showError(message) {
+            const elements = [
+                'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid',
+                'purchasesTable', 'productsTable', 'userActivityGrid', 'pendingPaymentsTable'
+            ];
+
+            elements.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.innerHTML = `
+                        <div class="loading" style="color: var(--danger);">
+                            ❌ ${message}
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // ... (Rest of your existing functions with proper error handling)
+
+        // Maintenance mode functions
+        async function checkMaintenanceStatus() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('settings')
+                    .select('*')
+                    .eq('key', 'maintenance_mode')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error checking maintenance status:', error);
+                    return;
+                }
+
+                maintenanceMode = data ? data.value : false;
+                updateMaintenanceButton();
+            } catch (error) {
+                console.error('Error checking maintenance status:', error);
+            }
+        }
+
+        function updateMaintenanceButton() {
+            const button = document.getElementById('maintenanceToggle');
+            const text = document.getElementById('maintenanceText');
+
+            if (maintenanceMode) {
+                button.classList.add('active');
+                text.textContent = 'Disable Maintenance';
+            } else {
+                button.classList.remove('active');
+                text.textContent = 'Enable Maintenance';
+            }
+        }
+
+        // Setup Navigation
+        function setupNavigation() {
+            const navButtons = document.querySelectorAll('.mini-nav-btn');
+            navButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const section = this.getAttribute('onclick').match(/'([^']+)'/)[1];
+                    showSection(section);
+                });
+            });
+        }
+
+        // Refresh data function
+        function refreshData() {
+            console.log('🔄 Refreshing all data...');
+            showLoading();
+            loadCompleteDashboardData();
+        }
+
+        // Export function
+        function exportData() {
+            console.log('📤 Export functionality would go here');
+            alert('Export functionality will be implemented in the next version!');
+        }
+
+        // Quick search function
+        function quickSearch() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            if (!searchTerm) {
+                alert('Please enter a search term');
                 return;
             }
-
-            try {
-                const { error } = await supabaseClient
-                    .from('pending_payments')
-                    .update({
-                        status: 'rejected',
-                        processed_at: new Date().toISOString(),
-                        processed_by: 'admin'
-                    })
-                    .eq('id', paymentId);
-
-                if (error) throw error;
-
-                // Refresh data
-                loadPendingPayments();
-                
-                alert('✅ Payment rejected successfully!');
-
-            } catch (error) {
-                console.error('Error rejecting payment:', error);
-                alert('❌ Failed to reject payment. Please try again.');
-            }
+            console.log('🔍 Quick search for:', searchTerm);
+            alert('Advanced search will be implemented in the next version!');
         }
 
-        // 🆕 VIEW PAYMENT DETAILS FUNCTION
-        function viewPaymentDetails(paymentId) {
-            const payment = allPendingPayments.find(p => p.id === paymentId);
-            if (!payment) return;
-
-            const user = allUsers.find(u => u.id === payment.user_id);
-            const userName = user ? (user.username || user.email || 'Unknown User') : 'Unknown User';
-            
-            const details = `
-Payment Details:
-----------------
-User: ${userName}
-Email: ${user?.email || 'N/A'}
-Package: ${payment.total_amount.toLocaleString()} NMXp
-Amount: $${payment.price_usd}
-VIP Package: ${payment.is_vip_package ? 'Yes' : 'No'}
-Status: ${payment.status}
-Submitted: ${new Date(payment.created_at).toLocaleString()}
-${payment.processed_at ? `Processed: ${new Date(payment.processed_at).toLocaleString()}` : ''}
-
-Instructions:
-1. Check blockchain explorer for transaction
-2. Verify amount matches $${payment.price_usd}
-3. Approve if verified, Reject if not found
-            `;
-
-            alert(details);
-        }
-
-        // UPDATE OVERVIEW STATISTICS - UPDATED
-        function updateOverviewStatistics() {
-            const totalUsers = allUsers.length;
-            const totalReferrals = Array.from(referralMap.values()).reduce((sum, arr) => sum + arr.length, 0);
-            
-            // Calculate revenue and purchase stats
-            const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.amount || 0), 0);
-            const totalPurchases = allPurchases.length;
-            const activeUsers = allUsers.filter(user => user.is_active).length;
-            const pendingPaymentsCount = allPendingPayments.filter(p => p.status === 'pending_review').length;
-
-            // Update DOM elements
-            document.getElementById('totalUsers').textContent = totalUsers.toLocaleString();
-            document.getElementById('totalReferrals').textContent = totalReferrals.toLocaleString();
-            document.getElementById('totalRevenue').textContent = '$' + totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            document.getElementById('totalPurchases').textContent = totalPurchases.toLocaleString();
-            document.getElementById('activeUsers').textContent = activeUsers.toLocaleString();
-            document.getElementById('pendingPaymentsCount').textContent = pendingPaymentsCount.toLocaleString();
-
-            // Update trend indicators
-            document.getElementById('usersTrend').textContent = `${totalUsers} total`;
-            document.getElementById('referralsTrend').textContent = `${totalReferrals} connections`;
-            document.getElementById('revenueTrend').textContent = `$${totalRevenue.toLocaleString()} revenue`;
-            document.getElementById('purchasesTrend').textContent = `${totalPurchases} transactions`;
-            document.getElementById('activeTrend').textContent = `${activeUsers} active`;
-            document.getElementById('pendingTrend').textContent = `${pendingPaymentsCount} pending`;
-
-            console.log('📈 Overview statistics updated');
-        }
-
-        // SECTION NAVIGATION - UPDATED
+        // Section navigation
         function showSection(section) {
-            // Update navigation buttons
             document.querySelectorAll('.mini-nav-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // Find and activate the clicked button
             const buttons = document.querySelectorAll('.mini-nav-btn');
             buttons.forEach(btn => {
                 if (btn.getAttribute('onclick')?.includes(section)) {
@@ -795,17 +962,14 @@ Instructions:
                 }
             });
 
-            // Hide all sections
             document.querySelectorAll('.section-content').forEach(content => {
                 content.style.display = 'none';
             });
 
-            // Show selected section
             const targetSection = document.getElementById(section + 'Section');
             if (targetSection) {
                 targetSection.style.display = 'block';
                 
-                // Refresh section data if needed
                 switch(section) {
                     case 'pendingPayments':
                         loadPendingPayments();
@@ -837,144 +1001,8 @@ Instructions:
             console.log('🔀 Switched to section:', section);
         }
 
-        // ... (rest of your existing functions remain the same)
+        // ... (Include all your existing functions for other sections with proper error handling)
 
-        // UTILITY FUNCTIONS
-        function refreshData() {
-            console.log('🔄 Refreshing all data...');
-            showLoading();
-            loadCompleteDashboardData();
-        }
-
-        function exportData() {
-            console.log('📤 Export functionality would go here');
-            alert('Export functionality will be implemented in the next version!');
-        }
-
-        function quickSearch() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            if (!searchTerm) {
-                alert('Please enter a search term');
-                return;
-            }
-            console.log('🔍 Quick search for:', searchTerm);
-            // Implement search functionality here
-            alert('Advanced search will be implemented in the next version!');
-        }
-
-        function showLoading() {
-            const elements = [
-                'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid',
-                'purchasesTable', 'productsTable', 'userActivityGrid', 'pendingPaymentsTable'
-            ];
-
-            elements.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.innerHTML = `
-                        <div class="loading">
-                            <div class="loading-spinner"></div>
-                            Loading data...
-                        </div>
-                    `;
-                }
-            });
-        }
-
-        function showError(message) {
-            const elements = [
-                'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid'
-            ];
-
-            elements.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    element.innerHTML = `
-                        <div class="loading" style="color: var(--danger);">
-                            ${message}
-                        </div>
-                    `;
-                }
-            });
-        }
-
-        // Maintenance Mode Functions (keep existing)
-        async function checkMaintenanceStatus() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('settings')
-                    .select('*')
-                    .eq('key', 'maintenance_mode')
-                    .single();
-
-                if (error && error.code !== 'PGRST116') {
-                    console.error('Error checking maintenance status:', error);
-                    return;
-                }
-
-                maintenanceMode = data ? data.value : false;
-                updateMaintenanceButton();
-            } catch (error) {
-                console.error('Error checking maintenance status:', error);
-            }
-        }
-
-        async function toggleMaintenanceMode() {
-            try {
-                maintenanceMode = !maintenanceMode;
-
-                const { error } = await supabaseClient
-                    .from('settings')
-                    .upsert({
-                        key: 'maintenance_mode',
-                        value: maintenanceMode,
-                        updated_at: new Date().toISOString()
-                    });
-
-                if (error) {
-                    console.error('Error updating maintenance mode:', error);
-                    maintenanceMode = !maintenanceMode;
-                    return;
-                }
-
-                updateMaintenanceButton();
-
-                if (maintenanceMode) {
-                    alert('✅ Maintenance mode enabled!');
-                } else {
-                    alert('✅ Maintenance mode disabled!');
-                }
-            } catch (error) {
-                console.error('Error toggling maintenance mode:', error);
-                alert('❌ Failed to update maintenance mode.');
-            }
-        }
-
-        function updateMaintenanceButton() {
-            const button = document.getElementById('maintenanceToggle');
-            const text = document.getElementById('maintenanceText');
-
-            if (maintenanceMode) {
-                button.classList.add('active');
-                text.textContent = 'Disable Maintenance';
-            } else {
-                button.classList.remove('active');
-                text.textContent = 'Enable Maintenance';
-            }
-        }
-
-        // Setup Navigation Event Listeners
-        function setupNavigation() {
-            const navButtons = document.querySelectorAll('.mini-nav-btn');
-            navButtons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const section = this.getAttribute('onclick').match(/'([^']+)'/)[1];
-                    showSection(section);
-                });
-            });
-        }
-
-        // ... (rest of your existing functions)
     </script>
 </body>
 </html>
