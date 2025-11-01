@@ -380,14 +380,15 @@
             background: var(--success);
         }
 
+        /* CHANGED: Payment instructions to black and gold */
         .payment-instructions {
-            background: rgba(51, 181, 229, 0.1);
-            border: 1px solid var(--info);
+            background: rgba(212, 175, 55, 0.05); /* Gold background */
+            border: 1px solid var(--gold); /* Gold border */
             border-radius: 8px;
             padding: 12px;
             margin-top: 10px;
             font-size: 11px;
-            color: var(--info);
+            color: var(--gold); /* Gold text */
         }
 
         .instruction-title {
@@ -396,6 +397,7 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            color: var(--gold);
         }
 
         .instruction-icon {
@@ -884,6 +886,7 @@
                             </div>
                         </div>
 
+                        <!-- CHANGED: Payment instructions now in black and gold -->
                         <div class="payment-instructions">
                             <div class="instruction-title">
                                 <svg class="instruction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -975,6 +978,7 @@
                 }
 
                 currentUser = session.user;
+                console.log('User ID:', currentUser.id);
 
                 // Load initial balance
                 await loadUserBalance();
@@ -984,13 +988,14 @@
 
             } catch (error) {
                 console.error('Error initializing page:', error);
-                document.getElementById('currentBalance').innerHTML = 
-                    '<span style="color: var(--danger);">Error loading balance</span>';
+                showBalanceError();
             }
         }
 
         async function loadUserBalance() {
             try {
+                console.log('Loading balance for user:', currentUser.id);
+                
                 const { data: profile, error } = await supabaseClient
                     .from('profiles')
                     .select('nmxp_balance')
@@ -1002,20 +1007,25 @@
                     throw error;
                 }
 
+                console.log('Profile data:', profile);
+
                 if (profile && profile.nmxp_balance !== undefined) {
                     currentBalance = profile.nmxp_balance || 0;
                     updateBalanceDisplay();
                 } else {
                     console.error('No profile data found');
-                    document.getElementById('currentBalance').innerHTML = 
-                        '<span style="color: var(--danger);">Balance not found</span>';
+                    showBalanceError();
                 }
 
             } catch (error) {
                 console.error('Error loading balance:', error);
-                document.getElementById('currentBalance').innerHTML = 
-                    '<span style="color: var(--danger);">Error loading balance</span>';
+                showBalanceError();
             }
+        }
+
+        function showBalanceError() {
+            document.getElementById('currentBalance').innerHTML = 
+                '<span style="color: var(--danger);">Error loading balance</span>';
         }
 
         function setupRealtimeBalance() {
