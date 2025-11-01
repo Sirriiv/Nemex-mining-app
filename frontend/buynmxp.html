@@ -980,11 +980,8 @@
                 currentUser = session.user;
                 console.log('User ID:', currentUser.id);
 
-                // Load initial balance
+                // Load initial balance using localStorage (same as dashboard)
                 await loadUserBalance();
-
-                // Set up real-time subscription for balance updates
-                setupRealtimeBalance();
 
             } catch (error) {
                 console.error('Error initializing page:', error);
@@ -996,6 +993,15 @@
             try {
                 console.log('Loading balance for user:', currentUser.id);
                 
+                // Try to get balance from localStorage first (same as dashboard)
+                const cachedBalance = localStorage.getItem('userBalance');
+                if (cachedBalance) {
+                    currentBalance = parseFloat(cachedBalance) || 0;
+                    updateBalanceDisplay();
+                    console.log('Using cached balance:', currentBalance);
+                }
+
+                // Also try to fetch from database with better error handling
                 const { data: profile, error } = await supabaseClient
                     .from('profiles')
                     .select('nmxp_balance')
@@ -1003,59 +1009,28 @@
                     .single();
 
                 if (error) {
-                    console.error('Supabase error:', error);
-                    throw error;
+                    console.warn('Supabase error, using cached balance:', error);
+                    // Don't throw error, just use cached value
+                    return;
                 }
-
-                console.log('Profile data:', profile);
 
                 if (profile && profile.nmxp_balance !== undefined) {
                     currentBalance = profile.nmxp_balance || 0;
+                    // Update localStorage with fresh value
+                    localStorage.setItem('userBalance', currentBalance.toString());
                     updateBalanceDisplay();
-                } else {
-                    console.error('No profile data found');
-                    showBalanceError();
+                    console.log('Updated balance from database:', currentBalance);
                 }
 
             } catch (error) {
-                console.error('Error loading balance:', error);
-                showBalanceError();
+                console.warn('Error loading balance, using cached value:', error);
+                // Don't show error, just use cached value
             }
         }
 
         function showBalanceError() {
             document.getElementById('currentBalance').innerHTML = 
                 '<span style="color: var(--danger);">Error loading balance</span>';
-        }
-
-        function setupRealtimeBalance() {
-            // Subscribe to profile changes for real-time balance updates
-            const subscription = supabaseClient
-                .channel('balance-updates')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: 'UPDATE',
-                        schema: 'public',
-                        table: 'profiles',
-                        filter: `id=eq.${currentUser.id}`
-                    },
-                    (payload) => {
-                        // Update balance when profile changes
-                        if (payload.new && payload.new.nmxp_balance !== undefined) {
-                            currentBalance = payload.new.nmxp_balance || 0;
-                            updateBalanceDisplay();
-                        }
-                    }
-                )
-                .subscribe();
-
-            // Also refresh balance when page becomes visible
-            document.addEventListener('visibilitychange', function() {
-                if (!document.hidden) {
-                    loadUserBalance();
-                }
-            });
         }
 
         function updateBalanceDisplay() {
@@ -1213,6 +1188,22 @@
                 alert('Failed to copy address. Please select and copy manually.');
             });
         }
+
+        // Listen for balance updates from other pages
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'userBalance') {
+                currentBalance = parseFloat(e.newValue) || 0;
+                updateBalanceDisplay();
+            }
+        });
+
+        // Also listen for custom events (if dashboard fires them)
+        window.addEventListener('balanceUpdated', function(e) {
+            if (e.detail && e.detail.balance !== undefined) {
+                currentBalance = e.detail.balance;
+                updateBalanceDisplay();
+            }
+        });
     </script>
 </body>
 </html>
