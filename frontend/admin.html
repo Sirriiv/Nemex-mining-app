@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NemexCoin - Admin Dashboard</title>
+    <title>NemexCoin - Ultimate Admin Dashboard</title>
     <style>
         :root { 
             --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; --text: #f5f5f5; --muted: #aaa; 
@@ -397,7 +397,8 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>User</th>                            <th>Package</th>
+                            <th>User</th>
+                            <th>Package</th>
                             <th>Amount</th>
                             <th>Price</th>
                             <th>Status</th>
@@ -414,8 +415,192 @@
             </div>
         </div>
 
-        <!-- Other sections (completeTree, orphanedUsers, etc.) remain the same -->
-        <!-- ... -->
+        <!-- Referral Tree Section -->
+        <div id="completeTreeSection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Complete Referral Tree
+                </h2>
+            </div>
+            <div class="tree-info">
+                Total Referral Network: <span id="totalReferralCount">0</span> connections across all users
+            </div>
+            <div id="completeReferralTree">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading referral tree...
+                </div>
+            </div>
+        </div>
+
+        <!-- Orphaned Users Section -->
+        <div id="orphanedUsersSection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                    Orphaned Users (No Referrer)
+                </h2>
+                <div class="stat-number" id="orphanedCount">0</div>
+            </div>
+            <div class="users-grid" id="orphanedUsersGrid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading orphaned users...
+                </div>
+            </div>
+        </div>
+
+        <!-- No Referrals Section -->
+        <div id="noReferralsSection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                    </svg>
+                    Users With No Referrals
+                </h2>
+                <div class="stat-number" id="noRefsCount">0</div>
+            </div>
+            <div class="users-grid" id="noRefsUsersGrid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading users with no referrals...
+                </div>
+            </div>
+        </div>
+
+        <!-- Purchase History Section -->
+        <div id="purchaseHistorySection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Purchase History
+                </h2>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Package</th>
+                            <th>Amount</th>
+                            <th>NMX Coins</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="purchasesTable">
+                        <tr>
+                            <td colspan="6" class="loading">Loading purchase history...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Revenue Analytics Section -->
+        <div id="revenueAnalyticsSection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    Revenue Analytics
+                </h2>
+            </div>
+            <div class="analytics-grid">
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        Revenue Over Time
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z"/>
+                        </svg>
+                        Revenue by Package
+                    </div>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="dailyRevenue">$0</div>
+                    <div class="stat-label">Daily Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="weeklyRevenue">$0</div>
+                    <div class="stat-label">Weekly Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="monthlyRevenue">$0</div>
+                    <div class="stat-label">Monthly Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgPurchase">$0</div>
+                    <div class="stat-label">Average Purchase</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Performance Section -->
+        <div id="productPerformanceSection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                    </svg>
+                    Product Performance
+                </h2>
+            </div>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Package Name</th>
+                            <th>Total Sales</th>
+                            <th>Total Revenue</th>
+                            <th>Avg. Purchase</th>
+                            <th>Popularity</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTable">
+                        <tr>
+                            <td colspan="5" class="loading">Loading product performance...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- User Activity Section -->
+        <div id="userActivitySection" class="section-content" style="display: none;">
+            <div class="section-header">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    User Activity
+                </h2>
+            </div>
+            <div class="users-grid" id="userActivityGrid">
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    Loading user activity...
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -442,7 +627,7 @@
             initializeSystem();
         });
 
-        // 🆕 ENHANCED SYSTEM INITIALIZATION
+        // ENHANCED SYSTEM INITIALIZATION
         async function initializeSystem() {
             try {
                 updateSystemStatus('connecting', 'Connecting to database...');
@@ -472,7 +657,7 @@
             }
         }
 
-        // 🆕 ENHANCED SYSTEM STATUS INDICATOR
+        // SYSTEM STATUS INDICATOR
         function updateSystemStatus(status, message) {
             const indicator = document.getElementById('realtimeIndicator');
             const text = document.getElementById('realtimeText');
@@ -499,7 +684,7 @@
             }
         }
 
-        // 🆕 ENHANCED DATA LOADING WITH PROPER ERROR HANDLING
+        // ENHANCED DATA LOADING WITH PROPER ERROR HANDLING
         async function loadCompleteDashboardData() {
             try {
                 showLoading();
@@ -598,7 +783,7 @@
         }
 
         // =============================================
-        // 🚀 CRITICAL MISSING FUNCTIONS - ADDED!
+        // COMPLETE FUNCTION IMPLEMENTATIONS
         // =============================================
 
         function buildComprehensiveReferralMaps() {
@@ -640,7 +825,7 @@
                             <td>${user.username || 'Unknown'}</td>
                             <td>${user.email || 'No email'}</td>
                             <td>${purchase.package_name || 'N/A'}</td>
-                            <td>$${purchase.price_usd || purchase.amount || 0}</td>
+                            <td>$${(purchase.price_usd || purchase.amount || 0).toFixed(2)}</td>
                             <td>${Math.round(purchase.nemex_coins || 0)} NMX</td>
                             <td>${new Date(purchase.created_at).toLocaleDateString()}</td>
                         </tr>
@@ -648,19 +833,189 @@
                 }).join('');
             } catch (error) {
                 console.error('Error updating purchase history:', error);
+                const container = document.getElementById('purchasesTable');
+                if (container) {
+                    container.innerHTML = '<tr><td colspan="6" class="loading" style="color: var(--danger);">Error loading purchase history</td></tr>';
+                }
             }
         }
 
         function updateRevenueAnalytics() {
-            console.log('💰 Revenue analytics placeholder');
+            try {
+                // Calculate revenue metrics
+                const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.price_usd || purchase.amount || 0), 0);
+                const dailyRevenue = allPurchases
+                    .filter(p => new Date(p.created_at).toDateString() === new Date().toDateString())
+                    .reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
+                
+                const weeklyRevenue = allPurchases
+                    .filter(p => {
+                        const purchaseDate = new Date(p.created_at);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return purchaseDate >= weekAgo;
+                    })
+                    .reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
+                
+                const monthlyRevenue = allPurchases
+                    .filter(p => {
+                        const purchaseDate = new Date(p.created_at);
+                        const monthAgo = new Date();
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        return purchaseDate >= monthAgo;
+                    })
+                    .reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
+                
+                const avgPurchase = allPurchases.length > 0 ? totalRevenue / allPurchases.length : 0;
+
+                // Update DOM
+                document.getElementById('dailyRevenue').textContent = '$' + dailyRevenue.toFixed(2);
+                document.getElementById('weeklyRevenue').textContent = '$' + weeklyRevenue.toFixed(2);
+                document.getElementById('monthlyRevenue').textContent = '$' + monthlyRevenue.toFixed(2);
+                document.getElementById('avgPurchase').textContent = '$' + avgPurchase.toFixed(2);
+
+            } catch (error) {
+                console.error('Error updating revenue analytics:', error);
+            }
         }
 
         function updateProductPerformance() {
-            console.log('📈 Product performance placeholder');
+            try {
+                const container = document.getElementById('productsTable');
+                if (!container) return;
+
+                // Group purchases by package
+                const packageStats = {};
+                allPurchases.forEach(purchase => {
+                    const packageName = purchase.package_name || 'Unknown Package';
+                    if (!packageStats[packageName]) {
+                        packageStats[packageName] = {
+                            totalSales: 0,
+                            totalRevenue: 0,
+                            purchases: []
+                        };
+                    }
+                    packageStats[packageName].totalSales++;
+                    packageStats[packageName].totalRevenue += (purchase.price_usd || purchase.amount || 0);
+                    packageStats[packageName].purchases.push(purchase);
+                });
+
+                // Convert to array and calculate averages
+                const packages = Object.keys(packageStats).map(packageName => {
+                    const stats = packageStats[packageName];
+                    const avgPurchase = stats.totalRevenue / stats.totalSales;
+                    const popularity = (stats.totalSales / allPurchases.length * 100).toFixed(1) + '%';
+                    
+                    return {
+                        name: packageName,
+                        totalSales: stats.totalSales,
+                        totalRevenue: stats.totalRevenue,
+                        avgPurchase: avgPurchase,
+                        popularity: popularity
+                    };
+                });
+
+                // Sort by total revenue
+                packages.sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+                if (packages.length === 0) {
+                    container.innerHTML = '<tr><td colspan="5" class="loading">No product data available</td></tr>';
+                    return;
+                }
+
+                container.innerHTML = packages.map(pkg => `
+                    <tr>
+                        <td><strong>${pkg.name}</strong></td>
+                        <td>${pkg.totalSales}</td>
+                        <td>$${pkg.totalRevenue.toFixed(2)}</td>
+                        <td>$${pkg.avgPurchase.toFixed(2)}</td>
+                        <td>${pkg.popularity}</td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error updating product performance:', error);
+                const container = document.getElementById('productsTable');
+                if (container) {
+                    container.innerHTML = '<tr><td colspan="5" class="loading" style="color: var(--danger);">Error loading product performance</td></tr>';
+                }
+            }
         }
 
         function updateUserActivity() {
-            console.log('👥 User activity placeholder');
+            try {
+                const container = document.getElementById('userActivityGrid');
+                if (!container) return;
+
+                // Get recent active users (last 7 days)
+                const recentUsers = allUsers
+                    .filter(user => {
+                        const userDate = new Date(user.created_at || user.updated_at);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return userDate >= weekAgo;
+                    })
+                    .slice(0, 8);
+
+                if (recentUsers.length === 0) {
+                    container.innerHTML = '<div class="loading">No recent user activity</div>';
+                    return;
+                }
+
+                container.innerHTML = recentUsers.map(user => {
+                    const userReferrals = referralMap.get(user.id) || [];
+                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
+                    const lastPurchase = userPurchases.length > 0 
+                        ? new Date(userPurchases[userPurchases.length - 1].created_at).toLocaleDateString()
+                        : 'No purchases';
+
+                    return `
+                        <div class="user-card">
+                            <div class="user-card-header">
+                                <div class="user-avatar">
+                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">
+                                        ${user.username || 'Unknown User'}
+                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
+                                    </div>
+                                    <div class="user-email">${user.email || 'No email'}</div>
+                                </div>
+                            </div>
+                            <div class="user-stats">
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userReferrals.length}</div>
+                                    <div class="user-stat-label">Referrals</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userPurchases.length}</div>
+                                    <div class="user-stat-label">Purchases</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
+                                    <div class="user-stat-label">Balance</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">-</div>
+                                    <div class="user-stat-label">Last Active</div>
+                                </div>
+                            </div>
+                            <div class="user-card-footer">
+                                <small>Joined: ${new Date(user.created_at).toLocaleDateString()}</small>
+                                <small>Last Purchase: ${lastPurchase}</small>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error updating user activity:', error);
+                const container = document.getElementById('userActivityGrid');
+                if (container) {
+                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading user activity</div>';
+                }
+            }
         }
 
         function loadPendingPayments() {
@@ -669,6 +1024,9 @@
                 if (!container) return;
                 
                 const pending = allPendingPayments.filter(p => p.status === 'pending_review');
+                
+                // Update count
+                document.getElementById('pendingCount').textContent = pending.length;
                 
                 if (pending.length === 0) {
                     container.innerHTML = '<tr><td colspan="7" class="loading">No pending payments requiring review</td></tr>';
@@ -685,7 +1043,7 @@
                             </td>
                             <td>${payment.package_name || 'N/A'}</td>
                             <td>${payment.amount || 0}</td>
-                            <td>$${payment.price_usd || 0}</td>
+                            <td>$${(payment.price_usd || 0).toFixed(2)}</td>
                             <td><span class="status-badge status-pending">Pending Review</span></td>
                             <td>${new Date(payment.created_at).toLocaleDateString()}</td>
                             <td class="action-buttons">
@@ -697,33 +1055,260 @@
                 }).join('');
             } catch (error) {
                 console.error('Error loading pending payments:', error);
+                const container = document.getElementById('pendingPaymentsTable');
+                if (container) {
+                    container.innerHTML = '<tr><td colspan="7" class="loading" style="color: var(--danger);">Error loading pending payments</td></tr>';
+                }
             }
         }
 
         function buildCompleteReferralTree() {
-            console.log('🌳 Referral tree placeholder');
+            try {
+                const container = document.getElementById('completeReferralTree');
+                if (!container) return;
+
+                // Update total referral count
+                document.getElementById('totalReferralCount').textContent = allReferrals.length;
+
+                // Find root users (users with no referrer)
+                const rootUsers = allUsers.filter(user => !referrerMap.has(user.id));
+
+                if (rootUsers.length === 0) {
+                    container.innerHTML = '<div class="loading">No referral tree data available</div>';
+                    return;
+                }
+
+                let treeHTML = '';
+
+                rootUsers.forEach(rootUser => {
+                    treeHTML += buildUserTree(rootUser, 1);
+                });
+
+                container.innerHTML = treeHTML;
+
+            } catch (error) {
+                console.error('Error building referral tree:', error);
+                const container = document.getElementById('completeReferralTree');
+                if (container) {
+                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error building referral tree</div>';
+                }
+            }
+        }
+
+        function buildUserTree(user, level) {
+            const userReferrals = referralMap.get(user.id) || [];
+            const userPurchases = allPurchases.filter(p => p.user_id === user.id);
+            const totalSpent = userPurchases.reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
+
+            let html = `
+                <div class="tree-node level-${Math.min(level, 5)}">
+                    <div class="node-main">
+                        <div class="node-avatar">
+                            ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div class="node-info">
+                            <div class="node-name">
+                                ${user.username || 'Unknown User'}
+                                ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
+                                <span class="level-badge">Level ${level}</span>
+                            </div>
+                            <div class="node-email">${user.email || 'No email'}</div>
+                            <div class="node-stats">
+                                <div class="node-stat">
+                                    <div class="node-stat-value">${userReferrals.length}</div>
+                                    <span>Refs</span>
+                                </div>
+                                <div class="node-stat">
+                                    <div class="node-stat-value">${userPurchases.length}</div>
+                                    <span>Purchases</span>
+                                </div>
+                                <div class="node-stat">
+                                    <div class="node-stat-value">$${totalSpent.toFixed(2)}</div>
+                                    <span>Spent</span>
+                                </div>
+                                <div class="node-stat">
+                                    <div class="node-stat-value">${Math.round(user.balance || 0)}</div>
+                                    <span>NMX</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            `;
+
+            if (userReferrals.length > 0) {
+                html += '<div class="children-container">';
+                userReferrals.forEach(referredId => {
+                    const referredUser = allUsers.find(u => u.id === referredId);
+                    if (referredUser) {
+                        html += buildUserTree(referredUser, level + 1);
+                    }
+                });
+                html += '</div>';
+            }
+
+            html += '</div>';
+            return html;
         }
 
         function showOrphanedUsers() {
-            console.log('👤 Orphaned users placeholder');
+            try {
+                const container = document.getElementById('orphanedUsersGrid');
+                if (!container) return;
+
+                // Find orphaned users (no referrer)
+                const orphanedUsers = allUsers.filter(user => !referrerMap.has(user.id));
+                
+                // Update count
+                document.getElementById('orphanedCount').textContent = orphanedUsers.length;
+
+                if (orphanedUsers.length === 0) {
+                    container.innerHTML = '<div class="loading">No orphaned users found</div>';
+                    return;
+                }
+
+                container.innerHTML = orphanedUsers.map(user => {
+                    const userReferrals = referralMap.get(user.id) || [];
+                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
+                    const totalSpent = userPurchases.reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
+
+                    return `
+                        <div class="user-card">
+                            <div class="user-card-header">
+                                <div class="user-avatar">
+                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">
+                                        ${user.username || 'Unknown User'}
+                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
+                                    </div>
+                                    <div class="user-email">${user.email || 'No email'}</div>
+                                </div>
+                            </div>
+                            <div class="user-stats">
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userReferrals.length}</div>
+                                    <div class="user-stat-label">Referrals</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userPurchases.length}</div>
+                                    <div class="user-stat-label">Purchases</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">$${totalSpent.toFixed(2)}</div>
+                                    <div class="user-stat-label">Spent</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
+                                    <div class="user-stat-label">Balance</div>
+                                </div>
+                            </div>
+                            <div class="user-card-footer">
+                                <span class="status-badge status-orphaned">Orphaned User</span>
+                                <small>Joined: ${new Date(user.created_at).toLocaleDateString()}</small>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error showing orphaned users:', error);
+                const container = document.getElementById('orphanedUsersGrid');
+                if (container) {
+                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading orphaned users</div>';
+                }
+            }
         }
 
         function showNoReferralsUsers() {
-            console.log('🔍 No referrals users placeholder');
+            try {
+                const container = document.getElementById('noRefsUsersGrid');
+                if (!container) return;
+
+                // Find users with no referrals
+                const noRefsUsers = allUsers.filter(user => {
+                    const referrals = referralMap.get(user.id) || [];
+                    return referrals.length === 0;
+                });
+                
+                // Update count
+                document.getElementById('noRefsCount').textContent = noRefsUsers.length;
+
+                if (noRefsUsers.length === 0) {
+                    container.innerHTML = '<div class="loading">All users have referrals</div>';
+                    return;
+                }
+
+                container.innerHTML = noRefsUsers.map(user => {
+                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
+                    const totalSpent = userPurchases.reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
+                    const hasReferrer = referrerMap.has(user.id);
+
+                    return `
+                        <div class="user-card">
+                            <div class="user-card-header">
+                                <div class="user-avatar">
+                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">
+                                        ${user.username || 'Unknown User'}
+                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
+                                    </div>
+                                    <div class="user-email">${user.email || 'No email'}</div>
+                                </div>
+                            </div>
+                            <div class="user-stats">
+                                <div class="user-stat">
+                                    <div class="user-stat-value">0</div>
+                                    <div class="user-stat-label">Referrals</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userPurchases.length}</div>
+                                    <div class="user-stat-label">Purchases</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">$${totalSpent.toFixed(2)}</div>
+                                    <div class="user-stat-label">Spent</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
+                                    <div class="user-stat-label">Balance</div>
+                                </div>
+                            </div>
+                            <div class="user-card-footer">
+                                <span class="status-badge status-no-refs">No Referrals</span>
+                                <span class="status-badge ${hasReferrer ? 'status-active' : 'status-orphaned'}">
+                                    ${hasReferrer ? 'Has Referrer' : 'Orphaned'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error showing no referrals users:', error);
+                const container = document.getElementById('noRefsUsersGrid');
+                if (container) {
+                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading users with no referrals</div>';
+                }
+            }
         }
 
         // Payment action functions
         function approvePayment(paymentId) {
             console.log('✅ Approving payment:', paymentId);
-            alert('Approve functionality will be implemented!');
+            alert('Approve functionality will be implemented in the next version!');
         }
 
         function rejectPayment(paymentId) {
             console.log('❌ Rejecting payment:', paymentId);
-            alert('Reject functionality will be implemented!');
+            alert('Reject functionality will be implemented in the next version!');
         }
 
-        // 🆕 ENHANCED REAL-TIME UPDATES WITH ERROR HANDLING
+        // ... (Rest of your existing functions - setupRealtimeUpdates, showLoading, etc.)
+
+        // ENHANCED REAL-TIME UPDATES WITH ERROR HANDLING
         function setupRealtimeUpdates() {
             try {
                 console.log('📡 Setting up real-time updates...');
@@ -793,7 +1378,7 @@
             }
         }
 
-        // 🆕 ENHANCED REAL-TIME NOTIFICATION
+        // ENHANCED REAL-TIME NOTIFICATION
         function showRealtimeNotification(message) {
             if (systemStatus === 'error') return;
 
@@ -813,7 +1398,7 @@
             }, 3000);
         }
 
-        // 🆕 SIMPLIFIED MAINTENANCE MODE (No status bar)
+        // SIMPLIFIED MAINTENANCE MODE
         async function toggleMaintenanceMode() {
             try {
                 maintenanceMode = !maintenanceMode;
@@ -822,7 +1407,8 @@
                     .from('settings')
                     .upsert({
                         key: 'maintenance_mode',
-                        value: maintenanceMode,                        updated_at: new Date().toISOString()
+                        value: maintenanceMode,
+                        updated_at: new Date().toISOString()
                     });
 
                 if (error) {
@@ -833,7 +1419,6 @@
 
                 updateMaintenanceButton();
 
-                // Simple alert without status bar
                 if (maintenanceMode) {
                     alert('🔧 Maintenance mode ENABLED\n\nUsers will see a maintenance message when they try to access the platform.');
                 } else {
@@ -846,7 +1431,7 @@
             }
         }
 
-        // 🆕 ENHANCED ERROR HANDLING FOR ALL SECTIONS
+        // ENHANCED ERROR HANDLING FOR ALL SECTIONS
         function updateOverviewStatistics() {
             try {
                 const totalUsers = allUsers.length;
@@ -884,7 +1469,7 @@
             }
         }
 
-        // 🆕 ENHANCED RECENT USERS WITH ERROR HANDLING
+        // ENHANCED RECENT USERS WITH ERROR HANDLING
         function updateRecentUsers() {
             try {
                 const container = document.getElementById('recentUsersGrid');
@@ -961,7 +1546,7 @@
             }
         }
 
-        // 🆕 ENHANCED LOADING FUNCTION
+        // ENHANCED LOADING FUNCTION
         function showLoading() {
             const elements = [
                 'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid',
@@ -969,7 +1554,8 @@
             ];
 
             elements.forEach(id => {
-                const element = document.getElementById(id);                if (element) {
+                const element = document.getElementById(id);
+                if (element) {
                     element.innerHTML = `
                         <div class="loading">
                             <div class="loading-spinner"></div>
@@ -980,7 +1566,7 @@
             });
         }
 
-        // 🆕 ENHANCED ERROR DISPLAY
+        // ENHANCED ERROR DISPLAY
         function showError(message) {
             const elements = [
                 'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid',
