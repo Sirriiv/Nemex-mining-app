@@ -22,7 +22,7 @@
         let currentUser = null;
         let currentBalance = 0;
 
-        // Load user data on page load
+        // Wait for DOM to be fully loaded
         document.addEventListener('DOMContentLoaded', function() {
             initializePage();
         });
@@ -39,8 +39,10 @@
                 currentUser = session.user;
                 console.log('User ID:', currentUser.id);
 
-                // Load balance immediately using the same method as dashboard
-                loadBalanceFromDashboard();
+                // Wait a bit for DOM to be fully ready
+                setTimeout(() => {
+                    loadBalanceFromDashboard();
+                }, 100);
 
             } catch (error) {
                 console.error('Error initializing page:', error);
@@ -48,7 +50,18 @@
             }
         }
 
+        function getBalanceElement() {
+            return document.getElementById('currentBalance');
+        }
+
         function loadBalanceFromDashboard() {
+            const balanceElement = getBalanceElement();
+            if (!balanceElement) {
+                console.error('Balance element not found, retrying...');
+                setTimeout(loadBalanceFromDashboard, 100);
+                return;
+            }
+
             console.log('=== DEBUG: Searching for balance ===');
             
             // Get ALL localStorage items to see what's available
@@ -115,6 +128,12 @@
         }
 
         function tryGetDashboardBalance() {
+            const balanceElement = getBalanceElement();
+            if (!balanceElement) {
+                console.error('Balance element not found in tryGetDashboardBalance');
+                return;
+            }
+
             // Method 1: Check if dashboard stored balance in a specific way
             const dashboardBalance = window.dashboardBalance || window.userData?.balance || window.nmxpData?.balance;
             
@@ -151,24 +170,29 @@
         }
 
         function updateBalanceDisplay() {
-            const balanceElement = document.getElementById('currentBalance');
+            const balanceElement = getBalanceElement();
             if (balanceElement) {
-                balanceElement.innerHTML = `${currentBalance.toLocaleString()} NMXp`;
+                // Clear any loading content
+                balanceElement.innerHTML = '';
+                balanceElement.textContent = `${currentBalance.toLocaleString()} NMXp`;
 
                 // Add animation for balance updates
                 balanceElement.style.transform = 'scale(1.05)';
                 setTimeout(() => {
-                    if (balanceElement) {
-                        balanceElement.style.transform = 'scale(1)';
+                    const el = getBalanceElement();
+                    if (el) {
+                        el.style.transform = 'scale(1)';
                     }
                 }, 300);
             } else {
-                console.error('Balance element not found!');
+                console.error('Balance element not found in updateBalanceDisplay!');
+                // Retry after a short delay
+                setTimeout(updateBalanceDisplay, 100);
             }
         }
 
         function showBalanceError() {
-            const balanceElement = document.getElementById('currentBalance');
+            const balanceElement = getBalanceElement();
             if (balanceElement) {
                 balanceElement.innerHTML = '<span style="color: var(--danger);">Error loading balance</span>';
             }
@@ -207,8 +231,7 @@
         }
 
         // Add a temporary debug button to test balance updates
-        document.addEventListener('DOMContentLoaded', function() {
-            // Add debug button temporarily
+        setTimeout(() => {
             const debugButton = document.createElement('button');
             debugButton.textContent = 'Test Balance +100';
             debugButton.style.position = 'fixed';
@@ -221,11 +244,125 @@
             debugButton.style.border = 'none';
             debugButton.style.borderRadius = '5px';
             debugButton.style.cursor = 'pointer';
+            debugButton.style.fontSize = '12px';
             debugButton.onclick = simulateBalanceUpdate;
             document.body.appendChild(debugButton);
-        });
+        }, 1000);
 
-        // ... (rest of your functions remain exactly the same) ...
+        // Rest of your existing functions...
+        function selectPackage(element, amount, price, purchaseLimit, bonus = 0) {
+            document.querySelectorAll('.package-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedPackage = {
+                element: element,
+                amount: amount,
+                price: price,
+                purchaseLimit: purchaseLimit,
+                bonus: bonus,
+                totalAmount: amount + bonus,
+                isVip: element.classList.contains('vip')
+            };
+            updateMinimumAmounts();
+        }
+
+        function selectPayment(element, method) {
+            document.querySelectorAll('.payment-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            element.classList.add('selected');
+        }
+
+        function updateMinimumAmounts() {
+            if (selectedPackage) {
+                const price = selectedPackage.price;
+                document.getElementById('tonMinimum').textContent = `Minimum: $${price} worth of TON`;
+                document.getElementById('usdtTonMinimum').textContent = `Minimum: $${price} USDT`;
+                document.getElementById('usdtTrcMinimum').textContent = `Minimum: $${price} USDT`;
+            }
+        }
+
+        function showPaymentConfirmation() {
+            if (!selectedPackage) {
+                alert('Please select a package first');
+                return;
+            }
+            document.getElementById('confirmPackage').textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
+            document.getElementById('confirmAmount').textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
+            document.getElementById('confirmPrice').textContent = `$${selectedPackage.price} USD`;
+            document.getElementById('confirmationModal').style.display = 'flex';
+        }
+
+        function closeConfirmation() {
+            document.getElementById('confirmationModal').style.display = 'none';
+        }
+
+        async function processManualConfirmation() {
+            try {
+                const confirmBtn = document.querySelector('.confirm-btn');
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.innerHTML = 'Processing...';
+                confirmBtn.disabled = true;
+
+                const { data, error } = await supabaseClient
+                    .from('pending_payments')
+                    .insert({
+                        user_id: currentUser.id,
+                        user_email: currentUser.email,
+                        package_amount: selectedPackage.amount,
+                        total_amount: selectedPackage.totalAmount,
+                        price_usd: selectedPackage.price,
+                        payment_method: 'crypto',
+                        status: 'pending_review',
+                        is_vip_package: selectedPackage.isVip,
+                        created_at: new Date().toISOString()
+                    })
+                    .select();
+
+                if (error) throw error;
+
+                closeConfirmation();
+                alert(`✅ Payment Confirmation Submitted!\n\n📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp\n💰 Amount: $${selectedPackage.price} USD\n\nWe've recorded your purchase request. Our team will verify your blockchain transaction and credit your NMXp within 1-2 hours.\n\nThank you for your purchase! 🎉`);
+
+                if (selectedPackage) {
+                    selectedPackage.element.classList.remove('selected');
+                }
+                selectedPackage = null;
+                updateMinimumAmounts();
+
+                setTimeout(() => {
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                console.error('Confirmation error:', error);
+                alert('❌ Confirmation failed. Please try again.');
+                const confirmBtn = document.querySelector('.confirm-btn');
+                confirmBtn.innerHTML = 'Yes, I Paid';
+                confirmBtn.disabled = false;
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const buttons = document.querySelectorAll('.copy-btn');
+                buttons.forEach(btn => btn.textContent = 'Copy Address');
+                const clickedBtn = event.target;
+                clickedBtn.textContent = 'Copied!';
+                clickedBtn.classList.add('copied');
+                setTimeout(() => {
+                    clickedBtn.textContent = 'Copy Address';
+                    clickedBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy address. Please select and copy manually.');
+            });
+        }
     </script>
 </body>
 </html>
