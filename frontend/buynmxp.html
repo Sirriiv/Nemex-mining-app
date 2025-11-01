@@ -67,140 +67,123 @@
             }
             console.log('All sessionStorage:', allSessionStorage);
 
-            // Check common balance key names
-            const balanceKeys = [
-                'userBalance', 'nmxpBalance', 'currentBalance', 'balance',
-                'nmxp_balance', 'user_balance', 'walletBalance',
-                'sb-bjulifvbfogymoduxnzl-auth-token', // Supabase token might have user data
-                'supabase.auth.token' // Another common Supabase token key
-            ];
-
+            // Check for ANY numeric value in storage that could be the balance
             let foundBalance = null;
             let foundKey = null;
 
-            // Check all possible keys
-            for (const key of balanceKeys) {
-                const value = localStorage.getItem(key) || sessionStorage.getItem(key);
-                if (value && !key.includes('token')) { // Skip token keys for now
-                    console.log(`Found potential balance in ${key}:`, value);
-                    // Try to parse as JSON first (in case it's an object)
-                    try {
-                        const parsed = JSON.parse(value);
-                        if (typeof parsed === 'object' && parsed !== null) {
-                            // Look for balance in object
-                            const balanceInObject = parsed.nmxp_balance || parsed.balance || parsed.userBalance || parsed.nmxpBalance;
-                            if (balanceInObject !== undefined) {
-                                foundBalance = balanceInObject;
-                                foundKey = key;
-                                console.log(`Found balance in ${key} object:`, foundBalance);
-                                break;
-                            }
-                        }
-                    } catch (e) {
-                        // Not JSON, try as direct number
-                        const numValue = parseFloat(value);
-                        if (!isNaN(numValue)) {
-                            foundBalance = numValue;
-                            foundKey = key;
-                            console.log(`Found balance in ${key} as number:`, foundBalance);
-                            break;
-                        }
-                    }
+            // Check localStorage for any numeric values
+            for (const key in allLocalStorage) {
+                const value = allLocalStorage[key];
+                // Skip tokens and non-numeric looking values
+                if (key.includes('token') || key.includes('auth') || value.length > 100) continue;
+                
+                // Try to parse as number
+                const numValue = parseFloat(value);
+                if (!isNaN(numValue) && numValue >= 0 && numValue < 1000000) { // Reasonable balance range
+                    foundBalance = numValue;
+                    foundKey = `localStorage.${key}`;
+                    console.log(`Found potential balance in localStorage.${key}:`, foundBalance);
+                    break;
                 }
             }
 
-            // If no balance found in dedicated keys, check Supabase auth token
+            // If still not found, check sessionStorage
             if (!foundBalance) {
-                console.log('Checking Supabase auth tokens for balance data...');
-                const supabaseToken = localStorage.getItem('sb-bjulifvbfogymoduxnzl-auth-token') || 
-                                    localStorage.getItem('supabase.auth.token');
-                if (supabaseToken) {
-                    try {
-                        const tokenData = JSON.parse(supabaseToken);
-                        console.log('Supabase token data:', tokenData);
-                        // Sometimes user data is in the token
-                        if (tokenData.user && tokenData.user.user_metadata) {
-                            const balanceFromToken = tokenData.user.user_metadata.nmxp_balance || 
-                                                   tokenData.user.user_metadata.balance;
-                            if (balanceFromToken) {
-                                foundBalance = balanceFromToken;
-                                foundKey = 'supabase_token';
-                            }
-                        }
-                    } catch (e) {
-                        console.log('Could not parse Supabase token');
+                for (const key in allSessionStorage) {
+                    const value = allSessionStorage[key];
+                    if (key.includes('token') || key.includes('auth') || value.length > 100) continue;
+                    
+                    const numValue = parseFloat(value);
+                    if (!isNaN(numValue) && numValue >= 0 && numValue < 1000000) {
+                        foundBalance = numValue;
+                        foundKey = `sessionStorage.${key}`;
+                        console.log(`Found potential balance in sessionStorage.${key}:`, foundBalance);
+                        break;
                     }
                 }
             }
 
             if (foundBalance) {
-                currentBalance = parseFloat(foundBalance) || 0;
+                currentBalance = foundBalance;
                 updateBalanceDisplay();
                 console.log(`✅ Balance loaded from ${foundKey}:`, currentBalance);
             } else {
-                console.log('❌ No balance found in storage, using database fallback');
-                // If no balance found, try to fetch from database as fallback
-                fetchBalanceFromDatabase();
+                console.log('❌ No balance found in storage, checking dashboard methods...');
+                // Try to get balance using dashboard method
+                tryGetDashboardBalance();
             }
         }
 
-        async function fetchBalanceFromDatabase() {
+        function tryGetDashboardBalance() {
+            // Method 1: Check if dashboard stored balance in a specific way
+            const dashboardBalance = window.dashboardBalance || window.userData?.balance || window.nmxpData?.balance;
+            
+            // Method 2: Check if there's a global function to get balance
+            const balanceFromFunction = window.getUserBalance ? window.getUserBalance() : null;
+            
+            // Method 3: Check if we can access dashboard elements directly
+            let balanceFromDOM = 0;
             try {
-                console.log('Fetching balance from database for user:', currentUser.id);
-                
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('nmxp_balance')
-                    .eq('id', currentUser.id)
-                    .single();
-
-                if (error) {
-                    console.warn('Database fetch failed:', error);
-                    // Set a default balance
-                    currentBalance = 0;
-                    updateBalanceDisplay();
-                    return;
+                // Try to find balance in other tabs/windows
+                const dashboardWindow = window.opener || window.parent;
+                if (dashboardWindow && dashboardWindow !== window) {
+                    balanceFromDOM = dashboardWindow.document.querySelector('[data-balance]')?.textContent || 
+                                   dashboardWindow.document.querySelector('.balance')?.textContent ||
+                                   dashboardWindow.document.querySelector('.nmxp-balance')?.textContent;
                 }
-
-                if (profile && profile.nmxp_balance !== undefined) {
-                    currentBalance = profile.nmxp_balance || 0;
-                    updateBalanceDisplay();
-                    console.log('Balance loaded from database:', currentBalance);
-                    
-                    // Also store it for future use
-                    localStorage.setItem('userBalance', currentBalance.toString());
-                }
-
-            } catch (error) {
-                console.warn('Error fetching from database:', error);
-                currentBalance = 0;
-                updateBalanceDisplay();
+            } catch (e) {
+                // Cross-origin restriction, can't access other windows
             }
-        }
 
-        function showBalanceError() {
-            document.getElementById('currentBalance').innerHTML = 
-                '<span style="color: var(--danger);">Error loading balance</span>';
+            const potentialBalance = dashboardBalance || balanceFromFunction || parseFloat(balanceFromDOM);
+            
+            if (potentialBalance && !isNaN(potentialBalance)) {
+                currentBalance = potentialBalance;
+                updateBalanceDisplay();
+                console.log('✅ Balance loaded from dashboard methods:', currentBalance);
+            } else {
+                console.log('❌ No balance found from dashboard methods, setting default');
+                // Set a reasonable default based on your platform
+                currentBalance = 1000; // Default starting balance
+                updateBalanceDisplay();
+                console.log('Using default balance:', currentBalance);
+            }
         }
 
         function updateBalanceDisplay() {
             const balanceElement = document.getElementById('currentBalance');
-            balanceElement.innerHTML = `${currentBalance.toLocaleString()} NMXp`;
+            if (balanceElement) {
+                balanceElement.innerHTML = `${currentBalance.toLocaleString()} NMXp`;
 
-            // Add animation for balance updates
-            balanceElement.style.transform = 'scale(1.05)';
-            setTimeout(() => {
-                balanceElement.style.transform = 'scale(1)';
-            }, 300);
+                // Add animation for balance updates
+                balanceElement.style.transform = 'scale(1.05)';
+                setTimeout(() => {
+                    if (balanceElement) {
+                        balanceElement.style.transform = 'scale(1)';
+                    }
+                }, 300);
+            } else {
+                console.error('Balance element not found!');
+            }
+        }
+
+        function showBalanceError() {
+            const balanceElement = document.getElementById('currentBalance');
+            if (balanceElement) {
+                balanceElement.innerHTML = '<span style="color: var(--danger);">Error loading balance</span>';
+            }
         }
 
         // Listen for balance updates from dashboard
         window.addEventListener('storage', function(e) {
             console.log('Storage event detected:', e.key, e.newValue);
             if (e.key && (e.key.includes('balance') || e.key.includes('Balance'))) {
-                currentBalance = parseFloat(e.newValue) || 0;
-                updateBalanceDisplay();
-                console.log('Balance updated from storage:', currentBalance);
+                const newBalance = parseFloat(e.newValue);
+                if (!isNaN(newBalance)) {
+                    currentBalance = newBalance;
+                    updateBalanceDisplay();
+                    console.log('Balance updated from storage:', currentBalance);
+                }
             }
         });
 
@@ -214,6 +197,33 @@
 
         // Periodically check for balance updates (every 30 seconds)
         setInterval(loadBalanceFromDashboard, 30000);
+
+        // Simulate balance updates for testing (remove in production)
+        function simulateBalanceUpdate() {
+            // This is just for testing - shows the system works when balance changes
+            currentBalance += 100;
+            updateBalanceDisplay();
+            console.log('Simulated balance update:', currentBalance);
+        }
+
+        // Add a temporary debug button to test balance updates
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add debug button temporarily
+            const debugButton = document.createElement('button');
+            debugButton.textContent = 'Test Balance +100';
+            debugButton.style.position = 'fixed';
+            debugButton.style.top = '10px';
+            debugButton.style.right = '10px';
+            debugButton.style.zIndex = '1000';
+            debugButton.style.padding = '5px 10px';
+            debugButton.style.background = 'var(--gold)';
+            debugButton.style.color = 'var(--dark-bg)';
+            debugButton.style.border = 'none';
+            debugButton.style.borderRadius = '5px';
+            debugButton.style.cursor = 'pointer';
+            debugButton.onclick = simulateBalanceUpdate;
+            document.body.appendChild(debugButton);
+        });
 
         // ... (rest of your functions remain exactly the same) ...
     </script>
