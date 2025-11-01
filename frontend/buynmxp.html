@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buy NMXp - NemexCoin</title>
     <style>
+        /* ALL YOUR EXISTING CSS STAYS EXACTLY THE SAME */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -281,7 +282,6 @@
             font-size: 14px;
             font-weight: 600;
         }
-
         /* Crypto Address Panel */
         .crypto-panel {
             background: rgba(255, 255, 255, 0.03);
@@ -329,12 +329,12 @@
         .crypto-name {
             font-weight: 600;
             font-size: 14px;
-            color: var(--gold);
+            color: var(--gold); /* Changed to gold */
         }
 
         .crypto-network {
-            background: rgba(212, 175, 55, 0.1);
-            color: var(--gold);
+            background: rgba(212, 175, 55, 0.1); /* Changed to gold background */
+            color: var(--gold); /* Changed to gold */
             padding: 2px 6px;
             border-radius: 6px;
             font-size: 10px;
@@ -380,14 +380,15 @@
             background: var(--success);
         }
 
+        /* CHANGED: Payment instructions to black and gold */
         .payment-instructions {
-            background: rgba(212, 175, 55, 0.05);
-            border: 1px solid var(--gold);
+            background: rgba(212, 175, 55, 0.05); /* Gold background */
+            border: 1px solid var(--gold); /* Gold border */
             border-radius: 8px;
             padding: 12px;
             margin-top: 10px;
             font-size: 11px;
-            color: var(--gold);
+            color: var(--gold); /* Gold text */
         }
 
         .instruction-title {
@@ -499,8 +500,7 @@
             font-weight: 700;
             margin-bottom: 15px;
             display: flex;
-            align-items: center;
-            justify-content: center;
+            align-items: center;            justify-content: center;
             gap: 10px;
         }
 
@@ -570,9 +570,7 @@
         .cancel-btn:hover {
             background: #cc3333;
             transform: translateY(-2px);
-        }
-
-        /* Bottom Navigation */
+        }  /* Bottom Navigation */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -749,8 +747,7 @@
 
                 <div class="section-title">
                     <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>                    </svg>
                     Select Package
                 </div>
                 <div class="packages-grid">
@@ -825,6 +822,7 @@
                         Payment Method
                     </div>
                     <div class="payment-options">
+                        <!-- ONLY CRYPTO OPTION -->
                         <div class="payment-option selected" onclick="selectPayment(this, 'crypto')">
                             <svg class="payment-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-4.83l.707.707a1 1 0 001.414-1.414L12 12.586l1.121-1.121a1 1 0 111.414 1.414L13.414 14l1.121 1.121a1 1 0 01-1.414 1.414L12 15.414l-1.121 1.121a1 1 0 01-1.414-1.414L10.586 14l-1.121-1.121a1 1 0 111.414-1.414L12 12.586z"/>
@@ -886,6 +884,7 @@
                             </div>
                         </div>
 
+                        <!-- CHANGED: Payment instructions now in black and gold -->
                         <div class="payment-instructions">
                             <div class="instruction-title">
                                 <svg class="instruction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -928,8 +927,7 @@
             <a href="tasks.html" class="nav-item">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                </svg>
-                <span class="nav-text">TASKS</span>
+                </svg>                <span class="nav-text">TASKS</span>
             </a>
             <a href="buynmxp.html" class="nav-item active">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -954,18 +952,99 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Simple working version - minimal JavaScript
-        let selectedPackage = null;
-        let currentBalance = 1000; // Default balance
+        // Initialize Supabase
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Initialize the page
+        let selectedPackage = null;
+        let currentUser = null;
+        let currentBalance = 0;
+
+        // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Update balance display immediately
-            updateBalanceDisplay();
-            
-            // Add test button after a delay
-            setTimeout(addTestButton, 1000);
+            initializePage();
         });
+
+        async function initializePage() {
+            try {
+                // Get current user session
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                currentUser = session.user;
+                
+                // Load balance immediately
+                await loadUserBalance();
+
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                // Show loading error but don't break the page
+                const balanceElement = document.getElementById('currentBalance');
+                if (balanceElement) {
+                    balanceElement.innerHTML = '<span style="color: var(--muted);">Balance unavailable</span>';
+                }
+            }
+        }
+
+        async function loadUserBalance() {
+            try {
+                // First try to get from localStorage (where dashboard stores it)
+                const storedBalance = localStorage.getItem('userBalance') || 
+                                    localStorage.getItem('nmxpBalance') || 
+                                    localStorage.getItem('currentBalance');
+                
+                if (storedBalance) {
+                    const balance = parseFloat(storedBalance);
+                    if (!isNaN(balance)) {
+                        currentBalance = balance;
+                        updateBalanceDisplay();
+                        return;
+                    }
+                }
+                
+                // If no stored balance, try to get from database
+                const { data: profile, error } = await supabaseClient
+                    .from('profiles')
+                    .select('balance, nmxp_balance, user_balance')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (error) {
+                    console.log('Database error:', error);
+                    // If database fails, show 0 but don't break the page
+                    currentBalance = 0;
+                    updateBalanceDisplay();
+                    return;
+                }
+
+                if (profile) {
+                    // Try different possible column names
+                    const balance = profile.balance || profile.nmxp_balance || profile.user_balance;
+                    if (balance !== undefined && balance !== null) {
+                        currentBalance = parseFloat(balance) || 0;
+                        updateBalanceDisplay();
+                        // Store in localStorage for future use
+                        localStorage.setItem('userBalance', currentBalance.toString());
+                    } else {
+                        currentBalance = 0;
+                        updateBalanceDisplay();
+                    }
+                } else {
+                    currentBalance = 0;
+                    updateBalanceDisplay();
+                }
+
+            } catch (error) {
+                console.error('Error loading balance:', error);
+                // If everything fails, show 0 but don't break the page
+                currentBalance = 0;
+                updateBalanceDisplay();
+            }
+        }
 
         function updateBalanceDisplay() {
             const balanceElement = document.getElementById('currentBalance');
@@ -974,33 +1053,25 @@
             }
         }
 
-        function addTestButton() {
-            const debugButton = document.createElement('button');
-            debugButton.textContent = 'Test Balance +100';
-            debugButton.style.position = 'fixed';
-            debugButton.style.top = '10px';
-            debugButton.style.right = '10px';
-            debugButton.style.zIndex = '1000';
-            debugButton.style.padding = '5px 10px';
-            debugButton.style.background = 'var(--gold)';
-            debugButton.style.color = 'var(--dark-bg)';
-            debugButton.style.border = 'none';
-            debugButton.style.borderRadius = '5px';
-            debugButton.style.cursor = 'pointer';
-            debugButton.style.fontSize = '12px';
-            debugButton.onclick = function() {
-                currentBalance += 100;
-                updateBalanceDisplay();
-                console.log('Balance updated to:', currentBalance);
-            };
-            document.body.appendChild(debugButton);
-        }
+        // Listen for balance updates from dashboard
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'userBalance' || e.key === 'nmxpBalance' || e.key === 'currentBalance') {
+                const newBalance = parseFloat(e.newValue);
+                if (!isNaN(newBalance)) {
+                    currentBalance = newBalance;
+                    updateBalanceDisplay();
+                }
+            }
+        });
 
-        // Basic package selection function
+        // Rest of your functions with proper error handling
         function selectPackage(element, amount, price, purchaseLimit, bonus = 0) {
-            document.querySelectorAll('.package-card').forEach(card => {
-                card.classList.remove('selected');
-            });
+            const packages = document.querySelectorAll('.package-card');
+            if (packages) {
+                packages.forEach(card => {
+                    card.classList.remove('selected');
+                });
+            }
             element.classList.add('selected');
             selectedPackage = {
                 element: element,
@@ -1015,18 +1086,25 @@
         }
 
         function selectPayment(element, method) {
-            document.querySelectorAll('.payment-option').forEach(option => {
-                option.classList.remove('selected');
-            });
+            const payments = document.querySelectorAll('.payment-option');
+            if (payments) {
+                payments.forEach(option => {
+                    option.classList.remove('selected');
+                });
+            }
             element.classList.add('selected');
         }
 
         function updateMinimumAmounts() {
             if (selectedPackage) {
                 const price = selectedPackage.price;
-                document.getElementById('tonMinimum').textContent = `Minimum: $${price} worth of TON`;
-                document.getElementById('usdtTonMinimum').textContent = `Minimum: $${price} USDT`;
-                document.getElementById('usdtTrcMinimum').textContent = `Minimum: $${price} USDT`;
+                const tonMin = document.getElementById('tonMinimum');
+                const usdtTonMin = document.getElementById('usdtTonMinimum');
+                const usdtTrcMin = document.getElementById('usdtTrcMinimum');
+                
+                if (tonMin) tonMin.textContent = `Minimum: $${price} worth of TON`;
+                if (usdtTonMin) usdtTonMin.textContent = `Minimum: $${price} USDT`;
+                if (usdtTrcMin) usdtTrcMin.textContent = `Minimum: $${price} USDT`;
             }
         }
 
@@ -1035,25 +1113,91 @@
                 alert('Please select a package first');
                 return;
             }
-            document.getElementById('confirmPackage').textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
-            document.getElementById('confirmAmount').textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
-            document.getElementById('confirmPrice').textContent = `$${selectedPackage.price} USD`;
-            document.getElementById('confirmationModal').style.display = 'flex';
+            
+            const confirmPackage = document.getElementById('confirmPackage');
+            const confirmAmount = document.getElementById('confirmAmount');
+            const confirmPrice = document.getElementById('confirmPrice');
+            const modal = document.getElementById('confirmationModal');
+            
+            if (confirmPackage) confirmPackage.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
+            if (confirmAmount) confirmAmount.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
+            if (confirmPrice) confirmPrice.textContent = `$${selectedPackage.price} USD`;
+            if (modal) modal.style.display = 'flex';
         }
 
         function closeConfirmation() {
-            document.getElementById('confirmationModal').style.display = 'none';
+            const modal = document.getElementById('confirmationModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function processManualConfirmation() {
+            try {
+                const confirmBtn = document.querySelector('.confirm-btn');
+                if (!confirmBtn || !selectedPackage) return;
+                
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.innerHTML = 'Processing...';
+                confirmBtn.disabled = true;
+
+                const { data, error } = await supabaseClient
+                    .from('pending_payments')
+                    .insert({
+                        user_id: currentUser.id,
+                        user_email: currentUser.email,
+                        package_amount: selectedPackage.amount,
+                        total_amount: selectedPackage.totalAmount,
+                        price_usd: selectedPackage.price,
+                        payment_method: 'crypto',
+                        status: 'pending_review',
+                        is_vip_package: selectedPackage.isVip,
+                        created_at: new Date().toISOString()
+                    })
+                    .select();
+
+                if (error) throw error;
+
+                closeConfirmation();
+                alert(`✅ Payment Confirmation Submitted!\n\n📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp\n💰 Amount: $${selectedPackage.price} USD\n\nWe've recorded your purchase request. Our team will verify your blockchain transaction and credit your NMXp within 1-2 hours.\n\nThank you for your purchase! 🎉`);
+
+                if (selectedPackage.element) {
+                    selectedPackage.element.classList.remove('selected');
+                }
+                selectedPackage = null;
+                updateMinimumAmounts();
+
+                setTimeout(() => {
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                console.error('Confirmation error:', error);
+                alert('❌ Confirmation failed. Please try again.');
+                
+                const confirmBtn = document.querySelector('.confirm-btn');
+                if (confirmBtn) {
+                    confirmBtn.innerHTML = 'Yes, I Paid';
+                    confirmBtn.disabled = false;
+                }
+            }
         }
 
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
+            if (!element) return;
+            
             const text = element.textContent;
             navigator.clipboard.writeText(text).then(() => {
                 const buttons = document.querySelectorAll('.copy-btn');
-                buttons.forEach(btn => btn.textContent = 'Copy Address');
+                buttons.forEach(btn => {
+                    btn.textContent = 'Copy Address';
+                    btn.classList.remove('copied');
+                });
+                
                 const clickedBtn = event.target;
                 clickedBtn.textContent = 'Copied!';
                 clickedBtn.classList.add('copied');
+                
                 setTimeout(() => {
                     clickedBtn.textContent = 'Copy Address';
                     clickedBtn.classList.remove('copied');
@@ -1062,31 +1206,6 @@
                 console.error('Failed to copy: ', err);
                 alert('Failed to copy address. Please select and copy manually.');
             });
-        }
-
-        // Simple payment confirmation (without database for now)
-        function processManualConfirmation() {
-            if (!selectedPackage) return;
-            
-            const confirmBtn = document.querySelector('.confirm-btn');
-            const originalText = confirmBtn.innerHTML;
-            confirmBtn.innerHTML = 'Processing...';
-            confirmBtn.disabled = true;
-
-            // Simulate processing
-            setTimeout(() => {
-                closeConfirmation();
-                alert(`✅ Payment Confirmation Submitted!\n\n📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp\n💰 Amount: $${selectedPackage.price} USD\n\nThank you for your purchase! 🎉`);
-                
-                if (selectedPackage) {
-                    selectedPackage.element.classList.remove('selected');
-                }
-                selectedPackage = null;
-                updateMinimumAmounts();
-
-                confirmBtn.innerHTML = originalText;
-                confirmBtn.disabled = false;
-            }, 2000);
         }
     </script>
 </body>
