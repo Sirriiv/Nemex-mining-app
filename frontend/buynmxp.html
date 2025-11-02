@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buy NMXp - NemexCoin</title>
     <style>
-        /* ALL YOUR EXISTING CSS STAYS EXACTLY THE SAME */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -97,27 +96,7 @@
             border: 1px solid var(--border-color);
         }
 
-        .balance-card {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
-            border: 1px solid var(--gold);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .balance-label {
-            color: var(--muted);
-            font-size: 14px;
-            margin-bottom: 8px;
-        }
-
-        .balance-amount {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--gold);
-            font-family: 'Courier New', monospace;
-        }
+        /* REMOVED: Balance card styles */
 
         .section-title {
             font-size: 16px;
@@ -637,28 +616,7 @@
             text-align: center;
         }
 
-        /* Loading State */
-        .loading {
-            text-align: center;
-            padding: 10px;
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        .loading-spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(212, 175, 55, 0.3);
-            border-top: 2px solid var(--gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        /* Loading State - REMOVED since we don't need it anymore */
     </style>
 </head>
 <body>
@@ -735,15 +693,7 @@
             </header>
 
             <div class="buy-section">
-                <div class="balance-card">
-                    <div class="balance-label">Your Current NMXp Balance</div>
-                    <div class="balance-amount" id="currentBalance">
-                        <div class="loading">
-                            <div class="loading-spinner"></div>
-                            Loading balance...
-                        </div>
-                    </div>
-                </div>
+                <!-- REMOVED: Balance Card Section -->
 
                 <div class="section-title">
                     <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -959,7 +909,6 @@
 
         let selectedPackage = null;
         let currentUser = null;
-        let currentBalance = 0;
 
         // Load user data on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -977,94 +926,15 @@
 
                 currentUser = session.user;
                 
-                // Load balance immediately
-                await loadUserBalance();
+                // No balance loading needed anymore
 
             } catch (error) {
                 console.error('Error initializing page:', error);
-                // Show loading error but don't break the page
-                const balanceElement = document.getElementById('currentBalance');
-                if (balanceElement) {
-                    balanceElement.innerHTML = '<span style="color: var(--muted);">Balance unavailable</span>';
-                }
+                // Page will still work even if there's an error
             }
         }
 
-        async function loadUserBalance() {
-            try {
-                // First try to get from localStorage (where dashboard stores it)
-                const storedBalance = localStorage.getItem('userBalance') || 
-                                    localStorage.getItem('nmxpBalance') || 
-                                    localStorage.getItem('currentBalance');
-                
-                if (storedBalance) {
-                    const balance = parseFloat(storedBalance);
-                    if (!isNaN(balance)) {
-                        currentBalance = balance;
-                        updateBalanceDisplay();
-                        return;
-                    }
-                }
-                
-                // If no stored balance, try to get from database
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('balance, nmxp_balance, user_balance')
-                    .eq('id', currentUser.id)
-                    .single();
-
-                if (error) {
-                    console.log('Database error:', error);
-                    // If database fails, show 0 but don't break the page
-                    currentBalance = 0;
-                    updateBalanceDisplay();
-                    return;
-                }
-
-                if (profile) {
-                    // Try different possible column names
-                    const balance = profile.balance || profile.nmxp_balance || profile.user_balance;
-                    if (balance !== undefined && balance !== null) {
-                        currentBalance = parseFloat(balance) || 0;
-                        updateBalanceDisplay();
-                        // Store in localStorage for future use
-                        localStorage.setItem('userBalance', currentBalance.toString());
-                    } else {
-                        currentBalance = 0;
-                        updateBalanceDisplay();
-                    }
-                } else {
-                    currentBalance = 0;
-                    updateBalanceDisplay();
-                }
-
-            } catch (error) {
-                console.error('Error loading balance:', error);
-                // If everything fails, show 0 but don't break the page
-                currentBalance = 0;
-                updateBalanceDisplay();
-            }
-        }
-
-        function updateBalanceDisplay() {
-            const balanceElement = document.getElementById('currentBalance');
-            if (balanceElement) {
-                balanceElement.innerHTML = `${currentBalance.toLocaleString()} NMXp`;
-            }
-        }
-
-        // Listen for balance updates from dashboard
-        window.addEventListener('storage', function(e) {
-            if (e.key === 'userBalance' || e.key === 'nmxpBalance' || e.key === 'currentBalance') {
-                const newBalance = parseFloat(e.newValue);
-                if (!isNaN(newBalance)) {
-                    currentBalance = newBalance;
-                    updateBalanceDisplay();
-                }
-            }
-        });
-
-        // Rest of your functions with proper error handling
+        // Rest of your functions (simplified without balance logic)
         function selectPackage(element, amount, price, purchaseLimit, bonus = 0) {
             const packages = document.querySelectorAll('.package-card');
             if (packages) {
