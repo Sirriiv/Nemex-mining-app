@@ -1091,32 +1091,7 @@
             `).join('');
         }
 
-        // Helper functions
-        function getTransactionLevel(amount) {
-            if (amount >= 1000000) return 3;
-            if (amount >= 500000) return 2;
-            if (amount >= 100000) return 1;
-            if (amount >= 10000) return 3;
-            if (amount >= 5000) return 2;
-            if (amount >= 1000) return 1;
-            return 1;
-        }
-
-        function getVipLevel(amount) {
-            if (amount >= 1000000) return 3;
-            if (amount >= 500000) return 2;
-            if (amount >= 100000) return 1;
-            return 1;
-        }
-
-        function getVipBenefits(amount) {
-            if (amount >= 1000000) return "Maximum Token Allocation + Exclusive Rewards";
-            if (amount >= 500000) return "High Token Allocation + Premium Rewards";
-            if (amount >= 100000) return "Standard Token Allocation + Special Rewards";
-            return "VIP Benefits";
-        }
-
-        // Approval and Rejection functions (same as before)
+        // FIXED: Enhanced approveTransaction function with proper balance handling
         async function approveTransaction(transactionId, amount, userId) {
             if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${amount.toLocaleString()} NMXp to the user's balance.`)) {
                 return;
@@ -1127,13 +1102,18 @@
             try {
                 console.log('✅ Approving transaction:', transactionId);
                 
+                // Get current admin user
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) throw adminError;
+
                 // 1. Update transaction status
                 const { error: txError } = await supabaseClient
                     .from('pending_transactions')
                     .update({
                         status: 'approved',
                         processed_at: new Date().toISOString(),
-                        admin_notes: adminNotes
+                        admin_notes: adminNotes,
+                        processed_by: adminUser.id
                     })
                     .eq('id', transactionId);
 
@@ -1148,7 +1128,10 @@
                     .eq('id', userId)
                     .single();
 
-                if (profileError) throw profileError;
+                if (profileError) {
+                    console.error('❌ Profile error:', profileError);
+                    throw profileError;
+                }
 
                 console.log('👤 Profile data:', profile);
 
@@ -1156,12 +1139,18 @@
                 let currentBalance = 0;
                 let balanceColumn = 'balance';
                 
+                // Check if nmxp_balance column exists and has value
                 if (profile.nmxp_balance !== undefined && profile.nmxp_balance !== null) {
                     currentBalance = parseInt(profile.nmxp_balance) || 0;
                     balanceColumn = 'nmxp_balance';
                 } else if (profile.balance !== undefined && profile.balance !== null) {
+                    // Fallback to balance column
                     currentBalance = parseInt(profile.balance) || 0;
                     balanceColumn = 'balance';
+                } else {
+                    // If neither exists, use nmxp_balance as default
+                    balanceColumn = 'nmxp_balance';
+                    currentBalance = 0;
                 }
                 
                 const newBalance = currentBalance + amount;
@@ -1186,14 +1175,27 @@
 
                 console.log('✅ Balance updated successfully');
                 
-                // 5. Show detailed success message
+                // 5. Update user purchase history
+                const { error: historyError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .update({
+                        status: 'approved',
+                        processed_at: new Date().toISOString(),
+                        admin_notes: adminNotes
+                    })
+                    .eq('transaction_id', transactionId);
+
+                if (historyError) console.error('⚠️ History update error:', historyError);
+                
+                // 6. Show detailed success message
                 showCustomAlert(
                     `✅ Transaction Approved!\n` +
-                    `💰 ${amount.toLocaleString()} NMXp credited\n` +
+                    `💰 ${amount.toLocaleString()} NMXp credited to user\n` +
                     `👤 User's new balance: ${newBalance.toLocaleString()} NMXp`,
                     'success'
                 );
                 
+                // 7. Reload transactions to reflect changes
                 await loadTransactions();
                 
             } catch (error) {
@@ -1202,6 +1204,7 @@
             }
         }
 
+        // FIXED: Enhanced rejectTransaction function
         async function rejectTransaction(transactionId) {
             if (!confirm('Are you sure you want to reject this transaction?')) {
                 return;
@@ -1212,16 +1215,31 @@
             try {
                 console.log('❌ Rejecting transaction:', transactionId);
                 
+                // Get current admin user
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) throw adminError;
+                
                 const { error } = await supabaseClient
                     .from('pending_transactions')
                     .update({
                         status: 'rejected',
                         processed_at: new Date().toISOString(),
-                        admin_notes: adminNotes
+                        admin_notes: adminNotes,
+                        processed_by: adminUser.id
                     })
                     .eq('id', transactionId);
 
                 if (error) throw error;
+
+                // Update user purchase history
+                await supabaseClient
+                    .from('user_purchase_history')
+                    .update({
+                        status: 'rejected',
+                        processed_at: new Date().toISOString(),
+                        admin_notes: adminNotes
+                    })
+                    .eq('transaction_id', transactionId);
 
                 console.log('✅ Transaction rejected');
                 showCustomAlert('❌ Transaction rejected', 'info');
@@ -1231,6 +1249,31 @@
                 console.error('❌ Rejection error:', error);
                 showCustomAlert('❌ Error rejecting transaction: ' + error.message, 'error');
             }
+        }
+
+        // Helper functions
+        function getTransactionLevel(amount) {
+            if (amount >= 1000000) return 3;
+            if (amount >= 500000) return 2;
+            if (amount >= 100000) return 1;
+            if (amount >= 10000) return 3;
+            if (amount >= 5000) return 2;
+            if (amount >= 1000) return 1;
+            return 1;
+        }
+
+        function getVipLevel(amount) {
+            if (amount >= 1000000) return 3;
+            if (amount >= 500000) return 2;
+            if (amount >= 100000) return 1;
+            return 1;
+        }
+
+        function getVipBenefits(amount) {
+            if (amount >= 1000000) return "Maximum Token Allocation + Exclusive Rewards";
+            if (amount >= 500000) return "High Token Allocation + Premium Rewards";
+            if (amount >= 100000) return "Standard Token Allocation + Special Rewards";
+            return "VIP Benefits";
         }
 
         // Initialize search and filter functionality
@@ -1257,7 +1300,7 @@
             initializeSearchFilters();
         });
         
-        // Refresh every 30 seconds
+        // Refresh every 30 seconds to detect database changes
         setInterval(loadTransactions, 30000);
     </script>
 </body>
