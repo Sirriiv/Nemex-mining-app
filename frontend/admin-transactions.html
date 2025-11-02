@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Review - NemexCoin Admin</title>
+    <style>
+        /* Add your existing styles here */
+        body { background: #0f0f0f; color: #f5f5f5; font-family: sans-serif; padding: 20px; }
+        .transaction { background: #1a1a1a; padding: 15px; margin: 10px 0; border-radius: 10px; border: 1px solid #333; }
+        .pending { border-left: 4px solid #d4af37; }
+        .approved { border-left: 4px solid #00C851; }
+        .rejected { border-left: 4px solid #ff4444; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .approve-btn { background: #00C851; color: white; }
+        .reject-btn { background: #ff4444; color: white; }
+    </style>
+</head>
+<body>
+    <h1>📋 Pending Transactions</h1>
+    <div id="transactionsList"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function loadPendingTransactions() {
+            const { data: transactions, error } = await supabaseClient
+                .from('pending_transactions')
+                .select('*')
+                .eq('status', 'pending_review')
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('Error loading transactions:', error);
+                return;
+            }
+
+            const container = document.getElementById('transactionsList');
+            container.innerHTML = '';
+
+            transactions.forEach(transaction => {
+                const transactionEl = document.createElement('div');
+                transactionEl.className = 'transaction pending';
+                transactionEl.innerHTML = `
+                    <h3>💰 ${transaction.total_amount.toLocaleString()} NMXp - $${transaction.price_usd}</h3>
+                    <p><strong>User:</strong> ${transaction.user_email}</p>
+                    <p><strong>TX Hash:</strong> ${transaction.tx_hash}</p>
+                    <p><strong>Submitted:</strong> ${new Date(transaction.created_at).toLocaleString()}</p>
+                    ${transaction.user_notes ? `<p><strong>User Notes:</strong> ${transaction.user_notes}</p>` : ''}
+                    <div>
+                        <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${transaction.total_amount}, '${transaction.user_id}')">✅ Approve</button>
+                        <button class="reject-btn" onclick="rejectTransaction('${transaction.id}')">❌ Reject</button>
+                        <input type="text" id="notes-${transaction.id}" placeholder="Admin notes...">
+                    </div>
+                `;
+                container.appendChild(transactionEl);
+            });
+
+            if (transactions.length === 0) {
+                container.innerHTML = '<p>🎉 No pending transactions!</p>';
+            }
+        }
+
+        async function approveTransaction(transactionId, amount, userId) {
+            const adminNotes = document.getElementById(`notes-${transactionId}`).value;
+            
+            // 1. Update transaction status
+            const { error: txError } = await supabaseClient
+                .from('pending_transactions')
+                .update({
+                    status: 'approved',
+                    processed_at: new Date().toISOString(),
+                    admin_notes: adminNotes
+                })
+                .eq('id', transactionId);
+
+            if (txError) {
+                alert('Error updating transaction: ' + txError.message);
+                return;
+            }
+
+            // 2. Credit user's NMXp balance
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('nmxp_balance')
+                .eq('id', userId)
+                .single();
+
+            if (profileError) {
+                alert('Error fetching user balance: ' + profileError.message);
+                return;
+            }
+
+            const newBalance = (profile.nmxp_balance || 0) + amount;
+            
+            const { error: balanceError } = await supabaseClient
+                .from('profiles')
+                .update({ nmxp_balance: newBalance })
+                .eq('id', userId);
+
+            if (balanceError) {
+                alert('Error updating balance: ' + balanceError.message);
+                return;
+            }
+
+            alert('✅ Transaction approved and NMXp credited!');
+            loadPendingTransactions();
+        }
+
+        async function rejectTransaction(transactionId) {
+            const adminNotes = document.getElementById(`notes-${transactionId}`).value;
+            
+            const { error } = await supabaseClient
+                .from('pending_transactions')
+                .update({
+                    status: 'rejected',
+                    processed_at: new Date().toISOString(),
+                    admin_notes: adminNotes
+                })
+                .eq('id', transactionId);
+
+            if (error) {
+                alert('Error rejecting transaction: ' + error.message);
+                return;
+            }
+
+            alert('❌ Transaction rejected');
+            loadPendingTransactions();
+        }
+
+        // Load transactions on page load
+        document.addEventListener('DOMContentLoaded', loadPendingTransactions);
+        
+        // Refresh every 30 seconds
+        setInterval(loadPendingTransactions, 30000);
+    </script>
+</body>
+</html>
