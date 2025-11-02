@@ -54,14 +54,14 @@
             align-items: center;
             gap: 15px;
         }
-        .settings-icon, .admin-icon {
+        .settings-icon, .admin-icon, .transaction-admin-icon {
             width: 24px;
             height: 24px;
             color: var(--muted);
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        .settings-icon:hover, .admin-icon:hover {
+        .settings-icon:hover, .admin-icon:hover, .transaction-admin-icon:hover {
             color: var(--gold);
             transform: scale(1.1);
         }
@@ -509,18 +509,7 @@
             line-height: 1.5;
         }
 
-        /* NEW: Transaction Admin Icon Styles */
-        .transaction-admin-icon {
-            width: 24px;
-            height: 24px;
-            color: var(--muted);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        .transaction-admin-icon:hover {
-            color: var(--gold);
-            transform: scale(1.1);
-        }
+        /* NEW: Admin Badge Styles */
         .admin-badge {
             background: var(--gold);
             color: var(--dark-bg);
@@ -556,10 +545,16 @@
                 <div class="header-title">〽️ NEMEXCOIN <span id="telegramBadge" class="telegram-badge" style="display: none;">Telegram</span></div>
                 <div class="header-icons">
                     <!-- TRANSACTION ADMIN ICON - Only visible to you -->
-                    <svg class="transaction-admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="transactionAdminButton" style="display: none;">
+                    <svg class="transaction-admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="transactionAdminButton" style="display: none;" title="Transaction Admin">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
-                    <!-- SETTINGS ICON -->
+                    
+                    <!-- MAIN ADMIN PANEL ICON (Profile Icon) - Only visible to you -->
+                    <svg class="admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="adminButton" style="display: none;" title="Main Admin Panel">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    
+                    <!-- SETTINGS ICON - Visible to all users -->
                     <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="settingsButton">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -629,7 +624,16 @@
                     </button>
                 </div>
                 <div class="settings-list">
-                    <!-- ADDED: Transaction Admin Link in Settings -->
+                    <!-- ADDED: Main Admin Panel Link -->
+                    <a href="admin.html" class="settings-item" id="mainAdminSettings" style="display: none;">
+                        <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        Main Admin Panel
+                        <span class="admin-badge">ADMIN</span>
+                    </a>
+                    
+                    <!-- ADDED: Transaction Admin Link -->
                     <a href="admin-transactions.html" class="settings-item" id="transactionAdminSettings" style="display: none;">
                         <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -637,6 +641,7 @@
                         Transaction Admin
                         <span class="admin-badge">ADMIN</span>
                     </a>
+                    
                     <a href="profile.html" class="settings-item">
                         <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -915,7 +920,7 @@
                 // Load user data with balance refresh
                 await loadUserData();
 
-                // Check if user is admin and show admin icon
+                // Check if user is admin and show admin icons
                 checkAdminAccess();
 
                 // Start countdown timer
@@ -935,7 +940,7 @@
             }
         }
 
-        // Check if user is admin and show admin icon
+        // Check if user is admin and show admin icons
         function checkAdminAccess() {
             try {
                 // Get current user email from Supabase session
@@ -949,16 +954,30 @@
                     const transactionAdminButton = document.getElementById('transactionAdminButton');
                     transactionAdminButton.style.display = 'block';
 
-                    // Show transaction admin link in settings
+                    // Show main admin panel icon in header (profile icon)
+                    const adminButton = document.getElementById('adminButton');
+                    adminButton.style.display = 'block';
+
+                    // Show admin links in settings
+                    const mainAdminSettings = document.getElementById('mainAdminSettings');
                     const transactionAdminSettings = document.getElementById('transactionAdminSettings');
+                    mainAdminSettings.style.display = 'flex';
                     transactionAdminSettings.style.display = 'flex';
 
-                    // Add click event to redirect to transaction admin panel
+                    // Add click events to redirect to respective admin panels
                     transactionAdminButton.addEventListener('click', function() {
                         window.location.href = 'admin-transactions.html';
                     });
 
-                    console.log('👑 Transaction Admin access granted for:', userEmail);
+                    adminButton.addEventListener('click', function() {
+                        window.location.href = 'admin.html';
+                    });
+
+                    console.log('👑 Admin access granted for:', userEmail);
+                    console.log('📊 Main Admin Panel: Visible');
+                    console.log('💳 Transaction Admin: Visible');
+                } else {
+                    console.log('👤 Regular user access:', userEmail);
                 }
             } catch (error) {
                 console.error('Error checking admin access:', error);
