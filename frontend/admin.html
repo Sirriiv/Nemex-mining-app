@@ -268,6 +268,26 @@
             </button>
         </nav>
 
+        <!-- Search Section -->
+        <div class="search-section">
+            <div class="search-controls">
+                <input type="text" class="search-input" id="globalSearch" placeholder="Search users by email, name, or referral code...">
+                <select class="filter-select" id="statusFilter">
+                    <option value="">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="vip">VIP</option>
+                    <option value="orphaned">Orphaned</option>
+                </select>
+                <button class="admin-btn" onclick="performSearch()">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Search
+                </button>
+            </div>
+        </div>
+
         <!-- Overview Section -->
         <div id="overviewSection" class="section-content">
             <div class="stats-grid">
@@ -553,7 +573,7 @@
         let allUsers = [];
         let allReferrals = [];
         let allPurchases = [];
-        let allPendingPayments = [];
+        let allPendingTransactions = [];
         let referralMap = new Map();
         let referrerMap = new Map();
         let maintenanceMode = false;
@@ -561,401 +581,157 @@
 
         // Initialize Admin Panel
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀  Admin Panel Initializing...');
+            console.log('🚀 Admin Panel Initializing...');
             initializeSystem();
+            setupSearchFunctionality();
         });
 
         // =============================================
-        // 🚀 CRITICAL FIX: ADD MISSING FUNCTION
+        // 🛠️ CRITICAL FIXES FOR MAIN ADMIN PANEL
         // =============================================
 
-        function updatePendingPayments() {
-            try {
-                const pending = allPendingPayments.filter(p => p.status === 'pending_review');
-                document.getElementById('pendingPaymentsCount').textContent = pending.length;
-                console.log('📋 Pending payments updated:', pending.length);
-            } catch (error) {
-                console.error('Error updating pending payments:', error);
+        // FIX 1: Enhanced search functionality
+        function setupSearchFunctionality() {
+            const searchInput = document.getElementById('globalSearch');
+            const statusFilter = document.getElementById('statusFilter');
+            
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    performSearch();
+                });
+            }
+            
+            if (statusFilter) {
+                statusFilter.addEventListener('change', function(e) {
+                    performSearch();
+                });
             }
         }
 
-        // =============================================
-        // 🛠️ ENHANCED REFERRAL DIAGNOSTICS
-        // =============================================
-
-        async function runDatabaseDiagnostics() {
-            console.log('🔧 RUNNING REFERRAL DIAGNOSTICS...');
+        async function performSearch() {
+            const searchTerm = document.getElementById('globalSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
 
             try {
-                // 1. First check the table structure
-                const { data: tableInfo, error: tableError } = await supabaseClient
-                    .from('information_schema.columns')
-                    .select('column_name, data_type')
-                    .eq('table_name', 'referral_network')
-                    .eq('table_schema', 'public');
+                let query = supabaseClient
+                    .from('profiles')
+                    .select('*');
 
-                if (tableError) {
-                    console.error('❌ Cannot check table structure:', tableError);
-                    alert('❌ Cannot access table information: ' + tableError.message);
-                    return;
+                // Apply search filter
+                if (searchTerm) {
+                    query = query.or(`email.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,referral_code.ilike.%${searchTerm}%`);
                 }
 
-                console.log('📊 Referral table structure:', tableInfo);
-
-                let diagnosticMessage = `
-🔍 REFERRAL TABLE DIAGNOSTICS:
-
-📋 Table Structure:
-`;
-
-                if (tableInfo.length === 0) {
-                    diagnosticMessage += `
-❌ TABLE DOESN'T EXIST: referral_network table not found!
-
-💡 SOLUTION: 
-You need to create the referral_network table with the correct structure.
-`;
-                    alert(diagnosticMessage);
-
-                    // Offer to create the table
-                    if (confirm('Do you want to create the referral_network table now?')) {
-                        await createReferralTable();
+                // Apply status filter
+                if (statusFilter) {
+                    switch(statusFilter) {
+                        case 'active':
+                            query = query.eq('is_active', true);
+                            break;
+                        case 'inactive':
+                            query = query.eq('is_active', false);
+                            break;
+                        case 'vip':
+                            query = query.eq('is_vip', true);
+                            break;
+                        case 'orphaned':
+                            // This requires additional logic to find users without referrers
+                            break;
                     }
-                    return;
                 }
 
-                // Show table structure
-                tableInfo.forEach(column => {
-                    diagnosticMessage += `   - ${column.column_name} (${column.data_type})\n`;
-                });
+                const { data: users, error } = await query;
 
-                // Check if required columns exist
-                const hasReferrerId = tableInfo.some(col => col.column_name === 'referrer_id');
-                const hasReferredId = tableInfo.some(col => col.column_name === 'referred_id');
+                if (error) throw error;
 
-                if (!hasReferrerId || !hasReferredId) {
-                    diagnosticMessage += `
-❌ MISSING COLUMNS: Table exists but missing required columns!
-
-Required columns:
-   - referrer_id (UUID)
-   - referred_id (UUID)
-
-💡 SOLUTION: 
-You need to recreate the table with the correct structure.
-`;
-                    alert(diagnosticMessage);
-
-                    if (confirm('Do you want to recreate the referral_network table with correct structure?')) {
-                        await recreateReferralTable();
-                    }
-                    return;
+                // Update the current section with search results
+                const currentSection = document.querySelector('.section-content[style="display: block"]') || 
+                                      document.getElementById('overviewSection');
+                
+                if (currentSection.id === 'overviewSection') {
+                    updateRecentUsers(users);
                 }
 
-                // 2. Now check if table has data
-                const { data: referralData, error: referralError } = await supabaseClient
-                    .from('referral_network')
+            } catch (error) {
+                console.error('Search error:', error);
+            }
+        }
+
+        // FIX 2: Proper pending payments loading
+        async function loadPendingPayments() {
+            try {
+                // Use the correct table name for transactions
+                const { data: transactions, error } = await supabaseClient
+                    .from('pending_transactions')
                     .select('*')
-                    .limit(10);
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
 
-                if (referralError) {
-                    console.error('❌ Referral table error:', referralError);
-                    diagnosticMessage += `\n❌ Cannot read table data: ${referralError.message}`;
-                } else {
-                    diagnosticMessage += `\n📊 Referral Records: ${referralData.length}`;
+                if (error) throw error;
 
-                    if (referralData.length === 0) {
-                        diagnosticMessage += `\n❌ TABLE IS EMPTY: No referral records found!`;
-                    } else {
-                        diagnosticMessage += `\n✅ Sample relationships:`;
-                        referralData.slice(0, 5).forEach(ref => {
-                            diagnosticMessage += `\n   - Referrer: ${ref.referrer_id} → Referred: ${ref.referred_id}`;
-                        });
-                    }
-                }
-
-                // 3. Check user profiles
-                const { data: userData, error: userError } = await supabaseClient
-                    .from('profiles')
-                    .select('id, username, email, created_at')
-                    .limit(5);
-
-                if (!userError) {
-                    diagnosticMessage += `\n\n👥 Sample Users: ${userData.length}`;
-                }
-
-                alert(diagnosticMessage);
-
-                // 4. If table is empty, offer to check for referral data in profiles
-                if (referralData && referralData.length === 0) {
-                    if (confirm('Do you want to check if referral data exists in user profiles?')) {
-                        await checkProfilesForReferralData();
-                    }
-                }
+                allPendingTransactions = transactions || [];
+                updatePendingPaymentsTable();
 
             } catch (error) {
-                console.error('Diagnostic error:', error);
-                alert('❌ Diagnostic failed: ' + error.message);
-            }
-        }
-
-        // =============================================
-        // 🗄️ TABLE CREATION FUNCTIONS
-        // =============================================
-        async function createReferralTable() {
-            try {
-                console.log('🔄 Creating referral_network table...');
-
-                // Since we can't run DDL from the client, show the SQL to run
-                const sqlCommands = `
--- Run these commands in Supabase SQL Editor:
-
--- 1. Create the referral_network table
-CREATE TABLE IF NOT EXISTS referral_network (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    referrer_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-    referred_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-    level INTEGER NOT NULL DEFAULT 1,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(referred_id)
-);
-
--- 2. Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_referral_network_referrer ON referral_network(referrer_id);
-CREATE INDEX IF NOT EXISTS idx_referral_network_referred ON referral_network(referred_id);
-
--- 3. Verify the table was created
-SELECT * FROM referral_network LIMIT 1;
-`;
-
-                alert(`📋 SQL TO RUN IN SUPABASE:\n\n${sqlCommands}\n\nCopy these commands and run them in your Supabase SQL Editor, then refresh this page.`);
-
-            } catch (error) {
-                console.error('Error creating table:', error);
-                alert('❌ Failed to create table: ' + error.message);
-            }
-        }
-
-        async function recreateReferralTable() {
-            try {
-                const sqlCommands = `
--- Run these commands in Supabase SQL Editor:
-
--- 1. Drop the existing table (if it exists)
-DROP TABLE IF EXISTS referral_network;
-
--- 2. Create the correct referral_network table
-CREATE TABLE referral_network (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    referrer_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-    referred_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-    level INTEGER NOT NULL DEFAULT 1,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(referred_id)
-);
-
--- 3. Create indexes for better performance
-CREATE INDEX idx_referral_network_referrer ON referral_network(referrer_id);
-CREATE INDEX idx_referral_network_referred ON referral_network(referred_id);
-
--- 4. Verify the table was created
-SELECT * FROM referral_network LIMIT 1;
-`;
-
-                alert(`📋 SQL TO RECREATE TABLE:\n\n${sqlCommands}\n\nCopy these commands and run them in your Supabase SQL Editor, then refresh this page.`);
-
-            } catch (error) {
-                console.error('Error recreating table:', error);
-                alert('❌ Failed to recreate table: ' + error.message);
-            }
-        }
-
-        async function checkProfilesForReferralData() {
-            try {
-                console.log('🔍 Checking profiles for referral data...');
-
-                // Check what columns exist in profiles table
-                const { data: profileColumns, error: colError } = await supabaseClient
-                    .from('information_schema.columns')
-                    .select('column_name')
-                    .eq('table_name', 'profiles')
-                    .eq('table_schema', 'public');
-
-                if (colError) throw colError;
-
-                const columnNames = profileColumns.map(col => col.column_name);
-                console.log('Profile columns:', columnNames);
-
-                // Look for referral-related columns
-                const referralColumns = columnNames.filter(name => 
-                    name.includes('referral') || 
-                    name.includes('referrer') || 
-                    name.includes('referred_by') ||
-                    name.includes('sponsor') ||
-                    name.includes('upline')
-                );
-
-                let message = `🔍 PROFILE REFERRAL CHECK:\n\nFound columns: ${referralColumns.join(', ') || 'None'}`;
-
-                if (referralColumns.length > 0) {
-                    // Get sample data from these columns
-                    const { data: sampleData, error: sampleError } = await supabaseClient
-                        .from('profiles')
-                        .select(`id, username, email, ${referralColumns.join(', ')}`)
-                        .not(referralColumns[0], 'is', null)
-                        .limit(5);
-
-                    if (!sampleError && sampleData.length > 0) {
-                        message += `\n\n📊 Sample referral data found:\n`;
-                        sampleData.forEach(user => {
-                            message += `\n- ${user.username || user.email}: `;
-                            referralColumns.forEach(col => {
-                                if (user[col]) message += `${col}=${user[col]} `;
-                            });
-                        });
-
-                        message += `\n\n💡 You can migrate this data to the referral_network table.`;
-                    } else {
-                        message += `\n\n📊 No referral data found in these columns.`;
-                    }
-                } else {
-                    message += `\n\n❌ No referral-related columns found in profiles table.`;
+                console.error('Error loading pending payments:', error);
+                const container = document.getElementById('pendingPaymentsTable');
+                if (container) {
+                    container.innerHTML = '<tr><td colspan="7" class="loading" style="color: var(--danger);">Error loading pending payments</td></tr>';
                 }
-
-                alert(message);
-
-            } catch (error) {
-                console.error('Error checking profiles:', error);
-                alert('❌ Failed to check profiles: ' + error.message);
             }
         }
 
-        // =============================================
-        // 🎯 ENHANCED REFERRAL MAPPING WITH ERROR HANDLING
-        // =============================================
+        function updatePendingPaymentsTable() {
+            const container = document.getElementById('pendingPaymentsTable');
+            if (!container) return;
 
-        function buildComprehensiveReferralMaps() {
-            try {
-                console.log('🔄 Building enhanced referral maps...');
-                console.log('Raw referral data:', allReferrals);
+            const pending = allPendingTransactions.filter(t => t.status === 'pending');
 
-                referralMap.clear();
-                referrerMap.clear();
+            // Update count
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('pendingPaymentsCount').textContent = pending.length;
 
-                if (!allReferrals || allReferrals.length === 0) {
-                    console.log('⚠️ No referral data available to map');
-                    return;
-                }
-
-                // Build maps from referral_network table
-                allReferrals.forEach(ref => {
-                    // Check if the referral has the correct structure
-                    if (ref && ref.referrer_id && ref.referred_id) {
-                        // Map referrer to their referrals
-                        if (!referralMap.has(ref.referrer_id)) {
-                            referralMap.set(ref.referrer_id, []);
-                        }
-                        referralMap.get(ref.referrer_id).push(ref.referred_id);
-
-                        // Map referred user to their referrer
-                        referrerMap.set(ref.referred_id, ref.referrer_id);
-                    } else {
-                        console.warn('⚠️ Invalid referral record:', ref);
-                    }
-                });
-
-                // Debug: Show what was mapped
-                console.log('🎯 Referral Mapping Results:');
-                console.log('Referral Map (referrer → referrals):', Array.from(referralMap.entries()));
-                console.log('Referrer Map (referred → referrer):', Array.from(referrerMap.entries()));
-                console.log('Total referrers found:', referralMap.size);
-                console.log('Total referred users found:', referrerMap.size);
-
-                // If no referrals found, show warning
-                if (referralMap.size === 0) {
-                    console.warn('⚠️ No referral relationships found in the data');
-                }
-
-            } catch (error) {
-                console.error('❌ Error building referral maps:', error);
+            if (pending.length === 0) {
+                container.innerHTML = '<tr><td colspan="7" class="loading">No pending payments requiring review</td></tr>';
+                return;
             }
+
+            container.innerHTML = pending.map(transaction => {
+                const user = allUsers.find(u => u.id === transaction.user_id) || {};
+                return `
+                    <tr>
+                        <td>
+                            <strong>${user.username || user.email || 'Unknown'}</strong><br>
+                            <small>${user.email || 'No email'}</small>
+                        </td>
+                        <td>${transaction.package_name || 'N/A'}</td>
+                        <td>${transaction.package_amount || 0} NMXp</td>
+                        <td>$${(transaction.usd_amount || 0).toFixed(2)}</td>
+                        <td><span class="status-badge status-pending">Pending Review</span></td>
+                        <td>${new Date(transaction.created_at).toLocaleDateString()}</td>
+                        <td class="action-buttons">
+                            <button class="action-btn view-btn" onclick="viewTransaction('${transaction.id}')">View</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        // ENHANCED SYSTEM INITIALIZATION
-        async function initializeSystem() {
-            try {
-                updateSystemStatus('connecting', 'Connecting to database...');
-
-                // Test database connection first
-                const { data: testData, error: testError } = await supabaseClient
-                    .from('profiles')
-                    .select('count')
-                    .limit(1);
-
-                if (testError) {
-                    throw new Error('Database connection failed: ' + testError.message);
-                }
-
-                updateSystemStatus('connected', 'CONNECTED');
-
-                // Load all data
-                await checkMaintenanceStatus();
-                await loadCompleteDashboardData();
-                setupNavigation();
-                setupRealtimeUpdates();
-
-            } catch (error) {
-                console.error('❌ System initialization failed:', error);
-                updateSystemStatus('error', 'DATABASE ERROR');
-                showError('System initialization failed: ' + error.message);
-            }
-        }
-
-        // SYSTEM STATUS INDICATOR
-        function updateSystemStatus(status, message) {
-            const indicator = document.getElementById('realtimeIndicator');
-            const text = document.getElementById('realtimeText');
-
-            indicator.className = 'realtime-indicator';
-            systemStatus = status;
-
-            switch(status) {
-                case 'connected':
-                    indicator.classList.add('connected');
-                    text.textContent = message;
-                    break;
-                case 'error':
-                    indicator.classList.add('error');
-                    text.textContent = message;
-                    break;
-                case 'connecting':
-                    indicator.classList.add('error');
-                    text.textContent = message;
-                    break;
-                default:
-                    indicator.classList.add('connected');
-                    text.textContent = 'CONNECTED';
-            }
-        }
-
-        // ENHANCED DATA LOADING WITH PROPER ERROR HANDLING
+        // FIX 3: Enhanced data loading with proper table connections
         async function loadCompleteDashboardData() {
             try {
                 showLoading();
                 console.log('🔄 Loading complete dashboard data...');
 
-                // Load all users with better error handling
+                // Load all users
                 const { data: users, error: usersError } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (usersError) {
-                    console.error('Users load error:', usersError);
-                    throw new Error('Failed to load users: ' + usersError.message);
-                }
+                if (usersError) throw usersError;
 
-                // Load referrals with graceful fallback
+                // Load referrals
                 let referrals = [];
                 try {
                     const { data: referralsData, error: referralsError } = await supabaseClient
@@ -964,23 +740,16 @@ SELECT * FROM referral_network LIMIT 1;
 
                     if (!referralsError) {
                         referrals = referralsData || [];
-                        console.log('📊 Loaded referrals:', referrals.length);
-                    } else {
-                        console.warn('Referral network not available:', referralsError);
-                        // If table doesn't exist or has wrong structure, show helpful message
-                        if (referralsError.message.includes('referrer_id') || referralsError.message.includes('does not exist')) {
-                            console.error('❌ Referral table structure issue detected');
-                        }
                     }
                 } catch (refErr) {
-                    console.warn('Referral table access failed:', refErr);
+                    console.warn('Referral network not available:', refErr);
                 }
 
-                // Load purchases with graceful fallback
+                // Load purchases from user_purchase_history (correct table)
                 let purchases = [];
                 try {
                     const { data: purchasesData, error: purchasesError } = await supabaseClient
-                        .from('purchases')
+                        .from('user_purchase_history')
                         .select('*')
                         .order('created_at', { ascending: false });
 
@@ -988,36 +757,36 @@ SELECT * FROM referral_network LIMIT 1;
                         purchases = purchasesData || [];
                     }
                 } catch (purchaseErr) {
-                    console.warn('Purchases table not available:', purchaseErr);
+                    console.warn('Purchase history not available:', purchaseErr);
                 }
 
-                // Load pending payments with graceful fallback
-                let pendingPayments = [];
+                // Load pending transactions
+                let pendingTransactions = [];
                 try {
                     const { data: pendingData, error: pendingError } = await supabaseClient
-                        .from('pending_payments')
+                        .from('pending_transactions')
                         .select('*')
                         .order('created_at', { ascending: false });
 
                     if (!pendingError) {
-                        pendingPayments = pendingData || [];
+                        pendingTransactions = pendingData || [];
                     }
                 } catch (pendingErr) {
-                    console.warn('Pending payments table not available:', pendingErr);
+                    console.warn('Pending transactions not available:', pendingErr);
                 }
 
                 console.log('✅ Successfully loaded data:', { 
                     users: users?.length || 0, 
                     referrals: referrals?.length || 0,
                     purchases: purchases?.length || 0,
-                    pendingPayments: pendingPayments?.length || 0
+                    pendingTransactions: pendingTransactions?.length || 0
                 });
 
                 // Store data globally
                 allUsers = users || [];
                 allReferrals = referrals || [];
                 allPurchases = purchases || [];
-                allPendingPayments = pendingPayments || [];
+                allPendingTransactions = pendingTransactions || [];
 
                 // Build referral maps
                 buildComprehensiveReferralMaps();
@@ -1041,637 +810,48 @@ SELECT * FROM referral_network LIMIT 1;
             }
         }
 
-        function updatePurchaseHistory() {
+        // FIX 4: Enhanced referral mapping
+        function buildComprehensiveReferralMaps() {
             try {
-                const container = document.getElementById('purchasesTable');
-                if (!container) return;
+                console.log('🔄 Building enhanced referral maps...');
 
-                if (allPurchases.length === 0) {
-                    container.innerHTML = '<tr><td colspan="6" class="loading">No purchase history found</td></tr>';
+                referralMap.clear();
+                referrerMap.clear();
+
+                if (!allReferrals || allReferrals.length === 0) {
+                    console.log('⚠️ No referral data available to map');
                     return;
                 }
 
-                container.innerHTML = allPurchases.map(purchase => {
-                    const user = allUsers.find(u => u.id === purchase.user_id) || {};
-                    return `
-                        <tr>
-                            <td>${user.username || 'Unknown'}</td>
-                            <td>${user.email || 'No email'}</td>
-                            <td>${purchase.package_name || 'N/A'}</td>
-                            <td>$${(purchase.price_usd || purchase.amount || 0).toFixed(2)}</td>
-                            <td>${Math.round(purchase.nemex_points || 0)} NMXp</td>
-                            <td>${new Date(purchase.created_at).toLocaleDateString()}</td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (error) {
-                console.error('Error updating purchase history:', error);
-                const container = document.getElementById('purchasesTable');
-                if (container) {
-                    container.innerHTML = '<tr><td colspan="6" class="loading" style="color: var(--danger);">Error loading purchase history</td></tr>';
-                }
-            }
-        }
-
-        function updateRevenueAnalytics() {
-            try {
-                // Calculate revenue metrics
-                const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.price_usd || purchase.amount || 0), 0);
-                const dailyRevenue = allPurchases
-                    .filter(p => new Date(p.created_at).toDateString() === new Date().toDateString())
-                    .reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
-
-                const weeklyRevenue = allPurchases
-                    .filter(p => {
-                        const purchaseDate = new Date(p.created_at);
-                        const weekAgo = new Date();
-                        weekAgo.setDate(weekAgo.getDate() - 7);
-                        return purchaseDate >= weekAgo;
-                    })
-                    .reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
-
-                const monthlyRevenue = allPurchases
-                    .filter(p => {
-                        const purchaseDate = new Date(p.created_at);
-                        const monthAgo = new Date();
-                        monthAgo.setMonth(monthAgo.getMonth() - 1);
-                        return purchaseDate >= monthAgo;
-                    })
-                    .reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
-
-                const avgPurchase = allPurchases.length > 0 ? totalRevenue / allPurchases.length : 0;
-
-                // Update DOM
-                document.getElementById('dailyRevenue').textContent = '$' + dailyRevenue.toFixed(2);
-                document.getElementById('weeklyRevenue').textContent = '$' + weeklyRevenue.toFixed(2);
-                document.getElementById('monthlyRevenue').textContent = '$' + monthlyRevenue.toFixed(2);
-                document.getElementById('avgPurchase').textContent = '$' + avgPurchase.toFixed(2);
-
-            } catch (error) {
-                console.error('Error updating revenue analytics:', error);
-            }
-        }
-
-        function updateProductPerformance() {
-            try {
-                const container = document.getElementById('productsTable');
-                if (!container) return;
-
-                // Group purchases by package
-                const packageStats = {};
-                allPurchases.forEach(purchase => {
-                    const packageName = purchase.package_name || 'Unknown Package';
-                    if (!packageStats[packageName]) {
-                        packageStats[packageName] = {
-                            totalSales: 0,
-                            totalRevenue: 0,
-                            purchases: []
-                        };
-                    }
-                    packageStats[packageName].totalSales++;
-                    packageStats[packageName].totalRevenue += (purchase.price_usd || purchase.amount || 0);
-                    packageStats[packageName].purchases.push(purchase);
-                });
-
-                // Convert to array and calculate averages
-                const packages = Object.keys(packageStats).map(packageName => {
-                    const stats = packageStats[packageName];
-                    const avgPurchase = stats.totalRevenue / stats.totalSales;
-                    const popularity = (stats.totalSales / allPurchases.length * 100).toFixed(1) + '%';
-
-                    return {
-                        name: packageName,
-                        totalSales: stats.totalSales,
-                        totalRevenue: stats.totalRevenue,
-                        avgPurchase: avgPurchase,
-                        popularity: popularity
-                    };
-                });
-
-                // Sort by total revenue
-                packages.sort((a, b) => b.totalRevenue - a.totalRevenue);
-
-                if (packages.length === 0) {
-                    container.innerHTML = '<tr><td colspan="5" class="loading">No product data available</td></tr>';
-                    return;
-                }
-
-                container.innerHTML = packages.map(pkg => `
-                    <tr>
-                        <td><strong>${pkg.name}</strong></td>
-                        <td>${pkg.totalSales}</td>
-                        <td>$${pkg.totalRevenue.toFixed(2)}</td>
-                        <td>$${pkg.avgPurchase.toFixed(2)}</td>
-                        <td>${pkg.popularity}</td>
-                    </tr>
-                `).join('');
-
-            } catch (error) {
-                console.error('Error updating product performance:', error);
-                const container = document.getElementById('productsTable');
-                if (container) {
-                    container.innerHTML = '<tr><td colspan="5" class="loading" style="color: var(--danger);">Error loading product performance</td></tr>';
-                }
-            }
-        }
-
-        function updateUserActivity() {
-            try {
-                const container = document.getElementById('userActivityGrid');
-                if (!container) return;
-
-                // Get recent active users (last 7 days)
-                const recentUsers = allUsers
-                    .filter(user => {
-                        const userDate = new Date(user.created_at || user.updated_at);
-                        const weekAgo = new Date();
-                        weekAgo.setDate(weekAgo.getDate() - 7);
-                        return userDate >= weekAgo;
-                    })
-                    .slice(0, 8);
-
-                if (recentUsers.length === 0) {
-                    container.innerHTML = '<div class="loading">No recent user activity</div>';
-                    return;
-                }
-
-                container.innerHTML = recentUsers.map(user => {
-                    const userReferrals = referralMap.get(user.id) || [];
-                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
-                    const lastPurchase = userPurchases.length > 0 
-                        ? new Date(userPurchases[userPurchases.length - 1].created_at).toLocaleDateString()
-                        : 'No purchases';
-
-                    return `
-                        <div class="user-card">
-                            <div class="user-card-header">
-                                <div class="user-avatar">
-                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <div class="user-info">
-                                    <div class="user-name">
-                                        ${user.username || 'Unknown User'}
-                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
-                                    </div>
-                                    <div class="user-email">${user.email || 'No email'}</div>
-                                </div>
-                            </div>
-                            <div class="user-stats">
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${userReferrals.length}</div>
-                                    <div class="user-stat-label">Referrals</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${userPurchases.length}</div>
-                                    <div class="user-stat-label">Purchases</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
-                                    <div class="user-stat-label">Balance</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">-</div>
-                                    <div class="user-stat-label">Last Active</div>
-                                </div>
-                            </div>
-                            <div class="user-card-footer">
-                                <small>Joined: ${new Date(user.created_at).toLocaleDateString()}</small>
-                                <small>Last Purchase: ${lastPurchase}</small>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                console.error('Error updating user activity:', error);
-                const container = document.getElementById('userActivityGrid');
-                if (container) {
-                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading user activity</div>';
-                }
-            }
-        }
-
-        function loadPendingPayments() {
-            try {
-                const container = document.getElementById('pendingPaymentsTable');
-                if (!container) return;
-
-                const pending = allPendingPayments.filter(p => p.status === 'pending_review');
-
-                // Update count
-                document.getElementById('pendingCount').textContent = pending.length;
-
-                if (pending.length === 0) {
-                    container.innerHTML = '<tr><td colspan="7" class="loading">No pending payments requiring review</td></tr>';
-                    return;
-                }
-
-                container.innerHTML = pending.map(payment => {
-                    const user = allUsers.find(u => u.id === payment.user_id) || {};
-                    return `
-                        <tr>
-                            <td>
-                                <strong>${user.username || 'Unknown'}</strong><br>
-                                <small>${user.email || 'No email'}</small>
-                            </td>
-                            <td>${payment.package_name || 'N/A'}</td>
-                            <td>${payment.amount || 0}</td>
-                            <td>$${(payment.price_usd || 0).toFixed(2)}</td>
-                            <td><span class="status-badge status-pending">Pending Review</span></td>
-                            <td>${new Date(payment.created_at).toLocaleDateString()}</td>
-                            <td class="action-buttons">
-                                <button class="action-btn approve-btn" onclick="approvePayment('${payment.id}')">Approve</button>
-                                <button class="action-btn reject-btn" onclick="rejectPayment('${payment.id}')">Reject</button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (error) {
-                console.error('Error loading pending payments:', error);
-                const container = document.getElementById('pendingPaymentsTable');
-                if (container) {
-                    container.innerHTML = '<tr><td colspan="7" class="loading" style="color: var(--danger);">Error loading pending payments</td></tr>';
-                }
-            }
-        }
-
-        function buildCompleteReferralTree() {
-            try {
-                const container = document.getElementById('completeReferralTree');
-                if (!container) return;
-
-                // Update total referral count
-                document.getElementById('totalReferralCount').textContent = allReferrals.length;
-
-                // Find root users (users with no referrer)
-                const rootUsers = allUsers.filter(user => !referrerMap.has(user.id));
-
-                if (rootUsers.length === 0) {
-                    container.innerHTML = '<div class="loading">No referral tree data available</div>';
-                    return;
-                }
-
-                let treeHTML = '';
-
-                rootUsers.forEach(rootUser => {
-                    treeHTML += buildUserTree(rootUser, 1);
-                });
-
-                container.innerHTML = treeHTML;
-
-            } catch (error) {
-                console.error('Error building referral tree:', error);
-                const container = document.getElementById('completeReferralTree');
-                if (container) {
-                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error building referral tree</div>';
-                }
-            }
-        }
-
-        function buildUserTree(user, level) {
-            const userReferrals = referralMap.get(user.id) || [];
-            const userPurchases = allPurchases.filter(p => p.user_id === user.id);
-            const totalSpent = userPurchases.reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
-
-            let html = `
-                <div class="tree-node level-${Math.min(level, 5)}">
-                    <div class="node-main">
-                        <div class="node-avatar">
-                            ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
-                        </div>
-                        <div class="node-info">
-                            <div class="node-name">
-                                ${user.username || 'Unknown User'}
-                                ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
-                                <span class="level-badge">Level ${level}</span>
-                            </div>
-                            <div class="node-email">${user.email || 'No email'}</div>
-                            <div class="node-stats">
-                                <div class="node-stat">
-                                    <div class="node-stat-value">${userReferrals.length}</div>
-                                    <span>Refs</span>
-                                </div>
-                                <div class="node-stat">
-                                    <div class="node-stat-value">${userPurchases.length}</div>
-                                    <span>Purchases</span>
-                                </div>
-                                <div class="node-stat">
-                                    <div class="node-stat-value">$${totalSpent.toFixed(2)}</div>
-                                    <span>Spent</span>
-                                </div>
-                                <div class="node-stat">
-                                    <div class="node-stat-value">${Math.round(user.balance || 0)}</div>
-                                    <span>NMXp</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-            `;
-
-            if (userReferrals.length > 0) {
-                html += '<div class="children-container">';
-                userReferrals.forEach(referredId => {
-                    const referredUser = allUsers.find(u => u.id === referredId);
-                    if (referredUser) {
-                        html += buildUserTree(referredUser, level + 1);
+                // Build maps from referral_network table
+                allReferrals.forEach(ref => {
+                    if (ref && ref.referrer_id && ref.referred_id) {
+                        if (!referralMap.has(ref.referrer_id)) {
+                            referralMap.set(ref.referrer_id, []);
+                        }
+                        referralMap.get(ref.referrer_id).push(ref.referred_id);
+                        referrerMap.set(ref.referred_id, ref.referrer_id);
                     }
                 });
-                html += '</div>';
-            }
 
-            html += '</div>';
-            return html;
-        }
-
-        function showOrphanedUsers() {
-            try {
-                const container = document.getElementById('orphanedUsersGrid');
-                if (!container) return;
-
-                // Find orphaned users (no referrer)
-                const orphanedUsers = allUsers.filter(user => !referrerMap.has(user.id));
-
-                // Update count
-                document.getElementById('orphanedCount').textContent = orphanedUsers.length;
-
-                if (orphanedUsers.length === 0) {
-                    container.innerHTML = '<div class="loading">No orphaned users found</div>';
-                    return;
-                }
-
-                container.innerHTML = orphanedUsers.map(user => {
-                    const userReferrals = referralMap.get(user.id) || [];
-                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
-                    const totalSpent = userPurchases.reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
-
-                    return `
-                        <div class="user-card">
-                            <div class="user-card-header">
-                                <div class="user-avatar">
-                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <div class="user-info">
-                                    <div class="user-name">
-                                        ${user.username || 'Unknown User'}
-                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
-                                    </div>
-                                    <div class="user-email">${user.email || 'No email'}</div>
-                                </div>
-                            </div>
-                            <div class="user-stats">
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${userReferrals.length}</div>
-                                    <div class="user-stat-label">Referrals</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${userPurchases.length}</div>
-                                    <div class="user-stat-label">Purchases</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">$${totalSpent.toFixed(2)}</div>
-                                    <div class="user-stat-label">Spent</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
-                                    <div class="user-stat-label">Balance</div>
-                                </div>
-                            </div>
-                            <div class="user-card-footer">
-                                <span class="status-badge status-orphaned">Orphaned User</span>
-                                <small>Joined: ${new Date(user.created_at).toLocaleDateString()}</small>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                console.log('🎯 Referral Mapping Results:');
+                console.log('Total referrers found:', referralMap.size);
+                console.log('Total referred users found:', referrerMap.size);
 
             } catch (error) {
-                console.error('Error showing orphaned users:', error);
-                const container = document.getElementById('orphanedUsersGrid');
-                if (container) {
-                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading orphaned users</div>';
-                }
+                console.error('❌ Error building referral maps:', error);
             }
         }
 
-        function showNoReferralsUsers() {
-            try {
-                const container = document.getElementById('noRefsUsersGrid');
-                if (!container) return;
-
-                // Find users with no referrals
-                const noRefsUsers = allUsers.filter(user => {
-                    const referrals = referralMap.get(user.id) || [];
-                    return referrals.length === 0;
-                });
-
-                // Update count
-                document.getElementById('noRefsCount').textContent = noRefsUsers.length;
-
-                if (noRefsUsers.length === 0) {
-                    container.innerHTML = '<div class="loading">All users have referrals</div>';
-                    return;
-                }
-
-                container.innerHTML = noRefsUsers.map(user => {
-                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
-                    const totalSpent = userPurchases.reduce((sum, p) => sum + (p.price_usd || p.amount || 0), 0);
-                    const hasReferrer = referrerMap.has(user.id);
-
-                    return `
-                        <div class="user-card">
-                            <div class="user-card-header">
-                                <div class="user-avatar">
-                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
-                                </div>
-                                <div class="user-info">
-                                    <div class="user-name">
-                                        ${user.username || 'Unknown User'}
-                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
-                                    </div>
-                                    <div class="user-email">${user.email || 'No email'}</div>
-                                </div>
-                            </div>
-                            <div class="user-stats">
-                                <div class="user-stat">
-                                    <div class="user-stat-value">0</div>
-                                    <div class="user-stat-label">Referrals</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${userPurchases.length}</div>
-                                    <div class="user-stat-label">Purchases</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">$${totalSpent.toFixed(2)}</div>
-                                    <div class="user-stat-label">Spent</div>
-                                </div>
-                                <div class="user-stat">
-                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
-                                    <div class="user-stat-label">Balance</div>
-                                </div>
-                            </div>
-                            <div class="user-card-footer">
-                                <span class="status-badge status-no-refs">No Referrals</span>
-                                <span class="status-badge ${hasReferrer ? 'status-active' : 'status-orphaned'}">
-                                    ${hasReferrer ? 'Has Referrer' : 'Orphaned'}
-                                </span>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                console.error('Error showing no referrals users:', error);
-                const container = document.getElementById('noRefsUsersGrid');
-                if (container) {
-                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading users with no referrals</div>';
-                }
-            }
-        }
-
-        // Payment action functions
-        function approvePayment(paymentId) {
-            console.log('✅ Approving payment:', paymentId);
-            alert('Approve functionality will be implemented in the next version!');
-        }
-
-        function rejectPayment(paymentId) {
-            console.log('❌ Rejecting payment:', paymentId);
-            alert('Reject functionality will be implemented in the next version!');
-        }
-
-        // ENHANCED REAL-TIME UPDATES WITH ERROR HANDLING
-        function setupRealtimeUpdates() {
-            try {
-                console.log('📡 Setting up real-time updates...');
-
-                // Real-time subscription for profiles table
-                const profilesSubscription = supabaseClient
-                    .channel('profiles-changes')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'profiles' },
-                        (payload) => {
-                            console.log('🔄 Real-time user update detected:', payload);
-                            showRealtimeNotification('User data updated');
-                            refreshData();
-                        }
-                    )
-                    .subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            console.log('✅ Profiles real-time subscription active');
-                        } else {
-                            console.warn('❌ Profiles real-time subscription failed:', status);
-                        }
-                    });
-
-                // Real-time subscription for purchases table
-                const purchasesSubscription = supabaseClient
-                    .channel('purchases-changes')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'purchases' },
-                        (payload) => {
-                            console.log('💰 Real-time purchase update detected:', payload);
-                            showRealtimeNotification('Purchase data updated');
-                            refreshData();
-                        }
-                    )
-                    .subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            console.log('✅ Purchases real-time subscription active');
-                        } else {
-                            console.warn('❌ Purchases real-time subscription failed:', status);
-                        }
-                    });
-
-                // Real-time subscription for pending_payments table
-                const pendingSubscription = supabaseClient
-                    .channel('pending-payments-changes')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'pending_payments' },
-                        (payload) => {
-                            console.log('📋 Real-time pending payment update detected:', payload);
-                            showRealtimeNotification('Pending payment updated');
-                            loadPendingPayments();
-                        }
-                    )
-                    .subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            console.log('✅ Pending payments real-time subscription active');
-                        } else {
-                            console.warn('❌ Pending payments real-time subscription failed:', status);
-                        }
-                    });
-
-                console.log('✅ Real-time updates enabled');
-
-            } catch (error) {
-                console.error('❌ Real-time setup failed:', error);
-                updateSystemStatus('error', 'REALTIME ERROR');
-            }
-        }
-
-        // ENHANCED REAL-TIME NOTIFICATION
-        function showRealtimeNotification(message) {
-            if (systemStatus === 'error') return;
-
-            const indicator = document.getElementById('realtimeIndicator');
-            const originalState = indicator.className;
-            const originalText = document.getElementById('realtimeText').textContent;
-
-            indicator.style.background = 'var(--info)';
-            document.getElementById('realtimeText').textContent = message;
-            // Reset after 3 seconds
-            setTimeout(() => {
-                if (systemStatus === 'connected') {
-                    indicator.className = originalState;
-                    document.getElementById('realtimeText').textContent = originalText;
-                }
-            }, 3000);
-        }
-
-        // SIMPLIFIED MAINTENANCE MODE
-        async function toggleMaintenanceMode() {
-            try {
-                maintenanceMode = !maintenanceMode;
-
-                const { error } = await supabaseClient
-                    .from('settings')
-                    .upsert({
-                        key: 'maintenance_mode',
-                        value: maintenanceMode,
-                        updated_at: new Date().toISOString()
-                    });
-
-                if (error) {
-                    console.error('Error updating maintenance mode:', error);
-                    maintenanceMode = !maintenanceMode;
-                    return;
-                }
-
-                updateMaintenanceButton();
-
-                if (maintenanceMode) {
-                    alert('🔧 Maintenance mode ENABLED\n\nUsers will see a maintenance message when they try to access the platform.');
-                } else {
-                    alert('✅ Maintenance mode DISABLED\n\nPlatform is now accessible to users.');
-                }
-
-            } catch (error) {
-                console.error('Error toggling maintenance mode:', error);
-                alert('❌ Failed to update maintenance mode. Please try again.');
-            }
-        }
-
-        // ENHANCED ERROR HANDLING FOR ALL SECTIONS
+        // FIX 5: Update overview statistics with correct data
         function updateOverviewStatistics() {
             try {
                 const totalUsers = allUsers.length;
                 const totalReferrals = Array.from(referralMap.values()).reduce((sum, arr) => sum + arr.length, 0);
-
-                // Calculate revenue and purchase stats
-                const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.amount || purchase.price_usd || 0), 0);
+                const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.usd_amount || 0), 0);
                 const totalPurchases = allPurchases.length;
-                const activeUsers = allUsers.filter(user => user.is_active).length;
-                const pendingPaymentsCount = allPendingPayments.filter(p => p.status === 'pending_review').length;
+                const activeUsers = allUsers.filter(user => user.balance > 0 || user.nmxp_balance > 0).length;
+                const pendingPaymentsCount = allPendingTransactions.filter(t => t.status === 'pending').length;
 
                 // Update DOM elements
                 document.getElementById('totalUsers').textContent = totalUsers.toLocaleString();
@@ -1693,32 +873,29 @@ SELECT * FROM referral_network LIMIT 1;
 
             } catch (error) {
                 console.error('Error updating overview statistics:', error);
-                document.getElementById('totalUsers').textContent = 'Error';
-                document.getElementById('totalReferrals').textContent = 'Error';
-                document.getElementById('totalRevenue').textContent = 'Error';
             }
         }
 
-        // ENHANCED RECENT USERS WITH ERROR HANDLING
-        function updateRecentUsers() {
+        // FIX 6: Enhanced recent users with purchase data
+        function updateRecentUsers(users = null) {
             try {
                 const container = document.getElementById('recentUsersGrid');
                 if (!container) return;
 
-                const recentUsers = allUsers.slice(0, 8);
+                const displayUsers = users || allUsers.slice(0, 8);
 
-                if (recentUsers.length === 0) {
+                if (displayUsers.length === 0) {
                     container.innerHTML = '<div class="loading">No users found in database</div>';
                     return;
                 }
 
-                container.innerHTML = recentUsers.map(user => {
+                container.innerHTML = displayUsers.map(user => {
                     const userReferrals = referralMap.get(user.id) || [];
                     const hasReferrer = referrerMap.has(user.id);
                     const isOrphaned = !hasReferrer;
                     const hasNoRefs = userReferrals.length === 0;
                     const userPurchases = allPurchases.filter(p => p.user_id === user.id);
-                    const totalSpent = userPurchases.reduce((sum, p) => sum + (p.amount || p.price_usd || 0), 0);
+                    const totalSpent = userPurchases.reduce((sum, p) => sum + (p.usd_amount || 0), 0);
 
                     return `
                         <div class="user-card ${isOrphaned ? 'orphaned' : ''} ${hasNoRefs ? 'no-refs' : ''} ${userPurchases.length > 0 ? 'purchaser' : ''}">
@@ -1737,7 +914,7 @@ SELECT * FROM referral_network LIMIT 1;
                             </div>
                             <div class="user-stats">
                                 <div class="user-stat">
-                                    <div class="user-stat-value">${Math.round(user.balance || 0)}</div>
+                                    <div class="user-stat-value">${Math.round(user.balance || user.nmxp_balance || 0)}</div>
                                     <div class="user-stat-label">NMXp</div>
                                 </div>
                                 <div class="user-stat">
@@ -1765,18 +942,68 @@ SELECT * FROM referral_network LIMIT 1;
                     `;
                 }).join('');
 
-                console.log('👥 Recent users updated');
-
             } catch (error) {
                 console.error('Error updating recent users:', error);
-                const container = document.getElementById('recentUsersGrid');
-                if (container) {
-                    container.innerHTML = '<div class="loading" style="color: var(--danger);">Error loading users</div>';
-                }
             }
         }
 
-        // ENHANCED LOADING FUNCTION
+        // =============================================
+        // 🎯 EXISTING FUNCTIONS (UPDATED)
+        // =============================================
+
+        async function initializeSystem() {
+            try {
+                updateSystemStatus('connecting', 'Connecting to database...');
+
+                // Test database connection
+                const { data: testData, error: testError } = await supabaseClient
+                    .from('profiles')
+                    .select('count')
+                    .limit(1);
+
+                if (testError) {
+                    throw new Error('Database connection failed: ' + testError.message);
+                }
+
+                updateSystemStatus('connected', 'CONNECTED');
+                await checkMaintenanceStatus();
+                await loadCompleteDashboardData();
+                setupNavigation();
+                setupRealtimeUpdates();
+
+            } catch (error) {
+                console.error('❌ System initialization failed:', error);
+                updateSystemStatus('error', 'DATABASE ERROR');
+                showError('System initialization failed: ' + error.message);
+            }
+        }
+
+        function updateSystemStatus(status, message) {
+            const indicator = document.getElementById('realtimeIndicator');
+            const text = document.getElementById('realtimeText');
+
+            indicator.className = 'realtime-indicator';
+            systemStatus = status;
+
+            switch(status) {
+                case 'connected':
+                    indicator.classList.add('connected');
+                    text.textContent = message;
+                    break;
+                case 'error':
+                    indicator.classList.add('error');
+                    text.textContent = message;
+                    break;
+                case 'connecting':
+                    indicator.classList.add('error');
+                    text.textContent = message;
+                    break;
+                default:
+                    indicator.classList.add('connected');
+                    text.textContent = 'CONNECTED';
+            }
+        }
+
         function showLoading() {
             const elements = [
                 'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid',
@@ -1796,7 +1023,6 @@ SELECT * FROM referral_network LIMIT 1;
             });
         }
 
-        // ENHANCED ERROR DISPLAY
         function showError(message) {
             const elements = [
                 'recentUsersGrid', 'completeReferralTree', 'orphanedUsersGrid', 'noRefsUsersGrid',
@@ -1819,7 +1045,7 @@ SELECT * FROM referral_network LIMIT 1;
         async function checkMaintenanceStatus() {
             try {
                 const { data, error } = await supabaseClient
-                    .from('settings')
+                    .from('admin_settings')
                     .select('*')
                     .eq('key', 'maintenance_mode')
                     .single();
@@ -1873,17 +1099,6 @@ SELECT * FROM referral_network LIMIT 1;
             alert('Export functionality will be implemented in the next version!');
         }
 
-        // Quick search function
-        function quickSearch() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            if (!searchTerm) {
-                alert('Please enter a search term');
-                return;
-            }
-            console.log('🔍 Quick search for:', searchTerm);
-            alert('Advanced search will be implemented in the next version!');
-        }
-
         // Section navigation
         function showSection(section) {
             document.querySelectorAll('.mini-nav-btn').forEach(btn => {
@@ -1934,6 +1149,283 @@ SELECT * FROM referral_network LIMIT 1;
             }
 
             console.log('🔀 Switched to section:', section);
+        }
+
+        // Real-time updates
+        function setupRealtimeUpdates() {
+            try {
+                console.log('📡 Setting up real-time updates...');
+
+                // Real-time subscription for profiles table
+                const profilesSubscription = supabaseClient
+                    .channel('profiles-changes')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'profiles' },
+                        (payload) => {
+                            console.log('🔄 Real-time user update detected:', payload);
+                            refreshData();
+                        }
+                    )
+                    .subscribe();
+
+                // Real-time subscription for purchases table
+                const purchasesSubscription = supabaseClient
+                    .channel('purchases-changes')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'user_purchase_history' },
+                        (payload) => {
+                            console.log('💰 Real-time purchase update detected:', payload);
+                            refreshData();
+                        }
+                    )
+                    .subscribe();
+
+                // Real-time subscription for pending_transactions table
+                const pendingSubscription = supabaseClient
+                    .channel('pending-transactions-changes')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'pending_transactions' },
+                        (payload) => {
+                            console.log('📋 Real-time transaction update detected:', payload);
+                            refreshData();
+                        }
+                    )
+                    .subscribe();
+
+                console.log('✅ Real-time updates enabled');
+
+            } catch (error) {
+                console.error('❌ Real-time setup failed:', error);
+            }
+        }
+
+        async function toggleMaintenanceMode() {
+            try {
+                maintenanceMode = !maintenanceMode;
+
+                const { error } = await supabaseClient
+                    .from('admin_settings')
+                    .upsert({
+                        key: 'maintenance_mode',
+                        value: maintenanceMode,
+                        updated_at: new Date().toISOString()
+                    });
+
+                if (error) {
+                    console.error('Error updating maintenance mode:', error);
+                    maintenanceMode = !maintenanceMode;
+                    return;
+                }
+
+                updateMaintenanceButton();
+
+                if (maintenanceMode) {
+                    alert('🔧 Maintenance mode ENABLED\n\nUsers will see a maintenance message when they try to access the platform.');
+                } else {
+                    alert('✅ Maintenance mode DISABLED\n\nPlatform is now accessible to users.');
+                }
+
+            } catch (error) {
+                console.error('Error toggling maintenance mode:', error);
+                alert('❌ Failed to update maintenance mode. Please try again.');
+            }
+        }
+
+        // Additional section-specific functions (simplified for brevity)
+        function updatePurchaseHistory() {
+            try {
+                const container = document.getElementById('purchasesTable');
+                if (!container) return;
+
+                if (allPurchases.length === 0) {
+                    container.innerHTML = '<tr><td colspan="6" class="loading">No purchase history found</td></tr>';
+                    return;
+                }
+
+                container.innerHTML = allPurchases.map(purchase => {
+                    const user = allUsers.find(u => u.id === purchase.user_id) || {};
+                    return `
+                        <tr>
+                            <td>${user.username || 'Unknown'}</td>
+                            <td>${user.email || 'No email'}</td>
+                            <td>${purchase.package_name || 'N/A'}</td>
+                            <td>$${(purchase.usd_amount || 0).toFixed(2)}</td>
+                            <td>${Math.round(purchase.package_amount || 0)} NMXp</td>
+                            <td>${new Date(purchase.created_at).toLocaleDateString()}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error updating purchase history:', error);
+            }
+        }
+
+        function updateRevenueAnalytics() {
+            try {
+                const totalRevenue = allPurchases.reduce((sum, purchase) => sum + (purchase.usd_amount || 0), 0);
+                const dailyRevenue = allPurchases
+                    .filter(p => new Date(p.created_at).toDateString() === new Date().toDateString())
+                    .reduce((sum, p) => sum + (p.usd_amount || 0), 0);
+
+                const weeklyRevenue = allPurchases
+                    .filter(p => {
+                        const purchaseDate = new Date(p.created_at);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return purchaseDate >= weekAgo;
+                    })
+                    .reduce((sum, p) => sum + (p.usd_amount || 0), 0);
+
+                const monthlyRevenue = allPurchases
+                    .filter(p => {
+                        const purchaseDate = new Date(p.created_at);
+                        const monthAgo = new Date();
+                        monthAgo.setMonth(monthAgo.getMonth() - 1);
+                        return purchaseDate >= monthAgo;
+                    })
+                    .reduce((sum, p) => sum + (p.usd_amount || 0), 0);
+
+                const avgPurchase = allPurchases.length > 0 ? totalRevenue / allPurchases.length : 0;
+
+                document.getElementById('dailyRevenue').textContent = '$' + dailyRevenue.toFixed(2);
+                document.getElementById('weeklyRevenue').textContent = '$' + weeklyRevenue.toFixed(2);
+                document.getElementById('monthlyRevenue').textContent = '$' + monthlyRevenue.toFixed(2);
+                document.getElementById('avgPurchase').textContent = '$' + avgPurchase.toFixed(2);
+
+            } catch (error) {
+                console.error('Error updating revenue analytics:', error);
+            }
+        }
+
+        function updateProductPerformance() {
+            try {
+                const container = document.getElementById('productsTable');
+                if (!container) return;
+
+                const packageStats = {};
+                allPurchases.forEach(purchase => {
+                    const packageName = purchase.package_name || 'Unknown Package';
+                    if (!packageStats[packageName]) {
+                        packageStats[packageName] = {
+                            totalSales: 0,
+                            totalRevenue: 0,
+                            purchases: []
+                        };
+                    }
+                    packageStats[packageName].totalSales++;
+                    packageStats[packageName].totalRevenue += (purchase.usd_amount || 0);
+                    packageStats[packageName].purchases.push(purchase);
+                });
+
+                const packages = Object.keys(packageStats).map(packageName => {
+                    const stats = packageStats[packageName];
+                    const avgPurchase = stats.totalRevenue / stats.totalSales;
+                    const popularity = (stats.totalSales / allPurchases.length * 100).toFixed(1) + '%';
+
+                    return {
+                        name: packageName,
+                        totalSales: stats.totalSales,
+                        totalRevenue: stats.totalRevenue,
+                        avgPurchase: avgPurchase,
+                        popularity: popularity
+                    };
+                });
+
+                packages.sort((a, b) => b.totalRevenue - a.totalRevenue);
+
+                if (packages.length === 0) {
+                    container.innerHTML = '<tr><td colspan="5" class="loading">No product data available</td></tr>';
+                    return;
+                }
+
+                container.innerHTML = packages.map(pkg => `
+                    <tr>
+                        <td><strong>${pkg.name}</strong></td>
+                        <td>${pkg.totalSales}</td>
+                        <td>$${pkg.totalRevenue.toFixed(2)}</td>
+                        <td>$${pkg.avgPurchase.toFixed(2)}</td>
+                        <td>${pkg.popularity}</td>
+                    </tr>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error updating product performance:', error);
+            }
+        }
+
+        function updateUserActivity() {
+            try {
+                const container = document.getElementById('userActivityGrid');
+                if (!container) return;
+
+                const recentUsers = allUsers
+                    .filter(user => {
+                        const userDate = new Date(user.created_at || user.updated_at);
+                        const weekAgo = new Date();
+                        weekAgo.setDate(weekAgo.getDate() - 7);
+                        return userDate >= weekAgo;
+                    })
+                    .slice(0, 8);
+
+                if (recentUsers.length === 0) {
+                    container.innerHTML = '<div class="loading">No recent user activity</div>';
+                    return;
+                }
+
+                container.innerHTML = recentUsers.map(user => {
+                    const userReferrals = referralMap.get(user.id) || [];
+                    const userPurchases = allPurchases.filter(p => p.user_id === user.id);
+                    const lastPurchase = userPurchases.length > 0 
+                        ? new Date(userPurchases[userPurchases.length - 1].created_at).toLocaleDateString()
+                        : 'No purchases';
+
+                    return `
+                        <div class="user-card">
+                            <div class="user-card-header">
+                                <div class="user-avatar">
+                                    ${(user.username || user.email || 'U').charAt(0).toUpperCase()}
+                                </div>
+                                <div class="user-info">
+                                    <div class="user-name">
+                                        ${user.username || 'Unknown User'}
+                                        ${user.is_vip ? '<span class="vip-badge">VIP</span>' : ''}
+                                    </div>
+                                    <div class="user-email">${user.email || 'No email'}</div>
+                                </div>
+                            </div>
+                            <div class="user-stats">
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userReferrals.length}</div>
+                                    <div class="user-stat-label">Referrals</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${userPurchases.length}</div>
+                                    <div class="user-stat-label">Purchases</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">${Math.round(user.balance || user.nmxp_balance || 0)}</div>
+                                    <div class="user-stat-label">Balance</div>
+                                </div>
+                                <div class="user-stat">
+                                    <div class="user-stat-value">-</div>
+                                    <div class="user-stat-label">Last Active</div>
+                                </div>
+                            </div>
+                            <div class="user-card-footer">
+                                <small>Joined: ${new Date(user.created_at).toLocaleDateString()}</small>
+                                <small>Last Purchase: ${lastPurchase}</small>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error updating user activity:', error);
+            }
+        }
+
+        function viewTransaction(transactionId) {
+            alert('View transaction details for: ' + transactionId);
         }
 
     </script>
