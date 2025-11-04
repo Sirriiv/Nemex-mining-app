@@ -595,281 +595,60 @@
         let currentTab = 'overview';
 
         // =============================================
-        // 🛠️ CRITICAL FIXES FOR TRANSACTION ADMIN PANEL
+        // 🛠️ COMPREHENSIVE FIXES FOR TRANSACTION ADMIN PANEL
         // =============================================
 
-        // FIX 1: Enhanced notification function
-        function showCustomAlert(message, type = 'info') {
-            const existingAlert = document.querySelector('.custom-alert');
-            if (existingAlert) {
-                existingAlert.remove();
-            }
-
-            const alert = document.createElement('div');
-            alert.className = `custom-alert ${type}`;
-
-            const icon = type === 'success' ? 
-                '<svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
-                type === 'error' ?
-                '<svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
-                '<svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-            
-            alert.innerHTML = `${icon}${message}`;
-            document.body.appendChild(alert);
-
-            setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.remove();
-                }
-            }, 5000);
-        }
-
-        // FIX 2: Enhanced approveTransaction with proper balance handling
-        async function approveTransaction(transactionId, amount, userId) {
-            if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${parseFloat(amount).toLocaleString()} NMXp to the user's balance.`)) {
-                return;
-            }
-
-            const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || '';
-
+        // FIX 1: Enhanced Data Loading with All Connections
+        async function loadAllTransactionData() {
             try {
-                console.log('✅ Approving transaction:', transactionId);
+                console.log('🔄 Loading all transaction data...');
 
-                // Get current admin user
-                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-                if (adminError) throw adminError;
-
-                // 1. Get transaction details
-                const { data: transaction, error: txFetchError } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .eq('id', transactionId)
-                    .single();
-
-                if (txFetchError) throw txFetchError;
-
-                console.log('📋 Transaction details:', transaction);
-
-                // 2. Get user's current profile
-                const { data: profile, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', userId)
-                    .single();
-
-                if (profileError) {
-                    console.error('❌ Profile error:', profileError);
-                    throw profileError;
-                }
-
-                console.log('👤 Profile data:', profile);
-
-                // 3. Update user's balance - handle both column names
-                const currentBalance = parseFloat(profile.balance || profile.nmxp_balance || 0);
-                const amountToAdd = parseFloat(amount);
-                const newBalance = currentBalance + amountToAdd;
-
-                console.log(`💰 Balance update: ${currentBalance} + ${amountToAdd} = ${newBalance}`);
-
-                const { error: balanceError } = await supabaseClient
-                    .from('profiles')
-                    .update({ 
-                        balance: newBalance,
-                        nmxp_balance: newBalance,
-                        total_spent: (parseFloat(profile.total_spent || 0) + amountToAdd),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', userId);
-
-                if (balanceError) {
-                    console.error('❌ Balance update error:', balanceError);
-                    throw balanceError;
-                }
-
-                // 4. Record in user_purchase_history
-                const { error: historyError } = await supabaseClient
-                    .from('user_purchase_history')
-                    .insert({
-                        user_id: userId,
-                        package_name: transaction.package_name || `Package ${amount} NMXp`,
-                        package_amount: amountToAdd,
-                        usd_amount: transaction.usd_amount || 0,
-                        nemex_points: amountToAdd,
-                        status: 'approved',
-                        transaction_hash: transaction.transaction_hash,
-                        admin_notes: adminNotes,
-                        processed_by: adminUser.id,
-                        processed_at: new Date().toISOString(),
-                        created_at: new Date().toISOString()
-                    });
-
-                if (historyError) {
-                    console.error('❌ History insert error:', historyError);
-                    throw historyError;
-                }
-
-                // 5. Update transaction status
-                const { error: updateError } = await supabaseClient
-                    .from('pending_transactions')
-                    .update({
-                        status: 'approved',
-                        admin_notes: adminNotes,
-                        processed_by: adminUser.id,
-                        processed_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', transactionId);
-
-                if (updateError) throw updateError;
-
-                // 6. Record audit log
-                const { error: auditError } = await supabaseClient
-                    .from('transaction_audit_log')
-                    .insert({
-                        transaction_id: transactionId,
-                        action: 'approved',
-                        old_status: 'pending',
-                        new_status: 'approved',
-                        admin_id: adminUser.id,
-                        notes: `Approved transaction: ${amountToAdd} NMXp credited to user ${userId}`,
-                        created_at: new Date().toISOString()
-                    });
-
-                if (auditError) console.error('Audit log error:', auditError);
-
-                console.log('✅ Transaction approved successfully');
-
-                showCustomAlert(`Transaction approved! ${amountToAdd.toLocaleString()} NMXp credited to user.`, 'success');
-
-                // Reload the current view
-                setTimeout(() => {
-                    if (currentTab === 'pending') {
-                        loadPendingTransactions();
-                    } else if (currentTab === 'user-purchases') {
-                        loadUserPurchases();
-                    }
-                    loadOverviewStats();
-                }, 1000);
-
-            } catch (error) {
-                console.error('❌ Error approving transaction:', error);
-                showCustomAlert(`Error approving transaction: ${error.message}`, 'error');
-            }
-        }
-
-        // FIX 3: Enhanced rejectTransaction function
-        async function rejectTransaction(transactionId, userId) {
-            if (!confirm('Are you sure you want to reject this transaction?')) {
-                return;
-            }
-
-            const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || '';
-
-            try {
-                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-                if (adminError) throw adminError;
-
-                // Get transaction details first
-                const { data: transaction, error: txError } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .eq('id', transactionId)
-                    .single();
-
-                if (txError) throw txError;
-
-                // Update transaction status
-                const { error: updateError } = await supabaseClient
-                    .from('pending_transactions')
-                    .update({
-                        status: 'rejected',
-                        admin_notes: adminNotes,
-                        processed_by: adminUser.id,
-                        processed_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', transactionId);
-
-                if (updateError) throw updateError;
-
-                // Record in user_purchase_history
-                const { error: historyError } = await supabaseClient
-                    .from('user_purchase_history')
-                    .insert({
-                        user_id: userId,
-                        package_name: transaction.package_name || 'Rejected Package',
-                        package_amount: 0,
-                        usd_amount: 0,
-                        nemex_points: 0,
-                        status: 'rejected',
-                        transaction_hash: transaction.transaction_hash,
-                        admin_notes: adminNotes,
-                        processed_by: adminUser.id,
-                        processed_at: new Date().toISOString(),
-                        created_at: new Date().toISOString()
-                    });
-
-                if (historyError) throw historyError;
-
-                // Record audit log
-                const { error: auditError } = await supabaseClient
-                    .from('transaction_audit_log')
-                    .insert({
-                        transaction_id: transactionId,
-                        action: 'rejected',
-                        old_status: 'pending',
-                        new_status: 'rejected',
-                        admin_id: adminUser.id,
-                        notes: `Rejected transaction: ${adminNotes}`,
-                        created_at: new Date().toISOString()
-                    });
-
-                if (auditError) console.error('Audit log error:', auditError);
-
-                showCustomAlert('Transaction rejected successfully!', 'success');
-
-                setTimeout(() => {
-                    if (currentTab === 'pending') {
-                        loadPendingTransactions();
-                    } else if (currentTab === 'user-purchases') {
-                        loadUserPurchases();
-                    }
-                    loadOverviewStats();
-                }, 1000);
-
-            } catch (error) {
-                console.error('Error rejecting transaction:', error);
-                showCustomAlert(`Error rejecting transaction: ${error.message}`, 'error');
-            }
-        }
-
-        // FIX 4: Enhanced data loading with proper error handling
-        async function loadOverviewStats() {
-            try {
+                // Load all transactions
                 const { data: transactions, error } = await supabaseClient
                     .from('pending_transactions')
-                    .select('*');
+                    .select('*')
+                    .order('created_at', { ascending: false });
 
                 if (error) {
-                    console.error('Error loading transactions:', error);
-                    // Try alternative table names
-                    await tryAlternativeTables();
+                    console.error('❌ Error loading transactions:', error);
+                    showCustomAlert('Error loading transactions: ' + error.message, 'error');
                     return;
                 }
 
-                const pending = transactions.filter(t => t.status === 'pending').length;
-                const approved = transactions.filter(t => t.status === 'approved').length;
-                const rejected = transactions.filter(t => t.status === 'rejected').length;
-                const totalPackages = transactions.length;
+                allTransactions = transactions || [];
+                console.log(`✅ Loaded ${allTransactions.length} transactions`);
 
-                const vipPackages = transactions.filter(t => 
-                    parseFloat(t.package_amount) >= 100000
+                // Update all sections
+                updateOverviewStats();
+                updateUserPurchases();
+                updatePendingTransactions();
+                updateProcessedTransactions();
+                updateTransactionActivity();
+                updateVipPurchases();
+
+            } catch (error) {
+                console.error('❌ Error loading transaction data:', error);
+                showCustomAlert('Failed to load transaction data', 'error');
+            }
+        }
+
+        // FIX 2: Enhanced Overview Statistics
+        function updateOverviewStats() {
+            try {
+                const pending = allTransactions.filter(t => t.status === 'pending').length;
+                const approved = allTransactions.filter(t => t.status === 'approved').length;
+                const rejected = allTransactions.filter(t => t.status === 'rejected').length;
+                const totalPackages = allTransactions.length;
+
+                const vipPackages = allTransactions.filter(t => 
+                    parseFloat(t.package_amount || 0) >= 100000
                 ).length;
 
-                const totalRevenue = transactions
+                const totalRevenue = allTransactions
                     .filter(t => t.status === 'approved')
                     .reduce((sum, t) => sum + parseFloat(t.usd_amount || 0), 0);
 
+                // Update DOM
                 document.getElementById('totalPending').textContent = pending;
                 document.getElementById('totalApproved').textContent = approved;
                 document.getElementById('totalRejected').textContent = rejected;
@@ -877,38 +656,130 @@
                 document.getElementById('totalVip').textContent = vipPackages;
                 document.getElementById('totalRevenue').textContent = `$${totalRevenue.toLocaleString()}`;
 
+                console.log('📊 Overview stats updated:', { pending, approved, rejected, totalRevenue });
+
             } catch (error) {
-                console.error('Error loading overview stats:', error);
-                showCustomAlert('Error loading overview statistics', 'error');
+                console.error('Error updating overview stats:', error);
             }
         }
 
-        // FIX 5: Enhanced pending transactions loading
-        async function loadPendingTransactions() {
+        // FIX 3: Enhanced User Purchases Display
+        function updateUserPurchases() {
             try {
-                console.log('🔄 Loading pending transactions...');
-                
-                const { data: transactions, error } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .eq('status', 'pending')
-                    .order('created_at', { ascending: false });
+                const container = document.getElementById('userPurchasesList');
+                if (!container) return;
 
-                if (error) {
-                    console.error('Error loading pending transactions:', error);
-                    throw error;
+                if (allTransactions.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No user purchases found</div>';
+                    return;
                 }
 
-                const container = document.getElementById('pendingTransactionsList');
+                container.innerHTML = allTransactions.map(transaction => {
+                    const amount = parseFloat(transaction.package_amount || 0);
+                    const isVip = amount >= 100000;
+                    const usdAmount = parseFloat(transaction.usd_amount || 0);
+                    
+                    return `
+                        <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
+                            <div class="transaction-header">
+                                <div class="transaction-amount">
+                                    ${amount.toLocaleString()} NMXp
+                                    ${isVip ? '<span class="transaction-level">VIP</span>' : ''}
+                                </div>
+                                <div class="transaction-meta">
+                                    <span class="status-badge status-${transaction.status}">
+                                        ${transaction.status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-details">
+                                <div class="detail-group">
+                                    <div class="detail-label">User Email</div>
+                                    <div class="detail-value">${transaction.user_email || 'N/A'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Transaction Hash</div>
+                                    <div class="detail-value">${transaction.transaction_hash || 'Pending'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Amount Paid</div>
+                                    <div class="detail-value">$${usdAmount.toFixed(2)}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Date</div>
+                                    <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
+                                </div>
+                                ${transaction.package_name ? `
+                                <div class="detail-group">
+                                    <div class="detail-label">Package Name</div>
+                                    <div class="detail-value">${transaction.package_name}</div>
+                                </div>
+                                ` : ''}
+                            </div>
 
-                if (!transactions || transactions.length === 0) {
+                            ${transaction.status === 'pending' ? `
+                                <div class="transaction-actions">
+                                    <textarea 
+                                        id="notes-${transaction.id}" 
+                                        class="notes-input" 
+                                        placeholder="Add admin notes (optional)"
+                                        rows="2"
+                                    >${transaction.admin_notes || ''}</textarea>
+                                    <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${amount}, '${transaction.user_id}')">
+                                        Approve
+                                    </button>
+                                    <button class="reject-btn" onclick="rejectTransaction('${transaction.id}', '${transaction.user_id}')">
+                                        Reject
+                                    </button>
+                                </div>
+                            ` : `
+                                <div class="detail-group">
+                                    <div class="detail-label">Admin Notes</div>
+                                    <div class="detail-value">${transaction.admin_notes || 'No notes provided'}</div>
+                                </div>
+                                ${transaction.processed_by ? `
+                                <div class="detail-group">
+                                    <div class="detail-label">Processed By</div>
+                                    <div class="detail-value">${transaction.processed_by}</div>
+                                </div>
+                                ` : ''}
+                                ${transaction.processed_at ? `
+                                <div class="detail-group">
+                                    <div class="detail-label">Processed At</div>
+                                    <div class="detail-value">${new Date(transaction.processed_at).toLocaleString()}</div>
+                                </div>
+                                ` : ''}
+                            `}
+                        </div>
+                    `;
+                }).join('');
+
+                console.log('✅ User purchases updated');
+
+            } catch (error) {
+                console.error('Error updating user purchases:', error);
+                const container = document.getElementById('userPurchasesList');
+                if (container) {
+                    container.innerHTML = '<div class="empty-state">Error loading user purchases</div>';
+                }
+            }
+        }
+
+        // FIX 4: Enhanced Pending Transactions Display
+        function updatePendingTransactions() {
+            try {
+                const container = document.getElementById('pendingTransactionsList');
+                if (!container) return;
+
+                const pendingTransactions = allTransactions.filter(t => t.status === 'pending');
+
+                if (pendingTransactions.length === 0) {
                     container.innerHTML = '<div class="empty-state">No pending transactions found</div>';
                     return;
                 }
 
-                console.log(`📋 Found ${transactions.length} pending transactions`);
-
-                container.innerHTML = transactions.map(transaction => {
+                container.innerHTML = pendingTransactions.map(transaction => {
                     const amount = parseFloat(transaction.package_amount || 0);
                     const isVip = amount >= 100000;
                     
@@ -967,39 +838,487 @@
                     `;
                 }).join('');
 
+                console.log(`✅ ${pendingTransactions.length} pending transactions displayed`);
+
             } catch (error) {
                 console.error('Error loading pending transactions:', error);
                 document.getElementById('pendingTransactionsList').innerHTML = 
-                    '<div class="empty-state">Error loading pending transactions: ' + error.message + '</div>';
+                    '<div class="empty-state">Error loading pending transactions</div>';
             }
         }
 
-        // FIX 6: Enhanced user purchases with search functionality
-        async function loadUserPurchases() {
+        // FIX 5: Enhanced Processed Transactions
+        function updateProcessedTransactions() {
             try {
-                const { data: transactions, error } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                const container = document.getElementById('processedTransactionsList');
+                if (!container) return;
 
-                if (error) throw error;
+                const processedTransactions = allTransactions.filter(t => 
+                    t.status === 'approved' || t.status === 'rejected'
+                );
 
-                allTransactions = transactions || [];
-                displayUserPurchases(transactions);
-                setupSearchFilters();
+                if (processedTransactions.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No processed transactions found</div>';
+                    return;
+                }
+
+                container.innerHTML = processedTransactions.map(transaction => {
+                    const amount = parseFloat(transaction.package_amount || 0);
+                    const isVip = amount >= 100000;
+                    
+                    return `
+                        <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
+                            <div class="transaction-header">
+                                <div class="transaction-amount">
+                                    ${amount.toLocaleString()} NMXp
+                                    ${isVip ? '<span class="transaction-level">VIP</span>' : ''}
+                                </div>
+                                <div class="transaction-meta">
+                                    <span class="status-badge status-${transaction.status}">
+                                        ${transaction.status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-details">
+                                <div class="detail-group">
+                                    <div class="detail-label">User Email</div>
+                                    <div class="detail-value">${transaction.user_email || 'N/A'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Transaction Hash</div>
+                                    <div class="detail-value">${transaction.transaction_hash || 'N/A'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Amount Paid</div>
+                                    <div class="detail-value">$${parseFloat(transaction.usd_amount || 0).toFixed(2)}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Processed At</div>
+                                    <div class="detail-value">${new Date(transaction.processed_at).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            <div class="detail-group">
+                                <div class="detail-label">Admin Notes</div>
+                                <div class="detail-value">${transaction.admin_notes || 'No notes provided'}</div>
+                            </div>
+                            ${transaction.processed_by ? `
+                            <div class="detail-group">
+                                <div class="detail-label">Processed By</div>
+                                <div class="detail-value">${transaction.processed_by}</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
 
             } catch (error) {
-                console.error('Error loading user purchases:', error);
-                document.getElementById('userPurchasesList').innerHTML = 
-                    '<div class="empty-state">Error loading user purchases: ' + error.message + '</div>';
+                console.error('Error loading processed transactions:', error);
+                document.getElementById('processedTransactionsList').innerHTML = 
+                    '<div class="empty-state">Error loading processed transactions</div>';
             }
         }
 
-        function displayUserPurchases(transactions) {
-            const container = document.getElementById('userPurchasesList');
+        // FIX 6: Enhanced Transaction Activity
+        function updateTransactionActivity() {
+            try {
+                const container = document.getElementById('transactionActivityList');
+                if (!container) return;
 
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = '<div class="empty-state">No user purchases found</div>';
+                if (allTransactions.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No transaction activity found</div>';
+                    return;
+                }
+
+                container.innerHTML = allTransactions.map(transaction => {
+                    const amount = parseFloat(transaction.package_amount || 0);
+                    const isVip = amount >= 100000;
+                    
+                    return `
+                        <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
+                            <div class="transaction-header">
+                                <div class="transaction-amount">
+                                    ${amount.toLocaleString()} NMXp
+                                    <span class="transaction-level">${isVip ? 'VIP' : 'BASIC'}</span>
+                                </div>
+                                <div class="transaction-meta">
+                                    <span class="status-badge status-${transaction.status}">
+                                        ${transaction.status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-details">
+                                <div class="detail-group">
+                                    <div class="detail-label">User Email</div>
+                                    <div class="detail-value">${transaction.user_email || 'N/A'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Transaction Hash</div>
+                                    <div class="detail-value">${transaction.transaction_hash || 'Pending'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Amount Paid</div>
+                                    <div class="detail-value">$${parseFloat(transaction.usd_amount || 0).toFixed(2)}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Date</div>
+                                    <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            ${transaction.status !== 'pending' ? `
+                                <div class="detail-group">
+                                    <div class="detail-label">Processed By</div>
+                                    <div class="detail-value">${transaction.processed_by || 'N/A'}</div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading transaction activity:', error);
+                document.getElementById('transactionActivityList').innerHTML = 
+                    '<div class="empty-state">Error loading transaction activity</div>';
+            }
+        }
+
+        // FIX 7: Enhanced VIP Purchases
+        function updateVipPurchases() {
+            try {
+                const container = document.getElementById('vipPurchasesList');
+                if (!container) return;
+
+                const vipTransactions = allTransactions.filter(t => 
+                    parseFloat(t.package_amount || 0) >= 100000
+                );
+
+                if (vipTransactions.length === 0) {
+                    container.innerHTML = '<div class="empty-state">No VIP purchases found</div>';
+                    return;
+                }
+
+                container.innerHTML = vipTransactions.map(transaction => {
+                    const amount = parseFloat(transaction.package_amount || 0);
+                    
+                    return `
+                        <div class="transaction vip ${transaction.status}">
+                            <div class="transaction-header">
+                                <div class="transaction-amount">
+                                    ${amount.toLocaleString()} NMXp
+                                    <span class="transaction-level">VIP</span>
+                                </div>
+                                <div class="transaction-meta">
+                                    <span class="status-badge status-${transaction.status}">
+                                        ${transaction.status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-details">
+                                <div class="detail-group">
+                                    <div class="detail-label">User Email</div>
+                                    <div class="detail-value">${transaction.user_email || 'N/A'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Transaction Hash</div>
+                                    <div class="detail-value">${transaction.transaction_hash || 'Pending'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Amount Paid</div>
+                                    <div class="detail-value">$${parseFloat(transaction.usd_amount || 0).toFixed(2)}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Date</div>
+                                    <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
+                                </div>
+                            </div>
+
+                            ${transaction.status === 'pending' ? `
+                                <div class="transaction-actions">
+                                    <textarea 
+                                        id="notes-${transaction.id}" 
+                                        class="notes-input" 
+                                        placeholder="Add admin notes (optional)"
+                                        rows="2"
+                                    >${transaction.admin_notes || ''}</textarea>
+                                    <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${amount}, '${transaction.user_id}')">
+                                        Approve
+                                    </button>
+                                    <button class="reject-btn" onclick="rejectTransaction('${transaction.id}', '${transaction.user_id}')">
+                                        Reject
+                                    </button>
+                                </div>
+                            ` : `
+                                <div class="detail-group">
+                                    <div class="detail-label">Admin Notes</div>
+                                    <div class="detail-value">${transaction.admin_notes || 'No notes provided'}</div>
+                                </div>
+                            `}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading VIP purchases:', error);
+                document.getElementById('vipPurchasesList').innerHTML = 
+                    '<div class="empty-state">Error loading VIP purchases</div>';
+            }
+        }
+
+        // FIX 8: Enhanced Approve Transaction Function
+        async function approveTransaction(transactionId, amount, userId) {
+            if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${parseFloat(amount).toLocaleString()} NMXp to the user's balance.`)) {
+                return;
+            }
+
+            const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || '';
+
+            try {
+                console.log('✅ Approving transaction:', transactionId);
+
+                // Get current admin user
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) throw adminError;
+
+                // 1. Get transaction details
+                const { data: transaction, error: txFetchError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*')
+                    .eq('id', transactionId)
+                    .single();
+
+                if (txFetchError) throw txFetchError;
+
+                // 2. Get user's current profile
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) throw profileError;
+
+                // 3. Update user's balance
+                const currentBalance = parseFloat(profile.balance || profile.nmxp_balance || 0);
+                const amountToAdd = parseFloat(amount);
+                const newBalance = currentBalance + amountToAdd;
+
+                const { error: balanceError } = await supabaseClient
+                    .from('profiles')
+                    .update({ 
+                        balance: newBalance,
+                        nmxp_balance: newBalance,
+                        total_spent: (parseFloat(profile.total_spent || 0) + amountToAdd),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (balanceError) throw balanceError;
+
+                // 4. Record in user_purchase_history
+                const { error: historyError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .insert({
+                        user_id: userId,
+                        package_name: transaction.package_name || `Package ${amount} NMXp`,
+                        package_amount: amountToAdd,
+                        usd_amount: transaction.usd_amount || 0,
+                        nemex_points: amountToAdd,
+                        status: 'approved',
+                        transaction_hash: transaction.transaction_hash,
+                        admin_notes: adminNotes,
+                        processed_by: adminUser.id,
+                        processed_at: new Date().toISOString(),
+                        created_at: new Date().toISOString()
+                    });
+
+                if (historyError) throw historyError;
+
+                // 5. Update transaction status
+                const { error: updateError } = await supabaseClient
+                    .from('pending_transactions')
+                    .update({
+                        status: 'approved',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser.id,
+                        processed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId);
+
+                if (updateError) throw updateError;
+
+                // 6. Record audit log
+                await supabaseClient
+                    .from('transaction_audit_log')
+                    .insert({
+                        transaction_id: transactionId,
+                        action: 'approved',
+                        old_status: 'pending',
+                        new_status: 'approved',
+                        admin_id: adminUser.id,
+                        notes: `Approved transaction: ${amountToAdd} NMXp credited to user ${userId}`,
+                        created_at: new Date().toISOString()
+                    });
+
+                showCustomAlert(`Transaction approved! ${amountToAdd.toLocaleString()} NMXp credited to user.`, 'success');
+
+                // Reload data
+                setTimeout(() => {
+                    loadAllTransactionData();
+                }, 1000);
+
+            } catch (error) {
+                console.error('❌ Error approving transaction:', error);
+                showCustomAlert(`Error approving transaction: ${error.message}`, 'error');
+            }
+        }
+
+        // FIX 9: Enhanced Reject Transaction Function
+        async function rejectTransaction(transactionId, userId) {
+            if (!confirm('Are you sure you want to reject this transaction?')) {
+                return;
+            }
+
+            const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || '';
+
+            try {
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) throw adminError;
+
+                // Get transaction details first
+                const { data: transaction, error: txError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*')
+                    .eq('id', transactionId)
+                    .single();
+
+                if (txError) throw txError;
+
+                // Update transaction status
+                const { error: updateError } = await supabaseClient
+                    .from('pending_transactions')
+                    .update({
+                        status: 'rejected',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser.id,
+                        processed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId);
+
+                if (updateError) throw updateError;
+
+                // Record in user_purchase_history
+                await supabaseClient
+                    .from('user_purchase_history')
+                    .insert({
+                        user_id: userId,
+                        package_name: transaction.package_name || 'Rejected Package',
+                        package_amount: 0,
+                        usd_amount: 0,
+                        nemex_points: 0,
+                        status: 'rejected',
+                        transaction_hash: transaction.transaction_hash,
+                        admin_notes: adminNotes,
+                        processed_by: adminUser.id,
+                        processed_at: new Date().toISOString(),
+                        created_at: new Date().toISOString()
+                    });
+
+                // Record audit log
+                await supabaseClient
+                    .from('transaction_audit_log')
+                    .insert({
+                        transaction_id: transactionId,
+                        action: 'rejected',
+                        old_status: 'pending',
+                        new_status: 'rejected',
+                        admin_id: adminUser.id,
+                        notes: `Rejected transaction: ${adminNotes}`,
+                        created_at: new Date().toISOString()
+                    });
+
+                showCustomAlert('Transaction rejected successfully!', 'success');
+
+                setTimeout(() => {
+                    loadAllTransactionData();
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error rejecting transaction:', error);
+                showCustomAlert(`Error rejecting transaction: ${error.message}`, 'error');
+            }
+        }
+
+        // FIX 10: Enhanced Search and Filter Functionality
+        function setupSearchFilters() {
+            // User purchases search
+            const userSearch = document.getElementById('userSearch');
+            const packageFilter = document.getElementById('packageFilter');
+            const statusFilterUser = document.getElementById('statusFilterUser');
+
+            if (userSearch) userSearch.addEventListener('input', filterUserPurchases);
+            if (packageFilter) packageFilter.addEventListener('change', filterUserPurchases);
+            if (statusFilterUser) statusFilterUser.addEventListener('change', filterUserPurchases);
+
+            // Processed transactions search
+            const processedSearch = document.getElementById('processedSearch');
+            const statusFilter = document.getElementById('statusFilter');
+
+            if (processedSearch) processedSearch.addEventListener('input', filterProcessedTransactions);
+            if (statusFilter) statusFilter.addEventListener('change', filterProcessedTransactions);
+
+            // Activity search
+            const activitySearch = document.getElementById('activitySearch');
+            const levelFilter = document.getElementById('levelFilter');
+
+            if (activitySearch) activitySearch.addEventListener('input', filterTransactionActivity);
+            if (levelFilter) levelFilter.addEventListener('change', filterTransactionActivity);
+
+            // VIP search
+            const vipSearch = document.getElementById('vipSearch');
+            const vipStatusFilter = document.getElementById('vipStatusFilter');
+
+            if (vipSearch) vipSearch.addEventListener('input', filterVipPurchases);
+            if (vipStatusFilter) vipStatusFilter.addEventListener('change', filterVipPurchases);
+        }
+
+        function filterUserPurchases() {
+            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+            const packageFilter = document.getElementById('packageFilter').value;
+            const statusFilter = document.getElementById('statusFilterUser').value;
+
+            let filtered = allTransactions;
+
+            if (searchTerm) {
+                filtered = filtered.filter(t => 
+                    (t.user_email && t.user_email.toLowerCase().includes(searchTerm)) ||
+                    (t.transaction_hash && t.transaction_hash.toLowerCase().includes(searchTerm)) ||
+                    (t.package_name && t.package_name.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            if (packageFilter) {
+                filtered = filtered.filter(t => parseFloat(t.package_amount) == packageFilter);
+            }
+
+            if (statusFilter) {
+                filtered = filtered.filter(t => t.status === statusFilter);
+            }
+
+            displayFilteredUserPurchases(filtered);
+        }
+
+        function displayFilteredUserPurchases(transactions) {
+            const container = document.getElementById('userPurchasesList');
+            if (!container) return;
+
+            if (transactions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No matching transactions found</div>';
                 return;
             }
 
@@ -1039,12 +1358,6 @@
                                 <div class="detail-label">Date</div>
                                 <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
                             </div>
-                            ${transaction.package_name ? `
-                            <div class="detail-group">
-                                <div class="detail-label">Package Name</div>
-                                <div class="detail-value">${transaction.package_name}</div>
-                            </div>
-                            ` : ''}
                         </div>
 
                         ${transaction.status === 'pending' ? `
@@ -1062,104 +1375,10 @@
                                     Reject
                                 </button>
                             </div>
-                        ` : `
-                            <div class="detail-group">
-                                <div class="detail-label">Admin Notes</div>
-                                <div class="detail-value">${transaction.admin_notes || 'No notes provided'}</div>
-                            </div>
-                            ${transaction.processed_by ? `
-                            <div class="detail-group">
-                                <div class="detail-label">Processed By</div>
-                                <div class="detail-value">${transaction.processed_by}</div>
-                            </div>
-                            ` : ''}
-                            ${transaction.processed_at ? `
-                            <div class="detail-group">
-                                <div class="detail-label">Processed At</div>
-                                <div class="detail-value">${new Date(transaction.processed_at).toLocaleString()}</div>
-                            </div>
-                            ` : ''}
-                        `}
+                        ` : ''}
                     </div>
                 `;
             }).join('');
-        }
-
-        // FIX 7: Enhanced search and filter functionality
-        function setupSearchFilters() {
-            // User purchases search
-            const userSearch = document.getElementById('userSearch');
-            const packageFilter = document.getElementById('packageFilter');
-            const statusFilterUser = document.getElementById('statusFilterUser');
-
-            if (userSearch) {
-                userSearch.addEventListener('input', filterUserPurchases);
-            }
-            if (packageFilter) {
-                packageFilter.addEventListener('change', filterUserPurchases);
-            }
-            if (statusFilterUser) {
-                statusFilterUser.addEventListener('change', filterUserPurchases);
-            }
-
-            // Processed transactions search
-            const processedSearch = document.getElementById('processedSearch');
-            const statusFilter = document.getElementById('statusFilter');
-
-            if (processedSearch) {
-                processedSearch.addEventListener('input', filterProcessedTransactions);
-            }
-            if (statusFilter) {
-                statusFilter.addEventListener('change', filterProcessedTransactions);
-            }
-
-            // Activity search
-            const activitySearch = document.getElementById('activitySearch');
-            const levelFilter = document.getElementById('levelFilter');
-
-            if (activitySearch) {
-                activitySearch.addEventListener('input', filterTransactionActivity);
-            }
-            if (levelFilter) {
-                levelFilter.addEventListener('change', filterTransactionActivity);
-            }
-
-            // VIP search
-            const vipSearch = document.getElementById('vipSearch');
-            const vipStatusFilter = document.getElementById('vipStatusFilter');
-
-            if (vipSearch) {
-                vipSearch.addEventListener('input', filterVipPurchases);
-            }
-            if (vipStatusFilter) {
-                vipStatusFilter.addEventListener('change', filterVipPurchases);
-            }
-        }
-
-        function filterUserPurchases() {
-            const searchTerm = document.getElementById('userSearch').value.toLowerCase();
-            const packageFilter = document.getElementById('packageFilter').value;
-            const statusFilter = document.getElementById('statusFilterUser').value;
-
-            let filtered = allTransactions;
-
-            if (searchTerm) {
-                filtered = filtered.filter(t => 
-                    (t.user_email && t.user_email.toLowerCase().includes(searchTerm)) ||
-                    (t.transaction_hash && t.transaction_hash.toLowerCase().includes(searchTerm)) ||
-                    (t.package_name && t.package_name.toLowerCase().includes(searchTerm))
-                );
-            }
-
-            if (packageFilter) {
-                filtered = filtered.filter(t => parseFloat(t.package_amount) == packageFilter);
-            }
-
-            if (statusFilter) {
-                filtered = filtered.filter(t => t.status === statusFilter);
-            }
-
-            displayUserPurchases(filtered);
         }
 
         function filterProcessedTransactions() {
@@ -1179,119 +1398,15 @@
                 filtered = filtered.filter(t => t.status === statusFilter);
             }
 
-            // This would update the processed transactions view
-            if (currentTab === 'approved-rejected') {
-                displayProcessedTransactions(filtered);
-            }
+            displayFilteredProcessedTransactions(filtered);
         }
 
-        function filterTransactionActivity() {
-            const searchTerm = document.getElementById('activitySearch').value.toLowerCase();
-            const levelFilter = document.getElementById('levelFilter').value;
-
-            let filtered = allTransactions;
-
-            if (searchTerm) {
-                filtered = filtered.filter(t => 
-                    (t.user_email && t.user_email.toLowerCase().includes(searchTerm)) ||
-                    (t.transaction_hash && t.transaction_hash.toLowerCase().includes(searchTerm))
-                );
-            }
-
-            if (levelFilter) {
-                if (levelFilter === 'vip') {
-                    filtered = filtered.filter(t => parseFloat(t.package_amount) >= 100000);
-                } else if (levelFilter === 'basic') {
-                    filtered = filtered.filter(t => parseFloat(t.package_amount) < 100000);
-                }
-            }
-
-            // This would update the transaction activity view
-            if (currentTab === 'transaction-activity') {
-                displayTransactionActivity(filtered);
-            }
-        }
-
-        function filterVipPurchases() {
-            const searchTerm = document.getElementById('vipSearch').value.toLowerCase();
-            const statusFilter = document.getElementById('vipStatusFilter').value;
-
-            let filtered = allTransactions.filter(t => parseFloat(t.package_amount) >= 100000);
-
-            if (searchTerm) {
-                filtered = filtered.filter(t => 
-                    (t.user_email && t.user_email.toLowerCase().includes(searchTerm)) ||
-                    (t.transaction_hash && t.transaction_hash.toLowerCase().includes(searchTerm))
-                );
-            }
-
-            if (statusFilter) {
-                filtered = filtered.filter(t => t.status === statusFilter);
-            }
-
-            // This would update the VIP purchases view
-            if (currentTab === 'vip-purchases') {
-                displayVipPurchases(filtered);
-            }
-        }
-
-        // FIX 8: Enhanced tab navigation
-        function showTab(tabName) {
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-
-            document.querySelector(`.nav-tab[onclick="showTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(tabName).classList.add('active');
-
-            currentTab = tabName;
-
-            switch(tabName) {
-                case 'overview':
-                    loadOverviewStats();
-                    break;
-                case 'user-purchases':
-                    loadUserPurchases();
-                    break;
-                case 'pending':
-                    loadPendingTransactions();
-                    break;
-                case 'approved-rejected':
-                    loadProcessedTransactions();
-                    break;
-                case 'transaction-activity':
-                    loadTransactionActivity();
-                    break;
-                case 'vip-purchases':
-                    loadVipPurchases();
-                    break;
-            }
-        }
-
-        // FIX 9: Enhanced processed transactions loading
-        async function loadProcessedTransactions() {
-            try {
-                const { data: transactions, error } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .in('status', ['approved', 'rejected'])
-                    .order('processed_at', { ascending: false });
-
-                if (error) throw error;
-
-                displayProcessedTransactions(transactions);
-
-            } catch (error) {
-                console.error('Error loading processed transactions:', error);
-                document.getElementById('processedTransactionsList').innerHTML = 
-                    '<div class="empty-state">Error loading processed transactions</div>';
-            }
-        }
-
-        function displayProcessedTransactions(transactions) {
+        function displayFilteredProcessedTransactions(transactions) {
             const container = document.getElementById('processedTransactionsList');
+            if (!container) return;
 
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = '<div class="empty-state">No processed transactions found</div>';
+            if (transactions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No matching processed transactions found</div>';
                 return;
             }
 
@@ -1331,46 +1446,41 @@
                                 <div class="detail-value">${new Date(transaction.processed_at).toLocaleString()}</div>
                             </div>
                         </div>
-
-                        <div class="detail-group">
-                            <div class="detail-label">Admin Notes</div>
-                            <div class="detail-value">${transaction.admin_notes || 'No notes provided'}</div>
-                        </div>
-                        ${transaction.processed_by ? `
-                        <div class="detail-group">
-                            <div class="detail-label">Processed By</div>
-                            <div class="detail-value">${transaction.processed_by}</div>
-                        </div>
-                        ` : ''}
                     </div>
                 `;
             }).join('');
         }
 
-        // FIX 10: Enhanced transaction activity loading
-        async function loadTransactionActivity() {
-            try {
-                const { data: transactions, error } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+        function filterTransactionActivity() {
+            const searchTerm = document.getElementById('activitySearch').value.toLowerCase();
+            const levelFilter = document.getElementById('levelFilter').value;
 
-                if (error) throw error;
+            let filtered = allTransactions;
 
-                displayTransactionActivity(transactions);
-
-            } catch (error) {
-                console.error('Error loading transaction activity:', error);
-                document.getElementById('transactionActivityList').innerHTML = 
-                    '<div class="empty-state">Error loading transaction activity</div>';
+            if (searchTerm) {
+                filtered = filtered.filter(t => 
+                    (t.user_email && t.user_email.toLowerCase().includes(searchTerm)) ||
+                    (t.transaction_hash && t.transaction_hash.toLowerCase().includes(searchTerm))
+                );
             }
+
+            if (levelFilter) {
+                if (levelFilter === 'vip') {
+                    filtered = filtered.filter(t => parseFloat(t.package_amount) >= 100000);
+                } else if (levelFilter === 'basic') {
+                    filtered = filtered.filter(t => parseFloat(t.package_amount) < 100000);
+                }
+            }
+
+            displayFilteredTransactionActivity(filtered);
         }
 
-        function displayTransactionActivity(transactions) {
+        function displayFilteredTransactionActivity(transactions) {
             const container = document.getElementById('transactionActivityList');
+            if (!container) return;
 
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = '<div class="empty-state">No transaction activity found</div>';
+            if (transactions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No matching transaction activity found</div>';
                 return;
             }
 
@@ -1410,43 +1520,37 @@
                                 <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
                             </div>
                         </div>
-
-                        ${transaction.status !== 'pending' ? `
-                            <div class="detail-group">
-                                <div class="detail-label">Processed By</div>
-                                <div class="detail-value">${transaction.processed_by || 'N/A'}</div>
-                            </div>
-                        ` : ''}
                     </div>
                 `;
             }).join('');
         }
 
-        // FIX 11: Enhanced VIP purchases loading
-        async function loadVipPurchases() {
-            try {
-                const { data: transactions, error } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .gte('package_amount', 100000)
-                    .order('created_at', { ascending: false });
+        function filterVipPurchases() {
+            const searchTerm = document.getElementById('vipSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('vipStatusFilter').value;
 
-                if (error) throw error;
+            let filtered = allTransactions.filter(t => parseFloat(t.package_amount) >= 100000);
 
-                displayVipPurchases(transactions);
-
-            } catch (error) {
-                console.error('Error loading VIP purchases:', error);
-                document.getElementById('vipPurchasesList').innerHTML = 
-                    '<div class="empty-state">Error loading VIP purchases</div>';
+            if (searchTerm) {
+                filtered = filtered.filter(t => 
+                    (t.user_email && t.user_email.toLowerCase().includes(searchTerm)) ||
+                    (t.transaction_hash && t.transaction_hash.toLowerCase().includes(searchTerm))
+                );
             }
+
+            if (statusFilter) {
+                filtered = filtered.filter(t => t.status === statusFilter);
+            }
+
+            displayFilteredVipPurchases(filtered);
         }
 
-        function displayVipPurchases(transactions) {
+        function displayFilteredVipPurchases(transactions) {
             const container = document.getElementById('vipPurchasesList');
+            if (!container) return;
 
-            if (!transactions || transactions.length === 0) {
-                container.innerHTML = '<div class="empty-state">No VIP purchases found</div>';
+            if (transactions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No matching VIP purchases found</div>';
                 return;
             }
 
@@ -1501,91 +1605,97 @@
                                     Reject
                                 </button>
                             </div>
-                        ` : `
-                            <div class="detail-group">
-                                <div class="detail-label">Admin Notes</div>
-                                <div class="detail-value">${transaction.admin_notes || 'No notes provided'}</div>
-                            </div>
-                        `}
+                        ` : ''}
                     </div>
                 `;
             }).join('');
         }
 
-        // FIX 12: Alternative table fallback
-        async function tryAlternativeTables() {
-            console.log('🔄 Trying alternative table names...');
-            
-            // Try different table names that might exist
-            const tableNames = ['transactions', 'purchases', 'user_transactions', 'payment_transactions'];
-            
-            for (const tableName of tableNames) {
-                try {
-                    const { data, error } = await supabaseClient
-                        .from(tableName)
-                        .select('*')
-                        .limit(1);
-                    
-                    if (!error && data) {
-                        console.log(`✅ Found alternative table: ${tableName}`);
-                        showCustomAlert(`Using alternative table: ${tableName}`, 'info');
-                        // You would update all queries to use this table
-                        break;
-                    }
-                } catch (err) {
-                    console.log(`❌ Table ${tableName} not found`);
-                }
+        // FIX 11: Enhanced Tab Navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            document.querySelector(`.nav-tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            currentTab = tabName;
+
+            // Refresh data for the current tab
+            switch(tabName) {
+                case 'overview':
+                    updateOverviewStats();
+                    break;
+                case 'user-purchases':
+                    updateUserPurchases();
+                    break;
+                case 'pending':
+                    updatePendingTransactions();
+                    break;
+                case 'approved-rejected':
+                    updateProcessedTransactions();
+                    break;
+                case 'transaction-activity':
+                    updateTransactionActivity();
+                    break;
+                case 'vip-purchases':
+                    updateVipPurchases();
+                    break;
             }
         }
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Transaction Admin Panel Initializing...');
-            loadOverviewStats();
-            loadPendingTransactions();
-            setupRealtimeUpdates();
-        });
+        // FIX 12: Enhanced Notification Function
+        function showCustomAlert(message, type = 'info') {
+            const existingAlert = document.querySelector('.custom-alert');
+            if (existingAlert) {
+                existingAlert.remove();
+            }
 
-        // FIX 13: Real-time updates for transactions
+            const alert = document.createElement('div');
+            alert.className = `custom-alert ${type}`;
+
+            const icon = type === 'success' ? 
+                '<svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                type === 'error' ?
+                '<svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                '<svg class="alert-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+            
+            alert.innerHTML = `${icon}${message}`;
+            document.body.appendChild(alert);
+
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // FIX 13: Real-time Updates
         function setupRealtimeUpdates() {
             try {
                 console.log('📡 Setting up real-time transaction updates...');
 
-                const transactionsSubscription = supabaseClient
-                    .channel('transactions-changes')
+                supabaseClient
+                    .channel('transactions-realtime')
                     .on('postgres_changes', 
                         { event: '*', schema: 'public', table: 'pending_transactions' },
                         (payload) => {
                             console.log('🔄 Real-time transaction update:', payload);
-                            
-                            // Reload current tab data
-                            switch(currentTab) {
-                                case 'overview':
-                                    loadOverviewStats();
-                                    break;
-                                case 'user-purchases':
-                                    loadUserPurchases();
-                                    break;
-                                case 'pending':
-                                    loadPendingTransactions();
-                                    break;
-                                case 'approved-rejected':
-                                    loadProcessedTransactions();
-                                    break;
-                                case 'transaction-activity':
-                                    loadTransactionActivity();
-                                    break;
-                                case 'vip-purchases':
-                                    loadVipPurchases();
-                                    break;
-                            }
+                            loadAllTransactionData(); // Refresh all data
+                        }
+                    )
+                    .on('postgres_changes',
+                        { event: '*', schema: 'public', table: 'user_purchase_history' },
+                        (payload) => {
+                            console.log('🔄 Real-time purchase history update:', payload);
+                            loadAllTransactionData(); // Refresh all data
                         }
                     )
                     .subscribe((status) => {
                         if (status === 'SUBSCRIBED') {
-                            console.log('✅ Transactions real-time subscription active');
+                            console.log('✅ Real-time updates active');
                         } else {
-                            console.warn('❌ Transactions real-time subscription failed:', status);
+                            console.warn('❌ Real-time updates failed:', status);
                         }
                     });
 
@@ -1593,6 +1703,14 @@
                 console.error('❌ Real-time setup failed:', error);
             }
         }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Transaction Admin Panel Initializing...');
+            loadAllTransactionData();
+            setupSearchFilters();
+            setupRealtimeUpdates();
+        });
 
     </script>
 </body>
