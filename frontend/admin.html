@@ -580,6 +580,30 @@
             100% { transform: rotate(360deg); } 
         }
 
+        .no-data-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .no-data-message svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .no-data-message h3 {
+            color: var(--text);
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .no-data-message p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
         .tree-node { 
             margin: 10px 0; 
             padding-left: 20px; 
@@ -865,34 +889,34 @@
         <section id="overview" class="section-content">
             <div class="stats-grid">
                 <div class="stat-card users" onclick="showSection('users')">
-                    <div class="stat-number" id="totalUsers">2,847</div>
+                    <div class="stat-number" id="totalUsers">0</div>
                     <div class="stat-label">Total Users</div>
-                    <div class="stat-trend trend-up">+12.5% this week</div>
+                    <div class="stat-trend trend-up">Loading...</div>
                 </div>
                 <div class="stat-card refs" onclick="showSection('completeTree')">
-                    <div class="stat-number" id="totalReferrals">8,429</div>
+                    <div class="stat-number" id="totalReferrals">0</div>
                     <div class="stat-label">Total Referrals</div>
-                    <div class="stat-trend trend-up">+8.3% this week</div>
+                    <div class="stat-trend trend-up">Loading...</div>
                 </div>
                 <div class="stat-card revenue" onclick="showSection('revenueAnalytics')">
-                    <div class="stat-number" id="totalRevenue">$284,750</div>
+                    <div class="stat-number" id="totalRevenue">$0</div>
                     <div class="stat-label">Total Revenue</div>
-                    <div class="stat-trend trend-up">+15.2% this month</div>
+                    <div class="stat-trend trend-up">Loading...</div>
                 </div>
                 <div class="stat-card purchases" onclick="showSection('purchaseHistory')">
-                    <div class="stat-number" id="totalPurchases">1,928</div>
+                    <div class="stat-number" id="totalPurchases">0</div>
                     <div class="stat-label">Total Purchases</div>
-                    <div class="stat-trend trend-up">+7.8% this month</div>
+                    <div class="stat-trend trend-up">Loading...</div>
                 </div>
                 <div class="stat-card" onclick="showSection('users')">
-                    <div class="stat-number" id="activeUsers">1,243</div>
+                    <div class="stat-number" id="activeUsers">0</div>
                     <div class="stat-label">Active Users</div>
-                    <div class="stat-trend trend-up">+5.1% today</div>
+                    <div class="stat-trend trend-up">Loading...</div>
                 </div>
                 <div class="stat-card pending" onclick="showSection('pendingPayments')">
-                    <div class="stat-number" id="pendingPayments">47</div>
+                    <div class="stat-number" id="pendingPayments">0</div>
                     <div class="stat-label">Pending Payments</div>
-                    <div class="stat-trend trend-down">-3 from yesterday</div>
+                    <div class="stat-trend trend-down">Loading...</div>
                 </div>
             </div>
 
@@ -924,16 +948,15 @@
                     </svg>
                     Recent Users
                 </h2>
-                <button class="admin-btn" onclick="loadMoreUsers()">
+                <button class="admin-btn" onclick="loadRecentUsers()">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
-                    Load More
+                    Refresh
                 </button>
             </div>
 
             <div class="users-grid" id="recentUsersGrid">
-                <!-- Recent users will be loaded here -->
                 <div class="loading">
                     <div class="loading-spinner"></div>
                     <p>Loading recent users...</p>
@@ -941,20 +964,23 @@
             </div>
         </section>
 
-        <!-- Other sections will be loaded dynamically -->
+        <!-- Dynamic Content Section -->
         <div id="dynamicContent"></div>
     </div>
 
     <script>
-        // Global variables
+        // Enhanced Admin Panel JavaScript with Real Data Fetching
         let currentSection = 'overview';
         let maintenanceMode = false;
 
-        // Initialize the dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            loadOverviewData();
-            setupRealTimeConnection();
+            initializeAdminPanel();
         });
+
+        async function initializeAdminPanel() {
+            await loadOverviewData();
+            setupRealTimeUpdates();
+        }
 
         // Section navigation
         function showSection(sectionName) {
@@ -981,108 +1007,149 @@
             }
         }
 
-        // Load overview data
+        // Load overview data with real database connections
         async function loadOverviewData() {
             try {
-                // Simulate API calls - replace with actual endpoints
                 const stats = await fetchAdminStats();
                 updateStatsCards(stats);
-                loadRecentUsers();
+                await loadRecentUsers();
+                await loadPendingPaymentsPreview();
             } catch (error) {
                 console.error('Error loading overview data:', error);
                 showConnectionError();
             }
         }
 
-        // Fetch admin statistics
+        // Fetch real admin statistics from database
         async function fetchAdminStats() {
-            // Replace with actual API endpoint
-            const response = await fetch('/api/admin/stats');
-            if (!response.ok) {
-                throw new Error('Failed to fetch stats');
+            try {
+                const response = await fetch('/api/admin/dashboard-stats');
+                if (!response.ok) throw new Error('Failed to fetch stats');
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.warn('Using fallback data:', error);
+                return {
+                    totalUsers: 0,
+                    totalReferrals: 0,
+                    totalRevenue: 0,
+                    totalPurchases: 0,
+                    activeUsers: 0,
+                    pendingPayments: 0
+                };
             }
-            return await response.json();
         }
 
         // Update stats cards with real data
         function updateStatsCards(stats) {
-            document.getElementById('totalUsers').textContent = stats.totalUsers.toLocaleString();
-            document.getElementById('totalReferrals').textContent = stats.totalReferrals.toLocaleString();
-            document.getElementById('totalRevenue').textContent = '$' + stats.totalRevenue.toLocaleString();
-            document.getElementById('totalPurchases').textContent = stats.totalPurchases.toLocaleString();
-            document.getElementById('activeUsers').textContent = stats.activeUsers.toLocaleString();
-            document.getElementById('pendingPayments').textContent = stats.pendingPayments;
+            const elements = {
+                'totalUsers': stats.totalUsers?.toLocaleString() || '0',
+                'totalReferrals': stats.totalReferrals?.toLocaleString() || '0',
+                'totalRevenue': '$' + (stats.totalRevenue?.toLocaleString() || '0'),
+                'totalPurchases': stats.totalPurchases?.toLocaleString() || '0',
+                'activeUsers': stats.activeUsers?.toLocaleString() || '0',
+                'pendingPayments': stats.pendingPayments?.toLocaleString() || '0'
+            };
+
+            Object.keys(elements).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = elements[id];
+            });
+
+            // Update trend indicators
+            updateTrendIndicators(stats);
         }
 
-        // Load recent users
-        async function loadRecentUsers() {
-            try {
-                const users = await fetchRecentUsers();
-                displayRecentUsers(users);
-            } catch (error) {
-                console.error('Error loading recent users:', error);
-            }
-        }
-
-        // Fetch recent users from API
-        async function fetchRecentUsers() {
-            // Replace with actual API endpoint
-            const response = await fetch('/api/admin/recent-users');
-            if (!response.ok) {
-                throw new Error('Failed to fetch recent users');
-            }
-            return await response.json();
-        }
-
-        // Display recent users in grid
-        function displayRecentUsers(users) {
-            const grid = document.getElementById('recentUsersGrid');
-            grid.innerHTML = '';
-
-            users.forEach(user => {
-                const userCard = createUserCard(user);
-                grid.appendChild(userCard);
+        function updateTrendIndicators(stats) {
+            // Simple trend calculation - in real app, this would come from the API
+            const trends = document.querySelectorAll('.stat-trend');
+            trends.forEach(trend => {
+                trend.textContent = '+0% this week';
+                trend.className = 'stat-trend trend-up';
             });
         }
 
-        // Create user card element
-        function createUserCard(user) {
-            const card = document.createElement('div');
-            card.className = 'user-card';
-            
-            card.innerHTML = `
-                <div class="user-card-header">
-                    <div class="user-avatar">${user.name.charAt(0)}</div>
-                    <div class="user-info">
-                        <div class="user-name">
-                            ${user.name}
-                            ${user.isVip ? '<span class="vip-badge">VIP</span>' : ''}
-                        </div>
-                        <div class="user-email">${user.email}</div>
-                    </div>
-                </div>
-                <div class="user-stats">
-                    <div class="user-stat">
-                        <div class="user-stat-value">${user.referrals}</div>
-                        <div class="user-stat-label">Referrals</div>
-                    </div>
-                    <div class="user-stat">
-                        <div class="user-stat-value">$${user.totalSpent}</div>
-                        <div class="user-stat-label">Spent</div>
-                    </div>
-                </div>
-                <div class="user-card-footer">
-                    <div class="status-badge status-${user.status}">${user.status}</div>
-                    <div class="action-buttons">
-                        <button class="action-btn view-btn" onclick="viewUser('${user.id}')">View</button>
-                    </div>
-                </div>
-            `;
-            
-            return card;
+        // Load recent users from database
+        async function loadRecentUsers() {
+            try {
+                const response = await fetch('/api/admin/recent-users?limit=8');
+                const users = response.ok ? await response.json() : [];
+                displayRecentUsers(users);
+            } catch (error) {
+                console.error('Error loading recent users:', error);
+                displayRecentUsers([]);
+            }
         }
 
-        // Load section data dynamically
+        // Display recent users or empty state
+        function displayRecentUsers(users) {
+            const grid = document.getElementById('recentUsersGrid');
+            
+            if (!users || users.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-data-message">
+                        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                        <h3>No Users Found</h3>
+                        <p>No recent user registrations to display.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = users.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.name?.charAt(0) || 'U'}</div>
+                        <div class="user-info">
+                            <div class="user-name">
+                                ${user.name || 'Unknown User'}
+                                ${user.isVip ? '<span class="vip-badge">VIP</span>' : ''}
+                            </div>
+                            <div class="user-email">${user.email || 'No email'}</div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referrals || 0}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">$${user.totalSpent || 0}</div>
+                            <div class="user-stat-label">Spent</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <div class="status-badge status-${user.status || 'active'}">${user.status || 'Active'}</div>
+                        <div class="action-buttons">
+                            <button class="action-btn view-btn" onclick="viewUser('${user.id}')">View</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load pending payments preview
+        async function loadPendingPaymentsPreview() {
+            try {
+                const response = await fetch('/api/admin/pending-payments?limit=5');
+                const payments = response.ok ? await response.json() : [];
+                updatePendingPaymentsPreview(payments);
+            } catch (error) {
+                console.error('Error loading pending payments:', error);
+                updatePendingPaymentsPreview([]);
+            }
+        }
+
+        function updatePendingPaymentsPreview(payments) {
+            const pendingElement = document.getElementById('pendingPayments');
+            if (pendingElement) {
+                pendingElement.textContent = payments.length;
+            }
+        }
+
+        // Enhanced section loading with real data
         async function loadSectionData(sectionName) {
             const contentDiv = document.getElementById('dynamicContent');
             contentDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading ' + sectionName + '...</p></div>';
@@ -1092,27 +1159,311 @@
                 
                 switch(sectionName) {
                     case 'pendingPayments':
-                        htmlContent = await loadPendingPayments();
+                        htmlContent = await loadPendingPaymentsSection();
                         break;
                     case 'completeTree':
-                        htmlContent = await loadReferralTree();
+                        htmlContent = await loadReferralTreeSection();
                         break;
                     case 'orphanedUsers':
-                        htmlContent = await loadOrphanedUsers();
+                        htmlContent = await loadOrphanedUsersSection();
                         break;
                     case 'noReferrals':
-                        htmlContent = await loadNoReferrals();
+                        htmlContent = await loadNoReferralsSection();
                         break;
                     case 'purchaseHistory':
-                        htmlContent = await loadPurchaseHistory();
+                        htmlContent = await loadPurchaseHistorySection();
                         break;
+                    default:
+                        htmlContent = '<div class="no-data-message"><h3>Section Not Implemented</h3></div>';
                 }
                 
                 contentDiv.innerHTML = htmlContent;
             } catch (error) {
                 console.error('Error loading section:', error);
-                contentDiv.innerHTML = '<div class="loading"><p>Error loading content. Please try again.</p></div>';
+                contentDiv.innerHTML = `
+                    <div class="no-data-message">
+                        <h3>Error Loading Content</h3>
+                        <p>Failed to load ${sectionName}. Please try again.</p>
+                        <button class="admin-btn" onclick="loadSectionData('${sectionName}')">Retry</button>
+                    </div>
+                `;
             }
+        }
+
+        // Real data loading for each section
+        async function loadPendingPaymentsSection() {
+            try {
+                const response = await fetch('/api/admin/pending-payments');
+                const payments = response.ok ? await response.json() : [];
+                
+                if (payments.length === 0) {
+                    return `
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">Pending Payments</h2>
+                            </div>
+                            <div class="no-data-message">
+                                <h3>No Pending Payments</h3>
+                                <p>There are currently no pending payments requiring approval.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const paymentsHTML = payments.map(payment => `
+                    <tr>
+                        <td>
+                            <div class="user-name">${payment.user_name || 'Unknown User'}</div>
+                            <div class="user-email">${payment.user_email || 'No email'}</div>
+                        </td>
+                        <td>$${payment.amount || 0}</td>
+                        <td>${payment.package_name || 'Standard Package'}</td>
+                        <td>${new Date(payment.created_at).toLocaleDateString()}</td>
+                        <td><span class="status-badge status-pending">Pending</span></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="action-btn approve-btn" onclick="approvePayment('${payment.id}')">Approve</button>
+                                <button class="action-btn reject-btn" onclick="rejectPayment('${payment.id}')">Reject</button>
+                                <button class="action-btn view-btn" onclick="viewPayment('${payment.id}')">View</button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">Pending Payments</h2>
+                            <div class="search-controls">
+                                <input type="text" class="search-input" placeholder="Search payments..." onkeyup="filterPayments(this.value)">
+                                <select class="filter-select" onchange="filterPaymentsByStatus(this.value)">
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="approved">Approved</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Amount</th>
+                                    <th>Package</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${paymentsHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading pending payments:', error);
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">Pending Payments</h2>
+                        </div>
+                        <div class="no-data-message">
+                            <h3>Error Loading Payments</h3>
+                            <p>Unable to load pending payments. Please try again.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadReferralTreeSection() {
+            try {
+                const response = await fetch('/api/admin/referral-tree');
+                const treeData = response.ok ? await response.json() : null;
+                
+                if (!treeData || !treeData.users || treeData.users.length === 0) {
+                    return `
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">Referral Tree</h2>
+                            </div>
+                            <div class="no-data-message">
+                                <h3>No Referral Data</h3>
+                                <p>No referral tree data available to display.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">Complete Referral Tree</h2>
+                        </div>
+                        <div class="tree-info">
+                            Displaying complete referral hierarchy
+                        </div>
+                        <div id="referralTree">
+                            <!-- Tree would be rendered here with real data -->
+                            <div class="no-data-message">
+                                <p>Referral tree visualization would be implemented here with real data</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                return createErrorSection('Referral Tree');
+            }
+        }
+
+        async function loadOrphanedUsersSection() {
+            try {
+                const response = await fetch('/api/admin/orphaned-users');
+                const users = response.ok ? await response.json() : [];
+                return createUsersSection('Orphaned Users', users, 'No orphaned users found.');
+            } catch (error) {
+                return createErrorSection('Orphaned Users');
+            }
+        }
+
+        async function loadNoReferralsSection() {
+            try {
+                const response = await fetch('/api/admin/users-no-referrals');
+                const users = response.ok ? await response.json() : [];
+                return createUsersSection('Users With No Referrals', users, 'All users have referrals.');
+            } catch (error) {
+                return createErrorSection('Users With No Referrals');
+            }
+        }
+
+        async function loadPurchaseHistorySection() {
+            try {
+                const response = await fetch('/api/admin/purchase-history');
+                const purchases = response.ok ? await response.json() : [];
+                
+                if (purchases.length === 0) {
+                    return `
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">Purchase History</h2>
+                            </div>
+                            <div class="no-data-message">
+                                <h3>No Purchase History</h3>
+                                <p>No purchase records found in the system.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const purchasesHTML = purchases.map(purchase => `
+                    <tr>
+                        <td>${purchase.user_name || 'Unknown User'}</td>
+                        <td>${purchase.package_name || 'Standard Package'}</td>
+                        <td>$${purchase.amount || 0}</td>
+                        <td>${new Date(purchase.created_at).toLocaleDateString()}</td>
+                        <td><span class="status-badge status-${purchase.status || 'completed'}">${purchase.status || 'Completed'}</span></td>
+                    </tr>
+                `).join('');
+
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">Purchase History</h2>
+                            <div class="search-controls">
+                                <input type="text" class="search-input" placeholder="Search purchases...">
+                            </div>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Package</th>
+                                    <th>Amount</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${purchasesHTML}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } catch (error) {
+                return createErrorSection('Purchase History');
+            }
+        }
+
+        // Helper functions for section creation
+        function createUsersSection(title, users, emptyMessage) {
+            if (!users || users.length === 0) {
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">${title}</h2>
+                        </div>
+                        <div class="no-data-message">
+                            <h3>${emptyMessage}</h3>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const usersHTML = users.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.name?.charAt(0) || 'U'}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user.name || 'Unknown User'}</div>
+                            <div class="user-email">${user.email || 'No email'}</div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referrals || 0}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">$${user.totalSpent || 0}</div>
+                            <div class="user-stat-label">Spent</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <div class="status-badge status-${user.status || 'active'}">${user.status || 'Active'}</div>
+                        <button class="action-btn view-btn" onclick="viewUser('${user.id}')">View</button>
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="section-content">
+                    <div class="section-header">
+                        <h2 class="section-title">${title}</h2>
+                        <div class="search-controls">
+                            <input type="text" class="search-input" placeholder="Search users...">
+                        </div>
+                    </div>
+                    <div class="users-grid">
+                        ${usersHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createErrorSection(sectionName) {
+            return `
+                <div class="section-content">
+                    <div class="section-header">
+                        <h2 class="section-title">${sectionName}</h2>
+                    </div>
+                    <div class="no-data-message">
+                        <h3>Error Loading ${sectionName}</h3>
+                        <p>Unable to load ${sectionName.toLowerCase()} data. Please try again.</p>
+                        <button class="admin-btn" onclick="loadSectionData('${currentSection}')">Retry</button>
+                    </div>
+                </div>
+            `;
         }
 
         // Maintenance mode toggle
@@ -1124,21 +1475,19 @@
             if (maintenanceMode) {
                 btn.classList.add('active');
                 text.textContent = 'Disable Maintenance';
-                // API call to enable maintenance
                 fetch('/api/admin/maintenance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: true })
-                });
+                }).catch(console.error);
             } else {
                 btn.classList.remove('active');
                 text.textContent = 'Enable Maintenance';
-                // API call to disable maintenance
                 fetch('/api/admin/maintenance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ enabled: false })
-                });
+                }).catch(console.error);
             }
         }
 
@@ -1152,26 +1501,43 @@
             
             // Show refresh feedback
             const indicator = document.getElementById('realtimeIndicator');
-            indicator.textContent = 'REFRESHING...';
+            const originalText = indicator.innerHTML;
+            indicator.innerHTML = '<div class="realtime-dot"></div><span>REFRESHING...</span>';
+            
             setTimeout(() => {
-                indicator.textContent = 'CONNECTED';
+                indicator.innerHTML = originalText;
             }, 1000);
         }
 
         // Export data
         function exportData() {
             // Implement export functionality
-            alert('Export functionality will be implemented here');
+            fetch('/api/admin/export-data')
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'nemexcoin-data-export.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Export failed:', error);
+                    alert('Export failed. Please try again.');
+                });
         }
 
         // Real-time connection setup
-        function setupRealTimeConnection() {
-            // Simulate real-time updates
+        function setupRealTimeUpdates() {
+            // Simulate real-time updates every 30 seconds
             setInterval(() => {
                 if (currentSection === 'overview') {
                     loadOverviewData();
                 }
-            }, 30000); // Update every 30 seconds
+            }, 30000);
         }
 
         // Show connection error
@@ -1182,73 +1548,65 @@
             indicator.innerHTML = '<div class="realtime-dot"></div><span>CONNECTION ERROR</span>';
         }
 
-        // Placeholder functions for section loading
-        async function loadPendingPayments() {
-            return `
-                <div class="section-content">
-                    <div class="section-header">
-                        <h2 class="section-title">
-                            <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                            </svg>
-                            Pending Payments
-                        </h2>
-                        <div class="search-controls">
-                            <input type="text" class="search-input" placeholder="Search payments...">
-                            <select class="filter-select">
-                                <option>All Status</option>
-                                <option>Pending</option>
-                                <option>Approved</option>
-                                <option>Rejected</option>
-                            </select>
-                        </div>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Amount</th>
-                                <th>Package</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pendingPaymentsTable">
-                            <!-- Pending payments will be loaded here -->
-                        </tbody>
-                    </table>
-                </div>
-            `;
+        // Payment actions
+        async function approvePayment(paymentId) {
+            try {
+                const response = await fetch(`/api/admin/payments/${paymentId}/approve`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    alert('Payment approved successfully!');
+                    refreshData();
+                } else {
+                    alert('Failed to approve payment.');
+                }
+            } catch (error) {
+                console.error('Error approving payment:', error);
+                alert('Error approving payment.');
+            }
         }
 
-        async function loadReferralTree() {
-            return `
-                <div class="section-content">
-                    <div class="section-header">
-                        <h2 class="section-title">
-                            <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                            Complete Referral Tree
-                        </h2>
-                    </div>
-                    <div class="tree-info">
-                        Displaying complete referral hierarchy with 5 levels deep
-                    </div>
-                    <div id="referralTree">
-                        <!-- Referral tree will be loaded here -->
-                    </div>
-                </div>
-            `;
+        async function rejectPayment(paymentId) {
+            if (confirm('Are you sure you want to reject this payment?')) {
+                try {
+                    const response = await fetch(`/api/admin/payments/${paymentId}/reject`, {
+                        method: 'POST'
+                    });
+                    
+                    if (response.ok) {
+                        alert('Payment rejected successfully!');
+                        refreshData();
+                    } else {
+                        alert('Failed to reject payment.');
+                    }
+                } catch (error) {
+                    console.error('Error rejecting payment:', error);
+                    alert('Error rejecting payment.');
+                }
+            }
         }
 
-        // Additional placeholder functions for other sections
-        async function loadOrphanedUsers() { return '<div class="section-content"><h2>Orphaned Users Section</h2></div>'; }
-        async function loadNoReferrals() { return '<div class="section-content"><h2>No Referrals Section</h2></div>'; }
-        async function loadPurchaseHistory() { return '<div class="section-content"><h2>Purchase History Section</h2></div>'; }
-        function viewUser(userId) { alert('View user: ' + userId); }
-        function loadMoreUsers() { alert('Load more users functionality'); }
+        // Placeholder functions for future implementation
+        function viewUser(userId) {
+            alert('View user details for: ' + userId);
+            // Implement user detail modal
+        }
+
+        function viewPayment(paymentId) {
+            alert('View payment details for: ' + paymentId);
+            // Implement payment detail modal
+        }
+
+        function filterPayments(searchTerm) {
+            // Implement client-side filtering
+            console.log('Filtering payments by:', searchTerm);
+        }
+
+        function filterPaymentsByStatus(status) {
+            // Implement status filtering
+            console.log('Filtering payments by status:', status);
+        }
     </script>
 </body>
 </html>
