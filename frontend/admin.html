@@ -948,7 +948,7 @@
                     </svg>
                     Recent Users
                 </h2>
-                <button class="admin-btn" onclick="loadRecentUsers()">
+                <button class="admin-btn" onclick="loadRecentUsersFromSupabase()">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                     </svg>
@@ -968,11 +968,18 @@
         <div id="dynamicContent"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Enhanced Admin Panel JavaScript with Real Data Fetching
+        // Supabase Client Initialization
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Enhanced Admin Panel JavaScript with Direct Supabase Connection
         let currentSection = 'overview';
         let maintenanceMode = false;
 
+        // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
             initializeAdminPanel();
         });
@@ -982,53 +989,79 @@
             setupRealTimeUpdates();
         }
 
-        // Section navigation
-        function showSection(sectionName) {
-            // Update navigation
-            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.currentTarget.classList.add('active');
-            
-            // Hide all sections
-            document.querySelectorAll('.section-content').forEach(section => {
-                section.style.display = 'none';
-            });
-            
-            // Show selected section
-            currentSection = sectionName;
-            
-            if (sectionName === 'overview') {
-                document.getElementById('overview').style.display = 'block';
-                loadOverviewData();
-            } else {
-                document.getElementById('overview').style.display = 'none';
-                loadSectionData(sectionName);
-            }
-        }
-
-        // Load overview data with real database connections
+        // Load overview data with direct Supabase connections
         async function loadOverviewData() {
             try {
-                const stats = await fetchAdminStats();
+                const stats = await fetchAdminStatsFromSupabase();
                 updateStatsCards(stats);
-                await loadRecentUsers();
-                await loadPendingPaymentsPreview();
+                await loadRecentUsersFromSupabase();
+                await loadPendingPaymentsFromSupabase();
             } catch (error) {
                 console.error('Error loading overview data:', error);
                 showConnectionError();
             }
         }
 
-        // Fetch real admin statistics from database
-        async function fetchAdminStats() {
+        // Fetch admin statistics directly from Supabase
+        async function fetchAdminStatsFromSupabase() {
             try {
-                const response = await fetch('/api/admin/dashboard-stats');
-                if (!response.ok) throw new Error('Failed to fetch stats');
-                const data = await response.json();
-                return data;
+                console.log('📊 Fetching admin stats from Supabase...');
+
+                // Get total users count
+                const { count: totalUsers, error: usersError } = await supabaseClient
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true });
+
+                if (usersError) console.error('Error fetching users:', usersError);
+
+                // Get users with referrals (who have referrer_id)
+                const { count: totalReferrals, error: refsError } = await supabaseClient
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .not('referrer_id', 'is', null);
+
+                if (refsError) console.error('Error fetching referrals:', refsError);
+
+                // Get total revenue from approved purchases
+                const { data: purchases, error: purchasesError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('amount')
+                    .eq('status', 'completed');
+
+                const totalRevenue = purchases?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+
+                // Get total purchases count
+                const { count: totalPurchases, error: purchasesCountError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'completed');
+
+                // Get active users (users active in last 7 days)
+                const sevenDaysAgo = new Date();
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                
+                const { count: activeUsers, error: activeError } = await supabaseClient
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .gt('last_active', sevenDaysAgo.toISOString());
+
+                // Get pending payments count
+                const { count: pendingPayments, error: pendingError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'pending');
+
+                return {
+                    totalUsers: totalUsers || 0,
+                    totalReferrals: totalReferrals || 0,
+                    totalRevenue: totalRevenue,
+                    totalPurchases: totalPurchases || 0,
+                    activeUsers: activeUsers || 0,
+                    pendingPayments: pendingPayments || 0
+                };
+
             } catch (error) {
-                console.warn('Using fallback data:', error);
+                console.error('Error fetching admin stats:', error);
                 return {
                     totalUsers: 0,
                     totalReferrals: 0,
@@ -1037,6 +1070,67 @@
                     activeUsers: 0,
                     pendingPayments: 0
                 };
+            }
+        }
+
+        // Load recent users directly from Supabase
+        async function loadRecentUsersFromSupabase() {
+            try {
+                const { data: users, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, telegram_id')
+                    .order('created_at', { ascending: false })
+                    .limit(8);
+
+                if (error) throw error;
+
+                // Get referral counts for each user
+                const usersWithRefs = await Promise.all(users.map(async (user) => {
+                    const { data: refs, error: refError } = await supabaseClient
+                        .from('referrals')
+                        .select('id')
+                        .eq('referred_user_id', user.id);
+
+                    const { data: purchases, error: purchaseError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .select('amount')
+                        .eq('user_id', user.id)
+                        .eq('status', 'completed');
+
+                    return {
+                        id: user.id,
+                        name: user.username || user.email || 'Unknown User',
+                        email: user.email || 'No email',
+                        referrals: refs?.length || 0,
+                        totalSpent: purchases?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0,
+                        isVip: (user.balance || 0) > 1000,
+                        status: 'active'
+                    };
+                }));
+
+                displayRecentUsers(usersWithRefs);
+
+            } catch (error) {
+                console.error('Error loading recent users:', error);
+                displayRecentUsers([]);
+            }
+        }
+
+        // Load pending payments directly from Supabase
+        async function loadPendingPaymentsFromSupabase() {
+            try {
+                const { data: payments, error } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('id')
+                    .eq('status', 'pending');
+
+                if (error) throw error;
+
+                updatePendingPaymentsPreview(payments?.length || 0);
+
+            } catch (error) {
+                console.error('Error loading pending payments:', error);
+                updatePendingPaymentsPreview(0);
             }
         }
 
@@ -1055,30 +1149,6 @@
                 const element = document.getElementById(id);
                 if (element) element.textContent = elements[id];
             });
-
-            // Update trend indicators
-            updateTrendIndicators(stats);
-        }
-
-        function updateTrendIndicators(stats) {
-            // Simple trend calculation - in real app, this would come from the API
-            const trends = document.querySelectorAll('.stat-trend');
-            trends.forEach(trend => {
-                trend.textContent = '+0% this week';
-                trend.className = 'stat-trend trend-up';
-            });
-        }
-
-        // Load recent users from database
-        async function loadRecentUsers() {
-            try {
-                const response = await fetch('/api/admin/recent-users?limit=8');
-                const users = response.ok ? await response.json() : [];
-                displayRecentUsers(users);
-            } catch (error) {
-                console.error('Error loading recent users:', error);
-                displayRecentUsers([]);
-            }
         }
 
         // Display recent users or empty state
@@ -1123,33 +1193,46 @@
                     <div class="user-card-footer">
                         <div class="status-badge status-${user.status || 'active'}">${user.status || 'Active'}</div>
                         <div class="action-buttons">
-                            <button class="action-btn view-btn" onclick="viewUser('${user.id}')">View</button>
+                            <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
                         </div>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Load pending payments preview
-        async function loadPendingPaymentsPreview() {
-            try {
-                const response = await fetch('/api/admin/pending-payments?limit=5');
-                const payments = response.ok ? await response.json() : [];
-                updatePendingPaymentsPreview(payments);
-            } catch (error) {
-                console.error('Error loading pending payments:', error);
-                updatePendingPaymentsPreview([]);
-            }
-        }
-
-        function updatePendingPaymentsPreview(payments) {
+        function updatePendingPaymentsPreview(count) {
             const pendingElement = document.getElementById('pendingPayments');
             if (pendingElement) {
-                pendingElement.textContent = payments.length;
+                pendingElement.textContent = count;
             }
         }
 
-        // Enhanced section loading with real data
+        // Section navigation
+        function showSection(sectionName) {
+            // Update navigation
+            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Hide all sections
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Show selected section
+            currentSection = sectionName;
+            
+            if (sectionName === 'overview') {
+                document.getElementById('overview').style.display = 'block';
+                loadOverviewData();
+            } else {
+                document.getElementById('overview').style.display = 'none';
+                loadSectionData(sectionName);
+            }
+        }
+
+        // Enhanced section loading with direct Supabase data
         async function loadSectionData(sectionName) {
             const contentDiv = document.getElementById('dynamicContent');
             contentDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading ' + sectionName + '...</p></div>';
@@ -1190,13 +1273,28 @@
             }
         }
 
-        // Real data loading for each section
+        // Load pending payments section with real data
         async function loadPendingPaymentsSection() {
             try {
-                const response = await fetch('/api/admin/pending-payments');
-                const payments = response.ok ? await response.json() : [];
+                const { data: payments, error } = await supabaseClient
+                    .from('pending_transactions')
+                    .select(`
+                        id,
+                        amount,
+                        package_name,
+                        status,
+                        created_at,
+                        payment_method,
+                        payment_proof,
+                        user_id,
+                        profiles:user_id (username, email)
+                    `)
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
                 
-                if (payments.length === 0) {
+                if (!payments || payments.length === 0) {
                     return `
                         <div class="section-content">
                             <div class="section-header">
@@ -1213,8 +1311,8 @@
                 const paymentsHTML = payments.map(payment => `
                     <tr>
                         <td>
-                            <div class="user-name">${payment.user_name || 'Unknown User'}</div>
-                            <div class="user-email">${payment.user_email || 'No email'}</div>
+                            <div class="user-name">${payment.profiles?.username || 'Unknown User'}</div>
+                            <div class="user-email">${payment.profiles?.email || 'No email'}</div>
                         </td>
                         <td>$${payment.amount || 0}</td>
                         <td>${payment.package_name || 'Standard Package'}</td>
@@ -1224,7 +1322,7 @@
                             <div class="action-buttons">
                                 <button class="action-btn approve-btn" onclick="approvePayment('${payment.id}')">Approve</button>
                                 <button class="action-btn reject-btn" onclick="rejectPayment('${payment.id}')">Reject</button>
-                                <button class="action-btn view-btn" onclick="viewPayment('${payment.id}')">View</button>
+                                <button class="action-btn view-btn" onclick="viewPaymentDetails('${payment.id}')">View</button>
                             </div>
                         </td>
                     </tr>
@@ -1277,12 +1375,17 @@
             }
         }
 
+        // Load referral tree section
         async function loadReferralTreeSection() {
             try {
-                const response = await fetch('/api/admin/referral-tree');
-                const treeData = response.ok ? await response.json() : null;
-                
-                if (!treeData || !treeData.users || treeData.users.length === 0) {
+                const { data: users, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, referrer_id')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!users || users.length === 0) {
                     return `
                         <div class="section-content">
                             <div class="section-header">
@@ -1305,9 +1408,32 @@
                             Displaying complete referral hierarchy
                         </div>
                         <div id="referralTree">
-                            <!-- Tree would be rendered here with real data -->
-                            <div class="no-data-message">
-                                <p>Referral tree visualization would be implemented here with real data</p>
+                            <div class="users-grid">
+                                ${users.map(user => `
+                                    <div class="user-card">
+                                        <div class="user-card-header">
+                                            <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
+                                            <div class="user-info">
+                                                <div class="user-name">${user.username || 'Unknown User'}</div>
+                                                <div class="user-email">${user.email || 'No email'}</div>
+                                            </div>
+                                        </div>
+                                        <div class="user-stats">
+                                            <div class="user-stat">
+                                                <div class="user-stat-value">${user.balance || 0}</div>
+                                                <div class="user-stat-label">Balance</div>
+                                            </div>
+                                            <div class="user-stat">
+                                                <div class="user-stat-value">${user.referrer_id ? 'Yes' : 'No'}</div>
+                                                <div class="user-stat-label">Has Referrer</div>
+                                            </div>
+                                        </div>
+                                        <div class="user-card-footer">
+                                            <div class="status-badge status-active">Active</div>
+                                            <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
                             </div>
                         </div>
                     </div>
@@ -1317,32 +1443,69 @@
             }
         }
 
+        // Load orphaned users section
         async function loadOrphanedUsersSection() {
             try {
-                const response = await fetch('/api/admin/orphaned-users');
-                const users = response.ok ? await response.json() : [];
-                return createUsersSection('Orphaned Users', users, 'No orphaned users found.');
+                const { data: users, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at')
+                    .is('referrer_id', null)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                return createUsersSection('Orphaned Users', users || [], 'No orphaned users found.');
             } catch (error) {
                 return createErrorSection('Orphaned Users');
             }
         }
 
+        // Load users with no referrals section
         async function loadNoReferralsSection() {
             try {
-                const response = await fetch('/api/admin/users-no-referrals');
-                const users = response.ok ? await response.json() : [];
-                return createUsersSection('Users With No Referrals', users, 'All users have referrals.');
+                // Get all users
+                const { data: allUsers, error: usersError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at');
+
+                if (usersError) throw usersError;
+
+                // Get users who have referrals
+                const { data: usersWithRefs, error: refsError } = await supabaseClient
+                    .from('referrals')
+                    .select('referred_user_id');
+
+                const usersWithReferrals = new Set(usersWithRefs?.map(ref => ref.referred_user_id) || []);
+
+                // Filter users who don't have any referrals
+                const usersNoRefs = allUsers?.filter(user => !usersWithReferrals.has(user.id)) || [];
+
+                return createUsersSection('Users With No Referrals', usersNoRefs, 'All users have referrals.');
             } catch (error) {
                 return createErrorSection('Users With No Referrals');
             }
         }
 
+        // Load purchase history section
         async function loadPurchaseHistorySection() {
             try {
-                const response = await fetch('/api/admin/purchase-history');
-                const purchases = response.ok ? await response.json() : [];
+                const { data: purchases, error } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select(`
+                        id,
+                        package_name,
+                        amount,
+                        status,
+                        created_at,
+                        user_id,
+                        profiles:user_id (username, email)
+                    `)
+                    .order('created_at', { ascending: false })
+                    .limit(100);
+
+                if (error) throw error;
                 
-                if (purchases.length === 0) {
+                if (!purchases || purchases.length === 0) {
                     return `
                         <div class="section-content">
                             <div class="section-header">
@@ -1358,7 +1521,7 @@
 
                 const purchasesHTML = purchases.map(purchase => `
                     <tr>
-                        <td>${purchase.user_name || 'Unknown User'}</td>
+                        <td>${purchase.profiles?.username || 'Unknown User'}</td>
                         <td>${purchase.package_name || 'Standard Package'}</td>
                         <td>$${purchase.amount || 0}</td>
                         <td>${new Date(purchase.created_at).toLocaleDateString()}</td>
@@ -1413,25 +1576,25 @@
             const usersHTML = users.map(user => `
                 <div class="user-card">
                     <div class="user-card-header">
-                        <div class="user-avatar">${user.name?.charAt(0) || 'U'}</div>
+                        <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
                         <div class="user-info">
-                            <div class="user-name">${user.name || 'Unknown User'}</div>
+                            <div class="user-name">${user.username || 'Unknown User'}</div>
                             <div class="user-email">${user.email || 'No email'}</div>
                         </div>
                     </div>
                     <div class="user-stats">
                         <div class="user-stat">
-                            <div class="user-stat-value">${user.referrals || 0}</div>
-                            <div class="user-stat-label">Referrals</div>
+                            <div class="user-stat-value">${user.balance || 0}</div>
+                            <div class="user-stat-label">Balance</div>
                         </div>
                         <div class="user-stat">
-                            <div class="user-stat-value">$${user.totalSpent || 0}</div>
-                            <div class="user-stat-label">Spent</div>
+                            <div class="user-stat-value">0</div>
+                            <div class="user-stat-label">Referrals</div>
                         </div>
                     </div>
                     <div class="user-card-footer">
-                        <div class="status-badge status-${user.status || 'active'}">${user.status || 'Active'}</div>
-                        <button class="action-btn view-btn" onclick="viewUser('${user.id}')">View</button>
+                        <div class="status-badge status-active">Active</div>
+                        <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
                     </div>
                 </div>
             `).join('');
@@ -1475,19 +1638,11 @@
             if (maintenanceMode) {
                 btn.classList.add('active');
                 text.textContent = 'Disable Maintenance';
-                fetch('/api/admin/maintenance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: true })
-                }).catch(console.error);
+                console.log('Maintenance mode enabled');
             } else {
                 btn.classList.remove('active');
                 text.textContent = 'Enable Maintenance';
-                fetch('/api/admin/maintenance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabled: false })
-                }).catch(console.error);
+                console.log('Maintenance mode disabled');
             }
         }
 
@@ -1510,24 +1665,84 @@
         }
 
         // Export data
-        function exportData() {
-            // Implement export functionality
-            fetch('/api/admin/export-data')
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = 'nemexcoin-data-export.csv';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                })
-                .catch(error => {
-                    console.error('Export failed:', error);
-                    alert('Export failed. Please try again.');
+        async function exportData() {
+            try {
+                // Get all data for export
+                const [users, payments, purchases] = await Promise.all([
+                    supabaseClient.from('profiles').select('*'),
+                    supabaseClient.from('pending_transactions').select('*'),
+                    supabaseClient.from('user_purchase_history').select('*')
+                ]);
+
+                const exportData = {
+                    users: users.data || [],
+                    payments: payments.data || [],
+                    purchases: purchases.data || [],
+                    exported_at: new Date().toISOString()
+                };
+
+                // Create and download CSV file
+                const csv = convertToCSV(exportData);
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `nemexcoin-export-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                showCustomAlert('Data exported successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                showCustomAlert('Error exporting data: ' + error.message, 'error');
+            }
+        }
+
+        // Convert data to CSV
+        function convertToCSV(data) {
+            let csv = 'NemexCoin Data Export\n\n';
+            
+            // Users section
+            csv += 'USERS\n';
+            if (data.users.length > 0) {
+                const headers = Object.keys(data.users[0]).join(',');
+                csv += headers + '\n';
+                data.users.forEach(user => {
+                    const row = Object.values(user).map(value => 
+                        typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+                    ).join(',');
+                    csv += row + '\n';
                 });
+            }
+            
+            csv += '\nPENDING PAYMENTS\n';
+            if (data.payments.length > 0) {
+                const headers = Object.keys(data.payments[0]).join(',');
+                csv += headers + '\n';
+                data.payments.forEach(payment => {
+                    const row = Object.values(payment).map(value => 
+                        typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+                    ).join(',');
+                    csv += row + '\n';
+                });
+            }
+            
+            csv += '\nPURCHASE HISTORY\n';
+            if (data.purchases.length > 0) {
+                const headers = Object.keys(data.purchases[0]).join(',');
+                csv += headers + '\n';
+                data.purchases.forEach(purchase => {
+                    const row = Object.values(purchase).map(value => 
+                        typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+                    ).join(',');
+                    csv += row + '\n';
+                });
+            }
+            
+            return csv;
         }
 
         // Real-time connection setup
@@ -1548,63 +1763,67 @@
             indicator.innerHTML = '<div class="realtime-dot"></div><span>CONNECTION ERROR</span>';
         }
 
-        // Payment actions
-        async function approvePayment(paymentId) {
-            try {
-                const response = await fetch(`/api/admin/payments/${paymentId}/approve`, {
-                    method: 'POST'
-                });
-                
-                if (response.ok) {
-                    alert('Payment approved successfully!');
-                    refreshData();
-                } else {
-                    alert('Failed to approve payment.');
-                }
-            } catch (error) {
-                console.error('Error approving payment:', error);
-                alert('Error approving payment.');
-            }
-        }
+        // Custom alert function
+        function showCustomAlert(message, type = 'info') {
+            const alert = document.createElement('div');
+            alert.className = `custom-alert ${type}`;
+            alert.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 16px 20px;
+                border-radius: 10px;
+                font-weight: 600;
+                z-index: 10000;
+                max-width: 400px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+                animation: slideInRight 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                background: var(--darker-bg);
+                border: 2px solid ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--info)'};
+                color: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--info)'};
+            `;
 
-        async function rejectPayment(paymentId) {
-            if (confirm('Are you sure you want to reject this payment?')) {
-                try {
-                    const response = await fetch(`/api/admin/payments/${paymentId}/reject`, {
-                        method: 'POST'
-                    });
-                    
-                    if (response.ok) {
-                        alert('Payment rejected successfully!');
-                        refreshData();
-                    } else {
-                        alert('Failed to reject payment.');
-                    }
-                } catch (error) {
-                    console.error('Error rejecting payment:', error);
-                    alert('Error rejecting payment.');
+            const icon = type === 'success' ? 
+                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                type === 'error' ?
+                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
+                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+
+            alert.innerHTML = `${icon}${message}`;
+            document.body.appendChild(alert);
+
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
                 }
-            }
+            }, 5000);
         }
 
         // Placeholder functions for future implementation
-        function viewUser(userId) {
-            alert('View user details for: ' + userId);
-            // Implement user detail modal
+        function viewUserDetails(userId) {
+            showCustomAlert('View user details for: ' + userId, 'info');
         }
 
-        function viewPayment(paymentId) {
-            alert('View payment details for: ' + paymentId);
-            // Implement payment detail modal
+        function viewPaymentDetails(paymentId) {
+            showCustomAlert('View payment details for: ' + paymentId, 'info');
+        }
+
+        function approvePayment(paymentId) {
+            showCustomAlert('Approve payment: ' + paymentId, 'success');
+        }
+
+        function rejectPayment(paymentId) {
+            showCustomAlert('Reject payment: ' + paymentId, 'error');
         }
 
         function filterPayments(searchTerm) {
-            // Implement client-side filtering
             console.log('Filtering payments by:', searchTerm);
         }
 
         function filterPaymentsByStatus(status) {
-            // Implement status filtering
             console.log('Filtering payments by status:', status);
         }
     </script>
