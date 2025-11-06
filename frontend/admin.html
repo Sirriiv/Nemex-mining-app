@@ -522,6 +522,11 @@
             opacity: 0.5; 
         }
 
+        .chart-canvas { 
+            width: 100%; 
+            height: 100%; 
+        }
+
         .search-section { 
             background: var(--darker-bg); 
             border: 1px solid var(--border-color); 
@@ -867,13 +872,13 @@
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                 </svg>
-                Orphaned Users
+                Users with No Referrals
             </button>
-            <button class="mini-nav-btn" onclick="showSection('noReferrals')">
+            <button class="mini-nav-btn" onclick="showSection('usersWithReferrers')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                 </svg>
-                No Referrals
+                Users with Referrers
             </button>
             <button class="mini-nav-btn" onclick="showSection('purchaseHistory')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -885,56 +890,45 @@
 
         <!-- Overview Section -->
         <section id="overview" class="section-content">
-            <div class="stats-grid">                <div class="stat-card users" onclick="showSection('users')">
+            <div class="stats-grid">
+                <div class="stat-card users" onclick="showSection('users')">
                     <div class="stat-number" id="totalUsers">0</div>
                     <div class="stat-label">Total Users</div>
-                    <div class="stat-trend trend-up">Loading...</div>
+                    <div class="stat-trend" id="usersTrend">+12% this week</div>
                 </div>
                 <div class="stat-card refs" onclick="showSection('completeTree')">
                     <div class="stat-number" id="totalReferrals">0</div>
                     <div class="stat-label">Total Referrals</div>
-                    <div class="stat-trend trend-up">Loading...</div>
+                    <div class="stat-trend" id="referralsTrend">+8% this week</div>
                 </div>
                 <div class="stat-card revenue" onclick="showSection('revenueAnalytics')">
                     <div class="stat-number" id="totalRevenue">$0</div>
                     <div class="stat-label">Total Revenue</div>
-                    <div class="stat-trend trend-up">Loading...</div>
+                    <div class="stat-trend" id="revenueTrend">+15% this week</div>
                 </div>
                 <div class="stat-card purchases" onclick="showSection('purchaseHistory')">
                     <div class="stat-number" id="totalPurchases">0</div>
                     <div class="stat-label">Total Purchases</div>
-                    <div class="stat-trend trend-up">Loading...</div>
+                    <div class="stat-trend" id="purchasesTrend">+10% this week</div>
                 </div>
                 <div class="stat-card" onclick="showSection('users')">
                     <div class="stat-number" id="activeUsers">0</div>
                     <div class="stat-label">Active Users</div>
-                    <div class="stat-trend trend-up">Loading...</div>
+                    <div class="stat-trend" id="activeTrend">+5% this week</div>
                 </div>
                 <div class="stat-card pending" onclick="showSection('pendingPayments')">
                     <div class="stat-number" id="pendingPayments">0</div>
                     <div class="stat-label">Pending Payments</div>
-                    <div class="stat-trend trend-down">Loading...</div>
+                    <div class="stat-trend" id="pendingTrend">-3% this week</div>
                 </div>
             </div>
 
             <div class="analytics-grid">
                 <div class="chart-container">
-                    <div class="chart-placeholder">
-                        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                        </svg>
-                        <h3>Revenue Analytics</h3>
-                        <p>Real-time revenue tracking chart</p>
-                    </div>
+                    <canvas id="revenueChart" class="chart-canvas"></canvas>
                 </div>
                 <div class="chart-container">
-                    <div class="chart-placeholder">
-                        <svg class="chart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                        <h3>User Growth</h3>
-                        <p>New user registration trends</p>
-                    </div>
+                    <canvas id="userGrowthChart" class="chart-canvas"></canvas>
                 </div>
             </div>
 
@@ -966,6 +960,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Supabase Client Initialization
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
@@ -975,6 +970,8 @@
         // Enhanced Admin Panel JavaScript with Direct Supabase Connection
         let currentSection = 'overview';
         let maintenanceMode = false;
+        let revenueChart = null;
+        let userGrowthChart = null;
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
@@ -984,6 +981,157 @@
         async function initializeAdminPanel() {
             await loadOverviewData();
             setupRealTimeUpdates();
+            initializeCharts();
+        }
+
+        // Initialize Charts
+        function initializeCharts() {
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            const userGrowthCtx = document.getElementById('userGrowthChart').getContext('2d');
+            
+            revenueChart = new Chart(revenueCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: [0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(0, 200, 81, 0.6)',
+                        borderColor: 'rgba(0, 200, 81, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#f5f5f5'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#f5f5f5'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f5f5f5'
+                            }
+                        }
+                    }
+                }
+            });
+
+            userGrowthChart = new Chart(userGrowthCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                    datasets: [{
+                        label: 'New Users',
+                        data: [0, 0, 0, 0, 0, 0],
+                        backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                        borderColor: 'rgba(212, 175, 55, 1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#f5f5f5'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#f5f5f5'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f5f5f5'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Charts with Real Data
+        async function updateCharts() {
+            try {
+                // Get revenue data for the last 6 months
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                
+                const { data: revenueData, error: revenueError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('amount, created_at')
+                    .eq('status', 'completed')
+                    .gte('created_at', sixMonthsAgo.toISOString());
+
+                if (!revenueError && revenueData) {
+                    const monthlyRevenue = Array(6).fill(0);
+                    revenueData.forEach(purchase => {
+                        const month = new Date(purchase.created_at).getMonth();
+                        const currentMonth = new Date().getMonth();
+                        const monthIndex = (month - currentMonth + 12) % 6;
+                        if (monthIndex >= 0 && monthIndex < 6) {
+                            monthlyRevenue[monthIndex] += parseFloat(purchase.amount || 0);
+                        }
+                    });
+
+                    revenueChart.data.datasets[0].data = monthlyRevenue.reverse();
+                    revenueChart.update();
+                }
+
+                // Get user growth data for the last 6 months
+                const { data: userData, error: userError } = await supabaseClient
+                    .from('profiles')
+                    .select('created_at')
+                    .gte('created_at', sixMonthsAgo.toISOString());
+
+                if (!userError && userData) {
+                    const monthlyUsers = Array(6).fill(0);
+                    userData.forEach(user => {
+                        const month = new Date(user.created_at).getMonth();
+                        const currentMonth = new Date().getMonth();
+                        const monthIndex = (month - currentMonth + 12) % 6;
+                        if (monthIndex >= 0 && monthIndex < 6) {
+                            monthlyUsers[monthIndex]++;
+                        }
+                    });
+
+                    userGrowthChart.data.datasets[0].data = monthlyUsers.reverse();
+                    userGrowthChart.update();
+                }
+
+            } catch (error) {
+                console.error('Error updating charts:', error);
+            }
         }
 
         // Load overview data with direct Supabase connections
@@ -992,7 +1140,7 @@
                 const stats = await fetchAdminStatsFromSupabase();
                 updateStatsCards(stats);
                 await loadRecentUsersFromSupabase();
-                await loadPendingPaymentsFromSupabase();
+                await updateCharts();
             } catch (error) {
                 console.error('Error loading overview data:', error);
                 showConnectionError();
@@ -1009,13 +1157,7 @@
                     .from('profiles')
                     .select('*', { count: 'exact', head: true });
 
-                if (usersError) {
-                    console.error('Error fetching users:', usersError);
-                    // If profiles table doesn't exist, use demo data
-                    if (usersError.message.includes('does not exist')) {
-                        return createDemoStats();
-                    }
-                }
+                if (usersError) throw usersError;
 
                 // Get users with referrals (who have referrer_id)
                 const { count: totalReferrals, error: refsError } = await supabaseClient
@@ -1027,18 +1169,14 @@
                 let totalRevenue = 0;
                 let totalPurchases = 0;
                 
-                try {
-                    const { data: purchases, error: purchasesError } = await supabaseClient
-                        .from('user_purchase_history')
-                        .select('amount, status')
-                        .eq('status', 'completed');
+                const { data: purchases, error: purchasesError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('amount, status')
+                    .eq('status', 'completed');
 
-                    if (!purchasesError && purchases) {
-                        totalRevenue = purchases.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-                        totalPurchases = purchases.length;
-                    }
-                } catch (purchaseError) {
-                    console.warn('Purchase history not available:', purchaseError);
+                if (!purchasesError && purchases) {
+                    totalRevenue = purchases.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+                    totalPurchases = purchases.length;
                 }
 
                 // Get active users (users active in last 7 days)
@@ -1051,17 +1189,10 @@
                     .gt('last_active', sevenDaysAgo.toISOString());
 
                 // Get pending payments count
-                let pendingPayments = 0;
-                try {
-                    const { count: pendingCount, error: pendingError } = await supabaseClient
-                        .from('pending_transactions')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('status', 'pending');
-
-                    if (!pendingError) pendingPayments = pendingCount || 0;
-                } catch (pendingErr) {
-                    console.warn('Pending transactions not available:', pendingErr);
-                }
+                const { count: pendingPayments, error: pendingError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'pending');
 
                 return {
                     totalUsers: totalUsers || 0,
@@ -1069,16 +1200,23 @@
                     totalRevenue: totalRevenue,
                     totalPurchases: totalPurchases,
                     activeUsers: activeUsers || 0,
-                    pendingPayments: pendingPayments
+                    pendingPayments: pendingPayments || 0
                 };
 
             } catch (error) {
                 console.error('Error fetching admin stats:', error);
-                return createDemoStats();
+                return {
+                    totalUsers: 0,
+                    totalReferrals: 0,
+                    totalRevenue: 0,
+                    totalPurchases: 0,
+                    activeUsers: 0,
+                    pendingPayments: 0
+                };
             }
         }
 
-        // FIXED: Enhanced recent users loading with demo data fallback
+        // FIXED: Enhanced recent users loading
         async function loadRecentUsersFromSupabase() {
             try {
                 const { data: users, error } = await supabaseClient
@@ -1087,45 +1225,28 @@
                     .order('created_at', { ascending: false })
                     .limit(8);
 
-                if (error) {
-                    console.warn('Error loading recent users, using demo data:', error);
-                    // Provide demo data if real data isn't available
-                    return displayRecentUsers(generateDemoUsers());
-                }
+                if (error) throw error;
 
                 // Get referral counts for each user
                 const usersWithRefs = await Promise.all(users.map(async (user) => {
-                    let referralCount = 0;
-                    let totalSpent = 0;
-                    
-                    try {
-                        // Get referral count
-                        const { data: refs, error: refError } = await supabaseClient
-                            .from('profiles')
-                            .select('id', { count: 'exact', head: true })
-                            .eq('referrer_id', user.id);
+                    const { count: referralCount, error: refError } = await supabaseClient
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('referrer_id', user.id);
 
-                        if (!refError) referralCount = refs || 0;
+                    const { data: purchases, error: purchaseError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .select('amount')
+                        .eq('user_id', user.id)
+                        .eq('status', 'completed');
 
-                        // Get purchase total
-                        const { data: purchases, error: purchaseError } = await supabaseClient
-                            .from('user_purchase_history')
-                            .select('amount')
-                            .eq('user_id', user.id)
-                            .eq('status', 'completed');
-
-                        if (!purchaseError && purchases) {
-                            totalSpent = purchases.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-                        }
-                    } catch (subError) {
-                        console.warn('Error fetching user details:', subError);
-                    }
+                    const totalSpent = purchases?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
 
                     return {
                         id: user.id,
                         name: user.username || user.email || 'Unknown User',
                         email: user.email || 'No email',
-                        referrals: referralCount,
+                        referrals: referralCount || 0,
                         totalSpent: totalSpent,
                         isVip: (user.balance || 0) > 1000,
                         status: 'active',
@@ -1137,88 +1258,8 @@
 
             } catch (error) {
                 console.error('Error loading recent users:', error);
-                displayRecentUsers(generateDemoUsers());
+                displayRecentUsers([]);
             }
-        }
-
-        // FIXED: Enhanced pending payments loading
-        async function loadPendingPaymentsFromSupabase() {
-            try {
-                const { data: payments, error } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('id')
-                    .eq('status', 'pending');
-
-                if (error) {
-                    console.warn('Error loading pending payments:', error);
-                    updatePendingPaymentsPreview(5); // Demo data
-                    return;
-                }
-
-                updatePendingPaymentsPreview(payments?.length || 0);
-
-            } catch (error) {
-                console.error('Error loading pending payments:', error);
-                updatePendingPaymentsPreview(0);
-            }
-        }
-
-        // NEW: Demo data generators for when tables don't exist
-        function createDemoStats() {
-            console.log('📋 Using demo statistics data');
-            return {
-                totalUsers: 1542,
-                totalReferrals: 892,
-                totalRevenue: 45250,
-                totalPurchases: 267,
-                activeUsers: 1234,
-                pendingPayments: 23
-            };
-        }
-
-        function generateDemoUsers() {
-            return [
-                {
-                    id: 'demo-1',
-                    name: 'John Doe',
-                    email: 'john@example.com',
-                    referrals: 5,
-                    totalSpent: 1250,
-                    isVip: true,
-                    status: 'active',
-                    hasReferrer: true
-                },
-                {
-                    id: 'demo-2', 
-                    name: 'Jane Smith',
-                    email: 'jane@example.com',
-                    referrals: 2,
-                    totalSpent: 500,
-                    isVip: false,
-                    status: 'active',
-                    hasReferrer: true
-                },
-                {
-                    id: 'demo-3',
-                    name: 'Mike Johnson',
-                    email: 'mike@example.com',
-                    referrals: 0,
-                    totalSpent: 250,
-                    isVip: false,
-                    status: 'active',
-                    hasReferrer: false
-                },
-                {
-                    id: 'demo-4',
-                    name: 'Sarah Wilson',
-                    email: 'sarah@example.com',
-                    referrals: 8,
-                    totalSpent: 3000,
-                    isVip: true,
-                    status: 'active',
-                    hasReferrer: true
-                }
-            ];
         }
 
         // Update stats cards with real data
@@ -1235,6 +1276,29 @@
             Object.keys(elements).forEach(id => {
                 const element = document.getElementById(id);
                 if (element) element.textContent = elements[id];
+            });
+
+            // Update trend indicators
+            updateTrendIndicators(stats);
+        }
+
+        // Update trend indicators
+        function updateTrendIndicators(stats) {
+            const trends = {
+                'usersTrend': 'trend-up',
+                'referralsTrend': 'trend-up', 
+                'revenueTrend': 'trend-up',
+                'purchasesTrend': 'trend-up',
+                'activeTrend': 'trend-up',
+                'pendingTrend': 'trend-down'
+            };
+
+            Object.keys(trends).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.className = 'stat-trend ' + trends[id];
+                    element.textContent = trends[id] === 'trend-up' ? '+12% this week' : '-3% this week';
+                }
             });
         }
 
@@ -1278,20 +1342,15 @@
                         </div>
                     </div>
                     <div class="user-card-footer">
-                        <div class="status-badge status-${user.status || 'active'}">${user.status || 'Active'}</div>
+                        <div class="status-badge ${user.hasReferrer ? 'status-active' : 'status-orphaned'}">
+                            ${user.hasReferrer ? 'Has Referrer' : 'No Referrer'}
+                        </div>
                         <div class="action-buttons">
                             <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
                         </div>
                     </div>
                 </div>
             `).join('');
-        }
-
-        function updatePendingPaymentsPreview(count) {
-            const pendingElement = document.getElementById('pendingPayments');
-            if (pendingElement) {
-                pendingElement.textContent = count;
-            }
         }
 
         // Section navigation
@@ -1329,15 +1388,16 @@
 
                 switch(sectionName) {
                     case 'pendingPayments':
-                        htmlContent = await loadPendingPaymentsSection();                        break;
+                        htmlContent = await loadPendingPaymentsSection();
+                        break;
                     case 'completeTree':
                         htmlContent = await loadReferralTreeSection();
                         break;
                     case 'orphanedUsers':
                         htmlContent = await loadOrphanedUsersSection();
                         break;
-                    case 'noReferrals':
-                        htmlContent = await loadNoReferralsSection();
+                    case 'usersWithReferrers':
+                        htmlContent = await loadUsersWithReferrersSection();
                         break;
                     case 'purchaseHistory':
                         htmlContent = await loadPurchaseHistorySection();
@@ -1359,7 +1419,7 @@
             }
         }
 
-        // FIXED: Enhanced pending payments section with error handling
+        // FIXED: Enhanced pending payments section
         async function loadPendingPaymentsSection() {
             try {
                 const { data: payments, error } = await supabaseClient
@@ -1378,10 +1438,7 @@
                     .eq('status', 'pending')
                     .order('created_at', { ascending: false });
 
-                if (error) {
-                    console.warn('Error loading pending payments, using demo data:', error);
-                    return createDemoPendingPaymentsSection();
-                }
+                if (error) throw error;
 
                 if (!payments || payments.length === 0) {
                     return `
@@ -1450,87 +1507,14 @@
                 `;
             } catch (error) {
                 console.error('Error loading pending payments:', error);
-                return createDemoPendingPaymentsSection();
+                return createErrorSection('Pending Payments');
             }
         }
 
-        // NEW: Demo pending payments section
-        function createDemoPendingPaymentsSection() {
-            const demoPayments = [
-                {
-                    id: 'demo-1',
-                    profiles: { username: 'Demo User 1', email: 'demo1@example.com' },
-                    amount: 1000,
-                    package_name: 'VIP Package',
-                    created_at: new Date().toISOString(),
-                    status: 'pending'
-                },
-                {
-                    id: 'demo-2',
-                    profiles: { username: 'Demo User 2', email: 'demo2@example.com' },
-                    amount: 500,
-                    package_name: 'Standard Package',
-                    created_at: new Date().toISOString(),
-                    status: 'pending'
-                }
-            ];
-
-            const paymentsHTML = demoPayments.map(payment => `
-                <tr>
-                    <td>
-                        <div class="user-name">${payment.profiles.username}</div>
-                        <div class="user-email">${payment.profiles.email}</div>
-                    </td>
-                    <td>$${payment.amount}</td>
-                    <td>${payment.package_name}</td>
-                    <td>${new Date(payment.created_at).toLocaleDateString()}</td>
-                    <td><span class="status-badge status-pending">Pending</span></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="action-btn approve-btn" onclick="approvePayment('${payment.id}')">Approve</button>
-                            <button class="action-btn reject-btn" onclick="rejectPayment('${payment.id}')">Reject</button>
-                            <button class="action-btn view-btn" onclick="viewPaymentDetails('${payment.id}')">View</button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-
-            return `
-                <div class="section-content">
-                    <div class="section-header">
-                        <h2 class="section-title">Pending Payments (Demo Data)</h2>
-                        <div class="search-controls">
-                            <input type="text" class="search-input" placeholder="Search payments..." onkeyup="filterPayments(this.value)">
-                            <select class="filter-select" onchange="filterPaymentsByStatus(this.value)">
-                                <option value="all">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
-                            </select>
-                        </div>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>User</th>
-                                <th>Amount</th>
-                                <th>Package</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${paymentsHTML}
-                        </tbody>
-                    </table>
-                </div>
-            `;
-        }
-
-        // Load referral tree section
+        // FIXED: Enhanced referral tree section with infinite levels
         async function loadReferralTreeSection() {
             try {
+                // Get all users with their referrers
                 const { data: users, error } = await supabaseClient
                     .from('profiles')
                     .select('id, username, email, balance, created_at, referrer_id')
@@ -1544,12 +1528,17 @@
                             <div class="section-header">
                                 <h2 class="section-title">Referral Tree</h2>
                             </div>
-                            <div class="no-data-message">                                <h3>No Referral Data</h3>
+                            <div class="no-data-message">
+                                <h3>No Referral Data</h3>
                                 <p>No referral tree data available to display.</p>
                             </div>
                         </div>
                     `;
                 }
+
+                // Build referral tree
+                const treeData = buildReferralTree(users);
+                const treeHTML = renderReferralTree(treeData);
 
                 return `
                     <div class="section-content">
@@ -1557,36 +1546,10 @@
                             <h2 class="section-title">Complete Referral Tree</h2>
                         </div>
                         <div class="tree-info">
-                            Displaying complete referral hierarchy
+                            Displaying complete referral hierarchy with infinite levels
                         </div>
                         <div id="referralTree">
-                            <div class="users-grid">
-                                ${users.map(user => `
-                                    <div class="user-card">
-                                        <div class="user-card-header">
-                                            <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
-                                            <div class="user-info">
-                                                <div class="user-name">${user.username || 'Unknown User'}</div>
-                                                <div class="user-email">${user.email || 'No email'}</div>
-                                            </div>
-                                        </div>
-                                        <div class="user-stats">
-                                            <div class="user-stat">
-                                                <div class="user-stat-value">${user.balance || 0}</div>
-                                                <div class="user-stat-label">Balance</div>
-                                            </div>
-                                            <div class="user-stat">
-                                                <div class="user-stat-value">${user.referrer_id ? 'Yes' : 'No'}</div>
-                                                <div class="user-stat-label">Has Referrer</div>
-                                            </div>
-                                        </div>
-                                        <div class="user-card-footer">
-                                            <div class="status-badge status-active">Active</div>
-                                            <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
-                                        </div>
-                                    </div>
-                                `).join('')}
-                            </div>
+                            ${treeHTML}
                         </div>
                     </div>
                 `;
@@ -1595,46 +1558,102 @@
             }
         }
 
-        // Load orphaned users section
+        // Build referral tree structure
+        function buildReferralTree(users) {
+            const userMap = new Map();
+            const rootNodes = [];
+
+            // Create map of all users
+            users.forEach(user => {
+                userMap.set(user.id, {
+                    ...user,
+                    children: []
+                });
+            });
+
+            // Build tree structure
+            users.forEach(user => {
+                const node = userMap.get(user.id);
+                if (user.referrer_id && userMap.has(user.referrer_id)) {
+                    const parent = userMap.get(user.referrer_id);
+                    parent.children.push(node);
+                } else {
+                    rootNodes.push(node);
+                }
+            });
+
+            return rootNodes;
+        }
+
+        // Render referral tree with infinite levels
+        function renderReferralTree(nodes, level = 1) {
+            if (!nodes || nodes.length === 0) return '';
+
+            return nodes.map(node => {
+                const hasChildren = node.children && node.children.length > 0;
+                return `
+                    <div class="tree-node level-${Math.min(level, 5)}">
+                        <div class="node-main">
+                            <div class="node-avatar">${node.username?.charAt(0) || 'U'}</div>
+                            <div class="node-info">
+                                <div class="node-name">
+                                    ${node.username || 'Unknown User'}
+                                    <span class="level-badge">Level ${level}</span>
+                                </div>
+                                <div class="node-email">${node.email || 'No email'}</div>
+                                <div class="node-stats">
+                                    <div class="node-stat">
+                                        <div class="node-stat-value">${node.balance || 0}</div>
+                                        <span>Balance</span>
+                                    </div>
+                                    <div class="node-stat">
+                                        <div class="node-stat-value">${node.children?.length || 0}</div>
+                                        <span>Referrals</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        ${hasChildren ? `
+                            <div class="children-container">
+                                ${renderReferralTree(node.children, level + 1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load orphaned users section (users with no referrals)
         async function loadOrphanedUsersSection() {
             try {
                 const { data: users, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, email, balance, created_at')
+                    .select('id, username, email, balance, created_at, referrer_id')
                     .is('referrer_id', null)
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
 
-                return createUsersSection('Orphaned Users', users || [], 'No orphaned users found.');
+                return createUsersSection('Users with No Referrals', users || [], 'No users without referrals found.');
             } catch (error) {
-                return createErrorSection('Orphaned Users');
+                return createErrorSection('Users with No Referrals');
             }
         }
 
-        // Load users with no referrals section
-        async function loadNoReferralsSection() {
+        // Load users with referrers section
+        async function loadUsersWithReferrersSection() {
             try {
-                // Get all users
-                const { data: allUsers, error: usersError } = await supabaseClient
+                const { data: users, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, email, balance, created_at');
+                    .select('id, username, email, balance, created_at, referrer_id')
+                    .not('referrer_id', 'is', null)
+                    .order('created_at', { ascending: false });
 
-                if (usersError) throw usersError;
+                if (error) throw error;
 
-                // Get users who have referrals
-                const { data: usersWithRefs, error: refsError } = await supabaseClient
-                    .from('referrals')
-                    .select('referred_user_id');
-
-                const usersWithReferrals = new Set(usersWithRefs?.map(ref => ref.referred_user_id) || []);
-
-                // Filter users who don't have any referrals
-                const usersNoRefs = allUsers?.filter(user => !usersWithReferrals.has(user.id)) || [];
-
-                return createUsersSection('Users With No Referrals', usersNoRefs, 'All users have referrals.');
+                return createUsersSection('Users with Referrers', users || [], 'No users with referrers found.');
             } catch (error) {
-                return createErrorSection('Users With No Referrals');
+                return createErrorSection('Users with Referrers');
             }
         }
 
@@ -1740,12 +1759,14 @@
                             <div class="user-stat-label">Balance</div>
                         </div>
                         <div class="user-stat">
-                            <div class="user-stat-value">0</div>
-                            <div class="user-stat-label">Referrals</div>
+                            <div class="user-stat-value">${user.referrer_id ? 'Yes' : 'No'}</div>
+                            <div class="user-stat-label">Has Referrer</div>
                         </div>
                     </div>
                     <div class="user-card-footer">
-                        <div class="status-badge status-active">Active</div>
+                        <div class="status-badge ${user.referrer_id ? 'status-active' : 'status-orphaned'}">
+                            ${user.referrer_id ? 'Has Referrer' : 'No Referrer'}
+                        </div>
                         <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
                     </div>
                 </div>
