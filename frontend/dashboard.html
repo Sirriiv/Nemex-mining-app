@@ -807,10 +807,86 @@
             }
         }
 
-        // ========== FIXED: LOAD USER DATA FROM NEW TABLES ==========
+        // ========== NEW: GET USER REFERRALS FROM BOTH TABLES ==========
+        async function getUserReferrals() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) return [];
+
+                console.log('👥 Loading referrals from both tables...');
+
+                // Get referrals from referrals table
+                const { data: referralsData, error: referralsError } = await supabaseClient
+                    .from('referrals')
+                    .select('referred_id, level, created_at')
+                    .eq('referrer_id', session.user.id);
+
+                // Get referrals from profiles table (users who have you as referrer_id)
+                const { data: profilesData, error: profilesError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, created_at, balance')
+                    .eq('referrer_id', session.user.id);
+
+                let allReferrals = [];
+
+                // Process referrals from referrals table
+                if (referralsData && referralsData.length > 0) {
+                    console.log('📊 Found referrals in referrals table:', referralsData.length);
+                    for (const referral of referralsData) {
+                        // Get user details for each referral
+                        const { data: userData, error: userError } = await supabaseClient
+                            .from('profiles')
+                            .select('username, email, balance, created_at')
+                            .eq('id', referral.referred_id)
+                            .single();
+
+                        if (userData) {
+                            allReferrals.push({
+                                id: referral.referred_id,
+                                username: userData.username,
+                                email: userData.email,
+                                balance: userData.balance,
+                                level: referral.level,
+                                created_at: referral.created_at,
+                                source: 'referrals_table'
+                            });
+                        }
+                    }
+                }
+
+                // Process referrals from profiles table
+                if (profilesData && profilesData.length > 0) {
+                    console.log('📊 Found referrals in profiles table:', profilesData.length);
+                    for (const profile of profilesData) {
+                        // Check if this referral is already in our list
+                        const existingReferral = allReferrals.find(ref => ref.id === profile.id);
+                        if (!existingReferral) {
+                            allReferrals.push({
+                                id: profile.id,
+                                username: profile.username,
+                                email: profile.email,
+                                balance: profile.balance,
+                                level: 1, // Default level for profiles table referrals
+                                created_at: profile.created_at,
+                                source: 'profiles_table'
+                            });
+                        }
+                    }
+                }
+
+                console.log('✅ Total merged referrals:', allReferrals.length);
+                return allReferrals;
+
+            } catch (error) {
+                console.error('❌ Error loading referrals:', error);
+                return [];
+            }
+        }
+
+        // ========== FIXED: LOAD USER DATA FROM BOTH TABLES ==========
         async function loadUserData() {
             try {
-                console.log('🔄 Loading user data from NEW TABLES...');
+                console.log('🔄 Loading user data from BOTH TABLES...');
 
                 // Get current session
                 const { data: { session } } = await supabaseClient.auth.getSession();
@@ -818,10 +894,10 @@
                     throw new Error('No user session found');
                 }
 
-                // Load profile data
+                // Load profile data from profiles table
                 const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, last_claim, telegram_id, admin_level')
+                    .select('id, username, last_claim, telegram_id, admin_level, email, created_at, referrer_id')
                     .eq('id', session.user.id)
                     .single();
 
@@ -834,14 +910,23 @@
                 userBalance = await loadUserBalance();
                 lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
 
+                // Load referrals from both tables
+                const referrals = await getUserReferrals();
+
                 // Update UI
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
                 console.log('💰 Balance loaded:', userBalance);
                 console.log('👤 Username:', profile.username);
                 console.log('👑 Admin level:', profile.admin_level);
+                console.log('👥 Referrals count:', referrals.length);
+                console.log('📧 Email:', profile.email);
 
-                return profile;
+                return {
+                    profile,
+                    referrals,
+                    balance: userBalance
+                };
 
             } catch (error) {
                 console.error('❌ Error loading user data:', error);
@@ -932,7 +1017,7 @@
             });
         }
 
-        // ========== FIXED: DASHBOARD INITIALIZATION WITH NEW DATA STRUCTURE ==========
+        // ========== FIXED: DASHBOARD INITIALIZATION WITH MERGED DATA ==========
         async function initializeDashboard() {
             try {
                 // FIRST: Check maintenance mode before doing anything else
@@ -955,8 +1040,8 @@
                 user = session.user;
                 console.log('👤 Web User:', user.id);
 
-                // Load user data with NEW structure
-                const profile = await loadUserData();
+                // Load user data with MERGED data from both tables
+                const userData = await loadUserData();
 
                 // Check if user is admin and show admin icons
                 await checkAdminAccess();
