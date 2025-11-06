@@ -672,6 +672,204 @@
             min-width: 250px; 
         }
 
+        /* User Popup Modal */
+        .user-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .user-popup {
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: popupSlideIn 0.3s ease;
+        }
+
+        @keyframes popupSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .popup-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .close-popup {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .close-popup:hover {
+            color: var(--danger);
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .popup-content {
+            padding: 25px;
+        }
+
+        .user-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .detail-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--muted);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-value {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .referral-preview {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .relationship-node {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .relationship-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--dark-bg);
+            font-size: 12px;
+        }
+
+        .relationship-info {
+            flex: 1;
+        }
+
+        .relationship-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .relationship-email {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .relationship-type {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+        }
+
+        .purchase-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .purchase-item:last-child {
+            border-bottom: none;
+        }
+
+        .purchase-name {
+            font-weight: 500;
+        }
+
+        .purchase-amount {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
         @media (max-width: 768px) {
             .admin-container { padding: 15px; }
             .admin-header { flex-direction: column; gap: 15px; text-align: center; }
@@ -683,6 +881,8 @@
             .mini-nav { overflow-x: auto; }
             .data-table { font-size: 12px; }
             .data-table th, .data-table td { padding: 8px 10px; }
+            .user-details-grid { grid-template-columns: 1fr; }
+            .user-popup { margin: 10px; }
         }
 
         @media (max-width: 480px) {
@@ -690,6 +890,8 @@
             .stat-number { font-size: 28px; }
             .user-stats { grid-template-columns: 1fr 1fr; }
             .node-stats { flex-wrap: wrap; gap: 8px; }
+            .popup-header { padding: 15px; }
+            .popup-content { padding: 15px; }
         }
     </style>
 </head>
@@ -815,6 +1017,28 @@
 
         <!-- Dynamic Content Section -->
         <div id="dynamicContent"></div>
+    </div>
+
+    <!-- User Popup Modal -->
+    <div id="userPopup" class="user-popup-overlay" style="display: none;">
+        <div class="user-popup">
+            <div class="popup-header">
+                <h2 class="popup-title">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    User Details
+                </h2>
+                <button class="close-popup" onclick="closeUserPopup()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="popup-content" id="popupContent">
+                <!-- Popup content will be loaded here -->
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -963,6 +1187,254 @@
             }
         }
 
+        // NEW: Enhanced user details popup with comprehensive data
+        async function showUserDetails(userId) {
+            try {
+                console.log('👤 Loading detailed user data for:', userId);
+                
+                // Show loading state
+                document.getElementById('popupContent').innerHTML = `
+                    <div class="loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading user details...</p>
+                    </div>
+                `;
+                
+                document.getElementById('userPopup').style.display = 'flex';
+
+                // Fetch user details with relationships
+                const { data: user, error: userError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (userError) throw userError;
+
+                // Fetch user's referrals (users they referred)
+                const { data: referrals, error: refsError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, created_at')
+                    .eq('referrer_id', userId);
+
+                // Fetch user's referrer (who referred them)
+                let referrer = null;
+                if (user.referrer_id) {
+                    const { data: referrerData, error: referrerError } = await supabaseClient
+                        .from('profiles')
+                        .select('id, username, email')
+                        .eq('id', user.referrer_id)
+                        .single();
+                    
+                    if (!referrerError) referrer = referrerData;
+                }
+
+                // Fetch user's purchase history
+                const { data: purchases, error: purchasesError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('package_name, amount, created_at')
+                    .eq('user_id', userId)
+                    .eq('status', 'completed')
+                    .order('created_at', { ascending: false });
+
+                const totalSpent = purchases?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+
+                // Render the popup content
+                renderUserPopup(user, referrals || [], referrer, purchases || [], totalSpent);
+
+            } catch (error) {
+                console.error('Error loading user details:', error);
+                document.getElementById('popupContent').innerHTML = `
+                    <div class="no-data-message">
+                        <h3>Error Loading User Details</h3>
+                        <p>Unable to load user information. Please try again.</p>
+                        <button class="admin-btn" onclick="showUserDetails('${userId}')">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Render user popup with all details
+        function renderUserPopup(user, referrals, referrer, purchases, totalSpent) {
+            const popupContent = document.getElementById('popupContent');
+            
+            popupContent.innerHTML = `
+                <div class="user-details-grid">
+                    <!-- User Information Section -->
+                    <div class="detail-section">
+                        <h3 class="section-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            User Information
+                        </h3>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Name
+                            </span>
+                            <span class="detail-value">${user.username || 'Unknown User'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                                Email
+                            </span>
+                            <span class="detail-value">${user.email || 'No email'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Status
+                            </span>
+                            <span class="detail-value">
+                                <span class="status-badge ${user.referrer_id ? 'status-with-refs' : 'status-orphaned'}">
+                                    ${user.referrer_id ? 'Has Referrer' : 'Orphaned User'}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Referrals
+                            </span>
+                            <span class="detail-value">${referrals.length} users</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                                Balance
+                            </span>
+                            <span class="detail-value">${user.balance || 0} NMX</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
+                                Joined
+                            </span>
+                            <span class="detail-value">${new Date(user.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+
+                    <!-- Purchase History Section -->
+                    <div class="detail-section">
+                        <h3 class="section-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4z"/>
+                            </svg>
+                            Purchase History
+                        </h3>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                                Total Spent
+                            </span>
+                            <span class="detail-value">$${totalSpent.toFixed(2)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                Total Purchases
+                            </span>
+                            <span class="detail-value">${purchases.length} items</span>
+                        </div>
+                        ${purchases.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">Recent Purchases:</h4>
+                                ${purchases.slice(0, 5).map(purchase => `
+                                    <div class="purchase-item">
+                                        <span class="purchase-name">${purchase.package_name || 'Package'}</span>
+                                        <span class="purchase-amount">$${parseFloat(purchase.amount || 0).toFixed(2)}</span>
+                                    </div>
+                                `).join('')}
+                                ${purchases.length > 5 ? `<div style="text-align: center; color: var(--muted); font-size: 12px; margin-top: 8px;">+${purchases.length - 5} more purchases</div>` : ''}
+                            </div>
+                        ` : `
+                            <div style="text-align: center; color: var(--muted); padding: 20px;">
+                                No purchase history
+                            </div>
+                        `}
+                    </div>
+                </div>
+
+                <!-- Referral Relationships Section -->
+                <div class="referral-preview">
+                    <h3 class="section-title">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Referral Relationships
+                    </h3>
+                    
+                    <!-- Referrer (Who referred this user) -->
+                    ${referrer ? `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">Referred By:</h4>
+                            <div class="relationship-node">
+                                <div class="relationship-avatar">${referrer.username?.charAt(0) || 'U'}</div>
+                                <div class="relationship-info">
+                                    <div class="relationship-name">${referrer.username || 'Unknown User'}</div>
+                                    <div class="relationship-email">${referrer.email || 'No email'}</div>
+                                </div>
+                                <span class="relationship-type">Referrer</span>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Referrals (Users this user referred) -->
+                    <div>
+                        <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">
+                            Referred Users (${referrals.length}):
+                        </h4>
+                        ${referrals.length > 0 ? `
+                            ${referrals.map(ref => `
+                                <div class="relationship-node">
+                                    <div class="relationship-avatar">${ref.username?.charAt(0) || 'U'}</div>
+                                    <div class="relationship-info">
+                                        <div class="relationship-name">${ref.username || 'Unknown User'}</div>
+                                        <div class="relationship-email">${ref.email || 'No email'}</div>
+                                    </div>
+                                    <span class="relationship-type">Referred</span>
+                                </div>
+                            `).join('')}
+                        ` : `
+                            <div style="text-align: center; color: var(--muted); padding: 20px;">
+                                No users referred yet
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Close user popup
+        function closeUserPopup() {
+            document.getElementById('userPopup').style.display = 'none';
+        }
+
+        // Close popup when clicking outside
+        document.getElementById('userPopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUserPopup();
+            }
+        });
+
         // Update stats cards with real data
         function updateStatsCards(stats) {
             const elements = {
@@ -1044,7 +1516,7 @@
                             ${user.hasReferrer ? 'Has Referrer' : 'Orphaned'}
                         </div>
                         <div class="action-buttons">
-                            <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
+                            <button class="action-btn view-btn" onclick="showUserDetails('${user.id}')">View</button>
                         </div>
                     </div>
                 </div>
@@ -1111,7 +1583,7 @@
             }
         }
 
-        // FIXED: Enhanced referral tree section with proper hierarchy
+        // FIXED: Enhanced referral tree section with proper hierarchy and view buttons
         async function loadReferralTreeSection() {
             try {
                 // Get all users with their referrers
@@ -1138,7 +1610,7 @@
 
                 // Build referral tree
                 const treeData = buildReferralTree(users);
-                const treeHTML = renderReferralTree(treeData);
+                const treeHTML = renderReferralTreeWithViewButtons(treeData);
 
                 return `
                     <div class="section-content">
@@ -1149,7 +1621,7 @@
                             </div>
                         </div>
                         <div class="tree-info">
-                            Displaying complete referral hierarchy with all user relationships
+                            Displaying complete referral hierarchy with all user relationships. Click "View" to see detailed user information.
                         </div>
                         <div id="referralTree">
                             ${treeHTML}
@@ -1188,8 +1660,8 @@
             return rootNodes;
         }
 
-        // Render referral tree with infinite levels
-        function renderReferralTree(nodes, level = 1) {
+        // Render referral tree with view buttons
+        function renderReferralTreeWithViewButtons(nodes, level = 1) {
             if (!nodes || nodes.length === 0) {
                 return '<div class="no-data-message"><p>No users at this level</p></div>';
             }
@@ -1224,10 +1696,13 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="action-buttons">
+                                <button class="action-btn view-btn" onclick="showUserDetails('${node.id}')">View</button>
+                            </div>
                         </div>
                         ${hasChildren ? `
                             <div class="children-container">
-                                ${renderReferralTree(node.children, level + 1)}
+                                ${renderReferralTreeWithViewButtons(node.children, level + 1)}
                             </div>
                         ` : ''}
                     </div>
@@ -1246,7 +1721,7 @@
 
                 if (error) throw error;
 
-                return createUsersSection('Orphaned Users (No Referrer)', users || [], 'No orphaned users found.');
+                return createUsersSectionWithViewButtons('Orphaned Users (No Referrer)', users || [], 'No orphaned users found.');
             } catch (error) {
                 return createErrorSection('Orphaned Users');
             }
@@ -1263,24 +1738,29 @@
                 if (error) throw error;
 
                 // Find users who have referred others
-                const referrerIds = new Set();
-                allUsers.forEach(user => {
-                    if (user.referrer_id) {
-                        referrerIds.add(user.referrer_id);
+                const usersWithReferrals = [];
+                for (const user of allUsers) {
+                    const { count: referralCount, error: refError } = await supabaseClient
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('referrer_id', user.id);
+
+                    if (!refError && referralCount > 0) {
+                        usersWithReferrals.push({
+                            ...user,
+                            referralCount
+                        });
                     }
-                });
+                }
 
-                // Get details of users who have referrals
-                const usersWithReferrals = allUsers.filter(user => referrerIds.has(user.id));
-
-                return createUsersSection('Users with Referrals', usersWithReferrals, 'No users with referrals found.');
+                return createUsersSectionWithViewButtons('Users with Referrals', usersWithReferrals, 'No users with referrals found.');
             } catch (error) {
                 return createErrorSection('Users with Referrals');
             }
         }
 
-        // Helper functions for section creation
-        function createUsersSection(title, users, emptyMessage) {
+        // Helper function to create user sections with view buttons
+        function createUsersSectionWithViewButtons(title, users, emptyMessage) {
             if (!users || users.length === 0) {
                 return `
                     <div class="section-content">
@@ -1288,50 +1768,52 @@
                             <h2 class="section-title">${title}</h2>
                         </div>
                         <div class="no-data-message">
-                            <h3>${emptyMessage}</h3>
+                            <h3>No Data Available</h3>
+                            <p>${emptyMessage}</p>
                         </div>
                     </div>
                 `;
             }
 
-            const usersHTML = users.map(user => {
-                const hasReferrer = !!user.referrer_id;
-                
-                return `
-                    <div class="user-card">
-                        <div class="user-card-header">
-                            <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
-                            <div class="user-info">
-                                <div class="user-name">${user.username || 'Unknown User'}</div>
-                                <div class="user-email">${user.email || 'No email'}</div>
+            const usersHTML = users.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
+                        <div class="user-info">
+                            <div class="user-name">
+                                ${user.username || 'Unknown User'}
+                                ${user.balance > 1000 ? '<span class="vip-badge">VIP</span>' : ''}
                             </div>
-                        </div>
-                        <div class="user-stats">
-                            <div class="user-stat">
-                                <div class="user-stat-value">${user.balance || 0}</div>
-                                <div class="user-stat-label">Balance</div>
-                            </div>
-                            <div class="user-stat">
-                                <div class="user-stat-value">${hasReferrer ? 'Yes' : 'No'}</div>
-                                <div class="user-stat-label">Has Referrer</div>
-                            </div>
-                        </div>
-                        <div class="user-card-footer">
-                            <div class="status-badge ${hasReferrer ? 'status-with-refs' : 'status-orphaned'}">
-                                ${hasReferrer ? 'Has Referrer' : 'Orphaned'}
-                            </div>
-                            <button class="action-btn view-btn" onclick="viewUserDetails('${user.id}')">View</button>
+                            <div class="user-email">${user.email || 'No email'}</div>
                         </div>
                     </div>
-                `;
-            }).join('');
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referralCount || 0}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.balance || 0}</div>
+                            <div class="user-stat-label">Balance</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <div class="status-badge ${user.referrer_id ? 'status-with-refs' : 'status-orphaned'}">
+                            ${user.referrer_id ? 'Has Referrer' : 'Orphaned'}
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn view-btn" onclick="showUserDetails('${user.id}')">View</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
 
             return `
                 <div class="section-content">
                     <div class="section-header">
                         <h2 class="section-title">${title}</h2>
                         <div class="search-controls">
-                            <input type="text" class="search-input" placeholder="Search users..." onkeyup="filterUsers(this.value)">
+                            <input type="text" class="search-input" placeholder="Search users..." onkeyup="filterUsers(this.value, '${title}')">
                         </div>
                     </div>
                     <div class="users-grid">
@@ -1341,6 +1823,7 @@
             `;
         }
 
+        // Helper function to create error sections
         function createErrorSection(sectionName) {
             return `
                 <div class="section-content">
@@ -1348,238 +1831,101 @@
                         <h2 class="section-title">${sectionName}</h2>
                     </div>
                     <div class="no-data-message">
-                        <h3>Error Loading ${sectionName}</h3>
-                        <p>Unable to load ${sectionName.toLowerCase()} data. Please try again.</p>
+                        <h3>Error Loading Data</h3>
+                        <p>Failed to load ${sectionName.toLowerCase()} data. Please try again.</p>
                         <button class="admin-btn" onclick="loadSectionData('${currentSection}')">Retry</button>
                     </div>
                 </div>
             `;
         }
 
-        // Real-time connection setup
+        // Setup real-time updates
         function setupRealTimeUpdates() {
-            console.log('🔔 Setting up real-time updates...');
-            
-            // Subscribe to profiles table changes
-            realtimeSubscription = supabaseClient
-                .channel('admin-panel-changes')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',
-                        schema: 'public',
-                        table: 'profiles'
-                    },
-                    (payload) => {
-                        console.log('🔄 Real-time update received:', payload);
-                        handleRealTimeUpdate(payload);
-                    }
-                )
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ Real-time subscription active');
-                        document.getElementById('realtimeText').textContent = 'LIVE UPDATES';
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('❌ Real-time subscription failed');
-                        document.getElementById('realtimeText').textContent = 'UPDATE ERROR';
-                    }
-                });
-        }
-
-        // Handle real-time updates
-        function handleRealTimeUpdate(payload) {
-            const { eventType, new: newRecord, old: oldRecord } = payload;
-            
-            console.log(`🔄 Processing ${eventType} event`);
-
-            // Refresh data based on the change
-            switch (eventType) {
-                case 'INSERT':
-                case 'UPDATE':
-                case 'DELETE':
-                    // Refresh the current section data
-                    if (currentSection === 'overview') {
-                        loadOverviewData();
-                    } else {
-                        loadSectionData(currentSection);
-                    }
-                    showCustomAlert('Data updated in real-time', 'success');
-                    break;
-            }
-        }
-
-        // Maintenance mode toggle
-        function toggleMaintenanceMode() {
-            maintenanceMode = !maintenanceMode;
-            const btn = document.getElementById('maintenanceToggle');
-            const text = document.getElementById('maintenanceText');
-
-            if (maintenanceMode) {
-                btn.classList.add('active');
-                text.textContent = 'Disable Maintenance';
-                showCustomAlert('Maintenance mode enabled', 'success');
-            } else {
-                btn.classList.remove('active');
-                text.textContent = 'Enable Maintenance';
-                showCustomAlert('Maintenance mode disabled', 'success');
-            }
-        }
-
-        // Refresh data
-        function refreshData() {
-            if (currentSection === 'overview') {
-                loadOverviewData();
-            } else {
-                loadSectionData(currentSection);
-            }
-
-            // Show refresh feedback
-            const indicator = document.getElementById('realtimeIndicator');
-            const originalText = indicator.innerHTML;
-            indicator.innerHTML = '<div class="realtime-dot"></div><span>REFRESHING...</span>';
-
-            setTimeout(() => {
-                indicator.innerHTML = originalText;
-            }, 1000);
-
-            showCustomAlert('Data refreshed successfully', 'success');
-        }
-
-        // Export data
-        async function exportData() {
             try {
-                // Get all user data for export
-                const { data: users, error } = await supabaseClient
-                    .from('profiles')
-                    .select('id, username, email, balance, created_at, referrer_id, telegram_id')
-                    .order('created_at', { ascending: false });
+                // Subscribe to profile changes
+                realtimeSubscription = supabaseClient
+                    .channel('admin-panel-updates')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'profiles' }, 
+                        payload => {
+                            console.log('Real-time update received:', payload);
+                            refreshData();
+                        }
+                    )
+                    .subscribe();
 
-                if (error) throw error;
-
-                const exportData = {
-                    users: users || [],
-                    exported_at: new Date().toISOString(),
-                    total_users: users?.length || 0
-                };
-
-                // Create and download CSV file
-                const csv = convertToCSV(exportData);
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `nemexcoin-users-export-${new Date().toISOString().split('T')[0]}.csv`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-
-                showCustomAlert('User data exported successfully!', 'success');
-
+                // Update indicator based on subscription status
+                if (realtimeSubscription) {
+                    updateRealtimeIndicator(true);
+                }
             } catch (error) {
-                console.error('Error exporting data:', error);
-                showCustomAlert('Error exporting data: ' + error.message, 'error');
+                console.error('Error setting up real-time updates:', error);
+                updateRealtimeIndicator(false);
             }
         }
 
-        // Convert data to CSV
-        function convertToCSV(data) {
-            let csv = 'NemexCoin Users Export\n\n';
-            csv += `Total Users: ${data.total_users}\n`;
-            csv += `Exported At: ${new Date(data.exported_at).toLocaleString()}\n\n`;
-
-            // Users section
-            csv += 'USERS\n';
-            if (data.users.length > 0) {
-                const headers = ['Username', 'Email', 'Balance', 'Has Referrer', 'Referrals', 'Created At'];
-                csv += headers.join(',') + '\n';
-                
-                data.users.forEach(user => {
-                    const row = [
-                        user.username || 'Unknown',
-                        user.email || 'No email',
-                        user.balance || 0,
-                        user.referrer_id ? 'Yes' : 'No',
-                        '0', // This would need to be calculated
-                        new Date(user.created_at).toLocaleDateString()
-                    ].map(value => 
-                        typeof value === 'string' && value.includes(',') ? `"${value}"` : value
-                    ).join(',');
-                    csv += row + '\n';
-                });
+        // Update real-time indicator
+        function updateRealtimeIndicator(connected) {
+            const indicator = document.getElementById('realtimeIndicator');
+            const text = document.getElementById('realtimeText');
+            
+            if (connected) {
+                indicator.className = 'realtime-indicator connected';
+                text.textContent = 'CONNECTED';
+            } else {
+                indicator.className = 'realtime-indicator error';
+                text.textContent = 'DISCONNECTED';
             }
-
-            return csv;
         }
 
         // Show connection error
         function showConnectionError() {
             const indicator = document.getElementById('realtimeIndicator');
-            indicator.classList.remove('connected');
-            indicator.classList.add('error');
-            indicator.innerHTML = '<div class="realtime-dot"></div><span>CONNECTION ERROR</span>';
+            indicator.className = 'realtime-indicator error';
+            document.getElementById('realtimeText').textContent = 'CONNECTION ERROR';
         }
 
-        // Custom alert function
-        function showCustomAlert(message, type = 'info') {
-            const alert = document.createElement('div');
-            alert.className = `custom-alert ${type}`;
-            alert.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 16px 20px;
-                border-radius: 10px;
-                font-weight: 600;
-                z-index: 10000;
-                max-width: 400px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-                animation: slideInRight 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                background: var(--darker-bg);
-                border: 2px solid ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--info)'};
-                color: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--info)'};
-            `;
-
-            const icon = type === 'success' ? 
-                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
-                type === 'error' ?
-                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
-                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-
-            alert.innerHTML = `${icon}${message}`;
-            document.body.appendChild(alert);
-
-            setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.remove();
-                }
-            }, 5000);
-        }
-
-        // Placeholder functions for future implementation
-        function viewUserDetails(userId) {
-            showCustomAlert('View user details for: ' + userId, 'info');
-        }
-
-        function filterReferralTree(searchTerm) {
-            console.log('Filtering referral tree by:', searchTerm);
-            // Implementation would filter the displayed tree
-        }
-
-        function filterUsers(searchTerm) {
-            console.log('Filtering users by:', searchTerm);
-            // Implementation would filter the displayed users
-        }
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            if (realtimeSubscription) {
-                supabaseClient.removeChannel(realtimeSubscription);
+        // Toggle maintenance mode
+        function toggleMaintenanceMode() {
+            maintenanceMode = !maintenanceMode;
+            const btn = document.getElementById('maintenanceToggle');
+            const text = document.getElementById('maintenanceText');
+            
+            if (maintenanceMode) {
+                btn.classList.add('active');
+                text.textContent = 'Disable Maintenance';
+                // Add maintenance mode logic here
+            } else {
+                btn.classList.remove('active');
+                text.textContent = 'Enable Maintenance';
+                // Remove maintenance mode logic here
             }
-        });
+        }
+
+        // Refresh all data
+        function refreshData() {
+            loadOverviewData();
+            if (currentSection !== 'overview') {
+                loadSectionData(currentSection);
+            }
+        }
+
+        // Export data (placeholder)
+        function exportData() {
+            alert('Export functionality would be implemented here');
+            // In a real implementation, this would generate and download a CSV/Excel file
+        }
+
+        // Filter functions (placeholders for now)
+        function filterReferralTree(query) {
+            // Implementation would filter the referral tree based on the query
+            console.log('Filtering referral tree with query:', query);
+        }
+
+        function filterUsers(query, section) {
+            // Implementation would filter users based on the query
+            console.log('Filtering users in', section, 'with query:', query);
+        }
     </script>
 </body>
 </html>
