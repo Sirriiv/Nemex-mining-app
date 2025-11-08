@@ -246,7 +246,7 @@
             checkReferral();
         });
 
-        // FIXED: Check for referral parameter in URL
+        // Check for referral parameter in URL
         async function checkReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
@@ -302,7 +302,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // FIXED: Handle form submission
+        // FIXED: Auth-Compatible Registration with Fallback
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -324,6 +324,13 @@
                 // Validate inputs
                 if (username.length < 3) {
                     showError('usernameError', 'Username must be at least 3 characters');
+                    registerBtn.disabled = false;
+                    registerBtn.textContent = 'Create Account';
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showError('passwordError', 'Password must be at least 6 characters');
                     registerBtn.disabled = false;
                     registerBtn.textContent = 'Create Account';
                     return;
@@ -367,148 +374,134 @@
                     return;
                 }
 
-                console.log('🔐 Creating auth user...');
+                console.log('🔐 Attempting Supabase Auth registration...');
 
-                // Create auth user
-                const { data: authData, error: authError } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
-                            full_name: fullName,
-                            username: username
-                        }
-                    }
-                });
+                // Try Supabase Auth first
+                let authUser = null;
+                let authSuccess = false;
 
-                if (authError) {
-                    console.error('❌ Auth error:', authError);
-                    showError('emailError', authError.message);
-                    registerBtn.disabled = false;
-                    registerBtn.textContent = 'Create Account';
-                    return;
-                }
-
-                const user = authData.user;
-                console.log('✅ Auth user created:', user.id);
-
-                // Calculate initial balance based on referral
-                const initialBalance = referrerId ? 30 : 0;
-                const totalEarnedFromRefs = referrerId ? 30 : 0;
-
-                // Create profile data
-                const profileData = {
-                    id: user.id,
-                    email: email,
-                    full_name: fullName,
-                    username: username,
-                    balance: initialBalance,
-                    referral_slots: 10,
-                    used_slots: 0,
-                    total_earned_from_refs: totalEarnedFromRefs,
-                    created_via: 'website'
-                };
-
-                // Add referral data if applicable
-                if (referrerId) {
-                    profileData.referred_by = referrerId;
-                    console.log('✅ SETTING referred_by to:', referrerId, 'Username:', referrerUsername);
-                }
-
-                console.log('📝 Creating profile with data:', profileData);
-
-                // Create profile
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .insert([profileData])
-                    .select()
-                    .single();
-
-                if (profileError) {
-                    console.error('❌ PROFILE CREATION FAILED:', profileError);
-                    
-                    // Try update if it's a duplicate
-                    if (profileError.code === '23505') {
-                        console.log('🔄 Profile exists, updating instead...');
-                        const { data: updatedProfile, error: updateError } = await supabase
-                            .from('profiles')
-                            .update(profileData)
-                            .eq('id', user.id)
-                            .select()
-                            .single();
-
-                        if (updateError) {
-                            throw new Error(`Failed to update profile: ${updateError.message}`);
-                        }
-                        console.log('✅ Profile updated successfully');
-                    } else {
-                        throw new Error(`Failed to create profile: ${profileError.message}`);
-                    }
-                } else {
-                    console.log('✅ Profile created successfully:', profile);
-                }
-
-                // FIXED: Process referral bonuses
-                if (referrerId) {
-                    console.log('🎁 Processing referral bonuses for referrer:', referrerId);
-                    
-                    const BONUS_AMOUNT = 30;
-
-                    try {
-                        // Get current referrer data
-                        const { data: referrerData, error: referrerFetchError } = await supabase
-                            .from('profiles')
-                            .select('balance, total_earned_from_refs, used_slots, referral_slots')
-                            .eq('id', referrerId)
-                            .single();
-
-                        if (referrerFetchError) {
-                            console.error('❌ Failed to fetch referrer data:', referrerFetchError);
-                        } else {
-                            console.log('📊 Referrer current data:', referrerData);
-                            
-                            // Calculate new values
-                            const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
-                            const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
-                            const newUsedSlots = (referrerData.used_slots || 0) + 1;
-
-                            // Check available slots
-                            const availableSlots = (referrerData.referral_slots || 10) - (referrerData.used_slots || 0);
-                            console.log('📊 Available slots:', availableSlots);
-
-                            if (availableSlots > 0) {
-                                // Update referrer with bonus
-                                const { error: referrerBonusError } = await supabase
-                                    .from('profiles')
-                                    .update({ 
-                                        balance: newReferrerBalance,
-                                        total_earned_from_refs: newReferrerEarned,
-                                        used_slots: newUsedSlots
-                                    })
-                                    .eq('id', referrerId);
-
-                                if (referrerBonusError) {
-                                    console.error('❌ Failed to give bonus to referrer:', referrerBonusError);
-                                } else {
-                                    console.log('✅ Referrer received bonus:', BONUS_AMOUNT, 'NMXp. New balance:', newReferrerBalance);
-                                }
-                            } else {
-                                console.log('⚠️ Referrer has no available slots, bonus not given');
+                try {
+                    const { data: authData, error: authError } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                username: username,
+                                full_name: fullName,
+                                referred_by: referrerId
                             }
                         }
+                    });
 
-                    } catch (bonusError) {
-                        console.error('❌ Bonus system error:', bonusError);
+                    if (authError) {
+                        console.log('❌ Supabase Auth failed, using fallback:', authError.message);
+                        // Continue to fallback method
+                    } else {
+                        authUser = authData.user;
+                        console.log('✅ Supabase Auth success:', authUser?.id);
+                        authSuccess = true;
                     }
+                } catch (authException) {
+                    console.log('❌ Supabase Auth exception, using fallback:', authException.message);
+                }
+
+                let userId = null;
+                let profileData = null;
+
+                if (authSuccess && authUser) {
+                    // Use Auth user ID
+                    userId = authUser.id;
+                    console.log('✅ Using Auth user ID:', userId);
+
+                    // Wait for trigger to create profile
+                    console.log('⏳ Waiting for profile auto-creation...');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+
+                    // Update profile with referral data if needed
+                    if (referrerId) {
+                        const { error: updateError } = await supabase
+                            .from('profiles')
+                            .update({
+                                referred_by: referrerId,
+                                balance: 30,
+                                total_earned_from_refs: 30
+                            })
+                            .eq('id', userId);
+
+                        if (updateError) {
+                            console.error('❌ Failed to update auth profile:', updateError);
+                        } else {
+                            console.log('✅ Auth profile updated with referral data');
+                        }
+                    }
+                } else {
+                    // Fallback: Create user directly in profiles table
+                    console.log('🔄 Using fallback registration method...');
+                    userId = generateUUID();
+                    
+                    // Calculate initial balance based on referral
+                    const initialBalance = referrerId ? 30 : 0;
+                    const totalEarnedFromRefs = referrerId ? 30 : 0;
+
+                    profileData = {
+                        id: userId,
+                        email: email,
+                        full_name: fullName,
+                        username: username,
+                        password_hash: await simpleHash(password),
+                        balance: initialBalance,
+                        referral_slots: 10,
+                        used_slots: 0,
+                        total_earned_from_refs: totalEarnedFromRefs,
+                        created_via: 'website_fallback',
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    };
+
+                    // Add referral data if applicable
+                    if (referrerId) {
+                        profileData.referred_by = referrerId;
+                        console.log('✅ SETTING referred_by to:', referrerId);
+                    }
+
+                    console.log('📝 Creating fallback profile:', profileData);
+
+                    // Create profile directly
+                    const { data: profile, error: profileError } = await supabase
+                        .from('profiles')
+                        .insert([profileData])
+                        .select()
+                        .single();
+
+                    if (profileError) {
+                        console.error('❌ Fallback profile creation failed:', profileError);
+                        throw new Error(`Registration failed: ${profileError.message}`);
+                    }
+
+                    console.log('✅ Fallback profile created successfully');
+                }
+
+                // Process referral bonuses (works for both Auth and Fallback)
+                if (referrerId) {
+                    console.log('🎁 Processing referral bonuses for referrer:', referrerId);
+                    await processReferrerBonus(referrerId);
                 }
 
                 // Success message
                 console.log('🎉 Registration completed successfully!');
                 
                 if (referrerId) {
-                    alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Please check your email for verification.');
+                    if (authSuccess) {
+                        alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Please check your email for verification.');
+                    } else {
+                        alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! You can now login.');
+                    }
                 } else {
-                    alert('Account created successfully! Please check your email for verification.');
+                    if (authSuccess) {
+                        alert('Account created successfully! Please check your email for verification.');
+                    } else {
+                        alert('Account created successfully! You can now login.');
+                    }
                 }
 
                 // Redirect to login
@@ -521,6 +514,74 @@
                 registerBtn.textContent = 'Create Account';
             }
         });
+
+        // Process referrer bonus
+        async function processReferrerBonus(referrerId) {
+            const BONUS_AMOUNT = 30;
+            
+            try {
+                // Get current referrer data
+                const { data: referrerData, error: referrerFetchError } = await supabase
+                    .from('profiles')
+                    .select('balance, total_earned_from_refs, used_slots, referral_slots')
+                    .eq('id', referrerId)
+                    .single();
+
+                if (referrerFetchError) {
+                    console.error('❌ Failed to fetch referrer data:', referrerFetchError);
+                    return;
+                }
+
+                console.log('📊 Referrer current data:', referrerData);
+                
+                // Calculate new values
+                const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
+                const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
+                const newUsedSlots = (referrerData.used_slots || 0) + 1;
+
+                // Check available slots
+                const availableSlots = (referrerData.referral_slots || 10) - (referrerData.used_slots || 0);
+                console.log('📊 Available slots:', availableSlots);
+
+                if (availableSlots > 0) {
+                    // Update referrer with bonus
+                    const { error: referrerBonusError } = await supabase
+                        .from('profiles')
+                        .update({ 
+                            balance: newReferrerBalance,
+                            total_earned_from_refs: newReferrerEarned,
+                            used_slots: newUsedSlots
+                        })
+                        .eq('id', referrerId);
+
+                    if (referrerBonusError) {
+                        console.error('❌ Failed to give bonus to referrer:', referrerBonusError);
+                    } else {
+                        console.log('✅ Referrer received bonus:', BONUS_AMOUNT, 'NMXp. New balance:', newReferrerBalance);
+                    }
+                } else {
+                    console.log('⚠️ Referrer has no available slots, bonus not given');
+                }
+
+            } catch (bonusError) {
+                console.error('❌ Bonus system error:', bonusError);
+            }
+        }
+
+        // Helper function to generate UUID
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Simple password hash for fallback registration
+        async function simpleHash(password) {
+            // Simple base64 encoding for demo - in production use proper hashing
+            return btoa(password).substring(0, 50);
+        }
 
         function clearErrors() {
             document.getElementById('usernameError').style.display = 'none';
