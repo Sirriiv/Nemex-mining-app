@@ -302,7 +302,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // FIXED: Auth-Compatible Registration with Fallback
+        // WORKING REGISTRATION - No Auth, Direct to Database
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -319,7 +319,7 @@
             clearErrors();
 
             try {
-                console.log('🔄 Starting registration process...');
+                console.log('🔄 Starting DIRECT registration process...');
 
                 // Validate inputs
                 if (username.length < 3) {
@@ -374,138 +374,86 @@
                     return;
                 }
 
-                console.log('🔐 Attempting Supabase Auth registration...');
+                // Generate user ID and create profile directly
+                const userId = generateUUID();
+                const initialBalance = referrerId ? 30 : 0;
+                const totalEarnedFromRefs = referrerId ? 30 : 0;
 
-                // Try Supabase Auth first
-                let authUser = null;
-                let authSuccess = false;
+                const profileData = {
+                    id: userId,
+                    email: email,
+                    full_name: fullName,
+                    username: username,
+                    password_hash: await simpleHash(password),
+                    balance: initialBalance,
+                    referral_slots: 10,
+                    used_slots: 0,
+                    total_earned_from_refs: totalEarnedFromRefs,
+                    created_via: 'direct_registration',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    is_active: true,
+                    last_login: new Date().toISOString()
+                };
 
-                try {
-                    const { data: authData, error: authError } = await supabase.auth.signUp({
-                        email: email,
-                        password: password,
-                        options: {
-                            data: {
-                                username: username,
-                                full_name: fullName,
-                                referred_by: referrerId
-                            }
-                        }
-                    });
-
-                    if (authError) {
-                        console.log('❌ Supabase Auth failed, using fallback:', authError.message);
-                        // Continue to fallback method
-                    } else {
-                        authUser = authData.user;
-                        console.log('✅ Supabase Auth success:', authUser?.id);
-                        authSuccess = true;
-                    }
-                } catch (authException) {
-                    console.log('❌ Supabase Auth exception, using fallback:', authException.message);
+                // Add referral data if applicable
+                if (referrerId) {
+                    profileData.referred_by = referrerId;
+                    console.log('✅ SETTING referred_by to:', referrerId);
                 }
 
-                let userId = null;
-                let profileData = null;
+                console.log('📝 Creating user profile:', profileData);
 
-                if (authSuccess && authUser) {
-                    // Use Auth user ID
-                    userId = authUser.id;
-                    console.log('✅ Using Auth user ID:', userId);
+                // Create profile directly in database
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .insert([profileData])
+                    .select()
+                    .single();
 
-                    // Wait for trigger to create profile
-                    console.log('⏳ Waiting for profile auto-creation...');
-                    await new Promise(resolve => setTimeout(resolve, 3000));
-
-                    // Update profile with referral data if needed
-                    if (referrerId) {
-                        const { error: updateError } = await supabase
-                            .from('profiles')
-                            .update({
-                                referred_by: referrerId,
-                                balance: 30,
-                                total_earned_from_refs: 30
-                            })
-                            .eq('id', userId);
-
-                        if (updateError) {
-                            console.error('❌ Failed to update auth profile:', updateError);
-                        } else {
-                            console.log('✅ Auth profile updated with referral data');
-                        }
-                    }
-                } else {
-                    // Fallback: Create user directly in profiles table
-                    console.log('🔄 Using fallback registration method...');
-                    userId = generateUUID();
-                    
-                    // Calculate initial balance based on referral
-                    const initialBalance = referrerId ? 30 : 0;
-                    const totalEarnedFromRefs = referrerId ? 30 : 0;
-
-                    profileData = {
-                        id: userId,
-                        email: email,
-                        full_name: fullName,
-                        username: username,
-                        password_hash: await simpleHash(password),
-                        balance: initialBalance,
-                        referral_slots: 10,
-                        used_slots: 0,
-                        total_earned_from_refs: totalEarnedFromRefs,
-                        created_via: 'website_fallback',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    };
-
-                    // Add referral data if applicable
-                    if (referrerId) {
-                        profileData.referred_by = referrerId;
-                        console.log('✅ SETTING referred_by to:', referrerId);
-                    }
-
-                    console.log('📝 Creating fallback profile:', profileData);
-
-                    // Create profile directly
-                    const { data: profile, error: profileError } = await supabase
-                        .from('profiles')
-                        .insert([profileData])
-                        .select()
-                        .single();
-
-                    if (profileError) {
-                        console.error('❌ Fallback profile creation failed:', profileError);
-                        throw new Error(`Registration failed: ${profileError.message}`);
-                    }
-
-                    console.log('✅ Fallback profile created successfully');
+                if (profileError) {
+                    console.error('❌ Profile creation failed:', profileError);
+                    throw new Error(`Registration failed: ${profileError.message}`);
                 }
 
-                // Process referral bonuses (works for both Auth and Fallback)
+                console.log('✅ Profile created successfully:', profile);
+
+                // Process referral bonuses
                 if (referrerId) {
                     console.log('🎁 Processing referral bonuses for referrer:', referrerId);
                     await processReferrerBonus(referrerId);
+                    
+                    // Create multi-level referral relationships
+                    await createMultiLevelReferrals(userId, referrerId);
                 }
+
+                // Store user session in localStorage for auto-login
+                const userSession = {
+                    id: userId,
+                    email: email,
+                    username: username,
+                    full_name: fullName,
+                    balance: initialBalance,
+                    loggedIn: true,
+                    loginTime: new Date().toISOString()
+                };
+                
+                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+                console.log('🔐 User session stored');
 
                 // Success message
-                console.log('🎉 Registration completed successfully!');
+                console.log('🎉 DIRECT Registration completed successfully!');
                 
                 if (referrerId) {
-                    if (authSuccess) {
-                        alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Please check your email for verification.');
-                    } else {
-                        alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! You can now login.');
-                    }
+                    alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
                 } else {
-                    if (authSuccess) {
-                        alert('Account created successfully! Please check your email for verification.');
-                    } else {
-                        alert('Account created successfully! You can now login.');
-                    }
+                    alert('Account created successfully! Redirecting to dashboard...');
                 }
 
-                // Redirect to login
-                window.location.href = 'login.html';
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
 
             } catch (error) {
                 console.error('❌ Registration error:', error);
@@ -568,6 +516,56 @@
             }
         }
 
+        // Create multi-level referral relationships
+        async function createMultiLevelReferrals(newUserId, directReferrerId) {
+            try {
+                console.log('🌐 Creating multi-level referral relationships...');
+                
+                // Level 1: Direct referrer to new user
+                const { error: level1Error } = await supabase
+                    .from('referral_network')
+                    .insert({
+                        referrer_id: directReferrerId,
+                        referred_user_id: newUserId,
+                        level: 1,
+                        created_at: new Date().toISOString()
+                    });
+
+                if (level1Error) {
+                    console.error('❌ Level 1 referral failed:', level1Error);
+                } else {
+                    console.log('✅ Level 1 referral created');
+                }
+
+                // Find level 2 referrer (referrer's referrer)
+                const { data: level2Referrer, error: level2Error } = await supabase
+                    .from('profiles')
+                    .select('referred_by')
+                    .eq('id', directReferrerId)
+                    .single();
+
+                if (!level2Error && level2Referrer && level2Referrer.referred_by) {
+                    const { error: level2RefError } = await supabase
+                        .from('referral_network')
+                        .insert({
+                            referrer_id: level2Referrer.referred_by,
+                            referred_user_id: newUserId,
+                            level: 2,
+                            created_at: new Date().toISOString()
+                        });
+
+                    if (level2RefError) {
+                        console.error('❌ Level 2 referral failed:', level2RefError);
+                    } else {
+                        console.log('✅ Level 2 referral created');
+                    }
+                }
+
+            } catch (networkError) {
+                console.error('❌ Multi-level referral error:', networkError);
+            }
+        }
+
         // Helper function to generate UUID
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -577,9 +575,9 @@
             });
         }
 
-        // Simple password hash for fallback registration
+        // Simple password hash
         async function simpleHash(password) {
-            // Simple base64 encoding for demo - in production use proper hashing
+            // Simple base64 encoding - in production use proper hashing
             return btoa(password).substring(0, 50);
         }
 
