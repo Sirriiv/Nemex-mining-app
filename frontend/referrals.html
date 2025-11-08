@@ -182,8 +182,7 @@
             </a>
             <a href="referrals.html" class="nav-item active">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                </svg>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>                </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
             <a href="wallet.html" class="nav-item">
@@ -219,65 +218,252 @@
         let referrals = [];
         let userToRemove = null;
 
-        // UPDATED: Function to record referral in the new referral_network table
-        async function recordReferral(referrerId, referredUserId) {
+        // FIXED: Enhanced referral data loading with better error handling
+        async function loadReferralData() {
+            if (!currentUser) return;
             try {
-                console.log('📝 Recording referral:', { referrerId, referredUserId });
+                console.log('🔄 Loading referral data...');
                 
-                // 1. Update referrer's profile stats
-                const { data: referrerProfile, error: profileError } = await supabase
+                // Get user profile with better error handling
+                const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .select('used_slots, referral_slots')
-                    .eq('id', referrerId)
-                    .single();
-                if (profileError) throw profileError;
-                
-                const newUsedSlots = (referrerProfile.used_slots || 0) + 1;
-                
-                // Update referrer's used_slots
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        used_slots: newUsedSlots, 
-                        updated_at: new Date().toISOString() 
-                    })
-                    .eq('id', referrerId);
-                if (updateError) throw updateError;
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .maybeSingle(); // Use maybeSingle to avoid errors if no profile
 
-                // 2. Update referred user's referred_by field
-                const { error: referredUpdateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        referred_by: referrerId,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', referredUserId);
-                if (referredUpdateError) {
-                    console.warn('Could not update referred_by field:', referredUpdateError);
+                if (profileError) {
+                    console.error('Error loading profile:', profileError);
+                    showToast('Error loading profile data', 'error');
+                    return;
                 }
 
-                // UPDATED: 3. Create referral record in the new referral_network table
-                const { error: referralError } = await supabase
-                    .from('referral_network')  // Updated table name
-                    .insert({ 
-                        referrer: referrerId,      // Updated column name
-                        referred: referredUserId,  // Updated column name
-                        created: new Date().toISOString(), // Updated column name
-                        level: 1 
-                    });
-                if (referralError) {
-                    console.warn('Could not create referral record:', referralError);
-                } else {
-                    console.log('✅ Referral recorded successfully in new system');
+                if (!profile) {
+                    showToast('User profile not found', 'error');
+                    return;
                 }
 
-                return true;
+                currentProfile = profile;
+                
+                // Calculate stats with safe defaults
+                const usedSlots = profile.used_slots || 0;
+                const totalSlots = profile.referral_slots || 10;
+                const availableSlots = Math.max(0, totalSlots - usedSlots);
+                
+                // Update UI
+                document.getElementById('totalReferrals').textContent = usedSlots;
+                document.getElementById('availableSlots').textContent = availableSlots;
+                document.getElementById('earnedBonus').textContent = profile.total_earned_from_refs || 0;
+                document.getElementById('usernameDisplay').textContent = profile.username || 'user_' + currentUser.id.substring(0, 8);
+                
+                // Generate referral link
+                const referralLink = `${window.location.origin}/register.html?ref=${profile.username || currentUser.id}`;
+                document.getElementById('referralLink').value = referralLink;
+                
+                await loadReferralsList();
+                
             } catch (error) {
-                console.error('❌ Error recording referral:', error);
-                return false;
+                console.error('Error loading referral data:', error);
+                showToast('Error loading referral data', 'error');
             }
         }
 
+        // FIXED: Enhanced referrals list loading
+        async function loadReferralsList() {
+            if (!currentUser) return;
+            try {
+                console.log('👥 Loading referrals list...');
+                
+                // Try multiple approaches to get referrals
+                let referralsData = [];
+
+                // Approach 1: Get users who have this user as referrer
+                const { data: directReferrals, error: directError } = await supabase
+                    .from('profiles')
+                    .select('id, username, email, created_at, full_name, balance')
+                    .eq('referred_by', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (!directError && directReferrals) {
+                    referralsData = directReferrals.map(ref => ({
+                        ...ref,
+                        source: 'direct_referrals'
+                    }));
+                }
+
+                // Approach 2: Check referral_network table
+                try {
+                    const { data: networkReferrals, error: networkError } = await supabase
+                        .from('referral_network')
+                        .select('referred, created')
+                        .eq('referrer', currentUser.id);
+
+                    if (!networkError && networkReferrals) {
+                        for (const ref of networkReferrals) {
+                            // Check if we already have this referral
+                            const existing = referralsData.find(r => r.id === ref.referred);
+                            if (!existing) {
+                                // Get user details
+                                const { data: userData } = await supabase
+                                    .from('profiles')
+                                    .select('id, username, email, created_at, full_name, balance')
+                                    .eq('id', ref.referred)
+                                    .single();
+
+                                if (userData) {
+                                    referralsData.push({
+                                        ...userData,
+                                        source: 'referral_network'
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } catch (networkError) {
+                    console.warn('Could not load from referral_network:', networkError);
+                }
+
+                referrals = referralsData;
+                displayReferralsList(referralsData);
+
+            } catch (error) {
+                console.error('Error loading referrals list:', error);
+                showToast('Error loading referrals list', 'error');
+                displayReferralsList([]);
+            }
+        }
+
+        // FIXED: Display referrals list with better error handling
+        function displayReferralsList(referralsData) {
+            const referralsList = document.getElementById('referralsList');
+            if (!referralsList) return;
+
+            if (!referralsData || referralsData.length === 0) {
+                referralsList.innerHTML = `
+                    <div class="empty-state">
+                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <div>No referrals yet</div>
+                        <div style="font-size: 12px; margin-top: 8px;">Share your link to start earning</div>
+                    </div>
+                `;
+                return;
+            }
+
+            referralsList.innerHTML = referralsData.map(ref => `
+                <div class="referral-item">
+                    <div class="referral-info">
+                        <div class="referral-name">${ref.full_name || ref.username || 'Unknown User'}</div>
+                        <div class="referral-date">
+                            Joined ${formatDate(ref.created_at)} • 
+                            Balance: ${ref.balance || 0} NMXp
+                            ${ref.source === 'referral_network' ? ' • (Network)' : ''}
+                        </div>
+                    </div>
+                    <div class="referral-actions">
+                        <button class="action-btn ping-btn" onclick="pingUser('${ref.id}', '${ref.full_name || ref.username || 'User'}')">Ping</button>
+                        <button class="action-btn remove-btn" onclick="showRemoveModal('${ref.id}', '${ref.full_name || ref.username || 'User'}')">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // FIXED: Enhanced user removal with proper error handling
+        async function removeUser(userId) {
+            if (!userId || !currentUser) { 
+                showToast('Error: Invalid user data', 'error'); 
+                return; 
+            }
+            
+            try {
+                showToast('Removing user...', 'info');
+                const BONUS_AMOUNT = 30;
+
+                // 1. Get current user data
+                const { data: currentUserData, error: currentUserError } = await supabase
+                    .from('profiles')
+                    .select('balance, total_earned_from_refs, used_slots')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (currentUserError) {
+                    throw new Error('Failed to load your profile: ' + currentUserError.message);
+                }
+
+                // 2. Get the user to remove data
+                const { data: userToRemoveData, error: userError } = await supabase
+                    .from('profiles')
+                    .select('balance, total_earned_from_refs')
+                    .eq('id', userId)
+                    .single();
+
+                if (userError) {
+                    throw new Error('Failed to load user to remove: ' + userError.message);
+                }
+
+                // 3. Calculate new values
+                const newReferrerBalance = Math.max(0, (currentUserData.balance || 0) - BONUS_AMOUNT);
+                const newReferrerEarned = Math.max(0, (currentUserData.total_earned_from_refs || 0) - BONUS_AMOUNT);
+                const newUsedSlots = Math.max(0, (currentUserData.used_slots || 0) - 1);
+                const newUserBalance = Math.max(0, (userToRemoveData.balance || 0) - BONUS_AMOUNT);
+                const newUserEarned = Math.max(0, (userToRemoveData.total_earned_from_refs || 0) - BONUS_AMOUNT);
+
+                // 4. Update referrer (current user)
+                const { error: referrerUpdateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        balance: newReferrerBalance, 
+                        total_earned_from_refs: newReferrerEarned, 
+                        used_slots: newUsedSlots,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', currentUser.id);
+
+                if (referrerUpdateError) {
+                    throw new Error('Failed to update your profile: ' + referrerUpdateError.message);
+                }
+
+                // 5. Update removed user
+                const { error: userUpdateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        balance: newUserBalance, 
+                        total_earned_from_refs: newUserEarned, 
+                        referred_by: null,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (userUpdateError) {
+                    throw new Error('Failed to update removed user: ' + userUpdateError.message);
+                }
+
+                // 6. Remove from referral_network table if it exists
+                try {
+                    const { error: referralDeleteError } = await supabase
+                        .from('referral_network')
+                        .delete()
+                        .eq('referrer', currentUser.id)
+                        .eq('referred', userId);
+
+                    if (referralDeleteError) {
+                        console.warn('⚠️ Could not remove from referral_network:', referralDeleteError);
+                    }
+                } catch (networkError) {
+                    console.warn('⚠️ referral_network table might not exist:', networkError);
+                }
+
+                // Reload data
+                await loadReferralData();
+                showToast('User removed successfully. Bonuses deducted and slot freed.', 'success');
+                
+            } catch (error) {
+                console.error('Error removing user:', error);
+                showToast(`Error removing user: ${error.message}`, 'error');
+            }
+        }
+
+        // Rest of the functions remain the same but with the fixes above...
         document.addEventListener('DOMContentLoaded', async function() {
             const { data: { session }, error } = await supabase.auth.getSession();
             if (error || !session) { 
@@ -287,66 +473,13 @@
             currentUser = session.user;
             await loadReferralData();
             setupEventListeners();
+            
+            // Highlight current page in navigation
             const currentPage = window.location.pathname.split('/').pop() || 'referrals.html';
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.toggle('active', item.getAttribute('href') === currentPage);
             });
         });
-
-        async function loadReferralData() {
-            if (!currentUser) return;
-            try {
-                const { data: profile, error } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single();
-                if (error) throw error;
-                currentProfile = profile;
-                const usedSlots = profile.used_slots || 0;
-                const totalSlots = profile.referral_slots || 10;
-                const availableSlots = Math.max(0, totalSlots - usedSlots);
-                document.getElementById('totalReferrals').textContent = usedSlots;
-                document.getElementById('availableSlots').textContent = availableSlots;
-                document.getElementById('earnedBonus').textContent = profile.total_earned_from_refs || 0;
-                document.getElementById('usernameDisplay').textContent = profile.username;
-                const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
-                document.getElementById('referralLink').value = referralLink;
-                await loadReferralsList();
-            } catch (error) {
-                console.error('Error loading referral data:', error);
-                showToast('Error loading referral data', 'error');
-            }
-        }
-
-        async function loadReferralsList() {
-            if (!currentUser) return;
-            try {
-                const { data: refs, error } = await supabase
-                    .from('profiles')
-                    .select('id, username, email, created_at, full_name, balance, referred_by')
-                    .eq('referred_by', currentUser.id)
-                    .order('created_at', { ascending: false });
-                if (error) throw error;
-                referrals = refs || [];
-                const referralsList = document.getElementById('referralsList');
-                if (!referrals || referrals.length === 0) {
-                    referralsList.innerHTML = `<div class="empty-state"><svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg><div>No referrals yet</div><div style="font-size: 12px; margin-top: 8px;">Share your link to start earning</div></div>`;
-                    return;
-                }
-                referralsList.innerHTML = referrals.map(ref => `
-                    <div class="referral-item">
-                        <div class="referral-info">
-                            <div class="referral-name">${ref.full_name || ref.username}</div>
-                            <div class="referral-date">Joined ${formatDate(ref.created_at)} • Balance: ${ref.balance || 0} NMXp</div>
-                        </div>
-                        <div class="referral-actions">
-                            <button class="action-btn ping-btn" onclick="pingUser('${ref.id}', '${ref.full_name || ref.username}')">Ping</button>
-                            <button class="action-btn remove-btn" onclick="showRemoveModal('${ref.id}', '${ref.full_name || ref.username}')">Remove</button>
-                        </div>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Error loading referrals list:', error);
-                showToast('Error loading referrals', 'error');
-            }
-        }
 
         async function pingUser(userId, userName) {
             try { 
@@ -366,90 +499,24 @@
             modal.style.display = 'flex';
         }
 
-        async function removeUser(userId) {
-            if (!userId || !currentUser) { 
-                showToast('Error: Invalid user data', 'error'); 
-                return; 
-            }
-            try {
-                showToast('Removing user...', 'info');
-                const BONUS_AMOUNT = 30;
-
-                // 1. Get current user data
-                const { data: currentUserData, error: currentUserError } = await supabase
-                    .from('profiles').select('balance, total_earned_from_refs, used_slots').eq('id', currentUser.id).single();
-                if (currentUserError) throw currentUserError;
-
-                // 2. Get the user to remove data
-                const { data: userToRemoveData, error: userError } = await supabase
-                    .from('profiles').select('balance, total_earned_from_refs').eq('id', userId).single();
-                if (userError) throw userError;
-
-                // 3. Calculate new values
-                const newReferrerBalance = Math.max(0, (currentUserData.balance || 0) - BONUS_AMOUNT);
-                const newReferrerEarned = Math.max(0, (currentUserData.total_earned_from_refs || 0) - BONUS_AMOUNT);
-                const newUsedSlots = Math.max(0, (currentUserData.used_slots || 0) - 1);
-                const newUserBalance = Math.max(0, (userToRemoveData.balance || 0) - BONUS_AMOUNT);
-                const newUserEarned = Math.max(0, (userToRemoveData.total_earned_from_refs || 0) - BONUS_AMOUNT);
-
-                // 4. Update referrer (current user)
-                const { error: referrerUpdateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        balance: newReferrerBalance, 
-                        total_earned_from_refs: newReferrerEarned, 
-                        used_slots: newUsedSlots 
-                    })
-                    .eq('id', currentUser.id);
-                if (referrerUpdateError) throw referrerUpdateError;
-
-                // 5. Update removed user
-                const { error: userUpdateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        balance: newUserBalance, 
-                        total_earned_from_refs: newUserEarned, 
-                        referred_by: null 
-                    })
-                    .eq('id', userId);
-                if (userUpdateError) throw userUpdateError;
-
-                // UPDATED: 6. Remove from referral_network table
-                const { error: referralDeleteError } = await supabase
-                    .from('referral_network')  // Updated table name
-                    .delete()
-                    .eq('referrer', currentUser.id)  // Updated column name
-                    .eq('referred', userId);         // Updated column name
-                if (referralDeleteError) {
-                    console.warn('Could not remove from referral_network table:', referralDeleteError);
-                }
-
-                await loadReferralData();
-                showToast('User removed successfully. Bonuses deducted and slot freed.', 'success');
-            } catch (error) {
-                console.error('Error removing user:', error);
-                showToast(`Error removing user: ${error.message}`, 'error');
-            }
-        }
-
         function shareOnWhatsApp() { 
             const referralLink = document.getElementById('referralLink').value; 
             const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; 
             window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); 
         }
-        
+
         function shareOnTelegram() { 
             const referralLink = document.getElementById('referralLink').value; 
             const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; 
             window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join NemexCoin and get 30 NMXp bonus!')}`, '_blank'); 
         }
-        
+
         function shareOnTwitter() { 
             const referralLink = document.getElementById('referralLink').value; 
             const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; 
             window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`, '_blank'); 
         }
-        
+
         function shareViaEmail() { 
             const referralLink = document.getElementById('referralLink').value; 
             const subject = 'Join NemexCoin and get 30 NMXp bonus!'; 
@@ -472,12 +539,12 @@
                     }, 2000);
                 });
             });
-            
+
             document.getElementById('cancelRemove').addEventListener('click', function() { 
                 document.getElementById('removeModal').style.display = 'none'; 
                 userToRemove = null; 
             });
-            
+
             document.getElementById('confirmRemove').addEventListener('click', function() { 
                 if (userToRemove && userToRemove.id) { 
                     removeUser(userToRemove.id); 
@@ -485,14 +552,14 @@
                     userToRemove = null; 
                 } 
             });
-            
+
             document.getElementById('removeModal').addEventListener('click', function(e) { 
                 if (e.target === this) { 
                     this.style.display = 'none'; 
                     userToRemove = null; 
                 } 
             });
-            
+
             supabase.auth.onAuthStateChange(async (event, session) => {
                 if (event === 'SIGNED_OUT') { 
                     window.location.href = 'login.html'; 
@@ -511,7 +578,7 @@
                 day: 'numeric' 
             }); 
         }
-        
+
         function showToast(message, type = 'success') { 
             const toast = document.getElementById('toast'); 
             toast.textContent = message; 
