@@ -766,7 +766,7 @@
             }
         }
 
-        // ========== FIXED: LOAD BALANCE WITH FALLBACK ==========
+        // ========== FIXED: LOAD BALANCE WITH BETTER ERROR HANDLING ==========
         async function loadUserBalance() {
             try {
                 console.log('💰 Loading balance...');
@@ -788,25 +788,29 @@
                     return parseFloat(balanceData.balance) || 0;
                 }
 
-                // Fallback: Check profiles table for balance
+                // Fallback: Check profiles table for balance (with error handling)
                 console.log('⚠️ No balance in user_balance, checking profiles table...');
-                const { data: profileData, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .select('balance')
-                    .eq('id', session.user.id)
-                    .single();
+                try {
+                    const { data: profileData, error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .select('balance')
+                        .eq('id', session.user.id)
+                        .single();
 
-                if (!profileError && profileData && profileData.balance !== null) {
-                    console.log('✅ Balance loaded from profiles:', profileData.balance);
-                    // Create record in user_balance for future
-                    await supabaseClient
-                        .from('user_balance')
-                        .upsert({
-                            user_id: session.user.id,
-                            balance: parseFloat(profileData.balance) || 0,
-                            updated_at: new Date().toISOString()
-                        });
-                    return parseFloat(profileData.balance) || 0;
+                    if (!profileError && profileData && profileData.balance !== null) {
+                        console.log('✅ Balance loaded from profiles:', profileData.balance);
+                        // Create record in user_balance for future
+                        await supabaseClient
+                            .from('user_balance')
+                            .upsert({
+                                user_id: session.user.id,
+                                balance: parseFloat(profileData.balance) || 0,
+                                updated_at: new Date().toISOString()
+                            });
+                        return parseFloat(profileData.balance) || 0;
+                    }
+                } catch (profileError) {
+                    console.warn('Could not load balance from profiles:', profileError);
                 }
 
                 // Final fallback: Create zero balance
@@ -869,7 +873,7 @@
 
                     if (!referralsError && referralsData) {
                         console.log('📊 Found referrals in referrals table:', referralsData.length);
-                        
+
                         for (const referral of referralsData) {
                             // Check if this referral is already in our list
                             const existingReferral = allReferrals.find(ref => ref.id === referral.referred_id);
@@ -919,15 +923,33 @@
                     throw new Error('No user session found');
                 }
 
-                // Load profile data from profiles table
-                const { data: profile, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .select('id, username, last_claim, telegram_id, admin_level, email, created_at, referrer_id')
-                    .eq('id', session.user.id)
-                    .single();
+                // Load profile data from profiles table with better error handling
+                let profile = null;
+                try {
+                    const { data: profileData, error: profileError } = await supabaseClient
+                        .from('profiles')
+                        .select('id, username, last_claim, telegram_id, admin_level, email, created_at, referrer_id')
+                        .eq('id', session.user.id)
+                        .single();
 
-                if (profileError) {
-                    console.error('❌ Error loading profile:', profileError);
+                    if (profileError) {
+                        console.warn('Profile loading error, trying alternative approach:', profileError);
+                        // Try without the single() method
+                        const { data: profilesData, error: profilesError } = await supabaseClient
+                            .from('profiles')
+                            .select('id, username, last_claim, telegram_id, admin_level, email, created_at, referrer_id')
+                            .eq('id', session.user.id);
+
+                        if (!profilesError && profilesData && profilesData.length > 0) {
+                            profile = profilesData[0];
+                        } else {
+                            throw new Error('Could not load user profile');
+                        }
+                    } else {
+                        profile = profileData;
+                    }
+                } catch (error) {
+                    console.error('Error loading profile:', error);
                     throw new Error('Could not load user profile');
                 }
 
@@ -970,10 +992,10 @@
             try {
                 console.log('🔄 Refreshing balance...');
                 const previousBalance = userBalance;
-                
+
                 // Load fresh balance
                 userBalance = await loadUserBalance();
-                
+
                 // Update UI
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
@@ -1105,24 +1127,27 @@
                 const { data: { session } } = await supabaseClient.auth.getSession();
                 if (!session) return;
 
-                // Check admin_level from profiles table
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('admin_level')
-                    .eq('id', session.user.id)
-                    .single();
+                // Check admin_level from profiles table with better error handling
+                let adminLevel = 0;
+                let userEmail = session.user.email;
+                
+                try {
+                    const { data: profile, error } = await supabaseClient
+                        .from('profiles')
+                        .select('admin_level')
+                        .eq('id', session.user.id)
+                        .single();
 
-                if (error) {
-                    console.error('Error checking admin access:', error);
-                    return;
+                    if (!error && profile) {
+                        adminLevel = profile.admin_level || 0;
+                    }
+                } catch (error) {
+                    console.warn('Error checking admin level, using email fallback:', error);
                 }
 
-                // Also check by email as fallback
-                const userEmail = session.user.email;
+                // Check by email as fallback
                 const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
-
-                const isAdmin = (profile && profile.admin_level > 0) || 
-                               (userEmail && adminEmails.includes(userEmail));
+                const isAdmin = adminLevel > 0 || (userEmail && adminEmails.includes(userEmail));
 
                 if (isAdmin) {
                     // Show admin icons
@@ -1131,19 +1156,23 @@
                     const mainAdminSettings = document.getElementById('mainAdminSettings');
                     const transactionAdminSettings = document.getElementById('transactionAdminSettings');
 
-                    transactionAdminButton.style.display = 'block';
-                    adminButton.style.display = 'block';
-                    mainAdminSettings.style.display = 'flex';
-                    transactionAdminSettings.style.display = 'flex';
+                    if (transactionAdminButton) transactionAdminButton.style.display = 'block';
+                    if (adminButton) adminButton.style.display = 'block';
+                    if (mainAdminSettings) mainAdminSettings.style.display = 'flex';
+                    if (transactionAdminSettings) transactionAdminSettings.style.display = 'flex';
 
                     // Add click events
-                    transactionAdminButton.addEventListener('click', function() {
-                        window.location.href = 'admin-transactions.html';
-                    });
+                    if (transactionAdminButton) {
+                        transactionAdminButton.addEventListener('click', function() {
+                            window.location.href = 'admin-transactions.html';
+                        });
+                    }
 
-                    adminButton.addEventListener('click', function() {
-                        window.location.href = 'admin.html';
-                    });
+                    if (adminButton) {
+                        adminButton.addEventListener('click', function() {
+                            window.location.href = 'admin.html';
+                        });
+                    }
 
                     console.log('👑 Admin access granted');
                 } else {
