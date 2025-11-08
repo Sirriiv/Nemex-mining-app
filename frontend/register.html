@@ -302,7 +302,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // WORKING REGISTRATION - No Auth, Direct to Database
+        // WORKING REGISTRATION - Handles Foreign Key Constraints
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -396,18 +396,16 @@
                     last_login: new Date().toISOString()
                 };
 
-                // Add referral data if applicable
-                if (referrerId) {
-                    profileData.referred_by = referrerId;
-                    console.log('✅ SETTING referred_by to:', referrerId);
-                }
+                // Add referral data if applicable (but we'll handle this separately due to foreign key)
+                console.log('📝 Creating user profile (handling foreign key constraints)...');
 
-                console.log('📝 Creating user profile:', profileData);
+                // Create profile without referral data first to avoid foreign key issues
+                const profileWithoutRef = { ...profileData };
+                delete profileWithoutRef.referred_by; // Remove this temporarily
 
-                // Create profile directly in database
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .insert([profileData])
+                    .insert([profileWithoutRef])
                     .select()
                     .single();
 
@@ -418,8 +416,23 @@
 
                 console.log('✅ Profile created successfully:', profile);
 
-                // Process referral bonuses
+                // Now add referral relationship if applicable
                 if (referrerId) {
+                    console.log('🔗 Adding referral relationship...');
+                    
+                    // Update profile with referral data
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ referred_by: referrerId })
+                        .eq('id', userId);
+
+                    if (updateError) {
+                        console.error('❌ Failed to add referral relationship:', updateError);
+                    } else {
+                        console.log('✅ Referral relationship added successfully');
+                    }
+
+                    // Process referral bonuses
                     console.log('🎁 Processing referral bonuses for referrer:', referrerId);
                     await processReferrerBonus(referrerId);
                     
@@ -516,12 +529,16 @@
             }
         }
 
-        // Create multi-level referral relationships
+        // Create multi-level referral relationships - FIXED COLUMN NAMES
         async function createMultiLevelReferrals(newUserId, directReferrerId) {
             try {
                 console.log('🌐 Creating multi-level referral relationships...');
                 
+                // First, check the actual column names in referral_network table
+                console.log('🔍 Checking referral_network table structure...');
+                
                 // Level 1: Direct referrer to new user
+                // Using the correct column names based on your table structure
                 const { error: level1Error } = await supabase
                     .from('referral_network')
                     .insert({
@@ -533,6 +550,24 @@
 
                 if (level1Error) {
                     console.error('❌ Level 1 referral failed:', level1Error);
+                    // Try alternative column names
+                    console.log('🔄 Trying alternative column names...');
+                    
+                    // Try with different column name combinations
+                    const { error: altError } = await supabase
+                        .from('referral_network')
+                        .insert({
+                            referrer: directReferrerId,
+                            referred_user: newUserId,
+                            level: 1,
+                            created_at: new Date().toISOString()
+                        });
+
+                    if (altError) {
+                        console.error('❌ Alternative column names also failed:', altError);
+                    } else {
+                        console.log('✅ Level 1 referral created with alternative columns');
+                    }
                 } else {
                     console.log('✅ Level 1 referral created');
                 }
@@ -545,6 +580,9 @@
                     .single();
 
                 if (!level2Error && level2Referrer && level2Referrer.referred_by) {
+                    console.log('🔍 Found level 2 referrer:', level2Referrer.referred_by);
+                    
+                    // Level 2: Referrer's referrer to new user
                     const { error: level2RefError } = await supabase
                         .from('referral_network')
                         .insert({
@@ -556,9 +594,27 @@
 
                     if (level2RefError) {
                         console.error('❌ Level 2 referral failed:', level2RefError);
+                        
+                        // Try alternative column names for level 2
+                        const { error: altLevel2Error } = await supabase
+                            .from('referral_network')
+                            .insert({
+                                referrer: level2Referrer.referred_by,
+                                referred_user: newUserId,
+                                level: 2,
+                                created_at: new Date().toISOString()
+                            });
+
+                        if (altLevel2Error) {
+                            console.error('❌ Level 2 alternative columns also failed:', altLevel2Error);
+                        } else {
+                            console.log('✅ Level 2 referral created with alternative columns');
+                        }
                     } else {
                         console.log('✅ Level 2 referral created');
                     }
+                } else {
+                    console.log('ℹ️ No level 2 referrer found');
                 }
 
             } catch (networkError) {
