@@ -624,11 +624,64 @@
         // =============================================
 
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 Transaction Admin Panel Initializing...');
+            
+            // Check admin access first
+            const isAdmin = await checkAdminAccess();
+            if (!isAdmin) {
+                alert('Access Denied: Admin privileges required');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
             loadAllTransactionData();
             setupSearchFilters();
         });
+
+        // FIXED: Check admin access
+        async function checkAdminAccess() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    console.log('❌ No user session found');
+                    return false;
+                }
+
+                console.log('👤 Checking admin access for user:', session.user.id);
+
+                // Method 1: Check admin_level in profiles
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('admin_level, email')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+
+                if (!profileError && profile) {
+                    console.log('📊 Profile admin level:', profile.admin_level);
+                    if (profile.admin_level > 0) {
+                        console.log('✅ Admin access granted via admin_level');
+                        return true;
+                    }
+                }
+
+                // Method 2: Check by email
+                const userEmail = session.user.email;
+                const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
+                
+                if (userEmail && adminEmails.includes(userEmail)) {
+                    console.log('✅ Admin access granted via email');
+                    return true;
+                }
+
+                console.log('❌ User does not have admin access');
+                return false;
+
+            } catch (error) {
+                console.error('Error checking admin access:', error);
+                return false;
+            }
+        }
 
         // Tab Navigation
         function showTab(tabName) {
@@ -670,7 +723,7 @@
             }
         }
 
-        // Enhanced Data Loading with Direct Supabase Connection
+        // FIXED: Enhanced Data Loading with Direct Supabase Connection
         async function loadAllTransactionData() {
             try {
                 console.log('🔄 Loading all transaction data from Supabase...');
@@ -709,7 +762,7 @@
             }
         }
 
-        // Enhanced Approve Transaction Function - FIXED
+        // FIXED: Enhanced Approve Transaction Function
         async function approveTransaction(transactionId, amount, userId) {
             if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${parseFloat(amount).toLocaleString()} NMX to the user's balance.`)) {
                 return;
@@ -770,20 +823,24 @@
                 }
 
                 // 4. Record in user_purchase_history
-                const { error: historyError } = await supabaseClient
-                    .from('user_purchase_history')
-                    .insert({
-                        user_id: userId,
-                        package_name: transaction.package_name || `Package ${amount} NMX`,
-                        amount: amountToAdd,
-                        status: 'completed',
-                        transaction_id: transactionId,
-                        admin_notes: adminNotes,
-                        created_at: new Date().toISOString()
-                    });
+                try {
+                    const { error: historyError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .insert({
+                            user_id: userId,
+                            package_name: transaction.package_name || `Package ${amount} NMX`,
+                            amount: amountToAdd,
+                            status: 'completed',
+                            transaction_id: transactionId,
+                            admin_notes: adminNotes,
+                            created_at: new Date().toISOString()
+                        });
 
-                if (historyError) {
-                    console.warn('⚠️ Could not save to purchase history:', historyError);
+                    if (historyError) {
+                        console.warn('⚠️ Could not save to purchase history:', historyError);
+                    }
+                } catch (historyError) {
+                    console.warn('⚠️ user_purchase_history table might not exist:', historyError);
                 }
 
                 // 5. Update transaction status in pending_transactions
@@ -815,7 +872,7 @@
             }
         }
 
-        // Enhanced Reject Transaction Function - FIXED
+        // FIXED: Enhanced Reject Transaction Function
         async function rejectTransaction(transactionId, userId) {
             if (!confirm('Are you sure you want to reject this transaction?')) {
                 return;
@@ -845,17 +902,21 @@
                 }
 
                 // Record in user_purchase_history as rejected
-                await supabaseClient
-                    .from('user_purchase_history')
-                    .insert({
-                        user_id: userId,
-                        package_name: 'Rejected Package',
-                        amount: 0,
-                        status: 'rejected',
-                        transaction_id: transactionId,
-                        admin_notes: adminNotes,
-                        created_at: new Date().toISOString()
-                    });
+                try {
+                    await supabaseClient
+                        .from('user_purchase_history')
+                        .insert({
+                            user_id: userId,
+                            package_name: 'Rejected Package',
+                            amount: 0,
+                            status: 'rejected',
+                            transaction_id: transactionId,
+                            admin_notes: adminNotes,
+                            created_at: new Date().toISOString()
+                        });
+                } catch (historyError) {
+                    console.warn('⚠️ Could not save to purchase history:', historyError);
+                }
 
                 showCustomAlert('✅ Transaction rejected successfully!', 'success');
 
@@ -869,7 +930,7 @@
             }
         }
 
-        // Enhanced Overview Statistics - FIXED
+        // FIXED: Enhanced Overview Statistics
         function updateOverviewStats() {
             try {
                 const pending = allTransactions.filter(t => t.status === 'pending').length;
@@ -900,7 +961,7 @@
             }
         }
 
-        // Enhanced User Purchases Display - FIXED
+        // FIXED: Enhanced User Purchases Display
         function updateUserPurchases() {
             try {
                 const container = document.getElementById('userPurchasesList');
@@ -1009,7 +1070,7 @@
             }
         }
 
-        // Enhanced Pending Transactions Display - FIXED
+        // FIXED: Enhanced Pending Transactions Display
         function updatePendingTransactions() {
             try {
                 const container = document.getElementById('pendingTransactionsList');
@@ -1100,7 +1161,7 @@
             if (!container) return;
 
             const processed = allTransactions.filter(t => t.status === 'approved' || t.status === 'rejected');
-            
+
             if (processed.length === 0) {
                 container.innerHTML = '<div class="empty-state">No processed transactions found</div>';
                 return;
@@ -1296,13 +1357,13 @@
                     (transaction.profiles?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                      transaction.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                      transaction.transaction_hash?.toLowerCase().includes(searchTerm.toLowerCase()));
-                
+
                 const matchesPackage = !packageFilter || 
                     parseFloat(transaction.package_amount) == packageFilter;
-                
+
                 const matchesStatus = !statusFilter || 
                     transaction.status === statusFilter;
-                
+
                 return matchesSearch && matchesPackage && matchesStatus;
             });
 
