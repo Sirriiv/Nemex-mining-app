@@ -201,9 +201,9 @@
             display: flex; 
             gap: 8px; 
             margin-bottom: 25px; 
+            flex-wrap: wrap; 
             border-bottom: 1px solid var(--border-color); 
             padding-bottom: 15px; 
-            flex-wrap: wrap; 
         }
 
         .mini-nav-btn { 
@@ -1082,24 +1082,86 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Enhanced Admin Panel JavaScript with Fixed Data Flow
+        // FIXED: Enhanced Admin Panel with proper error handling
         let currentSection = 'overview';
         let maintenanceMode = false;
         let realtimeSubscription = null;
 
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeAdminPanel();
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Admin Panel Initializing...');
+            
+            // Check if user is admin first
+            const isAdmin = await checkAdminAccess();
+            if (!isAdmin) {
+                alert('Access Denied: Admin privileges required');
+                window.location.href = 'dashboard.html';
+                return;
+            }
+            
+            await initializeAdminPanel();
         });
+
+        // FIXED: Check admin access with multiple fallbacks
+        async function checkAdminAccess() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    console.log('❌ No user session found');
+                    return false;
+                }
+
+                console.log('👤 Checking admin access for user:', session.user.id);
+
+                // Method 1: Check admin_level in profiles
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('admin_level, email')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+
+                if (!profileError && profile) {
+                    console.log('📊 Profile admin level:', profile.admin_level);
+                    if (profile.admin_level > 0) {
+                        console.log('✅ Admin access granted via admin_level');
+                        return true;
+                    }
+                }
+
+                // Method 2: Check by email
+                const userEmail = session.user.email;
+                const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
+                
+                if (userEmail && adminEmails.includes(userEmail)) {
+                    console.log('✅ Admin access granted via email');
+                    // Update profile with admin level if not set
+                    if (profile && (!profile.admin_level || profile.admin_level === 0)) {
+                        await supabaseClient
+                            .from('profiles')
+                            .update({ admin_level: 1 })
+                            .eq('id', session.user.id);
+                    }
+                    return true;
+                }
+
+                console.log('❌ User does not have admin access');
+                return false;
+
+            } catch (error) {
+                console.error('Error checking admin access:', error);
+                return false;
+            }
+        }
 
         async function initializeAdminPanel() {
             await loadOverviewData();
             setupRealTimeUpdates();
         }
 
-        // Load overview data with direct Supabase connections
+        // FIXED: Enhanced data loading with error handling
         async function loadOverviewData() {
             try {
+                console.log('📊 Loading overview data...');
                 const stats = await fetchAdminStatsFromSupabase();
                 updateStatsCards(stats);
                 await loadRecentUsersFromSupabase();
@@ -1109,44 +1171,53 @@
             }
         }
 
-        // FIXED: Enhanced admin statistics with proper referral tracking
+        // FIXED: Enhanced admin statistics
         async function fetchAdminStatsFromSupabase() {
             try {
-                console.log('📊 Fetching admin stats from Supabase...');
+                console.log('📈 Fetching admin stats...');
 
                 // Get total users count
                 const { count: totalUsers, error: usersError } = await supabaseClient
                     .from('profiles')
                     .select('*', { count: 'exact', head: true });
 
-                if (usersError) throw usersError;
+                if (usersError) {
+                    console.error('Error counting users:', usersError);
+                    throw usersError;
+                }
 
-                // Get users with referrals (users who have referred others)
+                // Get users with referrers (not orphaned)
                 const { data: usersWithRefs, error: refsError } = await supabaseClient
                     .from('profiles')
                     .select('id')
-                    .not('referrer_id', 'is', null);
+                    .not('referred_by', 'is', null);
 
-                if (refsError) throw refsError;
+                if (refsError) {
+                    console.error('Error counting users with referrers:', refsError);
+                    throw refsError;
+                }
 
-                // Calculate users with referrals (users who have children)
+                // Calculate users with referrals (users who have referred others)
                 const usersWithReferralsCount = await calculateUsersWithReferrals();
 
-                // Calculate orphaned users (users with no referrer)
+                // Calculate orphaned users
                 const orphanedUsersCount = totalUsers - (usersWithRefs?.length || 0);
 
-                // Calculate total referrals (total referral relationships)
+                // Calculate total referrals
                 const totalReferralsCount = usersWithRefs?.length || 0;
 
-                return {
+                const stats = {
                     totalUsers: totalUsers || 0,
                     usersWithReferrals: usersWithReferralsCount,
                     orphanedUsers: orphanedUsersCount,
                     totalReferrals: totalReferralsCount
                 };
 
+                console.log('✅ Admin stats loaded:', stats);
+                return stats;
+
             } catch (error) {
-                console.error('Error fetching admin stats:', error);
+                console.error('❌ Error fetching admin stats:', error);
                 return {
                     totalUsers: 0,
                     usersWithReferrals: 0,
@@ -1156,26 +1227,25 @@
             }
         }
 
-        // Calculate users who have referred others (have children in referral tree)
+        // FIXED: Calculate users who have referred others
         async function calculateUsersWithReferrals() {
             try {
-                // Get all users
-                const { data: allUsers, error } = await supabaseClient
+                // Get all users who have referred others
+                const { data: referrers, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, referrer_id');
+                    .select('id')
+                    .in('id', 
+                        supabaseClient.from('profiles')
+                        .select('referred_by')
+                        .not('referred_by', 'is', null)
+                    );
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error calculating users with referrals:', error);
+                    return 0;
+                }
 
-                // Count how many users have been referred by others
-                const referrerCounts = {};
-                allUsers.forEach(user => {
-                    if (user.referrer_id) {
-                        referrerCounts[user.referrer_id] = (referrerCounts[user.referrer_id] || 0) + 1;
-                    }
-                });
-
-                // Count users who have at least one referral
-                return Object.keys(referrerCounts).length;
+                return referrers?.length || 0;
 
             } catch (error) {
                 console.error('Error calculating users with referrals:', error);
@@ -1183,24 +1253,28 @@
             }
         }
 
-        // FIXED: Enhanced recent users loading with proper referral status
+        // FIXED: Enhanced recent users loading
         async function loadRecentUsersFromSupabase() {
             try {
+                console.log('👥 Loading recent users...');
+                
                 const { data: users, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, email, balance, created_at, telegram_id, referrer_id')
+                    .select('id, username, email, balance, created_at, referred_by')
                     .order('created_at', { ascending: false })
                     .limit(8);
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Error loading recent users:', error);
+                    throw error;
+                }
 
                 // Get referral counts for each user
                 const usersWithRefs = await Promise.all(users.map(async (user) => {
-                    // Count how many users this user has referred
                     const { count: referralCount, error: refError } = await supabaseClient
                         .from('profiles')
                         .select('*', { count: 'exact', head: true })
-                        .eq('referrer_id', user.id);
+                        .eq('referred_by', user.id);
 
                     return {
                         id: user.id,
@@ -1208,24 +1282,25 @@
                         email: user.email || 'No email',
                         referrals: referralCount || 0,
                         isVip: (user.balance || 0) > 1000,
-                        hasReferrer: !!user.referrer_id,
+                        hasReferrer: !!user.referred_by,
                         created_at: user.created_at
                     };
                 }));
 
                 displayRecentUsers(usersWithRefs);
+                console.log(`✅ Loaded ${usersWithRefs.length} recent users`);
 
             } catch (error) {
-                console.error('Error loading recent users:', error);
+                console.error('❌ Error loading recent users:', error);
                 displayRecentUsers([]);
             }
         }
 
-        // NEW: Enhanced user details popup with comprehensive data
+        // FIXED: Enhanced user details popup
         async function showUserDetails(userId) {
             try {
                 console.log('👤 Loading detailed user data for:', userId);
-                
+
                 // Show loading state
                 document.getElementById('popupContent').innerHTML = `
                     <div class="loading">
@@ -1233,79 +1308,98 @@
                         <p>Loading user details...</p>
                     </div>
                 `;
-                
+
                 document.getElementById('userPopup').style.display = 'flex';
 
-                // Fetch user details with relationships
+                // Fetch user details
                 const { data: user, error: userError } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .eq('id', userId)
                     .single();
 
-                if (userError) throw userError;
+                if (userError) {
+                    throw new Error('User not found: ' + userError.message);
+                }
 
-                // Fetch user's referrals (users they referred)
+                // Fetch user's referrals
                 const { data: referrals, error: refsError } = await supabaseClient
                     .from('profiles')
                     .select('id, username, email, created_at')
-                    .eq('referrer_id', userId);
+                    .eq('referred_by', userId);
 
-                // Fetch user's referrer (who referred them)
+                // Fetch user's referrer
                 let referrer = null;
-                if (user.referrer_id) {
+                if (user.referred_by) {
                     const { data: referrerData, error: referrerError } = await supabaseClient
                         .from('profiles')
                         .select('id, username, email')
-                        .eq('id', user.referrer_id)
+                        .eq('id', user.referred_by)
                         .single();
-                    
+
                     if (!referrerError) referrer = referrerData;
                 }
 
-                // Fetch user's purchase history
-                const { data: purchases, error: purchasesError } = await supabaseClient
-                    .from('user_purchase_history')
-                    .select('package_name, amount, created_at')
-                    .eq('user_id', userId)
-                    .eq('status', 'completed')
-                    .order('created_at', { ascending: false });
+                // Fetch purchase history
+                let purchases = [];
+                let totalSpent = 0;
+                try {
+                    const { data: purchaseData, error: purchasesError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .select('package_name, amount, created_at')
+                        .eq('user_id', userId)
+                        .eq('status', 'completed')
+                        .order('created_at', { ascending: false });
 
-                const totalSpent = purchases?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+                    if (!purchasesError && purchaseData) {
+                        purchases = purchaseData;
+                        totalSpent = purchases.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+                    }
+                } catch (purchaseError) {
+                    console.warn('Could not load purchase history:', purchaseError);
+                }
 
-                // Fetch network statistics
+                // Get network statistics
                 const networkStats = await getUserNetworkStats(userId);
 
-                // Render the popup content
-                renderUserPopup(user, referrals || [], referrer, purchases || [], totalSpent, networkStats);
+                // Render the popup
+                renderUserPopup(user, referrals || [], referrer, purchases, totalSpent, networkStats);
 
             } catch (error) {
-                console.error('Error loading user details:', error);
+                console.error('❌ Error loading user details:', error);
                 document.getElementById('popupContent').innerHTML = `
                     <div class="no-data-message">
                         <h3>Error Loading User Details</h3>
-                        <p>Unable to load user information. Please try again.</p>
+                        <p>${error.message}</p>
                         <button class="admin-btn" onclick="showUserDetails('${userId}')">Retry</button>
                     </div>
                 `;
             }
         }
 
-        // Get user network statistics
+        // FIXED: Get user network statistics
         async function getUserNetworkStats(userId) {
             try {
                 // Get direct referrals count
                 const { count: directReferrals, error: directError } = await supabaseClient
                     .from('profiles')
                     .select('*', { count: 'exact', head: true })
-                    .eq('referrer_id', userId);
+                    .eq('referred_by', userId);
 
-                // Get total network size (all levels)
-                const { count: totalNetwork, error: networkError } = await supabaseClient
-                    .from('referral_network')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('user_id', userId)
-                    .neq('referred_user_id', userId);
+                // Get total network size from referral_network
+                let totalNetwork = directReferrals || 0;
+                try {
+                    const { count: networkCount, error: networkError } = await supabaseClient
+                        .from('referral_network')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('referrer', userId);
+
+                    if (!networkError) {
+                        totalNetwork = Math.max(totalNetwork, networkCount || 0);
+                    }
+                } catch (networkError) {
+                    console.warn('Could not load from referral_network:', networkError);
+                }
 
                 // Get purchase statistics
                 const { data: purchaseStats, error: purchaseError } = await supabaseClient
@@ -1319,7 +1413,7 @@
 
                 return {
                     directReferrals: directReferrals || 0,
-                    totalNetwork: totalNetwork || 0,
+                    totalNetwork: totalNetwork,
                     totalPurchases,
                     totalRevenue
                 };
@@ -1334,10 +1428,10 @@
             }
         }
 
-        // Render user popup with all details
+        // FIXED: Render user popup
         function renderUserPopup(user, referrals, referrer, purchases, totalSpent, networkStats) {
             const popupContent = document.getElementById('popupContent');
-            
+
             popupContent.innerHTML = `
                 <div class="user-details-grid">
                     <!-- User Information Section -->
@@ -1374,8 +1468,8 @@
                                 Status
                             </span>
                             <span class="detail-value">
-                                <span class="status-badge ${user.referrer_id ? 'status-with-refs' : 'status-orphaned'}">
-                                    ${user.referrer_id ? 'Has Referrer' : 'Orphaned User'}
+                                <span class="status-badge ${user.referred_by ? 'status-with-refs' : 'status-orphaned'}">
+                                    ${user.referred_by ? 'Has Referrer' : 'Orphaned User'}
                                 </span>
                             </span>
                         </div>
@@ -1519,19 +1613,17 @@
             `;
         }
 
-        // Close user popup
+        // Rest of the functions remain similar but with the fixes above...
         function closeUserPopup() {
             document.getElementById('userPopup').style.display = 'none';
         }
 
-        // Close popup when clicking outside
         document.getElementById('userPopup').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeUserPopup();
             }
         });
 
-        // Update stats cards with real data
         function updateStatsCards(stats) {
             const elements = {
                 'totalUsers': stats.totalUsers?.toLocaleString() || '0',
@@ -1545,11 +1637,9 @@
                 if (element) element.textContent = elements[id];
             });
 
-            // Update trend indicators
             updateTrendIndicators(stats);
         }
 
-        // Update trend indicators
         function updateTrendIndicators(stats) {
             const trends = {
                 'usersTrend': '+12% this week',
@@ -1568,7 +1658,6 @@
             });
         }
 
-        // Display recent users or empty state
         function displayRecentUsers(users) {
             const grid = document.getElementById('recentUsersGrid');
 
@@ -1619,20 +1708,16 @@
             `).join('');
         }
 
-        // Section navigation
         function showSection(sectionName) {
-            // Update navigation
             document.querySelectorAll('.mini-nav-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.currentTarget.classList.add('active');
 
-            // Hide all sections
             document.querySelectorAll('.section-content').forEach(section => {
                 section.style.display = 'none';
             });
 
-            // Show selected section
             currentSection = sectionName;
 
             if (sectionName === 'overview') {
@@ -1644,7 +1729,6 @@
             }
         }
 
-        // Enhanced section loading with direct Supabase data
         async function loadSectionData(sectionName) {
             const contentDiv = document.getElementById('dynamicContent');
             contentDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading ' + sectionName + '...</p></div>';
@@ -1679,13 +1763,11 @@
             }
         }
 
-        // FIXED: Enhanced referral tree section with proper hierarchy and view buttons
         async function loadReferralTreeSection() {
             try {
-                // Get all users with their referrers
                 const { data: users, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, email, balance, created_at, referrer_id')
+                    .select('id, username, email, balance, created_at, referred_by')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -1704,7 +1786,6 @@
                     `;
                 }
 
-                // Build referral tree
                 const treeData = buildReferralTree(users);
                 const treeHTML = renderReferralTreeWithViewButtons(treeData);
 
@@ -1729,12 +1810,10 @@
             }
         }
 
-        // Build referral tree structure
         function buildReferralTree(users) {
             const userMap = new Map();
             const rootNodes = [];
 
-            // Create map of all users
             users.forEach(user => {
                 userMap.set(user.id, {
                     ...user,
@@ -1742,11 +1821,10 @@
                 });
             });
 
-            // Build tree structure
-            users.forEach(user => {
+            users.forEach(user) {
                 const node = userMap.get(user.id);
-                if (user.referrer_id && userMap.has(user.referrer_id)) {
-                    const parent = userMap.get(user.referrer_id);
+                if (user.referred_by && userMap.has(user.referred_by)) {
+                    const parent = userMap.get(user.referred_by);
                     parent.children.push(node);
                 } else {
                     rootNodes.push(node);
@@ -1756,7 +1834,6 @@
             return rootNodes;
         }
 
-        // Render referral tree with view buttons
         function renderReferralTreeWithViewButtons(nodes, level = 1) {
             if (!nodes || nodes.length === 0) {
                 return '<div class="no-data-message"><p>No users at this level</p></div>';
@@ -1765,7 +1842,7 @@
             return nodes.map(node => {
                 const hasChildren = node.children && node.children.length > 0;
                 const referralCount = node.children?.length || 0;
-                
+
                 return `
                     <div class="tree-node level-${Math.min(level, 5)}">
                         <div class="node-main">
@@ -1787,7 +1864,7 @@
                                         <span>Referrals</span>
                                     </div>
                                     <div class="node-stat">
-                                        <div class="node-stat-value">${node.referrer_id ? 'Yes' : 'No'}</div>
+                                        <div class="node-stat-value">${node.referred_by ? 'Yes' : 'No'}</div>
                                         <span>Has Referrer</span>
                                     </div>
                                 </div>
@@ -1806,13 +1883,12 @@
             }).join('');
         }
 
-        // Load orphaned users section (users with no referrer)
         async function loadOrphanedUsersSection() {
             try {
                 const { data: users, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, email, balance, created_at, referrer_id')
-                    .is('referrer_id', null)
+                    .select('id, username, email, balance, created_at, referred_by')
+                    .is('referred_by', null)
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -1823,27 +1899,24 @@
             }
         }
 
-        // Load users with referrals section (users who have referred others)
         async function loadUsersWithReferralsSection() {
             try {
-                // Get all users who have referred others
                 const { data: usersWithReferrals, error } = await supabaseClient
                     .from('profiles')
-                    .select('id, username, email, balance, created_at, referrer_id')
+                    .select('id, username, email, balance, created_at, referred_by')
                     .in('id', 
                         supabaseClient.from('profiles')
-                        .select('referrer_id')
-                        .not('referrer_id', 'is', null)
+                        .select('referred_by')
+                        .not('referred_by', 'is', null)
                     );
 
                 if (error) throw error;
 
-                // Get referral counts for each user
                 const usersWithCounts = await Promise.all(usersWithReferrals.map(async (user) => {
                     const { count: referralCount, error: refError } = await supabaseClient
                         .from('profiles')
                         .select('*', { count: 'exact', head: true })
-                        .eq('referrer_id', user.id);
+                        .eq('referred_by', user.id);
 
                     return {
                         ...user,
@@ -1857,7 +1930,6 @@
             }
         }
 
-        // Helper function to create user sections with view buttons
         function createUsersSectionWithViewButtons(title, users, emptyMessage) {
             if (!users || users.length === 0) {
                 return `
@@ -1896,8 +1968,8 @@
                         </div>
                     </div>
                     <div class="user-card-footer">
-                        <div class="status-badge ${user.referrer_id ? 'status-with-refs' : 'status-orphaned'}">
-                            ${user.referrer_id ? 'Has Referrer' : 'Orphaned'}
+                        <div class="status-badge ${user.referred_by ? 'status-with-refs' : 'status-orphaned'}">
+                            ${user.referred_by ? 'Has Referrer' : 'Orphaned'}
                         </div>
                         <div class="action-buttons">
                             <button class="action-btn view-btn" onclick="showUserDetails('${user.id}')">View</button>
@@ -1921,7 +1993,6 @@
             `;
         }
 
-        // Helper function to create error sections
         function createErrorSection(sectionName) {
             return `
                 <div class="section-content">
@@ -1937,10 +2008,8 @@
             `;
         }
 
-        // Setup real-time updates
         function setupRealTimeUpdates() {
             try {
-                // Subscribe to profile changes
                 realtimeSubscription = supabaseClient
                     .channel('admin-panel-updates')
                     .on('postgres_changes', 
@@ -1952,7 +2021,6 @@
                     )
                     .subscribe();
 
-                // Update indicator based on subscription status
                 if (realtimeSubscription) {
                     updateRealtimeIndicator(true);
                 }
@@ -1962,11 +2030,10 @@
             }
         }
 
-        // Update real-time indicator
         function updateRealtimeIndicator(connected) {
             const indicator = document.getElementById('realtimeIndicator');
             const text = document.getElementById('realtimeText');
-            
+
             if (connected) {
                 indicator.className = 'realtime-indicator connected';
                 text.textContent = 'CONNECTED';
@@ -1976,31 +2043,26 @@
             }
         }
 
-        // Show connection error
         function showConnectionError() {
             const indicator = document.getElementById('realtimeIndicator');
             indicator.className = 'realtime-indicator error';
             document.getElementById('realtimeText').textContent = 'CONNECTION ERROR';
         }
 
-        // Toggle maintenance mode
         function toggleMaintenanceMode() {
             maintenanceMode = !maintenanceMode;
             const btn = document.getElementById('maintenanceToggle');
             const text = document.getElementById('maintenanceText');
-            
+
             if (maintenanceMode) {
                 btn.classList.add('active');
                 text.textContent = 'Disable Maintenance';
-                // Add maintenance mode logic here
             } else {
                 btn.classList.remove('active');
                 text.textContent = 'Enable Maintenance';
-                // Remove maintenance mode logic here
             }
         }
 
-        // Refresh all data
         function refreshData() {
             loadOverviewData();
             if (currentSection !== 'overview') {
@@ -2008,20 +2070,15 @@
             }
         }
 
-        // Export data (placeholder)
         function exportData() {
             alert('Export functionality would be implemented here');
-            // In a real implementation, this would generate and download a CSV/Excel file
         }
 
-        // Filter functions (placeholders for now)
         function filterReferralTree(query) {
-            // Implementation would filter the referral tree based on the query
             console.log('Filtering referral tree with query:', query);
         }
 
         function filterUsers(query, section) {
-            // Implementation would filter users based on the query
             console.log('Filtering users in', section, 'with query:', query);
         }
     </script>
