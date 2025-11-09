@@ -282,12 +282,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // FIXED: Consistent password hash (same as login)
-        function simpleHash(password) {
-            return btoa(password).substring(0, 50);
-        }
-
-        // Registration
+        // FIXED: Pure Database Registration
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -304,6 +299,8 @@
             clearErrors();
 
             try {
+                console.log('🔄 Starting registration...');
+
                 // Basic validation
                 if (username.length < 3) {
                     throw new Error('Username must be at least 3 characters');
@@ -337,13 +334,21 @@
                 const userId = generateUUID();
                 const initialBalance = referrerId ? 30 : 0;
 
-                // Profile data with consistent password hashing
+                // FIXED: Simple password hash (same as login)
+                const passwordHash = btoa(password).substring(0, 50);
+
+                console.log('📝 Creating user profile...');
+                console.log('User ID:', userId);
+                console.log('Email:', email);
+                console.log('Password hash:', passwordHash);
+
+                // Profile data
                 const profileData = {
                     id: userId,
                     email: email,
                     full_name: fullName,
                     username: username,
-                    password_hash: simpleHash(password), // Same hash as login
+                    password_hash: passwordHash,
                     balance: initialBalance,
                     referral_slots: 10,
                     used_slots: 0,
@@ -365,26 +370,28 @@
                     .insert([profileData]);
 
                 if (profileError) {
+                    console.error('❌ Profile creation error:', profileError);
                     throw new Error(`Registration failed: ${profileError.message}`);
                 }
+
+                console.log('✅ Profile created successfully');
 
                 // Process referral (don't wait for it)
                 if (referrerId) {
                     processReferralBonus(userId, referrerId);
                 }
 
-                // Store user session (same as login)
+                // FIXED: Use sessionStorage for temporary session
                 const userSession = {
                     id: userId,
                     email: email,
                     username: username,
                     full_name: fullName,
                     balance: initialBalance,
-                    loggedIn: true,
-                    loginTime: new Date().toISOString()
+                    loggedIn: true
                 };
 
-                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+                sessionStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
 
                 // Success
                 if (referrerId) {
@@ -397,6 +404,7 @@
                 window.location.href = 'dashboard.html';
 
             } catch (error) {
+                console.error('❌ Registration error:', error);
                 showError('emailError', error.message);
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Create Account';
@@ -442,7 +450,7 @@
                     });
 
             } catch (error) {
-                // Silent fail
+                console.error('Referral bonus error:', error);
             }
         }
 
