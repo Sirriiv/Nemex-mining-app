@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account - NemexCoin</title>
     <style>
-        /* Your existing CSS styles here */
+        /* Your existing CSS styles */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -331,7 +331,7 @@
             debugLog('⚠️ Invalid referral: ' + message);
         }
 
-        // SIMPLIFIED REGISTRATION - Focus on getting it working
+        // ULTRA-SIMPLE REGISTRATION - NO REFERRAL NETWORK AT ALL
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -344,7 +344,7 @@
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
 
-            debugLog('🔄 Starting registration process...');
+            debugLog('🔄 Starting ULTRA-SIMPLE registration process...');
             debugLog('Form data - Name: ' + fullName + ', Username: ' + username + ', Email: ' + email);
 
             // Clear previous errors
@@ -412,6 +412,7 @@
                 debugLog('Referrer ID: ' + (referrerId || 'None'));
                 debugLog('Initial balance: ' + initialBalance);
 
+                // SIMPLE profile data - only essential fields
                 const profileData = {
                     id: userId,
                     email: email,
@@ -434,7 +435,7 @@
                     debugLog('✅ SETTING referred_by to: ' + referrerId);
                 }
 
-                // STEP 1: Create profile
+                // STEP 1: Create profile ONLY
                 debugLog('🚀 Inserting profile into database...');
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
@@ -450,19 +451,14 @@
 
                 debugLog('✅ Profile created successfully: ' + profile.id);
 
-                // STEP 2: Process referral if exists
+                // STEP 2: Process referral bonus ONLY (no network tables)
                 if (referrerId) {
                     try {
-                        debugLog('🎁 Processing referral bonus for: ' + referrerId);
-                        await processReferrerBonus(referrerId);
-                        
-                        // STEP 3: Try to create records in BOTH tables with proper columns
-                        debugLog('🌐 Creating referral records in both tables...');
-                        await createReferralRecords(userId, referrerId);
-                        
-                    } catch (referralError) {
-                        debugLog('⚠️ Referral processing failed (non-critical): ' + referralError.message);
-                        // Don't throw - we don't want referral issues to break registration
+                        debugLog('💰 Processing referral bonus ONLY for: ' + referrerId);
+                        await giveReferrerBonus(referrerId);
+                    } catch (bonusError) {
+                        debugLog('⚠️ Bonus processing failed (non-critical): ' + bonusError.message);
+                        // Don't throw - bonus issues shouldn't break registration
                     }
                 }
 
@@ -481,7 +477,8 @@
                 debugLog('🔐 User session stored in localStorage');
 
                 // Success!
-                debugLog('🎉 REGISTRATION COMPLETED SUCCESSFULLY!');
+                debugLog('🎉 ULTRA-SIMPLE REGISTRATION COMPLETED SUCCESSFULLY!');
+                debugLog('💡 Note: No referral network records created to avoid column errors');
 
                 if (referrerId) {
                     alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
@@ -502,13 +499,14 @@
             }
         });
 
-        // Process referrer bonus
-        async function processReferrerBonus(referrerId) {
+        // SIMPLE: Give bonus to referrer without touching network tables
+        async function giveReferrerBonus(referrerId) {
             const BONUS_AMOUNT = 30;
 
             try {
                 debugLog('💰 Giving bonus to referrer: ' + referrerId);
 
+                // Get current referrer data
                 const { data: referrerData, error: referrerFetchError } = await supabase
                     .from('profiles')
                     .select('balance, total_earned_from_refs, used_slots')
@@ -522,10 +520,12 @@
 
                 debugLog('📊 Referrer current data - Balance: ' + referrerData.balance + ', Earned: ' + referrerData.total_earned_from_refs + ', Used slots: ' + referrerData.used_slots);
 
+                // Calculate new values
                 const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
                 const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
                 const newUsedSlots = (referrerData.used_slots || 0) + 1;
 
+                // Update referrer with bonus
                 const { error: referrerBonusError } = await supabase
                     .from('profiles')
                     .update({ 
@@ -543,99 +543,7 @@
 
             } catch (bonusError) {
                 debugLog('❌ Bonus system error: ' + bonusError.message);
-                throw bonusError;
-            }
-        }
-
-        // NEW: Create records in BOTH tables with proper columns
-        async function createReferralRecords(newUserId, directReferrerId) {
-            try {
-                debugLog('📊 Creating referral records for user: ' + newUserId);
-                
-                // Try to create record in referral_network table
-                debugLog('🔄 Attempting referral_network table...');
-                const referralNetworkData = {
-                    referrer_id: directReferrerId,
-                    referred_id: newUserId,
-                    user_id: newUserId, // For referral_network table
-                    referred_user_id: newUserId, // For referral_network table if it exists
-                    level: 1,
-                    created_at: new Date().toISOString()
-                };
-
-                const { data: networkData, error: networkError } = await supabase
-                    .from('referral_network')
-                    .insert([referralNetworkData])
-                    .select();
-
-                if (networkError) {
-                    debugLog('⚠️ referral_network insert failed: ' + networkError.message);
-                    // Try without the problematic columns
-                    const simpleNetworkData = {
-                        referrer_id: directReferrerId,
-                        referred_id: newUserId,
-                        level: 1,
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    const { data: simpleData, error: simpleError } = await supabase
-                        .from('referral_network')
-                        .insert([simpleNetworkData])
-                        .select();
-                        
-                    if (simpleError) {
-                        debugLog('❌ Simple referral_network also failed: ' + simpleError.message);
-                    } else {
-                        debugLog('✅ Simple referral_network record created');
-                    }
-                } else {
-                    debugLog('✅ referral_network record created');
-                }
-
-                // Try to create record in referrals table
-                debugLog('🔄 Attempting referrals table...');
-                const referralsData = {
-                    referrer_id: directReferrerId,
-                    referred_id: newUserId,
-                    user_id: newUserId, // For referrals table
-                    referred_user_id: newUserId, // For referrals table
-                    level: 1,
-                    created_at: new Date().toISOString()
-                };
-
-                const { data: refsData, error: refsError } = await supabase
-                    .from('referrals')
-                    .insert([referralsData])
-                    .select();
-
-                if (refsError) {
-                    debugLog('⚠️ referrals insert failed: ' + refsError.message);
-                    // Try without the problematic columns
-                    const simpleRefsData = {
-                        referrer_id: directReferrerId,
-                        referred_user_id: newUserId, // referrals table uses referred_user_id
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    const { data: simpleRefsDataResult, error: simpleRefsError } = await supabase
-                        .from('referrals')
-                        .insert([simpleRefsData])
-                        .select();
-                        
-                    if (simpleRefsError) {
-                        debugLog('❌ Simple referrals also failed: ' + simpleRefsError.message);
-                    } else {
-                        debugLog('✅ Simple referrals record created');
-                    }
-                } else {
-                    debugLog('✅ referrals record created');
-                }
-
-                debugLog('🎉 Referral records creation completed');
-
-            } catch (error) {
-                debugLog('❌ Referral records error: ' + error.message);
-                // Don't throw - this shouldn't break registration
+                // Don't re-throw - this is non-critical
             }
         }
 
