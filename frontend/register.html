@@ -15,6 +15,7 @@
             --border-color: #333333;
             --success: #00C851;
             --error: #ff4444;
+            --warning: #ff9800;
         }
 
         * { 
@@ -89,8 +90,22 @@
             text-align: center;
         }
 
+        .exhausted-notification {
+            background: rgba(255, 152, 0, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
         .bonus-text {
             color: var(--success);
+            font-weight: 600;
+        }
+
+        .exhausted-text {
+            color: var(--warning);
             font-weight: 600;
         }
 
@@ -191,6 +206,11 @@
             <div class="bonus-text">🎉 You'll receive 30 NMXp bonus for joining via referral!</div>
         </div>
 
+        <!-- Exhausted Notification -->
+        <div class="exhausted-notification" id="exhaustedNotification" style="display: none;">
+            <div class="exhausted-text">⚠️ Referral Link Exhausted - This user has reached their referral limit. You can still register normally.</div>
+        </div>
+
         <!-- Invalid Referral Banner -->
         <div class="error-banner" id="invalidReferralBanner" style="display: none;">
             <strong>Invalid Referral</strong>
@@ -240,6 +260,7 @@
 
         let referrerId = null;
         let referrerUsername = null;
+        let isReferrerExhausted = false;
 
         document.addEventListener('DOMContentLoaded', function() {
             checkReferral();
@@ -267,18 +288,21 @@
                     const usedSlots = referrerProfile.used_slots || 0;
                     const totalSlots = referrerProfile.referral_slots || 10;
                     
-                    if (usedSlots >= totalSlots) {
-                        showInvalidReferral(`Referrer "${referralUsername}" has reached their referral limit. You can still register normally.`);
-                        return;
-                    }
-
                     referrerId = referrerProfile.id;
                     referrerUsername = referrerProfile.username;
 
                     // Show referral banners
                     document.getElementById('referrerName').textContent = referrerProfile.username;
                     document.getElementById('referralBanner').style.display = 'block';
-                    document.getElementById('bonusNotification').style.display = 'block';
+
+                    if (usedSlots >= totalSlots) {
+                        // Show exhausted message
+                        isReferrerExhausted = true;
+                        document.getElementById('exhaustedNotification').style.display = 'block';
+                    } else {
+                        // Show bonus message
+                        document.getElementById('bonusNotification').style.display = 'block';
+                    }
 
                 } catch (error) {
                     showInvalidReferral(`Error checking referral. You can still register normally.`);
@@ -341,12 +365,18 @@
 
                 // Generate user ID
                 const userId = generateUUID();
-                const initialBalance = referrerId ? 30 : 0;
+                
+                // Determine initial balance based on referral status
+                let initialBalance = 0;
+                if (referrerId && !isReferrerExhausted) {
+                    initialBalance = 30; // Bonus only if referrer has slots
+                }
 
                 console.log('📝 Creating user profile...');
                 console.log('User ID:', userId);
                 console.log('Email:', email);
-                console.log('Password stored directly in "password" column');
+                console.log('Initial Balance:', initialBalance);
+                console.log('Referrer Exhausted:', isReferrerExhausted);
 
                 // Profile data - using 'password' column
                 const profileData = {
@@ -365,7 +395,7 @@
                     last_login: new Date().toISOString()
                 };
 
-                // Add referral if exists
+                // Add referral if exists (ALWAYS record the referral relationship)
                 if (referrerId) {
                     profileData.referred_by = referrerId;
                 }
@@ -382,9 +412,9 @@
 
                 console.log('✅ Profile created successfully');
 
-                // Process referral (don't wait for it)
+                // Process referral (ALWAYS record in network, but only give bonus if slots available)
                 if (referrerId) {
-                    await processReferralBonus(userId, referrerId);
+                    await processReferral(userId, referrerId, !isReferrerExhausted);
                 }
 
                 // Store session
@@ -399,9 +429,11 @@
 
                 localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
 
-                // Success
-                if (referrerId) {
+                // Success message based on referral status
+                if (referrerId && !isReferrerExhausted) {
                     alert('🎉 Account created successfully! You received 30 NMXp bonus! Redirecting...');
+                } else if (referrerId && isReferrerExhausted) {
+                    alert('Account created successfully! (Referral link was exhausted - no bonus given) Redirecting...');
                 } else {
                     alert('Account created successfully! Redirecting...');
                 }
@@ -417,48 +449,56 @@
             }
         });
 
-        // Process referral bonus
-        async function processReferralBonus(newUserId, referrerId) {
+        // Process referral - ALWAYS records in network, but only gives bonus if shouldGiveBonus is true
+        async function processReferral(newUserId, referrerId, shouldGiveBonus) {
             try {
-                const BONUS_AMOUNT = 30;
+                console.log('🔄 Processing referral...');
+                console.log('Should give bonus:', shouldGiveBonus);
 
-                // Get referrer data
-                const { data: referrerData } = await supabase
-                    .from('profiles')
-                    .select('balance, total_earned_from_refs, used_slots, username')
-                    .eq('id', referrerId)
-                    .single();
+                if (shouldGiveBonus) {
+                    const BONUS_AMOUNT = 30;
 
-                if (!referrerData) return;
+                    // Get referrer data
+                    const { data: referrerData } = await supabase
+                        .from('profiles')
+                        .select('balance, total_earned_from_refs, used_slots, username')
+                        .eq('id', referrerId)
+                        .single();
 
-                // Update referrer
-                const newBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
-                const newEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
-                const newUsedSlots = (referrerData.used_slots || 0) + 1;
+                    if (!referrerData) return;
 
-                await supabase
-                    .from('profiles')
-                    .update({ 
-                        balance: newBalance,
-                        total_earned_from_refs: newEarned,
-                        used_slots: newUsedSlots
-                    })
-                    .eq('id', referrerId);
+                    // Update referrer with bonus
+                    const newBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
+                    const newEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
+                    const newUsedSlots = (referrerData.used_slots || 0) + 1;
 
-                // Create referral network record
+                    await supabase
+                        .from('profiles')
+                        .update({ 
+                            balance: newBalance,
+                            total_earned_from_refs: newEarned,
+                            used_slots: newUsedSlots
+                        })
+                        .eq('id', referrerId);
+
+                    console.log('✅ Referral bonus processed successfully');
+                }
+
+                // ALWAYS create referral network record (for tracking all relationships)
                 await supabase
                     .from('referral_network')
                     .insert({
                         referrer_id: referrerId,
                         referred_id: newUserId,
                         level: 1,
+                        bonus_given: shouldGiveBonus,
                         created_at: new Date().toISOString()
                     });
 
-                console.log('✅ Referral bonus processed successfully');
+                console.log('✅ Referral network record created');
 
             } catch (error) {
-                console.error('Referral bonus error:', error);
+                console.error('Referral processing error:', error);
             }
         }
 
