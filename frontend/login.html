@@ -161,7 +161,7 @@
                 <input type="password" class="form-input" id="password" required>
             </div>
 
-            <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+            <button type="submit" class="loginBtn" id="loginBtn">Sign In</button>
         </form>
 
         <div class="forgot-password">
@@ -180,7 +180,7 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // FIXED: Enhanced Database Authentication
+        // SIMPLE LOGIN - No Password Hashing, using 'password' column
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -196,7 +196,7 @@
             try {
                 console.log('🔐 Attempting login for:', email);
 
-                // FIXED: Enhanced database query with better error handling
+                // Find user by email
                 const { data: user, error } = await supabase
                     .from('profiles')
                     .select('*')
@@ -210,11 +210,10 @@
 
                 console.log('✅ User found:', user.email);
 
-                // FIXED: Enhanced password verification
-                const inputHash = btoa(unescape(encodeURIComponent(password))).substring(0, 50);
-                console.log('🔑 Password verification - Stored hash length:', user.password_hash?.length, 'Input hash length:', inputHash.length);
+                // SIMPLE: Compare passwords directly using 'password' column
+                console.log('🔑 Password verification - Stored password:', user.password, 'Input password:', password);
 
-                if (user.password_hash !== inputHash) {
+                if (user.password !== password) {
                     console.log('❌ Password mismatch');
                     throw new Error('Invalid email or password');
                 }
@@ -232,7 +231,7 @@
 
                 console.log('✅ Last login updated');
 
-                // FIXED: Use localStorage for session (matching registration)
+                // Store session
                 const userSession = {
                     id: user.id,
                     email: user.email,
