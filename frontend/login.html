@@ -139,19 +139,6 @@
             text-decoration: none;
             font-size: 14px;
         }
-
-        .debug-info {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid #333;
-            border-radius: 5px;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 12px;
-            color: #aaa;
-            display: none;
-            max-height: 200px;
-            overflow-y: auto;
-        }
     </style>
 </head>
 <body>
@@ -184,40 +171,24 @@
         <div class="register-link">
             Don't have an account? <a href="register.html">Create Account</a>
         </div>
-
-        <!-- Debug Info -->
-        <div class="debug-info" id="debugInfo"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration - SAME AS REGISTRATION
+        // Supabase configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Debug logging function
-        function debugLog(message) {
-            console.log('🔧 LOGIN DEBUG:', message);
-            const debugInfo = document.getElementById('debugInfo');
-            debugInfo.style.display = 'block';
-            debugInfo.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
-            debugInfo.scrollTop = debugInfo.scrollHeight;
-        }
-
-        // Check if user is already logged in (from localStorage)
+        // Check if user is already logged in
         function checkExistingSession() {
             const userSession = localStorage.getItem('nemexcoin_user');
             if (userSession) {
-                debugLog('ℹ️ User already logged in, redirecting to dashboard...');
                 window.location.href = 'dashboard.html';
-            } else {
-                debugLog('ℹ️ No existing session found');
             }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            debugLog('🚀 Login page loaded');
             checkExistingSession();
         });
 
@@ -226,7 +197,7 @@
             return btoa(password).substring(0, 50);
         }
 
-        // Handle form submission - USING DIRECT DATABASE AUTH (like registration)
+        // FIXED: Login without hanging
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -239,46 +210,34 @@
             loginBtn.textContent = 'Signing In...';
             errorMessage.style.display = 'none';
 
-            debugLog('🔄 Starting login process...');
-            debugLog('Login attempt for: ' + emailOrUsername);
-
             try {
-                // STEP 1: Find user by email or username
-                debugLog('🔍 Searching for user in database...');
-                
+                // FIXED: Find user by email or username - SIMPLIFIED
                 const { data: users, error: searchError } = await supabase
                     .from('profiles')
                     .select('*')
                     .or(`email.eq.${emailOrUsername},username.eq.${emailOrUsername}`)
+                    .eq('is_active', true)
                     .limit(1);
 
                 if (searchError) {
-                    debugLog('❌ Database search error: ' + searchError.message);
                     throw new Error('Database error during login');
                 }
 
                 if (!users || users.length === 0) {
-                    debugLog('❌ User not found: ' + emailOrUsername);
                     throw new Error('Invalid email/username or password');
                 }
 
                 const user = users[0];
-                debugLog('✅ User found: ' + user.email + ' (ID: ' + user.id + ')');
 
-                // STEP 2: Verify password
-                debugLog('🔐 Verifying password...');
+                // Verify password
                 const hashedPassword = await simpleHash(password);
                 
                 if (user.password_hash !== hashedPassword) {
-                    debugLog('❌ Password verification failed');
                     throw new Error('Invalid email/username or password');
                 }
 
-                debugLog('✅ Password verified successfully');
-
-                // STEP 3: Update last login
-                debugLog('📝 Updating last login time...');
-                const { error: updateError } = await supabase
+                // Update last login
+                await supabase
                     .from('profiles')
                     .update({ 
                         last_login: new Date().toISOString(),
@@ -286,14 +245,7 @@
                     })
                     .eq('id', user.id);
 
-                if (updateError) {
-                    debugLog('⚠️ Failed to update last login: ' + updateError.message);
-                    // Don't throw - this shouldn't break login
-                } else {
-                    debugLog('✅ Last login updated');
-                }
-
-                // STEP 4: Create user session in localStorage (same as registration)
+                // Store user session in localStorage
                 const userSession = {
                     id: user.id,
                     email: user.email,
@@ -308,16 +260,11 @@
                 };
 
                 localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
-                debugLog('🔐 User session stored in localStorage');
-                debugLog('🎉 LOGIN SUCCESSFUL! Redirecting to dashboard...');
 
-                // STEP 5: Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 1000);
+                // Redirect to dashboard
+                window.location.href = 'dashboard.html';
 
             } catch (error) {
-                debugLog('❌ LOGIN ERROR: ' + error.message);
                 errorMessage.textContent = error.message || 'Login failed. Please check your credentials.';
                 errorMessage.style.display = 'block';
             } finally {
@@ -331,12 +278,6 @@
             if (e.key === 'Enter') {
                 document.getElementById('loginForm').dispatchEvent(new Event('submit'));
             }
-        });
-
-        // Clear debug info on page load (optional)
-        window.addEventListener('load', function() {
-            const debugInfo = document.getElementById('debugInfo');
-            debugInfo.innerHTML = '';
         });
     </script>
 </body>
