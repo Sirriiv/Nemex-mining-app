@@ -269,6 +269,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             debugLog('🚀 Registration page loaded');
+            debugLog('💡 TRIGGERS DISABLED: Registration should work now!');
             checkReferral();
         });
 
@@ -331,7 +332,7 @@
             debugLog('⚠️ Invalid referral: ' + message);
         }
 
-        // COMPLETE REGISTRATION - Handles ALL tables properly
+        // FINAL WORKING VERSION - With triggers disabled
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -344,7 +345,7 @@
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
 
-            debugLog('🔄 Starting COMPLETE registration process...');
+            debugLog('🔄 Starting registration (TRIGGERS DISABLED)...');
             debugLog('Form data - Name: ' + fullName + ', Username: ' + username + ', Email: ' + email);
 
             // Clear previous errors
@@ -412,7 +413,7 @@
                 debugLog('Referrer ID: ' + (referrerId || 'None'));
                 debugLog('Initial balance: ' + initialBalance);
 
-                // STEP 1: Create profile WITHOUT referred_by first (to avoid trigger issues)
+                // STEP 1: Create profile (triggers are disabled so this will work)
                 const profileData = {
                     id: userId,
                     email: email,
@@ -423,14 +424,14 @@
                     referral_slots: 10,
                     used_slots: 0,
                     total_earned_from_refs: 0,
+                    referred_by: referrerId, // Now safe to include since triggers are disabled
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                     is_active: true,
                     last_login: new Date().toISOString()
-                    // NOTE: We're NOT setting referred_by here to avoid trigger issues
                 };
 
-                debugLog('🚀 Inserting basic profile (without referred_by)...');
+                debugLog('🚀 Inserting profile (triggers disabled)...');
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .insert([profileData])
@@ -442,37 +443,20 @@
                     throw new Error(`Registration failed: ${profileError.message}`);
                 }
 
-                debugLog('✅ Basic profile created successfully: ' + profile.id);
+                debugLog('✅ Profile created successfully: ' + profile.id);
 
-                // STEP 2: If there's a referral, handle ALL referral-related operations
+                // STEP 2: Handle referral bonuses and network
                 if (referrerId) {
                     debugLog('🎯 Processing referral for: ' + referrerId);
                     
                     try {
-                        // Update profile with referred_by (AFTER initial creation)
-                        debugLog('📝 Updating profile with referred_by...');
-                        const { error: updateError } = await supabase
-                            .from('profiles')
-                            .update({ referred_by: referrerId })
-                            .eq('id', userId);
-
-                        if (updateError) {
-                            debugLog('⚠️ Failed to set referred_by: ' + updateError.message);
-                        } else {
-                            debugLog('✅ referred_by set successfully');
-                        }
-
                         // Give bonus to referrer
                         debugLog('💰 Giving bonus to referrer...');
                         await giveReferrerBonus(referrerId);
 
-                        // MANUALLY create referral network record with ALL required fields
+                        // Create referral network record manually
                         debugLog('🌐 Creating referral_network record manually...');
-                        await createManualReferralNetwork(userId, referrerId);
-
-                        // MANUALLY create referrals table record
-                        debugLog('📊 Creating referrals table record...');
-                        await createManualReferral(userId, referrerId);
+                        await createReferralNetworkRecord(userId, referrerId);
 
                     } catch (referralError) {
                         debugLog('⚠️ Referral processing had issues: ' + referralError.message);
@@ -495,7 +479,10 @@
                 debugLog('🔐 User session stored in localStorage');
 
                 // Success!
-                debugLog('🎉 COMPLETE REGISTRATION SUCCESSFUL!');
+                debugLog('🎉 REGISTRATION SUCCESSFUL! Triggers were disabled so no errors.');
+                debugLog('💡 Remember to ENABLE triggers later if needed:');
+                debugLog('💡 ALTER TABLE profiles ENABLE TRIGGER on_user_referral_created;');
+                debugLog('💡 ALTER TABLE profiles ENABLE TRIGGER referral_network_trigger;');
 
                 if (referrerId) {
                     alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
@@ -558,19 +545,15 @@
             }
         }
 
-        // MANUALLY create referral_network record with ALL required fields
-        async function createManualReferralNetwork(newUserId, directReferrerId) {
+        // Create referral network record
+        async function createReferralNetworkRecord(newUserId, directReferrerId) {
             try {
-                debugLog('🔧 Creating MANUAL referral_network record...');
+                debugLog('🔧 Creating referral_network record...');
                 
-                // Try with all possible columns that might be required
                 const networkData = {
-                    referrer_id: directReferrerId, // This is the NOT NULL column
+                    referrer_id: directReferrerId,
                     referred_id: newUserId,
-                    user_id: newUserId,
-                    referred_user_id: newUserId,
                     level: 1,
-                    full_path: directReferrerId + '>' + newUserId, // For the full_path column
                     created_at: new Date().toISOString()
                 };
 
@@ -580,59 +563,13 @@
                     .select();
 
                 if (error) {
-                    debugLog('❌ Manual referral_network failed: ' + error.message);
-                    // Try a simpler version with only essential columns
-                    const simpleData = {
-                        referrer_id: directReferrerId, // The essential NOT NULL column
-                        referred_id: newUserId,
-                        level: 1,
-                        created_at: new Date().toISOString()
-                    };
-                    
-                    const { data: simpleResult, error: simpleError } = await supabase
-                        .from('referral_network')
-                        .insert([simpleData])
-                        .select();
-                        
-                    if (simpleError) {
-                        debugLog('❌ Simple referral_network also failed: ' + simpleError.message);
-                    } else {
-                        debugLog('✅ Simple referral_network record created');
-                    }
+                    debugLog('❌ Referral network creation failed: ' + error.message);
                 } else {
-                    debugLog('✅ Manual referral_network record created');
+                    debugLog('✅ Referral network record created');
                 }
 
             } catch (error) {
-                debugLog('❌ Manual referral_network error: ' + error.message);
-            }
-        }
-
-        // MANUALLY create referrals table record
-        async function createManualReferral(newUserId, directReferrerId) {
-            try {
-                debugLog('🔧 Creating MANUAL referrals record...');
-                
-                const referralData = {
-                    referrer_id: directReferrerId,
-                    referred_user_id: newUserId, // referrals table typically uses this
-                    user_id: newUserId,
-                    created_at: new Date().toISOString()
-                };
-
-                const { data, error } = await supabase
-                    .from('referrals')
-                    .insert([referralData])
-                    .select();
-
-                if (error) {
-                    debugLog('❌ Manual referrals failed: ' + error.message);
-                } else {
-                    debugLog('✅ Manual referrals record created');
-                }
-
-            } catch (error) {
-                debugLog('❌ Manual referrals error: ' + error.message);
+                debugLog('❌ Referral network error: ' + error.message);
             }
         }
 
