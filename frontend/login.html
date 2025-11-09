@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - NemexCoin</title>
+    <script src="https://cdn.jsdelivr.net/npm/otpauth@9.1.3/dist/otpauth.umd.min.js"></script>
     <style>
         :root { 
             --dark-bg: #0f0f0f; 
@@ -147,6 +148,106 @@
             text-decoration: none;
             font-size: 14px;
         }
+
+        /* 2FA Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            width: 100%;
+            max-width: 350px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .modal-title {
+            color: var(--gold);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .modal-description {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .verification-input {
+            width: 100%;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 8px;
+            margin: 15px 0;
+        }
+
+        .verification-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.primary {
+            background: var(--gold);
+            color: var(--darker-bg);
+            border: none;
+        }
+
+        .modal-btn.secondary {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .backup-option {
+            margin-top: 15px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .backup-option a {
+            color: var(--gold);
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -169,7 +270,6 @@
                 <input type="password" class="form-input" id="password" required>
             </div>
 
-            <!-- FIXED: Changed class from "loginBtn" to "login-btn" -->
             <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
         </form>
 
@@ -182,12 +282,53 @@
         </div>
     </div>
 
+    <!-- 2FA Verification Modal -->
+    <div id="twoFactorModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Two-Factor Authentication</h3>
+            <p class="modal-description">
+                Enter the 6-digit code from your authenticator app
+            </p>
+            
+            <input type="text" class="verification-input" id="twoFactorCode" placeholder="000000" maxlength="6" oninput="validate2FACode()">
+            
+            <div class="backup-option">
+                Lost access to your authenticator? <a onclick="useBackupCode()">Use backup code</a>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="cancel2FA()">Cancel</button>
+                <button class="modal-btn primary" id="verify2FABtn" onclick="verify2FACode()" disabled>Verify</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backup Code Modal -->
+    <div id="backupCodeModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Use Backup Code</h3>
+            <p class="modal-description">
+                Enter one of your backup codes
+            </p>
+            
+            <input type="text" class="verification-input" id="backupCode" placeholder="A1B2C3D4E5" oninput="validateBackupCode()">
+            
+            <div class="modal-actions">
+                <button class="modal-btn secondary" onclick="cancelBackupCode()">Back</button>
+                <button class="modal-btn primary" id="verifyBackupBtn" onclick="verifyBackupCode()" disabled>Verify</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Supabase configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentUser = null;
+        let user2FASecret = null;
 
         // SIMPLE LOGIN - No Password Hashing, using 'password' column
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -229,6 +370,172 @@
 
                 console.log('✅ Password verified successfully');
 
+                // Store user data for 2FA verification
+                currentUser = user;
+
+                // Check if 2FA is enabled
+                if (user.two_factor_enabled && user.two_factor_secret) {
+                    console.log('🔒 2FA is enabled for user, showing verification modal');
+                    user2FASecret = user.two_factor_secret;
+                    show2FAModal();
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Sign In';
+                    return; // Stop here, wait for 2FA verification
+                }
+
+                // If no 2FA, proceed with login
+                await completeLogin(user);
+
+            } catch (error) {
+                console.error('❌ Login error:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Sign In';
+            }
+        });
+
+        function show2FAModal() {
+            document.getElementById('twoFactorModal').style.display = 'flex';
+            document.getElementById('twoFactorCode').focus();
+        }
+
+        function validate2FACode() {
+            const code = document.getElementById('twoFactorCode').value;
+            const verifyBtn = document.getElementById('verify2FABtn');
+            
+            // Check if it's exactly 6 digits
+            if (/^\d{6}$/.test(code)) {
+                verifyBtn.disabled = false;
+            } else {
+                verifyBtn.disabled = true;
+            }
+        }
+
+        async function verify2FACode() {
+            const code = document.getElementById('twoFactorCode').value;
+            const verifyBtn = document.getElementById('verify2FABtn');
+
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+
+            try {
+                // Verify the TOTP code using the stored secret
+                const isValid = verifyTOTP(code, user2FASecret);
+                
+                if (isValid) {
+                    console.log('✅ 2FA code verified successfully');
+                    await completeLogin(currentUser);
+                } else {
+                    throw new Error('Invalid verification code');
+                }
+            } catch (error) {
+                console.error('❌ 2FA verification error:', error);
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('errorMessage').style.display = 'block';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+            }
+        }
+
+        function verifyTOTP(code, secret) {
+            try {
+                // Create TOTP instance with the stored secret
+                const totp = new OTPAuth.TOTP({
+                    issuer: "NemexCoin",
+                    label: currentUser.email,
+                    algorithm: "SHA1",
+                    digits: 6,
+                    period: 30,
+                    secret: OTPAuth.Secret.fromBase32(secret)
+                });
+
+                // Validate the code (allow 30-second window for time sync issues)
+                const isValid = totp.validate({ token: code, window: 1 }) !== null;
+                
+                console.log('🔐 TOTP Validation:', {
+                    code: code,
+                    secret: secret,
+                    isValid: isValid,
+                    timestamp: new Date().toISOString()
+                });
+
+                return isValid;
+            } catch (error) {
+                console.error('TOTP validation error:', error);
+                return false;
+            }
+        }
+
+        function useBackupCode() {
+            document.getElementById('twoFactorModal').style.display = 'none';
+            document.getElementById('backupCodeModal').style.display = 'flex';
+            document.getElementById('backupCode').focus();
+        }
+
+        function validateBackupCode() {
+            const code = document.getElementById('backupCode').value;
+            const verifyBtn = document.getElementById('verifyBackupBtn');
+            
+            // Check if it's a valid backup code format (alphanumeric, 10 chars)
+            if (/^[A-Z0-9]{10}$/i.test(code)) {
+                verifyBtn.disabled = false;
+            } else {
+                verifyBtn.disabled = true;
+            }
+        }
+
+        async function verifyBackupCode() {
+            const code = document.getElementById('backupCode').value.toUpperCase();
+            const verifyBtn = document.getElementById('verifyBackupBtn');
+
+            verifyBtn.disabled = true;
+            verifyBtn.textContent = 'Verifying...';
+
+            try {
+                // In a real implementation, you would check against stored backup codes in your database
+                // For now, we'll simulate a successful verification
+                console.log('🔑 Backup code verification attempt:', code);
+                
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // For demo purposes, accept any 10-character alphanumeric code
+                // In production, you would verify against stored backup codes
+                if (/^[A-Z0-9]{10}$/.test(code)) {
+                    console.log('✅ Backup code accepted');
+                    await completeLogin(currentUser);
+                } else {
+                    throw new Error('Invalid backup code');
+                }
+            } catch (error) {
+                console.error('❌ Backup code verification error:', error);
+                document.getElementById('errorMessage').textContent = error.message;
+                document.getElementById('errorMessage').style.display = 'block';
+                verifyBtn.disabled = false;
+                verifyBtn.textContent = 'Verify';
+            }
+        }
+
+        function cancel2FA() {
+            document.getElementById('twoFactorModal').style.display = 'none';
+            resetLoginForm();
+        }
+
+        function cancelBackupCode() {
+            document.getElementById('backupCodeModal').style.display = 'none';
+            show2FAModal();
+        }
+
+        function resetLoginForm() {
+            document.getElementById('loginBtn').disabled = false;
+            document.getElementById('loginBtn').textContent = 'Sign In';
+            currentUser = null;
+            user2FASecret = null;
+        }
+
+        async function completeLogin(user) {
+            try {
                 // Update last login
                 await supabase
                     .from('profiles')
@@ -247,28 +554,43 @@
                     username: user.username,
                     full_name: user.full_name,
                     balance: user.balance || 0,
+                    two_factor_enabled: user.two_factor_enabled || false,
                     loggedIn: true
                 };
 
                 localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
                 console.log('✅ Session stored, redirecting to dashboard...');
 
+                // Close any open modals
+                document.getElementById('twoFactorModal').style.display = 'none';
+                document.getElementById('backupCodeModal').style.display = 'none';
+
                 // Redirect to dashboard
                 window.location.href = 'dashboard.html';
 
             } catch (error) {
-                console.error('❌ Login error:', error);
-                errorMessage.textContent = error.message;
-                errorMessage.style.display = 'block';
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign In';
+                console.error('❌ Login completion error:', error);
+                document.getElementById('errorMessage').textContent = 'Login failed. Please try again.';
+                document.getElementById('errorMessage').style.display = 'block';
+                resetLoginForm();
             }
-        });
+        }
 
         // Handle Enter key press
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+                // Check which modal is open
+                if (document.getElementById('twoFactorModal').style.display === 'flex') {
+                    if (!document.getElementById('verify2FABtn').disabled) {
+                        verify2FACode();
+                    }
+                } else if (document.getElementById('backupCodeModal').style.display === 'flex') {
+                    if (!document.getElementById('verifyBackupBtn').disabled) {
+                        verifyBackupCode();
+                    }
+                } else {
+                    document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+                }
             }
         });
     </script>
