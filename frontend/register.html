@@ -302,7 +302,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // WORKING REGISTRATION - With Clean Column Names
+        // PERFECT REGISTRATION - Works with new clean table
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -319,7 +319,7 @@
             clearErrors();
 
             try {
-                console.log('🔄 Starting DIRECT registration process...');
+                console.log('🔄 Starting PERFECT registration process...');
 
                 // Validate inputs
                 if (username.length < 3) {
@@ -396,16 +396,18 @@
                     last_login: new Date().toISOString()
                 };
 
-                // Add referral data if applicable (but we'll handle this separately due to foreign key)
-                console.log('📝 Creating user profile (handling foreign key constraints)...');
+                // Add referral data if applicable
+                if (referrerId) {
+                    profileData.referred_by = referrerId;
+                    console.log('✅ SETTING referred_by to:', referrerId);
+                }
 
-                // Create profile without referral data first to avoid foreign key issues
-                const profileWithoutRef = { ...profileData };
-                delete profileWithoutRef.referred_by; // Remove this temporarily
+                console.log('📝 Creating user profile:', profileData);
 
+                // Create profile
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .insert([profileWithoutRef])
+                    .insert([profileData])
                     .select()
                     .single();
 
@@ -416,29 +418,14 @@
 
                 console.log('✅ Profile created successfully:', profile);
 
-                // Now add referral relationship if applicable
+                // Process referral bonuses and multi-level tracking
                 if (referrerId) {
-                    console.log('🔗 Adding referral relationship...');
-                    
-                    // Update profile with referral data
-                    const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({ referred_by: referrerId })
-                        .eq('id', userId);
-
-                    if (updateError) {
-                        console.error('❌ Failed to add referral relationship:', updateError);
-                    } else {
-                        console.log('✅ Referral relationship added successfully');
-                    }
-
-                    // Process referral bonuses
                     console.log('🎁 Processing referral bonuses for referrer:', referrerId);
                     await processReferrerBonus(referrerId);
                     
-                    // Create multi-level referral relationships WITH CLEAN COLUMN NAMES
-                    console.log('🌐 Creating referral network records...');
-                    await createReferralNetworkClean(userId, referrerId);
+                    // Create multi-level referral relationships in NEW clean table
+                    console.log('🌐 Creating referral network records in clean table...');
+                    await createCleanReferralNetwork(userId, referrerId);
                 }
 
                 // Store user session in localStorage for auto-login
@@ -456,7 +443,7 @@
                 console.log('🔐 User session stored');
 
                 // Success message
-                console.log('🎉 DIRECT Registration completed successfully!');
+                console.log('🎉 PERFECT Registration completed successfully!');
                 
                 if (referrerId) {
                     alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
@@ -530,10 +517,10 @@
             }
         }
 
-        // CLEAN: Create referral network records with only referred_id
-        async function createReferralNetworkClean(newUserId, directReferrerId) {
+        // CLEAN: Create referral network records in new clean table
+        async function createCleanReferralNetwork(newUserId, directReferrerId) {
             try {
-                console.log('🌐 Creating multi-level referral relationships with clean columns...');
+                console.log('🌐 Creating multi-level referral relationships in clean table...');
                 
                 // LEVEL 1: Direct referrer to new user
                 console.log('📝 Creating Level 1 referral...');
@@ -541,13 +528,14 @@
                     .from('referral_network')
                     .insert({
                         referrer_id: directReferrerId,
-                        referred_id: newUserId, // Using ONLY referred_id
+                        referred_id: newUserId,
                         level: 1,
                         created_at: new Date().toISOString()
                     });
 
                 if (level1Error) {
                     console.error('❌ Level 1 referral failed:', level1Error);
+                    throw new Error('Failed to create Level 1 referral: ' + level1Error.message);
                 } else {
                     console.log('✅ Level 1 referral created successfully');
                 }
@@ -586,6 +574,7 @@
 
             } catch (networkError) {
                 console.error('❌ Multi-level referral error:', networkError);
+                throw networkError;
             }
         }
 
