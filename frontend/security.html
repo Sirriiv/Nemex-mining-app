@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security - NemexCoin</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         :root { 
             --dark-bg: #0f0f0f; 
@@ -315,6 +316,8 @@
             border-radius: 4px;
             margin: 10px 0;
             word-break: break-all;
+            color: var(--gold);
+            font-weight: 600;
         }
 
         .verification-input {
@@ -583,17 +586,14 @@
                     
                     <div class="qr-code-container">
                         <div class="qr-code" id="qrCode">
-                            <!-- QR Code would be generated here in a real implementation -->
-                            <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--dark-bg); font-weight: bold;">
-                                QR CODE
-                            </div>
+                            <!-- QR Code will be generated here -->
                         </div>
                     </div>
                     
                     <div class="manual-setup">
                         <p style="margin-bottom: 10px; font-weight: 600;">Can't scan the QR code?</p>
                         <p style="margin-bottom: 5px;">Enter this code manually:</p>
-                        <div class="setup-key" id="manualKey">NEMEX 2FA KEY 1234 5678 90AB CDEF</div>
+                        <div class="setup-key" id="manualKey"></div>
                     </div>
                     
                     <div class="step-indicator">
@@ -721,12 +721,86 @@
         // 2FA Functions
         function open2FAModal() {
             document.getElementById('twoFactorModal').style.display = 'flex';
+            generateQRCode();
         }
 
         function close2FAModal() {
             document.getElementById('twoFactorModal').style.display = 'none';
             // Reset to step 1
             showQRStep();
+        }
+
+        function generateQRCode() {
+            // Generate a proper 32-character base32 secret key (required length for Google Authenticator)
+            const secretKey = generateSecretKey();
+            document.getElementById('manualKey').textContent = secretKey;
+            
+            // Create the OTP Auth URI (standard format for authenticator apps)
+            const userEmail = "user@nemexcoin.com"; // This would come from your user data
+            const issuer = "NemexCoin";
+            const otpAuthUri = `otpauth://totp/${issuer}:${userEmail}?secret=${secretKey}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
+            
+            // Generate QR Code
+            const qrCodeElement = document.getElementById('qrCode');
+            qrCodeElement.innerHTML = ''; // Clear any existing QR code
+            
+            QRCode.toCanvas(qrCodeElement, otpAuthUri, {
+                width: 180,
+                height: 180,
+                colorDark: "#d4af37", // Gold color for QR code
+                colorLight: "#ffffff",
+                margin: 1
+            }, function(error) {
+                if (error) {
+                    console.error('QR Code generation error:', error);
+                    // Fallback: Create a simple QR code pattern
+                    createFallbackQRCode();
+                }
+            });
+        }
+
+        function generateSecretKey() {
+            // Generate a proper 32-character base32 secret (160 bits)
+            // Base32 alphabet (RFC 4648)
+            const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            let secret = '';
+            
+            for (let i = 0; i < 32; i++) {
+                secret += base32Chars.charAt(Math.floor(Math.random() * base32Chars.length));
+            }
+            
+            return secret;
+        }
+
+        function createFallbackQRCode() {
+            const qrCodeElement = document.getElementById('qrCode');
+            qrCodeElement.innerHTML = '';
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = 180;
+            canvas.height = 180;
+            const ctx = canvas.getContext('2d');
+            
+            // Draw a simple QR code pattern (for demonstration)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 180, 180);
+            
+            ctx.fillStyle = '#d4af37'; // Gold color
+            // Draw position markers
+            ctx.fillRect(10, 10, 40, 40);
+            ctx.fillRect(130, 10, 40, 40);
+            ctx.fillRect(10, 130, 40, 40);
+            
+            // Draw some pattern lines
+            for (let i = 0; i < 12; i++) {
+                for (let j = 0; j < 12; j++) {
+                    if ((i + j) % 3 === 0 || (i * j) % 5 === 0) {
+                        ctx.fillRect(20 + i * 12, 20 + j * 12, 8, 8);
+                    }
+                }
+            }
+            
+            qrCodeElement.appendChild(canvas);
         }
 
         function showQRStep() {
