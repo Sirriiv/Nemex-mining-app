@@ -152,8 +152,8 @@
 
         <form id="loginForm">
             <div class="form-group">
-                <label class="form-label">Email Address or Username</label>
-                <input type="text" class="form-input" id="emailOrUsername" required>
+                <label class="form-label">Email Address</label>
+                <input type="email" class="form-input" id="email" required>
             </div>
 
             <div class="form-group">
@@ -180,31 +180,13 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Check if user is already logged in
-        function checkExistingSession() {
-            const userSession = localStorage.getItem('nemexcoin_user');
-            if (userSession) {
-                window.location.href = 'dashboard.html';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            checkExistingSession();
-        });
-
-        // FIXED: Consistent password hash (same as registration)
-        function simpleHash(password) {
-            // Use the EXACT same hashing as registration
-            return btoa(password).substring(0, 50);
-        }
-
-        // FIXED: Proper database authentication
+        // FIXED: Pure Database Authentication
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const loginBtn = document.getElementById('loginBtn');
             const errorMessage = document.getElementById('errorMessage');
-            const emailOrUsername = document.getElementById('emailOrUsername').value.trim();
+            const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
 
             loginBtn.disabled = true;
@@ -212,55 +194,68 @@
             errorMessage.style.display = 'none';
 
             try {
-                // FIXED: Find user by email or username
-                const { data: users, error } = await supabase
+                console.log('🔐 Attempting login for:', email);
+
+                // FIXED: Direct database query - find user by email only
+                const { data: user, error } = await supabase
                     .from('profiles')
                     .select('*')
-                    .or(`email.eq.${emailOrUsername},username.eq.${emailOrUsername}`)
-                    .single(); // Use single to get one result
+                    .eq('email', email)
+                    .single();
 
-                if (error || !users) {
-                    throw new Error('Invalid email/username or password');
+                if (error) {
+                    console.log('❌ Database error:', error);
+                    throw new Error('Invalid email or password');
                 }
 
-                const user = users;
-
-                // FIXED: Verify password with consistent hashing
-                const hashedPassword = simpleHash(password);
-                
-                if (user.password_hash !== hashedPassword) {
-                    throw new Error('Invalid email/username or password');
+                if (!user) {
+                    console.log('❌ User not found');
+                    throw new Error('Invalid email or password');
                 }
+
+                console.log('✅ User found:', user.email);
+                console.log('🔑 Stored hash:', user.password_hash);
+                console.log('🔑 Input password:', password);
+
+                // FIXED: Simple password verification
+                const inputHash = btoa(password).substring(0, 50);
+                console.log('🔑 Input hash:', inputHash);
+
+                if (user.password_hash !== inputHash) {
+                    console.log('❌ Password mismatch');
+                    throw new Error('Invalid email or password');
+                }
+
+                console.log('✅ Password verified successfully');
 
                 // Update last login
                 await supabase
                     .from('profiles')
                     .update({ 
-                        last_login: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
+                        last_login: new Date().toISOString()
                     })
                     .eq('id', user.id);
 
-                // Store user session in localStorage
+                console.log('✅ Last login updated');
+
+                // FIXED: Use sessionStorage for temporary session (cleared on browser close)
                 const userSession = {
                     id: user.id,
                     email: user.email,
                     username: user.username,
                     full_name: user.full_name,
                     balance: user.balance || 0,
-                    referral_slots: user.referral_slots || 10,
-                    used_slots: user.used_slots || 0,
-                    total_earned_from_refs: user.total_earned_from_refs || 0,
-                    loggedIn: true,
-                    loginTime: new Date().toISOString()
+                    loggedIn: true
                 };
 
-                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+                sessionStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+                console.log('✅ Session stored, redirecting to dashboard...');
 
                 // Redirect to dashboard
                 window.location.href = 'dashboard.html';
 
             } catch (error) {
+                console.error('❌ Login error:', error);
                 errorMessage.textContent = error.message;
                 errorMessage.style.display = 'block';
                 loginBtn.disabled = false;
