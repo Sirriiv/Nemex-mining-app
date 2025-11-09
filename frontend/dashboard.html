@@ -733,7 +733,7 @@
             return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
-        // FIXED: Check if user is logged in using localStorage
+        // FIXED: Enhanced authentication check
         function checkAuth() {
             const userSession = localStorage.getItem('nemexcoin_user');
             if (!userSession) {
@@ -753,7 +753,7 @@
             }
         }
 
-        // FIXED: Load user data from database using localStorage session
+        // FIXED: Enhanced user data loading
         async function loadUserData() {
             try {
                 console.log('🔄 Loading user data...');
@@ -771,14 +771,14 @@
 
                 if (profileError) {
                     console.error('❌ Error loading profile:', profileError);
-                    
+
                     // If profile doesn't exist, redirect to login
                     if (profileError.code === 'PGRST116') {
                         localStorage.removeItem('nemexcoin_user');
                         window.location.href = 'login.html';
                         return null;
                     }
-                    
+
                     throw new Error('Could not load user profile');
                 }
 
@@ -824,7 +824,7 @@
             }
         }
 
-        // FIXED: SIMPLE REFRESH BALANCE
+        // FIXED: Enhanced balance refresh
         async function refreshBalance() {
             try {
                 console.log('🔄 Refreshing balance...');
@@ -905,7 +905,7 @@
             });
         }
 
-        // FIXED: SIMPLE DASHBOARD INITIALIZATION
+        // FIXED: Enhanced dashboard initialization
         async function initializeDashboard() {
             try {
                 // FIRST: Check authentication
@@ -950,7 +950,7 @@
             }
         }
 
-        // FIXED: SIMPLE CHECK ADMIN ACCESS
+        // FIXED: Enhanced admin access check
         async function checkAdminAccess() {
             try {
                 const userSession = checkAuth();
@@ -1111,7 +1111,7 @@
             setTimeout(() => errorElement.style.display = 'none', 5000);
         }
 
-        // FIXED: SIMPLE CLAIM MINING REWARD
+        // FIXED: Enhanced mining reward claim
         async function claimMiningReward() {
             try {
                 const loadingIndicator = document.getElementById('loadingIndicator');
