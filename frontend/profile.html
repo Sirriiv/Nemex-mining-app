@@ -651,7 +651,7 @@
             // Highlight current page in navigation
             const currentPage = window.location.pathname.split('/').pop() || 'profile.html';
             const navItems = document.querySelectorAll('.nav-item');
-            
+
             navItems.forEach(item => {
                 const href = item.getAttribute('href');
                 if (href === currentPage) {
@@ -662,46 +662,44 @@
             });
         });
 
+        // FIXED: Enhanced profile loading
         async function loadUserProfile() {
             try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (!session) {
+                // Check authentication using localStorage (matching your system)
+                const userSession = localStorage.getItem('nemexcoin_user');
+                if (!userSession) {
                     window.location.href = 'login.html';
                     return;
                 }
 
-                currentUser = session.user;
+                currentUser = JSON.parse(userSession);
 
                 // Get user data from PROFILES table
-                const { data: profile } = await supabaseClient
+                const { data: profile, error } = await supabaseClient
                     .from('profiles')
                     .select('*')
                     .eq('id', currentUser.id)
                     .single();
 
-                if (!profile) {
-                    console.error('Profile not found');
+                if (error || !profile) {
+                    console.error('Profile not found:', error);
+                    window.location.href = 'login.html';
                     return;
                 }
 
                 currentProfile = profile;
 
                 // Update display with data from profiles table
-                document.getElementById('userName').textContent = profile.username || 'User';
-                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userName').textContent = profile.full_name || profile.username || 'User';
+                document.getElementById('userEmail').textContent = profile.email || currentUser.email;
                 document.getElementById('userId').textContent = profile.username || currentUser.id.substring(0, 8) + '...';
-                document.getElementById('memberSince').textContent = new Date(currentUser.created_at).toLocaleDateString();
+                document.getElementById('memberSince').textContent = new Date(profile.created_at).toLocaleDateString();
 
                 // Load profile stats
                 document.getElementById('totalEarned').textContent = profile.balance || 0;
 
-                // Get total claims count
-                const { count } = await supabaseClient
-                    .from('claim_history')
-                    .select('*', { count: 'exact' })
-                    .eq('user_id', currentUser.id);
-
-                document.getElementById('totalClaims').textContent = count || 0;
+                // Get total claims count from profiles table
+                document.getElementById('totalClaims').textContent = Math.floor((profile.balance || 0) / 30);
 
             } catch (error) {
                 console.error('Error loading profile:', error);
@@ -713,7 +711,7 @@
 
             // Fill form with current data
             document.getElementById('editUsername').value = currentProfile.username || '';
-            document.getElementById('editEmail').value = currentUser.email || '';
+            document.getElementById('editEmail').value = currentProfile.email || '';
 
             // Clear messages
             clearMessages();
@@ -743,7 +741,7 @@
             saveBtn.textContent = 'Saving...';
 
             const newUsername = document.getElementById('editUsername').value.trim();
-            const newEmail = document.getElementById('editEmail').value.trim();
+            const newEmail = document.getElementById('editEmail').value.trim().toLowerCase();
 
             clearMessages();
 
@@ -773,7 +771,10 @@
                     // Update username in profiles table
                     const { error: profileError } = await supabaseClient
                         .from('profiles')
-                        .update({ username: newUsername })
+                        .update({ 
+                            username: newUsername,
+                            updated_at: new Date().toISOString()
+                        })
                         .eq('id', currentUser.id);
 
                     if (profileError) throw profileError;
@@ -781,23 +782,48 @@
                     showSuccess('usernameSuccess', 'Username updated successfully!');
                     updatesMade = true;
 
-                    // Update current profile data
+                    // Update current profile data and localStorage
                     currentProfile.username = newUsername;
+                    currentUser.username = newUsername;
+                    localStorage.setItem('nemexcoin_user', JSON.stringify(currentUser));
                 }
 
                 // Update email if changed
-                if (newEmail !== currentUser.email) {
-                    const { error: emailError } = await supabaseClient.auth.updateUser({
-                        email: newEmail
-                    });
+                if (newEmail !== currentProfile.email) {
+                    // Check if email is available
+                    const { data: existingEmail } = await supabaseClient
+                        .from('profiles')
+                        .select('id')
+                        .eq('email', newEmail)
+                        .neq('id', currentUser.id)
+                        .single();
+
+                    if (existingEmail) {
+                        showError('emailError', 'Email already registered');
+                        return;
+                    }
+
+                    // Update email in profiles table
+                    const { error: emailError } = await supabaseClient
+                        .from('profiles')
+                        .update({ 
+                            email: newEmail,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', currentUser.id);
 
                     if (emailError) {
                         showError('emailError', emailError.message);
                         return;
                     }
 
-                    showSuccess('emailSuccess', 'Email update initiated - please check your email for confirmation');
+                    showSuccess('emailSuccess', 'Email updated successfully!');
                     updatesMade = true;
+
+                    // Update current profile data and localStorage
+                    currentProfile.email = newEmail;
+                    currentUser.email = newEmail;
+                    localStorage.setItem('nemexcoin_user', JSON.stringify(currentUser));
                 }
 
                 if (updatesMade) {
