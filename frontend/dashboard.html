@@ -741,7 +741,7 @@
                 window.location.href = 'login.html';
                 return null;
             }
-            
+
             try {
                 const userData = JSON.parse(userSession);
                 console.log('✅ User session found:', userData.id);
@@ -771,11 +771,21 @@
 
                 if (profileError) {
                     console.error('❌ Error loading profile:', profileError);
+                    
+                    // If profile doesn't exist, redirect to login
+                    if (profileError.code === 'PGRST116') {
+                        localStorage.removeItem('nemexcoin_user');
+                        window.location.href = 'login.html';
+                        return null;
+                    }
+                    
                     throw new Error('Could not load user profile');
                 }
 
                 if (!profile) {
-                    throw new Error('User profile not found');
+                    localStorage.removeItem('nemexcoin_user');
+                    window.location.href = 'login.html';
+                    return null;
                 }
 
                 // Set user data
