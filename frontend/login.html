@@ -180,7 +180,7 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // FIXED: Pure Database Authentication
+        // FIXED: Enhanced Database Authentication
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -196,30 +196,23 @@
             try {
                 console.log('🔐 Attempting login for:', email);
 
-                // FIXED: Direct database query - find user by email only
+                // FIXED: Enhanced database query with better error handling
                 const { data: user, error } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('email', email)
                     .single();
 
-                if (error) {
-                    console.log('❌ Database error:', error);
-                    throw new Error('Invalid email or password');
-                }
-
-                if (!user) {
-                    console.log('❌ User not found');
+                if (error || !user) {
+                    console.log('❌ User not found or database error:', error);
                     throw new Error('Invalid email or password');
                 }
 
                 console.log('✅ User found:', user.email);
-                console.log('🔑 Stored hash:', user.password_hash);
-                console.log('🔑 Input password:', password);
 
-                // FIXED: Simple password verification
-                const inputHash = btoa(password).substring(0, 50);
-                console.log('🔑 Input hash:', inputHash);
+                // FIXED: Enhanced password verification
+                const inputHash = btoa(unescape(encodeURIComponent(password))).substring(0, 50);
+                console.log('🔑 Password verification - Stored hash length:', user.password_hash?.length, 'Input hash length:', inputHash.length);
 
                 if (user.password_hash !== inputHash) {
                     console.log('❌ Password mismatch');
@@ -232,13 +225,14 @@
                 await supabase
                     .from('profiles')
                     .update({ 
-                        last_login: new Date().toISOString()
+                        last_login: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
                     })
                     .eq('id', user.id);
 
                 console.log('✅ Last login updated');
 
-                // FIXED: Use sessionStorage for temporary session (cleared on browser close)
+                // FIXED: Use localStorage for session (matching registration)
                 const userSession = {
                     id: user.id,
                     email: user.email,
@@ -248,7 +242,7 @@
                     loggedIn: true
                 };
 
-                sessionStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
                 console.log('✅ Session stored, redirecting to dashboard...');
 
                 // Redirect to dashboard
