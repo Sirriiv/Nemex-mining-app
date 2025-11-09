@@ -256,7 +256,7 @@
             if (referralUsername) {
                 try {
                     console.log('📊 Querying database for referrer:', referralUsername);
-                    
+
                     const { data: referrerProfiles, error } = await supabase
                         .from('profiles')
                         .select('id, username, email')
@@ -280,7 +280,7 @@
                     const referrerProfile = referrerProfiles[0];
                     referrerId = referrerProfile.id;
                     referrerUsername = referrerProfile.username;
-                    
+
                     console.log('✅ Valid referral found:', referrerProfile.username, 'ID:', referrerId);
 
                     // Show referral banners
@@ -302,7 +302,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // PERFECT REGISTRATION - Works with new clean table
+        // SIMPLIFIED REGISTRATION - Focus on getting it working first
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -319,7 +319,7 @@
             clearErrors();
 
             try {
-                console.log('🔄 Starting PERFECT registration process...');
+                console.log('🔄 Starting SIMPLIFIED registration process...');
 
                 // Validate inputs
                 if (username.length < 3) {
@@ -404,7 +404,7 @@
 
                 console.log('📝 Creating user profile:', profileData);
 
-                // Create profile
+                // STEP 1: Create profile
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .insert([profileData])
@@ -418,14 +418,14 @@
 
                 console.log('✅ Profile created successfully:', profile);
 
-                // Process referral bonuses and multi-level tracking
+                // STEP 2: Process referral bonuses and network (only if referral exists)
                 if (referrerId) {
                     console.log('🎁 Processing referral bonuses for referrer:', referrerId);
                     await processReferrerBonus(referrerId);
-                    
-                    // Create multi-level referral relationships in NEW clean table
-                    console.log('🌐 Creating referral network records in clean table...');
-                    await createCleanReferralNetwork(userId, referrerId);
+
+                    // STEP 3: Create referral network record (SIMPLIFIED)
+                    console.log('🌐 Creating referral network record...');
+                    await createSimpleReferralNetwork(userId, referrerId);
                 }
 
                 // Store user session in localStorage for auto-login
@@ -438,13 +438,13 @@
                     loggedIn: true,
                     loginTime: new Date().toISOString()
                 };
-                
+
                 localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
                 console.log('🔐 User session stored');
 
                 // Success message
-                console.log('🎉 PERFECT Registration completed successfully!');
-                
+                console.log('🎉 SIMPLIFIED Registration completed successfully!');
+
                 if (referrerId) {
                     alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
                 } else {
@@ -467,7 +467,7 @@
         // Process referrer bonus
         async function processReferrerBonus(referrerId) {
             const BONUS_AMOUNT = 30;
-            
+
             try {
                 // Get current referrer data
                 const { data: referrerData, error: referrerFetchError } = await supabase
@@ -482,7 +482,7 @@
                 }
 
                 console.log('📊 Referrer current data:', referrerData);
-                
+
                 // Calculate new values
                 const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
                 const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
@@ -517,64 +517,50 @@
             }
         }
 
-        // CLEAN: Create referral network records in new clean table
-        async function createCleanReferralNetwork(newUserId, directReferrerId) {
+        // SIMPLE: Create only direct referral record
+        async function createSimpleReferralNetwork(newUserId, directReferrerId) {
             try {
-                console.log('🌐 Creating multi-level referral relationships in clean table...');
-                
-                // LEVEL 1: Direct referrer to new user
-                console.log('📝 Creating Level 1 referral...');
-                const { error: level1Error } = await supabase
+                console.log('🌐 Creating SIMPLE referral network record...');
+                console.log('Referrer ID:', directReferrerId);
+                console.log('Referred ID:', newUserId);
+
+                // Create only the direct referral (Level 1)
+                const { data, error } = await supabase
                     .from('referral_network')
                     .insert({
                         referrer_id: directReferrerId,
                         referred_id: newUserId,
                         level: 1,
                         created_at: new Date().toISOString()
-                    });
+                    })
+                    .select();
 
-                if (level1Error) {
-                    console.error('❌ Level 1 referral failed:', level1Error);
-                    throw new Error('Failed to create Level 1 referral: ' + level1Error.message);
-                } else {
-                    console.log('✅ Level 1 referral created successfully');
-                }
-
-                // LEVEL 2: Find referrer's referrer (your referral)
-                console.log('🔍 Looking for Level 2 referrer...');
-                const { data: level2Referrer, error: level2Error } = await supabase
-                    .from('profiles')
-                    .select('referred_by')
-                    .eq('id', directReferrerId)
-                    .single();
-
-                if (!level2Error && level2Referrer && level2Referrer.referred_by) {
-                    console.log('✅ Found Level 2 referrer:', level2Referrer.referred_by);
+                if (error) {
+                    console.error('❌ SIMPLE referral creation failed:', error);
+                    console.error('Error details:', error.details);
+                    console.error('Error message:', error.message);
+                    console.error('Error hint:', error.hint);
                     
-                    // LEVEL 2: Your referral to the new user
-                    const { error: level2RefError } = await supabase
-                        .from('referral_network')
-                        .insert({
-                            referrer_id: level2Referrer.referred_by,
-                            referred_id: newUserId,
-                            level: 2,
-                            created_at: new Date().toISOString()
-                        });
-
-                    if (level2RefError) {
-                        console.error('❌ Level 2 referral failed:', level2RefError);
-                    } else {
-                        console.log('✅ Level 2 referral created successfully');
+                    // Let's check what columns actually exist in the table
+                    console.log('🔍 Checking table structure...');
+                    const { data: tableInfo, error: tableError } = await supabase
+                        .from('information_schema.columns')
+                        .select('column_name, data_type')
+                        .eq('table_name', 'referral_network')
+                        .eq('table_schema', 'public');
+                    
+                    if (!tableError && tableInfo) {
+                        console.log('📊 Current referral_network columns:', tableInfo);
                     }
+                    
+                    throw new Error('Failed to create referral record: ' + error.message);
                 } else {
-                    console.log('ℹ️ No Level 2 referrer found');
+                    console.log('✅ SIMPLE referral created successfully:', data);
                 }
-
-                console.log('🎉 Multi-level referral network creation completed!');
 
             } catch (networkError) {
-                console.error('❌ Multi-level referral error:', networkError);
-                throw networkError;
+                console.error('❌ SIMPLE referral error:', networkError);
+                // Don't throw here - we don't want to fail registration just because of referral tracking
             }
         }
 
