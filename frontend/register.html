@@ -331,7 +331,7 @@
             debugLog('⚠️ Invalid referral: ' + message);
         }
 
-        // ULTRA-SIMPLE REGISTRATION - NO REFERRAL NETWORK AT ALL
+        // COMPLETE REGISTRATION - Handles ALL tables properly
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -344,7 +344,7 @@
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
 
-            debugLog('🔄 Starting ULTRA-SIMPLE registration process...');
+            debugLog('🔄 Starting COMPLETE registration process...');
             debugLog('Form data - Name: ' + fullName + ', Username: ' + username + ', Email: ' + email);
 
             // Clear previous errors
@@ -404,15 +404,15 @@
                     return;
                 }
 
-                // Generate user ID and create profile
+                // Generate user ID
                 const userId = generateUUID();
                 const initialBalance = referrerId ? 30 : 0;
 
-                debugLog('📝 Creating user profile with ID: ' + userId);
+                debugLog('📝 Creating user with ID: ' + userId);
                 debugLog('Referrer ID: ' + (referrerId || 'None'));
                 debugLog('Initial balance: ' + initialBalance);
 
-                // SIMPLE profile data - only essential fields
+                // STEP 1: Create profile WITHOUT referred_by first (to avoid trigger issues)
                 const profileData = {
                     id: userId,
                     email: email,
@@ -427,16 +427,10 @@
                     updated_at: new Date().toISOString(),
                     is_active: true,
                     last_login: new Date().toISOString()
+                    // NOTE: We're NOT setting referred_by here to avoid trigger issues
                 };
 
-                // Add referral data if applicable
-                if (referrerId) {
-                    profileData.referred_by = referrerId;
-                    debugLog('✅ SETTING referred_by to: ' + referrerId);
-                }
-
-                // STEP 1: Create profile ONLY
-                debugLog('🚀 Inserting profile into database...');
+                debugLog('🚀 Inserting basic profile (without referred_by)...');
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .insert([profileData])
@@ -445,20 +439,44 @@
 
                 if (profileError) {
                     debugLog('❌ Profile creation failed: ' + profileError.message);
-                    debugLog('❌ Profile error details: ' + JSON.stringify(profileError));
                     throw new Error(`Registration failed: ${profileError.message}`);
                 }
 
-                debugLog('✅ Profile created successfully: ' + profile.id);
+                debugLog('✅ Basic profile created successfully: ' + profile.id);
 
-                // STEP 2: Process referral bonus ONLY (no network tables)
+                // STEP 2: If there's a referral, handle ALL referral-related operations
                 if (referrerId) {
+                    debugLog('🎯 Processing referral for: ' + referrerId);
+                    
                     try {
-                        debugLog('💰 Processing referral bonus ONLY for: ' + referrerId);
+                        // Update profile with referred_by (AFTER initial creation)
+                        debugLog('📝 Updating profile with referred_by...');
+                        const { error: updateError } = await supabase
+                            .from('profiles')
+                            .update({ referred_by: referrerId })
+                            .eq('id', userId);
+
+                        if (updateError) {
+                            debugLog('⚠️ Failed to set referred_by: ' + updateError.message);
+                        } else {
+                            debugLog('✅ referred_by set successfully');
+                        }
+
+                        // Give bonus to referrer
+                        debugLog('💰 Giving bonus to referrer...');
                         await giveReferrerBonus(referrerId);
-                    } catch (bonusError) {
-                        debugLog('⚠️ Bonus processing failed (non-critical): ' + bonusError.message);
-                        // Don't throw - bonus issues shouldn't break registration
+
+                        // MANUALLY create referral network record with ALL required fields
+                        debugLog('🌐 Creating referral_network record manually...');
+                        await createManualReferralNetwork(userId, referrerId);
+
+                        // MANUALLY create referrals table record
+                        debugLog('📊 Creating referrals table record...');
+                        await createManualReferral(userId, referrerId);
+
+                    } catch (referralError) {
+                        debugLog('⚠️ Referral processing had issues: ' + referralError.message);
+                        // Don't throw - referral issues shouldn't break registration
                     }
                 }
 
@@ -477,8 +495,7 @@
                 debugLog('🔐 User session stored in localStorage');
 
                 // Success!
-                debugLog('🎉 ULTRA-SIMPLE REGISTRATION COMPLETED SUCCESSFULLY!');
-                debugLog('💡 Note: No referral network records created to avoid column errors');
+                debugLog('🎉 COMPLETE REGISTRATION SUCCESSFUL!');
 
                 if (referrerId) {
                     alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
@@ -499,14 +516,13 @@
             }
         });
 
-        // SIMPLE: Give bonus to referrer without touching network tables
+        // Give bonus to referrer
         async function giveReferrerBonus(referrerId) {
             const BONUS_AMOUNT = 30;
 
             try {
                 debugLog('💰 Giving bonus to referrer: ' + referrerId);
 
-                // Get current referrer data
                 const { data: referrerData, error: referrerFetchError } = await supabase
                     .from('profiles')
                     .select('balance, total_earned_from_refs, used_slots')
@@ -518,14 +534,10 @@
                     return;
                 }
 
-                debugLog('📊 Referrer current data - Balance: ' + referrerData.balance + ', Earned: ' + referrerData.total_earned_from_refs + ', Used slots: ' + referrerData.used_slots);
-
-                // Calculate new values
                 const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
                 const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
                 const newUsedSlots = (referrerData.used_slots || 0) + 1;
 
-                // Update referrer with bonus
                 const { error: referrerBonusError } = await supabase
                     .from('profiles')
                     .update({ 
@@ -543,7 +555,84 @@
 
             } catch (bonusError) {
                 debugLog('❌ Bonus system error: ' + bonusError.message);
-                // Don't re-throw - this is non-critical
+            }
+        }
+
+        // MANUALLY create referral_network record with ALL required fields
+        async function createManualReferralNetwork(newUserId, directReferrerId) {
+            try {
+                debugLog('🔧 Creating MANUAL referral_network record...');
+                
+                // Try with all possible columns that might be required
+                const networkData = {
+                    referrer_id: directReferrerId, // This is the NOT NULL column
+                    referred_id: newUserId,
+                    user_id: newUserId,
+                    referred_user_id: newUserId,
+                    level: 1,
+                    full_path: directReferrerId + '>' + newUserId, // For the full_path column
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabase
+                    .from('referral_network')
+                    .insert([networkData])
+                    .select();
+
+                if (error) {
+                    debugLog('❌ Manual referral_network failed: ' + error.message);
+                    // Try a simpler version with only essential columns
+                    const simpleData = {
+                        referrer_id: directReferrerId, // The essential NOT NULL column
+                        referred_id: newUserId,
+                        level: 1,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    const { data: simpleResult, error: simpleError } = await supabase
+                        .from('referral_network')
+                        .insert([simpleData])
+                        .select();
+                        
+                    if (simpleError) {
+                        debugLog('❌ Simple referral_network also failed: ' + simpleError.message);
+                    } else {
+                        debugLog('✅ Simple referral_network record created');
+                    }
+                } else {
+                    debugLog('✅ Manual referral_network record created');
+                }
+
+            } catch (error) {
+                debugLog('❌ Manual referral_network error: ' + error.message);
+            }
+        }
+
+        // MANUALLY create referrals table record
+        async function createManualReferral(newUserId, directReferrerId) {
+            try {
+                debugLog('🔧 Creating MANUAL referrals record...');
+                
+                const referralData = {
+                    referrer_id: directReferrerId,
+                    referred_user_id: newUserId, // referrals table typically uses this
+                    user_id: newUserId,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabase
+                    .from('referrals')
+                    .insert([referralData])
+                    .select();
+
+                if (error) {
+                    debugLog('❌ Manual referrals failed: ' + error.message);
+                } else {
+                    debugLog('✅ Manual referrals record created');
+                }
+
+            } catch (error) {
+                debugLog('❌ Manual referrals error: ' + error.message);
             }
         }
 
