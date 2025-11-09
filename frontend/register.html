@@ -245,31 +245,29 @@
             checkReferral();
         });
 
-        // FIXED: Check for referral parameter in URL - SIMPLIFIED
+        // Check for referral parameter in URL
         async function checkReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
 
             if (referralUsername) {
                 try {
-                    // Simple query without complex error handling
                     const { data: referrerProfiles, error } = await supabase
                         .from('profiles')
                         .select('id, username')
                         .eq('username', referralUsername)
-                        .limit(1);
+                        .single();
 
-                    if (error || !referrerProfiles || referrerProfiles.length === 0) {
+                    if (error || !referrerProfiles) {
                         showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
                         return;
                     }
 
-                    const referrerProfile = referrerProfiles[0];
-                    referrerId = referrerProfile.id;
-                    referrerUsername = referrerProfile.username;
+                    referrerId = referrerProfiles.id;
+                    referrerUsername = referrerProfiles.username;
 
                     // Show referral banners
-                    document.getElementById('referrerName').textContent = referrerProfile.username;
+                    document.getElementById('referrerName').textContent = referrerProfiles.username;
                     document.getElementById('referralBanner').style.display = 'block';
                     document.getElementById('bonusNotification').style.display = 'block';
 
@@ -284,7 +282,12 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // FIXED: Registration - ULTRA SIMPLE
+        // FIXED: Consistent password hash (same as login)
+        function simpleHash(password) {
+            return btoa(password).substring(0, 50);
+        }
+
+        // Registration
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -310,7 +313,7 @@
                     throw new Error('Password must be at least 6 characters');
                 }
 
-                // FIXED: Simple username check
+                // Check if username already exists
                 const { data: existingUsernames } = await supabase
                     .from('profiles')
                     .select('id')
@@ -320,7 +323,7 @@
                     throw new Error('Username already taken');
                 }
 
-                // FIXED: Simple email check
+                // Check if email already exists
                 const { data: existingEmails } = await supabase
                     .from('profiles')
                     .select('id')
@@ -334,13 +337,13 @@
                 const userId = generateUUID();
                 const initialBalance = referrerId ? 30 : 0;
 
-                // FIXED: Simple profile data
+                // Profile data with consistent password hashing
                 const profileData = {
                     id: userId,
                     email: email,
                     full_name: fullName,
                     username: username,
-                    password_hash: btoa(password).substring(0, 50), // Simple hash
+                    password_hash: simpleHash(password), // Same hash as login
                     balance: initialBalance,
                     referral_slots: 10,
                     used_slots: 0,
@@ -356,7 +359,7 @@
                     profileData.referred_by = referrerId;
                 }
 
-                // FIXED: Simple insert - no .single() which can cause hanging
+                // Create profile
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .insert([profileData]);
@@ -365,12 +368,12 @@
                     throw new Error(`Registration failed: ${profileError.message}`);
                 }
 
-                // FIXED: Process referral (don't wait for it to complete)
+                // Process referral (don't wait for it)
                 if (referrerId) {
                     processReferralBonus(userId, referrerId);
                 }
 
-                // Store user session
+                // Store user session (same as login)
                 const userSession = {
                     id: userId,
                     email: email,
@@ -400,7 +403,7 @@
             }
         });
 
-        // FIXED: Process referral bonus - ASYNC (don't wait)
+        // Process referral bonus
         async function processReferralBonus(newUserId, referrerId) {
             try {
                 const BONUS_AMOUNT = 30;
@@ -439,7 +442,7 @@
                     });
 
             } catch (error) {
-                // Silent fail - referral shouldn't break registration
+                // Silent fail
             }
         }
 
