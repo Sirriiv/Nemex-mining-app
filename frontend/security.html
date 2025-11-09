@@ -15,6 +15,7 @@
             --border-color: #333333;
             --success: #00C851;
             --error: #ff4444;
+            --warning: #ffbb33;
         }
 
         * { 
@@ -229,6 +230,179 @@
             font-weight: 600;
         }
 
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            max-width: 350px;
+            border: 1px solid var(--border-color);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            color: var(--gold);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .qr-code-container {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .manual-setup {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+
+        .setup-key {
+            font-family: monospace;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px;
+            border-radius: 4px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+
+        .verification-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 5px;
+            margin: 15px 0;
+        }
+
+        .verification-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.primary {
+            background: var(--gold);
+            color: var(--darker-bg);
+            border: none;
+        }
+
+        .modal-btn.secondary {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .backup-codes {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 12px;
+        }
+
+        .backup-code {
+            font-family: monospace;
+            padding: 5px;
+            margin: 3px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            display: inline-block;
+            width: calc(50% - 10px);
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .step {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--border-color);
+            margin: 0 5px;
+        }
+
+        .step.active {
+            background: var(--gold);
+        }
+
         /* Bottom Navigation */
         .bottom-nav {
             position: fixed;
@@ -339,7 +513,7 @@
                             <div class="security-desc">Add an extra layer of security</div>
                         </div>
                     </div>
-                    <div class="security-status inactive">Inactive</div>
+                    <div id="twoFactorStatus" class="security-status inactive">Inactive</div>
                 </div>
 
                 <div class="security-item">
@@ -394,6 +568,99 @@
             </div>
         </div>
 
+        <!-- 2FA Setup Modal -->
+        <div id="twoFactorModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Enable Two-Factor Authentication</h3>
+                    <button class="close-btn" onclick="close2FAModal()">&times;</button>
+                </div>
+                
+                <div id="setupStep1">
+                    <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
+                        Scan the QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.)
+                    </p>
+                    
+                    <div class="qr-code-container">
+                        <div class="qr-code" id="qrCode">
+                            <!-- QR Code would be generated here in a real implementation -->
+                            <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--dark-bg); font-weight: bold;">
+                                QR CODE
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="manual-setup">
+                        <p style="margin-bottom: 10px; font-weight: 600;">Can't scan the QR code?</p>
+                        <p style="margin-bottom: 5px;">Enter this code manually:</p>
+                        <div class="setup-key" id="manualKey">NEMEX 2FA KEY 1234 5678 90AB CDEF</div>
+                    </div>
+                    
+                    <div class="step-indicator">
+                        <div class="step active"></div>
+                        <div class="step"></div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="modal-btn secondary" onclick="close2FAModal()">Cancel</button>
+                        <button class="modal-btn primary" onclick="showVerificationStep()">Next</button>
+                    </div>
+                </div>
+                
+                <div id="setupStep2" style="display: none;">
+                    <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
+                        Enter the 6-digit code from your authenticator app to verify setup.
+                    </p>
+                    
+                    <input type="text" class="verification-input" id="verificationCode" placeholder="000000" maxlength="6" oninput="validateVerificationCode()">
+                    
+                    <div class="step-indicator">
+                        <div class="step"></div>
+                        <div class="step active"></div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button class="modal-btn secondary" onclick="showQRStep()">Back</button>
+                        <button class="modal-btn primary" id="verifyBtn" onclick="verify2FACode()" disabled>Verify & Enable</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2FA Backup Codes Modal -->
+        <div id="backupCodesModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Backup Codes</h3>
+                    <button class="close-btn" onclick="closeBackupCodesModal()">&times;</button>
+                </div>
+                
+                <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
+                    Save these backup codes in a secure place. You can use them to access your account if you lose your authenticator device.
+                </p>
+                
+                <div class="backup-codes">
+                    <div class="backup-code">A1B2C3D4E5</div>
+                    <div class="backup-code">F6G7H8I9J0</div>
+                    <div class="backup-code">K1L2M3N4O5</div>
+                    <div class="backup-code">P6Q7R8S9T0</div>
+                    <div class="backup-code">U1V2W3X4Y5</div>
+                    <div class="backup-code">Z6A7B8C9D0</div>
+                    <div class="backup-code">E1F2G3H4I5</div>
+                    <div class="backup-code">J6K7L8M9N0</div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="modal-btn secondary" onclick="printBackupCodes()" style="flex: 1;">
+                        Print
+                    </button>
+                    <button class="modal-btn primary" onclick="closeBackupCodesModal()" style="flex: 1;">
+                        I've Saved Them
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
             <a href="dashboard.html" class="nav-item">
@@ -430,6 +697,7 @@
     </div>
 
     <script>
+        // Security functions
         function changePassword() {
             const newPassword = prompt('Enter new password:');
             if (newPassword) {
@@ -450,7 +718,72 @@
             alert('Account recovery setup coming soon!');
         }
 
-        // Highlight current page in navigation
+        // 2FA Functions
+        function open2FAModal() {
+            document.getElementById('twoFactorModal').style.display = 'flex';
+        }
+
+        function close2FAModal() {
+            document.getElementById('twoFactorModal').style.display = 'none';
+            // Reset to step 1
+            showQRStep();
+        }
+
+        function showQRStep() {
+            document.getElementById('setupStep1').style.display = 'block';
+            document.getElementById('setupStep2').style.display = 'none';
+        }
+
+        function showVerificationStep() {
+            document.getElementById('setupStep1').style.display = 'none';
+            document.getElementById('setupStep2').style.display = 'block';
+            document.getElementById('verificationCode').focus();
+        }
+
+        function validateVerificationCode() {
+            const code = document.getElementById('verificationCode').value;
+            const verifyBtn = document.getElementById('verifyBtn');
+            
+            // Simple validation - check if it's exactly 6 digits
+            if (/^\d{6}$/.test(code)) {
+                verifyBtn.disabled = false;
+            } else {
+                verifyBtn.disabled = true;
+            }
+        }
+
+        function verify2FACode() {
+            const code = document.getElementById('verificationCode').value;
+            
+            // In a real implementation, this would send the code to the server for verification
+            // For demo purposes, we'll simulate a successful verification
+            
+            // Simulate API call
+            setTimeout(() => {
+                // Success - enable 2FA
+                document.getElementById('twoFactorStatus').textContent = 'Active';
+                document.getElementById('twoFactorStatus').classList.remove('inactive');
+                document.getElementById('twoFactorStatus').classList.add('active');
+                
+                close2FAModal();
+                showBackupCodesModal();
+            }, 1000);
+        }
+
+        function showBackupCodesModal() {
+            document.getElementById('backupCodesModal').style.display = 'flex';
+        }
+
+        function closeBackupCodesModal() {
+            document.getElementById('backupCodesModal').style.display = 'none';
+        }
+
+        function printBackupCodes() {
+            alert('In a real implementation, this would open a print dialog with the backup codes.');
+            // window.print(); // Would print the current page in a real implementation
+        }
+
+        // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             const currentPage = window.location.pathname.split('/').pop() || 'security.html';
             const navItems = document.querySelectorAll('.nav-item');
@@ -461,6 +794,23 @@
                     item.classList.add('active');
                 } else {
                     item.classList.remove('active');
+                }
+            });
+            
+            // Add click handler for 2FA item
+            const twoFactorItem = document.querySelector('.security-item:nth-child(2)');
+            twoFactorItem.addEventListener('click', function() {
+                const status = document.getElementById('twoFactorStatus');
+                if (status.classList.contains('inactive')) {
+                    open2FAModal();
+                } else {
+                    if (confirm('Are you sure you want to disable Two-Factor Authentication? This will reduce your account security.')) {
+                        // In a real implementation, this would call an API to disable 2FA
+                        status.textContent = 'Inactive';
+                        status.classList.remove('active');
+                        status.classList.add('inactive');
+                        alert('Two-Factor Authentication has been disabled.');
+                    }
                 }
             });
         });
