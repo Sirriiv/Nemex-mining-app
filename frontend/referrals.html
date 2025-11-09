@@ -218,7 +218,7 @@
         let referrals = [];
         let userToRemove = null;
 
-        // FIXED: Check authentication using localStorage (matching your system)
+        // FIXED: Enhanced authentication check
         function checkAuth() {
             const userSession = localStorage.getItem('nemexcoin_user');
             if (!userSession) {
@@ -226,7 +226,7 @@
                 window.location.href = 'login.html';
                 return null;
             }
-            
+
             try {
                 const userData = JSON.parse(userSession);
                 console.log('✅ User session found:', userData.id);
@@ -238,7 +238,7 @@
             }
         }
 
-        // FIXED: Load referral data using localStorage authentication
+        // FIXED: Enhanced referral data loading
         async function loadReferralData() {
             currentUser = checkAuth();
             if (!currentUser) return;
@@ -283,7 +283,7 @@
             }
         }
 
-        // FIXED: Load referrals list
+        // FIXED: Enhanced referrals list loading
         async function loadReferralsList() {
             if (!currentUser) return;
             try {
@@ -445,7 +445,7 @@
             }, 3000); 
         }
 
-        // FIXED: Simple user removal function
+        // FIXED: Enhanced user removal function
         async function removeUser(userId) {
             if (!userId || !currentUser) { 
                 showToast('Error: Invalid user data', 'error'); 
@@ -454,19 +454,53 @@
 
             try {
                 showToast('Removing user...', 'info');
-                
-                // Simple removal - just set referred_by to null
-                const { error } = await supabase
+
+                // Get the user to remove
+                const { data: userToRemoveData } = await supabase
+                    .from('profiles')
+                    .select('balance')
+                    .eq('id', userId)
+                    .single();
+
+                if (!userToRemoveData) {
+                    throw new Error('User not found');
+                }
+
+                // Remove referral relationship and deduct bonus
+                const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ 
                         referred_by: null,
+                        balance: Math.max(0, (userToRemoveData.balance || 0) - 30),
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', userId);
 
-                if (error) {
-                    throw new Error('Failed to remove user: ' + error.message);
+                if (updateError) {
+                    throw new Error('Failed to remove user: ' + updateError.message);
                 }
+
+                // Update referrer's stats
+                const { error: referrerError } = await supabase
+                    .from('profiles')
+                    .update({
+                        used_slots: Math.max(0, (currentProfile.used_slots || 0) - 1),
+                        total_earned_from_refs: Math.max(0, (currentProfile.total_earned_from_refs || 0) - 30),
+                        balance: Math.max(0, (currentProfile.balance || 0) - 30),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', currentUser.id);
+
+                if (referrerError) {
+                    throw new Error('Failed to update referrer stats: ' + referrerError.message);
+                }
+
+                // Remove from referral network
+                await supabase
+                    .from('referral_network')
+                    .delete()
+                    .eq('referrer_id', currentUser.id)
+                    .eq('referred_id', userId);
 
                 // Reload data
                 await loadReferralData();
