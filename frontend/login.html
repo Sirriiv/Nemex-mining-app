@@ -192,12 +192,13 @@
             checkExistingSession();
         });
 
-        // Simple password hash (same as registration)
-        async function simpleHash(password) {
+        // FIXED: Consistent password hash (same as registration)
+        function simpleHash(password) {
+            // Use the EXACT same hashing as registration
             return btoa(password).substring(0, 50);
         }
 
-        // FIXED: Login without hanging
+        // FIXED: Proper database authentication
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -211,26 +212,21 @@
             errorMessage.style.display = 'none';
 
             try {
-                // FIXED: Find user by email or username - SIMPLIFIED
-                const { data: users, error: searchError } = await supabase
+                // FIXED: Find user by email or username
+                const { data: users, error } = await supabase
                     .from('profiles')
                     .select('*')
                     .or(`email.eq.${emailOrUsername},username.eq.${emailOrUsername}`)
-                    .eq('is_active', true)
-                    .limit(1);
+                    .single(); // Use single to get one result
 
-                if (searchError) {
-                    throw new Error('Database error during login');
-                }
-
-                if (!users || users.length === 0) {
+                if (error || !users) {
                     throw new Error('Invalid email/username or password');
                 }
 
-                const user = users[0];
+                const user = users;
 
-                // Verify password
-                const hashedPassword = await simpleHash(password);
+                // FIXED: Verify password with consistent hashing
+                const hashedPassword = simpleHash(password);
                 
                 if (user.password_hash !== hashedPassword) {
                     throw new Error('Invalid email/username or password');
@@ -265,9 +261,8 @@
                 window.location.href = 'dashboard.html';
 
             } catch (error) {
-                errorMessage.textContent = error.message || 'Login failed. Please check your credentials.';
+                errorMessage.textContent = error.message;
                 errorMessage.style.display = 'block';
-            } finally {
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Sign In';
             }
