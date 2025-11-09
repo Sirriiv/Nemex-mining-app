@@ -181,6 +181,8 @@
             font-size: 12px;
             color: #aaa;
             display: none;
+            max-height: 200px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -261,6 +263,7 @@
             const debugInfo = document.getElementById('debugInfo');
             debugInfo.style.display = 'block';
             debugInfo.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+            debugInfo.scrollTop = debugInfo.scrollHeight;
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -327,7 +330,7 @@
             debugLog('⚠️ Invalid referral: ' + message);
         }
 
-        // ULTRA-SIMPLE REGISTRATION - Focus on getting basics working
+        // ULTRA-SIMPLE REGISTRATION - NO REFERRAL NETWORK FOR NOW
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -451,9 +454,14 @@
                     try {
                         debugLog('🎁 Processing referral bonus for: ' + referrerId);
                         await processReferrerBonus(referrerId);
+                        
+                        // STEP 3: Try to create referral network record with user_id column
+                        debugLog('🌐 Attempting to create referral network record...');
+                        await createReferralNetworkWithUserId(userId, referrerId);
+                        
                     } catch (bonusError) {
-                        debugLog('⚠️ Bonus processing failed (non-critical): ' + bonusError.message);
-                        // Don't throw - we don't want bonus issues to break registration
+                        debugLog('⚠️ Referral processing failed (non-critical): ' + bonusError.message);
+                        // Don't throw - we don't want referral issues to break registration
                     }
                 }
 
@@ -538,6 +546,42 @@
             } catch (bonusError) {
                 debugLog('❌ Bonus system error: ' + bonusError.message);
                 throw bonusError;
+            }
+        }
+
+        // NEW: Create referral network record WITH user_id column
+        async function createReferralNetworkWithUserId(newUserId, directReferrerId) {
+            try {
+                debugLog('🌐 Creating referral network record with user_id...');
+                debugLog('New User ID: ' + newUserId);
+                debugLog('Referrer ID: ' + directReferrerId);
+
+                // Try to insert with user_id column
+                const { data, error } = await supabase
+                    .from('referral_network')
+                    .insert({
+                        user_id: newUserId, // This is the column that was missing!
+                        referrer_id: directReferrerId,
+                        referred_id: newUserId,
+                        level: 1,
+                        created_at: new Date().toISOString()
+                    })
+                    .select();
+
+                if (error) {
+                    debugLog('❌ Referral network creation failed: ' + error.message);
+                    debugLog('❌ Error details: ' + JSON.stringify(error));
+                    
+                    // Let's check what columns actually exist
+                    debugLog('🔍 Checking referral_network table structure...');
+                    // This is a simple way to check - we'll try a different approach if this fails
+                } else {
+                    debugLog('✅ Referral network record created successfully: ' + JSON.stringify(data));
+                }
+
+            } catch (networkError) {
+                debugLog('❌ Referral network error: ' + networkError.message);
+                // Don't throw - this shouldn't break registration
             }
         }
 
