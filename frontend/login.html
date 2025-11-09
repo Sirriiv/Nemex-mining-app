@@ -248,6 +248,21 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: var(--gold);
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -346,10 +361,10 @@
             try {
                 console.log('🔐 Attempting login for:', email);
 
-                // Find user by email
+                // Find user by email - INCLUDING 2FA FIELDS
                 const { data: user, error } = await supabase
                     .from('profiles')
-                    .select('*')
+                    .select('*, two_factor_enabled, two_factor_secret')
                     .eq('email', email)
                     .single();
 
@@ -359,6 +374,10 @@
                 }
 
                 console.log('✅ User found:', user.email);
+                console.log('🔒 2FA Status:', {
+                    enabled: user.two_factor_enabled,
+                    hasSecret: !!user.two_factor_secret
+                });
 
                 // SIMPLE: Compare passwords directly using 'password' column
                 console.log('🔑 Password verification - Stored password:', user.password, 'Input password:', password);
@@ -370,21 +389,23 @@
 
                 console.log('✅ Password verified successfully');
 
-                // Store user data for 2FA verification
+                // Store user data for potential 2FA verification
                 currentUser = user;
 
-                // Check if 2FA is enabled
+                // Check if 2FA is enabled AND has a secret
                 if (user.two_factor_enabled && user.two_factor_secret) {
                     console.log('🔒 2FA is enabled for user, showing verification modal');
+                    console.log('📱 Secret found:', user.two_factor_secret);
                     user2FASecret = user.two_factor_secret;
                     show2FAModal();
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Sign In';
                     return; // Stop here, wait for 2FA verification
+                } else {
+                    console.log('🔓 2FA not enabled, proceeding with normal login');
+                    // If no 2FA, proceed with login
+                    await completeLogin(user);
                 }
-
-                // If no 2FA, proceed with login
-                await completeLogin(user);
 
             } catch (error) {
                 console.error('❌ Login error:', error);
@@ -397,7 +418,10 @@
 
         function show2FAModal() {
             document.getElementById('twoFactorModal').style.display = 'flex';
+            document.getElementById('twoFactorCode').value = '';
             document.getElementById('twoFactorCode').focus();
+            document.getElementById('verify2FABtn').disabled = true;
+            document.getElementById('verify2FABtn').textContent = 'Verify';
         }
 
         function validate2FACode() {
@@ -417,9 +441,12 @@
             const verifyBtn = document.getElementById('verify2FABtn');
 
             verifyBtn.disabled = true;
-            verifyBtn.textContent = 'Verifying...';
+            verifyBtn.innerHTML = '<span class="loading-spinner"></span>Verifying...';
 
             try {
+                console.log('🔐 Verifying 2FA code:', code);
+                console.log('🔑 Using secret:', user2FASecret);
+
                 // Verify the TOTP code using the stored secret
                 const isValid = verifyTOTP(code, user2FASecret);
                 
@@ -427,7 +454,7 @@
                     console.log('✅ 2FA code verified successfully');
                     await completeLogin(currentUser);
                 } else {
-                    throw new Error('Invalid verification code');
+                    throw new Error('Invalid verification code. Please try again.');
                 }
             } catch (error) {
                 console.error('❌ 2FA verification error:', error);
@@ -435,11 +462,17 @@
                 document.getElementById('errorMessage').style.display = 'block';
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify';
+                
+                // Clear the input for retry
+                document.getElementById('twoFactorCode').value = '';
+                document.getElementById('twoFactorCode').focus();
             }
         }
 
         function verifyTOTP(code, secret) {
             try {
+                console.log('🔍 Starting TOTP validation...');
+                
                 // Create TOTP instance with the stored secret
                 const totp = new OTPAuth.TOTP({
                     issuer: "NemexCoin",
@@ -451,18 +484,20 @@
                 });
 
                 // Validate the code (allow 30-second window for time sync issues)
-                const isValid = totp.validate({ token: code, window: 1 }) !== null;
+                const validation = totp.validate({ token: code, window: 1 });
+                const isValid = validation !== null;
                 
-                console.log('🔐 TOTP Validation:', {
+                console.log('🔐 TOTP Validation Result:', {
                     code: code,
                     secret: secret,
+                    validationResult: validation,
                     isValid: isValid,
                     timestamp: new Date().toISOString()
                 });
 
                 return isValid;
             } catch (error) {
-                console.error('TOTP validation error:', error);
+                console.error('❌ TOTP validation error:', error);
                 return false;
             }
         }
@@ -470,7 +505,9 @@
         function useBackupCode() {
             document.getElementById('twoFactorModal').style.display = 'none';
             document.getElementById('backupCodeModal').style.display = 'flex';
+            document.getElementById('backupCode').value = '';
             document.getElementById('backupCode').focus();
+            document.getElementById('verifyBackupBtn').disabled = true;
         }
 
         function validateBackupCode() {
@@ -490,12 +527,13 @@
             const verifyBtn = document.getElementById('verifyBackupBtn');
 
             verifyBtn.disabled = true;
-            verifyBtn.textContent = 'Verifying...';
+            verifyBtn.innerHTML = '<span class="loading-spinner"></span>Verifying...';
 
             try {
+                console.log('🔑 Backup code verification attempt:', code);
+                
                 // In a real implementation, you would check against stored backup codes in your database
                 // For now, we'll simulate a successful verification
-                console.log('🔑 Backup code verification attempt:', code);
                 
                 // Simulate API call delay
                 await new Promise(resolve => setTimeout(resolve, 1000));
@@ -514,6 +552,10 @@
                 document.getElementById('errorMessage').style.display = 'block';
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify';
+                
+                // Clear the input for retry
+                document.getElementById('backupCode').value = '';
+                document.getElementById('backupCode').focus();
             }
         }
 
@@ -536,8 +578,10 @@
 
         async function completeLogin(user) {
             try {
+                console.log('✅ Completing login for user:', user.email);
+
                 // Update last login
-                await supabase
+                const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ 
                         last_login: new Date().toISOString(),
@@ -545,7 +589,11 @@
                     })
                     .eq('id', user.id);
 
-                console.log('✅ Last login updated');
+                if (updateError) {
+                    console.error('❌ Error updating last login:', updateError);
+                } else {
+                    console.log('✅ Last login updated');
+                }
 
                 // Store session
                 const userSession = {
@@ -593,6 +641,9 @@
                 }
             }
         });
+
+        // Debug helper - remove in production
+        console.log('🔧 Login page loaded - 2FA detection ready');
     </script>
 </body>
 </html>
