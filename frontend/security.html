@@ -285,21 +285,30 @@
             transform: scale(1.1);
         }
 
+        /* UPDATED QR CODE STYLES - BLACK BACKGROUND */
         .qr-code-container {
             text-align: center;
             margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
+            padding: 0;
+            background: #000000;
+            border-radius: 0;
+            border: none;
         }
 
         .qr-code {
             width: 200px;
             height: 200px;
             margin: 0 auto;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
+            background: #000000 !important;
+            padding: 0 !important;
+            border: none !important;
+            border-radius: 0 !important;
+        }
+
+        /* Ensure QR code canvas has black background */
+        .qr-code canvas {
+            background: #000000 !important;
+            display: block;
         }
 
         .manual-setup {
@@ -587,7 +596,7 @@
                     
                     <div class="qr-code-container">
                         <div class="qr-code" id="qrCode">
-                            <!-- QR Code will be generated here -->
+                            <!-- QR Code will be generated here with black background -->
                         </div>
                     </div>
                     
@@ -747,20 +756,20 @@
             const issuer = "NemexCoin";
             const otpAuthUri = `otpauth://totp/${issuer}:${userEmail}?secret=${secretKey}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
             
-            // Generate QR Code
+            // Generate QR Code with BLACK background
             const qrCodeElement = document.getElementById('qrCode');
             qrCodeElement.innerHTML = ''; // Clear any existing QR code
             
             QRCode.toCanvas(qrCodeElement, otpAuthUri, {
-                width: 180,
-                height: 180,
-                colorDark: "#d4af37", // Gold color for QR code
-                colorLight: "#ffffff",
+                width: 200,
+                height: 200,
+                colorDark: "#d4af37", // Gold color for QR code dots
+                colorLight: "#000000", // BLACK background
                 margin: 1
             }, function(error) {
                 if (error) {
                     console.error('QR Code generation error:', error);
-                    // Fallback: Create a simple QR code pattern
+                    // Fallback: Create a simple QR code pattern with black background
                     createFallbackQRCode();
                 }
             });
@@ -784,19 +793,20 @@
             qrCodeElement.innerHTML = '';
             
             const canvas = document.createElement('canvas');
-            canvas.width = 180;
-            canvas.height = 180;
+            canvas.width = 200;
+            canvas.height = 200;
             const ctx = canvas.getContext('2d');
             
-            // Draw a simple QR code pattern (for demonstration)
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 180, 180);
+            // Draw BLACK background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 200, 200);
             
+            // Draw gold QR code pattern
             ctx.fillStyle = '#d4af37'; // Gold color
             // Draw position markers
             ctx.fillRect(10, 10, 40, 40);
-            ctx.fillRect(130, 10, 40, 40);
-            ctx.fillRect(10, 130, 40, 40);
+            ctx.fillRect(150, 10, 40, 40);
+            ctx.fillRect(10, 150, 40, 40);
             
             // Draw some pattern lines
             for (let i = 0; i < 12; i++) {
