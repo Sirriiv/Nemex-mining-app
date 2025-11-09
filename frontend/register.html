@@ -171,6 +171,17 @@
             margin-top: 5px;
             display: none;
         }
+
+        .debug-info {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #aaa;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -229,6 +240,9 @@
         <div class="login-link">
             Already have an account? <a href="login.html">Sign In</a>
         </div>
+
+        <!-- Debug Info -->
+        <div class="debug-info" id="debugInfo"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -241,8 +255,16 @@
         let referrerId = null;
         let referrerUsername = null;
 
+        // Debug logging function
+        function debugLog(message) {
+            console.log('🔧 DEBUG:', message);
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.style.display = 'block';
+            debugInfo.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Registration page loaded');
+            debugLog('🚀 Registration page loaded');
             checkReferral();
         });
 
@@ -251,11 +273,11 @@
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
 
-            console.log('🔍 Checking referral for:', referralUsername);
+            debugLog('🔍 Checking referral for: ' + (referralUsername || 'None'));
 
             if (referralUsername) {
                 try {
-                    console.log('📊 Querying database for referrer:', referralUsername);
+                    debugLog('📊 Querying database for referrer: ' + referralUsername);
 
                     const { data: referrerProfiles, error } = await supabase
                         .from('profiles')
@@ -263,16 +285,16 @@
                         .eq('username', referralUsername)
                         .limit(1);
 
-                    console.log('📊 Referral query result:', { referrerProfiles, error });
-
                     if (error) {
-                        console.error('❌ Database error:', error);
+                        debugLog('❌ Database error: ' + error.message);
                         showInvalidReferral(`Database error: ${error.message}. You can still register normally.`);
                         return;
                     }
 
+                    debugLog('📊 Referral query found: ' + (referrerProfiles ? referrerProfiles.length : 0) + ' results');
+
                     if (!referrerProfiles || referrerProfiles.length === 0) {
-                        console.log('❌ Referrer not found in database');
+                        debugLog('❌ Referrer not found in database');
                         showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
                         return;
                     }
@@ -281,28 +303,31 @@
                     referrerId = referrerProfile.id;
                     referrerUsername = referrerProfile.username;
 
-                    console.log('✅ Valid referral found:', referrerProfile.username, 'ID:', referrerId);
+                    debugLog('✅ Valid referral found: ' + referrerProfile.username + ' ID: ' + referrerId);
 
                     // Show referral banners
                     document.getElementById('referrerName').textContent = referrerProfile.username;
                     document.getElementById('referralBanner').style.display = 'block';
                     document.getElementById('bonusNotification').style.display = 'block';
 
+                    debugLog('🎉 Referral banners displayed');
+
                 } catch (error) {
-                    console.error('❌ Error checking referral:', error);
+                    debugLog('❌ Error checking referral: ' + error.message);
                     showInvalidReferral(`Error checking referral. You can still register normally.`);
                 }
             } else {
-                console.log('ℹ️ No referral parameter found in URL');
+                debugLog('ℹ️ No referral parameter found in URL');
             }
         }
 
         function showInvalidReferral(message) {
             document.getElementById('invalidReferralMessage').textContent = message;
             document.getElementById('invalidReferralBanner').style.display = 'block';
+            debugLog('⚠️ Invalid referral: ' + message);
         }
 
-        // SIMPLIFIED REGISTRATION - Focus on getting it working first
+        // ULTRA-SIMPLE REGISTRATION - Focus on getting basics working
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -315,12 +340,13 @@
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
 
+            debugLog('🔄 Starting registration process...');
+            debugLog('Form data - Name: ' + fullName + ', Username: ' + username + ', Email: ' + email);
+
             // Clear previous errors
             clearErrors();
 
             try {
-                console.log('🔄 Starting SIMPLIFIED registration process...');
-
                 // Validate inputs
                 if (username.length < 3) {
                     showError('usernameError', 'Username must be at least 3 characters');
@@ -337,14 +363,14 @@
                 }
 
                 // Check if username already exists
-                console.log('🔍 Checking if username exists:', username);
+                debugLog('🔍 Checking if username exists: ' + username);
                 const { data: existingUsernames, error: usernameCheckError } = await supabase
                     .from('profiles')
                     .select('id')
                     .eq('username', username);
 
                 if (usernameCheckError) {
-                    console.error('❌ Username check error:', usernameCheckError);
+                    debugLog('❌ Username check error: ' + usernameCheckError.message);
                     throw new Error('Database error checking username');
                 }
 
@@ -356,14 +382,14 @@
                 }
 
                 // Check if email already exists
-                console.log('🔍 Checking if email exists:', email);
+                debugLog('🔍 Checking if email exists: ' + email);
                 const { data: existingEmails, error: emailCheckError } = await supabase
                     .from('profiles')
                     .select('id')
                     .eq('email', email);
 
                 if (emailCheckError) {
-                    console.error('❌ Email check error:', emailCheckError);
+                    debugLog('❌ Email check error: ' + emailCheckError.message);
                     throw new Error('Database error checking email');
                 }
 
@@ -374,10 +400,13 @@
                     return;
                 }
 
-                // Generate user ID and create profile directly
+                // Generate user ID and create profile
                 const userId = generateUUID();
                 const initialBalance = referrerId ? 30 : 0;
-                const totalEarnedFromRefs = referrerId ? 30 : 0;
+
+                debugLog('📝 Creating user profile with ID: ' + userId);
+                debugLog('Referrer ID: ' + (referrerId || 'None'));
+                debugLog('Initial balance: ' + initialBalance);
 
                 const profileData = {
                     id: userId,
@@ -388,8 +417,7 @@
                     balance: initialBalance,
                     referral_slots: 10,
                     used_slots: 0,
-                    total_earned_from_refs: totalEarnedFromRefs,
-                    created_via: 'direct_registration',
+                    total_earned_from_refs: 0,
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
                     is_active: true,
@@ -399,12 +427,11 @@
                 // Add referral data if applicable
                 if (referrerId) {
                     profileData.referred_by = referrerId;
-                    console.log('✅ SETTING referred_by to:', referrerId);
+                    debugLog('✅ SETTING referred_by to: ' + referrerId);
                 }
 
-                console.log('📝 Creating user profile:', profileData);
-
-                // STEP 1: Create profile
+                // STEP 1: Create profile (ULTRA SIMPLE - minimal fields)
+                debugLog('🚀 Inserting profile into database...');
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .insert([profileData])
@@ -412,23 +439,25 @@
                     .single();
 
                 if (profileError) {
-                    console.error('❌ Profile creation failed:', profileError);
+                    debugLog('❌ Profile creation failed: ' + profileError.message);
+                    debugLog('❌ Profile error details: ' + JSON.stringify(profileError));
                     throw new Error(`Registration failed: ${profileError.message}`);
                 }
 
-                console.log('✅ Profile created successfully:', profile);
+                debugLog('✅ Profile created successfully: ' + profile.id);
 
-                // STEP 2: Process referral bonuses and network (only if referral exists)
+                // STEP 2: Process referral if exists (but don't let it break registration)
                 if (referrerId) {
-                    console.log('🎁 Processing referral bonuses for referrer:', referrerId);
-                    await processReferrerBonus(referrerId);
-
-                    // STEP 3: Create referral network record (SIMPLIFIED)
-                    console.log('🌐 Creating referral network record...');
-                    await createSimpleReferralNetwork(userId, referrerId);
+                    try {
+                        debugLog('🎁 Processing referral bonus for: ' + referrerId);
+                        await processReferrerBonus(referrerId);
+                    } catch (bonusError) {
+                        debugLog('⚠️ Bonus processing failed (non-critical): ' + bonusError.message);
+                        // Don't throw - we don't want bonus issues to break registration
+                    }
                 }
 
-                // Store user session in localStorage for auto-login
+                // Store user session
                 const userSession = {
                     id: userId,
                     email: email,
@@ -440,15 +469,15 @@
                 };
 
                 localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
-                console.log('🔐 User session stored');
+                debugLog('🔐 User session stored in localStorage');
 
-                // Success message
-                console.log('🎉 SIMPLIFIED Registration completed successfully!');
+                // Success!
+                debugLog('🎉 REGISTRATION COMPLETED SUCCESSFULLY!');
 
                 if (referrerId) {
                     alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
                 } else {
-                    alert('Account created successfully! Redirecting to dashboard...');
+                    alert('✅ Account created successfully! Redirecting to dashboard...');
                 }
 
                 // Redirect to dashboard
@@ -457,110 +486,58 @@
                 }, 2000);
 
             } catch (error) {
-                console.error('❌ Registration error:', error);
+                debugLog('❌ REGISTRATION ERROR: ' + error.message);
                 showError('emailError', 'Registration failed: ' + error.message);
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Create Account';
             }
         });
 
-        // Process referrer bonus
+        // Process referrer bonus (simplified)
         async function processReferrerBonus(referrerId) {
             const BONUS_AMOUNT = 30;
 
             try {
+                debugLog('💰 Giving bonus to referrer: ' + referrerId);
+
                 // Get current referrer data
                 const { data: referrerData, error: referrerFetchError } = await supabase
                     .from('profiles')
-                    .select('balance, total_earned_from_refs, used_slots, referral_slots')
+                    .select('balance, total_earned_from_refs, used_slots')
                     .eq('id', referrerId)
                     .single();
 
                 if (referrerFetchError) {
-                    console.error('❌ Failed to fetch referrer data:', referrerFetchError);
+                    debugLog('❌ Failed to fetch referrer data: ' + referrerFetchError.message);
                     return;
                 }
 
-                console.log('📊 Referrer current data:', referrerData);
+                debugLog('📊 Referrer current data - Balance: ' + referrerData.balance + ', Earned: ' + referrerData.total_earned_from_refs + ', Used slots: ' + referrerData.used_slots);
 
                 // Calculate new values
                 const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
                 const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
                 const newUsedSlots = (referrerData.used_slots || 0) + 1;
 
-                // Check available slots
-                const availableSlots = (referrerData.referral_slots || 10) - (referrerData.used_slots || 0);
-                console.log('📊 Available slots:', availableSlots);
+                // Update referrer with bonus
+                const { error: referrerBonusError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        balance: newReferrerBalance,
+                        total_earned_from_refs: newReferrerEarned,
+                        used_slots: newUsedSlots
+                    })
+                    .eq('id', referrerId);
 
-                if (availableSlots > 0) {
-                    // Update referrer with bonus
-                    const { error: referrerBonusError } = await supabase
-                        .from('profiles')
-                        .update({ 
-                            balance: newReferrerBalance,
-                            total_earned_from_refs: newReferrerEarned,
-                            used_slots: newUsedSlots
-                        })
-                        .eq('id', referrerId);
-
-                    if (referrerBonusError) {
-                        console.error('❌ Failed to give bonus to referrer:', referrerBonusError);
-                    } else {
-                        console.log('✅ Referrer received bonus:', BONUS_AMOUNT, 'NMXp. New balance:', newReferrerBalance);
-                    }
+                if (referrerBonusError) {
+                    debugLog('❌ Failed to give bonus to referrer: ' + referrerBonusError.message);
                 } else {
-                    console.log('⚠️ Referrer has no available slots, bonus not given');
+                    debugLog('✅ Referrer received bonus: ' + BONUS_AMOUNT + ' NMXp. New balance: ' + newReferrerBalance);
                 }
 
             } catch (bonusError) {
-                console.error('❌ Bonus system error:', bonusError);
-            }
-        }
-
-        // SIMPLE: Create only direct referral record
-        async function createSimpleReferralNetwork(newUserId, directReferrerId) {
-            try {
-                console.log('🌐 Creating SIMPLE referral network record...');
-                console.log('Referrer ID:', directReferrerId);
-                console.log('Referred ID:', newUserId);
-
-                // Create only the direct referral (Level 1)
-                const { data, error } = await supabase
-                    .from('referral_network')
-                    .insert({
-                        referrer_id: directReferrerId,
-                        referred_id: newUserId,
-                        level: 1,
-                        created_at: new Date().toISOString()
-                    })
-                    .select();
-
-                if (error) {
-                    console.error('❌ SIMPLE referral creation failed:', error);
-                    console.error('Error details:', error.details);
-                    console.error('Error message:', error.message);
-                    console.error('Error hint:', error.hint);
-                    
-                    // Let's check what columns actually exist in the table
-                    console.log('🔍 Checking table structure...');
-                    const { data: tableInfo, error: tableError } = await supabase
-                        .from('information_schema.columns')
-                        .select('column_name, data_type')
-                        .eq('table_name', 'referral_network')
-                        .eq('table_schema', 'public');
-                    
-                    if (!tableError && tableInfo) {
-                        console.log('📊 Current referral_network columns:', tableInfo);
-                    }
-                    
-                    throw new Error('Failed to create referral record: ' + error.message);
-                } else {
-                    console.log('✅ SIMPLE referral created successfully:', data);
-                }
-
-            } catch (networkError) {
-                console.error('❌ SIMPLE referral error:', networkError);
-                // Don't throw here - we don't want to fail registration just because of referral tracking
+                debugLog('❌ Bonus system error: ' + bonusError.message);
+                throw bonusError;
             }
         }
 
@@ -589,6 +566,7 @@
             const element = document.getElementById(elementId);
             element.textContent = message;
             element.style.display = 'block';
+            debugLog('❌ Error: ' + message);
         }
     </script>
 </body>
