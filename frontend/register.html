@@ -291,7 +291,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // FIXED: Enhanced Registration with proper referral tracking
+        // SIMPLE REGISTRATION - No Password Hashing, using 'password' column
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -343,21 +343,18 @@
                 const userId = generateUUID();
                 const initialBalance = referrerId ? 30 : 0;
 
-                // FIXED: Enhanced password hash
-                const passwordHash = btoa(unescape(encodeURIComponent(password))).substring(0, 50);
-
                 console.log('📝 Creating user profile...');
                 console.log('User ID:', userId);
                 console.log('Email:', email);
-                console.log('Password hash length:', passwordHash.length);
+                console.log('Password stored directly in "password" column');
 
-                // Profile data
+                // Profile data - using 'password' column
                 const profileData = {
                     id: userId,
                     email: email,
                     full_name: fullName,
                     username: username,
-                    password_hash: passwordHash,
+                    password: password, // Using 'password' column directly
                     balance: initialBalance,
                     referral_slots: 10,
                     used_slots: 0,
@@ -390,7 +387,7 @@
                     await processReferralBonus(userId, referrerId);
                 }
 
-                // FIXED: Use localStorage for session (matching your system)
+                // Store session
                 const userSession = {
                     id: userId,
                     email: email,
@@ -420,7 +417,7 @@
             }
         });
 
-        // FIXED: Enhanced referral processing with network tracking
+        // Process referral bonus
         async function processReferralBonus(newUserId, referrerId) {
             try {
                 const BONUS_AMOUNT = 30;
