@@ -252,22 +252,31 @@
 
             if (referralUsername) {
                 try {
-                    const { data: referrerProfiles, error } = await supabase
+                    const { data: referrerProfile, error } = await supabase
                         .from('profiles')
-                        .select('id, username')
+                        .select('id, username, used_slots, referral_slots')
                         .eq('username', referralUsername)
                         .single();
 
-                    if (error || !referrerProfiles) {
+                    if (error || !referrerProfile) {
                         showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
                         return;
                     }
 
-                    referrerId = referrerProfiles.id;
-                    referrerUsername = referrerProfiles.username;
+                    // Check if referrer has available slots
+                    const usedSlots = referrerProfile.used_slots || 0;
+                    const totalSlots = referrerProfile.referral_slots || 10;
+                    
+                    if (usedSlots >= totalSlots) {
+                        showInvalidReferral(`Referrer "${referralUsername}" has reached their referral limit. You can still register normally.`);
+                        return;
+                    }
+
+                    referrerId = referrerProfile.id;
+                    referrerUsername = referrerProfile.username;
 
                     // Show referral banners
-                    document.getElementById('referrerName').textContent = referrerProfiles.username;
+                    document.getElementById('referrerName').textContent = referrerProfile.username;
                     document.getElementById('referralBanner').style.display = 'block';
                     document.getElementById('bonusNotification').style.display = 'block';
 
@@ -282,7 +291,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // FIXED: Pure Database Registration
+        // FIXED: Enhanced Registration with proper referral tracking
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -334,13 +343,13 @@
                 const userId = generateUUID();
                 const initialBalance = referrerId ? 30 : 0;
 
-                // FIXED: Simple password hash (same as login)
-                const passwordHash = btoa(password).substring(0, 50);
+                // FIXED: Enhanced password hash
+                const passwordHash = btoa(unescape(encodeURIComponent(password))).substring(0, 50);
 
                 console.log('📝 Creating user profile...');
                 console.log('User ID:', userId);
                 console.log('Email:', email);
-                console.log('Password hash:', passwordHash);
+                console.log('Password hash length:', passwordHash.length);
 
                 // Profile data
                 const profileData = {
@@ -378,10 +387,10 @@
 
                 // Process referral (don't wait for it)
                 if (referrerId) {
-                    processReferralBonus(userId, referrerId);
+                    await processReferralBonus(userId, referrerId);
                 }
 
-                // FIXED: Use sessionStorage for temporary session
+                // FIXED: Use localStorage for session (matching your system)
                 const userSession = {
                     id: userId,
                     email: email,
@@ -391,7 +400,7 @@
                     loggedIn: true
                 };
 
-                sessionStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
 
                 // Success
                 if (referrerId) {
@@ -411,7 +420,7 @@
             }
         });
 
-        // Process referral bonus
+        // FIXED: Enhanced referral processing with network tracking
         async function processReferralBonus(newUserId, referrerId) {
             try {
                 const BONUS_AMOUNT = 30;
@@ -419,7 +428,7 @@
                 // Get referrer data
                 const { data: referrerData } = await supabase
                     .from('profiles')
-                    .select('balance, total_earned_from_refs, used_slots')
+                    .select('balance, total_earned_from_refs, used_slots, username')
                     .eq('id', referrerId)
                     .single();
 
@@ -448,6 +457,8 @@
                         level: 1,
                         created_at: new Date().toISOString()
                     });
+
+                console.log('✅ Referral bonus processed successfully');
 
             } catch (error) {
                 console.error('Referral bonus error:', error);
