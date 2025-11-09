@@ -98,11 +98,19 @@
             width: 100%;
             font-size: 16px;
             margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
         }
 
         .login-btn:disabled {
             background: var(--muted);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .register-link {
@@ -161,7 +169,8 @@
                 <input type="password" class="form-input" id="password" required>
             </div>
 
-            <button type="submit" class="loginBtn" id="loginBtn">Sign In</button>
+            <!-- FIXED: Changed class from "loginBtn" to "login-btn" -->
+            <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
         </form>
 
         <div class="forgot-password">
