@@ -245,25 +245,21 @@
             checkReferral();
         });
 
-        // Check for referral parameter in URL
+        // FIXED: Check for referral parameter in URL - SIMPLIFIED
         async function checkReferral() {
             const urlParams = new URLSearchParams(window.location.search);
             const referralUsername = urlParams.get('ref');
 
             if (referralUsername) {
                 try {
+                    // Simple query without complex error handling
                     const { data: referrerProfiles, error } = await supabase
                         .from('profiles')
-                        .select('id, username, email')
+                        .select('id, username')
                         .eq('username', referralUsername)
                         .limit(1);
 
-                    if (error) {
-                        showInvalidReferral(`Database error: ${error.message}. You can still register normally.`);
-                        return;
-                    }
-
-                    if (!referrerProfiles || referrerProfiles.length === 0) {
+                    if (error || !referrerProfiles || referrerProfiles.length === 0) {
                         showInvalidReferral(`Referrer "${referralUsername}" not found. You can still register normally.`);
                         return;
                     }
@@ -288,7 +284,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // FIXED: Registration without hanging
+        // FIXED: Registration - ULTRA SIMPLE
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -305,65 +301,46 @@
             clearErrors();
 
             try {
-                // Validate inputs
+                // Basic validation
                 if (username.length < 3) {
-                    showError('usernameError', 'Username must be at least 3 characters');
-                    registerBtn.disabled = false;
-                    registerBtn.textContent = 'Create Account';
-                    return;
+                    throw new Error('Username must be at least 3 characters');
                 }
 
                 if (password.length < 6) {
-                    showError('passwordError', 'Password must be at least 6 characters');
-                    registerBtn.disabled = false;
-                    registerBtn.textContent = 'Create Account';
-                    return;
+                    throw new Error('Password must be at least 6 characters');
                 }
 
-                // FIXED: Check if username already exists - SIMPLIFIED
-                const { data: existingUsernames, error: usernameCheckError } = await supabase
+                // FIXED: Simple username check
+                const { data: existingUsernames } = await supabase
                     .from('profiles')
                     .select('id')
                     .eq('username', username);
 
-                if (usernameCheckError) {
-                    throw new Error('Database error checking username');
-                }
-
                 if (existingUsernames && existingUsernames.length > 0) {
-                    showError('usernameError', 'Username already taken');
-                    registerBtn.disabled = false;
-                    registerBtn.textContent = 'Create Account';
-                    return;
+                    throw new Error('Username already taken');
                 }
 
-                // FIXED: Check if email already exists - SIMPLIFIED
-                const { data: existingEmails, error: emailCheckError } = await supabase
+                // FIXED: Simple email check
+                const { data: existingEmails } = await supabase
                     .from('profiles')
                     .select('id')
                     .eq('email', email);
 
-                if (emailCheckError) {
-                    throw new Error('Database error checking email');
-                }
-
                 if (existingEmails && existingEmails.length > 0) {
-                    showError('emailError', 'Email already registered');
-                    registerBtn.disabled = false;
-                    registerBtn.textContent = 'Create Account';
-                    return;
+                    throw new Error('Email already registered');
                 }
 
-                // Generate user ID and create profile
+                // Generate user ID
                 const userId = generateUUID();
                 const initialBalance = referrerId ? 30 : 0;
 
+                // FIXED: Simple profile data
                 const profileData = {
                     id: userId,
                     email: email,
                     full_name: fullName,
                     username: username,
-                    password_hash: await simpleHash(password),
+                    password_hash: btoa(password).substring(0, 50), // Simple hash
                     balance: initialBalance,
                     referral_slots: 10,
                     used_slots: 0,
@@ -374,29 +351,26 @@
                     last_login: new Date().toISOString()
                 };
 
-                // Add referral data if applicable
+                // Add referral if exists
                 if (referrerId) {
                     profileData.referred_by = referrerId;
                 }
 
-                // Create profile
-                const { data: profile, error: profileError } = await supabase
+                // FIXED: Simple insert - no .single() which can cause hanging
+                const { error: profileError } = await supabase
                     .from('profiles')
-                    .insert([profileData])
-                    .select()
-                    .single();
+                    .insert([profileData]);
 
                 if (profileError) {
                     throw new Error(`Registration failed: ${profileError.message}`);
                 }
 
-                // Process referral bonuses and network
+                // FIXED: Process referral (don't wait for it to complete)
                 if (referrerId) {
-                    await processReferrerBonus(referrerId);
-                    await createReferralNetworkRecord(userId, referrerId);
+                    processReferralBonus(userId, referrerId);
                 }
 
-                // Store user session in localStorage
+                // Store user session
                 const userSession = {
                     id: userId,
                     email: email,
@@ -409,80 +383,63 @@
 
                 localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
 
-                // Success message
+                // Success
                 if (referrerId) {
-                    alert('🎉 Account created successfully! You received 30 NMXp bonus for joining via referral! Redirecting to dashboard...');
+                    alert('🎉 Account created successfully! You received 30 NMXp bonus! Redirecting...');
                 } else {
-                    alert('Account created successfully! Redirecting to dashboard...');
+                    alert('Account created successfully! Redirecting...');
                 }
 
-                // Redirect to dashboard
-                setTimeout(() => {
-                    window.location.href = 'dashboard.html';
-                }, 2000);
+                // Redirect immediately
+                window.location.href = 'dashboard.html';
 
             } catch (error) {
-                showError('emailError', 'Registration failed: ' + error.message);
+                showError('emailError', error.message);
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Create Account';
             }
         });
 
-        // Process referrer bonus
-        async function processReferrerBonus(referrerId) {
-            const BONUS_AMOUNT = 30;
-
+        // FIXED: Process referral bonus - ASYNC (don't wait)
+        async function processReferralBonus(newUserId, referrerId) {
             try {
-                // Get current referrer data
-                const { data: referrerData, error: referrerFetchError } = await supabase
+                const BONUS_AMOUNT = 30;
+
+                // Get referrer data
+                const { data: referrerData } = await supabase
                     .from('profiles')
-                    .select('balance, total_earned_from_refs, used_slots, referral_slots')
+                    .select('balance, total_earned_from_refs, used_slots')
                     .eq('id', referrerId)
                     .single();
 
-                if (referrerFetchError) return;
+                if (!referrerData) return;
 
-                // Calculate new values
-                const newReferrerBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
-                const newReferrerEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
+                // Update referrer
+                const newBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
+                const newEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
                 const newUsedSlots = (referrerData.used_slots || 0) + 1;
 
-                // Check available slots
-                const availableSlots = (referrerData.referral_slots || 10) - (referrerData.used_slots || 0);
+                await supabase
+                    .from('profiles')
+                    .update({ 
+                        balance: newBalance,
+                        total_earned_from_refs: newEarned,
+                        used_slots: newUsedSlots
+                    })
+                    .eq('id', referrerId);
 
-                if (availableSlots > 0) {
-                    // Update referrer with bonus
-                    await supabase
-                        .from('profiles')
-                        .update({ 
-                            balance: newReferrerBalance,
-                            total_earned_from_refs: newReferrerEarned,
-                            used_slots: newUsedSlots
-                        })
-                        .eq('id', referrerId);
-                }
-
-            } catch (bonusError) {
-                // Silent fail - don't break registration
-            }
-        }
-
-        // Create referral network record
-        async function createReferralNetworkRecord(newUserId, directReferrerId) {
-            try {
-                const networkData = {
-                    referrer_id: directReferrerId,
-                    referred_id: newUserId,
-                    level: 1,
-                    created_at: new Date().toISOString()
-                };
-
+                // Create referral network record
                 await supabase
                     .from('referral_network')
-                    .insert([networkData]);
+                    .insert({
+                        referrer_id: referrerId,
+                        referred_id: newUserId,
+                        level: 1,
+                        created_at: new Date().toISOString()
+                    });
 
             } catch (error) {
-                // Silent fail - don't break registration
+                // Silent fail - referral shouldn't break registration
             }
         }
 
@@ -493,11 +450,6 @@
                 const v = c == 'x' ? r : (r & 0x3 | 0x8);
                 return v.toString(16);
             });
-        }
-
-        // Simple password hash
-        async function simpleHash(password) {
-            return btoa(password).substring(0, 50);
         }
 
         function clearErrors() {
