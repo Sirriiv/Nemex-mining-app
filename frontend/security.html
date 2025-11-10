@@ -575,6 +575,19 @@
             padding: 10px;
             margin-bottom: 15px;
         }
+
+        .error-message {
+            color: var(--error);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            text-align: center;
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -689,7 +702,7 @@
                 
                 <div class="password-actions">
                     <button class="modal-btn secondary" onclick="closePasswordModal()">Cancel</button>
-                    <button class="modal-btn primary" onclick="changePassword()">Change Password</button>
+                    <button class="modal-btn primary" onclick="changePassword()" id="changePasswordBtn">Change Password</button>
                 </div>
             </div>
         </div>
@@ -848,11 +861,14 @@
             const confirmPassword = document.getElementById('confirmPassword').value;
             const errorMessage = document.getElementById('errorMessage');
             const successMessage = document.getElementById('successMessage');
+            const changePasswordBtn = document.getElementById('changePasswordBtn');
 
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
 
             try {
+                console.log('🔐 Starting password change process...');
+
                 // Validate inputs
                 if (!currentPassword || !newPassword || !confirmPassword) {
                     throw new Error('All fields are required');
@@ -872,6 +888,8 @@
                     throw new Error('User not logged in');
                 }
 
+                console.log('👤 User ID:', userSession.id);
+
                 // Verify current password
                 const { data: user, error: userError } = await supabase
                     .from('profiles')
@@ -880,14 +898,22 @@
                     .single();
 
                 if (userError || !user) {
+                    console.error('❌ User fetch error:', userError);
                     throw new Error('Failed to verify current password');
                 }
+
+                console.log('🔑 Password verification - Stored:', user.password, 'Input:', currentPassword);
 
                 if (user.password !== currentPassword) {
                     throw new Error('Current password is incorrect');
                 }
 
+                console.log('✅ Current password verified');
+
                 // Update password in database
+                changePasswordBtn.disabled = true;
+                changePasswordBtn.textContent = 'Changing...';
+
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ 
@@ -898,19 +924,30 @@
                     .eq('id', userSession.id);
 
                 if (updateError) {
-                    throw new Error('Failed to update password');
+                    console.error('❌ Password update error:', updateError);
+                    throw new Error('Failed to update password in database');
                 }
+
+                console.log('✅ Password updated successfully in database');
 
                 // Success
                 successMessage.textContent = 'Password changed successfully!';
                 successMessage.style.display = 'block';
-                closePasswordModal();
-                loadPasswordLastChanged();
+                
+                // Close modal and reset form
+                setTimeout(() => {
+                    closePasswordModal();
+                    loadPasswordLastChanged();
+                    changePasswordBtn.disabled = false;
+                    changePasswordBtn.textContent = 'Change Password';
+                }, 1500);
 
             } catch (error) {
-                console.error('Password change error:', error);
+                console.error('❌ Password change error:', error);
                 errorMessage.textContent = error.message;
                 errorMessage.style.display = 'block';
+                changePasswordBtn.disabled = false;
+                changePasswordBtn.textContent = 'Change Password';
             }
         }
 
