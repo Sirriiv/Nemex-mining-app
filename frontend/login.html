@@ -149,6 +149,25 @@
             font-size: 14px;
         }
 
+        /* 2FA Recovery Option */
+        .recovery-option {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .recovery-option a {
+            color: var(--gold);
+            text-decoration: none;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 1px dashed var(--gold);
+        }
+
+        .recovery-option a:hover {
+            color: #b8941f;
+            border-bottom-color: #b8941f;
+        }
+
         /* 2FA Modal Styles */
         .modal-overlay {
             display: none;
@@ -263,6 +282,17 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        /* Recovery Specific Styles */
+        .recovery-notice {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: var(--gold);
+        }
     </style>
 </head>
 <body>
@@ -292,6 +322,11 @@
             <a href="forgot-password.html">Forgot your password?</a>
         </div>
 
+        <!-- NEW: 2FA Recovery Option -->
+        <div class="recovery-option">
+            <a onclick="use2FARecovery()">Forgot password? Use 2FA to access your account</a>
+        </div>
+
         <div class="register-link">
             Don't have an account? <a href="register.html">Create Account</a>
         </div>
@@ -300,8 +335,11 @@
     <!-- 2FA Verification Modal -->
     <div id="twoFactorModal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="modal-title">Two-Factor Authentication</h3>
-            <p class="modal-description">
+            <h3 class="modal-title" id="twoFAModalTitle">Two-Factor Authentication</h3>
+            <div id="recoveryNotice" class="recovery-notice" style="display: none;">
+                🔐 2FA Recovery Mode: You're accessing your account to reset your forgotten password.
+            </div>
+            <p class="modal-description" id="twoFAModalDesc">
                 Enter the 6-digit code from your authenticator app
             </p>
             
@@ -344,6 +382,69 @@
 
         let currentUser = null;
         let user2FASecret = null;
+        let isRecoveryMode = false;
+
+        // NEW: 2FA Recovery Function
+        async function use2FARecovery() {
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const errorMessage = document.getElementById('errorMessage');
+            
+            errorMessage.style.display = 'none';
+
+            if (!email) {
+                errorMessage.textContent = 'Please enter your email address first';
+                errorMessage.style.display = 'block';
+                document.getElementById('email').focus();
+                return;
+            }
+
+            try {
+                console.log('🔐 Starting 2FA recovery for:', email);
+
+                // Check if user exists and has 2FA enabled
+                const { data: user, error } = await supabase
+                    .from('profiles')
+                    .select('id, email, two_factor_enabled, two_factor_secret')
+                    .eq('email', email)
+                    .single();
+
+                if (error || !user) {
+                    throw new Error('No account found with this email');
+                }
+
+                if (!user.two_factor_enabled || !user.two_factor_secret) {
+                    throw new Error('2FA is not enabled for this account. Please use traditional password recovery.');
+                }
+
+                console.log('✅ User found with 2FA enabled');
+                
+                // Store user for 2FA verification
+                currentUser = user;
+                user2FASecret = user.two_factor_secret;
+                isRecoveryMode = true;
+                
+                // Show 2FA modal with recovery message
+                show2FARecoveryModal();
+                
+            } catch (error) {
+                console.error('❌ 2FA recovery error:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function show2FARecoveryModal() {
+            document.getElementById('twoFactorModal').style.display = 'flex';
+            document.getElementById('twoFactorCode').value = '';
+            document.getElementById('twoFactorCode').focus();
+            document.getElementById('verify2FABtn').disabled = true;
+            document.getElementById('verify2FABtn').textContent = 'Verify & Access';
+            
+            // Update modal for recovery mode
+            document.getElementById('twoFAModalTitle').textContent = '2FA Account Recovery';
+            document.getElementById('twoFAModalDesc').textContent = 'Enter your 2FA code to access your account and reset your password';
+            document.getElementById('recoveryNotice').style.display = 'block';
+        }
 
         // SIMPLE LOGIN - No Password Hashing, using 'password' column
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
@@ -357,6 +458,7 @@
             loginBtn.disabled = true;
             loginBtn.textContent = 'Signing In...';
             errorMessage.style.display = 'none';
+            isRecoveryMode = false;
 
             try {
                 console.log('🔐 Attempting login for:', email);
@@ -422,6 +524,11 @@
             document.getElementById('twoFactorCode').focus();
             document.getElementById('verify2FABtn').disabled = true;
             document.getElementById('verify2FABtn').textContent = 'Verify';
+            
+            // Reset modal to normal mode
+            document.getElementById('twoFAModalTitle').textContent = 'Two-Factor Authentication';
+            document.getElementById('twoFAModalDesc').textContent = 'Enter the 6-digit code from your authenticator app';
+            document.getElementById('recoveryNotice').style.display = 'none';
         }
 
         function validate2FACode() {
@@ -446,13 +553,22 @@
             try {
                 console.log('🔐 Verifying 2FA code:', code);
                 console.log('🔑 Using secret:', user2FASecret);
+                console.log('🔄 Recovery Mode:', isRecoveryMode);
 
                 // Verify the TOTP code using the stored secret
                 const isValid = verifyTOTP(code, user2FASecret);
                 
                 if (isValid) {
                     console.log('✅ 2FA code verified successfully');
-                    await completeLogin(currentUser);
+                    
+                    if (isRecoveryMode) {
+                        console.log('🎯 Recovery mode - bypassing password check');
+                        // In recovery mode, we trust the 2FA and proceed with login
+                        await completeLogin(currentUser);
+                    } else {
+                        // Normal login flow
+                        await completeLogin(currentUser);
+                    }
                 } else {
                     throw new Error('Invalid verification code. Please try again.');
                 }
@@ -461,7 +577,7 @@
                 document.getElementById('errorMessage').textContent = error.message;
                 document.getElementById('errorMessage').style.display = 'block';
                 verifyBtn.disabled = false;
-                verifyBtn.textContent = 'Verify';
+                verifyBtn.textContent = isRecoveryMode ? 'Verify & Access' : 'Verify';
                 
                 // Clear the input for retry
                 document.getElementById('twoFactorCode').value = '';
@@ -542,7 +658,14 @@
                 // In production, you would verify against stored backup codes
                 if (/^[A-Z0-9]{10}$/.test(code)) {
                     console.log('✅ Backup code accepted');
-                    await completeLogin(currentUser);
+                    console.log('🔄 Recovery Mode:', isRecoveryMode);
+                    
+                    if (isRecoveryMode) {
+                        console.log('🎯 Recovery mode with backup code - bypassing password check');
+                        await completeLogin(currentUser);
+                    } else {
+                        await completeLogin(currentUser);
+                    }
                 } else {
                     throw new Error('Invalid backup code');
                 }
@@ -566,7 +689,11 @@
 
         function cancelBackupCode() {
             document.getElementById('backupCodeModal').style.display = 'none';
-            show2FAModal();
+            if (isRecoveryMode) {
+                show2FARecoveryModal();
+            } else {
+                show2FAModal();
+            }
         }
 
         function resetLoginForm() {
@@ -574,11 +701,13 @@
             document.getElementById('loginBtn').textContent = 'Sign In';
             currentUser = null;
             user2FASecret = null;
+            isRecoveryMode = false;
         }
 
         async function completeLogin(user) {
             try {
                 console.log('✅ Completing login for user:', user.email);
+                console.log('🔄 Recovery Mode:', isRecoveryMode);
 
                 // Update last login
                 const { error: updateError } = await supabase
@@ -613,6 +742,11 @@
                 document.getElementById('twoFactorModal').style.display = 'none';
                 document.getElementById('backupCodeModal').style.display = 'none';
 
+                // Show success message for recovery mode
+                if (isRecoveryMode) {
+                    alert('✅ Successfully accessed your account using 2FA! You can now change your password in the Security settings.');
+                }
+
                 // Redirect to dashboard
                 window.location.href = 'dashboard.html';
 
@@ -643,7 +777,7 @@
         });
 
         // Debug helper - remove in production
-        console.log('🔧 Login page loaded - 2FA detection ready');
+        console.log('🔧 Login page loaded - 2FA detection and recovery ready');
     </script>
 </body>
 </html>
