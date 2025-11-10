@@ -1412,30 +1412,30 @@
             }
         }
 
-        // NEW: Get user's full referral network
-        async function getUserNetworkReferrals(userId) {
-            try {
-                // Try to get from referral_network table first
-                const { data: networkData, error: networkError } = await supabaseClient
-                    .from('referral_network')
-                    .select('level, referred_user:profiles!referred_user(id, username, email, created_at, balance)')
-                    .eq('referrer', userId)
-                    .order('level', { ascending: true });
+// UPDATED: Get user's full referral network with correct column names
+async function getUserNetworkReferrals(userId) {
+    try {
+        // Use the correct column names from your table
+        const { data: networkData, error: networkError } = await supabaseClient
+            .from('referral_network')
+            .select('level, referred_user:profiles!referred_id(id, username, email, created_at, balance)')
+            .eq('referrer_id', userId)
+            .order('level', { ascending: true });
 
-                if (!networkError && networkData) {
-                    return networkData.map(item => ({
-                        ...item.referred_user,
-                        level: item.level
-                    }));
-                }
-
-                // Fallback: build network from profiles table
-                return await buildNetworkFromProfiles(userId);
-            } catch (error) {
-                console.error('Error getting network referrals:', error);
-                return [];
-            }
+        if (!networkError && networkData) {
+            return networkData.map(item => ({
+                ...item.referred_user,
+                level: item.level
+            }));
         }
+
+        // Fallback: build network from profiles table
+        return await buildNetworkFromProfiles(userId);
+    } catch (error) {
+        console.error('Error getting network referrals:', error);
+        return [];
+    }
+}
 
         // NEW: Build network from profiles table
         async function buildNetworkFromProfiles(userId, level = 1, maxLevel = 5) {
