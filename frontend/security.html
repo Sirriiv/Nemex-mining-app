@@ -285,30 +285,23 @@
             transform: scale(1.1);
         }
 
-        /* UPDATED QR CODE STYLES - BLACK BACKGROUND */
+        /* FIXED QR CODE STYLES - WHITE BACKGROUND FOR SCANNING */
         .qr-code-container {
             text-align: center;
             margin: 20px 0;
-            padding: 0;
-            background: #000000;
-            border-radius: 0;
-            border: none;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
         }
 
         .qr-code {
             width: 200px;
             height: 200px;
             margin: 0 auto;
-            background: #000000 !important;
-            padding: 0 !important;
-            border: none !important;
-            border-radius: 0 !important;
-        }
-
-        /* Ensure QR code canvas has black background */
-        .qr-code canvas {
-            background: #000000 !important;
-            display: block;
+            background: #ffffff !important;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
         }
 
         .manual-setup {
@@ -317,6 +310,14 @@
             border-radius: 8px;
             margin: 15px 0;
             font-size: 12px;
+            position: relative;
+        }
+
+        .setup-key-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
         }
 
         .setup-key {
@@ -324,10 +325,32 @@
             background: rgba(0, 0, 0, 0.3);
             padding: 8px;
             border-radius: 4px;
-            margin: 10px 0;
             word-break: break-all;
             color: var(--gold);
             font-weight: 600;
+            flex: 1;
+        }
+
+        .copy-btn {
+            background: var(--gold);
+            color: var(--darker-bg);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .copy-btn:hover {
+            background: #b8941f;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
         }
 
         .verification-input {
@@ -416,6 +439,63 @@
             background: var(--gold);
         }
 
+        /* Password Change Modal */
+        .password-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .password-form {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            width: 100%;
+            max-width: 350px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .password-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
         /* Bottom Navigation */
         .bottom-nav {
             position: fixed;
@@ -482,6 +562,19 @@
             margin-top: 2px;
             text-align: center;
         }
+
+        .success-message {
+            color: var(--success);
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+            text-align: center;
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -502,6 +595,9 @@
                 <div style="width: 20px;"></div>
             </header>
 
+            <div class="success-message" id="successMessage"></div>
+            <div class="error-message" id="errorMessage"></div>
+
             <div class="security-section">
                 <div class="security-item">
                     <div class="security-info">
@@ -510,10 +606,10 @@
                         </svg>
                         <div class="security-text">
                             <div class="security-title">Password</div>
-                            <div class="security-desc">Last changed: Recently</div>
+                            <div class="security-desc" id="passwordLastChanged">Last changed: Checking...</div>
                         </div>
                     </div>
-                    <button class="security-btn" onclick="changePassword()">Change</button>
+                    <button class="security-btn" onclick="showPasswordModal()">Change</button>
                 </div>
 
                 <div class="security-item">
@@ -556,20 +652,7 @@
                 </div>
 
                 <div class="session-list" id="sessionsList" style="display: none;">
-                    <div class="session-item">
-                        <div class="session-info">
-                            <div class="session-device">Chrome on Windows</div>
-                            <div class="session-time">Current session • Active now</div>
-                        </div>
-                        <div class="session-current">Current</div>
-                    </div>
-                    <div class="session-item">
-                        <div class="session-info">
-                            <div class="session-device">Safari on iPhone</div>
-                            <div class="session-time">Last active: 2 days ago</div>
-                        </div>
-                        <button class="security-btn" style="padding: 4px 8px; font-size: 10px;">Revoke</button>
-                    </div>
+                    <!-- Sessions will be loaded here from database -->
                 </div>
 
                 <div class="security-warning">
@@ -577,6 +660,36 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                     </svg>
                     <span>For your security, never share your password or 2FA codes with anyone.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Password Change Modal -->
+        <div id="passwordModal" class="password-modal">
+            <div class="password-form">
+                <div class="modal-header">
+                    <h3 class="modal-title">Change Password</h3>
+                    <button class="close-btn" onclick="closePasswordModal()">&times;</button>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" class="password-input" id="currentPassword" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" class="password-input" id="newPassword" required minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password</label>
+                    <input type="password" class="password-input" id="confirmPassword" required minlength="6">
+                </div>
+                
+                <div class="password-actions">
+                    <button class="modal-btn secondary" onclick="closePasswordModal()">Cancel</button>
+                    <button class="modal-btn primary" onclick="changePassword()">Change Password</button>
                 </div>
             </div>
         </div>
@@ -596,14 +709,17 @@
                     
                     <div class="qr-code-container">
                         <div class="qr-code" id="qrCode">
-                            <!-- QR Code will be generated here with black background -->
+                            <!-- QR Code will be generated here -->
                         </div>
                     </div>
                     
                     <div class="manual-setup">
                         <p style="margin-bottom: 10px; font-weight: 600;">Can't scan the QR code?</p>
                         <p style="margin-bottom: 5px;">Enter this code manually:</p>
-                        <div class="setup-key" id="manualKey"></div>
+                        <div class="setup-key-container">
+                            <div class="setup-key" id="manualKey"></div>
+                            <button class="copy-btn" id="copyKeyBtn" onclick="copySecretKey()">Copy</button>
+                        </div>
                     </div>
                     
                     <div class="step-indicator">
@@ -713,20 +829,207 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         // Security functions
-        function changePassword() {
-            const newPassword = prompt('Enter new password:');
-            if (newPassword) {
-                if (newPassword.length < 6) {
-                    alert('Password must be at least 6 characters long.');
-                    return;
+        function showPasswordModal() {
+            document.getElementById('passwordModal').style.display = 'flex';
+            document.getElementById('currentPassword').focus();
+        }
+
+        function closePasswordModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+            // Clear form
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+        }
+
+        async function changePassword() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            try {
+                // Validate inputs
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    throw new Error('All fields are required');
                 }
-                alert('Password change request sent! Check your email for confirmation.');
+
+                if (newPassword.length < 6) {
+                    throw new Error('New password must be at least 6 characters long');
+                }
+
+                if (newPassword !== confirmPassword) {
+                    throw new Error('New passwords do not match');
+                }
+
+                // Get current user session
+                const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
+                if (!userSession || !userSession.id) {
+                    throw new Error('User not logged in');
+                }
+
+                // Verify current password
+                const { data: user, error: userError } = await supabase
+                    .from('profiles')
+                    .select('password')
+                    .eq('id', userSession.id)
+                    .single();
+
+                if (userError || !user) {
+                    throw new Error('Failed to verify current password');
+                }
+
+                if (user.password !== currentPassword) {
+                    throw new Error('Current password is incorrect');
+                }
+
+                // Update password in database
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        password: newPassword,
+                        updated_at: new Date().toISOString(),
+                        password_changed_at: new Date().toISOString()
+                    })
+                    .eq('id', userSession.id);
+
+                if (updateError) {
+                    throw new Error('Failed to update password');
+                }
+
+                // Success
+                successMessage.textContent = 'Password changed successfully!';
+                successMessage.style.display = 'block';
+                closePasswordModal();
+                loadPasswordLastChanged();
+
+            } catch (error) {
+                console.error('Password change error:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
             }
         }
 
-        function viewSessions() {
+        async function loadPasswordLastChanged() {
+            try {
+                const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
+                if (!userSession || !userSession.id) return;
+
+                const { data: user, error } = await supabase
+                    .from('profiles')
+                    .select('password_changed_at, updated_at')
+                    .eq('id', userSession.id)
+                    .single();
+
+                if (!error && user) {
+                    const lastChanged = user.password_changed_at || user.updated_at;
+                    if (lastChanged) {
+                        const date = new Date(lastChanged);
+                        const now = new Date();
+                        const diffTime = Math.abs(now - date);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        let displayText = 'Last changed: ';
+                        if (diffDays === 1) {
+                            displayText += 'Today';
+                        } else if (diffDays === 2) {
+                            displayText += 'Yesterday';
+                        } else if (diffDays < 7) {
+                            displayText += `${diffDays - 1} days ago`;
+                        } else if (diffDays < 30) {
+                            displayText += `${Math.floor(diffDays / 7)} weeks ago`;
+                        } else {
+                            displayText += date.toLocaleDateString();
+                        }
+                        
+                        document.getElementById('passwordLastChanged').textContent = displayText;
+                    } else {
+                        document.getElementById('passwordLastChanged').textContent = 'Last changed: Never';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading password info:', error);
+                document.getElementById('passwordLastChanged').textContent = 'Last changed: Unknown';
+            }
+        }
+
+        async function viewSessions() {
             const sessionsList = document.getElementById('sessionsList');
-            sessionsList.style.display = sessionsList.style.display === 'none' ? 'block' : 'none';
+            
+            if (sessionsList.style.display === 'none') {
+                // Load sessions from database
+                await loadSessions();
+                sessionsList.style.display = 'block';
+            } else {
+                sessionsList.style.display = 'none';
+            }
+        }
+
+        async function loadSessions() {
+            try {
+                const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
+                if (!userSession || !userSession.id) return;
+
+                const { data: user, error } = await supabase
+                    .from('profiles')
+                    .select('last_login, created_at')
+                    .eq('id', userSession.id)
+                    .single();
+
+                if (!error && user) {
+                    const sessionsList = document.getElementById('sessionsList');
+                    sessionsList.innerHTML = '';
+
+                    // Current session
+                    const currentSession = document.createElement('div');
+                    currentSession.className = 'session-item';
+                    currentSession.innerHTML = `
+                        <div class="session-info">
+                            <div class="session-device">Current Device</div>
+                            <div class="session-time">Active now • Last login: ${formatDate(user.last_login)}</div>
+                        </div>
+                        <div class="session-current">Current</div>
+                    `;
+                    sessionsList.appendChild(currentSession);
+
+                    // Account creation session
+                    const creationSession = document.createElement('div');
+                    creationSession.className = 'session-item';
+                    creationSession.innerHTML = `
+                        <div class="session-info">
+                            <div class="session-device">Account Created</div>
+                            <div class="session-time">${formatDate(user.created_at)}</div>
+                        </div>
+                        <button class="security-btn" style="padding: 4px 8px; font-size: 10px;" disabled>System</button>
+                    `;
+                    sessionsList.appendChild(creationSession);
+                }
+            } catch (error) {
+                console.error('Error loading sessions:', error);
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'Unknown';
+            
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffTime = Math.abs(now - date);
+            const diffMinutes = Math.floor(diffTime / (1000 * 60));
+            const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffMinutes < 1) return 'Just now';
+            if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+            if (diffHours < 24) return `${diffHours} hours ago`;
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            
+            return date.toLocaleDateString();
         }
 
         function setupRecovery() {
@@ -746,38 +1049,36 @@
         }
 
         function generateQRCode() {
-            // Generate a proper 32-character base32 secret key (required length for Google Authenticator)
+            // Generate a proper 32-character base32 secret key
             const secretKey = generateSecretKey();
             document.getElementById('manualKey').textContent = secretKey;
             
-            // Create the OTP Auth URI (standard format for authenticator apps)
+            // Create the OTP Auth URI
             const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
             const userEmail = userSession ? userSession.email : "user@nemexcoin.com";
             const issuer = "NemexCoin";
             const otpAuthUri = `otpauth://totp/${issuer}:${userEmail}?secret=${secretKey}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
             
-            // Generate QR Code with BLACK background
+            // Generate QR Code with WHITE background for scanning
             const qrCodeElement = document.getElementById('qrCode');
-            qrCodeElement.innerHTML = ''; // Clear any existing QR code
+            qrCodeElement.innerHTML = '';
             
             QRCode.toCanvas(qrCodeElement, otpAuthUri, {
-                width: 200,
-                height: 200,
-                colorDark: "#d4af37", // Gold color for QR code dots
-                colorLight: "#000000", // BLACK background
+                width: 180,
+                height: 180,
+                colorDark: "#000000", // Black dots for contrast
+                colorLight: "#ffffff", // WHITE background for scanning
                 margin: 1
             }, function(error) {
                 if (error) {
                     console.error('QR Code generation error:', error);
-                    // Fallback: Create a simple QR code pattern with black background
                     createFallbackQRCode();
                 }
             });
         }
 
         function generateSecretKey() {
-            // Generate a proper 32-character base32 secret (160 bits)
-            // Base32 alphabet (RFC 4648)
+            // Generate a proper 32-character base32 secret
             const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
             let secret = '';
             
@@ -788,25 +1089,43 @@
             return secret;
         }
 
+        function copySecretKey() {
+            const secretKey = document.getElementById('manualKey').textContent;
+            const copyBtn = document.getElementById('copyKeyBtn');
+            
+            navigator.clipboard.writeText(secretKey).then(() => {
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                
+                setTimeout(() => {
+                    copyBtn.textContent = 'Copy';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy secret key. Please copy it manually.');
+            });
+        }
+
         function createFallbackQRCode() {
             const qrCodeElement = document.getElementById('qrCode');
             qrCodeElement.innerHTML = '';
             
             const canvas = document.createElement('canvas');
-            canvas.width = 200;
-            canvas.height = 200;
+            canvas.width = 180;
+            canvas.height = 180;
             const ctx = canvas.getContext('2d');
             
-            // Draw BLACK background
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 200, 200);
+            // Draw white background for scanning
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 180, 180);
             
-            // Draw gold QR code pattern
-            ctx.fillStyle = '#d4af37'; // Gold color
+            // Draw black QR code pattern
+            ctx.fillStyle = '#000000';
             // Draw position markers
             ctx.fillRect(10, 10, 40, 40);
-            ctx.fillRect(150, 10, 40, 40);
-            ctx.fillRect(10, 150, 40, 40);
+            ctx.fillRect(130, 10, 40, 40);
+            ctx.fillRect(10, 130, 40, 40);
             
             // Draw some pattern lines
             for (let i = 0; i < 12; i++) {
@@ -835,7 +1154,6 @@
             const code = document.getElementById('verificationCode').value;
             const verifyBtn = document.getElementById('verifyBtn');
             
-            // Simple validation - check if it's exactly 6 digits
             if (/^\d{6}$/.test(code)) {
                 verifyBtn.disabled = false;
             } else {
@@ -941,8 +1259,9 @@
                 }
             });
             
-            // Load current 2FA status
+            // Load current data
             load2FAStatus();
+            loadPasswordLastChanged();
             
             // Add click handler for 2FA item
             const twoFactorItem = document.querySelector('.security-item:nth-child(2)');
