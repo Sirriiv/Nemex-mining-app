@@ -910,7 +910,7 @@
 
                 console.log('✅ Current password verified');
 
-                // Update password in database
+                // Update password in database - SIMPLIFIED without password_changed_at
                 changePasswordBtn.disabled = true;
                 changePasswordBtn.textContent = 'Changing...';
 
@@ -918,14 +918,13 @@
                     .from('profiles')
                     .update({ 
                         password: newPassword,
-                        updated_at: new Date().toISOString(),
-                        password_changed_at: new Date().toISOString()
+                        updated_at: new Date().toISOString()
                     })
                     .eq('id', userSession.id);
 
                 if (updateError) {
                     console.error('❌ Password update error:', updateError);
-                    throw new Error('Failed to update password in database');
+                    throw new Error('Failed to update password in database: ' + updateError.message);
                 }
 
                 console.log('✅ Password updated successfully in database');
@@ -958,12 +957,12 @@
 
                 const { data: user, error } = await supabase
                     .from('profiles')
-                    .select('password_changed_at, updated_at')
+                    .select('updated_at')
                     .eq('id', userSession.id)
                     .single();
 
                 if (!error && user) {
-                    const lastChanged = user.password_changed_at || user.updated_at;
+                    const lastChanged = user.updated_at;
                     if (lastChanged) {
                         const date = new Date(lastChanged);
                         const now = new Date();
