@@ -172,6 +172,55 @@
             flex-shrink: 0;
         }
 
+        /* Launchpad Section Styles */
+        .launchpad-features {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+
+        .launchpad-item {
+            background: rgba(212, 175, 55, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .launchpad-item:hover {
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .launchpad-title {
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+
+        .launchpad-desc {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .highlight-box {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .highlight-text {
+            color: var(--gold);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
         /* Tokenomics Visualization Styles */
         .tokenomics-visualization {
             position: relative;
@@ -542,6 +591,46 @@
                     </ul>
                 </div>
 
+                <!-- Nemex Ecosystem Launchpad Section -->
+                <div class="info-section">
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                        Nemex Ecosystem Launchpad
+                    </div>
+                    <div class="info-text">
+                        The Nemex Ecosystem Launchpad is the groundbreaking second pillar of the NemexCoin Ecosystem, specifically designed to confront the critical lack of trust caused by 'rug pulls' in new crypto project launches by fostering a secure, transparent, and fair environment on the TON blockchain.
+                    </div>
+                    
+                    <div class="highlight-box">
+                        <div class="highlight-text">Anti-Rug Pull Mechanism</div>
+                    </div>
+
+                    <div class="info-text">
+                        The anti-rug pull mechanism works by having Nemex provide initial liquidity to vetted projects, allowing them to list and trade immediately, and then making that provided liquidity mandatory locked within a smart contract for a predefined period.
+                    </div>
+
+                    <div class="launchpad-features">
+                        <div class="launchpad-item">
+                            <div class="launchpad-title">Liquidity Protection</div>
+                            <div class="launchpad-desc">Mandatory smart contract locking of initial liquidity prevents developers from withdrawing funds</div>
+                        </div>
+                        <div class="launchpad-item">
+                            <div class="launchpad-title">Community Security</div>
+                            <div class="launchpad-desc">Fundamental protection of community interests and ensuring market stability</div>
+                        </div>
+                        <div class="launchpad-item">
+                            <div class="launchpad-title">Value Creation</div>
+                            <div class="launchpad-desc">Projects contribute 5-10% of their total token supply to drive long-term value for NMX holders</div>
+                        </div>
+                    </div>
+
+                    <div class="info-text">
+                        This crucial lock fundamentally protects community interest and ensures market stability, mitigating the risk of developers withdrawing funds, and in return for this secure listing, participating projects contribute 5-10% of their total token supply to the Nemex ecosystem, driving long-term value for NMX holders.
+                    </div>
+                </div>
+
                 <!-- Tokenomics Section -->
                 <div class="info-section">
                     <div class="section-title">
@@ -555,7 +644,7 @@
                         <div class="circuit-line circuit-1"></div>
                         <div class="circuit-line circuit-2"></div>
                         <div class="circuit-line circuit-3"></div>
-                        
+
                         <!-- Central Coin -->
                         <div class="coin-container">
                             <div class="nmx-coin">
@@ -589,7 +678,7 @@
                                 <div class="dist-percentage">1.33%</div>
                                 <div class="dist-label">Advisors/Partners</div>
                             </div>
-                            
+
                             <!-- Right Side -->
                             <div class="dist-item right-top">
                                 <div class="dist-percentage">5.64%</div>
@@ -603,7 +692,7 @@
                                 <div class="dist-percentage">1.33%</div>
                                 <div class="dist-label">Liquidity Pool</div>
                             </div>
-                            
+
                             <!-- Bottom -->
                             <div class="dist-item bottom-center">
                                 <div class="dist-percentage">13.3%</div>
@@ -611,7 +700,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="tokenomics-description">
                         NMX token distribution is strategically designed for sustainable growth and community empowerment.
                     </div>
