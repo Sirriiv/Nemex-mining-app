@@ -172,37 +172,206 @@
             flex-shrink: 0;
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+        /* Tokenomics Visualization Styles */
+        .tokenomics-visualization {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: var(--darker-bg);
+            border-radius: 12px;
+            border: 2px solid var(--gold);
             margin: 20px 0;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(212, 175, 55, 0.2);
         }
 
-        .stat-item {
+        /* Circuit Background Lines */
+        .circuit-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            opacity: 0.1;
+        }
+
+        .circuit-1 {
+            top: 20%;
+            left: 10%;
+            width: 80%;
+            height: 1px;
+            transform: rotate(-15deg);
+        }
+
+        .circuit-2 {
+            top: 60%;
+            left: 5%;
+            width: 90%;
+            height: 1px;
+            transform: rotate(10deg);
+        }
+
+        .circuit-3 {
+            top: 80%;
+            left: 15%;
+            width: 70%;
+            height: 1px;
+            transform: rotate(-5deg);
+        }
+
+        /* Central Coin */
+        .coin-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .nmx-coin {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #d4af37, #b8941f, #ffd700);
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 
+                0 0 20px rgba(212, 175, 55, 0.6),
+                inset 0 2px 4px rgba(255, 255, 255, 0.3),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+            animation: coin-glow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes coin-glow {
+            0% { box-shadow: 0 0 20px rgba(212, 175, 55, 0.6); }
+            100% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.8); }
+        }
+
+        .coin-inner {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            bottom: 10px;
+            background: linear-gradient(135deg, #b8941f, #d4af37);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .coin-pattern {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+        }
+
+        .pattern-1 {
+            width: 80%;
+            height: 80%;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .pattern-2 {
+            width: 60%;
+            height: 60%;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+        }
+
+        .coin-x {
+            font-size: 24px;
+            font-weight: 900;
+            color: rgba(0, 0, 0, 0.7);
+            margin-bottom: 5px;
+            transform: rotate(0deg);
+        }
+
+        .coin-text {
+            font-size: 12px;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.8);
+            letter-spacing: 1px;
+        }
+
+        .coin-dashes {
+            position: absolute;
+            bottom: 15px;
+            display: flex;
+            gap: 3px;
+        }
+
+        .dash {
+            width: 4px;
+            height: 2px;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 1px;
+        }
+
+        /* Distribution Grid */
+        .distribution-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .dist-item {
+            position: absolute;
             text-align: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            border: 1px solid var(--gold);
+            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
+            pointer-events: auto;
         }
 
-        .stat-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
+        .dist-item:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
         }
 
-        .stat-number {
-            font-size: 20px;
+        .dist-percentage {
+            font-size: 16px;
             font-weight: 700;
             color: var(--gold);
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
 
-        .stat-label {
-            font-size: 12px;
+        .dist-label {
+            font-size: 10px;
+            color: var(--text);
+            line-height: 1.2;
+        }
+
+        /* Position the distribution items */
+        .left-top { top: 15%; left: 5%; }
+        .left-middle { top: 40%; left: 8%; }
+        .left-bottom { top: 65%; left: 5%; }
+
+        .right-top { top: 15%; right: 5%; }
+        .right-middle { top: 40%; right: 8%; }
+        .right-bottom { top: 65%; right: 5%; }
+
+        .bottom-center { bottom: 10%; left: 50%; transform: translateX(-50%); }
+
+        .tokenomics-description {
             color: var(--muted);
+            font-size: 13px;
+            margin-top: 15px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .tokenomics-note {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: var(--gold);
         }
 
         .version-info {
@@ -373,26 +542,81 @@
                     </ul>
                 </div>
 
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-number" id="totalUsers">10K+</div>
-                        <div class="stat-label">Active Users</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-number" id="totalNMX">2.5M+</div>
-                        <div class="stat-label">NMX Mined</div>
-                    </div>
-                </div>
-
+                <!-- Tokenomics Section -->
                 <div class="info-section">
                     <div class="section-title">
                         <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                         </svg>
-                        Technology
+                        Tokenomics
                     </div>
-                    <div class="info-text">
-                        Built on modern web technologies with secure Supabase backend integration. Our platform ensures maximum security and performance for all users.
+                    <div class="tokenomics-visualization">
+                        <!-- Background Circuit Lines -->
+                        <div class="circuit-line circuit-1"></div>
+                        <div class="circuit-line circuit-2"></div>
+                        <div class="circuit-line circuit-3"></div>
+                        
+                        <!-- Central Coin -->
+                        <div class="coin-container">
+                            <div class="nmx-coin">
+                                <div class="coin-inner">
+                                    <div class="coin-pattern pattern-1"></div>
+                                    <div class="coin-pattern pattern-2"></div>
+                                    <div class="coin-x">X</div>
+                                    <div class="coin-text">NMX</div>
+                                    <div class="coin-dashes">
+                                        <span class="dash"></span>
+                                        <span class="dash"></span>
+                                        <span class="dash"></span>
+                                        <span class="dash"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Token Distribution Labels -->
+                        <div class="distribution-grid">
+                            <!-- Left Side -->
+                            <div class="dist-item left-top">
+                                <div class="dist-percentage">60%</div>
+                                <div class="dist-label">Community</div>
+                            </div>
+                            <div class="dist-item left-middle">
+                                <div class="dist-percentage">2.66%</div>
+                                <div class="dist-label">Founder/Team (Vested)</div>
+                            </div>
+                            <div class="dist-item left-bottom">
+                                <div class="dist-percentage">1.33%</div>
+                                <div class="dist-label">Advisors/Partners</div>
+                            </div>
+                            
+                            <!-- Right Side -->
+                            <div class="dist-item right-top">
+                                <div class="dist-percentage">5.64%</div>
+                                <div class="dist-label">Reserve Fund</div>
+                            </div>
+                            <div class="dist-item right-middle">
+                                <div class="dist-percentage">5.33%</div>
+                                <div class="dist-label">Burning Strategy</div>
+                            </div>
+                            <div class="dist-item right-bottom">
+                                <div class="dist-percentage">1.33%</div>
+                                <div class="dist-label">Liquidity Pool</div>
+                            </div>
+                            
+                            <!-- Bottom -->
+                            <div class="dist-item bottom-center">
+                                <div class="dist-percentage">13.3%</div>
+                                <div class="dist-label">Ecosystem Development</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tokenomics-description">
+                        NMX token distribution is strategically designed for sustainable growth and community empowerment.
+                    </div>
+                    <div class="tokenomics-note">
+                        💡 The tokenomics ensures fair distribution with 60% allocated to the community and strategic reserves for ecosystem development.
                     </div>
                 </div>
 
@@ -443,7 +667,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const currentPage = window.location.pathname.split('/').pop() || 'about.html';
             const navItems = document.querySelectorAll('.nav-item');
-            
+
             navItems.forEach(item => {
                 const href = item.getAttribute('href');
                 if (href === currentPage) {
