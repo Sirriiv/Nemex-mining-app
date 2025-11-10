@@ -960,6 +960,13 @@
                 </div>
             </div>
             <div class="admin-actions">
+                <!-- Temporary Debug Button -->
+                <button class="admin-btn" onclick="debugAdminCheck()" style="background: var(--warning);">
+                    <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                    </svg>
+                    Debug Admin Check
+                </button>
                 <button class="maintenance-btn" id="maintenanceToggle" onclick="toggleMaintenanceMode()">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
@@ -991,7 +998,7 @@
             </button>
             <button class="mini-nav-btn" onclick="showSection('completeTree')">
                 <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
                 </svg>
                 Referral Tree
             </button>
@@ -1088,7 +1095,7 @@
         // Supabase Client Initialization - FIXED VERSION
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        
+
         // Initialize Supabase client with proper error handling
         let supabaseClient;
         try {
@@ -1104,19 +1111,30 @@
         let maintenanceMode = false;
         let realtimeSubscription = null;
 
-        // Initialize when DOM is loaded - FIXED VERSION
+        // FIXED: Enhanced initialization with proper admin check
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 Admin Panel Initializing...');
 
             try {
-                // Check if user is admin first
+                // Check if user is admin first - BLOCK NON-ADMINS
                 const isAdmin = await checkAdminAccess();
                 if (!isAdmin) {
-                    alert('Access Denied: Admin privileges required');
+                    // Show detailed error message
+                    const { data: { session } } = await supabaseClient.auth.getSession();
+                    const { data: profile } = await supabaseClient
+                        .from('profiles')
+                        .select('admin_level')
+                        .eq('id', session.user.id)
+                        .single();
+                    
+                    const errorMsg = `Access Denied: Admin privileges required\n\nEmail: ${session.user.email}\nAdmin Level: ${profile?.admin_level || 0}`;
+                    console.error(errorMsg);
+                    alert('Access Denied: You do not have administrator privileges.\n\nPlease contact system administrator.');
                     window.location.href = 'dashboard.html';
                     return;
                 }
 
+                // User is admin, continue initialization
                 await initializeAdminPanel();
             } catch (error) {
                 console.error('❌ Failed to initialize admin panel:', error);
@@ -1124,68 +1142,108 @@
             }
         });
 
-        // Check admin access with multiple fallbacks - FIXED VERSION
+        // FIXED: Enhanced admin check with better error handling
         async function checkAdminAccess() {
             try {
+                console.log('🔐 Checking admin access...');
+                
                 if (!supabaseClient) {
-                    throw new Error('Supabase client not initialized');
+                    console.error('Supabase client not initialized');
+                    return false;
                 }
 
+                // Get current session
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                
                 if (sessionError) {
                     console.error('Session error:', sessionError);
                     return false;
                 }
-                
+
                 if (!session) {
-                    console.log('❌ No user session found');
+                    console.log('❌ No user session found - redirecting to login');
+                    window.location.href = 'login.html';
                     return false;
                 }
 
-                console.log('👤 Checking admin access for user:', session.user.id);
+                console.log('👤 User session found:', session.user.email);
 
-                // Method 1: Check admin_level in profiles
+                // Check admin_level in profiles table
                 const { data: profile, error: profileError } = await supabaseClient
                     .from('profiles')
-                    .select('admin_level, email')
+                    .select('admin_level, email, username')
                     .eq('id', session.user.id)
-                    .maybeSingle();
+                    .single();
 
                 if (profileError) {
-                    console.error('Profile error:', profileError);
-                    // Continue to email check
+                    console.error('Error fetching profile:', profileError);
+                    // Continue to email check as fallback
                 }
 
-                if (profile) {
-                    console.log('📊 Profile admin level:', profile.admin_level);
-                    if (profile.admin_level > 0) {
-                        console.log('✅ Admin access granted via admin_level');
-                        return true;
-                    }
+                console.log('📊 User profile:', profile);
+
+                // Method 1: Check admin_level
+                if (profile && profile.admin_level > 0) {
+                    console.log('✅ Admin access granted via admin_level');
+                    return true;
                 }
 
-                // Method 2: Check by email
+                // Method 2: Check by email (fallback)
                 const userEmail = session.user.email;
                 const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
-
+                
                 if (userEmail && adminEmails.includes(userEmail)) {
-                    console.log('✅ Admin access granted via email');
-                    // Update profile with admin level if not set
-                    if (profile && (!profile.admin_level || profile.admin_level === 0)) {
+                    console.log('✅ Admin access granted via email whitelist');
+                    
+                    // Auto-update profile with admin level
+                    try {
                         await supabaseClient
                             .from('profiles')
                             .update({ admin_level: 1 })
                             .eq('id', session.user.id);
+                        console.log('🔄 Updated profile with admin_level = 1');
+                    } catch (updateError) {
+                        console.warn('Could not update admin level:', updateError);
                     }
+                    
                     return true;
                 }
 
-                console.log('❌ User does not have admin access');
+                console.log('❌ Access denied: User is not admin');
+                console.log('User email:', userEmail);
+                console.log('Admin level:', profile?.admin_level);
+                
                 return false;
 
             } catch (error) {
-                console.error('Error checking admin access:', error);
+                console.error('❌ Error in checkAdminAccess:', error);
                 return false;
+            }
+        }
+
+        // NEW: Temporary debug function
+        async function debugAdminCheck() {
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                const { data: profile } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', session.user.id)
+                    .single();
+
+                const debugInfo = `
+User Email: ${session.user.email}
+User ID: ${session.user.id}
+Admin Level: ${profile?.admin_level || 0}
+Profile Exists: ${!!profile}
+                `;
+                
+                console.log('🔍 Debug Admin Check:', debugInfo);
+                alert('Debug Info (check console):\n' + debugInfo);
+                
+            } catch (error) {
+                console.error('Debug error:', error);
+                alert('Debug error: ' + error.message);
             }
         }
 
@@ -1545,7 +1603,7 @@
             try {
                 const networkUsers = await getUserNetworkReferrals(userId);
                 const networkUserIds = networkUsers.map(user => user.id);
-                
+
                 if (networkUserIds.length === 0) return 0;
 
                 const { data: networkPurchases, error } = await supabaseClient
@@ -2290,15 +2348,15 @@
         // Handle new purchases in real-time
         function handleNewPurchase(purchase) {
             console.log('🛒 New purchase detected:', purchase);
-            
+
             // Show notification
             showPurchaseNotification(purchase);
-            
+
             // Refresh data if current section is overview or user details
             if (currentSection === 'overview') {
                 refreshData();
             }
-            
+
             // If user popup is open for this user, refresh it
             const popup = document.getElementById('userPopup');
             if (popup.style.display === 'flex') {
@@ -2325,7 +2383,7 @@
                 animation: slideInRight 0.3s ease;
                 max-width: 300px;
             `;
-            
+
             notification.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2339,9 +2397,9 @@
                     </div>
                 </div>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             // Remove notification after 5 seconds
             setTimeout(() => {
                 notification.style.animation = 'slideOutRight 0.3s ease';
