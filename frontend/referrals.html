@@ -72,10 +72,46 @@
         .nav-icon { width: 22px; height: 22px; margin-bottom: 4px; transition: all 0.3s ease; }
         .nav-item.active .nav-icon { color: var(--gold); transform: scale(1.1); }
         .nav-text { margin-top: 2px; text-align: center; }
+        
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(212, 175, 55, 0.3);
+            border-top: 3px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <h3 style="color: var(--gold);">Loading Referrals...</h3>
+    </div>
+
+    <div class="container" id="mainContent" style="display: none;">
         <div class="header">
             <div class="logo">NemexCoin</div>
             <a href="dashboard.html">
@@ -209,6 +245,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Supabase Client Initialization
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -218,32 +255,46 @@
         let referrals = [];
         let userToRemove = null;
 
-        // FIXED: Enhanced authentication check
-        function checkAuth() {
-            const userSession = localStorage.getItem('nemexcoin_user');
-            if (!userSession) {
-                console.log('❌ No user session found - redirecting to login');
-                window.location.href = 'login.html';
-                return null;
-            }
-
+        // FIXED: Enhanced authentication check using Supabase Auth
+        async function checkAuth() {
             try {
-                const userData = JSON.parse(userSession);
-                console.log('✅ User session found:', userData.id);
-                return userData;
+                console.log('🔐 Checking authentication...');
+                
+                // Get current session from Supabase
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                
+                if (sessionError) {
+                    console.error('Session error:', sessionError);
+                    throw sessionError;
+                }
+
+                if (!session) {
+                    console.log('❌ No user session found - redirecting to login');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                console.log('✅ User session found:', session.user.id);
+                return session.user;
+
             } catch (error) {
-                console.error('❌ Error parsing user session:', error);
+                console.error('❌ Authentication error:', error);
                 window.location.href = 'login.html';
                 return null;
             }
         }
 
-        // FIXED: Enhanced referral data loading
+        // FIXED: Enhanced referral data loading with proper error handling
         async function loadReferralData() {
-            currentUser = checkAuth();
-            if (!currentUser) return;
-
             try {
+                // Show loading screen
+                document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('mainContent').style.display = 'none';
+
+                // Check authentication
+                currentUser = await checkAuth();
+                if (!currentUser) return;
+
                 console.log('🔄 Loading referral data...');
 
                 // Get user profile
@@ -253,8 +304,14 @@
                     .eq('id', currentUser.id)
                     .single();
 
-                if (profileError || !profile) {
+                if (profileError) {
+                    console.error('Profile error:', profileError);
                     showToast('Error loading profile data', 'error');
+                    return;
+                }
+
+                if (!profile) {
+                    showToast('User profile not found', 'error');
                     return;
                 }
 
@@ -277,15 +334,21 @@
 
                 await loadReferralsList();
 
+                // Hide loading screen and show main content
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'flex';
+
             } catch (error) {
-                console.error('Error loading referral data:', error);
+                console.error('❌ Error loading referral data:', error);
                 showToast('Error loading referral data', 'error');
+                document.getElementById('loadingScreen').style.display = 'none';
             }
         }
 
         // FIXED: Enhanced referrals list loading
         async function loadReferralsList() {
             if (!currentUser) return;
+            
             try {
                 console.log('👥 Loading referrals list...');
 
