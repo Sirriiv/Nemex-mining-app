@@ -1066,7 +1066,7 @@
             if (modal) modal.style.display = 'none';
         }
 
-        // UPDATED: Enhanced Manual Transaction Confirmation with Purchase Limits using purchase_limit
+        // UPDATED: Enhanced Manual Transaction Confirmation with your exact table structure
         async function processManualConfirmation() {
             try {
                 if (!selectedPackage) {
@@ -1115,26 +1115,25 @@
 
                 console.log('📦 Creating transaction record...', {
                     user_id: currentUser.id,
-                    package_type_id: selectedPackage.id,
                     package_amount: selectedPackage.amount,
                     total_amount: selectedPackage.totalAmount,
                     price_usd: selectedPackage.price
                 });
 
-                // Create pending transaction record
+                // UPDATED: Create pending transaction record with your exact table structure
                 const { data: transaction, error } = await supabaseClient
                     .from('pending_transactions')
                     .insert({
                         user_id: currentUser.id,
                         user_email: currentUser.email,
-                        package_type_id: selectedPackage.id,
                         package_amount: selectedPackage.amount,
                         total_amount: selectedPackage.totalAmount,
                         price_usd: selectedPackage.price,
                         payment_method: 'crypto',
-                        status: 'pending',
-                        tx_hash: txHash.trim(),
+                        status: 'pending_review',
+                        tx_hash: txHash.trim(),  // UPDATED: Use tx_hash (not tx_harsh)
                         user_notes: userNotes || '',
+                        package_name: selectedPackage.package_name,
                         is_vip: selectedPackage.is_vip,
                         created_at: new Date().toISOString()
                     })
