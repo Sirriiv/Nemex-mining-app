@@ -1,82 +1,1216 @@
-// UPDATED: Load packages from database with purchase limits
-async function loadPackages() {
-    try {
-        const { data: packages, error } = await supabaseClient
-            .from('package_types')
-            .select('*')
-            .eq('is_active', true)
-            .order('package_amount');
-
-        if (error) {
-            console.error('Error loading packages:', error);
-            return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buy NMXp - NemexCoin</title>
+    <style>
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --vip: #9b59b6;
+            --danger: #ff4444;
+            --info: #33b5e5;
         }
 
-        availablePackages = packages || [];
-        renderPackages();
-        
-    } catch (error) {
-        console.error('Error loading packages:', error);
-    }
-}
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
 
-// UPDATED: Render packages with purchase limits using your actual table structure
-function renderPackages() {
-    const packagesGrid = document.getElementById('packagesGrid');
-    if (!packagesGrid) return;
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
 
-    if (availablePackages.length === 0) {
-        packagesGrid.innerHTML = '<div class="empty-state">No packages available</div>';
-        return;
-    }
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
 
-    packagesGrid.innerHTML = availablePackages.map(pkg => {
-        const isSoldOut = pkg.purchase_limit <= 0; // CHANGED: Use purchase_limit
-        const isLowStock = pkg.purchase_limit <= 3 && pkg.purchase_limit > 0; // CHANGED: Use purchase_limit
-        const remainingClass = isLowStock ? 'remaining-badge low' : 'remaining-badge';
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+        }
 
-        return `
-            <div class="package-card ${pkg.is_vip ? 'vip' : ''} ${isSoldOut ? 'sold-out' : ''}" 
-                 ${!isSoldOut ? `onclick="selectPackage(this, '${pkg.id}')"` : ''}>
-                ${pkg.is_vip ? '<div class="vip-badge">VIP Package</div>' : ''}
-                <div class="package-amount">${pkg.package_amount.toLocaleString()} NMXp</div>
-                <div class="package-price">$${pkg.price_usd} USDT</div>
-                <div class="package-purchase-limit">
-                    ${pkg.purchase_limit > 0  // CHANGED: Use purchase_limit
-                        ? `Can purchase ${pkg.purchase_limit} more times` 
-                        : 'Sold out'}
-                </div>
-                ${pkg.purchase_limit > 0 && pkg.purchase_limit <= 5 ? `  // CHANGED: Use purchase_limit
-                    <div class="${remainingClass}">
-                        Only ${pkg.purchase_limit} left!  // CHANGED: Use purchase_limit
-                    </div>
-                ` : ''}
-                ${pkg.bonus_amount > 0 ? `
-                    <div class="package-bonus">+${pkg.bonus_amount} Bonus NMXp</div>
-                ` : ''}
+        .back-btn {
+            width: 24px;
+            height: 24px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .content-wrapper {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 70px;
+        }
+
+        .buy-section {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--gold);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .packages-grid {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .package-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .package-card:hover, .package-card.selected {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .package-card.vip {
+            border-color: var(--vip);
+            background: rgba(155, 89, 182, 0.1);
+        }
+
+        .package-card.vip:hover, .package-card.vip.selected {
+            border-color: var(--vip);
+            background: rgba(155, 89, 182, 0.2);
+        }
+
+        .package-card.selected {
+            position: relative;
+        }
+
+        .package-card.selected::before {
+            content: "✓";
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--gold);
+            color: var(--darker-bg);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .package-card.vip.selected::before {
+            background: var(--vip);
+        }
+
+        .package-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .package-card.vip .package-amount {
+            color: var(--vip);
+        }
+
+        .package-price {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .package-purchase-limit {
+            font-size: 11px;
+            color: var(--muted);
+            margin-bottom: 8px;
+            font-style: italic;
+        }
+
+        .package-bonus {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .vip-badge {
+            background: rgba(155, 89, 182, 0.2);
+            color: var(--vip);
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
+        .payment-methods {
+            margin: 25px 0;
+        }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .payment-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .payment-option:hover, .payment-option.selected {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .payment-icon {
+            width: 24px;
+            height: 24px;
+            margin: 0 auto 8px;
+            color: var(--muted);
+        }
+
+        .payment-option.selected .payment-icon {
+            color: var(--gold);
+        }
+
+        .payment-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        /* Crypto Address Panel */
+        .crypto-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .crypto-panel.active {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .crypto-option {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .crypto-option:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .crypto-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .crypto-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .crypto-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--gold); /* Changed to gold */
+        }
+
+        .crypto-network {
+            background: rgba(212, 175, 55, 0.1); /* Changed to gold background */
+            color: var(--gold); /* Changed to gold */
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .address-container {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+
+        .address-text {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            word-break: break-all;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+
+        .copy-btn {
+            background: var(--gold);
+            color: var(--dark-bg);
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #b8941f;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+        }
+
+        /* CHANGED: Payment instructions to black and gold */
+        .payment-instructions {
+            background: rgba(212, 175, 55, 0.05); /* Gold background */
+            border: 1px solid var(--gold); /* Gold border */
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--gold); /* Gold text */
+        }
+
+        .instruction-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--gold);
+        }
+
+        .instruction-icon {
+            width: 14px;
+            height: 14px;
+        }
+
+        .minimum-amount {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 11px;
+            text-align: center;
+            color: var(--gold);
+        }
+
+        .buy-button {
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .buy-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .buy-button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .button-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .info-note {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .info-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        /* Confirmation Modal */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .confirmation-content {
+            background: var(--darker-bg);
+            border: 1px solid var(--gold);
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .confirmation-title {
+            color: var(--gold);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;            justify-content: center;
+            gap: 10px;
+        }
+
+        .confirmation-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .confirmation-details {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .detail-label {
+            color: var(--muted);
+        }
+
+        .detail-value {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .confirmation-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .confirm-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .confirm-btn:hover {
+            background: #00a843;
+            transform: translateY(-2px);
+        }
+
+        .cancel-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .cancel-btn:hover {
+            background: #cc3333;            transform: translateY(-2px);
+        }  /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
+        }
+
+        /* ADDED: Sold out state */
+        .package-card.sold-out {
+            opacity: 0.6;
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .package-card.sold-out::after {
+            content: "SOLD OUT";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--danger);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 2;
+        }
+
+        .package-card.sold-out:hover {
+            border-color: var(--border-color);
+            background: rgba(255, 255, 255, 0.05);
+            transform: none;
+        }
+
+        .remaining-badge {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--gold);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        .remaining-badge.low {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--danger);
+        }
+    </style>
+</head>
+<body>
+    <!-- Confirmation Modal -->
+    <div class="confirmation-modal" id="confirmationModal">
+        <div class="confirmation-content">
+            <div class="confirmation-title">
+                <svg class="confirmation-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Confirm Payment
             </div>
-        `;
-    }).join('');
-}
 
-// UPDATED: Select package with database check using purchase_limit
-function selectPackage(element, packageId) {
-    const packageData = availablePackages.find(pkg => pkg.id === packageId);
-    if (!packageData) return;
+            <div class="confirmation-details">
+                <div class="detail-row">
+                    <span class="detail-label">Package:</span>
+                    <span class="detail-value" id="confirmPackage">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Amount:</span>
+                    <span class="detail-value" id="confirmAmount">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Price:</span>
+                    <span class="detail-value" id="confirmPrice">-</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Payment Method:</span>
+                    <span class="detail-value">Cryptocurrency</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Remaining:</span>
+                    <span class="detail-value" id="confirmRemaining">-</span>
+                </div>
+            </div>
 
-    // Check if package is sold out using purchase_limit
-    if (packageData.purchase_limit <= 0) {  // CHANGED: Use purchase_limit
-        alert('❌ This package is sold out! Please select another package.');
-        return;
-    }
+            <div style="text-align: left; font-size: 13px; color: var(--muted); margin: 15px 0;">
+                <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>Have you successfully sent the payment to the provided address?</span>
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 8px;">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>NMXp will be credited within 1-2 hours after blockchain confirmation</span>
+                </div>
+            </div>
 
-    const packages = document.querySelectorAll('.package-card');
-    if (packages) {
-        packages.forEach(card => {
-            card.classList.remove('selected');
+            <div class="confirmation-buttons">
+                <button class="cancel-btn" onclick="closeConfirmation()">
+                    Cancel
+                </button>
+                <button class="confirm-btn" onclick="processManualConfirmation()">
+                    Yes, I Paid
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="content-wrapper">
+            <header class="header">
+                <a href="dashboard.html" class="back-btn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    Buy NMXp
+                </div>
+                <div style="width: 20px;"></div>
+            </header>
+
+            <div class="buy-section">
+                <div class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>                    </svg>
+                    Select Package
+                </div>
+                <div class="packages-grid" id="packagesGrid">
+                    <!-- Packages will be loaded dynamically -->
+                    <div class="loading">Loading packages...</div>
+                </div>
+
+                <div class="payment-methods">
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                        Payment Method
+                    </div>
+                    <div class="payment-options">
+                        <!-- ONLY CRYPTO OPTION -->
+                        <div class="payment-option selected" onclick="selectPayment(this, 'crypto')">
+                            <svg class="payment-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16zm-1-4.83l.707.707a1 1 0 001.414-1.414L12 12.586l1.121-1.121a1 1 0 111.414 1.414L13.414 14l1.121 1.121a1 1 0 01-1.414 1.414L12 15.414l-1.121 1.121a1 1 0 01-1.414-1.414L10.586 14l-1.121-1.121a1 1 0 111.414-1.414L12 12.586z"/>
+                            </svg>
+                            <div class="payment-name">Cryptocurrency</div>
+                        </div>
+                    </div>
+
+                    <!-- Crypto Address Panel -->
+                    <div class="crypto-panel active" id="cryptoPanel">
+                        <div class="crypto-option">
+                            <div class="crypto-header">
+                                <svg class="crypto-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <div class="crypto-name">TON</div>
+                                <div class="crypto-network">TON</div>
+                            </div>
+                            <div class="address-container">
+                                <div class="address-text" id="tonAddress">UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St</div>
+                                <button class="copy-btn" onclick="copyToClipboard('tonAddress')">Copy Address</button>
+                            </div>
+                            <div class="minimum-amount" id="tonMinimum">
+                                Minimum: $0.20 worth of TON
+                            </div>                        </div>
+
+                        <div class="crypto-option">
+                            <div class="crypto-header">
+                                <svg class="crypto-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <div class="crypto-name">USDT</div>
+                                <div class="crypto-network">TON</div>
+                            </div>
+                            <div class="address-container">
+                                <div class="address-text" id="usdtTonAddress">UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St</div>
+                                <button class="copy-btn" onclick="copyToClipboard('usdtTonAddress')">Copy Address</button>
+                            </div>
+                            <div class="minimum-amount" id="usdtTonMinimum">
+                                Minimum: $0.20 USDT
+                            </div>
+                        </div>
+
+                        <div class="crypto-option">
+                            <div class="crypto-header">
+                                <svg class="crypto-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                                <div class="crypto-name">USDT</div>
+                                <div class="crypto-network">TRC-20</div>
+                            </div>
+                            <div class="address-container">
+                                <div class="address-text" id="usdtTrcAddress">TLhmqChTUdbhvCjHcXPrs6oPx7aF1hpxZX</div>
+                                <button class="copy-btn" onclick="copyToClipboard('usdtTrcAddress')">Copy Address</button>
+                            </div>
+                            <div class="minimum-amount" id="usdtTrcMinimum">
+                                Minimum: $0.20 USDT
+                            </div>
+                        </div>
+
+                        <!-- CHANGED: Payment instructions now in black and gold -->
+                        <div class="payment-instructions">
+                            <div class="instruction-title">
+                                <svg class="instruction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Payment Instructions
+                            </div>
+                            <div>1. Copy the address for your preferred cryptocurrency</div>
+                            <div>2. Send the exact amount shown above</div>
+                            <div>3. Return here and click "I've Made Payment"</div>
+                            <div>4. NMXp will be credited within 1-2 hours after confirmation</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="buy-button" id="buyButton" onclick="showPaymentConfirmation()">
+                    <svg class="button-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    I've Made Payment - Confirm
+                </button>
+
+                <div class="info-note">
+                    <svg class="info-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    All payments are manually verified on the blockchain. NMXp will be credited to your account within 1-2 hours after payment confirmation. VIP packages include special token benefits.
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span class="nav-text">MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>                <span class="nav-text">TASKS</span>
+            </a>
+            <a href="buynmxp.html" class="nav-item active">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <span class="nav-text">BUY NMXp</span>
+            </a>
+            <a href="referrals.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                <span class="nav-text">REFERRALS</span>
+            </a>
+            <a href="wallet.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <span class="nav-text">WALLET</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Initialize Supabase
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let selectedPackage = null;
+        let currentUser = null;
+        let availablePackages = [];
+
+        // Load user data and packages on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePage();
         });
-    }
-    element.classList.add('selected');
-    
-    selectedPackage = {
-        element: element
+
+        async function initializePage() {
+            try {
+                // Get current user session
+                const { data: { session } } = await supabaseClient.auth.getSession();
+                if (!session) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                currentUser = session.user;
+                console.log('👤 User loaded:', currentUser.email);
+
+                // Load available packages
+                await loadPackages();
+
+            } catch (error) {
+                console.error('Error initializing page:', error);
+            }
+        }
+
+        // UPDATED: Load packages from database with purchase limits using purchase_limit
+        async function loadPackages() {
+            try {
+                const { data: packages, error } = await supabaseClient
+                    .from('package_types')
+                    .select('*')
+                    .eq('is_active', true)
+                    .order('package_amount');
+
+                if (error) {
+                    console.error('Error loading packages:', error);
+                    return;
+                }
+
+                availablePackages = packages || [];
+                renderPackages();
+                
+            } catch (error) {
+                console.error('Error loading packages:', error);
+            }
+        }
+
+        // UPDATED: Render packages with purchase limits using purchase_limit
+        function renderPackages() {
+            const packagesGrid = document.getElementById('packagesGrid');
+            if (!packagesGrid) return;
+
+            if (availablePackages.length === 0) {
+                packagesGrid.innerHTML = '<div class="empty-state">No packages available</div>';
+                return;
+            }
+
+            packagesGrid.innerHTML = availablePackages.map(pkg => {
+                const isSoldOut = pkg.purchase_limit <= 0; // UPDATED: Use purchase_limit
+                const isLowStock = pkg.purchase_limit <= 3 && pkg.purchase_limit > 0; // UPDATED: Use purchase_limit
+                const remainingClass = isLowStock ? 'remaining-badge low' : 'remaining-badge';
+
+                return `
+                    <div class="package-card ${pkg.is_vip ? 'vip' : ''} ${isSoldOut ? 'sold-out' : ''}" 
+                         ${!isSoldOut ? `onclick="selectPackage(this, '${pkg.id}')"` : ''}>
+                        ${pkg.is_vip ? '<div class="vip-badge">VIP Package</div>' : ''}
+                        <div class="package-amount">${pkg.package_amount.toLocaleString()} NMXp</div>
+                        <div class="package-price">$${pkg.price_usd} USDT</div>
+                        <div class="package-purchase-limit">
+                            ${pkg.purchase_limit > 0  // UPDATED: Use purchase_limit
+                                ? `Can purchase ${pkg.purchase_limit} more times` 
+                                : 'Sold out'}
+                        </div>
+                        ${pkg.purchase_limit > 0 && pkg.purchase_limit <= 5 ? `  // UPDATED: Use purchase_limit
+                            <div class="${remainingClass}">
+                                Only ${pkg.purchase_limit} left!  // UPDATED: Use purchase_limit
+                            </div>
+                        ` : ''}
+                        ${pkg.bonus_amount > 0 ? `
+                            <div class="package-bonus">+${pkg.bonus_amount} Bonus NMXp</div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // UPDATED: Select package with database check using purchase_limit
+        function selectPackage(element, packageId) {
+            const packageData = availablePackages.find(pkg => pkg.id === packageId);
+            if (!packageData) return;
+
+            // Check if package is sold out using purchase_limit
+            if (packageData.purchase_limit <= 0) {  // UPDATED: Use purchase_limit
+                alert('❌ This package is sold out! Please select another package.');
+                return;
+            }
+
+            const packages = document.querySelectorAll('.package-card');
+            if (packages) {
+                packages.forEach(card => {
+                    card.classList.remove('selected');
+                });
+            }
+            element.classList.add('selected');
+            
+            selectedPackage = {
+                element: element,
+                id: packageData.id,
+                package_name: packageData.package_name,
+                amount: packageData.package_amount,
+                price: packageData.price_usd,
+                bonus: packageData.bonus_amount,
+                totalAmount: packageData.package_amount + packageData.bonus_amount,
+                purchase_limit: packageData.purchase_limit,  // UPDATED: Use purchase_limit
+                is_vip: packageData.is_vip
+            };
+            
+            updateMinimumAmounts();
+        }
+
+        function selectPayment(element, method) {
+            const payments = document.querySelectorAll('.payment-option');
+            if (payments) {
+                payments.forEach(option => {
+                    option.classList.remove('selected');
+                });
+            }
+            element.classList.add('selected');
+        }
+
+        function updateMinimumAmounts() {
+            if (selectedPackage) {
+                const price = selectedPackage.price;
+                const tonMin = document.getElementById('tonMinimum');
+                const usdtTonMin = document.getElementById('usdtTonMinimum');
+                const usdtTrcMin = document.getElementById('usdtTrcMinimum');
+
+                if (tonMin) tonMin.textContent = `Minimum: $${price} worth of TON`;
+                if (usdtTonMin) usdtTonMin.textContent = `Minimum: $${price} USDT`;
+                if (usdtTrcMin) usdtTrcMin.textContent = `Minimum: $${price} USDT`;
+            }
+        }
+
+        function showPaymentConfirmation() {
+            if (!selectedPackage) {
+                alert('Please select a package first');
+                return;
+            }
+
+            // Double-check if package is still available using purchase_limit
+            if (selectedPackage.purchase_limit <= 0) {  // UPDATED: Use purchase_limit
+                alert('❌ This package is no longer available. Please select another package.');
+                loadPackages(); // Refresh packages
+                return;
+            }
+
+            const confirmPackage = document.getElementById('confirmPackage');
+            const confirmAmount = document.getElementById('confirmAmount');
+            const confirmPrice = document.getElementById('confirmPrice');
+            const confirmRemaining = document.getElementById('confirmRemaining');
+            const modal = document.getElementById('confirmationModal');
+
+            if (confirmPackage) confirmPackage.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
+            if (confirmAmount) confirmAmount.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
+            if (confirmPrice) confirmPrice.textContent = `$${selectedPackage.price} USD`;
+            if (confirmRemaining) confirmRemaining.textContent = `${selectedPackage.purchase_limit - 1} left after your purchase`;  // UPDATED: Use purchase_limit
+            if (modal) modal.style.display = 'flex';
+        }
+
+        function closeConfirmation() {
+            const modal = document.getElementById('confirmationModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // UPDATED: Enhanced Manual Transaction Confirmation with Purchase Limits using purchase_limit
+        async function processManualConfirmation() {
+            try {
+                if (!selectedPackage) {
+                    alert('Please select a package first');
+                    return;
+                }
+
+                if (!currentUser) {
+                    alert('Please log in first');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Final availability check using purchase_limit
+                const { data: currentPackage, error: packageError } = await supabaseClient
+                    .from('package_types')
+                    .select('purchase_limit')  // UPDATED: Use purchase_limit
+                    .eq('id', selectedPackage.id)
+                    .single();
+
+                if (packageError || !currentPackage || currentPackage.purchase_limit <= 0) {  // UPDATED: Use purchase_limit
+                    alert('❌ This package is no longer available. Please select another package.');
+                    await loadPackages();
+                    closeConfirmation();
+                    return;
+                }
+
+                const confirmBtn = document.querySelector('.confirm-btn');
+                if (!confirmBtn) return;
+
+                const originalText = confirmBtn.innerHTML;
+                confirmBtn.innerHTML = 'Processing...';
+                confirmBtn.disabled = true;
+
+                // Get transaction details from user
+                const txHash = prompt('🔗 Please enter your Transaction Hash (TX ID):\n\nYou can find this in your wallet after sending the payment.\nIt usually looks like: 0x... or a long string of letters and numbers.');
+
+                if (!txHash) {
+                    alert('❌ Transaction hash is required. Please try again.');
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                    return;
+                }
+
+                const userNotes = prompt('📝 Optional: Add any notes about your payment:\n\n• Which cryptocurrency you used\n• The exact amount sent\n• Your wallet address\n• Any other relevant details');
+
+                console.log('📦 Creating transaction record...', {
+                    user_id: currentUser.id,
+                    package_type_id: selectedPackage.id,
+                    package_amount: selectedPackage.amount,
+                    total_amount: selectedPackage.totalAmount,
+                    price_usd: selectedPackage.price
+                });
+
+                // Create pending transaction record
+                const { data: transaction, error } = await supabaseClient
+                    .from('pending_transactions')
+                    .insert({
+                        user_id: currentUser.id,
+                        user_email: currentUser.email,
+                        package_type_id: selectedPackage.id,
+                        package_amount: selectedPackage.amount,
+                        total_amount: selectedPackage.totalAmount,
+                        price_usd: selectedPackage.price,
+                        payment_method: 'crypto',
+                        status: 'pending',
+                        tx_hash: txHash.trim(),
+                        user_notes: userNotes || '',
+                        is_vip: selectedPackage.is_vip,
+                        created_at: new Date().toISOString()
+                    })
+                    .select();
+
+                if (error) {
+                    console.error('❌ Database error:', error);
+                    throw new Error('Failed to submit transaction: ' + error.message);
+                }
+
+                // Close confirmation modal
+                closeConfirmation();
+
+                // Show success message with instructions
+                alert(`✅ PAYMENT SUBMITTED FOR REVIEW!
+
+📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp
+💰 Amount: $${selectedPackage.price} USD
+🔗 TX Hash: ${txHash.substring(0, 20)}...
+
+📋 What happens next:
+1. We'll verify your blockchain transaction
+2. Check the payment amount and network
+3. Credit your NMXp within 1-2 hours
+4. You'll receive a confirmation email
+
+💡 Keep your transaction hash safe for reference!`);
+
+                // Reset selection and reload packages
+                selectedPackage = null;
+                await loadPackages();
+                updateMinimumAmounts();
+
+                // Reset button
+                setTimeout(() => {
+                    confirmBtn.innerHTML = originalText;
+                    confirmBtn.disabled = false;
+                }, 2000);
+
+            } catch (error) {
+                console.error('❌ Transaction submission error:', error);
+                alert(`❌ Submission failed: ${error.message}\n\nPlease try again or contact support if the problem continues.`);
+
+                const confirmBtn = document.querySelector('.confirm-btn');
+                if (confirmBtn) {
+                    confirmBtn.innerHTML = 'Yes, I Paid';
+                    confirmBtn.disabled = false;
+                }
+            }
+        }
+
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const text = element.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const buttons = document.querySelectorAll('.copy-btn');
+                buttons.forEach(btn => {
+                    btn.textContent = 'Copy Address';
+                    btn.classList.remove('copied');
+                });
+
+                const clickedBtn = event.target;
+                clickedBtn.textContent = 'Copied!';
+                clickedBtn.classList.add('copied');
+
+                setTimeout(() => {
+                    clickedBtn.textContent = 'Copy Address';
+                    clickedBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                alert('Failed to copy address. Please select and copy manually.');
+            });
+        }
+    </script>
+</body>
+</html>
