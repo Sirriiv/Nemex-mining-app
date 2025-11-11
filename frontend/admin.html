@@ -673,6 +673,244 @@
             min-width: 250px; 
         }
 
+        /* User Popup Modal */
+        .user-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .user-popup {
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: popupSlideIn 0.3s ease;
+        }
+
+        @keyframes popupSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .popup-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .close-popup {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .close-popup:hover {
+            color: var(--danger);
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .popup-content {
+            padding: 25px;
+        }
+
+        .user-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .detail-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--muted);
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-value {
+            color: var(--text);
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .referral-preview {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .relationship-node {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .relationship-node:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(5px);
+        }
+
+        .relationship-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--dark-bg);
+            font-size: 12px;
+        }
+
+        .relationship-info {
+            flex: 1;
+        }
+
+        .relationship-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .relationship-email {
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .relationship-type {
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+        }
+
+        .purchase-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .purchase-item:last-child {
+            border-bottom: none;
+        }
+
+        .purchase-name {
+            font-weight: 500;
+        }
+
+        .purchase-amount {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .network-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .network-stat {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .network-stat:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .network-stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .network-stat-label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
         /* Maintenance Banner */
         .maintenance-banner {
             position: fixed;
@@ -684,52 +922,13 @@
             padding: 15px;
             text-align: center;
             font-weight: 600;
-            z-index: 10000;
-            display: none;
+            z-index: 10001;
+            animation: slideDown 0.3s ease;
         }
 
-        /* Export Modal */
-        .export-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .export-content {
-            background: var(--darker-bg);
-            border-radius: 15px;
-            padding: 25px;
-            width: 90%;
-            max-width: 400px;
-            border: 1px solid var(--gold);
-        }
-
-        .export-options {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .export-option {
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .export-option:hover {
-            border-color: var(--gold);
-            background: rgba(212, 175, 55, 0.1);
+        @keyframes slideDown {
+            from { transform: translateY(-100%); }
+            to { transform: translateY(0); }
         }
 
         @media (max-width: 768px) {
@@ -760,32 +959,8 @@
 </head>
 <body>
     <!-- Maintenance Banner -->
-    <div class="maintenance-banner" id="maintenanceBanner">
-        ⚠️ System Maintenance in Progress - Some features may be temporarily unavailable
-    </div>
-
-    <!-- Export Modal -->
-    <div class="export-modal" id="exportModal">
-        <div class="export-content">
-            <h3 style="color: var(--gold); margin-bottom: 20px; text-align: center;">Export Data</h3>
-            <div class="export-options">
-                <div class="export-option" onclick="exportData('users')">
-                    <strong>Export Users Data</strong>
-                    <div style="font-size: 12px; color: var(--muted); margin-top: 5px;">CSV format with all user information</div>
-                </div>
-                <div class="export-option" onclick="exportData('referrals')">
-                    <strong>Export Referrals Data</strong>
-                    <div style="font-size: 12px; color: var(--muted); margin-top: 5px;">CSV format with referral relationships</div>
-                </div>
-                <div class="export-option" onclick="exportData('transactions')">
-                    <strong>Export Transactions</strong>
-                    <div style="font-size: 12px; color: var(--muted); margin-top: 5px;">CSV format with purchase history</div>
-                </div>
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="admin-btn" style="flex: 1;" onclick="closeExportModal()">Cancel</button>
-            </div>
-        </div>
+    <div class="maintenance-banner" id="maintenanceBanner" style="display: none;">
+        ⚠️ Maintenance Mode Active - System is currently under maintenance
     </div>
 
     <!-- Enhanced Real-time Indicator -->
@@ -823,7 +998,7 @@
                     </svg>
                     Refresh Data
                 </button>
-                <button class="admin-btn" onclick="showExportModal()">
+                <button class="admin-btn" onclick="exportUserData()">
                     <svg class="btn-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -954,8 +1129,9 @@
         let currentSection = 'overview';
         let maintenanceMode = false;
         let realtimeSubscription = null;
-        let cachedUsers = null;
-        let cachedReferrals = null;
+        let dataCache = new Map(); // Cache for optimized data fetching
+        let cacheTimestamp = 0;
+        const CACHE_DURATION = 30000; // 30 seconds cache
 
         // FIXED: Enhanced initialization with proper admin check
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1035,8 +1211,8 @@
                 }
 
                 // Method 2: Check by email (fallback)
-                const userEmail = session.user.email?.toLowerCase();
-                const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'].map(email => email.toLowerCase());
+                const userEmail = session.user.email;
+                const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
 
                 if (userEmail && adminEmails.includes(userEmail)) {
                     console.log('✅ Admin access granted via email whitelist');
@@ -1067,202 +1243,42 @@
             }
         }
 
-        // NEW: Maintenance Mode Functionality
-        async function toggleMaintenanceMode() {
-            maintenanceMode = !maintenanceMode;
-            const btn = document.getElementById('maintenanceToggle');
-            const text = document.getElementById('maintenanceText');
-            const banner = document.getElementById('maintenanceBanner');
-
-            if (maintenanceMode) {
-                btn.classList.add('active');
-                text.textContent = 'Disable Maintenance';
-                banner.style.display = 'block';
-                
-                // Store maintenance mode in localStorage for persistence
-                localStorage.setItem('nemexcoin_maintenance', 'true');
-                
-                // Show success message
-                showCustomAlert('Maintenance mode activated! Users will see maintenance banner.', 'success');
-            } else {
-                btn.classList.remove('active');
-                text.textContent = 'Enable Maintenance';
-                banner.style.display = 'none';
-                
-                // Remove maintenance mode from localStorage
-                localStorage.removeItem('nemexcoin_maintenance');
-                
-                // Show success message
-                showCustomAlert('Maintenance mode deactivated!', 'success');
+        async function initializeAdminPanel() {
+            console.log('🔄 Initializing admin panel...');
+            await loadOverviewData();
+            setupRealTimeUpdates();
+            
+            // Load maintenance mode state from localStorage
+            const savedMaintenanceMode = localStorage.getItem('maintenanceMode');
+            if (savedMaintenanceMode === 'true') {
+                maintenanceMode = true;
+                updateMaintenanceUI();
             }
         }
 
-        // NEW: Export Functionality
-        function showExportModal() {
-            document.getElementById('exportModal').style.display = 'flex';
-        }
-
-        function closeExportModal() {
-            document.getElementById('exportModal').style.display = 'none';
-        }
-
-        async function exportData(type) {
+        // Enhanced data loading with error handling and caching - OPTIMIZED VERSION
+        async function loadOverviewData() {
             try {
-                showCustomAlert('Preparing export data...', 'info');
-                
-                let data = [];
-                let filename = '';
-                let headers = [];
-
-                switch(type) {
-                    case 'users':
-                        data = await getAllUsersForExport();
-                        filename = 'nemexcoin_users.csv';
-                        headers = ['ID', 'Email', 'Username', 'Full Name', 'Balance', 'Referrals', 'Created At', 'Last Login'];
-                        break;
-                    case 'referrals':
-                        data = await getAllReferralsForExport();
-                        filename = 'nemexcoin_referrals.csv';
-                        headers = ['Referrer ID', 'Referrer Email', 'Referred User ID', 'Referred Email', 'Level', 'Created At'];
-                        break;
-                    case 'transactions':
-                        data = await getAllTransactionsForExport();
-                        filename = 'nemexcoin_transactions.csv';
-                        headers = ['User ID', 'User Email', 'Package Name', 'Amount', 'Status', 'Created At'];
-                        break;
-                }
-
-                if (data.length === 0) {
-                    showCustomAlert('No data available for export', 'error');
-                    return;
-                }
-
-                // Convert to CSV
-                const csvContent = convertToCSV(data, headers);
-                
-                // Download file
-                downloadCSV(csvContent, filename);
-                
-                closeExportModal();
-                showCustomAlert(`Exported ${data.length} records successfully!`, 'success');
-                
+                console.log('📊 Loading overview data...');
+                const stats = await fetchAdminStatsFromSupabase();
+                updateStatsCards(stats);
+                await loadRecentUsersFromSupabase();
             } catch (error) {
-                console.error('Export error:', error);
-                showCustomAlert('Error exporting data: ' + error.message, 'error');
+                console.error('Error loading overview data:', error);
+                showConnectionError();
             }
         }
 
-        async function getAllUsersForExport() {
-            const { data: users, error } = await supabaseClient
-                .from('profiles')
-                .select('id, email, username, full_name, balance, created_at, last_login')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-
-            // Get referral counts for each user
-            const usersWithRefs = await Promise.all(users.map(async (user) => {
-                const { count: referralCount, error: refError } = await supabaseClient
-                    .from('profiles')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('referred_by', user.id);
-
-                return {
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    full_name: user.full_name,
-                    balance: user.balance,
-                    referrals: referralCount || 0,
-                    created_at: user.created_at,
-                    last_login: user.last_login
-                };
-            }));
-
-            return usersWithRefs;
-        }
-
-        async function getAllReferralsForExport() {
-            // This would need to be implemented based on your referral_network table structure
-            const { data: referrals, error } = await supabaseClient
-                .from('referral_network')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            return referrals || [];
-        }
-
-        async function getAllTransactionsForExport() {
-            const { data: transactions, error } = await supabaseClient
-                .from('user_purchase_history')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            return transactions || [];
-        }
-
-        function convertToCSV(data, headers) {
-            const headerRow = headers.join(',');
-            const dataRows = data.map(row => {
-                return headers.map(header => {
-                    const value = row[header.toLowerCase().replace(' ', '_')] || '';
-                    return `"${String(value).replace(/"/g, '""')}"`;
-                }).join(',');
-            });
-            
-            return [headerRow, ...dataRows].join('\n');
-        }
-
-        function downloadCSV(csvContent, filename) {
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute('href', url);
-            link.setAttribute('download', filename);
-            link.style.visibility = 'hidden';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // FIXED: Enhanced Users with Referrals calculation
-        async function calculateUsersWithReferrals() {
-            try {
-                console.log('🔄 Calculating users with referrals...');
-
-                // Get all users who have referred others
-                const { data: referrers, error } = await supabaseClient
-                    .from('profiles')
-                    .select('id')
-                    .in('id', 
-                        supabaseClient.from('profiles')
-                        .select('referred_by')
-                        .not('referred_by', 'is', null)
-                    );
-
-                if (error) {
-                    console.error('Error calculating users with referrals:', error);
-                    return 0;
-                }
-
-                // Remove duplicates (users might be counted multiple times)
-                const uniqueReferrers = [...new Set(referrers.map(r => r.id))];
-                console.log(`✅ Found ${uniqueReferrers.length} users with referrals`);
-                
-                return uniqueReferrers.length;
-
-            } catch (error) {
-                console.error('Error calculating users with referrals:', error);
-                return 0;
-            }
-        }
-
-        // UPDATED: Enhanced admin statistics with optimized queries
+        // Enhanced admin statistics with network tracking - OPTIMIZED VERSION
         async function fetchAdminStatsFromSupabase() {
+            // Check cache first
+            const cacheKey = 'adminStats';
+            const cachedData = getCachedData(cacheKey);
+            if (cachedData) {
+                console.log('📊 Using cached admin stats');
+                return cachedData;
+            }
+
             try {
                 console.log('📈 Fetching admin stats...');
 
@@ -1287,7 +1303,7 @@
                     throw refsError;
                 }
 
-                // Calculate users with referrals (users who have referred others) - FIXED
+                // Calculate users with referrals (users who have referred others)
                 const usersWithReferralsCount = await calculateUsersWithReferrals();
 
                 // Calculate orphaned users
@@ -1304,6 +1320,9 @@
                 };
 
                 console.log('✅ Admin stats loaded:', stats);
+                
+                // Cache the data
+                setCachedData(cacheKey, stats);
                 return stats;
 
             } catch (error) {
@@ -1317,199 +1336,121 @@
             }
         }
 
-        // UPDATED: Enhanced data loading with caching
-        async function loadAllData() {
+        // Cache management functions
+        function getCachedData(key) {
+            const now = Date.now();
+            const cached = dataCache.get(key);
+            if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+                return cached.data;
+            }
+            return null;
+        }
+
+        function setCachedData(key, data) {
+            dataCache.set(key, {
+                data: data,
+                timestamp: Date.now()
+            });
+        }
+
+        function clearCache() {
+            dataCache.clear();
+            cacheTimestamp = 0;
+        }
+
+        // Calculate total referrals including network
+        async function calculateTotalReferrals() {
             try {
-                console.log('🔄 Loading all data with caching...');
+                // Try to get from referral_network first
+                const { count: networkCount, error: networkError } = await supabaseClient
+                    .from('referral_network')
+                    .select('*', { count: 'exact', head: true });
 
-                // Load users with caching
-                if (!cachedUsers) {
-                    const { data: users, error } = await supabaseClient
-                        .from('profiles')
-                        .select('id, username, email, balance, created_at, referred_by, full_name')
-                        .order('created_at', { ascending: false });
-
-                    if (error) throw error;
-                    cachedUsers = users || [];
+                if (!networkError && networkCount) {
+                    return networkCount;
                 }
 
-                // Load referral relationships with caching
-                if (!cachedReferrals) {
-                    cachedReferrals = await buildCompleteReferralNetwork();
-                }
+                // Fallback to direct referrals count
+                const { count: directCount, error: directError } = await supabaseClient
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .not('referred_by', 'is', null);
 
-                return {
-                    users: cachedUsers,
-                    referrals: cachedReferrals
-                };
-
+                return directCount || 0;
             } catch (error) {
-                console.error('Error loading data:', error);
-                throw error;
+                console.error('Error calculating total referrals:', error);
+                return 0;
             }
         }
 
-        // UPDATED: Optimized section loading
-        async function loadSectionData(sectionName) {
-            const contentDiv = document.getElementById('dynamicContent');
-            contentDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading ' + sectionName + '...</p></div>';
-
+        // Calculate users who have referred others - FIXED VERSION
+        async function calculateUsersWithReferrals() {
             try {
-                let htmlContent = '';
-
-                switch(sectionName) {
-                    case 'completeTree':
-                        htmlContent = await loadReferralTreeSection();
-                        break;
-                    case 'orphanedUsers':
-                        htmlContent = await loadOrphanedUsersSection();
-                        break;
-                    case 'usersWithReferrals':
-                        htmlContent = await loadUsersWithReferralsSection();
-                        break;
-                    default:
-                        htmlContent = '<div class="no-data-message"><h3>Section Not Implemented</h3></div>';
-                }
-
-                contentDiv.innerHTML = htmlContent;
-            } catch (error) {
-                console.error('Error loading section:', error);
-                contentDiv.innerHTML = `
-                    <div class="no-data-message">
-                        <h3>Error Loading Content</h3>
-                        <p>Failed to load ${sectionName}. Please try again.</p>
-                        <button class="admin-btn" onclick="loadSectionData('${currentSection}')">Retry</button>
-                    </div>
-                `;
-            }
-        }
-
-        // UPDATED: Enhanced Users with Referrals section
-        async function loadUsersWithReferralsSection() {
-            try {
-                console.log('🔄 Loading users with referrals section...');
-
-                const { users } = await loadAllData();
-
-                // Get users who have referred others
-                const usersWithReferrals = await getUsersWithReferrals();
-
-                if (!usersWithReferrals || usersWithReferrals.length === 0) {
-                    return `
-                        <div class="section-content">
-                            <div class="section-header">
-                                <h2 class="section-title">Users with Referrals</h2>
-                            </div>
-                            <div class="no-data-message">
-                                <h3>No Users with Referrals</h3>
-                                <p>No users have referred others yet.</p>
-                            </div>
-                        </div>
-                    `;
-                }
-
-                const usersWithCounts = await Promise.all(usersWithReferrals.map(async (userId) => {
-                    const user = users.find(u => u.id === userId);
-                    if (!user) return null;
-
-                    const { count: referralCount, error: refError } = await supabaseClient
-                        .from('profiles')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('referred_by', userId);
-
-                    return {
-                        ...user,
-                        referralCount: referralCount || 0
-                    };
-                }));
-
-                const validUsers = usersWithCounts.filter(user => user !== null);
-
-                return createUsersSectionWithViewButtons('Users with Referrals', validUsers, 'No users with referrals found.');
-
-            } catch (error) {
-                console.error('❌ Error loading users with referrals:', error);
-                return createErrorSection('Users with Referrals');
-            }
-        }
-
-        // NEW: Get users with referrals (optimized)
-        async function getUsersWithReferrals() {
-            try {
-                const { data: referrals, error } = await supabaseClient
+                // Get all users who have referred others by checking who appears in referred_by field
+                const { data: referredUsers, error } = await supabaseClient
                     .from('profiles')
                     .select('referred_by')
                     .not('referred_by', 'is', null);
 
-                if (error) throw error;
-
-                // Get unique referrer IDs
-                const uniqueReferrers = [...new Set(referrals.map(r => r.referred_by))];
-                return uniqueReferrers;
-
-            } catch (error) {
-                console.error('Error getting users with referrals:', error);
-                return [];
-            }
-        }
-
-        // UPDATED: Enhanced real-time updates with database change detection
-        function setupRealTimeUpdates() {
-            try {
-                if (!supabaseClient) {
-                    console.error('Supabase client not available for real-time updates');
-                    return;
+                if (error) {
+                    console.error('Error calculating users with referrals:', error);
+                    return 0;
                 }
 
-                realtimeSubscription = supabaseClient
-                    .channel('admin-panel-updates')
-                    .on('postgres_changes', 
-                        { event: '*', schema: 'public', table: 'profiles' }, 
-                        payload => {
-                            console.log('Real-time user update received:', payload);
-                            
-                            // Invalidate cache
-                            cachedUsers = null;
-                            cachedReferrals = null;
-                            
-                            // Refresh data
-                            refreshData();
-                        }
-                    )
-                    .on('postgres_changes',
-                        { event: 'INSERT', schema: 'public', table: 'user_purchase_history' },
-                        payload => {
-                            console.log('Real-time purchase detected:', payload);
-                            handleNewPurchase(payload.new);
-                        }
-                    )
-                    .on('postgres_changes',
-                        { event: 'DELETE', schema: 'public', table: 'profiles' },
-                        payload => {
-                            console.log('User deleted from database:', payload);
-                            // Force refresh to remove deleted user from interface
-                            cachedUsers = null;
-                            cachedReferrals = null;
-                            refreshData();
-                        }
-                    )
-                    .subscribe((status) => {
-                        if (status === 'SUBSCRIBED') {
-                            console.log('✅ Real-time updates subscribed');
-                            updateRealtimeIndicator(true);
-                        } else {
-                            console.log('❌ Real-time updates failed:', status);
-                            updateRealtimeIndicator(false);
-                        }
-                    });
+                // Get unique referrers
+                const uniqueReferrers = [...new Set(referredUsers.map(user => user.referred_by))];
+                return uniqueReferrers.length;
 
             } catch (error) {
-                console.error('Error setting up real-time updates:', error);
-                updateRealtimeIndicator(false);
+                console.error('Error calculating users with referrals:', error);
+                return 0;
             }
         }
 
-        // UPDATED: Enhanced user details with optimized purchase data
+        // Enhanced recent users loading - OPTIMIZED VERSION
+        async function loadRecentUsersFromSupabase() {
+            try {
+                console.log('👥 Loading recent users...');
+
+                const { data: users, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, referred_by')
+                    .order('created_at', { ascending: false })
+                    .limit(8);
+
+                if (error) {
+                    console.error('Error loading recent users:', error);
+                    throw error;
+                }
+
+                // Get referral counts for each user
+                const usersWithRefs = await Promise.all(users.map(async (user) => {
+                    const { count: referralCount, error: refError } = await supabaseClient
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('referred_by', user.id);
+
+                    return {
+                        id: user.id,
+                        name: user.username || user.email || 'Unknown User',
+                        email: user.email || 'No email',
+                        referrals: referralCount || 0,
+                        isVip: (user.balance || 0) > 1000,
+                        hasReferrer: !!user.referred_by,
+                        created_at: user.created_at
+                    };
+                }));
+
+                displayRecentUsers(usersWithRefs);
+                console.log(`✅ Loaded ${usersWithRefs.length} recent users`);
+
+            } catch (error) {
+                console.error('❌ Error loading recent users:', error);
+                displayRecentUsers([]);
+            }
+        }
+
+        // Enhanced user details with network statistics - OPTIMIZED VERSION
         async function showUserDetails(userId) {
             try {
                 console.log('👤 Loading detailed user data for:', userId);
@@ -1593,46 +1534,1028 @@
             }
         }
 
-        // NEW: Custom alert function
-        function showCustomAlert(message, type = 'info') {
-            const alert = document.createElement('div');
-            alert.className = `custom-alert ${type}`;
-            alert.style.cssText = `
+        // UPDATED: Get user's full referral network with correct column names - FIXED VERSION
+        async function getUserNetworkReferrals(userId) {
+            try {
+                // Use the correct column names from your table
+                const { data: networkData, error: networkError } = await supabaseClient
+                    .from('referral_network')
+                    .select('level, referred_user:profiles!referred_id(id, username, email, created_at, balance)')
+                    .eq('referrer_id', userId)
+                    .order('level', { ascending: true });
+
+                if (!networkError && networkData) {
+                    return networkData.map(item => ({
+                        ...item.referred_user,
+                        level: item.level
+                    }));
+                }
+
+                // Fallback: build network from profiles table
+                return await buildNetworkFromProfiles(userId);
+            } catch (error) {
+                console.error('Error getting network referrals:', error);
+                return [];
+            }
+        }
+
+        // Build network from profiles table
+        async function buildNetworkFromProfiles(userId, level = 1, maxLevel = 5) {
+            if (level > maxLevel) return [];
+
+            try {
+                // Get direct referrals
+                const { data: directRefs, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, created_at, balance')
+                    .eq('referred_by', userId);
+
+                if (error || !directRefs) return [];
+
+                let network = directRefs.map(ref => ({ ...ref, level }));
+
+                // Recursively get referrals of referrals
+                for (let ref of directRefs) {
+                    const subNetwork = await buildNetworkFromProfiles(ref.id, level + 1, maxLevel);
+                    network = network.concat(subNetwork);
+                }
+
+                return network;
+            } catch (error) {
+                console.error('Error building network:', error);
+                return [];
+            }
+        }
+
+        // Enhanced network statistics
+        async function getUserNetworkStats(userId) {
+            try {
+                // Get direct referrals count
+                const { count: directReferrals, error: directError } = await supabaseClient
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('referred_by', userId);
+
+                // Get total network size
+                const networkReferrals = await getUserNetworkReferrals(userId);
+                const totalNetwork = networkReferrals.length;
+
+                // Get purchase statistics
+                const { data: purchaseStats, error: purchaseError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('amount')
+                    .eq('user_id', userId)
+                    .eq('status', 'completed');
+
+                const totalPurchases = purchaseStats?.length || 0;
+                const totalRevenue = purchaseStats?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+
+                // Get network purchase statistics
+                const networkRevenue = await calculateNetworkRevenue(userId);
+
+                return {
+                    directReferrals: directReferrals || 0,
+                    totalNetwork: totalNetwork,
+                    totalPurchases,
+                    totalRevenue,
+                    networkRevenue
+                };
+            } catch (error) {
+                console.error('Error fetching network stats:', error);
+                return {
+                    directReferrals: 0,
+                    totalNetwork: 0,
+                    totalPurchases: 0,
+                    totalRevenue: 0,
+                    networkRevenue: 0
+                };
+            }
+        }
+
+        // Calculate revenue from entire network
+        async function calculateNetworkRevenue(userId) {
+            try {
+                const networkUsers = await getUserNetworkReferrals(userId);
+                const networkUserIds = networkUsers.map(user => user.id);
+
+                if (networkUserIds.length === 0) return 0;
+
+                const { data: networkPurchases, error } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('amount')
+                    .in('user_id', networkUserIds)
+                    .eq('status', 'completed');
+
+                if (error) return 0;
+
+                return networkPurchases?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+            } catch (error) {
+                console.error('Error calculating network revenue:', error);
+                return 0;
+            }
+        }
+
+        // Function to show referrals list when clicking on referral count
+        async function showReferralsList(userId, userName) {
+            try {
+                const directReferrals = await getUserDirectReferrals(userId);
+                const networkReferrals = await getUserNetworkReferrals(userId);
+
+                const popupContent = document.getElementById('popupContent');
+                popupContent.innerHTML = `
+                    <div class="popup-header">
+                        <h2 class="popup-title">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            ${userName}'s Referral Network
+                        </h2>
+                        <button class="close-popup" onclick="closeUserPopup()">
+                            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="popup-content">
+                        <div class="network-stats">
+                            <div class="network-stat">
+                                <div class="network-stat-value">${directReferrals.length}</div>
+                                <div class="network-stat-label">Direct Referrals</div>
+                            </div>
+                            <div class="network-stat">
+                                <div class="network-stat-value">${networkReferrals.length}</div>
+                                <div class="network-stat-label">Total Network</div>
+                            </div>
+                        </div>
+
+                        <div class="referral-preview">
+                            <h3 class="section-title">Direct Referrals</h3>
+                            ${directReferrals.length > 0 ? 
+                                directReferrals.map(ref => `
+                                    <div class="relationship-node" onclick="showUserDetails('${ref.id}')">
+                                        <div class="relationship-avatar">${ref.username?.charAt(0) || 'U'}</div>
+                                        <div class="relationship-info">
+                                            <div class="relationship-name">${ref.username || 'Unknown User'}</div>
+                                            <div class="relationship-email">${ref.email || 'No email'}</div>
+                                            <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+                                                Joined: ${new Date(ref.created_at).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                        <span class="relationship-type">Level 1</span>
+                                    </div>
+                                `).join('') 
+                                : '<div style="text-align: center; color: var(--muted); padding: 20px;">No direct referrals</div>'
+                            }
+                        </div>
+
+                        ${networkReferrals.length > directReferrals.length ? `
+                            <div class="referral-preview">
+                                <h3 class="section-title">Full Network (Level 2+)</h3>
+                                ${networkReferrals.filter(ref => !directReferrals.some(dr => dr.id === ref.id)).map(ref => `
+                                    <div class="relationship-node" onclick="showUserDetails('${ref.id}')">
+                                        <div class="relationship-avatar">${ref.username?.charAt(0) || 'U'}</div>
+                                        <div class="relationship-info">
+                                            <div class="relationship-name">${ref.username || 'Unknown User'}</div>
+                                            <div class="relationship-email">${ref.email || 'No email'}</div>
+                                            <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+                                                Level ${ref.level} • Joined: ${new Date(ref.created_at).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                        <span class="relationship-type">Level ${ref.level}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                document.getElementById('userPopup').style.display = 'flex';
+            } catch (error) {
+                console.error('Error loading referrals list:', error);
+                alert('Error loading referrals list: ' + error.message);
+            }
+        }
+
+        // Get direct referrals only
+        async function getUserDirectReferrals(userId) {
+            try {
+                const { data: referrals, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, created_at, balance')
+                    .eq('referred_by', userId)
+                    .order('created_at', { ascending: false });
+
+                return referrals || [];
+            } catch (error) {
+                console.error('Error getting direct referrals:', error);
+                return [];
+            }
+        }
+
+        // Enhanced renderUserPopup function to make referral counts clickable
+        function renderUserPopup(user, directReferrals, networkReferrals, referrer, purchases, totalSpent, networkStats) {
+            const popupContent = document.getElementById('popupContent');
+
+            popupContent.innerHTML = `
+                <div class="user-details-grid">
+                    <!-- User Information Section -->
+                    <div class="detail-section">
+                        <h3 class="section-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                            User Information
+                        </h3>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                                </svg>
+                                Full Name
+                            </span>
+                            <span class="detail-value">${user.username || 'Unknown User'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                                Email
+                            </span>
+                            <span class="detail-value">${user.email || 'No email'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                </svg>
+                                Referrer Status
+                            </span>
+                            <span class="detail-value">
+                                <span class="status-badge ${user.referred_by ? 'status-with-refs' : 'status-orphaned'}">
+                                    ${user.referred_by ? 'Has Referrer' : 'Orphaned User'}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                </svg>
+                                Direct Referrals
+                            </span>
+                            <span class="detail-value" style="cursor: pointer; color: var(--gold); text-decoration: underline;" 
+                                  onclick="showReferralsList('${user.id}', '${user.username || 'User'}')">
+                                ${directReferrals.length} users
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                                </svg>
+                                Total Network
+                            </span>
+                            <span class="detail-value" style="cursor: pointer; color: var(--gold); text-decoration: underline;" 
+                                  onclick="showReferralsList('${user.id}', '${user.username || 'User'}')">
+                                ${networkStats.totalNetwork} users
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Purchase History Section -->
+                    <div class="detail-section">
+                        <h3 class="section-title">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4z"/>
+                            </svg>
+                            Purchase History
+                        </h3>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                                Total Spent
+                            </span>
+                            <span class="detail-value">$${totalSpent.toFixed(2)}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">
+                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                </svg>
+                                Packages Purchased
+                            </span>
+                            <span class="detail-value">${purchases.length}</span>
+                        </div>
+                        ${renderPurchaseHistory(purchases)}
+                    </div>
+                </div>
+
+                <!-- Network Statistics -->
+                <div class="network-stats">
+                    <div class="network-stat" style="cursor: pointer;" onclick="showReferralsList('${user.id}', '${user.username || 'User'}')">
+                        <div class="network-stat-value">${networkStats.directReferrals}</div>
+                        <div class="network-stat-label">Direct Referrals</div>
+                    </div>
+                    <div class="network-stat" style="cursor: pointer;" onclick="showReferralsList('${user.id}', '${user.username || 'User'}')">
+                        <div class="network-stat-value">${networkStats.totalNetwork}</div>
+                        <div class="network-stat-label">Total Network</div>
+                    </div>
+                    <div class="network-stat">
+                        <div class="network-stat-value">$${networkStats.totalRevenue.toFixed(2)}</div>
+                        <div class="network-stat-label">User Revenue</div>
+                    </div>
+                    <div class="network-stat">
+                        <div class="network-stat-value">$${networkStats.networkRevenue.toFixed(2)}</div>
+                        <div class="network-stat-label">Network Revenue</div>
+                    </div>
+                </div>
+
+                <!-- Referral Relationships -->
+                ${renderReferralRelationships(referrer, directReferrals)}
+            `;
+        }
+
+        // Helper function to render purchase history
+        function renderPurchaseHistory(purchases) {
+            if (purchases.length === 0) {
+                return '<div style="text-align: center; color: var(--muted); padding: 20px;">No purchase history</div>';
+            }
+
+            return `
+                <div style="margin-top: 15px;">
+                    <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">Recent Purchases:</h4>
+                    ${purchases.slice(0, 5).map(purchase => `
+                        <div class="purchase-item">
+                            <span class="purchase-name">${purchase.package_name || 'Package'}</span>
+                            <span class="purchase-amount">$${parseFloat(purchase.amount || 0).toFixed(2)}</span>
+                        </div>
+                    `).join('')}
+                    ${purchases.length > 5 ? `<div style="text-align: center; color: var(--muted); font-size: 12px; margin-top: 8px;">+${purchases.length - 5} more purchases</div>` : ''}
+                </div>
+            `;
+        }
+
+        // Helper function to render referral relationships
+        function renderReferralRelationships(referrer, directReferrals) {
+            return `
+                <div class="referral-preview">
+                    <h3 class="section-title">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Referral Relationships
+                    </h3>
+                    
+                    ${referrer ? `
+                        <div style="margin-bottom: 20px;">
+                            <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">Referred By:</h4>
+                            <div class="relationship-node" onclick="showUserDetails('${referrer.id}')">
+                                <div class="relationship-avatar">${referrer.username?.charAt(0) || 'U'}</div>
+                                <div class="relationship-info">
+                                    <div class="relationship-name">${referrer.username || 'Unknown User'}</div>
+                                    <div class="relationship-email">${referrer.email || 'No email'}</div>
+                                </div>
+                                <span class="relationship-type">Referrer</span>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <div>
+                        <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">
+                            Direct Referrals (${directReferrals.length}):
+                        </h4>
+                        ${directReferrals.length > 0 ? 
+                            directReferrals.map(ref => `
+                                <div class="relationship-node" onclick="showUserDetails('${ref.id}')">
+                                    <div class="relationship-avatar">${ref.username?.charAt(0) || 'U'}</div>
+                                    <div class="relationship-info">
+                                        <div class="relationship-name">${ref.username || 'Unknown User'}</div>
+                                        <div class="relationship-email">${ref.email || 'No email'}</div>
+                                    </div>
+                                    <span class="relationship-type">Referred</span>
+                                </div>
+                            `).join('') 
+                            : '<div style="text-align: center; color: var(--muted); padding: 20px;">No users referred yet</div>'
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        function closeUserPopup() {
+            document.getElementById('userPopup').style.display = 'none';
+        }
+
+        document.getElementById('userPopup').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUserPopup();
+            }
+        });
+
+        function updateStatsCards(stats) {
+            const elements = {
+                'totalUsers': stats.totalUsers?.toLocaleString() || '0',
+                'usersWithReferrals': stats.usersWithReferrals?.toLocaleString() || '0',
+                'orphanedUsers': stats.orphanedUsers?.toLocaleString() || '0',
+                'totalReferrals': stats.totalReferrals?.toLocaleString() || '0'
+            };
+
+            Object.keys(elements).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = elements[id];
+            });
+
+            updateTrendIndicators(stats);
+        }
+
+        function updateTrendIndicators(stats) {
+            const trends = {
+                'usersTrend': '+12% this week',
+                'withRefsTrend': '+8% this week', 
+                'orphanedTrend': '-5% this week',
+                'referralsTrend': '+15% this week'
+            };
+
+            Object.keys(trends).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    const isPositive = trends[id].includes('+');
+                    element.className = 'stat-trend ' + (isPositive ? 'trend-up' : 'trend-down');
+                    element.textContent = trends[id];
+                }
+            });
+        }
+
+        function displayRecentUsers(users) {
+            const grid = document.getElementById('recentUsersGrid');
+
+            if (!users || users.length === 0) {
+                grid.innerHTML = `
+                    <div class="no-data-message">
+                        <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                        </svg>
+                        <h3>No Users Found</h3>
+                        <p>No recent user registrations to display.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = users.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.name?.charAt(0) || 'U'}</div>
+                        <div class="user-info">
+                            <div class="user-name">
+                                ${user.name || 'Unknown User'}
+                                ${user.isVip ? '<span class="vip-badge">VIP</span>' : ''}
+                            </div>
+                            <div class="user-email">${user.email || 'No email'}</div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referrals || 0}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.hasReferrer ? 'Yes' : 'No'}</div>
+                            <div class="user-stat-label">Has Referrer</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <div class="status-badge ${user.hasReferrer ? 'status-with-refs' : 'status-orphaned'}">
+                            ${user.hasReferrer ? 'Has Referrer' : 'Orphaned'}
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn view-btn" onclick="showUserDetails('${user.id}')">View</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showSection(sectionName) {
+            document.querySelectorAll('.mini-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.style.display = 'none';
+            });
+
+            currentSection = sectionName;
+
+            if (sectionName === 'overview') {
+                document.getElementById('overview').style.display = 'block';
+                loadOverviewData();
+            } else {
+                document.getElementById('overview').style.display = 'none';
+                loadSectionData(sectionName);
+            }
+        }
+
+        async function loadSectionData(sectionName) {
+            const contentDiv = document.getElementById('dynamicContent');
+            contentDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div><p>Loading ' + sectionName + '...</p></div>';
+
+            try {
+                let htmlContent = '';
+
+                switch(sectionName) {
+                    case 'completeTree':
+                        htmlContent = await loadReferralTreeSection();
+                        break;
+                    case 'orphanedUsers':
+                        htmlContent = await loadOrphanedUsersSection();
+                        break;
+                    case 'usersWithReferrals':
+                        htmlContent = await loadUsersWithReferralsSection();
+                        break;
+                    default:
+                        htmlContent = '<div class="no-data-message"><h3>Section Not Implemented</h3></div>';
+                }
+
+                contentDiv.innerHTML = htmlContent;
+            } catch (error) {
+                console.error('Error loading section:', error);
+                contentDiv.innerHTML = `
+                    <div class="no-data-message">
+                        <h3>Error Loading Content</h3>
+                        <p>Failed to load ${sectionName}. Please try again.</p>
+                        <button class="admin-btn" onclick="loadSectionData('${currentSection}')">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function loadReferralTreeSection() {
+            try {
+                const { data: users, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, referred_by')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (!users || users.length === 0) {
+                    return `
+                        <div class="section-content">
+                            <div class="section-header">
+                                <h2 class="section-title">Referral Tree</h2>
+                            </div>
+                            <div class="no-data-message">
+                                <h3>No Referral Data</h3>
+                                <p>No referral tree data available to display.</p>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const treeData = buildReferralTree(users);
+                const treeHTML = renderReferralTreeWithViewButtons(treeData);
+
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">Complete Referral Tree</h2>
+                            <div class="search-controls">
+                                <input type="text" class="search-input" placeholder="Search users..." onkeyup="filterReferralTree(this.value)">
+                            </div>
+                        </div>
+                        <div class="tree-info">
+                            Displaying complete referral hierarchy with all user relationships. Click "View" to see detailed user information.
+                        </div>
+                        <div id="referralTree">
+                            ${treeHTML}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                return createErrorSection('Referral Tree');
+            }
+        }
+
+        function buildReferralTree(users) {
+            const userMap = new Map();
+            const rootNodes = [];
+
+            users.forEach(user => {
+                userMap.set(user.id, {
+                    ...user,
+                    children: []
+                });
+            });
+
+            users.forEach(user => {
+                const node = userMap.get(user.id);
+                if (user.referred_by && userMap.has(user.referred_by)) {
+                    const parent = userMap.get(user.referred_by);
+                    parent.children.push(node);
+                } else {
+                    rootNodes.push(node);
+                }
+            });
+
+            return rootNodes;
+        }
+
+        function renderReferralTreeWithViewButtons(nodes, level = 1) {
+            if (!nodes || nodes.length === 0) {
+                return '<div class="no-data-message"><p>No users at this level</p></div>';
+            }
+
+            return nodes.map(node => {
+                const hasChildren = node.children && node.children.length > 0;
+                const referralCount = node.children?.length || 0;
+
+                return `
+                    <div class="tree-node level-${Math.min(level, 5)}">
+                        <div class="node-main">
+                            <div class="node-avatar">${node.username?.charAt(0) || 'U'}</div>
+                            <div class="node-info">
+                                <div class="node-name">
+                                    ${node.username || 'Unknown User'}
+                                    <span class="level-badge">Level ${level}</span>
+                                    ${referralCount > 0 ? `<span class="vip-badge">${referralCount} referrals</span>` : ''}
+                                </div>
+                                <div class="node-email">${node.email || 'No email'}</div>
+                                <div class="node-stats">
+                                    <div class="node-stat">
+                                        <div class="node-stat-value">${node.balance || 0}</div>
+                                        <span>Balance</span>
+                                    </div>
+                                    <div class="node-stat">
+                                        <div class="node-stat-value">${referralCount}</div>
+                                        <span>Referrals</span>
+                                    </div>
+                                    <div class="node-stat">
+                                        <div class="node-stat-value">${node.referred_by ? 'Yes' : 'No'}</div>
+                                        <span>Has Referrer</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="action-btn view-btn" onclick="showUserDetails('${node.id}')">View</button>
+                            </div>
+                        </div>
+                        ${hasChildren ? `
+                            <div class="children-container">
+                                ${renderReferralTreeWithViewButtons(node.children, level + 1)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function loadOrphanedUsersSection() {
+            try {
+                const { data: users, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, referred_by')
+                    .is('referred_by', null)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                return createUsersSectionWithViewButtons('Orphaned Users (No Referrer)', users || [], 'No orphaned users found.');
+            } catch (error) {
+                return createErrorSection('Orphaned Users');
+            }
+        }
+
+        // FIXED: Users with Referrals Section - Now working properly
+        async function loadUsersWithReferralsSection() {
+            try {
+                console.log('🔄 Loading users with referrals...');
+
+                // Get all users who have referred others
+                const { data: referredUsers, error } = await supabaseClient
+                    .from('profiles')
+                    .select('referred_by')
+                    .not('referred_by', 'is', null);
+
+                if (error) {
+                    console.error('Error fetching users with referrals:', error);
+                    throw error;
+                }
+
+                // Get unique referrer IDs
+                const uniqueReferrerIds = [...new Set(referredUsers.map(user => user.referred_by))];
+
+                if (uniqueReferrerIds.length === 0) {
+                    return createUsersSectionWithViewButtons('Users with Referrals', [], 'No users with referrals found.');
+                }
+
+                // Fetch details for users who have referred others
+                const { data: referrers, error: referrersError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, referred_by')
+                    .in('id', uniqueReferrerIds)
+                    .order('created_at', { ascending: false });
+
+                if (referrersError) {
+                    throw referrersError;
+                }
+
+                // Add referral counts to each user
+                const usersWithCounts = await Promise.all(referrers.map(async (user) => {
+                    const { count: referralCount, error: refError } = await supabaseClient
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('referred_by', user.id);
+
+                    return {
+                        ...user,
+                        referralCount: referralCount || 0
+                    };
+                }));
+
+                console.log(`✅ Loaded ${usersWithCounts.length} users with referrals`);
+                return createUsersSectionWithViewButtons('Users with Referrals', usersWithCounts, 'No users with referrals found.');
+
+            } catch (error) {
+                console.error('❌ Error loading users with referrals:', error);
+                return createErrorSection('Users with Referrals');
+            }
+        }
+
+        function createUsersSectionWithViewButtons(title, users, emptyMessage) {
+            if (!users || users.length === 0) {
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">${title}</h2>
+                        </div>
+                        <div class="no-data-message">
+                            <h3>No Data Available</h3>
+                            <p>${emptyMessage}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const usersHTML = users.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
+                        <div class="user-info">
+                            <div class="user-name">
+                                ${user.username || 'Unknown User'}
+                                ${user.balance > 1000 ? '<span class="vip-badge">VIP</span>' : ''}
+                            </div>
+                            <div class="user-email">${user.email || 'No email'}</div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referralCount || 0}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.balance || 0}</div>
+                            <div class="user-stat-label">Balance</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <div class="status-badge ${user.referred_by ? 'status-with-refs' : 'status-orphaned'}">
+                            ${user.referred_by ? 'Has Referrer' : 'Orphaned'}
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn view-btn" onclick="showUserDetails('${user.id}')">View</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="section-content">
+                    <div class="section-header">
+                        <h2 class="section-title">${title}</h2>
+                        <div class="search-controls">
+                            <input type="text" class="search-input" placeholder="Search users..." onkeyup="filterUsers(this.value, '${title}')">
+                        </div>
+                    </div>
+                    <div class="users-grid">
+                        ${usersHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        function createErrorSection(sectionName) {
+            return `
+                <div class="section-content">
+                    <div class="section-header">
+                        <h2 class="section-title">${sectionName}</h2>
+                    </div>
+                    <div class="no-data-message">
+                        <h3>Error Loading Data</h3>
+                        <p>Failed to load ${sectionName.toLowerCase()} data. Please try again.</p>
+                        <button class="admin-btn" onclick="loadSectionData('${currentSection}')">Retry</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ENHANCED: Real-time updates for purchases and user data - OPTIMIZED VERSION
+        function setupRealTimeUpdates() {
+            try {
+                if (!supabaseClient) {
+                    console.error('Supabase client not available for real-time updates');
+                    return;
+                }
+
+                // Clear existing subscription if any
+                if (realtimeSubscription) {
+                    supabaseClient.removeChannel(realtimeSubscription);
+                }
+
+                realtimeSubscription = supabaseClient
+                    .channel('admin-panel-updates')
+                    .on('postgres_changes', 
+                        { event: '*', schema: 'public', table: 'profiles' }, 
+                        payload => {
+                            console.log('Real-time user update received:', payload);
+                            clearCache(); // Clear cache on data changes
+                            handleDatabaseChange(payload);
+                        }
+                    )
+                    .on('postgres_changes',
+                        { event: '*', schema: 'public', table: 'user_purchase_history' },
+                        payload => {
+                            console.log('Real-time purchase detected:', payload);
+                            clearCache(); // Clear cache on data changes
+                            handleNewPurchase(payload.new);
+                        }
+                    )
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            console.log('✅ Real-time updates subscribed');
+                            updateRealtimeIndicator(true);
+                        } else {
+                            console.log('❌ Real-time updates failed:', status);
+                            updateRealtimeIndicator(false);
+                            
+                            // Attempt to reconnect after 5 seconds
+                            setTimeout(setupRealTimeUpdates, 5000);
+                        }
+                    });
+
+            } catch (error) {
+                console.error('Error setting up real-time updates:', error);
+                updateRealtimeIndicator(false);
+            }
+        }
+
+        // Handle database changes (insert, update, delete)
+        function handleDatabaseChange(payload) {
+            const { eventType, old, new: newData } = payload;
+            
+            console.log(`Database change detected: ${eventType} on profiles`);
+
+            switch (eventType) {
+                case 'DELETE':
+                    console.log('User deleted:', old);
+                    showDatabaseChangeNotification(`User deleted: ${old.username || old.email}`);
+                    break;
+                case 'INSERT':
+                    console.log('User created:', newData);
+                    showDatabaseChangeNotification(`New user: ${newData.username || newData.email}`);
+                    break;
+                case 'UPDATE':
+                    console.log('User updated:', newData);
+                    // Only show notification for significant changes
+                    if (old.balance !== newData.balance || old.referred_by !== newData.referred_by) {
+                        showDatabaseChangeNotification(`User updated: ${newData.username || newData.email}`);
+                    }
+                    break;
+            }
+
+            // Refresh current view if it's overview or the affected user is being viewed
+            refreshCurrentView();
+        }
+
+        // Refresh current view based on what's being displayed
+        function refreshCurrentView() {
+            if (currentSection === 'overview') {
+                refreshData();
+            } else {
+                loadSectionData(currentSection);
+            }
+
+            // If user popup is open, check if it needs refresh
+            const popup = document.getElementById('userPopup');
+            if (popup.style.display === 'flex') {
+                // We could implement specific user refresh here if needed
+            }
+        }
+
+        // Show database change notification
+        function showDatabaseChangeNotification(message) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 60px;
+                right: 20px;
+                background: var(--info);
+                color: white;
+                padding: 12px 18px;
+                border-radius: 8px;
+                z-index: 10001;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                animation: slideInRight 0.3s ease;
+                max-width: 300px;
+                font-size: 14px;
+            `;
+
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <strong>Database Updated</strong>
+                        <div style="font-size: 12px; margin-top: 4px;">${message}</div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Remove notification after 4 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        // Handle new purchases in real-time
+        function handleNewPurchase(purchase) {
+            console.log('🛒 New purchase detected:', purchase);
+
+            // Show notification
+            showPurchaseNotification(purchase);
+
+            // Refresh data if current section is overview or user details
+            refreshCurrentView();
+        }
+
+        // Show purchase notification
+        function showPurchaseNotification(purchase) {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                padding: 16px 20px;
-                border-radius: 10px;
-                font-weight: 600;
-                z-index: 10000;
-                max-width: 400px;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+                background: var(--success);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                z-index: 10001;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
                 animation: slideInRight 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                background: var(--darker-bg);
-                border: 2px solid ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--info)'};
-                color: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--danger)' : 'var(--info)'};
+                max-width: 300px;
             `;
 
-            const icon = type === 'success' ? 
-                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
-                type === 'error' ?
-                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' :
-                '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <div>
+                        <strong>New Purchase!</strong>
+                        <div style="font-size: 12px; margin-top: 4px;">
+                            ${purchase.package_name || 'Package'} - $${parseFloat(purchase.amount || 0).toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+            `;
 
-            alert.innerHTML = `${icon}${message}`;
-            document.body.appendChild(alert);
+            document.body.appendChild(notification);
 
+            // Remove notification after 5 seconds
             setTimeout(() => {
-                if (alert.parentNode) {
-                    alert.remove();
-                }
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
             }, 5000);
         }
 
-        // Add CSS for custom alerts
+        // Add CSS for notifications
         const style = document.createElement('style');
         style.textContent = `
             @keyframes slideInRight {
@@ -1646,23 +2569,222 @@
         `;
         document.head.appendChild(style);
 
-        // Rest of your existing functions remain the same...
-        // [Include all your existing functions like initializeAdminPanel, loadOverviewData, etc.]
+        function updateRealtimeIndicator(connected) {
+            const indicator = document.getElementById('realtimeIndicator');
+            const text = document.getElementById('realtimeText');
 
-        // Initialize maintenance mode from localStorage
-        function initializeMaintenanceMode() {
-            const maintenance = localStorage.getItem('nemexcoin_maintenance');
-            if (maintenance === 'true') {
-                maintenanceMode = true;
-                document.getElementById('maintenanceToggle').classList.add('active');
-                document.getElementById('maintenanceText').textContent = 'Disable Maintenance';
-                document.getElementById('maintenanceBanner').style.display = 'block';
+            if (connected) {
+                indicator.className = 'realtime-indicator connected';
+                text.textContent = 'CONNECTED';
+            } else {
+                indicator.className = 'realtime-indicator error';
+                text.textContent = 'DISCONNECTED';
             }
         }
 
-        // Call this in your initialization
-        initializeMaintenanceMode();
+        function showConnectionError() {
+            const indicator = document.getElementById('realtimeIndicator');
+            indicator.className = 'realtime-indicator error';
+            document.getElementById('realtimeText').textContent = 'CONNECTION ERROR';
+        }
 
+        // IMPLEMENTED: Maintenance Mode Functionality
+        function toggleMaintenanceMode() {
+            maintenanceMode = !maintenanceMode;
+            
+            // Save to localStorage
+            localStorage.setItem('maintenanceMode', maintenanceMode.toString());
+            
+            updateMaintenanceUI();
+            
+            if (maintenanceMode) {
+                alert('Maintenance mode activated! Users will see a maintenance banner.');
+                console.log('🛠️ Maintenance mode activated');
+            } else {
+                alert('Maintenance mode deactivated!');
+                console.log('🛠️ Maintenance mode deactivated');
+            }
+        }
+
+        function updateMaintenanceUI() {
+            const btn = document.getElementById('maintenanceToggle');
+            const text = document.getElementById('maintenanceText');
+            const banner = document.getElementById('maintenanceBanner');
+
+            if (maintenanceMode) {
+                btn.classList.add('active');
+                text.textContent = 'Disable Maintenance';
+                banner.style.display = 'block';
+            } else {
+                btn.classList.remove('active');
+                text.textContent = 'Enable Maintenance';
+                banner.style.display = 'none';
+            }
+        }
+
+        // IMPLEMENTED: Export Functionality
+        async function exportUserData() {
+            try {
+                console.log('📤 Exporting user data...');
+                
+                // Show loading state
+                const exportBtn = event.target;
+                const originalText = exportBtn.innerHTML;
+                exportBtn.innerHTML = '<div class="loading-spinner" style="width: 16px; height: 16px; margin: 0 auto;"></div>';
+                exportBtn.disabled = true;
+
+                // Fetch all user data
+                const { data: users, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, referred_by')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    throw error;
+                }
+
+                // Add referral counts and purchase data
+                const usersWithDetails = await Promise.all(users.map(async (user) => {
+                    // Get referral count
+                    const { count: referralCount } = await supabaseClient
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('referred_by', user.id);
+
+                    // Get total purchases
+                    const { data: purchases } = await supabaseClient
+                        .from('user_purchase_history')
+                        .select('amount')
+                        .eq('user_id', user.id)
+                        .eq('status', 'completed');
+
+                    const totalSpent = purchases?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+
+                    return {
+                        'User ID': user.id,
+                        'Username': user.username || 'N/A',
+                        'Email': user.email || 'N/A',
+                        'Balance': user.balance || 0,
+                        'Referral Count': referralCount || 0,
+                        'Total Spent': `$${totalSpent.toFixed(2)}`,
+                        'Has Referrer': user.referred_by ? 'Yes' : 'No',
+                        'Registration Date': new Date(user.created_at).toLocaleDateString()
+                    };
+                }));
+
+                // Convert to CSV
+                const csv = convertToCSV(usersWithDetails);
+                
+                // Create and download file
+                downloadCSV(csv, 'nemexcoin_users_export.csv');
+                
+                console.log('✅ User data exported successfully');
+                
+                // Show success message
+                showExportSuccess();
+                
+            } catch (error) {
+                console.error('❌ Error exporting user data:', error);
+                alert('Error exporting user data: ' + error.message);
+            } finally {
+                // Restore button state
+                const exportBtn = event.target;
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+            }
+        }
+
+        function convertToCSV(data) {
+            if (!data.length) return '';
+            
+            const headers = Object.keys(data[0]);
+            const csvRows = [headers.join(',')];
+            
+            for (const row of data) {
+                const values = headers.map(header => {
+                    const value = row[header];
+                    // Handle values that might contain commas or quotes
+                    if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return value;
+                });
+                csvRows.push(values.join(','));
+            }
+            
+            return csvRows.join('\n');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function showExportSuccess() {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--success);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                z-index: 10001;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                animation: slideInRight 0.3s ease;
+                max-width: 300px;
+            `;
+
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    <div>
+                        <strong>Export Successful!</strong>
+                        <div style="font-size: 12px; margin-top: 4px;">User data downloaded as CSV</div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(notification);
+
+            // Remove notification after 4 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+        function refreshData() {
+            clearCache(); // Clear cache on manual refresh
+            loadOverviewData();
+            if (currentSection !== 'overview') {
+                loadSectionData(currentSection);
+            }
+        }
+
+        function filterReferralTree(query) {
+            console.log('Filtering referral tree with query:', query);
+        }
+
+        function filterUsers(query, section) {
+            console.log('Filtering users in', section, 'with query:', query);
+        }
     </script>
 </body>
 </html>
