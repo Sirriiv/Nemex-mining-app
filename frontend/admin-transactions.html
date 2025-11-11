@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaction Management - NemexCoin Admin</title>
     <style>
+        /* Your existing CSS remains the same */
         :root {
             --dark-bg: #0f0f0f;
             --darker-bg: #080808;
@@ -644,6 +645,7 @@
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let allTransactions = [];
+        let userProfiles = new Map(); // Cache for user profiles
         let currentTab = 'overview';
 
         // =============================================
@@ -656,7 +658,7 @@
 
             // Check admin access first with loading screen
             const isAdmin = await checkAdminAccess();
-            
+
             if (!isAdmin) {
                 // Show access denied message
                 document.getElementById('loadingScreen').innerHTML = `
@@ -678,7 +680,7 @@
             // User is admin, show main content
             document.getElementById('loadingScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
-            
+
             loadAllTransactionData();
             setupSearchFilters();
         });
@@ -760,58 +762,15 @@
             }
         }
 
-        // Tab Navigation
-        function showTab(tabName) {
-            // Update navigation
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.currentTarget.classList.add('active');
-
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
-            });
-
-            // Show selected tab
-            currentTab = tabName;
-            document.getElementById(tabName).classList.add('active');
-
-            // Refresh data for the tab
-            switch(tabName) {
-                case 'overview':
-                    updateOverviewStats();
-                    break;
-                case 'user-purchases':
-                    updateUserPurchases();
-                    break;
-                case 'pending':
-                    updatePendingTransactions();
-                    break;
-                case 'approved-rejected':
-                    updateProcessedTransactions();
-                    break;
-                case 'transaction-activity':
-                    updateTransactionActivity();
-                    break;
-                case 'vip-purchases':
-                    updateVipPurchases();
-                    break;
-            }
-        }
-
-        // FIXED: Enhanced Data Loading with Direct Supabase Connection
+        // FIXED: Enhanced Data Loading with Manual Profile Joins
         async function loadAllTransactionData() {
             try {
                 console.log('🔄 Loading all transaction data from Supabase...');
 
-                // Load all transactions directly from Supabase
+                // Load all transactions directly from Supabase WITHOUT joins
                 const { data: transactions, error } = await supabaseClient
                     .from('pending_transactions')
-                    .select(`
-                        *,
-                        profiles:user_id (username, email, balance)
-                    `)
+                    .select('*')
                     .order('created_at', { ascending: false });
 
                 if (error) {
@@ -822,6 +781,9 @@
 
                 allTransactions = transactions || [];
                 console.log(`✅ Loaded ${allTransactions.length} transactions from Supabase`);
+
+                // Load user profiles separately and create a mapping
+                await loadUserProfiles();
 
                 // Update all sections
                 updateOverviewStats();
@@ -837,6 +799,52 @@
                 console.error('❌ Error loading transaction data:', error);
                 showCustomAlert('Failed to load transaction data: ' + error.message, 'error');
             }
+        }
+
+        // FIXED: Load user profiles separately and create mapping
+        async function loadUserProfiles() {
+            try {
+                console.log('👥 Loading user profiles...');
+                
+                // Get unique user IDs from transactions
+                const userIds = [...new Set(allTransactions.map(t => t.user_id))];
+                
+                if (userIds.length === 0) {
+                    userProfiles = new Map();
+                    return;
+                }
+
+                // Load profiles in batches if needed
+                const { data: profiles, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance')
+                    .in('id', userIds);
+
+                if (error) {
+                    console.error('Error loading profiles:', error);
+                    return;
+                }
+
+                // Create mapping
+                userProfiles = new Map();
+                profiles.forEach(profile => {
+                    userProfiles.set(profile.id, profile);
+                });
+
+                console.log(`✅ Loaded ${profiles.length} user profiles`);
+
+            } catch (error) {
+                console.error('Error loading user profiles:', error);
+            }
+        }
+
+        // FIXED: Get user profile data from cache
+        function getUserProfile(userId) {
+            return userProfiles.get(userId) || {
+                username: 'Unknown User',
+                email: 'No email',
+                balance: 0
+            };
         }
 
         // FIXED: Enhanced Approve Transaction Function
@@ -905,7 +913,7 @@
                         .from('user_purchase_history')
                         .insert({
                             user_id: userId,
-                            package_name: transaction.package_name || `Package ${amount} NMX`,
+                            package_name: `Package ${amount} NMX`,
                             amount: amountToAdd,
                             status: 'completed',
                             transaction_id: transactionId,
@@ -1007,6 +1015,46 @@
             }
         }
 
+        // Tab Navigation
+        function showTab(tabName) {
+            // Update navigation
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            currentTab = tabName;
+            document.getElementById(tabName).classList.add('active');
+
+            // Refresh data for the tab
+            switch(tabName) {
+                case 'overview':
+                    updateOverviewStats();
+                    break;
+                case 'user-purchases':
+                    updateUserPurchases();
+                    break;
+                case 'pending':
+                    updatePendingTransactions();
+                    break;
+                case 'approved-rejected':
+                    updateProcessedTransactions();
+                    break;
+                case 'transaction-activity':
+                    updateTransactionActivity();
+                    break;
+                case 'vip-purchases':
+                    updateVipPurchases();
+                    break;
+            }
+        }
+
         // FIXED: Enhanced Overview Statistics
         function updateOverviewStats() {
             try {
@@ -1021,7 +1069,7 @@
 
                 const totalRevenue = allTransactions
                     .filter(t => t.status === 'approved')
-                    .reduce((sum, t) => sum + parseFloat(t.usd_amount || 0), 0);
+                    .reduce((sum, t) => sum + parseFloat(t.price_usd || 0), 0);
 
                 // Update DOM
                 document.getElementById('totalPending').textContent = pending;
@@ -1038,7 +1086,7 @@
             }
         }
 
-        // FIXED: Enhanced User Purchases Display
+        // FIXED: Enhanced User Purchases Display with Manual Profile Data
         function updateUserPurchases() {
             try {
                 const container = document.getElementById('userPurchasesList');
@@ -1052,9 +1100,10 @@
                 container.innerHTML = allTransactions.map(transaction => {
                     const amount = parseFloat(transaction.package_amount || 0);
                     const isVip = amount >= 100000;
-                    const usdAmount = parseFloat(transaction.usd_amount || 0);
-                    const userName = transaction.profiles?.username || transaction.user_email || 'Unknown User';
-                    const userEmail = transaction.profiles?.email || transaction.user_email || 'No email';
+                    const usdAmount = parseFloat(transaction.price_usd || 0);
+                    const userProfile = getUserProfile(transaction.user_id);
+                    const userName = userProfile.username || transaction.user_email || 'Unknown User';
+                    const userEmail = userProfile.email || transaction.user_email || 'No email';
 
                     return `
                         <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
@@ -1081,7 +1130,7 @@
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Transaction Hash</div>
-                                    <div class="detail-value">${transaction.transaction_hash || 'Pending'}</div>
+                                    <div class="detail-value">${transaction.tx_harsh || 'Pending'}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Amount Paid</div>
@@ -1091,12 +1140,10 @@
                                     <div class="detail-label">Date</div>
                                     <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
                                 </div>
-                                ${transaction.package_name ? `
                                 <div class="detail-group">
-                                    <div class="detail-label">Package Name</div>
-                                    <div class="detail-value">${transaction.package_name}</div>
+                                    <div class="detail-label">Payment Method</div>
+                                    <div class="detail-value">${transaction.payment_method || 'N/A'}</div>
                                 </div>
-                                ` : ''}
                             </div>
 
                             ${transaction.status === 'pending' ? `
@@ -1163,7 +1210,8 @@
                 container.innerHTML = pendingTransactions.map(transaction => {
                     const amount = parseFloat(transaction.package_amount || 0);
                     const isVip = amount >= 100000;
-                    const userName = transaction.profiles?.username || transaction.user_email || 'Unknown User';
+                    const userProfile = getUserProfile(transaction.user_id);
+                    const userName = userProfile.username || transaction.user_email || 'Unknown User';
 
                     return `
                         <div class="transaction pending ${isVip ? 'vip' : ''}">
@@ -1184,26 +1232,24 @@
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Email</div>
-                                    <div class="detail-value">${transaction.profiles?.email || transaction.user_email || 'No email'}</div>
+                                    <div class="detail-value">${userProfile.email || transaction.user_email || 'No email'}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Transaction Hash</div>
-                                    <div class="detail-value">${transaction.transaction_hash || 'Pending'}</div>
+                                    <div class="detail-value">${transaction.tx_harsh || 'Pending'}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Amount Paid</div>
-                                    <div class="detail-value">$${parseFloat(transaction.usd_amount || 0).toFixed(2)}</div>
+                                    <div class="detail-value">$${parseFloat(transaction.price_usd || 0).toFixed(2)}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">User ID</div>
                                     <div class="detail-value">${transaction.user_id}</div>
                                 </div>
-                                ${transaction.package_name ? `
                                 <div class="detail-group">
-                                    <div class="detail-label">Package Name</div>
-                                    <div class="detail-value">${transaction.package_name}</div>
+                                    <div class="detail-label">Payment Method</div>
+                                    <div class="detail-value">${transaction.payment_method || 'N/A'}</div>
                                 </div>
-                                ` : ''}
                             </div>
 
                             <div class="transaction-actions">
@@ -1247,7 +1293,8 @@
             container.innerHTML = processed.map(transaction => {
                 const amount = parseFloat(transaction.package_amount || 0);
                 const isVip = amount >= 100000;
-                const userName = transaction.profiles?.username || transaction.user_email || 'Unknown User';
+                const userProfile = getUserProfile(transaction.user_id);
+                const userName = userProfile.username || transaction.user_email || 'Unknown User';
 
                 return `
                     <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
@@ -1270,7 +1317,7 @@
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Email</div>
-                                <div class="detail-value">${transaction.profiles?.email || transaction.user_email || 'No email'}</div>
+                                <div class="detail-value">${userProfile.email || transaction.user_email || 'No email'}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Processed At</div>
@@ -1300,7 +1347,8 @@
             container.innerHTML = allTransactions.map(transaction => {
                 const amount = parseFloat(transaction.package_amount || 0);
                 const isVip = amount >= 100000;
-                const userName = transaction.profiles?.username || transaction.user_email || 'Unknown User';
+                const userProfile = getUserProfile(transaction.user_id);
+                const userName = userProfile.username || transaction.user_email || 'Unknown User';
 
                 return `
                     <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
@@ -1329,6 +1377,10 @@
                                 <div class="detail-label">Status</div>
                                 <div class="detail-value">${transaction.status}</div>
                             </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Payment Method</div>
+                                <div class="detail-value">${transaction.payment_method || 'N/A'}</div>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1351,7 +1403,8 @@
 
             container.innerHTML = vipPurchases.map(transaction => {
                 const amount = parseFloat(transaction.package_amount || 0);
-                const userName = transaction.profiles?.username || transaction.user_email || 'Unknown User';
+                const userProfile = getUserProfile(transaction.user_id);
+                const userName = userProfile.username || transaction.user_email || 'Unknown User';
 
                 return `
                     <div class="transaction vip ${transaction.status}">
@@ -1374,15 +1427,19 @@
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Email</div>
-                                <div class="detail-value">${transaction.profiles?.email || transaction.user_email || 'No email'}</div>
+                                <div class="detail-value">${userProfile.email || transaction.user_email || 'No email'}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Amount Paid</div>
-                                <div class="detail-value">$${parseFloat(transaction.usd_amount || 0).toFixed(2)}</div>
+                                <div class="detail-value">$${parseFloat(transaction.price_usd || 0).toFixed(2)}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Date</div>
                                 <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">VIP Level</div>
+                                <div class="detail-value">${transaction.vip_level || 'N/A'}</div>
                             </div>
                         </div>
                     </div>
@@ -1430,10 +1487,11 @@
 
         function filterUserPurchases(searchTerm, packageFilter, statusFilter) {
             const filteredTransactions = allTransactions.filter(transaction => {
+                const userProfile = getUserProfile(transaction.user_id);
                 const matchesSearch = !searchTerm || 
-                    (transaction.profiles?.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                     transaction.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                     transaction.transaction_hash?.toLowerCase().includes(searchTerm.toLowerCase()));
+                    (userProfile.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                     userProfile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                     transaction.tx_harsh?.toLowerCase().includes(searchTerm.toLowerCase()));
 
                 const matchesPackage = !packageFilter || 
                     parseFloat(transaction.package_amount) == packageFilter;
