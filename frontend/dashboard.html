@@ -712,7 +712,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // Initialize Supabase - SAME AS REGISTRATION/LOGIN
+        // Initialize Supabase
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
@@ -733,33 +733,39 @@
             return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
-        // FIXED: Enhanced authentication check
-        function checkAuth() {
-            const userSession = localStorage.getItem('nemexcoin_user');
-            if (!userSession) {
-                console.log('❌ No user session found - redirecting to login');
-                window.location.href = 'login.html';
-                return null;
-            }
-
+        // FIXED: Use Supabase Auth instead of localStorage
+        async function checkAuth() {
             try {
-                const userData = JSON.parse(userSession);
-                console.log('✅ User session found:', userData.id);
-                return userData;
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                
+                if (error) {
+                    console.error('Session error:', error);
+                    throw error;
+                }
+
+                if (!session) {
+                    console.log('❌ No Supabase session found - redirecting to login');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                console.log('✅ Supabase session found for user:', session.user.id);
+                return session.user;
+                
             } catch (error) {
-                console.error('❌ Error parsing user session:', error);
+                console.error('❌ Auth check error:', error);
                 window.location.href = 'login.html';
                 return null;
             }
         }
 
-        // FIXED: Enhanced user data loading
+        // FIXED: Enhanced user data loading with Supabase Auth
         async function loadUserData() {
             try {
-                console.log('🔄 Loading user data...');
+                console.log('🔄 Loading user data with Supabase Auth...');
 
-                // Check authentication first
-                const userSession = checkAuth();
+                // Check authentication first with Supabase
+                const userSession = await checkAuth();
                 if (!userSession) return null;
 
                 // Load profile data from profiles table
@@ -771,10 +777,10 @@
 
                 if (profileError) {
                     console.error('❌ Error loading profile:', profileError);
-
-                    // If profile doesn't exist, redirect to login
+                    
+                    // If profile doesn't exist, sign out
                     if (profileError.code === 'PGRST116') {
-                        localStorage.removeItem('nemexcoin_user');
+                        await supabaseClient.auth.signOut();
                         window.location.href = 'login.html';
                         return null;
                     }
@@ -783,7 +789,8 @@
                 }
 
                 if (!profile) {
-                    localStorage.removeItem('nemexcoin_user');
+                    // If profile doesn't exist, sign out
+                    await supabaseClient.auth.signOut();
                     window.location.href = 'login.html';
                     return null;
                 }
@@ -796,7 +803,7 @@
                 // Update UI
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
 
-                console.log('✅ User data loaded successfully:');
+                console.log('✅ User data loaded successfully with Supabase Auth');
                 console.log('💰 Balance:', userBalance);
                 console.log('👤 Username:', profile.username);
                 console.log('👑 Admin level:', profile.admin_level);
@@ -828,7 +835,7 @@
         async function refreshBalance() {
             try {
                 console.log('🔄 Refreshing balance...');
-                const userSession = checkAuth();
+                const userSession = await checkAuth();
                 if (!userSession) return;
 
                 // Load fresh balance from profiles table
@@ -877,10 +884,19 @@
                 }
             });
 
+            // FIXED: Use Supabase Auth for logout
             logoutButton.addEventListener('click', async function() {
                 try {
-                    // Clear localStorage session (matching login system)
+                    // Sign out from Supabase Auth
+                    const { error } = await supabaseClient.auth.signOut();
+                    
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    // Clear any localStorage remnants (backward compatibility)
                     localStorage.removeItem('nemexcoin_user');
+                    
                     showSuccess('Logged out successfully!');
                     setTimeout(() => {
                         window.location.href = 'login.html';
@@ -905,11 +921,11 @@
             });
         }
 
-        // FIXED: Enhanced dashboard initialization
+        // FIXED: Enhanced dashboard initialization with Supabase Auth
         async function initializeDashboard() {
             try {
-                // FIRST: Check authentication
-                const userSession = checkAuth();
+                // FIRST: Check authentication with Supabase Auth
+                const userSession = await checkAuth();
                 if (!userSession) return;
 
                 // Check maintenance mode
@@ -942,7 +958,7 @@
                     }
                 });
 
-                console.log('✅ Dashboard initialized successfully');
+                console.log('✅ Dashboard initialized successfully with Supabase Auth');
 
             } catch (error) {
                 console.error('❌ Dashboard initialization failed:', error);
@@ -950,10 +966,10 @@
             }
         }
 
-        // FIXED: Enhanced admin access check
+        // FIXED: Enhanced admin access check with Supabase Auth
         async function checkAdminAccess() {
             try {
-                const userSession = checkAuth();
+                const userSession = await checkAuth();
                 if (!userSession) return;
 
                 // Check admin_level from profiles table
@@ -995,7 +1011,7 @@
                         });
                     }
 
-                    console.log('👑 Admin access granted');
+                    console.log('👑 Admin access granted via Supabase Auth');
                 } else {
                     console.log('👤 Regular user access');
                 }
@@ -1111,7 +1127,7 @@
             setTimeout(() => errorElement.style.display = 'none', 5000);
         }
 
-        // FIXED: Enhanced mining reward claim
+        // FIXED: Enhanced mining reward claim with Supabase Auth
         async function claimMiningReward() {
             try {
                 const loadingIndicator = document.getElementById('loadingIndicator');
@@ -1122,8 +1138,8 @@
 
                 console.log('💰 Claiming mining reward...');
 
-                // Get current user ID from localStorage session
-                const userSession = checkAuth();
+                // Get current user ID from Supabase Auth
+                const userSession = await checkAuth();
                 if (!userSession) {
                     throw new Error('No user session');
                 }
