@@ -287,7 +287,7 @@
                     // Check if referrer has available slots
                     const usedSlots = referrerProfile.used_slots || 0;
                     const totalSlots = referrerProfile.referral_slots || 10;
-                    
+
                     referrerId = referrerProfile.id;
                     referrerUsername = referrerProfile.username;
 
@@ -315,7 +315,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        // SIMPLE REGISTRATION - No Password Hashing, using 'password' column
+        // UPDATED: Registration with Supabase Auth
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -332,7 +332,7 @@
             clearErrors();
 
             try {
-                console.log('🔄 Starting registration...');
+                console.log('🔄 Starting registration with Supabase Auth...');
 
                 // Basic validation
                 if (username.length < 3) {
@@ -353,7 +353,7 @@
                     throw new Error('Username already taken');
                 }
 
-                // Check if email already exists
+                // Check if email already exists in profiles (for existing users)
                 const { data: existingEmails } = await supabase
                     .from('profiles')
                     .select('id')
@@ -363,9 +363,35 @@
                     throw new Error('Email already registered');
                 }
 
-                // Generate user ID
-                const userId = generateUUID();
-                
+                console.log('✅ Basic validation passed');
+
+                // STEP 1: Create user in Supabase Auth
+                console.log('🔐 Creating Supabase Auth user...');
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            username: username
+                        }
+                    }
+                });
+
+                if (authError) {
+                    console.error('❌ Supabase Auth error:', authError);
+                    throw new Error(`Registration failed: ${authError.message}`);
+                }
+
+                if (!authData.user) {
+                    throw new Error('Registration failed: No user data returned');
+                }
+
+                console.log('✅ Supabase Auth user created:', authData.user.id);
+
+                // STEP 2: Create profile in profiles table
+                const userId = authData.user.id;
+
                 // Determine initial balance based on referral status
                 let initialBalance = 0;
                 if (referrerId && !isReferrerExhausted) {
@@ -378,13 +404,12 @@
                 console.log('Initial Balance:', initialBalance);
                 console.log('Referrer Exhausted:', isReferrerExhausted);
 
-                // Profile data - using 'password' column
+                // Profile data - NO PASSWORD COLUMN (handled by Supabase Auth)
                 const profileData = {
                     id: userId,
                     email: email,
                     full_name: fullName,
                     username: username,
-                    password: password, // Using 'password' column directly
                     balance: initialBalance,
                     referral_slots: 10,
                     used_slots: 0,
@@ -407,17 +432,20 @@
 
                 if (profileError) {
                     console.error('❌ Profile creation error:', profileError);
-                    throw new Error(`Registration failed: ${profileError.message}`);
+                    
+                    // If profile creation fails, we should clean up the auth user
+                    // But for now, just show the error
+                    throw new Error(`Profile creation failed: ${profileError.message}`);
                 }
 
                 console.log('✅ Profile created successfully');
 
-                // Process referral (ALWAYS record in network, but only give bonus if slots available)
+                // STEP 3: Process referral (ALWAYS record in network, but only give bonus if slots available)
                 if (referrerId) {
                     await processReferral(userId, referrerId, !isReferrerExhausted);
                 }
 
-                // Store session
+                // Store minimal session data for backward compatibility
                 const userSession = {
                     id: userId,
                     email: email,
@@ -500,15 +528,6 @@
             } catch (error) {
                 console.error('Referral processing error:', error);
             }
-        }
-
-        // Helper function to generate UUID
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
         }
 
         function clearErrors() {
