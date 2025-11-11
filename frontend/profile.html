@@ -465,10 +465,46 @@
             margin-top: 2px;
             text-align: center;
         }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(212, 175, 55, 0.3);
+            border-top: 3px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <h3 style="color: var(--gold);">Loading Profile...</h3>
+    </div>
+
+    <div class="container" id="mainContent" style="display: none;">
         <div class="content-wrapper">
             <header class="header">
                 <a href="dashboard.html" class="back-btn">
@@ -572,7 +608,7 @@
                 </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
-            <a href="wallet.html" class="nav-item">
+            <a href="wallet.html" class="nav-item active">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -662,17 +698,26 @@
             });
         });
 
-        // FIXED: Enhanced profile loading
+        // FIXED: Enhanced profile loading with proper authentication
         async function loadUserProfile() {
             try {
-                // Check authentication using localStorage (matching your system)
-                const userSession = localStorage.getItem('nemexcoin_user');
-                if (!userSession) {
+                console.log('🔄 Loading user profile...');
+                
+                // Show loading screen
+                document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('mainContent').style.display = 'none';
+
+                // Check authentication using Supabase session
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                
+                if (sessionError || !session) {
+                    console.error('❌ No user session found:', sessionError);
                     window.location.href = 'login.html';
                     return;
                 }
 
-                currentUser = JSON.parse(userSession);
+                currentUser = session.user;
+                console.log('✅ User authenticated:', currentUser.id);
 
                 // Get user data from PROFILES table
                 const { data: profile, error } = await supabaseClient
@@ -681,9 +726,16 @@
                     .eq('id', currentUser.id)
                     .single();
 
-                if (error || !profile) {
-                    console.error('Profile not found:', error);
-                    window.location.href = 'login.html';
+                if (error) {
+                    console.error('❌ Profile not found:', error);
+                    // Try to create profile if it doesn't exist
+                    await createUserProfile();
+                    return;
+                }
+
+                if (!profile) {
+                    console.error('❌ Profile data is null');
+                    await createUserProfile();
                     return;
                 }
 
@@ -701,13 +753,63 @@
                 // Get total claims count from profiles table
                 document.getElementById('totalClaims').textContent = Math.floor((profile.balance || 0) / 30);
 
+                // Hide loading screen and show main content
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'flex';
+
+                console.log('✅ Profile loaded successfully');
+
             } catch (error) {
-                console.error('Error loading profile:', error);
+                console.error('❌ Error loading profile:', error);
+                document.getElementById('loadingScreen').style.display = 'none';
+                alert('Error loading profile. Please try again.');
+            }
+        }
+
+        // FIXED: Create user profile if it doesn't exist
+        async function createUserProfile() {
+            try {
+                console.log('🔄 Creating user profile...');
+                
+                const { data: newProfile, error } = await supabaseClient
+                    .from('profiles')
+                    .insert({
+                        id: currentUser.id,
+                        email: currentUser.email,
+                        username: `user_${currentUser.id.substring(0, 8)}`,
+                        full_name: currentUser.email.split('@')[0],
+                        balance: 0,
+                        referral_slots: 10,
+                        used_slots: 0,
+                        total_earned_from_refs: 0,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('❌ Error creating profile:', error);
+                    throw error;
+                }
+
+                currentProfile = newProfile;
+                console.log('✅ Profile created successfully');
+                
+                // Reload profile data
+                await loadUserProfile();
+
+            } catch (error) {
+                console.error('❌ Failed to create profile:', error);
+                alert('Error creating user profile. Please contact support.');
             }
         }
 
         function openEditModal() {
-            if (!currentProfile) return;
+            if (!currentProfile) {
+                alert('Profile data not loaded yet. Please wait.');
+                return;
+            }
 
             // Fill form with current data
             document.getElementById('editUsername').value = currentProfile.username || '';
@@ -732,13 +834,16 @@
             document.getElementById('emailSuccess').style.display = 'none';
         }
 
-        // Handle form submission
+        // FIXED: Enhanced form submission with better error handling
         document.getElementById('editForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving...';
+            saveBtn.innerHTML = `
+                <div class="loading-spinner" style="width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3); border-top: 2px solid var(--darker-bg);"></div>
+                Saving...
+            `;
 
             const newUsername = document.getElementById('editUsername').value.trim();
             const newEmail = document.getElementById('editEmail').value.trim().toLowerCase();
@@ -748,13 +853,33 @@
             try {
                 let updatesMade = false;
 
+                // Validate inputs
+                if (newUsername.length < 3) {
+                    showError('usernameError', 'Username must be at least 3 characters');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = `
+                        <svg class="save-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Save Changes
+                    `;
+                    return;
+                }
+
+                if (!isValidEmail(newEmail)) {
+                    showError('emailError', 'Please enter a valid email address');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = `
+                        <svg class="save-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Save Changes
+                    `;
+                    return;
+                }
+
                 // Update username if changed
                 if (newUsername !== currentProfile.username) {
-                    if (newUsername.length < 3) {
-                        showError('usernameError', 'Username must be at least 3 characters');
-                        return;
-                    }
-
                     // Check if username is available
                     const { data: existingUser } = await supabaseClient
                         .from('profiles')
@@ -765,6 +890,13 @@
 
                     if (existingUser) {
                         showError('usernameError', 'Username already taken');
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = `
+                            <svg class="save-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Save Changes
+                        `;
                         return;
                     }
 
@@ -777,15 +909,16 @@
                         })
                         .eq('id', currentUser.id);
 
-                    if (profileError) throw profileError;
+                    if (profileError) {
+                        console.error('Username update error:', profileError);
+                        throw new Error('Failed to update username: ' + profileError.message);
+                    }
 
                     showSuccess('usernameSuccess', 'Username updated successfully!');
                     updatesMade = true;
 
-                    // Update current profile data and localStorage
+                    // Update current profile data
                     currentProfile.username = newUsername;
-                    currentUser.username = newUsername;
-                    localStorage.setItem('nemexcoin_user', JSON.stringify(currentUser));
                 }
 
                 // Update email if changed
@@ -800,6 +933,13 @@
 
                     if (existingEmail) {
                         showError('emailError', 'Email already registered');
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = `
+                            <svg class="save-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Save Changes
+                        `;
                         return;
                     }
 
@@ -813,23 +953,21 @@
                         .eq('id', currentUser.id);
 
                     if (emailError) {
-                        showError('emailError', emailError.message);
-                        return;
+                        console.error('Email update error:', emailError);
+                        throw new Error('Failed to update email: ' + emailError.message);
                     }
 
                     showSuccess('emailSuccess', 'Email updated successfully!');
                     updatesMade = true;
 
-                    // Update current profile data and localStorage
+                    // Update current profile data
                     currentProfile.email = newEmail;
-                    currentUser.email = newEmail;
-                    localStorage.setItem('nemexcoin_user', JSON.stringify(currentUser));
                 }
 
                 if (updatesMade) {
                     // Reload profile data
-                    setTimeout(() => {
-                        loadUserProfile();
+                    setTimeout(async () => {
+                        await loadUserProfile();
                         closeEditModal();
                         alert('Profile updated successfully! Your referral links will now use your new username.');
                     }, 1000);
@@ -838,8 +976,8 @@
                 }
 
             } catch (error) {
-                console.error('Error updating profile:', error);
-                showError('usernameError', 'Failed to update profile');
+                console.error('❌ Error updating profile:', error);
+                showError('usernameError', 'Failed to update profile: ' + error.message);
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = `
@@ -861,6 +999,11 @@
             const element = document.getElementById(elementId);
             element.textContent = message;
             element.style.display = 'block';
+        }
+
+        function isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
         }
 
         // Close modal when clicking outside
