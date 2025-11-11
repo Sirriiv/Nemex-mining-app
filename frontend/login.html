@@ -338,13 +338,13 @@
             <p class="modal-description" id="twoFAModalDesc">
                 Enter the 6-digit code from your authenticator app
             </p>
-            
+
             <input type="text" class="verification-input" id="twoFactorCode" placeholder="000000" maxlength="6" oninput="validate2FACode()">
-            
+
             <div class="backup-option">
                 Lost access to your authenticator? <a onclick="useBackupCode()">Use backup code</a>
             </div>
-            
+
             <div class="modal-actions">
                 <button class="modal-btn secondary" onclick="cancel2FA()">Cancel</button>
                 <button class="modal-btn primary" id="verify2FABtn" onclick="verify2FACode()" disabled>Verify</button>
@@ -359,9 +359,9 @@
             <p class="modal-description">
                 Enter one of your backup codes
             </p>
-            
+
             <input type="text" class="verification-input" id="backupCode" placeholder="A1B2C3D4E5" oninput="validateBackupCode()">
-            
+
             <div class="modal-actions">
                 <button class="modal-btn secondary" onclick="cancelBackupCode()">Back</button>
                 <button class="modal-btn primary" id="verifyBackupBtn" onclick="verifyBackupCode()" disabled>Verify</button>
@@ -384,7 +384,7 @@
         async function use2FARecovery() {
             const email = document.getElementById('email').value.trim().toLowerCase();
             const errorMessage = document.getElementById('errorMessage');
-            
+
             errorMessage.style.display = 'none';
 
             if (!email) {
@@ -413,15 +413,15 @@
                 }
 
                 console.log('✅ User found with 2FA enabled');
-                
+
                 // Store user for 2FA verification
                 currentUser = user;
                 user2FASecret = user.two_factor_secret;
                 isRecoveryMode = true;
-                
+
                 // Show 2FA modal with recovery message
                 show2FARecoveryModal();
-                
+
             } catch (error) {
                 console.error('❌ 2FA recovery error:', error);
                 errorMessage.textContent = error.message;
@@ -435,14 +435,14 @@
             document.getElementById('twoFactorCode').focus();
             document.getElementById('verify2FABtn').disabled = true;
             document.getElementById('verify2FABtn').textContent = 'Verify & Access';
-            
+
             // Update modal for recovery mode
             document.getElementById('twoFAModalTitle').textContent = '2FA Account Recovery';
             document.getElementById('twoFAModalDesc').textContent = 'Enter your 2FA code to access your account and reset your password';
             document.getElementById('recoveryNotice').style.display = 'block';
         }
 
-        // SIMPLE LOGIN - No Password Hashing, using 'password' column
+        // UPDATED: Login with Supabase Auth
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -457,35 +457,44 @@
             isRecoveryMode = false;
 
             try {
-                console.log('🔐 Attempting login for:', email);
+                console.log('🔐 Attempting Supabase Auth login for:', email);
 
-                // Find user by email - INCLUDING 2FA FIELDS
-                const { data: user, error } = await supabase
-                    .from('profiles')
-                    .select('*, two_factor_enabled, two_factor_secret')
-                    .eq('email', email)
-                    .single();
+                // Use Supabase Auth to sign in
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
 
-                if (error || !user) {
-                    console.log('❌ User not found or database error:', error);
-                    throw new Error('Invalid email or password');
+                if (authError) {
+                    console.error('❌ Supabase Auth error:', authError);
+                    
+                    // Check if it's an invalid login error
+                    if (authError.message.includes('Invalid login credentials')) {
+                        throw new Error('Invalid email or password');
+                    } else {
+                        throw new Error(authError.message);
+                    }
                 }
 
-                console.log('✅ User found:', user.email);
+                console.log('✅ Supabase Auth successful:', authData.user.email);
+
+                // Get user profile with 2FA info
+                const { data: user, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*, two_factor_enabled, two_factor_secret')
+                    .eq('id', authData.user.id)
+                    .single();
+
+                if (profileError || !user) {
+                    console.error('❌ Profile fetch error:', profileError);
+                    throw new Error('Could not load user profile');
+                }
+
+                console.log('✅ User profile loaded:', user.email);
                 console.log('🔒 2FA Status:', {
                     enabled: user.two_factor_enabled,
                     hasSecret: !!user.two_factor_secret
                 });
-
-                // SIMPLE: Compare passwords directly using 'password' column
-                console.log('🔑 Password verification - Stored password:', user.password, 'Input password:', password);
-
-                if (user.password !== password) {
-                    console.log('❌ Password mismatch');
-                    throw new Error('Invalid email or password');
-                }
-
-                console.log('✅ Password verified successfully');
 
                 // Store user data for potential 2FA verification
                 currentUser = user;
@@ -501,7 +510,7 @@
                     return; // Stop here, wait for 2FA verification
                 } else {
                     console.log('🔓 2FA not enabled, proceeding with normal login');
-                    // If no 2FA, proceed with login
+                    // If no 2FA, proceed with login completion
                     await completeLogin(user);
                 }
 
@@ -520,7 +529,7 @@
             document.getElementById('twoFactorCode').focus();
             document.getElementById('verify2FABtn').disabled = true;
             document.getElementById('verify2FABtn').textContent = 'Verify';
-            
+
             // Reset modal to normal mode
             document.getElementById('twoFAModalTitle').textContent = 'Two-Factor Authentication';
             document.getElementById('twoFAModalDesc').textContent = 'Enter the 6-digit code from your authenticator app';
@@ -530,7 +539,7 @@
         function validate2FACode() {
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
-            
+
             // Check if it's exactly 6 digits
             if (/^\d{6}$/.test(code)) {
                 verifyBtn.disabled = false;
@@ -553,16 +562,16 @@
 
                 // Verify the TOTP code using the stored secret
                 const isValid = verifyTOTP(code, user2FASecret);
-                
+
                 if (isValid) {
                     console.log('✅ 2FA code verified successfully');
-                    
+
                     if (isRecoveryMode) {
                         console.log('🎯 Recovery mode - bypassing password check');
-                        // In recovery mode, we trust the 2FA and proceed with login
-                        await completeLogin(currentUser);
+                        // In recovery mode, we need to create a Supabase session
+                        await createRecoverySession();
                     } else {
-                        // Normal login flow
+                        // Normal login flow - Supabase session already exists
                         await completeLogin(currentUser);
                     }
                 } else {
@@ -574,17 +583,44 @@
                 document.getElementById('errorMessage').style.display = 'block';
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = isRecoveryMode ? 'Verify & Access' : 'Verify';
-                
+
                 // Clear the input for retry
                 document.getElementById('twoFactorCode').value = '';
                 document.getElementById('twoFactorCode').focus();
             }
         }
 
+        // NEW: Create Supabase session for recovery mode
+        async function createRecoverySession() {
+            try {
+                console.log('🔐 Creating Supabase session for recovery mode');
+
+                // In recovery mode, we need to sign in the user
+                // For now, we'll use a temporary approach - you might want to implement
+                // a proper password reset flow instead
+                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                    email: currentUser.email,
+                    password: 'temporary-recovery-password' // This should be handled differently
+                });
+
+                if (authError) {
+                    console.error('❌ Recovery session creation failed:', authError);
+                    throw new Error('Recovery failed. Please contact support.');
+                }
+
+                console.log('✅ Recovery session created');
+                await completeLogin(currentUser);
+
+            } catch (error) {
+                console.error('❌ Recovery session error:', error);
+                throw error;
+            }
+        }
+
         function verifyTOTP(code, secret) {
             try {
                 console.log('🔍 Starting TOTP validation...');
-                
+
                 // Create TOTP instance with the stored secret
                 const totp = new OTPAuth.TOTP({
                     issuer: "NemexCoin",
@@ -598,7 +634,7 @@
                 // Validate the code (allow 30-second window for time sync issues)
                 const validation = totp.validate({ token: code, window: 1 });
                 const isValid = validation !== null;
-                
+
                 console.log('🔐 TOTP Validation Result:', {
                     code: code,
                     secret: secret,
@@ -625,7 +661,7 @@
         function validateBackupCode() {
             const code = document.getElementById('backupCode').value;
             const verifyBtn = document.getElementById('verifyBackupBtn');
-            
+
             // Check if it's a valid backup code format (alphanumeric, 10 chars)
             if (/^[A-Z0-9]{10}$/i.test(code)) {
                 verifyBtn.disabled = false;
@@ -643,22 +679,22 @@
 
             try {
                 console.log('🔑 Backup code verification attempt:', code);
-                
+
                 // In a real implementation, you would check against stored backup codes in your database
                 // For now, we'll simulate a successful verification
-                
+
                 // Simulate API call delay
                 await new Promise(resolve => setTimeout(resolve, 1000));
-                
+
                 // For demo purposes, accept any 10-character alphanumeric code
                 // In production, you would verify against stored backup codes
                 if (/^[A-Z0-9]{10}$/.test(code)) {
                     console.log('✅ Backup code accepted');
                     console.log('🔄 Recovery Mode:', isRecoveryMode);
-                    
+
                     if (isRecoveryMode) {
-                        console.log('🎯 Recovery mode with backup code - bypassing password check');
-                        await completeLogin(currentUser);
+                        console.log('🎯 Recovery mode with backup code - creating session');
+                        await createRecoverySession();
                     } else {
                         await completeLogin(currentUser);
                     }
@@ -671,7 +707,7 @@
                 document.getElementById('errorMessage').style.display = 'block';
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify';
-                
+
                 // Clear the input for retry
                 document.getElementById('backupCode').value = '';
                 document.getElementById('backupCode').focus();
@@ -705,7 +741,7 @@
                 console.log('✅ Completing login for user:', user.email);
                 console.log('🔄 Recovery Mode:', isRecoveryMode);
 
-                // Update last login
+                // Update last login in profiles table
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ 
@@ -720,7 +756,8 @@
                     console.log('✅ Last login updated');
                 }
 
-                // Store session
+                // Store minimal session data for backward compatibility
+                // Main authentication is now handled by Supabase Auth sessions
                 const userSession = {
                     id: user.id,
                     email: user.email,
@@ -773,7 +810,7 @@
         });
 
         // Debug helper - remove in production
-        console.log('🔧 Login page loaded - 2FA detection and recovery ready');
+        console.log('🔧 Login page loaded - Supabase Auth + 2FA detection and recovery ready');
     </script>
 </body>
 </html>
