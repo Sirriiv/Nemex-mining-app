@@ -1220,7 +1220,7 @@
                                     placeholder="Add admin notes (optional)"
                                     rows="2"
                                 >${transaction.admin_notes || ''}</textarea>
-                                <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${amount}, '${transaction.user_id}')">
+                                <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${transaction.package_amount}, '${transaction.user_id}')"
                                     Approve & Credit ${amount.toLocaleString()} NMX
                                 </button>
                                 <button class="reject-btn" onclick="rejectTransaction('${transaction.id}', '${transaction.user_id}')">
