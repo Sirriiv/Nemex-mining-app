@@ -874,7 +874,7 @@
                         package_amount: transaction.package_amount,
                         total_amount: transaction.total_amount,
                         price_usd: transaction.price_usd,
-                        transaction_hash: transaction.transaction_hash || 'N/A',
+                        transaction_hash: transaction.tx_hash || 'N/A',
                         payment_method: transaction.payment_method,
                         status: 'completed',
                         level: transaction.level || 1,
@@ -1023,7 +1023,7 @@
                         package_amount: transaction.package_amount,
                         total_amount: transaction.total_amount,
                         price_usd: transaction.price_usd,
-                        transaction_hash: transaction.transaction_hash || 'N/A',
+                        transaction_hash: transaction.tx_hash || 'N/A',
                         payment_method: transaction.payment_method,
                         status: 'rejected',
                         level: transaction.level || 1,
@@ -1112,7 +1112,7 @@
                 const pending = allTransactions.filter(t => t.status === 'pending').length;
                 
                 // FIXED: Use user_purchase_history data with correct status
-                const approved = completedTransactions.filter(t => t.status === 'approved').length;
+                const approved = completedTransactions.filter(t => t.status === 'completed').length;
                 const rejected = completedTransactions.filter(t => t.status === 'rejected').length;
                 const totalPackages = allTransactions.length + completedTransactions.length;
 
@@ -1122,7 +1122,7 @@
 
                 // FIXED: Calculate revenue only from approved purchases in user_purchase_history
                 const totalRevenue = completedTransactions
-                    .filter(t => t.status === 'approved')
+                    .filter(t => t.status === 'completed')
                     .reduce((sum, t) => sum + parseFloat(t.price_usd || 0), 0);
 
                 document.getElementById('totalPending').textContent = pending;
@@ -1144,7 +1144,7 @@
                 const container = document.getElementById('userPurchasesList');
                 if (!container) return;
 
-                // Combine pending and approved transactions for user purchase history
+                // Combine pending and completed transactions for user purchase history
                 const allUserTransactions = [...allTransactions, ...completedTransactions];
 
                 if (allUserTransactions.length === 0) {
@@ -1186,7 +1186,7 @@
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Transaction Hash</div>
-                                    <div class="detail-value">${transaction.transaction_hash || 'N/A'}</div>
+                                    <div class="detail-value">${transaction.tx_hash || 'N/A'}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Amount Paid</div>
@@ -1265,7 +1265,7 @@
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Transaction Hash</div>
-                                    <div class="detail-value">${transaction.transaction_hash || 'Pending'}</div>
+                                    <div class="detail-value">${transaction.tx_hash || 'Pending'}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Amount Paid</div>
@@ -1471,7 +1471,7 @@
                 const matchesSearch = !searchTerm || 
                     (userProfile.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                      userProfile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                     transaction.transaction_hash?.toLowerCase().includes(searchTerm.toLowerCase()));
+                     transaction.tx_hash?.toLowerCase().includes(searchTerm.toLowerCase()));
 
                 const matchesPackage = !packageFilter || 
                     amount == packageFilter;
@@ -1518,7 +1518,7 @@
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Transaction Hash</div>
-                                    <div class="detail-value">${transaction.transaction_hash || 'N/A'}</div>
+                                    <div class="detail-value">${transaction.tx_hash || 'N/A'}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Amount Paid</div>
