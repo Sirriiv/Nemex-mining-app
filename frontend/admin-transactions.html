@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaction Management - NemexCoin Admin</title>
     <style>
+        /* Your existing CSS styles remain the same */
         :root {
             --dark-bg: #0f0f0f;
             --darker-bg: #080808;
@@ -739,6 +740,9 @@
                     .select('*')
                     .order('created_at', { ascending: false });
 
+                console.log('📊 Raw transactions data:', transactions); // DEBUG
+                console.log('❌ Transactions error:', error); // DEBUG
+
                 if (error) {
                     console.error('❌ Error loading transactions:', error);
                     showCustomAlert('Error loading transactions: ' + error.message, 'error');
@@ -747,6 +751,10 @@
 
                 allTransactions = transactions || [];
                 console.log(`✅ Loaded ${allTransactions.length} transactions from Supabase`);
+
+                // DEBUG: Check pending transactions
+                const pendingTransactions = allTransactions.filter(t => t.status === 'pending');
+                console.log(`📋 Pending transactions: ${pendingTransactions.length}`, pendingTransactions);
 
                 await loadUserProfiles();
 
@@ -806,7 +814,7 @@
             };
         }
 
-        // 🚀 COMPLETELY FIXED: Enhanced Approve Transaction Function with Balance Updates
+        // FIXED: Enhanced Approve Transaction Function
         async function approveTransaction(transactionId, amount, userId) {
             if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${parseFloat(amount).toLocaleString()} NMX to the user's balance.`)) {
                 return;
@@ -846,7 +854,7 @@
                     throw new Error('User profile not found: ' + profileError.message);
                 }
 
-                // 3. Update user's balance - CRITICAL FIX
+                // 3. Update user's balance
                 const currentBalance = parseFloat(profile.balance || 0);
                 const amountToAdd = parseFloat(amount);
                 const newBalance = currentBalance + amountToAdd;
@@ -866,13 +874,12 @@
                     throw new Error('Failed to update user balance: ' + balanceError.message);
                 }
 
-                // 4. Record in user_purchase_history
+                // 4. Record in user_purchase_history (if table exists)
                 try {
                     const { error: historyError } = await supabaseClient
                         .from('user_purchase_history')
                         .insert({
                             user_id: userId,
-                            package_type_id: transaction.package_type_id,
                             transaction_id: transactionId,
                             package_name: `Package ${amount} NMX`,
                             amount: amountToAdd,
@@ -903,61 +910,6 @@
                 if (updateError) {
                     console.error('Transaction update error:', updateError);
                     throw new Error('Failed to update transaction status: ' + updateError.message);
-                }
-
-                // 🆕 6. Decrement package available count if package_type_id exists
-                if (transaction.package_type_id) {
-                    const { error: packageError } = await supabaseClient
-                        .from('package_types')
-                        .update({
-                            remaining_available: supabaseClient.sql`remaining_available - 1`,
-                            updated_at: new Date().toISOString()
-                        })
-                        .eq('id', transaction.package_type_id);
-
-                    if (packageError) {
-                        console.warn('⚠️ Could not update package count:', packageError);
-                    } else {
-                        console.log('✅ Package count decremented');
-                    }
-                }
-
-                // 🆕 7. Record user package purchase count
-                if (transaction.package_type_id) {
-                    try {
-                        // Check if user already purchased this package
-                        const { data: existingPurchase } = await supabaseClient
-                            .from('user_package_purchases')
-                            .select('*')
-                            .eq('user_id', userId)
-                            .eq('package_type_id', transaction.package_type_id)
-                            .single();
-
-                        if (existingPurchase) {
-                            // Update existing count
-                            await supabaseClient
-                                .from('user_package_purchases')
-                                .update({
-                                    times_purchased: existingPurchase.times_purchased + 1,
-                                    last_purchased_at: new Date().toISOString(),
-                                    updated_at: new Date().toISOString()
-                                })
-                                .eq('id', existingPurchase.id);
-                        } else {
-                            // Create new record
-                            await supabaseClient
-                                .from('user_package_purchases')
-                                .insert({
-                                    user_id: userId,
-                                    package_type_id: transaction.package_type_id,
-                                    times_purchased: 1,
-                                    last_purchased_at: new Date().toISOString(),
-                                    created_at: new Date().toISOString()
-                                });
-                        }
-                    } catch (purchaseError) {
-                        console.warn('⚠️ Could not update user purchase count:', purchaseError);
-                    }
                 }
 
                 showCustomAlert(`✅ Transaction approved! ${amountToAdd.toLocaleString()} NMX credited to user.`, 'success');
@@ -1002,7 +954,7 @@
                     throw updateError;
                 }
 
-                // Record in user_purchase_history as rejected
+                // Record in user_purchase_history as rejected (if table exists)
                 try {
                     await supabaseClient
                         .from('user_purchase_history')
@@ -1209,6 +1161,7 @@
                 if (!container) return;
 
                 const pendingTransactions = allTransactions.filter(t => t.status === 'pending');
+                console.log(`🔄 Displaying ${pendingTransactions.length} pending transactions`); // DEBUG
 
                 if (pendingTransactions.length === 0) {
                     container.innerHTML = '<div class="empty-state">No pending transactions found</div>';
@@ -1266,7 +1219,8 @@
                                     class="notes-input" 
                                     placeholder="Add admin notes (optional)"
                                     rows="2"
-                                >${transaction.admin_notes || ''}</textarea>                            <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${amount}, '${transaction.user_id}')">
+                                >${transaction.admin_notes || ''}</textarea>
+                                <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${amount}, '${transaction.user_id}')">
                                     Approve & Credit ${amount.toLocaleString()} NMX
                                 </button>
                                 <button class="reject-btn" onclick="rejectTransaction('${transaction.id}', '${transaction.user_id}')">
