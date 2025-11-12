@@ -568,7 +568,7 @@
                 <select class="filter-select" id="statusFilterUser">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
+                    <option value="completed">Approved</option>
                     <option value="rejected">Rejected</option>
                 </select>
             </div>
@@ -589,7 +589,7 @@
             <div class="search-filter">
                 <select class="filter-select" id="statusFilter">
                     <option value="all">All Status</option>
-                    <option value="approved">Approved Only</option>
+                    <option value="completed">Approved Only</option>
                     <option value="rejected">Rejected Only</option>
                 </select>
                 <input type="text" class="search-input" id="processedSearch" placeholder="Search processed transactions...">
@@ -606,7 +606,7 @@
                 <select class="filter-select" id="vipStatusFilter">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
-                    <option value="approved">Approved</option>
+                    <option value="completed">Approved</option>
                     <option value="rejected">Rejected</option>
                 </select>
             </div>
@@ -711,6 +711,7 @@
             }
         }
 
+        // FIXED: Now loads from user_purchase_history instead of completed_transactions
         async function loadAllTransactionData() {
             try {
                 console.log('🔄 Loading all transaction data from Supabase...');
@@ -727,21 +728,21 @@
                     return;
                 }
 
-                // Load completed transactions
-                const { data: completedData, error: completedError } = await supabaseClient
-                    .from('completed_transactions')
+                // FIXED: Load from user_purchase_history instead of completed_transactions
+                const { data: purchaseHistory, error: historyError } = await supabaseClient
+                    .from('user_purchase_history')
                     .select('*')
-                    .order('transaction_date', { ascending: false });
+                    .order('processed_at', { ascending: false });
 
-                if (completedError) {
-                    console.warn('⚠️ Could not load completed transactions:', completedError);
+                if (historyError) {
+                    console.warn('⚠️ Could not load purchase history:', historyError);
                 }
 
                 allTransactions = pendingTransactions || [];
-                completedTransactions = completedData || [];
+                completedTransactions = purchaseHistory || []; // Now using user_purchase_history
 
                 console.log(`✅ Loaded ${allTransactions.length} pending transactions`);
-                console.log(`✅ Loaded ${completedTransactions.length} completed transactions`);
+                console.log(`✅ Loaded ${completedTransactions.length} completed transactions from user_purchase_history`);
 
                 await loadUserProfiles();
 
@@ -802,276 +803,276 @@
             };
         }
 
-       // FIXED: Enhanced Approve Transaction Function - PERFECT MATCH TO YOUR TABLES
-async function approveTransaction(transactionId, packageAmount, userId) {
-    try {
-        console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
-
-        // Get current admin user
-        const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-        if (adminError) {
-            console.warn('No admin user found, using system approval');
-        }
-
-        // 1. Get transaction details
-        const { data: transaction, error: txFetchError } = await supabaseClient
-            .from('pending_transactions')
-            .select('*')
-            .eq('id', transactionId)
-            .single();
-
-        if (txFetchError) {
-            throw new Error('Transaction not found: ' + txFetchError.message);
-        }
-
-        // Use package_amount from the transaction
-        const amountToAdd = parseFloat(transaction.package_amount);
-
-        if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${amountToAdd.toLocaleString()} NMX to the user's balance.`)) {
-            return;
-        }
-
-        const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Approved by admin';
-
-        // 2. Get user's current profile
-        const { data: profile, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-        if (profileError) {
-            console.error('Error fetching user profile:', profileError);
-            throw new Error('User profile not found: ' + profileError.message);
-        }
-
-        // 3. Update user's balance (using balance column)
-        const currentBalance = parseFloat(profile.balance || 0);
-        const newBalance = currentBalance + amountToAdd;
-
-        console.log('💰 Balance update:', { currentBalance, amountToAdd, newBalance });
-
-        const { error: balanceError } = await supabaseClient
-            .from('profiles')
-            .update({ 
-                balance: newBalance,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userId);
-
-        if (balanceError) {
-            console.error('Balance update error:', balanceError);
-            throw new Error('Failed to update user balance: ' + balanceError.message);
-        }
-
-        // 4. Record in user_purchase_history with CORRECT COLUMNS
-        try {
-            const purchaseData = {
-                user_id: userId,
-                user_email: transaction.user_email,
-                transaction_id: transactionId,
-                package_amount: transaction.package_amount,
-                total_amount: transaction.total_amount,
-                price_usd: transaction.price_usd,
-                transaction_hash: transaction.tx_hash || 'N/A',
-                payment_method: transaction.payment_method,
-                status: 'completed',
-                level: transaction.level || 1,
-                is_vip: transaction.is_vip || false,
-                admin_notes: adminNotes,
-                processed_by: adminUser?.id || 'system',
-                processed_at: new Date().toISOString(),
-                package_name: transaction.package_name,
-                amount: transaction.package_amount // Both amount fields for compatibility
-            };
-
-            const { error: historyError } = await supabaseClient
-                .from('user_purchase_history')
-                .insert(purchaseData);
-
-            if (historyError) {
-                console.warn('⚠️ Could not save to purchase history:', historyError);
-            } else {
-                console.log('✅ Purchase history recorded successfully');
-            }
-        } catch (historyError) {
-            console.warn('⚠️ user_purchase_history table error:', historyError);
-        }
-
-        // 5. Record wallet transaction for audit
-        try {
-            const walletData = {
-                user_id: userId,
-                transaction_type: 'deposit',
-                amount: amountToAdd,
-                balance_before: currentBalance,
-                balance_after: newBalance,
-                description: `Package purchase: ${amountToAdd} NMX - ${transaction.package_name}`,
-                reference_id: transactionId
-            };
-
-            const { error: walletError } = await supabaseClient
-                .from('wallet_transactions')
-                .insert(walletData);
-
-            if (walletError) {
-                console.warn('⚠️ Could not save wallet transaction:', walletError);
-            }
-        } catch (walletError) {
-            console.warn('⚠️ wallet_transactions table error:', walletError);
-        }
-
-        // 6. Update VIP status if this is a VIP purchase
-        if (transaction.is_vip) {
+        // FIXED: Enhanced Approve Transaction Function - PERFECT MATCH TO YOUR TABLES
+        async function approveTransaction(transactionId, packageAmount, userId) {
             try {
-                // Check if user already exists in vip_customers
-                const { data: existingVip } = await supabaseClient
-                    .from('vip_customers')
+                console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
+
+                // Get current admin user
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) {
+                    console.warn('No admin user found, using system approval');
+                }
+
+                // 1. Get transaction details
+                const { data: transaction, error: txFetchError } = await supabaseClient
+                    .from('pending_transactions')
                     .select('*')
-                    .eq('user_id', userId)
+                    .eq('id', transactionId)
                     .single();
 
-                const vipData = {
-                    user_id: userId,
-                    user_email: transaction.user_email,
-                    vip_level: transaction.vip_level || 1,
-                    total_vip_purchases: (existingVip?.total_vip_purchases || 0) + 1,
-                    total_vip_amount_spent: (parseFloat(existingVip?.total_vip_amount_spent) || 0) + parseFloat(transaction.price_usd),
-                    last_vip_purchase_date: new Date().toISOString(),
-                    first_vip_purchase_date: existingVip?.first_vip_purchase_date || new Date().toISOString()
-                };
-
-                if (existingVip) {
-                    // Update existing VIP customer
-                    await supabaseClient
-                        .from('vip_customers')
-                        .update(vipData)
-                        .eq('user_id', userId);
-                } else {
-                    // Create new VIP customer
-                    await supabaseClient
-                        .from('vip_customers')
-                        .insert(vipData);
+                if (txFetchError) {
+                    throw new Error('Transaction not found: ' + txFetchError.message);
                 }
-            } catch (vipError) {
-                console.warn('⚠️ VIP customer update error:', vipError);
+
+                // Use package_amount from the transaction
+                const amountToAdd = parseFloat(transaction.package_amount);
+
+                if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${amountToAdd.toLocaleString()} NMX to the user's balance.`)) {
+                    return;
+                }
+
+                const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Approved by admin';
+
+                // 2. Get user's current profile
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) {
+                    console.error('Error fetching user profile:', profileError);
+                    throw new Error('User profile not found: ' + profileError.message);
+                }
+
+                // 3. Update user's balance (using balance column)
+                const currentBalance = parseFloat(profile.balance || 0);
+                const newBalance = currentBalance + amountToAdd;
+
+                console.log('💰 Balance update:', { currentBalance, amountToAdd, newBalance });
+
+                const { error: balanceError } = await supabaseClient
+                    .from('profiles')
+                    .update({ 
+                        balance: newBalance,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (balanceError) {
+                    console.error('Balance update error:', balanceError);
+                    throw new Error('Failed to update user balance: ' + balanceError.message);
+                }
+
+                // 4. Record in user_purchase_history with CORRECT COLUMNS
+                try {
+                    const purchaseData = {
+                        user_id: userId,
+                        user_email: transaction.user_email,
+                        transaction_id: transactionId,
+                        package_amount: transaction.package_amount,
+                        total_amount: transaction.total_amount,
+                        price_usd: transaction.price_usd,
+                        transaction_hash: transaction.tx_hash || 'N/A',
+                        payment_method: transaction.payment_method,
+                        status: 'completed',
+                        level: transaction.level || 1,
+                        is_vip: transaction.is_vip || false,
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        package_name: transaction.package_name,
+                        amount: transaction.package_amount // Both amount fields for compatibility
+                    };
+
+                    const { error: historyError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .insert(purchaseData);
+
+                    if (historyError) {
+                        console.warn('⚠️ Could not save to purchase history:', historyError);
+                    } else {
+                        console.log('✅ Purchase history recorded successfully');
+                    }
+                } catch (historyError) {
+                    console.warn('⚠️ user_purchase_history table error:', historyError);
+                }
+
+                // 5. Record wallet transaction for audit
+                try {
+                    const walletData = {
+                        user_id: userId,
+                        transaction_type: 'deposit',
+                        amount: amountToAdd,
+                        balance_before: currentBalance,
+                        balance_after: newBalance,
+                        description: `Package purchase: ${amountToAdd} NMX - ${transaction.package_name}`,
+                        reference_id: transactionId
+                    };
+
+                    const { error: walletError } = await supabaseClient
+                        .from('wallet_transactions')
+                        .insert(walletData);
+
+                    if (walletError) {
+                        console.warn('⚠️ Could not save wallet transaction:', walletError);
+                    }
+                } catch (walletError) {
+                    console.warn('⚠️ wallet_transactions table error:', walletError);
+                }
+
+                // 6. Update VIP status if this is a VIP purchase
+                if (transaction.is_vip) {
+                    try {
+                        // Check if user already exists in vip_customers
+                        const { data: existingVip } = await supabaseClient
+                            .from('vip_customers')
+                            .select('*')
+                            .eq('user_id', userId)
+                            .single();
+
+                        const vipData = {
+                            user_id: userId,
+                            user_email: transaction.user_email,
+                            vip_level: transaction.vip_level || 1,
+                            total_vip_purchases: (existingVip?.total_vip_purchases || 0) + 1,
+                            total_vip_amount_spent: (parseFloat(existingVip?.total_vip_amount_spent) || 0) + parseFloat(transaction.price_usd),
+                            last_vip_purchase_date: new Date().toISOString(),
+                            first_vip_purchase_date: existingVip?.first_vip_purchase_date || new Date().toISOString()
+                        };
+
+                        if (existingVip) {
+                            // Update existing VIP customer
+                            await supabaseClient
+                                .from('vip_customers')
+                                .update(vipData)
+                                .eq('user_id', userId);
+                        } else {
+                            // Create new VIP customer
+                            await supabaseClient
+                                .from('vip_customers')
+                                .insert(vipData);
+                        }
+                    } catch (vipError) {
+                        console.warn('⚠️ VIP customer update error:', vipError);
+                    }
+                }
+
+                // 7. Update transaction status in pending_transactions
+                const { error: updateError } = await supabaseClient
+                    .from('pending_transactions')
+                    .update({
+                        status: 'approved',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId);
+
+                if (updateError) {
+                    console.error('Transaction update error:', updateError);
+                    throw new Error('Failed to update transaction status: ' + updateError.message);
+                }
+
+                showCustomAlert(`✅ Transaction approved! ${amountToAdd.toLocaleString()} NMX credited to user.`, 'success');
+
+                // Reload data
+                setTimeout(() => {
+                    loadAllTransactionData();
+                }, 1000);
+
+            } catch (error) {
+                console.error('❌ Error approving transaction:', error);
+                showCustomAlert(`❌ Error approving transaction: ${error.message}`, 'error');
             }
         }
 
-        // 7. Update transaction status in pending_transactions
-        const { error: updateError } = await supabaseClient
-            .from('pending_transactions')
-            .update({
-                status: 'approved',
-                admin_notes: adminNotes,
-                processed_by: adminUser?.id || 'system',
-                processed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', transactionId);
-
-        if (updateError) {
-            console.error('Transaction update error:', updateError);
-            throw new Error('Failed to update transaction status: ' + updateError.message);
-        }
-
-        showCustomAlert(`✅ Transaction approved! ${amountToAdd.toLocaleString()} NMX credited to user.`, 'success');
-
-        // Reload data
-        setTimeout(() => {
-            loadAllTransactionData();
-        }, 1000);
-
-    } catch (error) {
-        console.error('❌ Error approving transaction:', error);
-        showCustomAlert(`❌ Error approving transaction: ${error.message}`, 'error');
-    }
-}
-
-// FIXED: Enhanced Reject Transaction Function - PERFECT MATCH TO YOUR TABLES
-async function rejectTransaction(transactionId, userId) {
-    if (!confirm('Are you sure you want to reject this transaction?')) {
-        return;
-    }
-
-    const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Rejected by admin';
-
-    try {
-        const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-        if (adminError) {
-            console.warn('No admin user found, using system rejection');
-        }
-
-        // 1. First get the transaction details
-        const { data: transaction, error: txError } = await supabaseClient
-            .from('pending_transactions')
-            .select('*')
-            .eq('id', transactionId)
-            .single();
-
-        if (txError) {
-            throw new Error('Transaction not found: ' + txError.message);
-        }
-
-        // 2. Record in user_purchase_history as rejected
-        try {
-            const purchaseData = {
-                user_id: userId,
-                user_email: transaction.user_email,
-                transaction_id: transactionId,
-                package_amount: transaction.package_amount,
-                total_amount: transaction.total_amount,
-                price_usd: transaction.price_usd,
-                transaction_hash: transaction.tx_hash || 'N/A',
-                payment_method: transaction.payment_method,
-                status: 'rejected',
-                level: transaction.level || 1,
-                is_vip: transaction.is_vip || false,
-                admin_notes: adminNotes,
-                processed_by: adminUser?.id || 'system',
-                processed_at: new Date().toISOString(),
-                package_name: transaction.package_name,
-                amount: transaction.package_amount
-            };
-
-            const { error: historyError } = await supabaseClient
-                .from('user_purchase_history')
-                .insert(purchaseData);
-
-            if (historyError) {
-                console.warn('⚠️ Could not save rejected purchase to history:', historyError);
+        // FIXED: Enhanced Reject Transaction Function - PERFECT MATCH TO YOUR TABLES
+        async function rejectTransaction(transactionId, userId) {
+            if (!confirm('Are you sure you want to reject this transaction?')) {
+                return;
             }
-        } catch (historyError) {
-            console.warn('⚠️ user_purchase_history table error for reject:', historyError);
+
+            const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Rejected by admin';
+
+            try {
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) {
+                    console.warn('No admin user found, using system rejection');
+                }
+
+                // 1. First get the transaction details
+                const { data: transaction, error: txError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*')
+                    .eq('id', transactionId)
+                    .single();
+
+                if (txError) {
+                    throw new Error('Transaction not found: ' + txError.message);
+                }
+
+                // 2. Record in user_purchase_history as rejected
+                try {
+                    const purchaseData = {
+                        user_id: userId,
+                        user_email: transaction.user_email,
+                        transaction_id: transactionId,
+                        package_amount: transaction.package_amount,
+                        total_amount: transaction.total_amount,
+                        price_usd: transaction.price_usd,
+                        transaction_hash: transaction.tx_hash || 'N/A',
+                        payment_method: transaction.payment_method,
+                        status: 'rejected',
+                        level: transaction.level || 1,
+                        is_vip: transaction.is_vip || false,
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        package_name: transaction.package_name,
+                        amount: transaction.package_amount
+                    };
+
+                    const { error: historyError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .insert(purchaseData);
+
+                    if (historyError) {
+                        console.warn('⚠️ Could not save rejected purchase to history:', historyError);
+                    }
+                } catch (historyError) {
+                    console.warn('⚠️ user_purchase_history table error for reject:', historyError);
+                }
+
+                // 3. Update transaction status in pending_transactions
+                const { error: updateError } = await supabaseClient
+                    .from('pending_transactions')
+                    .update({
+                        status: 'rejected',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId);
+
+                if (updateError) {
+                    throw updateError;
+                }
+
+                showCustomAlert('✅ Transaction rejected successfully!', 'success');
+
+                setTimeout(() => {
+                    loadAllTransactionData();
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error rejecting transaction:', error);
+                showCustomAlert(`❌ Error rejecting transaction: ${error.message}`, 'error');
+            }
         }
-
-        // 3. Update transaction status in pending_transactions
-        const { error: updateError } = await supabaseClient
-            .from('pending_transactions')
-            .update({
-                status: 'rejected',
-                admin_notes: adminNotes,
-                processed_by: adminUser?.id || 'system',
-                processed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', transactionId);
-
-        if (updateError) {
-            throw updateError;
-        }
-
-        showCustomAlert('✅ Transaction rejected successfully!', 'success');
-
-        setTimeout(() => {
-            loadAllTransactionData();
-        }, 1000);
-
-    } catch (error) {
-        console.error('Error rejecting transaction:', error);
-        showCustomAlert(`❌ Error rejecting transaction: ${error.message}`, 'error');
-    }
-}
 
         function showTab(tabName) {
             document.querySelectorAll('.nav-tab').forEach(tab => {
@@ -1105,9 +1106,12 @@ async function rejectTransaction(transactionId, userId) {
             }
         }
 
+        // FIXED: Updated to use user_purchase_history data with correct status
         function updateOverviewStats() {
             try {
                 const pending = allTransactions.filter(t => t.status === 'pending').length;
+                
+                // FIXED: Use user_purchase_history data with correct status
                 const approved = completedTransactions.filter(t => t.status === 'completed').length;
                 const rejected = completedTransactions.filter(t => t.status === 'rejected').length;
                 const totalPackages = allTransactions.length + completedTransactions.length;
@@ -1116,6 +1120,7 @@ async function rejectTransaction(transactionId, userId) {
                     parseFloat(t.package_amount || t.amount || 0) >= 100000
                 ).length;
 
+                // FIXED: Calculate revenue only from approved purchases in user_purchase_history
                 const totalRevenue = completedTransactions
                     .filter(t => t.status === 'completed')
                     .reduce((sum, t) => sum + parseFloat(t.price_usd || 0), 0);
@@ -1141,7 +1146,7 @@ async function rejectTransaction(transactionId, userId) {
 
                 // Combine pending and completed transactions for user purchase history
                 const allUserTransactions = [...allTransactions, ...completedTransactions];
-                
+
                 if (allUserTransactions.length === 0) {
                     container.innerHTML = '<div class="empty-state">No user purchases found</div>';
                     return;
@@ -1189,7 +1194,7 @@ async function rejectTransaction(transactionId, userId) {
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Date</div>
-                                    <div class="detail-value">${new Date(transaction.created_at || transaction.transaction_date).toLocaleString()}</div>
+                                    <div class="detail-value">${new Date(transaction.created_at || transaction.processed_at).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Payment Method</div>
@@ -1299,10 +1304,12 @@ async function rejectTransaction(transactionId, userId) {
             }
         }
 
+        // FIXED: Updated to display data from user_purchase_history
         function updateProcessedTransactions() {
             const container = document.getElementById('processedTransactionsList');
             if (!container) return;
 
+            // FIXED: Now using data from user_purchase_history
             const processed = completedTransactions;
 
             if (processed.length === 0) {
@@ -1311,7 +1318,7 @@ async function rejectTransaction(transactionId, userId) {
             }
 
             container.innerHTML = processed.map(transaction => {
-                const amount = parseFloat(transaction.amount || 0);
+                const amount = parseFloat(transaction.package_amount || transaction.amount || 0);
                 const isVip = amount >= 100000;
                 const userProfile = getUserProfile(transaction.user_id);
                 const userName = userProfile.username || 'Unknown User';
@@ -1341,7 +1348,7 @@ async function rejectTransaction(transactionId, userId) {
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Processed At</div>
-                                <div class="detail-value">${new Date(transaction.transaction_date).toLocaleString()}</div>
+                                <div class="detail-value">${new Date(transaction.processed_at || transaction.transaction_date).toLocaleString()}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Admin Notes</div>
@@ -1350,6 +1357,10 @@ async function rejectTransaction(transactionId, userId) {
                             <div class="detail-group">
                                 <div class="detail-label">Payment Method</div>
                                 <div class="detail-value">${transaction.payment_method || 'N/A'}</div>
+                            </div>
+                            <div class="detail-group">
+                                <div class="detail-label">Processed By</div>
+                                <div class="detail-value">${transaction.processed_by || 'System'}</div>
                             </div>
                         </div>
                     </div>
@@ -1405,7 +1416,7 @@ async function rejectTransaction(transactionId, userId) {
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Date</div>
-                                <div class="detail-value">${new Date(transaction.created_at || transaction.transaction_date).toLocaleString()}</div>
+                                <div class="detail-value">${new Date(transaction.created_at || transaction.processed_at).toLocaleString()}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Status</div>
@@ -1456,7 +1467,7 @@ async function rejectTransaction(transactionId, userId) {
             const filteredTransactions = allUserTransactions.filter(transaction => {
                 const userProfile = getUserProfile(transaction.user_id);
                 const amount = parseFloat(transaction.package_amount || transaction.amount || 0);
-                
+
                 const matchesSearch = !searchTerm || 
                     (userProfile.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                      userProfile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1515,7 +1526,7 @@ async function rejectTransaction(transactionId, userId) {
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Date</div>
-                                    <div class="detail-value">${new Date(transaction.created_at || transaction.transaction_date).toLocaleString()}</div>
+                                    <div class="detail-value">${new Date(transaction.created_at || transaction.processed_at).toLocaleString()}</div>
                                 </div>
                             </div>
                         </div>
