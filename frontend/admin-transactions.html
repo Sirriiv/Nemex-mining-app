@@ -711,7 +711,7 @@
             }
         }
 
-        // FIXED: Now loads from user_purchase_history instead of completed_transactions
+        // FIXED: Enhanced loadAllTransactionData with better debugging
         async function loadAllTransactionData() {
             try {
                 console.log('🔄 Loading all transaction data from Supabase...');
@@ -736,17 +736,34 @@
 
                 if (historyError) {
                     console.warn('⚠️ Could not load purchase history:', historyError);
+                    showCustomAlert('Warning: Could not load purchase history', 'info');
                 }
 
                 allTransactions = pendingTransactions || [];
-                completedTransactions = purchaseHistory || []; // Now using user_purchase_history
+                completedTransactions = purchaseHistory || [];
 
                 console.log(`✅ Loaded ${allTransactions.length} pending transactions`);
                 console.log(`✅ Loaded ${completedTransactions.length} completed transactions from user_purchase_history`);
+                
+                // Debug: Show what's in completedTransactions
+                console.log('📋 Completed transactions breakdown:', {
+                    total: completedTransactions.length,
+                    completed: completedTransactions.filter(t => t.status === 'completed').length,
+                    rejected: completedTransactions.filter(t => t.status === 'rejected').length,
+                    pending: completedTransactions.filter(t => t.status === 'pending').length,
+                    sampleRecords: completedTransactions.slice(0, 3).map(t => ({
+                        id: t.id,
+                        status: t.status,
+                        price_usd: t.price_usd,
+                        package_amount: t.package_amount,
+                        user_email: t.user_email
+                    }))
+                });
 
                 await loadUserProfiles();
 
-                updateOverviewStats();
+                // Use the direct database query for overview stats for accuracy
+                await loadOverviewStatsDirectly();
                 updateUserPurchases();
                 updatePendingTransactions();
                 updateProcessedTransactions();
@@ -803,7 +820,75 @@
             };
         }
 
-        // FIXED: Enhanced Approve Transaction Function - PERFECT MATCH TO YOUR TABLES
+        // FIXED: Direct database query for accurate overview stats
+        async function loadOverviewStatsDirectly() {
+            try {
+                console.log('📊 Loading overview stats directly from database...');
+                
+                // Get pending count
+                const { count: pendingCount, error: pendingError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'pending');
+                
+                // Get approved count and revenue from user_purchase_history
+                const { data: approvedData, error: approvedError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('price_usd, total_amount, status, package_amount')
+                    .eq('status', 'completed');
+                
+                // Get rejected count
+                const { count: rejectedCount, error: rejectedError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('status', 'rejected');
+                
+                // Get VIP packages count
+                const { data: vipData, error: vipError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('package_amount')
+                    .gte('package_amount', 100000);
+
+                const pending = pendingCount || 0;
+                const approved = approvedData?.length || 0;
+                const rejected = rejectedCount || 0;
+                const vipPackages = vipData?.length || 0;
+                
+                // Calculate total revenue - try multiple possible price fields
+                const totalRevenue = approvedData?.reduce((sum, transaction) => {
+                    const price = parseFloat(transaction.price_usd || transaction.total_amount || 0);
+                    console.log(`💰 Adding to revenue: ${price} from transaction:`, transaction);
+                    return sum + price;
+                }, 0) || 0;
+
+                // Get total packages (pending + all user_purchase_history)
+                const { count: allHistoryCount, error: allHistoryError } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('*', { count: 'exact', head: true });
+                
+                const totalPackages = pending + (allHistoryCount || 0);
+
+                console.log('📊 Direct stats loaded:', {
+                    pending, approved, rejected, vipPackages, totalRevenue, totalPackages,
+                    approvedDataSample: approvedData?.slice(0, 3)
+                });
+
+                // Update the UI
+                document.getElementById('totalPending').textContent = pending;
+                document.getElementById('totalApproved').textContent = approved;
+                document.getElementById('totalRejected').textContent = rejected;
+                document.getElementById('totalPackages').textContent = totalPackages;
+                document.getElementById('totalVip').textContent = vipPackages;
+                document.getElementById('totalRevenue').textContent = `$${totalRevenue.toLocaleString()}`;
+
+            } catch (error) {
+                console.error('❌ Error loading direct stats:', error);
+                // Fallback to the old method if direct query fails
+                updateOverviewStats();
+            }
+        }
+
+        // FIXED: Enhanced Approve Transaction Function
         async function approveTransaction(transactionId, packageAmount, userId) {
             try {
                 console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
@@ -883,7 +968,7 @@
                         processed_by: adminUser?.id || 'system',
                         processed_at: new Date().toISOString(),
                         package_name: transaction.package_name,
-                        amount: transaction.package_amount // Both amount fields for compatibility
+                        amount: transaction.package_amount
                     };
 
                     const { error: historyError } = await supabaseClient
@@ -989,7 +1074,7 @@
             }
         }
 
-        // FIXED: Enhanced Reject Transaction Function - PERFECT MATCH TO YOUR TABLES
+        // FIXED: Enhanced Reject Transaction Function
         async function rejectTransaction(transactionId, userId) {
             if (!confirm('Are you sure you want to reject this transaction?')) {
                 return;
@@ -1089,7 +1174,8 @@
 
             switch(tabName) {
                 case 'overview':
-                    updateOverviewStats();
+                    // Use direct database query for accurate stats
+                    loadOverviewStatsDirectly();
                     break;
                 case 'user-purchases':
                     updateUserPurchases();
@@ -1106,12 +1192,12 @@
             }
         }
 
-        // FIXED: Updated to use user_purchase_history data with correct status
+        // Backup function for overview stats (if direct query fails)
         function updateOverviewStats() {
             try {
                 const pending = allTransactions.filter(t => t.status === 'pending').length;
                 
-                // FIXED: Use user_purchase_history data with correct status
+                // Use user_purchase_history data with correct status
                 const approved = completedTransactions.filter(t => t.status === 'completed').length;
                 const rejected = completedTransactions.filter(t => t.status === 'rejected').length;
                 const totalPackages = allTransactions.length + completedTransactions.length;
@@ -1120,10 +1206,13 @@
                     parseFloat(t.package_amount || t.amount || 0) >= 100000
                 ).length;
 
-                // FIXED: Calculate revenue only from approved purchases in user_purchase_history
+                // Calculate revenue only from approved purchases in user_purchase_history
                 const totalRevenue = completedTransactions
                     .filter(t => t.status === 'completed')
-                    .reduce((sum, t) => sum + parseFloat(t.price_usd || 0), 0);
+                    .reduce((sum, t) => {
+                        const price = parseFloat(t.price_usd || t.total_amount || 0);
+                        return sum + price;
+                    }, 0);
 
                 document.getElementById('totalPending').textContent = pending;
                 document.getElementById('totalApproved').textContent = approved;
@@ -1131,8 +1220,6 @@
                 document.getElementById('totalPackages').textContent = totalPackages;
                 document.getElementById('totalVip').textContent = vipPackages;
                 document.getElementById('totalRevenue').textContent = `$${totalRevenue.toLocaleString()}`;
-
-                console.log('📊 Overview stats updated:', { pending, approved, rejected, totalRevenue });
 
             } catch (error) {
                 console.error('Error updating overview stats:', error);
@@ -1309,7 +1396,7 @@
             const container = document.getElementById('processedTransactionsList');
             if (!container) return;
 
-            // FIXED: Now using data from user_purchase_history
+            // Now using data from user_purchase_history
             const processed = completedTransactions;
 
             if (processed.length === 0) {
