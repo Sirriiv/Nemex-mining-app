@@ -498,7 +498,7 @@
                 <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
-                User Purchases
+                User Purchases History
             </div>
             <div class="nav-tab" onclick="showTab('pending')">                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -510,12 +510,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
                 Approved & Rejected
-            </div>
-            <div class="nav-tab" onclick="showTab('transaction-activity')">
-                <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                </svg>
-                Transaction Activity
             </div>
             <div class="nav-tab" onclick="showTab('vip-purchases')">
                 <svg class="tab-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -561,15 +555,15 @@
                 <input type="text" class="search-input" id="userSearch" placeholder="Search by user email, transaction hash...">
                 <select class="filter-select" id="packageFilter">
                     <option value="">All Packages</option>
-                    <option value="250">250 NMXp</option>
-                    <option value="500">500 NMXp</option>
-                    <option value="1000">1,000 NMXp</option>
-                    <option value="3000">3,000 NMXp</option>
-                    <option value="5000">5,000 NMXp</option>
-                    <option value="10000">10,000 NMXp</option>
-                    <option value="100000">100,000 NMXp (VIP)</option>
-                    <option value="500000">500,000 NMXp (VIP)</option>
-                    <option value="1000000">1,000,000 NMXp (VIP)</option>
+                    <option value="250">250 NMX</option>
+                    <option value="500">500 NMX</option>
+                    <option value="1000">1,000 NMX</option>
+                    <option value="3000">3,000 NMX</option>
+                    <option value="5000">5,000 NMX</option>
+                    <option value="10000">10,000 NMX</option>
+                    <option value="100000">100,000 NMX (VIP)</option>
+                    <option value="500000">500,000 NMX (VIP)</option>
+                    <option value="1000000">1,000,000 NMX (VIP)</option>
                 </select>
                 <select class="filter-select" id="statusFilterUser">
                     <option value="">All Status</option>
@@ -605,21 +599,6 @@
             </div>
         </div>
 
-        <!-- Transaction Activity Tab -->
-        <div id="transaction-activity" class="tab-content">
-            <div class="search-filter">
-                <input type="text" class="search-input" id="activitySearch" placeholder="Search transaction activity...">
-                <select class="filter-select" id="levelFilter">
-                    <option value="">All Levels</option>
-                    <option value="basic">Basic</option>
-                    <option value="vip">VIP</option>
-                </select>
-            </div>
-            <div id="transactionActivityList" class="transactions-grid">
-                <div class="loading">Loading transaction activity...</div>
-            </div>
-        </div>
-
         <!-- VIP Purchases Tab -->
         <div id="vip-purchases" class="tab-content">
             <div class="search-filter">
@@ -645,6 +624,7 @@
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
         let allTransactions = [];
+        let completedTransactions = [];
         let userProfiles = new Map();
         let currentTab = 'overview';
 
@@ -735,26 +715,33 @@
             try {
                 console.log('🔄 Loading all transaction data from Supabase...');
 
-                const { data: transactions, error } = await supabaseClient
+                // Load pending transactions
+                const { data: pendingTransactions, error: pendingError } = await supabaseClient
                     .from('pending_transactions')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                console.log('📊 Raw transactions data:', transactions); // DEBUG
-                console.log('❌ Transactions error:', error); // DEBUG
-
-                if (error) {
-                    console.error('❌ Error loading transactions:', error);
-                    showCustomAlert('Error loading transactions: ' + error.message, 'error');
+                if (pendingError) {
+                    console.error('❌ Error loading pending transactions:', pendingError);
+                    showCustomAlert('Error loading pending transactions: ' + pendingError.message, 'error');
                     return;
                 }
 
-                allTransactions = transactions || [];
-                console.log(`✅ Loaded ${allTransactions.length} transactions from Supabase`);
+                // Load completed transactions
+                const { data: completedData, error: completedError } = await supabaseClient
+                    .from('completed_transactions')
+                    .select('*')
+                    .order('transaction_date', { ascending: false });
 
-                // DEBUG: Check pending transactions
-                const pendingTransactions = allTransactions.filter(t => t.status === 'pending');
-                console.log(`📋 Pending transactions: ${pendingTransactions.length}`, pendingTransactions);
+                if (completedError) {
+                    console.warn('⚠️ Could not load completed transactions:', completedError);
+                }
+
+                allTransactions = pendingTransactions || [];
+                completedTransactions = completedData || [];
+
+                console.log(`✅ Loaded ${allTransactions.length} pending transactions`);
+                console.log(`✅ Loaded ${completedTransactions.length} completed transactions`);
 
                 await loadUserProfiles();
 
@@ -762,7 +749,6 @@
                 updateUserPurchases();
                 updatePendingTransactions();
                 updateProcessedTransactions();
-                updateTransactionActivity();
                 updateVipPurchases();
 
                 showCustomAlert('Transaction data loaded successfully!', 'success');
@@ -776,10 +762,12 @@
         async function loadUserProfiles() {
             try {
                 console.log('👥 Loading user profiles...');
-                
-                const userIds = [...new Set(allTransactions.map(t => t.user_id))];
-                
-                if (userIds.length === 0) {
+
+                const pendingUserIds = [...new Set(allTransactions.map(t => t.user_id))];
+                const completedUserIds = [...new Set(completedTransactions.map(t => t.user_id))];
+                const allUserIds = [...new Set([...pendingUserIds, ...completedUserIds])];
+
+                if (allUserIds.length === 0) {
                     userProfiles = new Map();
                     return;
                 }
@@ -787,7 +775,7 @@
                 const { data: profiles, error } = await supabaseClient
                     .from('profiles')
                     .select('id, username, email, balance')
-                    .in('id', userIds);
+                    .in('id', allUserIds);
 
                 if (error) {
                     console.error('Error loading profiles:', error);
@@ -814,139 +802,150 @@
             };
         }
 
-        // FIXED: Enhanced Approve Transaction Function - UPDATED FOR 3 PARAMETERS
-async function approveTransaction(transactionId, packageAmount, userId) {
-    try {
-        console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
+        // FIXED: Enhanced Approve Transaction Function
+        async function approveTransaction(transactionId, packageAmount, userId) {
+            try {
+                console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
 
-        // Get current admin user
-        const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-        if (adminError) {
-            console.warn('No admin user found, using system approval');
-        }
+                // Get current admin user
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) {
+                    console.warn('No admin user found, using system approval');
+                }
 
-        // 1. Get transaction details - USING package_amount instead of amount
-        const { data: transaction, error: txFetchError } = await supabaseClient
-            .from('pending_transactions')
-            .select('*')
-            .eq('id', transactionId)
-            .single();
+                // 1. Get transaction details
+                const { data: transaction, error: txFetchError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*')
+                    .eq('id', transactionId)
+                    .single();
 
-        if (txFetchError) {
-            throw new Error('Transaction not found: ' + txFetchError.message);
-        }
+                if (txFetchError) {
+                    throw new Error('Transaction not found: ' + txFetchError.message);
+                }
 
-        // Use package_amount from the transaction (more reliable than parameter)
-        const amountToAdd = parseFloat(transaction.package_amount);
-        
-        if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${amountToAdd.toLocaleString()} NMX to the user's balance.`)) {
-            return;
-        }
+                // Use package_amount from the transaction
+                const amountToAdd = parseFloat(transaction.package_amount);
 
-        const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Approved by admin';
+                if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${amountToAdd.toLocaleString()} NMX to the user's balance.`)) {
+                    return;
+                }
 
-        // 2. Get user's current profile - USING userId PARAMETER
-        const { data: profile, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
+                const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Approved by admin';
 
-        if (profileError) {
-            console.error('Error fetching user profile:', profileError);
-            throw new Error('User profile not found: ' + profileError.message);
-        }
+                // 2. Get user's current profile
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
 
-        // 3. Update user's balance
-        const currentBalance = parseFloat(profile.balance || 0);
-        const newBalance = currentBalance + amountToAdd;
+                if (profileError) {
+                    console.error('Error fetching user profile:', profileError);
+                    throw new Error('User profile not found: ' + profileError.message);
+                }
 
-        console.log('💰 Balance update:', { currentBalance, amountToAdd, newBalance });
+                // 3. Update user's balance
+                const currentBalance = parseFloat(profile.balance || 0);
+                const newBalance = currentBalance + amountToAdd;
 
-        const { error: balanceError } = await supabaseClient
-            .from('profiles')
-            .update({ 
-                balance: newBalance,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userId);
+                console.log('💰 Balance update:', { currentBalance, amountToAdd, newBalance });
 
-        if (balanceError) {
-            console.error('Balance update error:', balanceError);
-            throw new Error('Failed to update user balance: ' + balanceError.message);
-        }
+                const { error: balanceError } = await supabaseClient
+                    .from('profiles')
+                    .update({ 
+                        balance: newBalance,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
 
-        // 4. Record in user_purchase_history (if table exists)
-        try {
-            const { error: historyError } = await supabaseClient
-                .from('user_purchase_history')
-                .insert({
-                    user_id: userId,
-                    transaction_id: transactionId,
-                    package_name: `Package ${amountToAdd} NMX`,
-                    amount: amountToAdd,
-                    price_paid: transaction.price_usd,
-                    status: 'completed',
-                    admin_notes: adminNotes,
-                    created_at: new Date().toISOString()
-                });
+                if (balanceError) {
+                    console.error('Balance update error:', balanceError);
+                    throw new Error('Failed to update user balance: ' + balanceError.message);
+                }
 
-            if (historyError) {
-                console.warn('⚠️ Could not save to purchase history:', historyError);
+                // 4. Record in user_purchase_history (if table exists)
+                try {
+                    const { error: historyError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .insert({
+                            user_id: userId,
+                            transaction_id: transactionId,
+                            package_name: `Package ${amountToAdd} NMX`,
+                            amount: amountToAdd,
+                            price_paid: transaction.price_usd,
+                            status: 'completed',
+                            admin_notes: adminNotes,
+                            created_at: new Date().toISOString()
+                        });
+
+                    if (historyError) {
+                        console.warn('⚠️ Could not save to purchase history:', historyError);
+                    }
+                } catch (historyError) {
+                    console.warn('⚠️ user_purchase_history table might not exist:', historyError);
+                }
+
+                // 5. FIXED: Create record in completed_transactions table
+                try {
+                    const completedData = {
+                        user_id: userId,
+                        amount: amountToAdd,
+                        payment_method: transaction.payment_method,
+                        transaction_date: new Date().toISOString(),
+                        status: 'completed',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        original_transaction_id: transactionId
+                    };
+
+                    // Remove any undefined fields
+                    Object.keys(completedData).forEach(key => {
+                        if (completedData[key] === undefined) {
+                            delete completedData[key];
+                        }
+                    });
+
+                    const { error: completeError } = await supabaseClient
+                        .from('completed_transactions')
+                        .insert(completedData);
+
+                    if (completeError) {
+                        console.warn('⚠️ Could not save to completed_transactions:', completeError);
+                        // Don't throw error here, continue with the approval
+                    }
+                } catch (completeError) {
+                    console.warn('⚠️ completed_transactions table might have issues:', completeError);
+                }
+
+                // 6. Update transaction status in pending_transactions
+                const { error: updateError } = await supabaseClient
+                    .from('pending_transactions')
+                    .update({
+                        status: 'approved',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId);
+
+                if (updateError) {
+                    console.error('Transaction update error:', updateError);
+                    throw new Error('Failed to update transaction status: ' + updateError.message);
+                }
+
+                showCustomAlert(`✅ Transaction approved! ${amountToAdd.toLocaleString()} NMX credited to user.`, 'success');
+
+                // Reload data
+                setTimeout(() => {
+                    loadAllTransactionData();
+                }, 1000);
+
+            } catch (error) {
+                console.error('❌ Error approving transaction:', error);
+                showCustomAlert(`❌ Error approving transaction: ${error.message}`, 'error');
             }
-        } catch (historyError) {
-            console.warn('⚠️ user_purchase_history table might not exist:', historyError);
         }
-
-        // 5. ADDED: Create record in completed_transactions table
-        try {
-            const { error: completeError } = await supabaseClient
-                .from('completed_transactions')
-                .insert({
-                    user_id: userId,
-                    amount: amountToAdd, // Using 'amount' column as expected by completed_transactions
-                    payment_method: transaction.payment_method,
-                    transaction_date: new Date().toISOString(),
-                    status: 'completed',
-                    admin_notes: adminNotes,
-                    processed_by: adminUser?.id || 'system'
-                });
-
-            if (completeError) {
-                console.warn('⚠️ Could not save to completed_transactions:', completeError);
-            }
-        } catch (completeError) {
-            console.warn('⚠️ completed_transactions table might have issues:', completeError);
-        }
-
-        // 6. Update transaction status in pending_transactions
-        const { error: updateError } = await supabaseClient
-            .from('pending_transactions')
-            .update({
-                status: 'approved',
-                admin_notes: adminNotes,
-                processed_by: adminUser?.id || 'system',
-                processed_at: new Date().toISOString()
-            })
-            .eq('id', transactionId);
-
-        if (updateError) {
-            console.error('Transaction update error:', updateError);
-            throw new Error('Failed to update transaction status: ' + updateError.message);
-        }
-
-        showCustomAlert(`✅ Transaction approved! ${amountToAdd.toLocaleString()} NMX credited to user.`, 'success');
-
-        // Reload data
-        setTimeout(() => {
-            loadAllTransactionData();
-        }, 1000);
-
-    } catch (error) {
-        console.error('❌ Error approving transaction:', error);
-        showCustomAlert(`❌ Error approving transaction: ${error.message}`, 'error');
-    }
-}
 
         // FIXED: Enhanced Reject Transaction Function
         async function rejectTransaction(transactionId, userId) {
@@ -977,22 +976,30 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                     throw updateError;
                 }
 
-                // Record in user_purchase_history as rejected (if table exists)
+                // Record in completed_transactions as rejected
                 try {
+                    const { data: transaction } = await supabaseClient
+                        .from('pending_transactions')
+                        .select('*')
+                        .eq('id', transactionId)
+                        .single();
+
+                    const completedData = {
+                        user_id: userId,
+                        amount: transaction?.package_amount || 0,
+                        payment_method: transaction?.payment_method,
+                        transaction_date: new Date().toISOString(),
+                        status: 'rejected',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        original_transaction_id: transactionId
+                    };
+
                     await supabaseClient
-                        .from('user_purchase_history')
-                        .insert({
-                            user_id: userId,
-                            package_name: 'Rejected Package',
-                            amount: 0,
-                            price_paid: 0,
-                            status: 'rejected',
-                            transaction_id: transactionId,
-                            admin_notes: adminNotes,
-                            created_at: new Date().toISOString()
-                        });
+                        .from('completed_transactions')
+                        .insert(completedData);
                 } catch (historyError) {
-                    console.warn('⚠️ Could not save to purchase history:', historyError);
+                    console.warn('⚠️ Could not save to completed_transactions:', historyError);
                 }
 
                 showCustomAlert('✅ Transaction rejected successfully!', 'success');
@@ -1033,9 +1040,6 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                 case 'approved-rejected':
                     updateProcessedTransactions();
                     break;
-                case 'transaction-activity':
-                    updateTransactionActivity();
-                    break;
                 case 'vip-purchases':
                     updateVipPurchases();
                     break;
@@ -1045,16 +1049,16 @@ async function approveTransaction(transactionId, packageAmount, userId) {
         function updateOverviewStats() {
             try {
                 const pending = allTransactions.filter(t => t.status === 'pending').length;
-                const approved = allTransactions.filter(t => t.status === 'approved').length;
-                const rejected = allTransactions.filter(t => t.status === 'rejected').length;
-                const totalPackages = allTransactions.length;
+                const approved = completedTransactions.filter(t => t.status === 'completed').length;
+                const rejected = completedTransactions.filter(t => t.status === 'rejected').length;
+                const totalPackages = allTransactions.length + completedTransactions.length;
 
-                const vipPackages = allTransactions.filter(t => 
-                    parseFloat(t.package_amount || 0) >= 100000
+                const vipPackages = [...allTransactions, ...completedTransactions].filter(t => 
+                    parseFloat(t.package_amount || t.amount || 0) >= 100000
                 ).length;
 
-                const totalRevenue = allTransactions
-                    .filter(t => t.status === 'approved')
+                const totalRevenue = completedTransactions
+                    .filter(t => t.status === 'completed')
                     .reduce((sum, t) => sum + parseFloat(t.price_usd || 0), 0);
 
                 document.getElementById('totalPending').textContent = pending;
@@ -1076,29 +1080,33 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                 const container = document.getElementById('userPurchasesList');
                 if (!container) return;
 
-                if (allTransactions.length === 0) {
+                // Combine pending and completed transactions for user purchase history
+                const allUserTransactions = [...allTransactions, ...completedTransactions];
+                
+                if (allUserTransactions.length === 0) {
                     container.innerHTML = '<div class="empty-state">No user purchases found</div>';
                     return;
                 }
 
-                container.innerHTML = allTransactions.map(transaction => {
-                    const amount = parseFloat(transaction.package_amount || 0);
+                container.innerHTML = allUserTransactions.map(transaction => {
+                    const amount = parseFloat(transaction.package_amount || transaction.amount || 0);
                     const isVip = amount >= 100000;
                     const usdAmount = parseFloat(transaction.price_usd || 0);
                     const userProfile = getUserProfile(transaction.user_id);
                     const userName = userProfile.username || transaction.user_email || 'Unknown User';
                     const userEmail = userProfile.email || transaction.user_email || 'No email';
+                    const status = transaction.status || 'pending';
 
                     return `
-                        <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
+                        <div class="transaction ${status} ${isVip ? 'vip' : ''}">
                             <div class="transaction-header">
                                 <div class="transaction-amount">
                                     ${amount.toLocaleString()} NMX
                                     ${isVip ? '<span class="transaction-level">VIP</span>' : ''}
                                 </div>
                                 <div class="transaction-meta">
-                                    <span class="status-badge status-${transaction.status}">
-                                        ${transaction.status.toUpperCase()}
+                                    <span class="status-badge status-${status}">
+                                        ${status.toUpperCase()}
                                     </span>
                                 </div>
                             </div>
@@ -1114,7 +1122,7 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Transaction Hash</div>
-                                    <div class="detail-value">${transaction.tx_hash || 'Pending'}</div>
+                                    <div class="detail-value">${transaction.tx_hash || 'N/A'}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Amount Paid</div>
@@ -1122,7 +1130,7 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Date</div>
-                                    <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
+                                    <div class="detail-value">${new Date(transaction.created_at || transaction.transaction_date).toLocaleString()}</div>
                                 </div>
                                 <div class="detail-group">
                                     <div class="detail-label">Payment Method</div>
@@ -1130,44 +1138,17 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                                 </div>
                             </div>
 
-                            ${transaction.status === 'pending' ? `
-                                <div class="transaction-actions">
-                                    <textarea 
-                                        id="notes-${transaction.id}" 
-                                        class="notes-input" 
-                                        placeholder="Add admin notes (optional)"
-                                        rows="2"
-                                    >${transaction.admin_notes || ''}</textarea>
-                                    <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${amount}, '${transaction.user_id}')">
-                                        Approve & Credit Balance
-                                    </button>
-                                    <button class="reject-btn" onclick="rejectTransaction('${transaction.id}', '${transaction.user_id}')">
-                                        Reject
-                                    </button>
-                                </div>
-                            ` : `
+                            ${transaction.admin_notes ? `
                                 <div class="detail-group">
                                     <div class="detail-label">Admin Notes</div>
-                                    <div class="detail-value">${transaction.admin_notes || 'No notes provided'}</div>
+                                    <div class="detail-value">${transaction.admin_notes}</div>
                                 </div>
-                                ${transaction.processed_by ? `
-                                <div class="detail-group">
-                                    <div class="detail-label">Processed By</div>
-                                    <div class="detail-value">${transaction.processed_by}</div>
-                                </div>
-                                ` : ''}
-                                ${transaction.processed_at ? `
-                                <div class="detail-group">
-                                    <div class="detail-label">Processed At</div>
-                                    <div class="detail-value">${new Date(transaction.processed_at).toLocaleString()}</div>
-                                </div>
-                                ` : ''}
-                            `}
+                            ` : ''}
                         </div>
                     `;
                 }).join('');
 
-                console.log('✅ User purchases updated');
+                console.log('✅ User purchases history updated');
 
             } catch (error) {
                 console.error('Error updating user purchases:', error);
@@ -1184,7 +1165,7 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                 if (!container) return;
 
                 const pendingTransactions = allTransactions.filter(t => t.status === 'pending');
-                console.log(`🔄 Displaying ${pendingTransactions.length} pending transactions`); // DEBUG
+                console.log(`🔄 Displaying ${pendingTransactions.length} pending transactions`);
 
                 if (pendingTransactions.length === 0) {
                     container.innerHTML = '<div class="empty-state">No pending transactions found</div>';
@@ -1227,10 +1208,6 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                                     <div class="detail-value">$${parseFloat(transaction.price_usd || 0).toFixed(2)}</div>
                                 </div>
                                 <div class="detail-group">
-                                    <div class="detail-label">User ID</div>
-                                    <div class="detail-value">${transaction.user_id}</div>
-                                </div>
-                                <div class="detail-group">
                                     <div class="detail-label">Payment Method</div>
                                     <div class="detail-value">${transaction.payment_method || 'N/A'}</div>
                                 </div>
@@ -1243,7 +1220,7 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                                     placeholder="Add admin notes (optional)"
                                     rows="2"
                                 >${transaction.admin_notes || ''}</textarea>
-                                <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${transaction.package_amount}, '${transaction.user_id}')"
+                                <button class="approve-btn" onclick="approveTransaction('${transaction.id}', ${transaction.package_amount}, '${transaction.user_id}')">
                                     Approve & Credit ${amount.toLocaleString()} NMX
                                 </button>
                                 <button class="reject-btn" onclick="rejectTransaction('${transaction.id}', '${transaction.user_id}')">
@@ -1267,7 +1244,7 @@ async function approveTransaction(transactionId, packageAmount, userId) {
             const container = document.getElementById('processedTransactionsList');
             if (!container) return;
 
-            const processed = allTransactions.filter(t => t.status === 'approved' || t.status === 'rejected');
+            const processed = completedTransactions;
 
             if (processed.length === 0) {
                 container.innerHTML = '<div class="empty-state">No processed transactions found</div>';
@@ -1275,10 +1252,10 @@ async function approveTransaction(transactionId, packageAmount, userId) {
             }
 
             container.innerHTML = processed.map(transaction => {
-                const amount = parseFloat(transaction.package_amount || 0);
+                const amount = parseFloat(transaction.amount || 0);
                 const isVip = amount >= 100000;
                 const userProfile = getUserProfile(transaction.user_id);
-                const userName = userProfile.username || transaction.user_email || 'Unknown User';
+                const userName = userProfile.username || 'Unknown User';
 
                 return `
                     <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
@@ -1301,63 +1278,15 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Email</div>
-                                <div class="detail-value">${userProfile.email || transaction.user_email || 'No email'}</div>
+                                <div class="detail-value">${userProfile.email || 'No email'}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Processed At</div>
-                                <div class="detail-value">${new Date(transaction.processed_at).toLocaleString()}</div>
+                                <div class="detail-value">${new Date(transaction.transaction_date).toLocaleString()}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Admin Notes</div>
                                 <div class="detail-value">${transaction.admin_notes || 'No notes'}</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function updateTransactionActivity() {
-            const container = document.getElementById('transactionActivityList');
-            if (!container) return;
-
-            if (allTransactions.length === 0) {
-                container.innerHTML = '<div class="empty-state">No transaction activity found</div>';
-                return;
-            }
-
-            container.innerHTML = allTransactions.map(transaction => {
-                const amount = parseFloat(transaction.package_amount || 0);
-                const isVip = amount >= 100000;
-                const userProfile = getUserProfile(transaction.user_id);
-                const userName = userProfile.username || transaction.user_email || 'Unknown User';
-
-                return `
-                    <div class="transaction ${transaction.status} ${isVip ? 'vip' : ''}">
-                        <div class="transaction-header">
-                            <div class="transaction-amount">
-                                ${amount.toLocaleString()} NMX
-                                ${isVip ? '<span class="transaction-level">VIP</span>' : ''}
-                            </div>
-                            <div class="transaction-meta">
-                                <span class="status-badge status-${transaction.status}">
-                                    ${transaction.status.toUpperCase()}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        <div class="transaction-details">
-                            <div class="detail-group">
-                                <div class="detail-label">User</div>
-                                <div class="detail-value">${userName}</div>
-                            </div>
-                            <div class="detail-group">
-                                <div class="detail-label">Date</div>
-                                <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
-                            </div>
-                            <div class="detail-group">
-                                <div class="detail-label">Status</div>
-                                <div class="detail-value">${transaction.status}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Payment Method</div>
@@ -1373,30 +1302,31 @@ async function approveTransaction(transactionId, packageAmount, userId) {
             const container = document.getElementById('vipPurchasesList');
             if (!container) return;
 
-            const vipPurchases = allTransactions.filter(t => 
-                parseFloat(t.package_amount || 0) >= 100000
+            const allVipTransactions = [...allTransactions, ...completedTransactions].filter(t => 
+                parseFloat(t.package_amount || t.amount || 0) >= 100000
             );
 
-            if (vipPurchases.length === 0) {
+            if (allVipTransactions.length === 0) {
                 container.innerHTML = '<div class="empty-state">No VIP purchases found</div>';
                 return;
             }
 
-            container.innerHTML = vipPurchases.map(transaction => {
-                const amount = parseFloat(transaction.package_amount || 0);
+            container.innerHTML = allVipTransactions.map(transaction => {
+                const amount = parseFloat(transaction.package_amount || transaction.amount || 0);
                 const userProfile = getUserProfile(transaction.user_id);
-                const userName = userProfile.username || transaction.user_email || 'Unknown User';
+                const userName = userProfile.username || 'Unknown User';
+                const status = transaction.status || 'pending';
 
                 return `
-                    <div class="transaction vip ${transaction.status}">
+                    <div class="transaction vip ${status}">
                         <div class="transaction-header">
                             <div class="transaction-amount">
                                 ${amount.toLocaleString()} NMX
                                 <span class="transaction-level">VIP</span>
                             </div>
                             <div class="transaction-meta">
-                                <span class="status-badge status-${transaction.status}">
-                                    ${transaction.status.toUpperCase()}
+                                <span class="status-badge status-${status}">
+                                    ${status.toUpperCase()}
                                 </span>
                             </div>
                         </div>
@@ -1408,7 +1338,7 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Email</div>
-                                <div class="detail-value">${userProfile.email || transaction.user_email || 'No email'}</div>
+                                <div class="detail-value">${userProfile.email || 'No email'}</div>
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Amount Paid</div>
@@ -1416,11 +1346,11 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                             </div>
                             <div class="detail-group">
                                 <div class="detail-label">Date</div>
-                                <div class="detail-value">${new Date(transaction.created_at).toLocaleString()}</div>
+                                <div class="detail-value">${new Date(transaction.created_at || transaction.transaction_date).toLocaleString()}</div>
                             </div>
                             <div class="detail-group">
-                                <div class="detail-label">VIP Level</div>
-                                <div class="detail-value">${transaction.vip_level || 'N/A'}</div>
+                                <div class="detail-label">Status</div>
+                                <div class="detail-value">${status}</div>
                             </div>
                         </div>
                     </div>
@@ -1463,28 +1393,75 @@ async function approveTransaction(transactionId, packageAmount, userId) {
         }
 
         function filterUserPurchases(searchTerm, packageFilter, statusFilter) {
-            const filteredTransactions = allTransactions.filter(transaction => {
+            const allUserTransactions = [...allTransactions, ...completedTransactions];
+            const filteredTransactions = allUserTransactions.filter(transaction => {
                 const userProfile = getUserProfile(transaction.user_id);
+                const amount = parseFloat(transaction.package_amount || transaction.amount || 0);
+                
                 const matchesSearch = !searchTerm || 
                     (userProfile.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                      userProfile.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                      transaction.tx_hash?.toLowerCase().includes(searchTerm.toLowerCase()));
 
                 const matchesPackage = !packageFilter || 
-                    parseFloat(transaction.package_amount) == packageFilter;
+                    amount == packageFilter;
 
                 const matchesStatus = !statusFilter || 
-                    transaction.status === statusFilter;
+                    (transaction.status || 'pending') === statusFilter;
 
                 return matchesSearch && matchesPackage && matchesStatus;
             });
 
             const container = document.getElementById('userPurchasesList');
             if (container && filteredTransactions.length > 0) {
-                const tempAllTransactions = allTransactions;
-                allTransactions = filteredTransactions;
-                updateUserPurchases();
-                allTransactions = tempAllTransactions;
+                container.innerHTML = filteredTransactions.map(transaction => {
+                    const amount = parseFloat(transaction.package_amount || transaction.amount || 0);
+                    const isVip = amount >= 100000;
+                    const usdAmount = parseFloat(transaction.price_usd || 0);
+                    const userProfile = getUserProfile(transaction.user_id);
+                    const userName = userProfile.username || transaction.user_email || 'Unknown User';
+                    const userEmail = userProfile.email || transaction.user_email || 'No email';
+                    const status = transaction.status || 'pending';
+
+                    return `
+                        <div class="transaction ${status} ${isVip ? 'vip' : ''}">
+                            <div class="transaction-header">
+                                <div class="transaction-amount">
+                                    ${amount.toLocaleString()} NMX
+                                    ${isVip ? '<span class="transaction-level">VIP</span>' : ''}
+                                </div>
+                                <div class="transaction-meta">
+                                    <span class="status-badge status-${status}">
+                                        ${status.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="transaction-details">
+                                <div class="detail-group">
+                                    <div class="detail-label">User</div>
+                                    <div class="detail-value">${userName}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Email</div>
+                                    <div class="detail-value">${userEmail}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Transaction Hash</div>
+                                    <div class="detail-value">${transaction.tx_hash || 'N/A'}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Amount Paid</div>
+                                    <div class="detail-value">$${usdAmount.toFixed(2)}</div>
+                                </div>
+                                <div class="detail-group">
+                                    <div class="detail-label">Date</div>
+                                    <div class="detail-value">${new Date(transaction.created_at || transaction.transaction_date).toLocaleString()}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             } else if (container) {
                 container.innerHTML = '<div class="empty-state">No transactions match your search criteria</div>';
             }
