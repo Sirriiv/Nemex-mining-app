@@ -917,7 +917,7 @@
             }
         }
 
-        // UPDATED: Load packages from database with purchase limits using purchase_limit
+        // FIXED: Load packages with working purchase limits
         async function loadPackages() {
             try {
                 const { data: packages, error } = await supabaseClient
@@ -933,13 +933,13 @@
 
                 availablePackages = packages || [];
                 renderPackages();
-                
+
             } catch (error) {
                 console.error('Error loading packages:', error);
             }
         }
 
-        // UPDATED: Render packages with purchase limits using purchase_limit
+        // FIXED: Render packages with working purchase limits
         function renderPackages() {
             const packagesGrid = document.getElementById('packagesGrid');
             if (!packagesGrid) return;
@@ -950,8 +950,8 @@
             }
 
             packagesGrid.innerHTML = availablePackages.map(pkg => {
-                const isSoldOut = pkg.purchase_limit <= 0; // UPDATED: Use purchase_limit
-                const isLowStock = pkg.purchase_limit <= 3 && pkg.purchase_limit > 0; // UPDATED: Use purchase_limit
+                const isSoldOut = pkg.purchase_limit <= 0;
+                const isLowStock = pkg.purchase_limit <= 3 && pkg.purchase_limit > 0;
                 const remainingClass = isLowStock ? 'remaining-badge low' : 'remaining-badge';
 
                 return `
@@ -961,13 +961,13 @@
                         <div class="package-amount">${pkg.package_amount.toLocaleString()} NMXp</div>
                         <div class="package-price">$${pkg.price_usd} USDT</div>
                         <div class="package-purchase-limit">
-                            ${pkg.purchase_limit > 0  // UPDATED: Use purchase_limit
+                            ${pkg.purchase_limit > 0
                                 ? `Can purchase ${pkg.purchase_limit} more times` 
                                 : 'Sold out'}
                         </div>
-                        ${pkg.purchase_limit > 0 && pkg.purchase_limit <= 5 ? `  // UPDATED: Use purchase_limit
+                        ${pkg.purchase_limit > 0 && pkg.purchase_limit <= 5 ? `
                             <div class="${remainingClass}">
-                                Only ${pkg.purchase_limit} left!  // UPDATED: Use purchase_limit
+                                Only ${pkg.purchase_limit} left!
                             </div>
                         ` : ''}
                         ${pkg.bonus_amount > 0 ? `
@@ -978,13 +978,13 @@
             }).join('');
         }
 
-        // UPDATED: Select package with database check using purchase_limit
+        // FIXED: Select package with purchase limit check
         function selectPackage(element, packageId) {
             const packageData = availablePackages.find(pkg => pkg.id === packageId);
             if (!packageData) return;
 
-            // Check if package is sold out using purchase_limit
-            if (packageData.purchase_limit <= 0) {  // UPDATED: Use purchase_limit
+            // Check if package is sold out
+            if (packageData.purchase_limit <= 0) {
                 alert('❌ This package is sold out! Please select another package.');
                 return;
             }
@@ -996,7 +996,7 @@
                 });
             }
             element.classList.add('selected');
-            
+
             selectedPackage = {
                 element: element,
                 id: packageData.id,
@@ -1005,10 +1005,10 @@
                 price: packageData.price_usd,
                 bonus: packageData.bonus_amount,
                 totalAmount: packageData.package_amount + packageData.bonus_amount,
-                purchase_limit: packageData.purchase_limit,  // UPDATED: Use purchase_limit
+                purchase_limit: packageData.purchase_limit,
                 is_vip: packageData.is_vip
             };
-            
+
             updateMinimumAmounts();
         }
 
@@ -1041,8 +1041,8 @@
                 return;
             }
 
-            // Double-check if package is still available using purchase_limit
-            if (selectedPackage.purchase_limit <= 0) {  // UPDATED: Use purchase_limit
+            // Double-check if package is still available
+            if (selectedPackage.purchase_limit <= 0) {
                 alert('❌ This package is no longer available. Please select another package.');
                 loadPackages(); // Refresh packages
                 return;
@@ -1057,7 +1057,7 @@
             if (confirmPackage) confirmPackage.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
             if (confirmAmount) confirmAmount.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
             if (confirmPrice) confirmPrice.textContent = `$${selectedPackage.price} USD`;
-            if (confirmRemaining) confirmRemaining.textContent = `${selectedPackage.purchase_limit - 1} left after your purchase`;  // UPDATED: Use purchase_limit
+            if (confirmRemaining) confirmRemaining.textContent = `${selectedPackage.purchase_limit - 1} left after your purchase`;
             if (modal) modal.style.display = 'flex';
         }
 
@@ -1066,7 +1066,7 @@
             if (modal) modal.style.display = 'none';
         }
 
-        // UPDATED: Enhanced Manual Transaction Confirmation with your exact table structure
+        // FIXED: Enhanced Manual Transaction Confirmation with WORKING purchase limits
         async function processManualConfirmation() {
             try {
                 if (!selectedPackage) {
@@ -1080,14 +1080,14 @@
                     return;
                 }
 
-                // Final availability check using purchase_limit
+                // Final availability check
                 const { data: currentPackage, error: packageError } = await supabaseClient
                     .from('package_types')
-                    .select('purchase_limit')  // UPDATED: Use purchase_limit
+                    .select('purchase_limit')
                     .eq('id', selectedPackage.id)
                     .single();
 
-                if (packageError || !currentPackage || currentPackage.purchase_limit <= 0) {  // UPDATED: Use purchase_limit
+                if (packageError || !currentPackage || currentPackage.purchase_limit <= 0) {
                     alert('❌ This package is no longer available. Please select another package.');
                     await loadPackages();
                     closeConfirmation();
@@ -1120,7 +1120,7 @@
                     price_usd: selectedPackage.price
                 });
 
-                // UPDATED: Create pending transaction record with your exact table structure
+                // Create pending transaction record
                 const { data: transaction, error } = await supabaseClient
                     .from('pending_transactions')
                     .insert({
@@ -1131,7 +1131,7 @@
                         price_usd: selectedPackage.price,
                         payment_method: 'crypto',
                         status: 'pending',
-                        tx_hash: txHash.trim(),  // UPDATED: Use tx_hash (not tx_harsh)
+                        tx_hash: txHash.trim(),
                         user_notes: userNotes || '',
                         package_name: selectedPackage.package_name,
                         is_vip: selectedPackage.is_vip,
@@ -1142,6 +1142,21 @@
                 if (error) {
                     console.error('❌ Database error:', error);
                     throw new Error('Failed to submit transaction: ' + error.message);
+                }
+
+                // FIXED: DECREMENT PURCHASE LIMIT - This was missing!
+                const { error: updateError } = await supabaseClient
+                    .from('package_types')
+                    .update({
+                        purchase_limit: currentPackage.purchase_limit - 1
+                    })
+                    .eq('id', selectedPackage.id);
+
+                if (updateError) {
+                    console.warn('⚠️ Could not update purchase limit:', updateError);
+                    // Continue anyway - don't block the transaction
+                } else {
+                    console.log('✅ Purchase limit decremented successfully');
                 }
 
                 // Close confirmation modal
