@@ -304,6 +304,11 @@
             border: 1px solid var(--border-color);
         }
 
+        .qr-code canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
         .manual-setup {
             background: rgba(255, 255, 255, 0.05);
             padding: 15px;
@@ -684,22 +689,22 @@
                     <h3 class="modal-title">Change Password</h3>
                     <button class="close-btn" onclick="closePasswordModal()">&times;</button>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Current Password</label>
                     <input type="password" class="password-input" id="currentPassword" required>
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">New Password</label>
                     <input type="password" class="password-input" id="newPassword" required minlength="6">
                 </div>
-                
+
                 <div class="form-group">
                     <label class="form-label">Confirm New Password</label>
                     <input type="password" class="password-input" id="confirmPassword" required minlength="6">
                 </div>
-                
+
                 <div class="password-actions">
                     <button class="modal-btn secondary" onclick="closePasswordModal()">Cancel</button>
                     <button class="modal-btn primary" onclick="changePassword()" id="changePasswordBtn">Change Password</button>
@@ -714,18 +719,18 @@
                     <h3 class="modal-title">Enable Two-Factor Authentication</h3>
                     <button class="close-btn" onclick="close2FAModal()">&times;</button>
                 </div>
-                
+
                 <div id="setupStep1">
                     <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
                         Scan the QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.)
                     </p>
-                    
+
                     <div class="qr-code-container">
                         <div class="qr-code" id="qrCode">
                             <!-- QR Code will be generated here -->
                         </div>
                     </div>
-                    
+
                     <div class="manual-setup">
                         <p style="margin-bottom: 10px; font-weight: 600;">Can't scan the QR code?</p>
                         <p style="margin-bottom: 5px;">Enter this code manually:</p>
@@ -734,30 +739,30 @@
                             <button class="copy-btn" id="copyKeyBtn" onclick="copySecretKey()">Copy</button>
                         </div>
                     </div>
-                    
+
                     <div class="step-indicator">
                         <div class="step active"></div>
                         <div class="step"></div>
                     </div>
-                    
+
                     <div class="modal-actions">
                         <button class="modal-btn secondary" onclick="close2FAModal()">Cancel</button>
                         <button class="modal-btn primary" onclick="showVerificationStep()">Next</button>
                     </div>
                 </div>
-                
+
                 <div id="setupStep2" style="display: none;">
                     <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
                         Enter the 6-digit code from your authenticator app to verify setup.
                     </p>
-                    
+
                     <input type="text" class="verification-input" id="verificationCode" placeholder="000000" maxlength="6" oninput="validateVerificationCode()">
-                    
+
                     <div class="step-indicator">
                         <div class="step"></div>
                         <div class="step active"></div>
                     </div>
-                    
+
                     <div class="modal-actions">
                         <button class="modal-btn secondary" onclick="showQRStep()">Back</button>
                         <button class="modal-btn primary" id="verifyBtn" onclick="verify2FACode()" disabled>Verify & Enable</button>
@@ -773,11 +778,11 @@
                     <h3 class="modal-title">Backup Codes</h3>
                     <button class="close-btn" onclick="closeBackupCodesModal()">&times;</button>
                 </div>
-                
+
                 <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
                     Save these backup codes in a secure place. You can use them to access your account if you lose your authenticator device.
                 </p>
-                
+
                 <div class="backup-codes">
                     <div class="backup-code">A1B2C3D4E5</div>
                     <div class="backup-code">F6G7H8I9J0</div>
@@ -788,7 +793,7 @@
                     <div class="backup-code">E1F2G3H4I5</div>
                     <div class="backup-code">J6K7L8M9N0</div>
                 </div>
-                
+
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="modal-btn secondary" onclick="printBackupCodes()" style="flex: 1;">
                         Print
@@ -932,7 +937,7 @@
                 // Success
                 successMessage.textContent = 'Password changed successfully!';
                 successMessage.style.display = 'block';
-                
+
                 // Close modal and reset form
                 setTimeout(() => {
                     closePasswordModal();
@@ -968,7 +973,7 @@
                         const now = new Date();
                         const diffTime = Math.abs(now - date);
                         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        
+
                         let displayText = 'Last changed: ';
                         if (diffDays === 1) {
                             displayText += 'Today';
@@ -981,7 +986,7 @@
                         } else {
                             displayText += date.toLocaleDateString();
                         }
-                        
+
                         document.getElementById('passwordLastChanged').textContent = displayText;
                     } else {
                         document.getElementById('passwordLastChanged').textContent = 'Last changed: Never';
@@ -995,7 +1000,7 @@
 
         async function viewSessions() {
             const sessionsList = document.getElementById('sessionsList');
-            
+
             if (sessionsList.style.display === 'none') {
                 // Load sessions from database
                 await loadSessions();
@@ -1051,7 +1056,7 @@
 
         function formatDate(dateString) {
             if (!dateString) return 'Unknown';
-            
+
             const date = new Date(dateString);
             const now = new Date();
             const diffTime = Math.abs(now - date);
@@ -1064,7 +1069,7 @@
             if (diffHours < 24) return `${diffHours} hours ago`;
             if (diffDays === 1) return 'Yesterday';
             if (diffDays < 7) return `${diffDays} days ago`;
-            
+
             return date.toLocaleDateString();
         }
 
@@ -1072,10 +1077,10 @@
             alert('Account recovery setup coming soon!');
         }
 
-        // 2FA Functions
-        function open2FAModal() {
+        // 2FA Functions - FIXED VERSION
+        async function open2FAModal() {
             document.getElementById('twoFactorModal').style.display = 'flex';
-            generateQRCode();
+            await generateQRCode(); // Make this async
         }
 
         function close2FAModal() {
@@ -1084,55 +1089,98 @@
             showQRStep();
         }
 
-        function generateQRCode() {
-            // Generate a proper 32-character base32 secret key
-            const secretKey = generateSecretKey();
+        async function generateQRCode() {
+            // Get or create secret key (FIXED: Reuse existing key)
+            const secretKey = await getOrCreateSecretKey();
             document.getElementById('manualKey').textContent = secretKey;
-            
+
             // Create the OTP Auth URI
             const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
             const userEmail = userSession ? userSession.email : "user@nemexcoin.com";
             const issuer = "NemexCoin";
             const otpAuthUri = `otpauth://totp/${issuer}:${userEmail}?secret=${secretKey}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
-            
-            // Generate QR Code with WHITE background for scanning
+
+            // Generate QR Code with PROPER WHITE background for scanning
             const qrCodeElement = document.getElementById('qrCode');
             qrCodeElement.innerHTML = '';
+
+            // Create a canvas with white background first
+            const canvas = document.createElement('canvas');
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext('2d');
             
-            QRCode.toCanvas(qrCodeElement, otpAuthUri, {
+            // Fill with white background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 200, 200);
+            
+            // Generate QR code on the white background
+            QRCode.toCanvas(canvas, otpAuthUri, {
                 width: 180,
-                height: 180,
-                colorDark: "#000000", // Black dots for contrast
-                colorLight: "#ffffff", // WHITE background for scanning
-                margin: 1
+                margin: 1,
+                colorDark: "#000000",
+                colorLight: "#ffffff"
             }, function(error) {
                 if (error) {
                     console.error('QR Code generation error:', error);
                     createFallbackQRCode();
+                } else {
+                    qrCodeElement.appendChild(canvas);
                 }
             });
+        }
+
+        // NEW FUNCTION: Get existing secret key or create new one (FIXED)
+        async function getOrCreateSecretKey() {
+            try {
+                const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
+                if (!userSession || !userSession.id) {
+                    return generateSecretKey(); // Fallback if no user session
+                }
+
+                // Check if user already has a secret key in database
+                const { data: user, error } = await supabase
+                    .from('profiles')
+                    .select('two_factor_secret')
+                    .eq('id', userSession.id)
+                    .single();
+
+                if (!error && user && user.two_factor_secret) {
+                    console.log('🔑 Using existing secret key:', user.two_factor_secret);
+                    return user.two_factor_secret; // Return existing key
+                }
+
+                // Generate new key only if none exists
+                const newSecretKey = generateSecretKey();
+                console.log('🔑 Generating new secret key:', newSecretKey);
+                return newSecretKey;
+
+            } catch (error) {
+                console.error('Error getting secret key:', error);
+                return generateSecretKey(); // Fallback on error
+            }
         }
 
         function generateSecretKey() {
             // Generate a proper 32-character base32 secret
             const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
             let secret = '';
-            
+
             for (let i = 0; i < 32; i++) {
                 secret += base32Chars.charAt(Math.floor(Math.random() * base32Chars.length));
             }
-            
+
             return secret;
         }
 
         function copySecretKey() {
             const secretKey = document.getElementById('manualKey').textContent;
             const copyBtn = document.getElementById('copyKeyBtn');
-            
+
             navigator.clipboard.writeText(secretKey).then(() => {
                 copyBtn.textContent = 'Copied!';
                 copyBtn.classList.add('copied');
-                
+
                 setTimeout(() => {
                     copyBtn.textContent = 'Copy';
                     copyBtn.classList.remove('copied');
@@ -1146,32 +1194,32 @@
         function createFallbackQRCode() {
             const qrCodeElement = document.getElementById('qrCode');
             qrCodeElement.innerHTML = '';
-            
+
             const canvas = document.createElement('canvas');
-            canvas.width = 180;
-            canvas.height = 180;
+            canvas.width = 200;
+            canvas.height = 200;
             const ctx = canvas.getContext('2d');
-            
-            // Draw white background for scanning
+
+            // Draw white background for scanning (FIXED)
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, 180, 180);
-            
+            ctx.fillRect(0, 0, 200, 200);
+
             // Draw black QR code pattern
             ctx.fillStyle = '#000000';
             // Draw position markers
-            ctx.fillRect(10, 10, 40, 40);
-            ctx.fillRect(130, 10, 40, 40);
-            ctx.fillRect(10, 130, 40, 40);
-            
+            ctx.fillRect(20, 20, 40, 40);
+            ctx.fillRect(140, 20, 40, 40);
+            ctx.fillRect(20, 140, 40, 40);
+
             // Draw some pattern lines
             for (let i = 0; i < 12; i++) {
                 for (let j = 0; j < 12; j++) {
                     if ((i + j) % 3 === 0 || (i * j) % 5 === 0) {
-                        ctx.fillRect(20 + i * 12, 20 + j * 12, 8, 8);
+                        ctx.fillRect(30 + i * 12, 30 + j * 12, 8, 8);
                     }
                 }
             }
-            
+
             qrCodeElement.appendChild(canvas);
         }
 
@@ -1189,7 +1237,7 @@
         function validateVerificationCode() {
             const code = document.getElementById('verificationCode').value;
             const verifyBtn = document.getElementById('verifyBtn');
-            
+
             if (/^\d{6}$/.test(code)) {
                 verifyBtn.disabled = false;
             } else {
@@ -1206,7 +1254,7 @@
 
             try {
                 const secretKey = document.getElementById('manualKey').textContent;
-                
+
                 // Save 2FA to database
                 const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
                 if (!userSession || !userSession.id) {
@@ -1214,11 +1262,11 @@
                 }
 
                 console.log('💾 Saving 2FA to database for user:', userSession.id);
-                
+
                 const { data, error } = await supabase
                     .from('profiles')
                     .update({ 
-                        two_factor_secret: secretKey,
+                        two_factor_secret: secretKey, // This will be the same key now
                         two_factor_enabled: true,
                         updated_at: new Date().toISOString()
                     })
@@ -1229,16 +1277,16 @@
                     throw new Error('Failed to enable 2FA');
                 }
 
-                console.log('✅ 2FA saved to database');
-                
+                console.log('✅ 2FA saved to database with key:', secretKey);
+
                 // Success - enable 2FA
                 document.getElementById('twoFactorStatus').textContent = 'Active';
                 document.getElementById('twoFactorStatus').classList.remove('inactive');
                 document.getElementById('twoFactorStatus').classList.add('active');
-                
+
                 close2FAModal();
                 showBackupCodesModal();
-                
+
             } catch (error) {
                 console.error('❌ 2FA verification error:', error);
                 alert('Failed to enable 2FA: ' + error.message);
@@ -1281,11 +1329,43 @@
             }
         }
 
+        // FIXED: disable2FA function - doesn't delete secret key
+        async function disable2FA() {
+            try {
+                const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
+                if (!userSession || !userSession.id) return;
+
+                // ONLY disable 2FA but KEEP the secret key
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        two_factor_enabled: false,
+                        // Don't set two_factor_secret to null - keep it!
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userSession.id);
+
+                if (error) {
+                    throw new Error('Failed to disable 2FA');
+                }
+
+                document.getElementById('twoFactorStatus').textContent = 'Inactive';
+                document.getElementById('twoFactorStatus').classList.remove('active');
+                document.getElementById('twoFactorStatus').classList.add('inactive');
+                
+                alert('Two-Factor Authentication has been disabled. Your secret key is preserved for future use.');
+
+            } catch (error) {
+                console.error('Error disabling 2FA:', error);
+                alert('Failed to disable 2FA: ' + error.message);
+            }
+        }
+
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             const currentPage = window.location.pathname.split('/').pop() || 'security.html';
             const navItems = document.querySelectorAll('.nav-item');
-            
+
             navItems.forEach(item => {
                 const href = item.getAttribute('href');
                 if (href === currentPage) {
@@ -1294,11 +1374,11 @@
                     item.classList.remove('active');
                 }
             });
-            
+
             // Load current data
             load2FAStatus();
             loadPasswordLastChanged();
-            
+
             // Add click handler for 2FA item
             const twoFactorItem = document.querySelector('.security-item:nth-child(2)');
             twoFactorItem.addEventListener('click', function() {
@@ -1312,35 +1392,6 @@
                 }
             });
         });
-
-        async function disable2FA() {
-            try {
-                const userSession = JSON.parse(localStorage.getItem('nemexcoin_user'));
-                if (!userSession || !userSession.id) return;
-
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        two_factor_enabled: false,
-                        two_factor_secret: null,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', userSession.id);
-
-                if (error) {
-                    throw new Error('Failed to disable 2FA');
-                }
-
-                document.getElementById('twoFactorStatus').textContent = 'Inactive';
-                document.getElementById('twoFactorStatus').classList.remove('active');
-                document.getElementById('twoFactorStatus').classList.add('inactive');
-                alert('Two-Factor Authentication has been disabled.');
-                
-            } catch (error) {
-                console.error('Error disabling 2FA:', error);
-                alert('Failed to disable 2FA: ' + error.message);
-            }
-        }
     </script>
 </body>
 </html>
