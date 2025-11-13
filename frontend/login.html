@@ -879,70 +879,55 @@
             verifyBtn.disabled = !/^[A-Z0-9]{10}$/i.test(code);
         }
 
-        // ENHANCED: Backup code verification with recovery support
-        async function verifyBackupCode() {
-            const code = document.getElementById('backupCode').value.toUpperCase();
-            const verifyBtn = document.getElementById('verifyBackupBtn');
+        // FIXED: Backup code verification - allows reuse
+async function verifyBackupCode() {
+    const code = document.getElementById('backupCode').value.toUpperCase();
+    const verifyBtn = document.getElementById('verifyBackupBtn');
 
-            verifyBtn.disabled = true;
-            verifyBtn.innerHTML = '<span class="loading-spinner"></span>Verifying...';
+    verifyBtn.disabled = true;
+    verifyBtn.innerHTML = '<span class="loading-spinner"></span>Verifying...';
 
-            try {
-                console.log('🔑 Backup code verification attempt:', code);
+    try {
+        console.log('🔑 Backup code verification attempt:', code);
 
-                // Check if backup codes exist in database
-                if (!currentUser.backup_codes || !Array.isArray(currentUser.backup_codes)) {
-                    throw new Error('No backup codes available for this account');
-                }
-
-                // Find the backup code
-                const backupCode = currentUser.backup_codes.find(bc => 
-                    bc.code === code && bc.used === false
-                );
-
-                if (!backupCode) {
-                    throw new Error('Invalid or already used backup code');
-                }
-
-                console.log('✅ Valid backup code found');
-
-                // Mark backup code as used in database
-                const updatedBackupCodes = currentUser.backup_codes.map(bc => 
-                    bc.code === code ? { ...bc, used: true, used_at: new Date().toISOString() } : bc
-                );
-
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        backup_codes: updatedBackupCodes,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', currentUser.id);
-
-                if (updateError) {
-                    console.error('❌ Backup code update error:', updateError);
-                    throw new Error('Failed to update backup codes');
-                }
-
-                console.log('✅ Backup code marked as used');
-
-                if (isRecoveryMode) {
-                    showPasswordResetModal();
-                } else {
-                    const { data: { session }, error } = await supabase.auth.getSession();
-                    if (error) throw error;
-                    await completeLogin(currentUser, session);
-                }
-            } catch (error) {
-                console.error('❌ Backup code verification error:', error);
-                document.getElementById('errorMessage').textContent = error.message;
-                document.getElementById('errorMessage').style.display = 'block';
-                verifyBtn.disabled = false;
-                verifyBtn.textContent = 'Verify';
-                document.getElementById('backupCode').value = '';
-                document.getElementById('backupCode').focus();
-            }
+        // Check if backup codes exist in database
+        if (!currentUser.backup_codes || !Array.isArray(currentUser.backup_codes)) {
+            throw new Error('No backup codes available for this account');
         }
+
+        // FIXED: Check if code exists (no usage check - allows reuse)
+        const backupCode = currentUser.backup_codes.find(bc => 
+            bc.code === code
+        );
+
+        if (!backupCode) {
+            throw new Error('Invalid backup code');
+        }
+
+        console.log('✅ Valid backup code found - allowing reuse');
+
+        // FIXED: No longer mark backup codes as used - they remain reusable
+        // We don't update the database because codes stay the same
+
+        console.log('✅ Backup code verified successfully (reusable)');
+
+        if (isRecoveryMode) {
+            showPasswordResetModal();
+        } else {
+            const { data: { session }, error } = await supabase.auth.getSession();
+            if (error) throw error;
+            await completeLogin(currentUser, session);
+        }
+    } catch (error) {
+        console.error('❌ Backup code verification error:', error);
+        document.getElementById('errorMessage').textContent = error.message;
+        document.getElementById('errorMessage').style.display = 'block';
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = 'Verify';
+        document.getElementById('backupCode').value = '';
+        document.getElementById('backupCode').focus();
+    }
+}
 
         function cancel2FA() {
             document.getElementById('twoFactorModal').style.display = 'none';
