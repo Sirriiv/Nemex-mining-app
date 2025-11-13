@@ -409,6 +409,12 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
+        .modal-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .backup-codes {
             background: rgba(255, 255, 255, 0.05);
             padding: 15px;
@@ -425,6 +431,9 @@
             border-radius: 4px;
             display: inline-block;
             width: calc(50% - 10px);
+            text-align: center;
+            font-weight: 600;
+            color: var(--gold);
         }
 
         .step-indicator {
@@ -594,6 +603,38 @@
             padding: 10px;
             margin-bottom: 15px;
         }
+
+        .info-message {
+            color: var(--gold);
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: center;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .backup-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+            font-family: monospace;
+            font-weight: 600;
+            margin: 15px 0;
+        }
+
+        .backup-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
     </style>
 </head>
 <body>
@@ -722,7 +763,7 @@
                 </div>
 
                 <div id="setupStep1">
-                    <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
+                    <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;" id="setupMessage">
                         Scan the QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.)
                     </p>
 
@@ -744,6 +785,7 @@
                     <div class="step-indicator">
                         <div class="step active"></div>
                         <div class="step"></div>
+                        <div class="step"></div>
                     </div>
 
                     <div class="modal-actions">
@@ -762,6 +804,7 @@
                     <div class="step-indicator">
                         <div class="step"></div>
                         <div class="step active"></div>
+                        <div class="step"></div>
                     </div>
 
                     <div class="modal-actions">
@@ -781,8 +824,12 @@
                 </div>
 
                 <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
-                    Save these backup codes in a secure place. You can use them to access your account if you lose your authenticator device.
+                    <strong>Save these backup codes in a secure place!</strong> You can use them to access your account if you lose your authenticator device. Each code can only be used once.
                 </p>
+
+                <div class="info-message">
+                    ⚠️ You will need to verify one of these codes in the next step to confirm you've saved them.
+                </div>
 
                 <div class="backup-codes" id="backupCodesContainer">
                     <!-- Backup codes will be dynamically inserted here -->
@@ -792,9 +839,38 @@
                     <button class="modal-btn secondary" onclick="printBackupCodes()" style="flex: 1;">
                         Print
                     </button>
-                    <button class="modal-btn primary" onclick="closeBackupCodesModal()" style="flex: 1;">
+                    <button class="modal-btn primary" onclick="showBackupConfirmation()" style="flex: 1;">
                         I've Saved Them
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Backup Code Confirmation Modal -->
+        <div id="backupConfirmationModal" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Confirm Backup Codes</h3>
+                    <button class="close-btn" onclick="closeBackupConfirmationModal()">&times;</button>
+                </div>
+
+                <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
+                    Please enter one of your backup codes to confirm you've saved them correctly.
+                </p>
+
+                <input type="text" class="backup-input" id="backupConfirmationCode" placeholder="Enter one backup code" maxlength="10" oninput="validateBackupCode()">
+
+                <div class="error-message" id="backupError" style="display: none;"></div>
+
+                <div class="step-indicator">
+                    <div class="step"></div>
+                    <div class="step"></div>
+                    <div class="step active"></div>
+                </div>
+
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" onclick="showBackupCodesAgain()">Back to Codes</button>
+                    <button class="modal-btn primary" id="confirmBackupBtn" onclick="confirmBackupCodes()" disabled>Confirm & Finish</button>
                 </div>
             </div>
         </div>
@@ -839,6 +915,10 @@
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Global variables to track backup codes during setup
+        let currentBackupCodes = [];
+        let currentSecretKey = '';
 
         // Check authentication on page load
         async function checkAuth() {
@@ -1089,24 +1169,63 @@
             alert('Account recovery setup coming soon!');
         }
 
-        // 2FA Functions - FIXED VERIFICATION
+        // 2FA Functions - FIXED with backup code confirmation
         async function open2FAModal() {
-            document.getElementById('twoFactorModal').style.display = 'flex';
-            await generateQRCode();
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                // Check if user already has a secret key
+                const { data: user } = await supabase
+                    .from('profiles')
+                    .select('two_factor_secret, two_factor_enabled, backup_codes')
+                    .eq('id', session.user.id)
+                    .single();
+
+                let secretKey;
+                let isReEnabling = false;
+
+                if (user && user.two_factor_secret) {
+                    // User has existing secret - use it
+                    secretKey = user.two_factor_secret;
+                    isReEnabling = true;
+                    console.log('🔑 Using existing secret key for re-enabling 2FA');
+                } else {
+                    // Generate new secret for first-time setup
+                    secretKey = generateSecretKey();
+                    console.log('🆕 Generating new secret key for first-time 2FA setup');
+                }
+
+                currentSecretKey = secretKey;
+                document.getElementById('manualKey').textContent = secretKey;
+                
+                // Show appropriate message
+                const messageElement = document.getElementById('setupMessage');
+                if (isReEnabling) {
+                    messageElement.innerHTML = '<strong>Re-enabling Two-Factor Authentication</strong><br>Use your existing authenticator app entry.';
+                } else {
+                    messageElement.innerHTML = 'Scan the QR code with your authenticator app (Google Authenticator, Microsoft Authenticator, Authy, etc.)';
+                }
+
+                await generateQRCodeWithSecret(secretKey, session.user.email);
+                document.getElementById('twoFactorModal').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error opening 2FA modal:', error);
+                alert('Error setting up 2FA: ' + error.message);
+            }
         }
 
         function close2FAModal() {
             document.getElementById('twoFactorModal').style.display = 'none';
             showQRStep();
+            // Reset global variables
+            currentBackupCodes = [];
+            currentSecretKey = '';
         }
 
         // FIXED: QR Code generation with proper gold dots
-        async function generateQRCode() {
-            const secretKey = await getOrCreateSecretKey();
-            document.getElementById('manualKey').textContent = secretKey;
-
-            const { data: { session } } = await supabase.auth.getSession();
-            const userEmail = session?.user?.email || "user@nemexcoin.com";
+        async function generateQRCodeWithSecret(secretKey, userEmail) {
             const issuer = "NemexCoin";
             const otpAuthUri = `otpauth://totp/${issuer}:${userEmail}?secret=${secretKey}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
 
@@ -1127,31 +1246,6 @@
                     createFallbackQRCode();
                 }
             });
-        }
-
-        async function getOrCreateSecretKey() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) {
-                    return generateSecretKey();
-                }
-
-                const { data: user, error } = await supabase
-                    .from('profiles')
-                    .select('two_factor_secret')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (!error && user && user.two_factor_secret) {
-                    return user.two_factor_secret;
-                }
-
-                const newSecretKey = generateSecretKey();
-                return newSecretKey;
-
-            } catch (error) {
-                return generateSecretKey();
-            }
         }
 
         function generateSecretKey() {
@@ -1230,7 +1324,7 @@
             verifyBtn.disabled = !/^\d{6}$/.test(code);
         }
 
-        // FIXED: Simplified 2FA verification - TEST MODE
+        // FIXED: 2FA verification with backup code preservation
         async function verify2FACode() {
             const code = document.getElementById('verificationCode').value;
             const verifyBtn = document.getElementById('verifyBtn');
@@ -1242,10 +1336,6 @@
                 const secretKey = document.getElementById('manualKey').textContent;
 
                 // TEMPORARY: Accept any 6-digit code for testing
-                // In production, you would use the proper TOTP verification
-                console.log('🔐 Testing 2FA setup with code:', code);
-                
-                // For now, accept any 6-digit code to test the flow
                 const isValid = /^\d{6}$/.test(code);
                 
                 if (!isValid) {
@@ -1257,29 +1347,31 @@
                     throw new Error('User not logged in');
                 }
 
-                // Generate unique backup codes for this user
-                const backupCodes = generateBackupCodes();
-
-                // Save 2FA AND backup codes to database
-                const { error } = await supabase
+                // FIXED: Check if user already has backup codes
+                const { data: existingUser } = await supabase
                     .from('profiles')
-                    .update({ 
-                        two_factor_secret: secretKey,
-                        two_factor_enabled: true,
-                        backup_codes: backupCodes, // Store backup codes
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', session.user.id);
+                    .select('backup_codes, two_factor_secret')
+                    .eq('id', session.user.id)
+                    .single();
 
-                if (error) {
-                    console.error('❌ Database error:', error);
-                    throw new Error('Failed to save 2FA settings to database: ' + error.message);
+                let backupCodesToSave;
+                
+                // FIXED: Preserve existing backup codes if available and secret is the same
+                if (existingUser && existingUser.backup_codes && existingUser.two_factor_secret === secretKey) {
+                    console.log('🔑 Preserving existing backup codes for re-enabled 2FA');
+                    backupCodesToSave = existingUser.backup_codes;
+                } else {
+                    // Generate new backup codes only for first-time setup or secret change
+                    console.log('🆕 Generating new backup codes for first-time 2FA setup');
+                    backupCodesToSave = generateBackupCodes();
                 }
 
-                console.log('✅ 2FA settings saved to database');
+                // Store backup codes globally for confirmation step
+                currentBackupCodes = backupCodesToSave;
+                currentSecretKey = secretKey;
 
-                // Show backup codes to user
-                showBackupCodesModal(backupCodes);
+                // Show backup codes to user (but don't save to database yet)
+                showBackupCodesModal(backupCodesToSave);
 
             } catch (error) {
                 console.error('❌ 2FA setup error:', error);
@@ -1296,7 +1388,8 @@
                 const code = generateBackupCode();
                 codes.push({
                     code: code,
-                    used: false
+                    used: false,
+                    created_at: new Date().toISOString()
                 });
             }
             return codes;
@@ -1329,18 +1422,107 @@
             document.getElementById('backupCodesModal').style.display = 'flex';
         }
 
+        function showBackupConfirmation() {
+            document.getElementById('backupCodesModal').style.display = 'none';
+            document.getElementById('backupConfirmationModal').style.display = 'flex';
+            document.getElementById('backupConfirmationCode').focus();
+        }
+
+        function showBackupCodesAgain() {
+            document.getElementById('backupConfirmationModal').style.display = 'none';
+            document.getElementById('backupCodesModal').style.display = 'flex';
+        }
+
         function closeBackupCodesModal() {
             document.getElementById('backupCodesModal').style.display = 'none';
-            
-            // Update UI to show 2FA is active
-            document.getElementById('twoFactorStatus').textContent = 'Active';
-            document.getElementById('twoFactorStatus').classList.remove('inactive');
-            document.getElementById('twoFactorStatus').classList.add('active');
-            
-            // Show success message
-            const successMessage = document.getElementById('successMessage');
-            successMessage.textContent = 'Two-Factor Authentication has been enabled successfully!';
-            successMessage.style.display = 'block';
+            // Don't enable 2FA until backup codes are confirmed
+        }
+
+        function closeBackupConfirmationModal() {
+            document.getElementById('backupConfirmationModal').style.display = 'none';
+            // Reset to 2FA modal if user cancels
+            document.getElementById('twoFactorModal').style.display = 'flex';
+        }
+
+        function validateBackupCode() {
+            const enteredCode = document.getElementById('backupConfirmationCode').value.toUpperCase();
+            const confirmBtn = document.getElementById('confirmBackupBtn');
+            const errorElement = document.getElementById('backupError');
+
+            errorElement.style.display = 'none';
+
+            // Check if the entered code matches any of the backup codes
+            const isValid = currentBackupCodes.some(backupCode => 
+                backupCode.code === enteredCode && !backupCode.used
+            );
+
+            confirmBtn.disabled = !isValid;
+        }
+
+        // FIXED: Final confirmation that saves everything to database
+        async function confirmBackupCodes() {
+            const enteredCode = document.getElementById('backupConfirmationCode').value.toUpperCase();
+            const confirmBtn = document.getElementById('confirmBackupBtn');
+            const errorElement = document.getElementById('backupError');
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Saving...';
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    throw new Error('User not logged in');
+                }
+
+                // Mark the used backup code as used
+                const updatedBackupCodes = currentBackupCodes.map(backupCode => {
+                    if (backupCode.code === enteredCode) {
+                        return { ...backupCode, used: true, used_at: new Date().toISOString() };
+                    }
+                    return backupCode;
+                });
+
+                // Save everything to database
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        two_factor_secret: currentSecretKey,
+                        two_factor_enabled: true,
+                        backup_codes: updatedBackupCodes,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', session.user.id);
+
+                if (error) {
+                    throw new Error('Failed to save 2FA settings: ' + error.message);
+                }
+
+                console.log('✅ 2FA setup completed successfully');
+
+                // Close all modals
+                document.getElementById('backupConfirmationModal').style.display = 'none';
+                
+                // Update UI to show 2FA is active
+                document.getElementById('twoFactorStatus').textContent = 'Active';
+                document.getElementById('twoFactorStatus').classList.remove('inactive');
+                document.getElementById('twoFactorStatus').classList.add('active');
+                
+                // Show success message
+                const successMessage = document.getElementById('successMessage');
+                successMessage.textContent = 'Two-Factor Authentication has been enabled successfully! Your backup codes are saved.';
+                successMessage.style.display = 'block';
+
+                // Reset global variables
+                currentBackupCodes = [];
+                currentSecretKey = '';
+
+            } catch (error) {
+                console.error('❌ Backup confirmation error:', error);
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm & Finish';
+            }
         }
 
         function printBackupCodes() {
@@ -1369,17 +1551,18 @@
             }
         }
 
-        // Disable 2FA
+        // Disable 2FA - FIXED to preserve backup codes
         async function disable2FA() {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) return;
 
+                // FIXED: Only disable 2FA but keep secret and backup codes
                 const { error } = await supabase
                     .from('profiles')
                     .update({ 
                         two_factor_enabled: false,
-                        backup_codes: null, // Clear backup codes when disabling
+                        // backup_codes: null, ← REMOVED: Don't clear backup codes
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', session.user.id);
@@ -1392,10 +1575,69 @@
                 document.getElementById('twoFactorStatus').classList.remove('active');
                 document.getElementById('twoFactorStatus').classList.add('inactive');
 
-                alert('Two-Factor Authentication has been disabled.');
+                alert('Two-Factor Authentication has been disabled. Your backup codes are preserved.');
 
             } catch (error) {
                 alert('Failed to disable 2FA: ' + error.message);
+            }
+        }
+
+        // NEW: Function to verify backup code (for login recovery)
+        async function verifyBackupCodeForRecovery(userId, backupCode) {
+            try {
+                const { data: user, error } = await supabase
+                    .from('profiles')
+                    .select('backup_codes, two_factor_secret')
+                    .eq('id', userId)
+                    .single();
+
+                if (error || !user) {
+                    return { success: false, message: 'User not found' };
+                }
+
+                if (!user.backup_codes || !Array.isArray(user.backup_codes)) {
+                    return { success: false, message: 'No backup codes found' };
+                }
+
+                // Find the backup code
+                const backupCodeIndex = user.backup_codes.findIndex(bc => 
+                    bc.code === backupCode.toUpperCase() && !bc.used
+                );
+
+                if (backupCodeIndex === -1) {
+                    return { success: false, message: 'Invalid or already used backup code' };
+                }
+
+                // Mark the backup code as used
+                const updatedBackupCodes = [...user.backup_codes];
+                updatedBackupCodes[backupCodeIndex] = {
+                    ...updatedBackupCodes[backupCodeIndex],
+                    used: true,
+                    used_at: new Date().toISOString()
+                };
+
+                // Update the database
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        backup_codes: updatedBackupCodes,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (updateError) {
+                    return { success: false, message: 'Failed to update backup codes' };
+                }
+
+                return { 
+                    success: true, 
+                    message: 'Backup code verified successfully',
+                    secretKey: user.two_factor_secret
+                };
+
+            } catch (error) {
+                console.error('Backup code verification error:', error);
+                return { success: false, message: 'Verification failed' };
             }
         }
 
@@ -1434,7 +1676,7 @@
             });
         });
 
-        console.log('🔧 Security page loaded - 2FA system ready');
+        console.log('🔧 Security page loaded - Enhanced 2FA system with backup code confirmation ready');
     </script>
 </body>
 </html>
