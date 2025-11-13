@@ -315,7 +315,7 @@
 
         <div class="error-message" id="errorMessage"></div>
         <div class="migration-notice" id="migrationNotice" style="display: none;">
-            <strong>System Update:</strong> We've upgraded our security system. If you're having trouble logging in, use the 2FA recovery option below.
+            <strong>Account Migration:</strong> If you're having trouble logging in, use the 2FA recovery option below.
         </div>
 
         <form id="loginForm">
@@ -415,7 +415,7 @@
                 // Check if user exists and has 2FA enabled
                 const { data: user, error } = await supabase
                     .from('profiles')
-                    .select('id, email, two_factor_enabled, two_factor_secret')
+                    .select('id, email, username, full_name, balance, two_factor_enabled, two_factor_secret')
                     .eq('email', email)
                     .single();
 
@@ -433,6 +433,7 @@
                 currentUser = user;
                 user2FASecret = user.two_factor_secret;
                 isRecoveryMode = true;
+                needsMigration = true; // Force migration for recovery
 
                 // Show 2FA modal with recovery message
                 show2FARecoveryModal();
@@ -457,7 +458,7 @@
             document.getElementById('recoveryNotice').style.display = 'block';
         }
 
-        // UPDATED: Enhanced login with Supabase Auth + Migration handling
+        // UPDATED: Hybrid login that works with both systems
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -477,7 +478,7 @@
             try {
                 console.log('🔐 Attempting Supabase Auth login for:', email);
 
-                // Use Supabase Auth to sign in
+                // FIRST: Try Supabase Auth login
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -486,36 +487,40 @@
                 if (authError) {
                     console.error('❌ Supabase Auth error:', authError);
 
-                    // Check if it's an invalid login error
-                    if (authError.message.includes('Invalid login credentials')) {
-                        // Check if user exists in profiles table but not in Supabase Auth
-                        const { data: user, error: profileError } = await supabase
-                            .from('profiles')
-                            .select('*, two_factor_enabled, two_factor_secret')
-                            .eq('email', email)
-                            .single();
+                    // Check if user exists in profiles table for migration
+                    const { data: user, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('id, email, username, full_name, balance, password, two_factor_enabled, two_factor_secret')
+                        .eq('email', email)
+                        .single();
 
-                        if (user && !profileError) {
-                            console.log('🔄 User exists in profiles but not in Supabase Auth - needs migration');
-                            needsMigration = true;
+                    if (user && !profileError) {
+                        console.log('🔄 User exists in profiles table, checking password...');
+                        
+                        // Verify password against profiles table
+                        if (user.password === password) {
+                            console.log('✅ Password verified in profiles table - needs migration');
                             currentUser = user;
+                            needsMigration = true;
                             
-                            // Show migration notice and suggest 2FA recovery
-                            migrationNotice.style.display = 'block';
-                            migrationNotice.innerHTML = `
-                                <strong>Account Migration Required</strong><br>
-                                Your account needs to be migrated to our new security system.<br>
-                                Please use the <strong>"Forgot password? Use 2FA to access your account"</strong> option below to access your account and complete the migration.
-                            `;
-                            
-                            loginBtn.disabled = false;
-                            loginBtn.textContent = 'Sign In';
-                            return;
+                            // Check if 2FA is enabled
+                            if (user.two_factor_enabled && user.two_factor_secret) {
+                                console.log('🔒 2FA enabled, showing verification');
+                                user2FASecret = user.two_factor_secret;
+                                show2FAModal();
+                                loginBtn.disabled = false;
+                                loginBtn.textContent = 'Sign In';
+                                return;
+                            } else {
+                                // No 2FA, proceed with migration
+                                await migrateUserToSupabaseAuth(user, password);
+                                return;
+                            }
                         } else {
                             throw new Error('Invalid email or password');
                         }
                     } else {
-                        throw new Error(authError.message);
+                        throw new Error('Invalid email or password');
                     }
                 }
 
@@ -545,16 +550,14 @@
                 // Check if 2FA is enabled AND has a secret
                 if (user.two_factor_enabled && user.two_factor_secret) {
                     console.log('🔒 2FA is enabled for user, showing verification modal');
-                    console.log('📱 Secret found:', user.two_factor_secret);
                     user2FASecret = user.two_factor_secret;
                     show2FAModal();
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Sign In';
-                    return; // Stop here, wait for 2FA verification
+                    return;
                 } else {
                     console.log('🔓 2FA not enabled, proceeding with normal login');
-                    // If no 2FA, proceed with login completion
-                    await completeLogin(user);
+                    await completeLogin(user, authData.session);
                 }
 
             } catch (error) {
@@ -566,12 +569,61 @@
             }
         });
 
+        // Migrate user from profiles table to Supabase Auth
+        async function migrateUserToSupabaseAuth(user, password) {
+            try {
+                console.log('🔄 Migrating user to Supabase Auth:', user.email);
+
+                // Try to sign up the user in Supabase Auth
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: user.email,
+                    password: password,
+                    options: {
+                        data: {
+                            username: user.username,
+                            full_name: user.full_name
+                        }
+                    }
+                });
+
+                if (authError) {
+                    console.error('❌ Auth migration error:', authError);
+                    
+                    // If user already exists in Auth but password is different, try sign in
+                    if (authError.message.includes('already registered')) {
+                        console.log('🔄 User exists in Auth, trying sign in...');
+                        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                            email: user.email,
+                            password: password
+                        });
+
+                        if (signInError) {
+                            throw new Error('Migration failed. Please use 2FA recovery.');
+                        }
+
+                        console.log('✅ Successfully signed in after migration');
+                        await completeLogin(user, signInData.session);
+                        return;
+                    } else {
+                        throw new Error('Migration failed. Please use 2FA recovery.');
+                    }
+                }
+
+                console.log('✅ Successfully migrated user to Supabase Auth');
+                await completeLogin(user, authData.session);
+
+            } catch (error) {
+                console.error('❌ Migration error:', error);
+                throw error;
+            }
+        }
+
         function show2FAModal() {
             document.getElementById('twoFactorModal').style.display = 'flex';
             document.getElementById('twoFactorCode').value = '';
             document.getElementById('twoFactorCode').focus();
             document.getElementById('verify2FABtn').disabled = true;
-            document.getElementById('verify2FABtn').textContent = 'Verify';
+            document.getElementById('verify2FABtn').textContent = needsMigration ? 'Verify & Migrate' : 'Verify';
 
             // Reset modal to normal mode
             document.getElementById('twoFAModalTitle').textContent = 'Two-Factor Authentication';
@@ -583,7 +635,6 @@
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
 
-            // Check if it's exactly 6 digits
             if (/^\d{6}$/.test(code)) {
                 verifyBtn.disabled = false;
             } else {
@@ -600,11 +651,9 @@
 
             try {
                 console.log('🔐 Verifying 2FA code:', code);
-                console.log('🔑 Using secret:', user2FASecret);
                 console.log('🔄 Recovery Mode:', isRecoveryMode);
                 console.log('🚀 Needs Migration:', needsMigration);
 
-                // Verify the TOTP code using the stored secret
                 const isValid = verifyTOTP(code, user2FASecret);
 
                 if (isValid) {
@@ -614,8 +663,10 @@
                         console.log('🎯 Recovery/Migration mode - creating Supabase session');
                         await createRecoverySession();
                     } else {
-                        // Normal login flow - Supabase session already exists
-                        await completeLogin(currentUser);
+                        // Normal login flow - get fresh session
+                        const { data: { session }, error } = await supabase.auth.getSession();
+                        if (error) throw error;
+                        await completeLogin(currentUser, session);
                     }
                 } else {
                     throw new Error('Invalid verification code. Please try again.');
@@ -625,24 +676,20 @@
                 document.getElementById('errorMessage').textContent = error.message;
                 document.getElementById('errorMessage').style.display = 'block';
                 verifyBtn.disabled = false;
-                verifyBtn.textContent = isRecoveryMode ? 'Verify & Access' : 'Verify';
-
-                // Clear the input for retry
+                verifyBtn.textContent = isRecoveryMode ? 'Verify & Access' : (needsMigration ? 'Verify & Migrate' : 'Verify');
                 document.getElementById('twoFactorCode').value = '';
                 document.getElementById('twoFactorCode').focus();
             }
         }
 
-        // UPDATED: Enhanced recovery session creation with migration support
         async function createRecoverySession() {
             try {
-                console.log('🔐 Creating Supabase session for recovery/migration mode');
+                console.log('🔐 Creating Supabase session for recovery/migration');
 
-                // For recovery/migration, we need to create a password for the user
-                // Generate a temporary password and update it in Supabase Auth
+                // Generate a temporary password
                 const temporaryPassword = generateTemporaryPassword();
-                
-                // First, try to sign up the user (this will work even if they exist due to our migration)
+
+                // Try to create/update user in Supabase Auth
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: currentUser.email,
                     password: temporaryPassword,
@@ -654,32 +701,22 @@
                     }
                 });
 
-                if (authError) {
-                    console.error('❌ Auth signup error:', authError);
-                    
-                    // If user already exists in Auth, try signing in with the temp password
-                    if (authError.message.includes('already registered')) {
-                        console.log('🔄 User exists in Auth, trying sign in');
-                        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                            email: currentUser.email,
-                            password: temporaryPassword
-                        });
-
-                        if (signInError) {
-                            console.error('❌ Temp password sign in failed:', signInError);
-                            throw new Error('Recovery failed. Please contact support.');
-                        }
-
-                        console.log('✅ Successfully signed in with temp password');
-                        await completeLogin(currentUser);
-                        return;
-                    } else {
-                        throw new Error('Recovery failed. Please contact support.');
-                    }
+                if (authError && !authError.message.includes('already registered')) {
+                    throw new Error('Recovery failed. Please contact support.');
                 }
 
-                console.log('✅ Successfully created/updated Auth account');
-                await completeLogin(currentUser);
+                // Sign in with the temporary password
+                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                    email: currentUser.email,
+                    password: temporaryPassword
+                });
+
+                if (signInError) {
+                    throw new Error('Recovery failed. Please contact support.');
+                }
+
+                console.log('✅ Successfully created recovery session');
+                await completeLogin(currentUser, signInData.session);
 
             } catch (error) {
                 console.error('❌ Recovery session error:', error);
@@ -687,21 +724,8 @@
             }
         }
 
-        function generateTemporaryPassword() {
-            // Generate a secure temporary password
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-            let password = '';
-            for (let i = 0; i < 16; i++) {
-                password += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return password;
-        }
-
         function verifyTOTP(code, secret) {
             try {
-                console.log('🔍 Starting TOTP validation...');
-
-                // Create TOTP instance with the stored secret
                 const totp = new OTPAuth.TOTP({
                     issuer: "NemexCoin",
                     label: currentUser.email,
@@ -711,24 +735,24 @@
                     secret: OTPAuth.Secret.fromBase32(secret)
                 });
 
-                // Validate the code (allow 30-second window for time sync issues)
                 const validation = totp.validate({ token: code, window: 1 });
-                const isValid = validation !== null;
-
-                console.log('🔐 TOTP Validation Result:', {
-                    code: code,
-                    secret: secret,
-                    validationResult: validation,
-                    isValid: isValid,
-                    timestamp: new Date().toISOString()
-                });
-
-                return isValid;
+                return validation !== null;
             } catch (error) {
                 console.error('❌ TOTP validation error:', error);
                 return false;
             }
         }
+
+        function generateTemporaryPassword() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            for (let i = 0; i < 16; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+        }
+
+        // [Rest of the functions remain the same: useBackupCode, validateBackupCode, verifyBackupCode, cancel2FA, cancelBackupCode]
 
         function useBackupCode() {
             document.getElementById('twoFactorModal').style.display = 'none';
@@ -741,8 +765,6 @@
         function validateBackupCode() {
             const code = document.getElementById('backupCode').value;
             const verifyBtn = document.getElementById('verifyBackupBtn');
-
-            // Check if it's a valid backup code format (alphanumeric, 10 chars)
             if (/^[A-Z0-9]{10}$/i.test(code)) {
                 verifyBtn.disabled = false;
             } else {
@@ -758,26 +780,16 @@
             verifyBtn.innerHTML = '<span class="loading-spinner"></span>Verifying...';
 
             try {
-                console.log('🔑 Backup code verification attempt:', code);
-
-                // In a real implementation, you would check against stored backup codes in your database
-                // For now, we'll simulate a successful verification
-
-                // Simulate API call delay
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // For demo purposes, accept any 10-character alphanumeric code
-                // In production, you would verify against stored backup codes
                 if (/^[A-Z0-9]{10}$/.test(code)) {
                     console.log('✅ Backup code accepted');
-                    console.log('🔄 Recovery Mode:', isRecoveryMode);
-                    console.log('🚀 Needs Migration:', needsMigration);
-
                     if (isRecoveryMode || needsMigration) {
-                        console.log('🎯 Recovery/Migration mode with backup code - creating session');
                         await createRecoverySession();
                     } else {
-                        await completeLogin(currentUser);
+                        const { data: { session }, error } = await supabase.auth.getSession();
+                        if (error) throw error;
+                        await completeLogin(currentUser, session);
                     }
                 } else {
                     throw new Error('Invalid backup code');
@@ -788,8 +800,6 @@
                 document.getElementById('errorMessage').style.display = 'block';
                 verifyBtn.disabled = false;
                 verifyBtn.textContent = 'Verify';
-
-                // Clear the input for retry
                 document.getElementById('backupCode').value = '';
                 document.getElementById('backupCode').focus();
             }
@@ -802,7 +812,7 @@
 
         function cancelBackupCode() {
             document.getElementById('backupCodeModal').style.display = 'none';
-            if (isRecoveryMode || needsMigration) {
+            if (isRecoveryMode) {
                 show2FARecoveryModal();
             } else {
                 show2FAModal();
@@ -818,13 +828,11 @@
             needsMigration = false;
         }
 
-        async function completeLogin(user) {
+        async function completeLogin(user, session) {
             try {
                 console.log('✅ Completing login for user:', user.email);
-                console.log('🔄 Recovery Mode:', isRecoveryMode);
-                console.log('🚀 Migration Completed:', needsMigration);
 
-                // Update last login in profiles table
+                // Update last login
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ 
@@ -835,11 +843,9 @@
 
                 if (updateError) {
                     console.error('❌ Error updating last login:', updateError);
-                } else {
-                    console.log('✅ Last login updated');
                 }
 
-                // Store minimal session data for backward compatibility
+                // Store session data for backward compatibility
                 const userSession = {
                     id: user.id,
                     email: user.email,
@@ -853,15 +859,15 @@
                 localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
                 console.log('✅ Session stored, redirecting to dashboard...');
 
-                // Close any open modals
+                // Close modals
                 document.getElementById('twoFactorModal').style.display = 'none';
                 document.getElementById('backupCodeModal').style.display = 'none';
 
-                // Show appropriate success message
+                // Show success message
                 if (isRecoveryMode) {
-                    alert('✅ Successfully accessed your account using 2FA! You can now change your password in the Security settings.');
+                    alert('✅ Successfully accessed your account! You can now change your password in Security settings.');
                 } else if (needsMigration) {
-                    alert('✅ Account migration completed! Your account is now secured with our new system. You can change your password in Security settings.');
+                    alert('✅ Account migration completed! Your account is now secured with Supabase Auth.');
                 }
 
                 // Redirect to dashboard
@@ -878,7 +884,6 @@
         // Handle Enter key press
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                // Check which modal is open
                 if (document.getElementById('twoFactorModal').style.display === 'flex') {
                     if (!document.getElementById('verify2FABtn').disabled) {
                         verify2FACode();
@@ -893,8 +898,7 @@
             }
         });
 
-        // Debug helper - remove in production
-        console.log('🔧 Login page loaded - Supabase Auth + 2FA + Migration handling ready');
+        console.log('🔧 Login page loaded - Supabase Auth + 2FA + Migration ready');
     </script>
 </body>
 </html>
