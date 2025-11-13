@@ -1138,7 +1138,7 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                 // FIXED: Count rejected transactions
                 const rejected = completedTransactions.filter(t => t.status === 'rejected').length;
                 
-                const totalPackages = allTransactions.length + completedTransactions.length;
+                const totalPackages = approved;
 
                 const vipPackages = [...allTransactions, ...completedTransactions].filter(t => 
                     parseFloat(t.package_amount || t.amount || 0) >= 100000
