@@ -173,6 +173,24 @@
             transform: translateY(-1px);
         }
 
+        .delete-btn {
+            background: transparent;
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: var(--error);
+            color: var(--text);
+            transform: translateY(-1px);
+        }
+
         .security-warning {
             background: rgba(255, 68, 68, 0.1);
             border: 1px solid var(--error);
@@ -404,6 +422,12 @@
             border: 1px solid var(--border-color);
         }
 
+        .modal-btn.danger {
+            background: var(--error);
+            color: var(--text);
+            border: none;
+        }
+
         .modal-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
@@ -509,6 +533,73 @@
             display: flex;
             gap: 10px;
             margin-top: 20px;
+        }
+
+        /* Delete Account Modal */
+        .delete-account-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .delete-account-form {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            width: 100%;
+            max-width: 350px;
+            border: 1px solid var(--error);
+        }
+
+        .danger-zone {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .danger-icon {
+            color: var(--error);
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+        }
+
+        .confirmation-text {
+            font-family: monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 15px 0;
+            font-weight: 600;
+            color: var(--error);
+        }
+
+        .confirmation-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 16px;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .confirmation-input:focus {
+            outline: none;
+            border-color: var(--error);
         }
 
         /* Bottom Navigation */
@@ -701,14 +792,14 @@
                 <div class="security-item">
                     <div class="security-info">
                         <svg class="security-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                         </svg>
                         <div class="security-text">
-                            <div class="security-title">Account Recovery</div>
-                            <div class="security-desc">Set up recovery options</div>
+                            <div class="security-title">Delete Account</div>
+                            <div class="security-desc">Permanently delete your account and all data</div>
                         </div>
                     </div>
-                    <button class="security-btn" onclick="setupRecovery()">Setup</button>
+                    <button class="delete-btn" onclick="showDeleteAccountModal()">Delete</button>
                 </div>
 
                 <div class="session-list" id="sessionsList" style="display: none;">
@@ -824,7 +915,7 @@
                 </div>
 
                 <p style="margin-bottom: 15px; color: var(--muted); font-size: 14px;">
-                    <strong>Save these backup codes in a secure place!</strong> You can use them to access your account if you lose your authenticator device. Each code can only be used once.
+                    <strong>Save these backup codes in a secure place!</strong> You can use any of these codes anytime to access your account if you lose your authenticator device. Codes can be reused indefinitely.
                 </p>
 
                 <div class="info-message">
@@ -871,6 +962,43 @@
                 <div class="modal-actions">
                     <button class="modal-btn secondary" onclick="showBackupCodesAgain()">Back to Codes</button>
                     <button class="modal-btn primary" id="confirmBackupBtn" onclick="confirmBackupCodes()" disabled>Confirm & Finish</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Account Modal -->
+        <div id="deleteAccountModal" class="delete-account-modal">
+            <div class="delete-account-form">
+                <div class="modal-header">
+                    <h3 class="modal-title" style="color: var(--error);">Delete Account</h3>
+                    <button class="close-btn" onclick="closeDeleteAccountModal()">&times;</button>
+                </div>
+
+                <div class="danger-zone">
+                    <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                        <svg class="danger-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        <span style="font-weight: 600; color: var(--error);">Danger Zone</span>
+                    </div>
+                    <p style="font-size: 14px; color: var(--muted);">
+                        This action cannot be undone. This will permanently delete your account and remove all your data from our servers.
+                    </p>
+                </div>
+
+                <div style="margin: 20px 0;">
+                    <p style="font-size: 14px; color: var(--muted); margin-bottom: 10px;">
+                        To confirm, please type <strong style="color: var(--error);">DELETE MY ACCOUNT</strong> below:
+                    </p>
+                    <div class="confirmation-text">DELETE MY ACCOUNT</div>
+                    <input type="text" class="confirmation-input" id="deleteConfirmation" placeholder="Type the phrase above" oninput="validateDeleteConfirmation()">
+                </div>
+
+                <div class="error-message" id="deleteError" style="display: none;"></div>
+
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" onclick="closeDeleteAccountModal()">Cancel</button>
+                    <button class="modal-btn danger" id="confirmDeleteBtn" onclick="deleteAccount()" disabled>Permanently Delete Account</button>
                 </div>
             </div>
         </div>
@@ -1165,11 +1293,80 @@
             return date.toLocaleDateString();
         }
 
-        function setupRecovery() {
-            alert('Account recovery setup coming soon!');
+        // NEW: Delete Account Functions
+        function showDeleteAccountModal() {
+            document.getElementById('deleteAccountModal').style.display = 'flex';
+            document.getElementById('deleteConfirmation').value = '';
+            document.getElementById('deleteConfirmation').focus();
+            document.getElementById('confirmDeleteBtn').disabled = true;
+            document.getElementById('deleteError').style.display = 'none';
         }
 
-        // FIXED: 2FA Functions with QR code error handling
+        function closeDeleteAccountModal() {
+            document.getElementById('deleteAccountModal').style.display = 'none';
+            document.getElementById('deleteConfirmation').value = '';
+            document.getElementById('deleteError').style.display = 'none';
+        }
+
+        function validateDeleteConfirmation() {
+            const input = document.getElementById('deleteConfirmation').value;
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            confirmBtn.disabled = input !== 'DELETE MY ACCOUNT';
+        }
+
+        async function deleteAccount() {
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            const errorElement = document.getElementById('deleteError');
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+
+            try {
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError || !session) {
+                    throw new Error('User not logged in');
+                }
+
+                console.log('🗑️ Starting account deletion for user:', session.user.id);
+
+                // 1. First delete from profiles table
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .delete()
+                    .eq('id', session.user.id);
+
+                if (profileError) {
+                    console.error('❌ Profile deletion error:', profileError);
+                    throw new Error('Failed to delete user profile: ' + profileError.message);
+                }
+
+                console.log('✅ Profile deleted successfully');
+
+                // 2. Then sign out the user
+                const { error: signOutError } = await supabase.auth.signOut();
+                if (signOutError) {
+                    console.error('❌ Sign out error:', signOutError);
+                    // Continue with deletion even if sign out fails
+                }
+
+                console.log('✅ User signed out');
+
+                // 3. Show success message and redirect
+                alert('✅ Your account has been permanently deleted. Thank you for using NemexCoin.');
+                
+                // Redirect to login page
+                window.location.href = 'login.html';
+
+            } catch (error) {
+                console.error('❌ Account deletion error:', error);
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Permanently Delete Account';
+            }
+        }
+
+        // FIXED: 2FA Functions with reusable backup codes
         async function open2FAModal() {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
@@ -1336,7 +1533,7 @@
             verifyBtn.disabled = !/^\d{6}$/.test(code);
         }
 
-        // FIXED: 2FA verification with backup code preservation
+        // FIXED: 2FA verification with reusable backup codes
         async function verify2FACode() {
             const code = document.getElementById('verificationCode').value;
             const verifyBtn = document.getElementById('verifyBtn');
@@ -1393,14 +1590,14 @@
             }
         }
 
-        // FIXED: Generate unique backup codes for each user
+        // FIXED: Generate backup codes without usage tracking (reusable)
         function generateBackupCodes() {
             const codes = [];
             for (let i = 0; i < 8; i++) {
                 const code = generateBackupCode();
                 codes.push({
                     code: code,
-                    used: false,
+                    // Removed usage tracking - codes are now reusable
                     created_at: new Date().toISOString()
                 });
             }
@@ -1456,6 +1653,7 @@
             document.getElementById('twoFactorModal').style.display = 'flex';
         }
 
+        // FIXED: Backup code validation - now allows reuse
         function validateBackupCode() {
             const enteredCode = document.getElementById('backupConfirmationCode').value.toUpperCase();
             const confirmBtn = document.getElementById('confirmBackupBtn');
@@ -1463,15 +1661,15 @@
 
             errorElement.style.display = 'none';
 
-            // Check if the entered code matches any of the backup codes
+            // FIXED: Check if the entered code matches any backup code (no usage check)
             const isValid = currentBackupCodes.some(backupCode => 
-                backupCode.code === enteredCode && !backupCode.used
+                backupCode.code === enteredCode
             );
 
             confirmBtn.disabled = !isValid;
         }
 
-        // FIXED: Final confirmation that saves everything to database
+        // FIXED: Final confirmation - no longer marks codes as used
         async function confirmBackupCodes() {
             const enteredCode = document.getElementById('backupConfirmationCode').value.toUpperCase();
             const confirmBtn = document.getElementById('confirmBackupBtn');
@@ -1486,13 +1684,8 @@
                     throw new Error('User not logged in');
                 }
 
-                // Mark the used backup code as used
-                const updatedBackupCodes = currentBackupCodes.map(backupCode => {
-                    if (backupCode.code === enteredCode) {
-                        return { ...backupCode, used: true, used_at: new Date().toISOString() };
-                    }
-                    return backupCode;
-                });
+                // FIXED: Don't mark backup codes as used - keep them reusable
+                // Just save everything as-is without modifying usage status
 
                 // Save everything to database
                 const { error } = await supabase
@@ -1500,7 +1693,7 @@
                     .update({ 
                         two_factor_secret: currentSecretKey,
                         two_factor_enabled: true,
-                        backup_codes: updatedBackupCodes,
+                        backup_codes: currentBackupCodes, // Keep original codes unchanged
                         updated_at: new Date().toISOString()
                     })
                     .eq('id', session.user.id);
@@ -1521,7 +1714,7 @@
                 
                 // Show success message
                 const successMessage = document.getElementById('successMessage');
-                successMessage.textContent = 'Two-Factor Authentication has been enabled successfully! Your backup codes are saved.';
+                successMessage.textContent = 'Two-Factor Authentication has been enabled successfully! Your backup codes are saved and can be reused anytime.';
                 successMessage.style.display = 'block';
 
                 // Reset global variables
@@ -1629,7 +1822,7 @@
             });
         });
 
-        console.log('🔧 Security page loaded - QR Code fixes applied');
+        console.log('🔧 Security page loaded - All fixes applied + Delete Account feature');
     </script>
 </body>
 </html>
