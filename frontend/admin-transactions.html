@@ -568,7 +568,8 @@
                 <select class="filter-select" id="statusFilterUser">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
-                    <option value="completed">Approved</option>
+                    <option value="approved">Approved</option>
+                    <option value="completed">Completed</option>
                     <option value="rejected">Rejected</option>
                 </select>
             </div>
@@ -589,7 +590,8 @@
             <div class="search-filter">
                 <select class="filter-select" id="statusFilter">
                     <option value="all">All Status</option>
-                    <option value="completed">Approved Only</option>
+                    <option value="approved">Approved Only</option>
+                    <option value="completed">Completed Only</option>
                     <option value="rejected">Rejected Only</option>
                 </select>
                 <input type="text" class="search-input" id="processedSearch" placeholder="Search processed transactions...">
@@ -606,7 +608,8 @@
                 <select class="filter-select" id="vipStatusFilter">
                     <option value="">All Status</option>
                     <option value="pending">Pending</option>
-                    <option value="completed">Approved</option>
+                    <option value="approved">Approved</option>
+                    <option value="completed">Completed</option>
                     <option value="rejected">Rejected</option>
                 </select>
             </div>
@@ -711,7 +714,7 @@
             }
         }
 
-        // FIXED: Now loads from user_purchase_history instead of completed_transactions
+        // FIXED: Enhanced loadAllTransactionData with automatic status detection
         async function loadAllTransactionData() {
             try {
                 console.log('🔄 Loading all transaction data from Supabase...');
@@ -728,7 +731,7 @@
                     return;
                 }
 
-                // FIXED: Load from user_purchase_history instead of completed_transactions
+                // Load user_purchase_history
                 const { data: purchaseHistory, error: historyError } = await supabaseClient
                     .from('user_purchase_history')
                     .select('*')
@@ -739,10 +742,18 @@
                 }
 
                 allTransactions = pendingTransactions || [];
-                completedTransactions = purchaseHistory || []; // Now using user_purchase_history
+                completedTransactions = purchaseHistory || [];
 
                 console.log(`✅ Loaded ${allTransactions.length} pending transactions`);
                 console.log(`✅ Loaded ${completedTransactions.length} completed transactions from user_purchase_history`);
+                
+                // Debug: Show status breakdown
+                const statusBreakdown = {};
+                completedTransactions.forEach(t => {
+                    const status = t.status || 'unknown';
+                    statusBreakdown[status] = (statusBreakdown[status] || 0) + 1;
+                });
+                console.log('📊 Purchase History Status Breakdown:', statusBreakdown);
 
                 await loadUserProfiles();
 
@@ -803,7 +814,7 @@
             };
         }
 
-        // FIXED: Enhanced Approve Transaction Function - PERFECT MATCH TO YOUR TABLES
+        // FIXED: Enhanced Approve Transaction Function with automatic status handling
         async function approveTransaction(transactionId, packageAmount, userId) {
             try {
                 console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
@@ -846,7 +857,7 @@
                     throw new Error('User profile not found: ' + profileError.message);
                 }
 
-                // 3. Update user's balance (using balance column)
+                // 3. Update user's balance
                 const currentBalance = parseFloat(profile.balance || 0);
                 const newBalance = currentBalance + amountToAdd;
 
@@ -876,14 +887,14 @@
                         price_usd: transaction.price_usd,
                         transaction_hash: transaction.tx_hash || 'N/A',
                         payment_method: transaction.payment_method,
-                        status: 'completed',
+                        status: 'approved', // Using 'approved' status
                         level: transaction.level || 1,
                         is_vip: transaction.is_vip || false,
                         admin_notes: adminNotes,
                         processed_by: adminUser?.id || 'system',
                         processed_at: new Date().toISOString(),
                         package_name: transaction.package_name,
-                        amount: transaction.package_amount // Both amount fields for compatibility
+                        amount: transaction.package_amount
                     };
 
                     const { error: historyError } = await supabaseClient
@@ -959,7 +970,7 @@
                     }
                 }
 
-                // 7. Update transaction status in pending_transactions
+                // 7. Update transaction status in pending_transactions to 'approved'
                 const { error: updateError } = await supabaseClient
                     .from('pending_transactions')
                     .update({
@@ -989,7 +1000,7 @@
             }
         }
 
-        // FIXED: Enhanced Reject Transaction Function - PERFECT MATCH TO YOUR TABLES
+        // FIXED: Enhanced Reject Transaction Function
         async function rejectTransaction(transactionId, userId) {
             if (!confirm('Are you sure you want to reject this transaction?')) {
                 return;
@@ -1046,7 +1057,7 @@
                     console.warn('⚠️ user_purchase_history table error for reject:', historyError);
                 }
 
-                // 3. Update transaction status in pending_transactions
+                // 3. Update transaction status in pending_transactions to 'rejected'
                 const { error: updateError } = await supabaseClient
                     .from('pending_transactions')
                     .update({
@@ -1106,23 +1117,31 @@
             }
         }
 
-        // FIXED: Updated to use user_purchase_history data with correct status
+        // FIXED: Universal overview stats that automatically detect status values
         function updateOverviewStats() {
             try {
-                const pending = allTransactions.filter(t => t.status === 'pending').length;
+                // FIXED: Automatically detect pending status (pending, pending_review, etc.)
+                const pending = allTransactions.filter(t => 
+                    t.status === 'pending' || t.status === 'pending_review'
+                ).length;
+
+                // FIXED: Automatically detect approved status (completed, approved, etc.)
+                const approved = completedTransactions.filter(t => 
+                    t.status === 'completed' || t.status === 'approved'
+                ).length;
                 
-                // FIXED: Use user_purchase_history data with correct status
-                const approved = completedTransactions.filter(t => t.status === 'completed').length;
+                // FIXED: Count rejected transactions
                 const rejected = completedTransactions.filter(t => t.status === 'rejected').length;
+                
                 const totalPackages = allTransactions.length + completedTransactions.length;
 
                 const vipPackages = [...allTransactions, ...completedTransactions].filter(t => 
                     parseFloat(t.package_amount || t.amount || 0) >= 100000
                 ).length;
 
-                // FIXED: Calculate revenue only from approved purchases in user_purchase_history
+                // FIXED: Calculate revenue from both completed and approved transactions
                 const totalRevenue = completedTransactions
-                    .filter(t => t.status === 'completed')
+                    .filter(t => t.status === 'completed' || t.status === 'approved')
                     .reduce((sum, t) => sum + parseFloat(t.price_usd || 0), 0);
 
                 document.getElementById('totalPending').textContent = pending;
@@ -1223,12 +1242,16 @@
             }
         }
 
+        // FIXED: Universal pending transactions that automatically detect status
         function updatePendingTransactions() {
             try {
                 const container = document.getElementById('pendingTransactionsList');
                 if (!container) return;
 
-                const pendingTransactions = allTransactions.filter(t => t.status === 'pending');
+                // FIXED: Automatically detect pending status (pending, pending_review, etc.)
+                const pendingTransactions = allTransactions.filter(t => 
+                    t.status === 'pending' || t.status === 'pending_review'
+                );
                 console.log(`🔄 Displaying ${pendingTransactions.length} pending transactions`);
 
                 if (pendingTransactions.length === 0) {
@@ -1309,7 +1332,7 @@
             const container = document.getElementById('processedTransactionsList');
             if (!container) return;
 
-            // FIXED: Now using data from user_purchase_history
+            // Now using data from user_purchase_history
             const processed = completedTransactions;
 
             if (processed.length === 0) {
