@@ -306,6 +306,95 @@
             padding: 10px;
             margin-bottom: 15px;
         }
+
+        /* NEW: Password Reset Modal Styles */
+        .password-reset-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .password-reset-form {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            width: 100%;
+            max-width: 350px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 16px;
+        }
+
+        .password-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .password-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .info-box {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: var(--gold);
+        }
+
+        .temporary-password {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-weight: 600;
+            text-align: center;
+            color: var(--success);
+        }
+
+        .setup-reminder {
+            background: rgba(255, 187, 51, 0.1);
+            border: 1px solid #ffbb33;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 15px 0;
+            font-size: 12px;
+            color: #ffbb33;
+        }
     </style>
 </head>
 <body>
@@ -383,6 +472,39 @@
         </div>
     </div>
 
+    <!-- NEW: Password Reset Modal -->
+    <div id="passwordResetModal" class="password-reset-modal">
+        <div class="password-reset-form">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="color: var(--gold); font-size: 18px; font-weight: 700;">Set New Password</h3>
+                <button class="close-btn" onclick="closePasswordResetModal()" style="background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer;">&times;</button>
+            </div>
+
+            <div class="info-box">
+                ✅ Success! You've verified your identity using 2FA. Please set a new password for your account.
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">New Password</label>
+                <input type="password" class="password-input" id="newPassword" required minlength="6">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Confirm New Password</label>
+                <input type="password" class="password-input" id="confirmPassword" required minlength="6">
+            </div>
+
+            <div class="setup-reminder">
+                ⚠️ Remember to set up your authenticator app again in Security settings if needed.
+            </div>
+
+            <div class="password-actions">
+                <button class="modal-btn secondary" onclick="closePasswordResetModal()">Cancel</button>
+                <button class="modal-btn primary" onclick="setNewPassword()" id="setPasswordBtn">Set Password</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // Supabase configuration
@@ -393,6 +515,7 @@
         let currentUser = null;
         let user2FASecret = null;
         let isRecoveryMode = false;
+        let recoveryTemporaryPassword = null;
 
         // Check if user is already logged in
         async function checkExistingSession() {
@@ -410,7 +533,7 @@
             }
         }
 
-        // 2FA Recovery Function - FIXED for password reset
+        // 2FA Recovery Function - ENHANCED with better flow
         async function use2FARecovery() {
             const email = document.getElementById('email').value.trim().toLowerCase();
             const errorMessage = document.getElementById('errorMessage');
@@ -501,7 +624,7 @@
 
                 if (authError) {
                     console.error('❌ Supabase Auth error:', authError);
-                    
+
                     if (authError.message.includes('Invalid login credentials')) {
                         throw new Error('Invalid email or password');
                     } else if (authError.message.includes('Email not confirmed')) {
@@ -579,7 +702,7 @@
             }
         }
 
-        // FIXED: 2FA verification with proper TOTP validation
+        // ENHANCED: 2FA verification with improved recovery flow
         async function verify2FACode() {
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
@@ -601,8 +724,8 @@
                 console.log('✅ 2FA code verified successfully');
 
                 if (isRecoveryMode) {
-                    console.log('🎯 Recovery mode - resetting password and creating session');
-                    await resetPasswordAndLogin();
+                    console.log('🎯 Recovery mode - showing password reset form');
+                    showPasswordResetModal();
                 } else {
                     // Normal login flow - get fresh session
                     const { data: { session }, error } = await supabase.auth.getSession();
@@ -620,11 +743,98 @@
             }
         }
 
+        // NEW: Show password reset modal after successful 2FA verification
+        function showPasswordResetModal() {
+            document.getElementById('twoFactorModal').style.display = 'none';
+            document.getElementById('passwordResetModal').style.display = 'flex';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('newPassword').focus();
+        }
+
+        // NEW: Close password reset modal
+        function closePasswordResetModal() {
+            document.getElementById('passwordResetModal').style.display = 'none';
+            resetLoginForm();
+        }
+
+        // NEW: Set new password after recovery
+        async function setNewPassword() {
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const setPasswordBtn = document.getElementById('setPasswordBtn');
+            const errorMessage = document.getElementById('errorMessage');
+
+            setPasswordBtn.disabled = true;
+            setPasswordBtn.textContent = 'Setting Password...';
+
+            try {
+                if (!newPassword || !confirmPassword) {
+                    throw new Error('Please fill in all fields');
+                }
+
+                if (newPassword.length < 6) {
+                    throw new Error('Password must be at least 6 characters long');
+                }
+
+                if (newPassword !== confirmPassword) {
+                    throw new Error('Passwords do not match');
+                }
+
+                console.log('🔐 Setting new password for user:', currentUser.email);
+
+                // Update password in Supabase Auth
+                const { error: authUpdateError } = await supabase.auth.updateUser({
+                    password: newPassword
+                });
+
+                if (authUpdateError) {
+                    throw new Error('Password update failed: ' + authUpdateError.message);
+                }
+
+                // Update password in profiles table for consistency
+                const { error: profileUpdateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        password: newPassword,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', currentUser.id);
+
+                if (profileUpdateError) {
+                    console.error('❌ Profile password update error:', profileUpdateError);
+                    // Continue anyway since Supabase Auth was updated
+                }
+
+                console.log('✅ Password updated successfully');
+
+                // Now sign in with the new password
+                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                    email: currentUser.email,
+                    password: newPassword
+                });
+
+                if (signInError) {
+                    throw new Error('Auto-login failed. Please log in manually with your new password.');
+                }
+
+                console.log('✅ Successfully signed in with new password');
+                await completeLogin(currentUser, signInData.session, true);
+
+            } catch (error) {
+                console.error('❌ Password set error:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+                setPasswordBtn.disabled = false;
+                setPasswordBtn.textContent = 'Set Password';
+            }
+        }
+
         // FIXED: Proper TOTP verification function
         async function verifyTOTPCode(code, secret) {
             try {
                 const OTPAuth = window.OTPAuth;
-                
+
                 if (!OTPAuth) {
                     throw new Error('2FA verification library not loaded');
                 }
@@ -640,96 +850,18 @@
 
                 // Validate with 1-step window for time sync issues
                 const isValid = totp.validate({ token: code, window: 1 }) !== null;
-                
+
                 console.log('🔐 TOTP Verification Result:', {
                     code: code,
                     isValid: isValid,
                     timestamp: new Date().toISOString()
                 });
-                
+
                 return isValid;
             } catch (error) {
                 console.error('❌ TOTP verification error:', error);
                 return false;
             }
-        }
-
-        // FIXED: Password reset and login for recovery mode
-        async function resetPasswordAndLogin() {
-            try {
-                console.log('🔐 Resetting password for user:', currentUser.email);
-
-                // Generate a strong temporary password
-                const temporaryPassword = generateStrongPassword();
-
-                // Update password in Supabase Auth
-                const { error: authUpdateError } = await supabase.auth.updateUser({
-                    password: temporaryPassword
-                });
-
-                if (authUpdateError) {
-                    console.error('❌ Auth password update error:', authUpdateError);
-                    throw new Error('Password reset failed. Please try again.');
-                }
-
-                // Update password in profiles table for consistency
-                const { error: profileUpdateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        password: temporaryPassword,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', currentUser.id);
-
-                if (profileUpdateError) {
-                    console.error('❌ Profile password update error:', profileUpdateError);
-                    // Continue anyway since Supabase Auth was updated
-                }
-
-                console.log('✅ Password reset successfully');
-
-                // Now sign in with the new temporary password
-                const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-                    email: currentUser.email,
-                    password: temporaryPassword
-                });
-
-                if (signInError) {
-                    console.error('❌ Sign in after reset error:', signInError);
-                    throw new Error('Login after password reset failed. Please try logging in manually.');
-                }
-
-                console.log('✅ Successfully signed in with reset password');
-                await completeLogin(currentUser, signInData.session, true);
-
-            } catch (error) {
-                console.error('❌ Password reset error:', error);
-                throw error;
-            }
-        }
-
-        function generateStrongPassword() {
-            const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-            const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            const numbers = '0123456789';
-            const symbols = '!@#$%^&*';
-            
-            let password = '';
-            
-            // Ensure at least one of each type
-            password += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
-            password += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
-            password += numbers.charAt(Math.floor(Math.random() * numbers.length));
-            password += symbols.charAt(Math.floor(Math.random() * symbols.length));
-            
-            // Fill the rest randomly
-            const allChars = lowercase + uppercase + numbers + symbols;
-            for (let i = 4; i < 12; i++) {
-                password += allChars.charAt(Math.floor(Math.random() * allChars.length));
-            }
-            
-            // Shuffle the password
-            return password.split('').sort(() => 0.5 - Math.random()).join('');
         }
 
         // FIXED: Backup code system
@@ -747,7 +879,7 @@
             verifyBtn.disabled = !/^[A-Z0-9]{10}$/i.test(code);
         }
 
-        // FIXED: Backup code verification from database
+        // ENHANCED: Backup code verification with recovery support
         async function verifyBackupCode() {
             const code = document.getElementById('backupCode').value.toUpperCase();
             const verifyBtn = document.getElementById('verifyBackupBtn');
@@ -776,7 +908,7 @@
 
                 // Mark backup code as used in database
                 const updatedBackupCodes = currentUser.backup_codes.map(bc => 
-                    bc.code === code ? { ...bc, used: true } : bc
+                    bc.code === code ? { ...bc, used: true, used_at: new Date().toISOString() } : bc
                 );
 
                 const { error: updateError } = await supabase
@@ -795,7 +927,7 @@
                 console.log('✅ Backup code marked as used');
 
                 if (isRecoveryMode) {
-                    await resetPasswordAndLogin();
+                    showPasswordResetModal();
                 } else {
                     const { data: { session }, error } = await supabase.auth.getSession();
                     if (error) throw error;
@@ -832,9 +964,10 @@
             currentUser = null;
             user2FASecret = null;
             isRecoveryMode = false;
+            recoveryTemporaryPassword = null;
         }
 
-        // FIXED: Complete login with recovery mode support
+        // ENHANCED: Complete login with recovery mode support
         async function completeLogin(user, session, isRecovery = false) {
             try {
                 console.log('✅ Completing login for user:', user.email);
@@ -870,14 +1003,22 @@
                 // Close any open modals
                 document.getElementById('twoFactorModal').style.display = 'none';
                 document.getElementById('backupCodeModal').style.display = 'none';
+                document.getElementById('passwordResetModal').style.display = 'none';
 
                 if (isRecovery) {
                     // Show success message for recovery
-                    alert('✅ Password reset successful! You have been logged in. Please change your password in the Security settings immediately.');
+                    const successMessage = document.getElementById('successMessage');
+                    successMessage.textContent = '✅ Password reset successful! You have been logged in.';
+                    successMessage.style.display = 'block';
+                    
+                    // Small delay to show success message
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else {
+                    // Normal login redirect
+                    window.location.href = 'dashboard.html';
                 }
-
-                // Redirect to dashboard
-                window.location.href = 'dashboard.html';
 
             } catch (error) {
                 console.error('❌ Login completion error:', error);
@@ -898,6 +1039,8 @@
                     if (!document.getElementById('verifyBackupBtn').disabled) {
                         verifyBackupCode();
                     }
+                } else if (document.getElementById('passwordResetModal').style.display === 'flex') {
+                    document.getElementById('setPasswordBtn').click();
                 } else {
                     document.getElementById('loginForm').dispatchEvent(new Event('submit'));
                 }
@@ -914,7 +1057,7 @@
             }
         });
 
-        console.log('🔧 Login page loaded - Supabase Auth + 2FA + Password Recovery ready');
+        console.log('🔧 Login page loaded - Enhanced 2FA Recovery with Password Reset ready');
     </script>
 </body>
 </html>
