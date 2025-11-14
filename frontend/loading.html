@@ -138,6 +138,15 @@
         .warning { color: #ffbb33; }
         .info { color: #33b5e5; }
 
+        /* 🆕 NEW: Blinking Animation */
+        .blinking {
+            animation: blink 1.5s infinite;
+        }
+
+        .blinking-fast {
+            animation: blink 0.8s infinite;
+        }
+
         .powered-by {
             margin-top: 20px;
             font-size: 12px;
@@ -186,6 +195,16 @@
             }
         }
 
+        /* 🆕 NEW: Blinking Animation */
+        @keyframes blink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.3;
+            }
+        }
+
         /* Scrollbar styling */
         .status-messages::-webkit-scrollbar {
             width: 6px;
@@ -226,11 +245,11 @@
 <body>
     <div class="loading-container">
         <!-- Gold NMX Logo Panel -->
-        <div class="logo-panel">
+        <div class="logo-panel blinking">
             <div class="logo-text">NMX</div>
         </div>
 
-        <h1 class="loading-title">NemexCoin</h1>
+        <h1 class="loading-title blinking-fast">NemexCoin</h1>
         <div class="loading-subtitle">Initializing Application</div>
 
         <!-- Animated Progress Bar -->
@@ -242,11 +261,11 @@
         <div class="status-messages">
             <div class="status-line">
                 <span class="timestamp">15:29:55</span>
-                <span class="info">INCOMING REQUEST DETECTED</span>
+                <span class="info blinking">INCOMING REQUEST DETECTED</span>
             </div>
             <div class="status-line">
                 <span class="timestamp">15:29:58</span>
-                <span class="warning">SERVICE WAKING UP</span>
+                <span class="warning blinking">SERVICE WAKING UP</span>
             </div>
             <div class="status-line">
                 <span class="timestamp">15:30:02</span>
@@ -254,11 +273,11 @@
             </div>
             <div class="status-line">
                 <span class="timestamp">15:30:05</span>
-                <span class="info">PREPARING INSTANCE</span>
+                <span class="info blinking">PREPARING INSTANCE</span>
             </div>
             <div class="status-line">
                 <span class="timestamp">15:30:09</span>
-                <span class="success">STARTING NEMEXCOIN</span>
+                <span class="success blinking-fast">STARTING NEMEXCOIN</span>
             </div>
             <div class="status-line">
                 <span class="timestamp">15:30:15</span>
@@ -272,35 +291,42 @@
     </div>
 
     <script>
-        // Auto-redirect to main app after loading
+        // Get target page from URL parameters or default to dashboard
+        function getTargetPage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('redirect') || 'dashboard.html';
+        }
+
+        // Auto-redirect to target page after loading
         setTimeout(() => {
-            // Check if we're in Telegram or regular browser
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.location.href = 'dashboard.html';
-            } else {
-                window.location.href = 'index.html';
-            }
+            const targetPage = getTargetPage();
+            window.location.href = targetPage;
         }, 4000); // 4 second loading screen
 
         // Optional: Add some interactive effects
         document.addEventListener('DOMContentLoaded', function() {
             const progressBar = document.querySelector('.progress-bar');
             const statusLines = document.querySelectorAll('.status-line');
-            
+
             // Add click to skip functionality
             document.body.addEventListener('click', function() {
-                window.location.href = 'dashboard.html';
+                const targetPage = getTargetPage();
+                window.location.href = targetPage;
             });
 
-            // Simulate progress updates
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += 5;
-                if (progress >= 100) {
-                    clearInterval(progressInterval);
+            // Random blinking for different elements
+            setInterval(() => {
+                const randomElement = document.querySelector('.blinking');
+                if (randomElement) {
+                    randomElement.style.animationDuration = (0.5 + Math.random() * 1) + 's';
                 }
-            }, 80);
+            }, 2000);
         });
+
+        // 🆕 NEW: Function to show loading screen from other pages
+        window.showLoadingScreen = function(targetPage = 'dashboard.html') {
+            window.location.href = `loading.html?redirect=${encodeURIComponent(targetPage)}`;
+        };
     </script>
 </body>
 </html>
