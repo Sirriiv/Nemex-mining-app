@@ -699,7 +699,36 @@
             }).join('');
         }
 
-        // Complete a task
+        // ENHANCED: Create task completion notification
+        async function createTaskNotification(userId, taskName, reward) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'task_completed',
+                    title: 'Task Completed! 🎉',
+                    message: `You completed "${taskName}" and earned ${reward} NMXp. Keep up the great work!`,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabase
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ Task notification created successfully');
+                    return true;
+                } else {
+                    console.error('❌ Error creating task notification:', error);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error creating task notification:', error);
+                return false;
+            }
+        }
+
+        // ENHANCED: Complete a task with better notification
         async function completeTask(taskId) {
             const user = await checkAuth();
             if (!user) return;
@@ -708,8 +737,10 @@
             if (!task) return;
 
             // Show loading
-            document.querySelector(`button[onclick="completeTask(${taskId})"]`).textContent = 'Processing...';
-            document.querySelector(`button[onclick="completeTask(${taskId})"]`).disabled = true;
+            const button = document.querySelector(`button[onclick="completeTask(${taskId})"]`);
+            const originalText = button.textContent;
+            button.textContent = 'Processing...';
+            button.disabled = true;
 
             try {
                 // Simulate API call delay
@@ -729,19 +760,27 @@
                 if (profile) {
                     const newBalance = (profile.balance || 0) + task.reward;
                     
-                    await supabase
+                    const { error: updateError } = await supabase
                         .from('profiles')
                         .update({ balance: newBalance })
                         .eq('id', user.id);
 
-                    // Create task completion notification
-                    await createTaskNotification(user.id, task.title, task.reward);
-
-                    // Show success message
-                    alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
-                    
-                    // Re-render tasks
-                    renderTasks();
+                    if (!updateError) {
+                        // Create task completion notification
+                        const notificationCreated = await createTaskNotification(user.id, task.title, task.reward);
+                        
+                        if (notificationCreated) {
+                            // Show success message
+                            alert(`🎉 Task completed! You earned ${task.reward} NMXp!\n\n✅ Notification created in your notification page.`);
+                        } else {
+                            alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
+                        }
+                        
+                        // Re-render tasks
+                        renderTasks();
+                    } else {
+                        throw new Error('Failed to update balance');
+                    }
                 }
 
             } catch (error) {
@@ -749,32 +788,8 @@
                 alert('Error completing task. Please try again.');
                 
                 // Reset button
-                document.querySelector(`button[onclick="completeTask(${taskId})"]`).textContent = task.action;
-                document.querySelector(`button[onclick="completeTask(${taskId})"]`).disabled = false;
-            }
-        }
-
-        // Create task completion notification
-        async function createTaskNotification(userId, taskName, reward) {
-            try {
-                const notificationData = {
-                    user_id: userId,
-                    type: 'task_completed',
-                    title: 'Task Completed!',
-                    message: `You completed "${taskName}" and earned ${reward} NMXp.`,
-                    is_read: false,
-                    created_at: new Date().toISOString()
-                };
-
-                const { data, error } = await supabase
-                    .from('notifications')
-                    .insert([notificationData]);
-
-                if (!error) {
-                    console.log('✅ Task notification created');
-                }
-            } catch (error) {
-                console.error('❌ Error creating task notification:', error);
+                button.textContent = originalText;
+                button.disabled = false;
             }
         }
 
