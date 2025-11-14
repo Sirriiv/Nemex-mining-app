@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications - NemexCoin</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Copy the same CSS from your dashboard */
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background: var(--dark-bg); color: var(--text); min-height: 100vh; }
+        .container { width: 100%; max-width: 400px; margin: 0 auto; }
+        .header { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border-color); }
+        .back-button { background: none; border: none; color: var(--gold); margin-right: 15px; cursor: pointer; }
+        .header-title { font-size: 18px; font-weight: 700; color: var(--gold); }
+        .notifications-list { padding: 20px; }
+        .notification-item { background: var(--darker-bg); padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--border-color); }
+        .notification-title { color: var(--gold); margin-bottom: 5px; }
+        .notification-message { color: var(--text); font-size: 14px; }
+        .notification-time { color: var(--muted); font-size: 12px; margin-top: 5px; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px; max-width: 400px; margin: 0 auto; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--muted); text-decoration: none; font-size: 10px; }
+        .nav-item.active { color: var(--gold); }
+        .nav-icon { width: 22px; height: 22px; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <button class="back-button" onclick="goBack()">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+            </button>
+            <div class="header-title">Notifications</div>
+        </header>
+
+        <div class="notifications-list" id="notificationsList">
+            <!-- Notifications will be loaded here -->
+            <div class="loading">Loading notifications...</div>
+        </div>
+
+        <nav class="bottom-nav">
+            <a href="dashboard.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                <span>MINING</span>
+            </a>
+            <a href="tasks.html" class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                </svg>
+                <span>TASKS</span>
+            </a>
+            <a href="notification.html" class="nav-item active">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+                <span>NOTIFICATIONS</span>
+            </a>
+        </nav>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        async function checkAuth() {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return null;
+            }
+            return session.user;
+        }
+
+        async function loadNotifications() {
+            const user = await checkAuth();
+            if (!user) return;
+
+            const { data: notifications, error } = await supabase
+                .from('notifications')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            const notificationsList = document.getElementById('notificationsList');
+            
+            if (error) {
+                notificationsList.innerHTML = '<div class="error">Error loading notifications</div>';
+                return;
+            }
+
+            if (!notifications || notifications.length === 0) {
+                notificationsList.innerHTML = '<div class="notification-item">No notifications yet</div>';
+                return;
+            }
+
+            notificationsList.innerHTML = notifications.map(notification => `
+                <div class="notification-item">
+                    <div class="notification-title">${notification.title || 'Notification'}</div>
+                    <div class="notification-message">${notification.message}</div>
+                    <div class="notification-time">${new Date(notification.created_at).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        }
+
+        function goBack() {
+            window.location.href = 'dashboard.html';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadNotifications);
+    </script>
+</body>
+</html>
