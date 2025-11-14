@@ -5,123 +5,641 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Referrals - NemexCoin</title>
     <style>
-        :root { --dark-bg: #0f0f0f; --darker-bg: #080808; --gold: #d4af37; --text: #f5f5f5; --muted: #aaa; --bg-secondary: #1a1a1a; --border-color: #333333; --success: #00C851; --error: #ff4444; --warning: #ff9800; --info: #33b5e5; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
-        body { background: var(--dark-bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
-        .container { width: 100%; max-width: 400px; margin: 0 auto; flex: 1; display: flex; flex-direction: column; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: var(--darker-bg); border-bottom: 1px solid var(--border-color); }
-        .logo { font-size: 20px; font-weight: 700; color: var(--gold); }
-        .nav-icon { width: 24px; height: 24px; cursor: pointer; color: var(--muted); transition: all 0.3s ease; }
-        .nav-icon:hover { color: var(--gold); transform: scale(1.1); }
-        .content { padding: 20px; flex: 1; padding-bottom: 70px; }
-        .page-title { font-size: 24px; font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-        .page-title-icon { width: 28px; height: 28px; color: var(--gold); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 25px; }
-        .stat-card { background: var(--bg-secondary); border-radius: 10px; padding: 15px; text-align: center; border: 1px solid var(--border-color); }
-        .stat-value { font-size: 18px; font-weight: 700; color: var(--gold); margin-bottom: 4px; }
-        .stat-label { font-size: 11px; color: var(--muted); }
-        .referral-section { background: var(--bg-secondary); border-radius: 12px; padding: 20px; margin-bottom: 25px; border: 1px solid var(--border-color); }
-        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
-        .section-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 15px; line-height: 1.4; }
-        .username-display { background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); border-radius: 8px; padding: 10px 12px; margin-bottom: 15px; font-size: 14px; }
-        .username-label { color: var(--gold); font-weight: 600; margin-bottom: 4px; }
-        .username-value { font-family: monospace; font-size: 13px; }
-        .link-container { display: flex; background: var(--dark-bg); border-radius: 8px; padding: 12px; margin-bottom: 15px; border: 1px solid var(--border-color); }
-        .referral-link { flex: 1; background: none; border: none; color: var(--text); font-size: 12px; cursor: pointer; font-family: monospace; }
-        .copy-btn { background: var(--gold); color: var(--darker-bg); border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; transition: all 0.3s ease; }
-        .copy-btn:hover { opacity: 0.9; transform: translateY(-1px); }
-        .social-share { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        .social-btn { background: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.3s ease; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-        .social-btn:hover { border-color: var(--gold); background: rgba(212, 175, 55, 0.1); transform: translateY(-2px); }
-        .social-icon { width: 20px; height: 20px; color: var(--gold); }
-        .social-label { font-size: 11px; color: var(--muted); font-weight: 600; }
-        .referrals-list { background: var(--bg-secondary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); }
-        .list-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-        .list-title-icon { width: 20px; height: 20px; color: var(--gold); }
-        .referral-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); transition: all 0.3s ease; }
-        .referral-item:hover { background: rgba(255, 255, 255, 0.02); margin: 0 -10px; padding: 12px 10px; border-radius: 8px; }
-        .referral-item:last-child { border-bottom: none; }
-        .referral-info { display: flex; flex-direction: column; flex: 1; }
-        .referral-name { font-weight: 600; margin-bottom: 4px; }
-        .referral-date { font-size: 11px; color: var(--muted); }
-        .referral-actions { display: flex; gap: 8px; margin-left: 10px; }
-        .action-btn { padding: 6px 12px; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
-        .ping-btn { background: rgba(51, 181, 229, 0.2); color: var(--info); border: 1px solid var(--info); }
-        .ping-btn:hover { background: rgba(51, 181, 229, 0.3); transform: translateY(-1px); }
-        .remove-btn { background: rgba(255, 68, 68, 0.2); color: var(--error); border: 1px solid var(--error); }
-        .remove-btn:hover { background: rgba(255, 68, 68, 0.3); transform: translateY(-1px); }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
-        .empty-icon { width: 60px; height: 60px; margin: 0 auto 16px; color: var(--muted); opacity: 0.5; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: var(--darker-bg); border-radius: 12px; padding: 24px; max-width: 320px; width: 90%; border: 1px solid var(--border-color); }
-        .modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; color: var(--error); }
-        .modal-text { margin-bottom: 20px; line-height: 1.4; font-size: 14px; }
-        .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
-        .modal-btn { padding: 10px 20px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; transition: all 0.3s ease; }
-        .modal-cancel { background: var(--bg-secondary); color: var(--text); border: 1px solid var(--border-color); }
-        .modal-cancel:hover { background: rgba(255, 255, 255, 0.1); }
-        .modal-confirm { background: var(--error); color: white; }
-        .modal-confirm:hover { background: #ff3333; }
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 12px 20px; border-radius: 8px; font-weight: 600; z-index: 1001; display: none; }
-        .toast.error { background: var(--error); }
-        .toast.info { background: var(--info); }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 12px 5px; z-index: 100; gap: 5px; max-width: 400px; margin: 0 auto; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: var(--muted); font-size: 10px; font-weight: 600; flex: 1; padding: 8px 2px; border-radius: 8px; margin: 0 1px; transition: all 0.3s ease; }
-        .nav-item.active { color: var(--gold); background-color: rgba(212, 175, 55, 0.1); position: relative; }
-        .nav-item.active::after { content: ''; position: absolute; top: -2px; left: 50%; transform: translateX(-50%); width: 50%; height: 3px; background: var(--gold); border-radius: 2px; }
-        .nav-icon { width: 22px; height: 22px; margin-bottom: 4px; transition: all 0.3s ease; }
-        .nav-item.active .nav-icon { color: var(--gold); transform: scale(1.1); }
-        .nav-text { margin-top: 2px; text-align: center; }
-        
-        /* Loading Screen */
-        .loading-screen {
+        :root { 
+            --dark-bg: #0f0f0f; 
+            --darker-bg: #080808; 
+            --gold: #d4af37; 
+            --text: #f5f5f5; 
+            --muted: #aaa; 
+            --bg-secondary: #1a1a1a;
+            --border-color: #333333;
+            --success: #00C851;
+            --error: #ff4444;
+            --warning: #ff9800;
+            --info: #33b5e5;
+        }
+
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        }
+
+        body { 
+            background: var(--dark-bg); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 400px; 
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--dark-bg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .back-btn {
+            width: 24px;
+            height: 24px;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .content {
+            padding: 20px;
+            flex: 1;
+            padding-bottom: 70px;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-title-icon {
+            width: 28px;
+            height: 28px;
+            color: var(--gold);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .referral-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border: 1px solid var(--border-color);
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .section-subtitle {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .username-display {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .username-label {
+            color: var(--gold);
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .username-value {
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .link-container {
+            display: flex;
+            background: var(--dark-bg);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .referral-link {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 12px;
+            cursor: pointer;
+            font-family: monospace;
+        }
+
+        .copy-btn {
+            background: var(--gold);
+            color: var(--darker-bg);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .social-share {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .social-btn {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .social-btn:hover {
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .social-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+        }
+
+        .social-label {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .referrals-list {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .list-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .list-title-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+        }
+
+        .referral-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .referral-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+            margin: 0 -10px;
+            padding: 12px 10px;
+            border-radius: 8px;
+        }
+
+        .referral-item:last-child {
+            border-bottom: none;
+        }
+
+        .referral-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .referral-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .referral-date {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .referral-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: 10px;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .ping-btn {
+            background: rgba(51, 181, 229, 0.2);
+            color: var(--info);
+            border: 1px solid var(--info);
+        }
+
+        .ping-btn:hover {
+            background: rgba(51, 181, 229, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .remove-btn {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .remove-btn:hover {
+            background: rgba(255, 68, 68, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 16px;
+            color: var(--muted);
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--dark-bg);
-            display: flex;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
             justify-content: center;
             align-items: center;
+        }
+
+        .modal-content {
+            background: var(--darker-bg);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 320px;
+            width: 90%;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--error);
+        }
+
+        .modal-text {
+            margin-bottom: 20px;
+            line-height: 1.4;
+            font-size: 14px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .modal-cancel {
+            background: var(--bg-secondary);
+            color: var(--text);
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-cancel:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-confirm {
+            background: var(--error);
+            color: white;
+        }
+
+        .modal-confirm:hover {
+            background: #ff3333;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1001;
+            display: none;
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        .toast.info {
+            background: var(--info);
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
             z-index: 9999;
+            justify-content: center;
+            align-items: center;
             flex-direction: column;
-            gap: 20px;
         }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(212, 175, 55, 0.3);
-            border-top: 3px solid var(--gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+
+        .loading-logo {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            animation: logoGlow 2s ease-in-out infinite alternate;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+
+        .loading-logo-text {
+            font-size: 32px;
+            font-weight: 900;
+            color: #0f0f0f;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 20px;
+            animation: textBlink 1.5s infinite;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #ffd700);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressLoad 2s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes textBlink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes progressLoad {
+            0% {
+                width: 0%;
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(100%);
+            }
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 5px;
+            z-index: 100;
+            gap: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 600;
+            flex: 1;
+            padding: 8px 2px;
+            border-radius: 8px;
+            margin: 0 1px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            color: var(--gold);
+            background-color: rgba(212, 175, 55, 0.1);
+            position: relative;
+        }
+
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50%;
+            height: 3px;
+            background: var(--gold);
+            border-radius: 2px;
+        }
+
+        .nav-icon {
+            width: 22px;
+            height: 22px;
+            margin-bottom: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+            transform: scale(1.1);
+        }
+
+        .nav-text {
+            margin-top: 2px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
-        <div class="loading-spinner"></div>
-        <h3 style="color: var(--gold);">Loading Referrals...</h3>
+    <!-- Loading Screen Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo">
+            <div class="loading-logo-text">NMX</div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading Referrals...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
     </div>
 
-    <div class="container" id="mainContent" style="display: none;">
-        <div class="header">
-            <div class="logo">NemexCoin</div>
-            <a href="dashboard.html">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-                </svg>
-            </a>
-        </div>
-
+    <div class="container">
         <div class="content">
+            <header class="header">
+                <a class="back-btn" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </a>
+                <div class="header-title">
+                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                    </svg>
+                    Referrals
+                </div>
+                <div style="width: 20px;"></div>
+            </header>
+
             <h1 class="page-title">
                 <svg class="page-title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
@@ -197,31 +715,33 @@
             </div>
         </div>
 
+        <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <a href="dashboard.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('dashboard.html', 'Loading Dashboard...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
                 <span class="nav-text">MINING</span>
             </a>
-            <a href="tasks.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('tasks.html', 'Loading Tasks...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 <span class="nav-text">TASKS</span>
             </a>
-            <a href="buynmxp.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
                 <span class="nav-text">BUY NMXp</span>
             </a>
-            <a href="referrals.html" class="nav-item active">
+            <a class="nav-item active">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>                </svg>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
-            <a href="wallet.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('wallet.html', 'Loading Wallet...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -255,14 +775,24 @@
         let referrals = [];
         let userToRemove = null;
 
+        // Loading Screen Function
+        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+            document.getElementById('loadingText').textContent = loadingText;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            setTimeout(() => {
+                window.location.href = targetPage;
+            }, 1500);
+        }
+
         // FIXED: Enhanced authentication check using Supabase Auth
         async function checkAuth() {
             try {
                 console.log('🔐 Checking authentication...');
-                
+
                 // Get current session from Supabase
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-                
+
                 if (sessionError) {
                     console.error('Session error:', sessionError);
                     throw sessionError;
@@ -270,7 +800,7 @@
 
                 if (!session) {
                     console.log('❌ No user session found - redirecting to login');
-                    window.location.href = 'login.html';
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
                     return null;
                 }
 
@@ -279,7 +809,7 @@
 
             } catch (error) {
                 console.error('❌ Authentication error:', error);
-                window.location.href = 'login.html';
+                showLoadingScreen('login.html', 'Redirecting to Login...');
                 return null;
             }
         }
@@ -288,8 +818,7 @@
         async function loadReferralData() {
             try {
                 // Show loading screen
-                document.getElementById('loadingScreen').style.display = 'flex';
-                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('loadingOverlay').style.display = 'flex';
 
                 // Check authentication
                 currentUser = await checkAuth();
@@ -334,21 +863,20 @@
 
                 await loadReferralsList();
 
-                // Hide loading screen and show main content
-                document.getElementById('loadingScreen').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'flex';
+                // Hide loading screen
+                document.getElementById('loadingOverlay').style.display = 'none';
 
             } catch (error) {
                 console.error('❌ Error loading referral data:', error);
                 showToast('Error loading referral data', 'error');
-                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
         }
 
         // FIXED: Enhanced referrals list loading
         async function loadReferralsList() {
             if (!currentUser) return;
-            
+
             try {
                 console.log('👥 Loading referrals list...');
 
@@ -413,6 +941,19 @@
         document.addEventListener('DOMContentLoaded', function() {
             loadReferralData();
             setupEventListeners();
+
+            // Highlight current page in navigation
+            const currentPage = window.location.pathname.split('/').pop() || 'referrals.html';
+            const navItems = document.querySelectorAll('.nav-item');
+
+            navItems.forEach(item => {
+                const onclick = item.getAttribute('onclick');
+                if (onclick && onclick.includes('referrals.html') || !onclick && item.classList.contains('active')) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
         });
 
         function pingUser(userId, userName) {
