@@ -748,563 +748,301 @@
                 </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
-            <a href="wallet.html" class="nav-item">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                </svg>
-                <span class="nav-text">WALLET</span>
-            </a>
         </nav>
     </div>
 
-    <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script>
-        // Initialize Supabase
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-        // Global variables
-        let user = null;
-        let userBalance = 0;
-        let lastClaimTime = null;
-        let countdownInterval = null;
+        // Telegram Web App Integration
+        let tg = null;
         let isTelegramApp = false;
-        let telegramUser = null;
+        let userData = null;
+        let countdownInterval = null;
+        let lastClaimTime = 0;
+        const CLAIM_COOLDOWN = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
         const CLAIM_AMOUNT = 30;
-        const CLAIM_COOLDOWN = 12 * 60 * 60 * 1000;
 
-        // Format number with commas
-        function formatNumber(number) {            
-            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-        }
-
-        // FIXED: Use Supabase Auth instead of localStorage
-        async function checkAuth() {
-            try {
-                const { data: { session }, error } = await supabaseClient.auth.getSession();
-
-                if (error) {
-                    console.error('Session error:', error);
-                    throw error;
-                }
-
-                if (!session) {
-                    console.log('❌ No Supabase session found - redirecting to login');
-                    window.location.href = 'login.html';
-                    return null;
-                }
-
-                console.log('✅ Supabase session found for user:', session.user.id);
-                return session.user;
-
-            } catch (error) {
-                console.error('❌ Auth check error:', error);
-                window.location.href = 'login.html';
-                return null;
-            }
-        }
-
-        // FIXED: Enhanced user data loading with Supabase Auth
-        async function loadUserData() {
-            try {
-                console.log('🔄 Loading user data with Supabase Auth...');
-
-                // Check authentication first with Supabase
-                const userSession = await checkAuth();
-                if (!userSession) return null;
-
-                // Load profile data from profiles table
-                const { data: profile, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', userSession.id)
-                    .single();
-
-                if (profileError) {
-                    console.error('❌ Error loading profile:', profileError);
-
-                    // If profile doesn't exist, sign out
-                    if (profileError.code === 'PGRST116') {
-                        await supabaseClient.auth.signOut();
-                        window.location.href = 'login.html';
-                        return null;
-                    }
-
-                    throw new Error('Could not load user profile');
-                }
-
-                if (!profile) {
-                    // If profile doesn't exist, sign out
-                    await supabaseClient.auth.signOut();
-                    window.location.href = 'login.html';
-                    return null;
-                }
-
-                // Set user data
-                user = profile;
-                userBalance = profile.balance || 0;
-                lastClaimTime = profile.last_claim ? new Date(profile.last_claim) : null;
-
-                // Update UI
-                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
-
-                console.log('✅ User data loaded successfully with Supabase Auth');
-                console.log('💰 Balance:', userBalance);
-                console.log('👤 Username:', profile.username);
-                console.log('👑 Admin level:', profile.admin_level);
-
-                return profile;
-
-            } catch (error) {
-                console.error('❌ Error loading user data:', error);
-                showError('Failed to load user data. Please refresh the page.');
-                return null;
-            }
-        }
-
-        // FIXED: SIMPLE CHECK MAINTENANCE MODE
-        async function checkMaintenanceStatus() {
-            try {
-                console.log('🔧 Checking maintenance status...');
-                // Skip maintenance check for now to avoid errors
-                document.getElementById('maintenanceOverlay').style.display = 'none';
-                return false;
-            } catch (error) {
-                console.error('Error checking maintenance status:', error);
-                document.getElementById('maintenanceOverlay').style.display = 'none';
-                return false;
-            }
-        }
-
-        // FIXED: Enhanced balance refresh
-        async function refreshBalance() {
-            try {
-                console.log('🔄 Refreshing balance...');
-                const userSession = await checkAuth();
-                if (!userSession) return;
-
-                // Load fresh balance from profiles table
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('balance')
-                    .eq('id', userSession.id)
-                    .single();
-
-                if (!error && profile) {
-                    userBalance = profile.balance || 0;
-                    document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
-                }
-
-            } catch (error) {
-                console.error('Error refreshing balance:', error);
-            }
-        }
-
-        // NEW: Load real notification count from database
-        async function loadNotificationCount() {
-            try {
-                const userSession = await checkAuth();
-                if (!userSession) return;
-
-                // Fetch unread notifications count from database
-                const { data: notifications, error } = await supabaseClient
-                    .from('notifications')
-                    .select('id')
-                    .eq('user_id', userSession.id)
-                    .eq('is_read', false);
-
-                if (error) {
-                    console.error('Error fetching notifications:', error);
-                    return;
-                }
-
-                const unreadCount = notifications ? notifications.length : 0;
-                
-                const notificationBadge = document.getElementById('notificationBadge');
-                if (unreadCount > 0) {
-                    notificationBadge.textContent = unreadCount;
-                    notificationBadge.style.display = 'inline-block';
-                } else {
-                    notificationBadge.style.display = 'none';
-                }
-
-                console.log(`🔔 ${unreadCount} unread notifications`);
-
-            } catch (error) {
-                console.error('Error loading notification count:', error);
-            }
-        }
-
-        // Wait for DOM to load
+        // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing NemexCoin Dashboard...');
-            initializeDashboard();
-            initializeNavigation();
+            initializeApp();
+            setupEventListeners();
+            checkMaintenanceStatus();
         });
 
-// Initialize navigation
-function initializeNavigation() {
-    // Settings modal functionality
-    const settingsButton = document.getElementById('settingsButton');
-    const settingsModal = document.getElementById('settingsModal');
-    const closeSettings = document.getElementById('closeSettings');
-    const logoutButton = document.getElementById('logoutButton');
-
-    settingsButton.addEventListener('click', function() {
-        settingsModal.style.display = 'flex';
-    });
-
-    closeSettings.addEventListener('click', function() {
-        settingsModal.style.display = 'none';
-    });
-
-    settingsModal.addEventListener('click', function(e) {
-        if (e.target === settingsModal) {
-            settingsModal.style.display = 'none';
-        }
-    });
-
-    // FIXED: Notifications link - REMOVE the problematic event listener
-    // The link will work naturally with href="notification.html"
-
-    // Logout functionality (this is correct - handles logout navigation)
-    logoutButton.addEventListener('click', async function() {
-        try {
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) throw error;
-            
-            localStorage.removeItem('nemexcoin_user');
-            showSuccess('Logged out successfully!');
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 1500);
-        } catch (error) {
-            console.error('Logout error:', error);
-            showError('Logout failed. Please try again.');
-        }
-    });
-
-    // Highlight current page in navigation
-    const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
-    const navItems = document.querySelectorAll('.nav-item');
-
-    navItems.forEach(item => {
-        const href = item.getAttribute('href');
-        if (href === currentPage || (currentPage === 'dashboard.html' && href === '#')) {
-            item.classList.add('active');
-        } else {
-            item.classList.remove('active');
-        }
-    });
-}
-
-
-            // FIXED: Use Supabase Auth for logout
-            logoutButton.addEventListener('click', async function() {
-                try {
-                    // Sign out from Supabase Auth
-                    const { error } = await supabaseClient.auth.signOut();
-
-                    if (error) {
-                        throw error;
-                    }
-
-                    // Clear any localStorage remnants (backward compatibility)
-                    localStorage.removeItem('nemexcoin_user');
-
-                    showSuccess('Logged out successfully!');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 1500);
-                } catch (error) {
-                    console.error('Logout error:', error);
-                    showError('Logout failed. Please try again.');
-                }
-            });
-
-            // Highlight current page in navigation
-            const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
-            const navItems = document.querySelectorAll('.nav-item');
-
-            navItems.forEach(item => {
-                const href = item.getAttribute('href');
-                if (href === currentPage || (currentPage === 'dashboard.html' && href === '#')) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-        }
-
-        // FIXED: Enhanced dashboard initialization with Supabase Auth
-        async function initializeDashboard() {
-            try {
-                // FIRST: Check authentication with Supabase Auth
-                const userSession = await checkAuth();
-                if (!userSession) return;
-
-                // Check maintenance mode
-                const isMaintenance = await checkMaintenanceStatus();
-                if (isMaintenance) {
-                    console.log('🚧 Dashboard initialization paused - Maintenance mode active');
-                    return;
-                }
-
-                // Initialize Telegram first
-                initializeTelegram();
-
-                // Load user data
-                const userData = await loadUserData();
-                if (!userData) {
-                    throw new Error('Failed to load user data');
-                }
-
-                // Check if user is admin and show admin icons
-                await checkAdminAccess();
-
-                // NEW: Load notification count for badge
-                await loadNotificationCount();
-
-                // Start countdown timer
-                startCountdownTimer();
-
-                // Refresh balance when page becomes visible
-                document.addEventListener('visibilitychange', function() {
-                    if (!document.hidden) {
-                        console.log('📄 Page visible - refreshing balance...');
-                        refreshBalance();
-                        // NEW: Also refresh notification count
-                        loadNotificationCount();
-                    }
-                });
-
-                console.log('✅ Dashboard initialized successfully with Supabase Auth');
-
-            } catch (error) {
-                console.error('❌ Dashboard initialization failed:', error);
-                showError('Failed to load dashboard. Please refresh the page.');
-            }
-        }
-
-        // FIXED: Enhanced admin access check with Supabase Auth
-        async function checkAdminAccess() {
-            try {
-                const userSession = await checkAuth();
-                if (!userSession) return;
-
-                // Check admin_level from profiles table
-                const { data: profile, error } = await supabaseClient
-                    .from('profiles')
-                    .select('admin_level, email')
-                    .eq('id', userSession.id)
-                    .single();
-
-                // Also check by email as fallback
-                const userEmail = profile?.email;
-                const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
-
-                const isAdmin = (profile && profile.admin_level > 0) || 
-                               (userEmail && adminEmails.includes(userEmail));
-
-                if (isAdmin) {
-                    // Show admin icons
-                    const transactionAdminButton = document.getElementById('transactionAdminButton');
-                    const adminButton = document.getElementById('adminButton');
-                    const mainAdminSettings = document.getElementById('mainAdminSettings');
-                    const transactionAdminSettings = document.getElementById('transactionAdminSettings');
-
-                    if (transactionAdminButton) transactionAdminButton.style.display = 'block';
-                    if (adminButton) adminButton.style.display = 'block';
-                    if (mainAdminSettings) mainAdminSettings.style.display = 'flex';
-                    if (transactionAdminSettings) transactionAdminSettings.style.display = 'flex';
-
-                    // Add click events
-                    if (transactionAdminButton) {
-                        transactionAdminButton.addEventListener('click', function() {
-                            window.location.href = 'admin-transactions.html';
-                        });
-                    }
-
-                    if (adminButton) {
-                        adminButton.addEventListener('click', function() {
-                            window.location.href = 'admin.html';
-                        });
-                    }
-
-                    console.log('👑 Admin access granted via Supabase Auth');
-                } else {
-                    console.log('👤 Regular user access');
-                }
-            } catch (error) {
-                console.error('Error checking admin access:', error);
-            }
-        }
-
-        // Enhanced Telegram initialization
-        function initializeTelegram() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                console.log('📱 Telegram Web App detected - Initializing...');
+        function initializeApp() {
+            // Check if running in Telegram
+            if (window.Telegram && Telegram.WebApp) {
+                tg = Telegram.WebApp;
                 isTelegramApp = true;
+                
+                // Expand the app to full height
+                tg.expand();
+                
+                // Initialize Telegram UI
+                initializeTelegramUI();
+                
+                // Show Telegram badge
+                document.getElementById('telegramBadge').style.display = 'inline-block';
+                
+                // Add Telegram-specific CSS class
+                document.body.classList.add('telegram-app');
+            } else {
+                // Not in Telegram, show connection status
+                document.getElementById('connectionStatus').style.display = 'block';
+                simulateConnection();
+            }
+            
+            // Load user data
+            loadUserData();
+            
+            // Initialize countdown timer
+            initializeCountdown();
+            
+            // Check admin status
+            checkAdminStatus();
+        }
 
-                const tg = window.Telegram.WebApp;
-
-                try {
-                    tg.expand();
-                    tg.setHeaderColor('#d4af37');
-                    tg.setBackgroundColor('#0f0f0f');
-                    tg.enableClosingConfirmation();
-
-                    telegramUser = tg.initDataUnsafe?.user;
-                    if (telegramUser) {
-                        console.log('👤 Telegram user:', telegramUser);
-                        showTelegramUserInfo(telegramUser);
-                        document.getElementById('telegramBadge').style.display = 'inline-block';
-                    }
-
-                    document.body.classList.add('telegram-app');
-                    console.log('✅ Telegram Web App initialized successfully');
-
-                } catch (error) {
-                    console.error('❌ Telegram initialization error:', error);
+        function initializeTelegramUI() {
+            // Get Telegram user data
+            const user = tg.initDataUnsafe?.user;
+            
+            if (user) {
+                userData = user;
+                
+                // Show Telegram user info
+                const telegramUserInfo = document.getElementById('telegramUserInfo');
+                const telegramAvatar = document.getElementById('telegramAvatar');
+                const telegramWelcome = document.getElementById('telegramWelcome');
+                const telegramUsername = document.getElementById('telegramUsername');
+                
+                // Set user data
+                if (user.photo_url) {
+                    telegramAvatar.src = user.photo_url;
                 }
+                
+                telegramWelcome.textContent = `Welcome, ${user.first_name || 'User'}!`;
+                telegramUsername.textContent = user.username ? `@${user.username}` : '';
+                
+                telegramUserInfo.style.display = 'block';
+            }
+        }
+
+        function setupEventListeners() {
+            // Settings button
+            document.getElementById('settingsButton').addEventListener('click', function() {
+                document.getElementById('settingsModal').style.display = 'flex';
+            });
+
+            // Close settings
+            document.getElementById('closeSettings').addEventListener('click', function() {
+                document.getElementById('settingsModal').style.display = 'none';
+            });
+
+            // Logout button
+            document.getElementById('logoutButton').addEventListener('click', function() {
+                if (isTelegramApp) {
+                    tg.close();
+                } else {
+                    alert('Logged out successfully!');
+                    // In a real app, you would redirect to login page
+                }
+            });
+
+            // Claim button
+            document.getElementById('claimButton').addEventListener('click', claimTokens);
+
+            // Admin buttons
+            document.getElementById('adminButton').addEventListener('click', function() {
+                window.location.href = 'admin.html';
+            });
+
+            document.getElementById('transactionAdminButton').addEventListener('click', function() {
+                window.location.href = 'admin-transactions.html';
+            });
+        }
+
+        function simulateConnection() {
+            // Simulate connection to database
+            setTimeout(function() {
+                document.getElementById('connectionStatus').textContent = 'Connected to database';
+                setTimeout(function() {
+                    document.getElementById('connectionStatus').style.display = 'none';
+                }, 2000);
+            }, 1500);
+        }
+
+        function loadUserData() {
+            // In a real app, this would fetch from your backend
+            // For demo purposes, we'll use localStorage
+            const savedBalance = localStorage.getItem('nemexBalance');
+            const savedLastClaim = localStorage.getItem('lastClaimTime');
+            
+            if (savedBalance) {
+                document.getElementById('balanceAmount').textContent = savedBalance;
             } else {
-                console.log('🌐 Running in regular browser');
-                isTelegramApp = false;
+                document.getElementById('balanceAmount').textContent = '0';
+            }
+            
+            if (savedLastClaim) {
+                lastClaimTime = parseInt(savedLastClaim);
+                updateClaimButton();
             }
         }
 
-        // Show Telegram user info
-        function showTelegramUserInfo(telegramUser) {
-            const telegramUserInfo = document.getElementById('telegramUserInfo');
-            const telegramAvatar = document.getElementById('telegramAvatar');
-            const telegramWelcome = document.getElementById('telegramWelcome');
-            const telegramUsername = document.getElementById('telegramUsername');
-
-            if (telegramUser.photo_url) {
-                telegramAvatar.src = telegramUser.photo_url;
-            } else {
-                telegramAvatar.style.display = 'none';
-            }
-
-            telegramWelcome.textContent = `Welcome, ${telegramUser.first_name}!`;
-            telegramUsername.textContent = telegramUser.username ? `@${telegramUser.username}` : '';
-
-            telegramUserInfo.style.display = 'block';
+        function initializeCountdown() {
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000);
         }
 
-        // Start countdown timer
-        function startCountdownTimer() {
-            updateCountdownTimer();
-            countdownInterval = setInterval(updateCountdownTimer, 1000);
-        }
-
-        // Update countdown timer
-        function updateCountdownTimer() {
-            const countdownTimer = document.getElementById('countdownTimer');
-            const claimButton = document.getElementById('claimButton');
-
-            if (!lastClaimTime) {                
-                countdownTimer.textContent = 'Ready!';
-                claimButton.disabled = false;
-                claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
-                return;
-            }
-
-            const now = new Date();
-            const timeSinceLastClaim = now - new Date(lastClaimTime);
+        function updateCountdown() {
+            const now = Date.now();
+            const timeSinceLastClaim = now - lastClaimTime;
             const timeRemaining = CLAIM_COOLDOWN - timeSinceLastClaim;
+            
+            if (timeRemaining > 0) {
+                // Still in cooldown
+                const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
+                const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                
+                document.getElementById('countdownTimer').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                document.getElementById('claimButton').disabled = true;
+            } else {
+                // Ready to claim
+                document.getElementById('countdownTimer').textContent = '00:00:00';
+                document.getElementById('claimButton').disabled = false;
+            }
+        }
 
-            if (timeRemaining <= 0) {
-                countdownTimer.textContent = 'Ready!';
-                claimButton.disabled = false;
-                claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+        function updateClaimButton() {
+            const now = Date.now();
+            const timeSinceLastClaim = now - lastClaimTime;
+            
+            if (timeSinceLastClaim < CLAIM_COOLDOWN) {
+                document.getElementById('claimButton').disabled = true;
+            } else {
+                document.getElementById('claimButton').disabled = false;
+            }
+        }
+
+        function claimTokens() {
+            const now = Date.now();
+            const timeSinceLastClaim = now - lastClaimTime;
+            
+            if (timeSinceLastClaim < CLAIM_COOLDOWN) {
+                showMessage('Please wait until the countdown finishes before claiming again.', 'error');
                 return;
             }
-
-            // Calculate hours, minutes, seconds
-            const hours = Math.floor(timeRemaining / (1000 * 60 * 60));
-            const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
-
-            countdownTimer.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            claimButton.disabled = true;
-            claimButton.textContent = 'Claim Cooldown';
-        }
-
-        // Show success message
-        function showSuccess(message) {
-            const successElement = document.getElementById('successMessage');
-            successElement.textContent = message;
-            successElement.style.display = 'block';
-            setTimeout(() => successElement.style.display = 'none', 5000);
-        }
-
-        // Show error message
-        function showError(message) {
-            const errorElement = document.getElementById('errorMessage');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';            
-            setTimeout(() => errorElement.style.display = 'none', 5000);
-        }
-
-        // FIXED: Enhanced mining reward claim with Supabase Auth
-        async function claimMiningReward() {
-            try {
-                const loadingIndicator = document.getElementById('loadingIndicator');
-                const claimButton = document.getElementById('claimButton');
-
-                loadingIndicator.style.display = 'block';
-                claimButton.disabled = true;
-
-                console.log('💰 Claiming mining reward...');
-
-                // Get current user ID from Supabase Auth
-                const userSession = await checkAuth();
-                if (!userSession) {
-                    throw new Error('No user session');
-                }
-
-                const now = new Date();
-                const newBalance = userBalance + CLAIM_AMOUNT;
-
-                // Update balance in profiles table
-                const { data: profileData, error: profileError } = await supabaseClient
-                    .from('profiles')
-                    .update({
-                        balance: newBalance,
-                        last_claim: now.toISOString(),
-                        updated_at: now.toISOString()
-                    })
-                    .eq('id', userSession.id)
-                    .select()
-                    .single();
-
-                if (profileError) throw profileError;
-
-                console.log('✅ Mining reward claimed successfully');
-                userBalance = newBalance;
+            
+            // Show loading
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('claimButton').disabled = true;
+            
+            // Simulate API call
+            setTimeout(function() {
+                // Update balance
+                const currentBalance = parseInt(document.getElementById('balanceAmount').textContent) || 0;
+                const newBalance = currentBalance + CLAIM_AMOUNT;
+                document.getElementById('balanceAmount').textContent = newBalance;
+                
+                // Save to localStorage
+                localStorage.setItem('nemexBalance', newBalance.toString());
+                localStorage.setItem('lastClaimTime', now.toString());
+                
+                // Update last claim time
                 lastClaimTime = now;
-
-                document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
-                showSuccess(`🎉 Successfully claimed ${CLAIM_AMOUNT} NMX!`);
-
-                // Update countdown timer
-                updateCountdownTimer();
-
-            } catch (error) {
-                console.error('❌ Error claiming mining reward:', error);                
-                showError('Failed to claim reward. Please try again.');
-            } finally {
+                
+                // Hide loading and show success
                 document.getElementById('loadingIndicator').style.display = 'none';
+                showMessage(`Successfully claimed ${CLAIM_AMOUNT} NMXp!`, 'success');
+                
+                // Reset countdown
+                updateCountdown();
+            }, 1500);
+        }
+
+        function showMessage(message, type) {
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            if (type === 'success') {
+                successMessage.textContent = message;
+                successMessage.style.display = 'block';
+                errorMessage.style.display = 'none';
+            } else {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+            }
+            
+            // Auto-hide after 5 seconds
+            setTimeout(function() {
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+            }, 5000);
+        }
+
+        function checkAdminStatus() {
+            // In a real app, this would check user permissions from your backend
+            // For demo purposes, we'll check for a specific Telegram user ID or username
+            
+            const adminUserIds = [
+                '123456789', // Example admin user ID
+                '987654321'  // Example admin user ID
+            ];
+            
+            const adminUsernames = [
+                'nemexadmin', // Example admin username
+                'your_username' // Replace with your actual Telegram username
+            ];
+            
+            let isAdmin = false;
+            
+            if (isTelegramApp && userData) {
+                // Check if current user is admin
+                if (adminUserIds.includes(userData.id.toString()) || 
+                    (userData.username && adminUsernames.includes(userData.username))) {
+                    isAdmin = true;
+                }
+            } else {
+                // For web version, check URL parameter or localStorage
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('admin') === 'true' || localStorage.getItem('isAdmin') === 'true') {
+                    isAdmin = true;
+                }
+            }
+            
+            if (isAdmin) {
+                // Show admin buttons and settings
+                document.getElementById('adminButton').style.display = 'block';
+                document.getElementById('transactionAdminButton').style.display = 'block';
+                document.getElementById('mainAdminSettings').style.display = 'flex';
+                document.getElementById('transactionAdminSettings').style.display = 'flex';
+                
+                // Save admin status
+                localStorage.setItem('isAdmin', 'true');
             }
         }
 
-        // Add click event to claim button
-        document.getElementById('claimButton').addEventListener('click', claimMiningReward);
+        function checkMaintenanceStatus() {
+            // In a real app, this would check your backend for maintenance status
+            // For demo purposes, we'll use a simple check
+            const isMaintenance = false; // Set to true to test maintenance mode
+            
+            if (isMaintenance) {
+                document.getElementById('maintenanceOverlay').style.display = 'flex';
+            } else {
+                document.getElementById('maintenanceOverlay').style.display = 'none';
+            }
+            
+            return !isMaintenance;
+        }
+
+        // Prevent issues with Telegram Web App
+        if (window.Telegram && Telegram.WebApp) {
+            Telegram.WebApp.ready();
+        }
     </script>
 </body>
-</html> 
+</html>
