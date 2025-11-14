@@ -946,38 +946,62 @@
             initializeNavigation();
         });
 
-        // Initialize navigation
-        function initializeNavigation() {
-            // Settings modal functionality
-            const settingsButton = document.getElementById('settingsButton');
-            const settingsModal = document.getElementById('settingsModal');
-            const closeSettings = document.getElementById('closeSettings');
-            const logoutButton = document.getElementById('logoutButton');
-            // NEW: Get notifications link
-            const notificationsLink = document.getElementById('notificationsLink');
+// Initialize navigation
+function initializeNavigation() {
+    // Settings modal functionality
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettings = document.getElementById('closeSettings');
+    const logoutButton = document.getElementById('logoutButton');
 
-            settingsButton.addEventListener('click', function() {
-                settingsModal.style.display = 'flex';
-            });
+    settingsButton.addEventListener('click', function() {
+        settingsModal.style.display = 'flex';
+    });
 
-            closeSettings.addEventListener('click', function() {
-                settingsModal.style.display = 'none';
-            });
+    closeSettings.addEventListener('click', function() {
+        settingsModal.style.display = 'none';
+    });
 
-            settingsModal.addEventListener('click', function(e) {
-                if (e.target === settingsModal) {
-                    settingsModal.style.display = 'none';
-                }
-            });
+    settingsModal.addEventListener('click', function(e) {
+        if (e.target === settingsModal) {
+            settingsModal.style.display = 'none';
+        }
+    });
 
-            // NEW: Fix notifications link navigation
-            if (notificationsLink) {
-                notificationsLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('🔔 Navigating to notifications page...');
-                    window.location.href = 'notification.html';
-                });
-            }
+    // FIXED: Notifications link - REMOVE the problematic event listener
+    // The link will work naturally with href="notification.html"
+
+    // Logout functionality (this is correct - handles logout navigation)
+    logoutButton.addEventListener('click', async function() {
+        try {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) throw error;
+            
+            localStorage.removeItem('nemexcoin_user');
+            showSuccess('Logged out successfully!');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+        } catch (error) {
+            console.error('Logout error:', error);
+            showError('Logout failed. Please try again.');
+        }
+    });
+
+    // Highlight current page in navigation
+    const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
+    const navItems = document.querySelectorAll('.nav-item');
+
+    navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href === currentPage || (currentPage === 'dashboard.html' && href === '#')) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
+
 
             // FIXED: Use Supabase Auth for logout
             logoutButton.addEventListener('click', async function() {
