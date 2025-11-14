@@ -1004,7 +1004,7 @@
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-            
+
             setTimeout(() => {
                 window.location.href = targetPage;
             }, 1500);
@@ -1023,6 +1023,35 @@
                 console.error('Auth check error:', error);
                 showLoadingScreen('login.html', 'Redirecting to Login...');
                 return null;
+            }
+        }
+
+        // ENHANCED: Create purchase notification
+        async function createPurchaseNotification(userId, packageName, amount, price, txHash) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'purchase_pending',
+                    title: 'Purchase Submitted! 📦',
+                    message: `Your purchase of ${amount.toLocaleString()} NMXp for $${price} has been submitted. TX: ${txHash.substring(0, 12)}...`,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ Purchase notification created successfully');
+                    return true;
+                } else {
+                    console.error('❌ Error creating purchase notification:', error);
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error creating purchase notification:', error);
+                return false;
             }
         }
 
@@ -1200,7 +1229,7 @@
             if (modal) modal.style.display = 'none';
         }
 
-        // FIXED: Enhanced Manual Transaction Confirmation with WORKING purchase limits
+        // ENHANCED: Manual Transaction Confirmation with NOTIFICATIONS
         async function processManualConfirmation() {
             try {
                 if (!selectedPackage) {
@@ -1278,7 +1307,7 @@
                     throw new Error('Failed to submit transaction: ' + error.message);
                 }
 
-                // FIXED: DECREMENT PURCHASE LIMIT - This was missing!
+                // FIXED: DECREMENT PURCHASE LIMIT
                 const { error: updateError } = await supabaseClient
                     .from('package_types')
                     .update({
@@ -1288,16 +1317,24 @@
 
                 if (updateError) {
                     console.warn('⚠️ Could not update purchase limit:', updateError);
-                    // Continue anyway - don't block the transaction
                 } else {
                     console.log('✅ Purchase limit decremented successfully');
                 }
 
+                // CREATE PURCHASE NOTIFICATION
+                const notificationCreated = await createPurchaseNotification(
+                    currentUser.id,
+                    selectedPackage.package_name,
+                    selectedPackage.totalAmount,
+                    selectedPackage.price,
+                    txHash
+                );
+
                 // Close confirmation modal
                 closeConfirmation();
 
-                // Show success message with instructions
-                alert(`✅ PAYMENT SUBMITTED FOR REVIEW!
+                // Show success message with notification info
+                let successMessage = `✅ PAYMENT SUBMITTED FOR REVIEW!
 
 📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp
 💰 Amount: $${selectedPackage.price} USD
@@ -1307,9 +1344,13 @@
 1. We'll verify your blockchain transaction
 2. Check the payment amount and network
 3. Credit your NMXp within 1-2 hours
-4. You'll receive a confirmation email
+4. You'll receive updates in notifications`;
 
-💡 Keep your transaction hash safe for reference!`);
+                if (notificationCreated) {
+                    successMessage += '\n\n📬 Notification created! Check your notification page for updates.';
+                }
+
+                alert(successMessage);
 
                 // Reset selection and reload packages
                 selectedPackage = null;
