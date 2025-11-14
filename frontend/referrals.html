@@ -779,10 +779,52 @@
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-            
+
             setTimeout(() => {
                 window.location.href = targetPage;
             }, 1500);
+        }
+
+        // ENHANCED: Create referral notification
+        async function createReferralNotification(userId, type, userName, action) {
+            try {
+                let title, message;
+
+                if (type === 'referral_removed') {
+                    title = 'Referral Removed 🗑️';
+                    message = `You removed ${userName} from your referrals. 30 NMXp has been deducted from both accounts.`;
+                } else if (type === 'referral_ping') {
+                    title = 'Ping Sent 📬';
+                    message = `You sent a ping notification to ${userName}.`;
+                } else if (type === 'referral_joined') {
+                    title = 'New Referral! 🎉';
+                    message = `${userName} joined using your referral link! You earned 30 NMXp bonus.`;
+                }
+
+                const notificationData = {
+                    user_id: userId,
+                    type: type,
+                    title: title,
+                    message: message,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabase
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log(`✅ ${type} notification created successfully`);
+                    return true;
+                } else {
+                    console.error(`❌ Error creating ${type} notification:`, error);
+                    return false;
+                }
+            } catch (error) {
+                console.error(`❌ Error creating ${type} notification:`, error);
+                return false;
+            }
         }
 
         // FIXED: Enhanced authentication check using Supabase Auth
@@ -911,210 +953,192 @@
                 referralsList.innerHTML = `
                     <div class="empty-state">
                         <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                         </svg>
                         <div>No referrals yet</div>
-                        <div style="font-size: 12px; margin-top: 8px;">Share your link to start earning</div>
+                        <div style="font-size: 12px; margin-top: 8px;">Share your referral link to invite friends</div>
                     </div>
                 `;
                 return;
             }
 
-            referralsList.innerHTML = referralsData.map(ref => `
-                <div class="referral-item">
-                    <div class="referral-info">
-                        <div class="referral-name">${ref.full_name || ref.username || 'Unknown User'}</div>
-                        <div class="referral-date">
-                            Joined ${formatDate(ref.created_at)} • 
-                            Balance: ${ref.balance || 0} NMXp
+            let html = '';
+            referralsData.forEach(referral => {
+                const referralDate = new Date(referral.created_at).toLocaleDateString();
+                const displayName = referral.full_name || referral.username || referral.email || 'Unknown User';
+                
+                html += `
+                    <div class="referral-item">
+                        <div class="referral-info">
+                            <div class="referral-name">${displayName}</div>
+                            <div class="referral-date">Joined: ${referralDate}</div>
+                        </div>
+                        <div class="referral-actions">
+                            <button class="action-btn ping-btn" onclick="pingReferral('${referral.id}', '${displayName}')">Ping</button>
+                            <button class="action-btn remove-btn" onclick="showRemoveModal('${referral.id}', '${displayName}')">Remove</button>
                         </div>
                     </div>
-                    <div class="referral-actions">
-                        <button class="action-btn ping-btn" onclick="pingUser('${ref.id}', '${ref.full_name || ref.username || 'User'}')">Ping</button>
-                        <button class="action-btn remove-btn" onclick="showRemoveModal('${ref.id}', '${ref.full_name || ref.username || 'User'}')">Remove</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            });
+
+            referralsList.innerHTML = html;
+        }
+
+        // Show remove confirmation modal
+        function showRemoveModal(userId, userName) {
+            userToRemove = { id: userId, name: userName };
+            document.getElementById('removeModalText').textContent = 
+                `Are you sure you want to remove ${userName} from your referrals? This action will deduct 30 NMXp from both accounts and free up one referral slot.`;
+            document.getElementById('removeModal').style.display = 'flex';
+        }
+
+        // Remove referral function
+        async function removeReferral() {
+            if (!userToRemove || !currentUser) return;
+
+            try {
+                console.log(`🗑️ Removing referral: ${userToRemove.name}`);
+
+                // Update current user's profile
+                const { data: currentProfileData, error: currentError } = await supabase
+                    .from('profiles')
+                    .update({
+                        used_slots: (currentProfile.used_slots || 0) - 1,
+                        balance: (currentProfile.balance || 0) - 30
+                    })
+                    .eq('id', currentUser.id);
+
+                if (currentError) {
+                    console.error('Error updating current user:', currentError);
+                    showToast('Error removing referral', 'error');
+                    return;
+                }
+
+                // Update referred user's profile
+                const { data: referralProfile, error: referralError } = await supabase
+                    .from('profiles')
+                    .update({
+                        referred_by: null,
+                        balance: (referrals.find(r => r.id === userToRemove.id)?.balance || 0) - 30
+                    })
+                    .eq('id', userToRemove.id);
+
+                if (referralError) {
+                    console.error('Error updating referred user:', referralError);
+                    showToast('Error removing referral', 'error');
+                    return;
+                }
+
+                // Create notification for removal
+                await createReferralNotification(currentUser.id, 'referral_removed', userToRemove.name, 'removed');
+
+                // Refresh data
+                await loadReferralData();
+                
+                // Close modal
+                document.getElementById('removeModal').style.display = 'none';
+                
+                // Show success message
+                showToast(`${userToRemove.name} removed from referrals`, 'success');
+
+                // Reset userToRemove
+                userToRemove = null;
+
+            } catch (error) {
+                console.error('Error removing referral:', error);
+                showToast('Error removing referral', 'error');
+            }
+        }
+
+        // Ping referral function
+        async function pingReferral(userId, userName) {
+            try {
+                console.log(`📬 Pinging referral: ${userName}`);
+                
+                // Create notification for ping
+                await createReferralNotification(currentUser.id, 'referral_ping', userName, 'pinged');
+                
+                showToast(`Ping sent to ${userName}`, 'info');
+            } catch (error) {
+                console.error('Error pinging referral:', error);
+                showToast('Error sending ping', 'error');
+            }
+        }
+
+        // Copy referral link function
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referralLink');
+            referralLink.select();
+            referralLink.setSelectionRange(0, 99999); // For mobile devices
+
+            try {
+                navigator.clipboard.writeText(referralLink.value);
+                showToast('Referral link copied!', 'success');
+            } catch (err) {
+                // Fallback for older browsers
+                document.execCommand('copy');
+                showToast('Referral link copied!', 'success');
+            }
+        }
+
+        // Share functions
+        function shareOnWhatsApp() {
+            const message = `Join NemexCoin using my referral link: ${document.getElementById('referralLink').value}`;
+            const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareOnTelegram() {
+            const message = `Join NemexCoin using my referral link: ${document.getElementById('referralLink').value}`;
+            const url = `https://t.me/share/url?url=${encodeURIComponent(document.getElementById('referralLink').value)}&text=${encodeURIComponent('Join NemexCoin with my referral!')}`;
+            window.open(url, '_blank');
+        }
+
+        function shareOnTwitter() {
+            const message = `Join NemexCoin using my referral link: ${document.getElementById('referralLink').value}`;
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`;
+            window.open(url, '_blank');
+        }
+
+        function shareViaEmail() {
+            const subject = 'Join NemexCoin with my referral';
+            const body = `Hi! I'm inviting you to join NemexCoin using my referral link: ${document.getElementById('referralLink').value}`;
+            const url = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = url;
+        }
+
+        // Toast notification function
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast';
+            
+            if (type === 'error') {
+                toast.classList.add('error');
+            } else if (type === 'info') {
+                toast.classList.add('info');
+            }
+            
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
         }
 
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
+            // Set up event listeners
+            document.getElementById('copyBtn').addEventListener('click', copyReferralLink);
+            document.getElementById('cancelRemove').addEventListener('click', function() {
+                document.getElementById('removeModal').style.display = 'none';
+                userToRemove = null;
+            });
+            document.getElementById('confirmRemove').addEventListener('click', removeReferral);
+
+            // Load referral data
             loadReferralData();
-            setupEventListeners();
-
-            // Highlight current page in navigation
-            const currentPage = window.location.pathname.split('/').pop() || 'referrals.html';
-            const navItems = document.querySelectorAll('.nav-item');
-
-            navItems.forEach(item => {
-                const onclick = item.getAttribute('onclick');
-                if (onclick && onclick.includes('referrals.html') || !onclick && item.classList.contains('active')) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
         });
-
-        function pingUser(userId, userName) {
-            showToast(`Ping sent to ${userName}`, 'info');
-        }
-
-        function showRemoveModal(userId, userName) {
-            userToRemove = { id: userId, name: userName };
-            const modal = document.getElementById('removeModal');
-            const modalText = document.getElementById('removeModalText');
-            modalText.innerHTML = `Are you sure you want to remove <strong>${userName}</strong>? This action will deduct 30 NMXp from both accounts and free up one referral slot.`;
-            modal.style.display = 'flex';
-        }
-
-        function shareOnWhatsApp() { 
-            const referralLink = document.getElementById('referralLink').value; 
-            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; 
-            window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank'); 
-        }
-
-        function shareOnTelegram() { 
-            const referralLink = document.getElementById('referralLink').value; 
-            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; 
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Join NemexCoin and get 30 NMXp bonus!')}`, '_blank'); 
-        }
-
-        function shareOnTwitter() { 
-            const referralLink = document.getElementById('referralLink').value; 
-            const message = `Join NemexCoin using my referral link and get 30 NMXp bonus! ${referralLink}`; 
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(message)}`, '_blank'); 
-        }
-
-        function shareViaEmail() { 
-            const referralLink = document.getElementById('referralLink').value; 
-            const subject = 'Join NemexCoin and get 30 NMXp bonus!'; 
-            const body = `Hey! I'm using NemexCoin and thought you might like it too. Use my referral link to join and we both get 30 NMXp bonus:\n\n${referralLink}\n\nLet's earn together!`; 
-            window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`; 
-        }
-
-        function setupEventListeners() {
-            document.getElementById('copyBtn').addEventListener('click', function() {
-                const linkInput = document.getElementById('referralLink');
-                linkInput.select(); 
-                linkInput.setSelectionRange(0, 99999);
-                navigator.clipboard.writeText(linkInput.value).then(() => {
-                    const originalText = this.textContent; 
-                    this.textContent = 'Copied!'; 
-                    this.style.background = 'var(--success)';
-                    setTimeout(() => { 
-                        this.textContent = originalText; 
-                        this.style.background = 'var(--gold)'; 
-                    }, 2000);
-                });
-            });
-
-            document.getElementById('cancelRemove').addEventListener('click', function() { 
-                document.getElementById('removeModal').style.display = 'none'; 
-                userToRemove = null; 
-            });
-
-            document.getElementById('confirmRemove').addEventListener('click', function() { 
-                if (userToRemove && userToRemove.id) { 
-                    removeUser(userToRemove.id); 
-                    document.getElementById('removeModal').style.display = 'none'; 
-                    userToRemove = null; 
-                } 
-            });
-
-            document.getElementById('removeModal').addEventListener('click', function(e) { 
-                if (e.target === this) { 
-                    this.style.display = 'none'; 
-                    userToRemove = null; 
-                } 
-            });
-        }
-
-        function formatDate(dateString) { 
-            const date = new Date(dateString); 
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-            }); 
-        }
-
-        function showToast(message, type = 'success') { 
-            const toast = document.getElementById('toast'); 
-            toast.textContent = message; 
-            toast.className = `toast ${type}`; 
-            toast.style.display = 'block'; 
-            setTimeout(() => { 
-                toast.style.display = 'none'; 
-            }, 3000); 
-        }
-
-        // FIXED: Enhanced user removal function
-        async function removeUser(userId) {
-            if (!userId || !currentUser) { 
-                showToast('Error: Invalid user data', 'error'); 
-                return; 
-            }
-
-            try {
-                showToast('Removing user...', 'info');
-
-                // Get the user to remove
-                const { data: userToRemoveData } = await supabase
-                    .from('profiles')
-                    .select('balance')
-                    .eq('id', userId)
-                    .single();
-
-                if (!userToRemoveData) {
-                    throw new Error('User not found');
-                }
-
-                // Remove referral relationship and deduct bonus
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        referred_by: null,
-                        balance: Math.max(0, (userToRemoveData.balance || 0) - 30),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', userId);
-
-                if (updateError) {
-                    throw new Error('Failed to remove user: ' + updateError.message);
-                }
-
-                // Update referrer's stats
-                const { error: referrerError } = await supabase
-                    .from('profiles')
-                    .update({
-                        used_slots: Math.max(0, (currentProfile.used_slots || 0) - 1),
-                        total_earned_from_refs: Math.max(0, (currentProfile.total_earned_from_refs || 0) - 30),
-                        balance: Math.max(0, (currentProfile.balance || 0) - 30),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', currentUser.id);
-
-                if (referrerError) {
-                    throw new Error('Failed to update referrer stats: ' + referrerError.message);
-                }
-
-                // Remove from referral network
-                await supabase
-                    .from('referral_network')
-                    .delete()
-                    .eq('referrer_id', currentUser.id)
-                    .eq('referred_id', userId);
-
-                // Reload data
-                await loadReferralData();
-                showToast('User removed successfully', 'success');
-
-            } catch (error) {
-                console.error('Error removing user:', error);
-                showToast(`Error removing user: ${error.message}`, 'error');
-            }
-        }
     </script>
 </body>
 </html>
