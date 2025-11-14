@@ -945,16 +945,13 @@
             initializeNavigation();
         });
 
-  // Initialize navigation
+// Initialize navigation
 function initializeNavigation() {
     // Settings modal functionality
     const settingsButton = document.getElementById('settingsButton');
     const settingsModal = document.getElementById('settingsModal');
     const closeSettings = document.getElementById('closeSettings');
     const logoutButton = document.getElementById('logoutButton');
-    
-    // NEW: Get notifications link
-    const notificationsLink = document.getElementById('notificationsLink');
 
     settingsButton.addEventListener('click', function() {
         settingsModal.style.display = 'flex';
@@ -969,15 +966,6 @@ function initializeNavigation() {
             settingsModal.style.display = 'none';
         }
     });
-
-    // NEW: Fix notifications link navigation - ADD THIS
-    if (notificationsLink) {
-        notificationsLink.addEventListener('click', function(e) {
-            console.log('🔔 Navigating to notifications page...');
-            // Let the default link behavior happen (go to notification.html)
-            // Don't prevent default or do anything special
-        });
-    }
 
     // FIXED: Use Supabase Auth for logout
     logoutButton.addEventListener('click', async function() {
