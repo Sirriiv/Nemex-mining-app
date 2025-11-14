@@ -524,8 +524,8 @@
             <div class="filter-tabs">
                 <div class="filter-tab active" onclick="setFilter('all')">All</div>
                 <div class="filter-tab" onclick="setFilter('unread')">Unread</div>
-                <div class="filter-tab" onclick="setFilter('rewards')">Rewards</div>
-                <div class="filter-tab" onclick="setFilter('purchases')">Purchases</div>
+                <div class="filter-tab" onclick="setFilter('mining')">Mining</div>
+                <div class="filter-tab" onclick="setFilter('system')">System</div>
             </div>
 
             <!-- Notifications Container -->
@@ -595,26 +595,27 @@
                 if (error || !session) {
                     console.log('❌ No active session, redirecting to login');
                     window.location.href = 'login.html';
-                    return;
+                    return null;
                 }
-                
+
                 const { data: user, error: userError } = await supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', session.user.id)
                     .single();
-                    
+
                 if (userError || !user) {
                     console.error('❌ User not found in profiles table');
                     window.location.href = 'login.html';
-                    return;
+                    return null;
                 }
-                
+
                 console.log('✅ User authenticated:', user.email);
                 return user;
             } catch (error) {
                 console.error('❌ Auth check error:', error);
                 window.location.href = 'login.html';
+                return null;
             }
         }
 
@@ -624,68 +625,44 @@
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) return;
 
-                console.log('📥 Loading notifications for user:', session.user.id);
+                console.log('📥 Loading notifications from database for user:', session.user.id);
 
-                // In a real implementation, you would fetch from a notifications table
-                // For now, we'll use mock data that matches your requirements
-                const mockNotifications = [
-                    {
-                        id: 1,
-                        type: 'reward',
-                        title: 'Reward Claimed',
-                        message: 'You successfully claimed 30 NMXp from daily mining',
-                        timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
-                        read: false,
-                        metadata: { amount: 30, currency: 'NMXp' }
-                    },
-                    {
-                        id: 2,
-                        type: 'purchase',
-                        title: 'Package Purchase',
-                        message: 'You purchased Starter Package - Awaiting approval',
-                        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-                        read: false,
-                        metadata: { package: 'Starter Package', status: 'pending' }
-                    },
-                    {
-                        id: 3,
-                        type: 'purchase',
-                        title: 'Purchase Approved',
-                        message: 'Your Starter Package purchase has been approved and activated',
-                        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
-                        read: true,
-                        metadata: { package: 'Starter Package', status: 'approved' }
-                    },
-                    {
-                        id: 4,
-                        type: 'security',
-                        title: 'Password Changed',
-                        message: 'Your account password was successfully changed',
-                        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-                        read: true,
-                        metadata: { action: 'password_change' }
-                    },
-                    {
-                        id: 5,
-                        type: 'admin',
-                        title: 'Admin Message',
-                        message: 'Welcome to NemexCoin! Start mining and earn rewards today.',
-                        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-                        read: true,
-                        metadata: { note: 'Welcome message' }
-                    },
-                    {
-                        id: 6,
-                        type: 'reward',
-                        title: 'Referral Bonus',
-                        message: 'You earned 15 NMXp from referral signup',
-                        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-                        read: true,
-                        metadata: { amount: 15, currency: 'NMXp', source: 'referral' }
+                // Fetch notifications from the database
+                const { data: dbNotifications, error } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error fetching notifications:', error);
+                    showError('Failed to load notifications');
+                    return;
+                }
+
+                if (!dbNotifications || dbNotifications.length === 0) {
+                    console.log('📭 No notifications found in database');
+                    // Create sample notifications if none exist
+                    await createSampleNotifications();
+                    await loadNotifications(); // Reload after creating samples
+                    return;
+                }
+
+                // Transform database notifications to match our format
+                notifications = dbNotifications.map(notification => ({
+                    id: notification.id,
+                    type: notification.type || 'info',
+                    title: notification.title,
+                    message: notification.message,
+                    timestamp: notification.created_at,
+                    read: notification.is_read || false,
+                    metadata: {
+                        related_entity_type: notification.related_entity_type,
+                        related_entity_id: notification.related_entity_id
                     }
-                ];
+                }));
 
-                notifications = mockNotifications;
+                console.log(`✅ Loaded ${notifications.length} notifications from database`);
                 renderNotifications();
                 updateStats();
 
@@ -695,18 +672,79 @@
             }
         }
 
+        // Create sample notifications if none exist
+        async function createSampleNotifications() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const sampleNotifications = [
+                    {
+                        user_id: session.user.id,
+                        title: 'Welcome to NemexCoin! 🎉',
+                        message: 'Start mining and earn NMX tokens every 12 hours. Your journey to earning crypto starts now!',
+                        type: 'welcome',
+                        related_entity_type: 'system'
+                    },
+                    {
+                        user_id: session.user.id,
+                        title: 'Mining Reward Available ⛏️',
+                        message: 'Your mining reward of 30 NMXp is ready to claim! Click the claim button on your dashboard.',
+                        type: 'mining',
+                        related_entity_type: 'mining'
+                    },
+                    {
+                        user_id: session.user.id,
+                        title: 'Referral Program Activated 👥',
+                        message: 'Invite friends and earn 10% of their mining rewards. Share your referral link to start earning!',
+                        type: 'referral',
+                        related_entity_type: 'system'
+                    },
+                    {
+                        user_id: session.user.id,
+                        title: 'Security Tip 🔒',
+                        message: 'Keep your account secure by enabling two-factor authentication in the security settings.',
+                        type: 'security',
+                        related_entity_type: 'system'
+                    },
+                    {
+                        user_id: session.user.id,
+                        title: 'New Feature: Tasks 🎯',
+                        message: 'Complete daily tasks to earn extra NMXp rewards. Check the Tasks tab for available missions.',
+                        type: 'info',
+                        related_entity_type: 'system'
+                    }
+                ];
+
+                const { error } = await supabase
+                    .from('notifications')
+                    .insert(sampleNotifications);
+
+                if (error) {
+                    console.error('❌ Error creating sample notifications:', error);
+                    return;
+                }
+
+                console.log('✅ Created sample notifications');
+                showSuccess('Sample notifications created!');
+
+            } catch (error) {
+                console.error('❌ Error creating sample notifications:', error);
+            }
+        }
+
         // Render notifications based on current filter
         function renderNotifications() {
             const container = document.getElementById('notificationsContainer');
-            
+
             if (!notifications || notifications.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                         </svg>
-                        <div class="empty-title">No notifications</div>
-                        <div class="empty-description">You're all caught up! New activities will appear here.</div>
+                        <div class="empty-title">No notifications yet</div>
+                        <div class="empty-description">Your notifications will appear here when you have new activities.</div>
                     </div>
                 `;
                 return;
@@ -716,16 +754,16 @@
             let filteredNotifications = notifications;
             if (currentFilter === 'unread') {
                 filteredNotifications = notifications.filter(n => !n.read);
-            } else if (currentFilter === 'rewards') {
-                filteredNotifications = notifications.filter(n => n.type === 'reward');
-            } else if (currentFilter === 'purchases') {
-                filteredNotifications = notifications.filter(n => n.type === 'purchase');
+            } else if (currentFilter === 'mining') {
+                filteredNotifications = notifications.filter(n => n.type === 'mining' || n.related_entity_type === 'mining');
+            } else if (currentFilter === 'system') {
+                filteredNotifications = notifications.filter(n => n.related_entity_type === 'system');
             }
 
             // Group by date
             const today = new Date().toDateString();
             const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
-            
+
             const todayNotifications = filteredNotifications.filter(n => new Date(n.timestamp).toDateString() === today);
             const yesterdayNotifications = filteredNotifications.filter(n => new Date(n.timestamp).toDateString() === yesterday);
             const olderNotifications = filteredNotifications.filter(n => {
@@ -773,10 +811,10 @@
             const timeAgo = getTimeAgo(notification.timestamp);
             const typeClass = getTypeClass(notification.type);
             const typeLabel = getTypeLabel(notification.type);
-            
+
             return `
                 <div class="notification-item ${typeClass} ${!notification.read ? 'unread' : ''}" 
-                     onclick="markAsRead(${notification.id})">
+                     onclick="markAsRead('${notification.id}')">
                     ${!notification.read ? '<div class="unread-badge"></div>' : ''}
                     <div class="notification-header-row">
                         <div class="notification-title-text">${notification.title}</div>
@@ -794,10 +832,13 @@
         // Get CSS class for notification type
         function getTypeClass(type) {
             const typeClasses = {
+                mining: 'success',
                 reward: 'success',
-                purchase: 'info',
+                referral: 'info',
                 security: 'warning',
-                admin: 'gold'
+                welcome: 'gold',
+                info: 'info',
+                error: 'error'
             };
             return typeClasses[type] || 'info';
         }
@@ -805,10 +846,13 @@
         // Get display label for notification type
         function getTypeLabel(type) {
             const typeLabels = {
+                mining: 'Mining',
                 reward: 'Reward',
-                purchase: 'Purchase',
+                referral: 'Referral',
                 security: 'Security',
-                admin: 'Admin'
+                welcome: 'Welcome',
+                info: 'Info',
+                error: 'Alert'
             };
             return typeLabels[type] || 'Notification';
         }
@@ -841,42 +885,65 @@
         // Set filter and re-render
         function setFilter(filter) {
             currentFilter = filter;
-            
+
             // Update active tab
             document.querySelectorAll('.filter-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             event.target.classList.add('active');
-            
+
             renderNotifications();
         }
 
         // Mark notification as read
         async function markAsRead(notificationId) {
             try {
-                // In real implementation, update in database
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('id', notificationId);
+
+                if (error) {
+                    throw error;
+                }
+
+                // Update local state
                 const notification = notifications.find(n => n.id === notificationId);
                 if (notification && !notification.read) {
                     notification.read = true;
                     renderNotifications();
                     updateStats();
-                    
+
                     // Show success feedback
                     showSuccess('Notification marked as read');
                 }
             } catch (error) {
                 console.error('Error marking notification as read:', error);
+                showError('Failed to mark as read');
             }
         }
 
         // Mark all notifications as read
         async function markAllAsRead() {
             try {
-                // In real implementation, update in database
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) return;
+
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('user_id', session.user.id)
+                    .eq('is_read', false);
+
+                if (error) {
+                    throw error;
+                }
+
+                // Update all local notifications
                 notifications.forEach(notification => {
                     notification.read = true;
                 });
-                
+
                 renderNotifications();
                 updateStats();
                 showSuccess('All notifications marked as read');
@@ -890,7 +957,7 @@
         function updateStats() {
             const total = notifications.length;
             const unread = notifications.filter(n => !n.read).length;
-            
+
             document.getElementById('totalNotifications').textContent = total;
             document.getElementById('unreadNotifications').textContent = unread;
         }
@@ -936,7 +1003,7 @@
             await loadNotifications();
         });
 
-        console.log('🔔 Notifications page loaded - Ready for integration');
+        console.log('🔔 Notifications page loaded - Database integration ready');
     </script>
 </body>
 </html>
