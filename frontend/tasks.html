@@ -13,6 +13,9 @@
             --muted: #aaa; 
             --bg-secondary: #1a1a1a;
             --border-color: #333333;
+            --success: #00C851;
+            --warning: #ff9800;
+            --info: #33b5e5;
         }
 
         * { 
@@ -48,6 +51,9 @@
             padding: 16px 20px;
             border-bottom: 1px solid var(--border-color);
             background-color: var(--dark-bg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
         .back-btn {
@@ -83,56 +89,261 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
+            padding-bottom: 70px;
         }
 
-        .coming-soon {
+        /* Task Categories */
+        .task-categories {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .category-btn {
+            padding: 10px 16px;
             background: var(--darker-bg);
-            border-radius: 15px;
-            padding: 40px 25px;
             border: 1px solid var(--border-color);
-            max-width: 300px;
-        }
-
-        .coming-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            color: var(--gold);
-        }
-
-        .coming-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--gold);
-            margin-bottom: 10px;
-        }
-
-        .coming-desc {
+            border-radius: 20px;
             color: var(--muted);
             font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 25px;
-        }
-
-        .back-button {
-            background: linear-gradient(135deg, var(--gold), #b8941f);
-            color: var(--darker-bg);
-            border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
             font-weight: 600;
             cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
+            white-space: nowrap;
             transition: all 0.3s ease;
         }
 
-        .back-button:hover {
+        .category-btn.active {
+            background: var(--gold);
+            color: var(--dark-bg);
+            border-color: var(--gold);
+        }
+
+        /* Task Cards */
+        .tasks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .task-card {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .task-card.completed {
+            border-color: var(--success);
+            background: rgba(0, 200, 81, 0.05);
+        }
+
+        .task-card.available:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .task-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .task-reward {
+            background: var(--gold);
+            color: var(--dark-bg);
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .task-description {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+
+        .task-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-status {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 8px;
+        }
+
+        .status-available {
+            background: rgba(51, 181, 229, 0.1);
+            color: var(--info);
+        }
+
+        .status-completed {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+        }
+
+        .status-pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+        }
+
+        .task-action {
+            background: linear-gradient(135deg, var(--gold), #b8941f);
+            color: var(--darker-bg);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .task-action:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        .task-action:disabled {
+            background: var(--muted);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            color: var(--muted);
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        .empty-message {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-logo {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            animation: logoGlow 2s ease-in-out infinite alternate;
+        }
+
+        .loading-logo-text {
+            font-size: 32px;
+            font-weight: 900;
+            color: #0f0f0f;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 20px;
+            animation: textBlink 1.5s infinite;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #ffd700);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressLoad 2s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes textBlink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes progressLoad {
+            0% {
+                width: 0%;
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(100%);
+            }
         }
 
         /* Bottom Navigation */
@@ -202,20 +413,40 @@
             text-align: center;
         }
 
-        .content-wrapper {
-            padding-bottom: 70px;
+        /* Progress Bar */
+        .progress-container {
             width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #ffd700);
+            border-radius: 3px;
+            transition: width 0.3s ease;
         }
     </style>
 </head>
 <body>
+    <!-- Loading Screen Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo">
+            <div class="loading-logo-text">NMX</div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading Tasks...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">
+                <a class="back-btn" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
@@ -229,45 +460,47 @@
                 <div style="width: 20px;"></div>
             </header>
 
-            <div class="coming-soon">
-                <svg class="coming-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
-                </svg>
-                <div class="coming-title">Coming Soon</div>
-                <div class="coming-desc">
-                    The Tasks section is currently under development. You'll soon be able to complete various tasks to earn additional NMX rewards!
-                </div>
-                <a href="dashboard.html" class="back-button">Back to Dashboard</a>
+            <!-- Task Categories -->
+            <div class="task-categories">
+                <button class="category-btn active" onclick="filterTasks('all')">All Tasks</button>
+                <button class="category-btn" onclick="filterTasks('social')">Social</button>
+                <button class="category-btn" onclick="filterTasks('learning')">Learning</button>
+                <button class="category-btn" onclick="filterTasks('daily')">Daily</button>
+            </div>
+
+            <!-- Tasks Container -->
+            <div class="tasks-container" id="tasksContainer">
+                <!-- Tasks will be loaded here -->
             </div>
         </div>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <a href="dashboard.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('dashboard.html', 'Loading Dashboard...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
                 <span class="nav-text">MINING</span>
             </a>
-            <a href="tasks.html" class="nav-item active">
+            <a class="nav-item active">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 <span class="nav-text">TASKS</span>
             </a>
-            <a href="buynmxp.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
                 <span class="nav-text">BUY NMXp</span>
             </a>
-            <a href="referrals.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('referrals.html', 'Loading Referrals...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                 </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
-            <a href="wallet.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('wallet.html', 'Loading Wallet...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -276,15 +509,290 @@
         </nav>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Highlight current page in navigation
-        document.addEventListener('DOMContentLoaded', function() {
+        // Supabase configuration
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Mock tasks data
+        const mockTasks = [
+            {
+                id: 1,
+                title: "Follow on Twitter",
+                description: "Follow our official Twitter account and stay updated with the latest news",
+                reward: 15,
+                category: "social",
+                status: "available",
+                action: "Follow",
+                progress: 0,
+                maxProgress: 1
+            },
+            {
+                id: 2,
+                title: "Join Telegram Channel",
+                description: "Join our Telegram community for updates and discussions",
+                reward: 20,
+                category: "social",
+                status: "available",
+                action: "Join",
+                progress: 0,
+                maxProgress: 1
+            },
+            {
+                id: 3,
+                title: "Watch Tutorial Video",
+                description: "Watch our getting started guide to learn about NemexCoin",
+                reward: 25,
+                category: "learning",
+                status: "available",
+                action: "Watch",
+                progress: 0,
+                maxProgress: 1
+            },
+            {
+                id: 4,
+                title: "Daily Check-in",
+                description: "Check in daily to earn consistent rewards",
+                reward: 5,
+                category: "daily",
+                status: "available",
+                action: "Check-in",
+                progress: 0,
+                maxProgress: 7
+            },
+            {
+                id: 5,
+                title: "Read Whitepaper",
+                description: "Read our project whitepaper to understand our vision",
+                reward: 30,
+                category: "learning",
+                status: "available",
+                action: "Read",
+                progress: 0,
+                maxProgress: 1
+            },
+            {
+                id: 6,
+                title: "Share on Social Media",
+                description: "Share NemexCoin with your friends on social media",
+                reward: 20,
+                category: "social",
+                status: "available",
+                action: "Share",
+                progress: 0,
+                maxProgress: 1
+            }
+        ];
+
+        let completedTasks = [];
+        let currentFilter = 'all';
+
+        // Loading Screen Function
+        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+            document.getElementById('loadingText').textContent = loadingText;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            setTimeout(() => {
+                window.location.href = targetPage;
+            }, 1500);
+        }
+
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (!session || error) {
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
+                    return null;
+                }
+                return session.user;
+            } catch (error) {
+                console.error('Auth check error:', error);
+                showLoadingScreen('login.html', 'Redirecting to Login...');
+                return null;
+            }
+        }
+
+        // Load completed tasks from localStorage
+        function loadCompletedTasks() {
+            const saved = localStorage.getItem('completedTasks');
+            if (saved) {
+                completedTasks = JSON.parse(saved);
+            }
+        }
+
+        // Save completed tasks to localStorage
+        function saveCompletedTasks() {
+            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+        }
+
+        // Filter tasks by category
+        function filterTasks(category) {
+            currentFilter = category;
+            
+            // Update category buttons
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderTasks();
+        }
+
+        // Render tasks based on current filter
+        function renderTasks() {
+            const container = document.getElementById('tasksContainer');
+            const filteredTasks = currentFilter === 'all' 
+                ? mockTasks 
+                : mockTasks.filter(task => task.category === currentFilter);
+
+            if (filteredTasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                        </svg>
+                        <div class="empty-title">No Tasks Available</div>
+                        <div class="empty-message">Check back later for new tasks in this category!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filteredTasks.map(task => {
+                const isCompleted = completedTasks.includes(task.id);
+                const progressPercent = (task.progress / task.maxProgress) * 100;
+                
+                return `
+                    <div class="task-card ${isCompleted ? 'completed' : 'available'}">
+                        <div class="task-header">
+                            <div>
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-description">${task.description}</div>
+                            </div>
+                            <div class="task-reward">+${task.reward} NMXp</div>
+                        </div>
+                        
+                        ${task.maxProgress > 1 ? `
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <div style="font-size: 12px; color: var(--muted); text-align: center;">
+                                ${task.progress}/${task.maxProgress} days
+                            </div>
+                        ` : ''}
+                        
+                        <div class="task-footer">
+                            <div class="task-status status-${isCompleted ? 'completed' : task.status}">
+                                ${isCompleted ? 'Completed' : 'Available'}
+                            </div>
+                            <button class="task-action" 
+                                    onclick="completeTask(${task.id})" 
+                                    ${isCompleted ? 'disabled' : ''}>
+                                ${isCompleted ? 'Completed' : task.action}
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Complete a task
+        async function completeTask(taskId) {
+            const user = await checkAuth();
+            if (!user) return;
+
+            const task = mockTasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Show loading
+            document.querySelector(`button[onclick="completeTask(${taskId})"]`).textContent = 'Processing...';
+            document.querySelector(`button[onclick="completeTask(${taskId})"]`).disabled = true;
+
+            try {
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Mark as completed
+                completedTasks.push(taskId);
+                saveCompletedTasks();
+
+                // Update user balance in Supabase
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('balance')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    const newBalance = (profile.balance || 0) + task.reward;
+                    
+                    await supabase
+                        .from('profiles')
+                        .update({ balance: newBalance })
+                        .eq('id', user.id);
+
+                    // Create task completion notification
+                    await createTaskNotification(user.id, task.title, task.reward);
+
+                    // Show success message
+                    alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
+                    
+                    // Re-render tasks
+                    renderTasks();
+                }
+
+            } catch (error) {
+                console.error('Error completing task:', error);
+                alert('Error completing task. Please try again.');
+                
+                // Reset button
+                document.querySelector(`button[onclick="completeTask(${taskId})"]`).textContent = task.action;
+                document.querySelector(`button[onclick="completeTask(${taskId})"]`).disabled = false;
+            }
+        }
+
+        // Create task completion notification
+        async function createTaskNotification(userId, taskName, reward) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'task_completed',
+                    title: 'Task Completed!',
+                    message: `You completed "${taskName}" and earned ${reward} NMXp.`,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabase
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ Task notification created');
+                }
+            } catch (error) {
+                console.error('❌ Error creating task notification:', error);
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async function() {
+            const user = await checkAuth();
+            if (!user) return;
+
+            loadCompletedTasks();
+            renderTasks();
+
+            // Highlight current page in navigation
             const currentPage = window.location.pathname.split('/').pop() || 'tasks.html';
             const navItems = document.querySelectorAll('.nav-item');
-            
+
             navItems.forEach(item => {
-                const href = item.getAttribute('href');
-                if (href === currentPage) {
+                const onclick = item.getAttribute('onclick');
+                if (onclick && onclick.includes('tasks.html') || !onclick && item.classList.contains('active')) {
                     item.classList.add('active');
                 } else {
                     item.classList.remove('active');
