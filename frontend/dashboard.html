@@ -397,12 +397,15 @@
         .settings-item {
             padding: 18px 20px;
             border-bottom: 1px solid var(--border-color);
-            color: var(--text);            text-decoration: none;
+            color: var(--text);
+            text-decoration: none;
             display: flex;
             align-items: center;
             gap: 12px;
             transition: all 0.3s ease;
             cursor: pointer;
+            position: relative;
+            justify-content: space-between;
         }
         .settings-item:last-child {
             border-bottom: none;
@@ -496,7 +499,8 @@
             height: 80px;
             color: var(--gold);
             margin: 0 auto 20px;
-        }        .maintenance-title {
+        }
+        .maintenance-title {
             font-size: 24px;
             font-weight: 700;
             color: var(--gold);
@@ -518,6 +522,26 @@
             font-weight: 700;
             margin-left: 5px;
             display: inline-block;
+        }
+
+        /* NEW: Notification Badge Styles */
+        .notification-badge {
+            background: var(--gold);
+            color: var(--dark-bg);
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            margin-left: auto;
+            display: inline-block;
+            min-width: 18px;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
         }
     </style>
 </head>
@@ -582,7 +606,8 @@
                             <div class="logo-center">
                                 <div class="infinity-symbol"></div>
                             </div>
-                            <div class="circuit-lines">                                <div class="circuit-line"></div>
+                            <div class="circuit-lines">
+                                <div class="circuit-line"></div>
                                 <div class="circuit-line"></div>
                                 <div class="circuit-line"></div>
                                 <div class="circuit-line"></div>
@@ -647,6 +672,17 @@
                         </svg>
                         Profile
                     </a>
+
+                    <!-- NEW: Notifications Tab - Added below Profile -->
+                    <a href="notification.html" class="settings-item">
+                        <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        Notifications
+                        <!-- NEW: Unread Notification Badge -->
+                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                    </a>
+
                     <a href="security.html" class="settings-item">
                         <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
@@ -696,7 +732,8 @@
             </a>
             <a href="referrals.html" class="nav-item">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>                </svg>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
             <a href="wallet.html" class="nav-item">
@@ -737,7 +774,7 @@
         async function checkAuth() {
             try {
                 const { data: { session }, error } = await supabaseClient.auth.getSession();
-                
+
                 if (error) {
                     console.error('Session error:', error);
                     throw error;
@@ -751,7 +788,7 @@
 
                 console.log('✅ Supabase session found for user:', session.user.id);
                 return session.user;
-                
+
             } catch (error) {
                 console.error('❌ Auth check error:', error);
                 window.location.href = 'login.html';
@@ -777,7 +814,7 @@
 
                 if (profileError) {
                     console.error('❌ Error loading profile:', profileError);
-                    
+
                     // If profile doesn't exist, sign out
                     if (profileError.code === 'PGRST116') {
                         await supabaseClient.auth.signOut();
@@ -855,6 +892,40 @@
             }
         }
 
+        // NEW: Load notification count for badge
+        async function loadNotificationCount() {
+            try {
+                const userSession = await checkAuth();
+                if (!userSession) return;
+
+                // In real implementation, you would fetch from notifications table
+                // For now, we'll use mock data
+                const mockNotifications = [
+                    { id: 1, read: false },
+                    { id: 2, read: false },
+                    { id: 3, read: true },
+                    { id: 4, read: true },
+                    { id: 5, read: true },
+                    { id: 6, read: true }
+                ];
+
+                const unreadCount = mockNotifications.filter(n => !n.read).length;
+                
+                const notificationBadge = document.getElementById('notificationBadge');
+                if (unreadCount > 0) {
+                    notificationBadge.textContent = unreadCount;
+                    notificationBadge.style.display = 'inline-block';
+                } else {
+                    notificationBadge.style.display = 'none';
+                }
+
+                console.log(`🔔 ${unreadCount} unread notifications`);
+
+            } catch (error) {
+                console.error('Error loading notification count:', error);
+            }
+        }
+
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Dashboard...');
@@ -889,14 +960,14 @@
                 try {
                     // Sign out from Supabase Auth
                     const { error } = await supabaseClient.auth.signOut();
-                    
+
                     if (error) {
                         throw error;
                     }
-                    
+
                     // Clear any localStorage remnants (backward compatibility)
                     localStorage.removeItem('nemexcoin_user');
-                    
+
                     showSuccess('Logged out successfully!');
                     setTimeout(() => {
                         window.location.href = 'login.html';
@@ -947,6 +1018,9 @@
                 // Check if user is admin and show admin icons
                 await checkAdminAccess();
 
+                // NEW: Load notification count for badge
+                await loadNotificationCount();
+
                 // Start countdown timer
                 startCountdownTimer();
 
@@ -955,6 +1029,8 @@
                     if (!document.hidden) {
                         console.log('📄 Page visible - refreshing balance...');
                         refreshBalance();
+                        // NEW: Also refresh notification count
+                        loadNotificationCount();
                     }
                 });
 
