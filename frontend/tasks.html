@@ -593,7 +593,7 @@
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-            
+
             setTimeout(() => {
                 window.location.href = targetPage;
             }, 1500);
@@ -631,13 +631,13 @@
         // Filter tasks by category
         function filterTasks(category) {
             currentFilter = category;
-            
+
             // Update category buttons
             document.querySelectorAll('.category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
-            
+
             renderTasks();
         }
 
@@ -664,7 +664,7 @@
             container.innerHTML = filteredTasks.map(task => {
                 const isCompleted = completedTasks.includes(task.id);
                 const progressPercent = (task.progress / task.maxProgress) * 100;
-                
+
                 return `
                     <div class="task-card ${isCompleted ? 'completed' : 'available'}">
                         <div class="task-header">
@@ -759,7 +759,7 @@
 
                 if (profile) {
                     const newBalance = (profile.balance || 0) + task.reward;
-                    
+
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({ balance: newBalance })
@@ -768,14 +768,14 @@
                     if (!updateError) {
                         // Create task completion notification
                         const notificationCreated = await createTaskNotification(user.id, task.title, task.reward);
-                        
+
                         if (notificationCreated) {
                             // Show success message
                             alert(`🎉 Task completed! You earned ${task.reward} NMXp!\n\n✅ Notification created in your notification page.`);
                         } else {
                             alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
                         }
-                        
+
                         // Re-render tasks
                         renderTasks();
                     } else {
@@ -786,7 +786,7 @@
             } catch (error) {
                 console.error('Error completing task:', error);
                 alert('Error completing task. Please try again.');
-                
+
                 // Reset button
                 button.textContent = originalText;
                 button.disabled = false;
@@ -801,18 +801,15 @@
             loadCompletedTasks();
             renderTasks();
 
-            // Highlight current page in navigation
-            const currentPage = window.location.pathname.split('/').pop() || 'tasks.html';
+            // FIXED: Proper navigation highlighting
             const navItems = document.querySelectorAll('.nav-item');
-
             navItems.forEach(item => {
-                const onclick = item.getAttribute('onclick');
-                if (onclick && onclick.includes('tasks.html') || !onclick && item.classList.contains('active')) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
+                // Remove active class from all items
+                item.classList.remove('active');
             });
+            
+            // Add active class to current page (Tasks)
+            document.querySelector('.nav-item:nth-child(2)').classList.add('active');
         });
     </script>
 </body>
