@@ -588,42 +588,44 @@
         let currentFilter = 'all';
         let notifications = [];
 
-        // Check authentication on page load
+        // FIXED: Check authentication on page load
         async function checkAuth() {
             try {
                 const { data: { session }, error } = await supabase.auth.getSession();
-                if (error || !session) {
-                    console.log('❌ No active session, redirecting to login');
-                    window.location.href = 'login.html';
+                
+                if (error) {
+                    console.error('❌ Session error:', error);
                     return null;
                 }
 
-                const { data: user, error: userError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (userError || !user) {
-                    console.error('❌ User not found in profiles table');
-                    window.location.href = 'login.html';
+                if (!session) {
+                    console.log('❌ No active session found');
+                    // Show message but don't redirect immediately
+                    showError('Please log in to view notifications');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 3000);
                     return null;
                 }
 
-                console.log('✅ User authenticated:', user.email);
-                return user;
+                console.log('✅ User session found:', session.user.id);
+                return session.user;
+
             } catch (error) {
                 console.error('❌ Auth check error:', error);
-                window.location.href = 'login.html';
                 return null;
             }
         }
 
-        // Load notifications from database
+        // FIXED: Load notifications from database
         async function loadNotifications() {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                if (!session) return;
+                if (!session) {
+                    console.log('❌ No session for loading notifications');
+                    showEmptyState();
+                    return;
+                }
 
                 console.log('📥 Loading notifications from database for user:', session.user.id);
 
@@ -636,15 +638,13 @@
 
                 if (error) {
                     console.error('❌ Error fetching notifications:', error);
-                    showError('Failed to load notifications');
+                    showEmptyState();
                     return;
                 }
 
                 if (!dbNotifications || dbNotifications.length === 0) {
                     console.log('📭 No notifications found in database');
-                    // Create sample notifications if none exist
-                    await createSampleNotifications();
-                    await loadNotifications(); // Reload after creating samples
+                    showEmptyState();
                     return;
                 }
 
@@ -668,69 +668,23 @@
 
             } catch (error) {
                 console.error('❌ Error loading notifications:', error);
-                showError('Failed to load notifications');
+                showEmptyState();
             }
         }
 
-        // Create sample notifications if none exist
-        async function createSampleNotifications() {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) return;
-
-                const sampleNotifications = [
-                    {
-                        user_id: session.user.id,
-                        title: 'Welcome to NemexCoin! 🎉',
-                        message: 'Start mining and earn NMX tokens every 12 hours. Your journey to earning crypto starts now!',
-                        type: 'welcome',
-                        related_entity_type: 'system'
-                    },
-                    {
-                        user_id: session.user.id,
-                        title: 'Mining Reward Available ⛏️',
-                        message: 'Your mining reward of 30 NMXp is ready to claim! Click the claim button on your dashboard.',
-                        type: 'mining',
-                        related_entity_type: 'mining'
-                    },
-                    {
-                        user_id: session.user.id,
-                        title: 'Referral Program Activated 👥',
-                        message: 'Invite friends and earn 10% of their mining rewards. Share your referral link to start earning!',
-                        type: 'referral',
-                        related_entity_type: 'system'
-                    },
-                    {
-                        user_id: session.user.id,
-                        title: 'Security Tip 🔒',
-                        message: 'Keep your account secure by enabling two-factor authentication in the security settings.',
-                        type: 'security',
-                        related_entity_type: 'system'
-                    },
-                    {
-                        user_id: session.user.id,
-                        title: 'New Feature: Tasks 🎯',
-                        message: 'Complete daily tasks to earn extra NMXp rewards. Check the Tasks tab for available missions.',
-                        type: 'info',
-                        related_entity_type: 'system'
-                    }
-                ];
-
-                const { error } = await supabase
-                    .from('notifications')
-                    .insert(sampleNotifications);
-
-                if (error) {
-                    console.error('❌ Error creating sample notifications:', error);
-                    return;
-                }
-
-                console.log('✅ Created sample notifications');
-                showSuccess('Sample notifications created!');
-
-            } catch (error) {
-                console.error('❌ Error creating sample notifications:', error);
-            }
+        // Show empty state
+        function showEmptyState() {
+            const container = document.getElementById('notificationsContainer');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <div class="empty-title">No notifications yet</div>
+                    <div class="empty-description">Your notifications will appear here when you have new activities.</div>
+                </div>
+            `;
+            updateStats();
         }
 
         // Render notifications based on current filter
@@ -738,15 +692,7 @@
             const container = document.getElementById('notificationsContainer');
 
             if (!notifications || notifications.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        <div class="empty-title">No notifications yet</div>
-                        <div class="empty-description">Your notifications will appear here when you have new activities.</div>
-                    </div>
-                `;
+                showEmptyState();
                 return;
             }
 
@@ -803,7 +749,7 @@
                 </div>`;
             }
 
-            container.innerHTML = html;
+            container.innerHTML = html || showEmptyState();
         }
 
         // Create HTML for a single notification
@@ -982,11 +928,17 @@
             }, 5000);
         }
 
-        // Initialize the page
+        // FIXED: Initialize the page
         document.addEventListener('DOMContentLoaded', async function() {
-            const user = await checkAuth();
-            if (!user) return;
-
+            console.log('🔔 Notifications page loading...');
+            
+            // Check auth but don't block page load
+            await checkAuth();
+            
+            // Load notifications regardless of auth status
+            await loadNotifications();
+            
+            // Set up navigation
             const currentPage = window.location.pathname.split('/').pop() || 'notifications.html';
             const navItems = document.querySelectorAll('.nav-item');
 
@@ -999,11 +951,10 @@
                 }
             });
 
-            // Load notifications
-            await loadNotifications();
+            console.log('🔔 Notifications page loaded successfully');
         });
 
-        console.log('🔔 Notifications page loaded - Database integration ready');
+        console.log('🔔 Notifications page ready - Will fetch data directly from database');
     </script>
 </body>
 </html>
