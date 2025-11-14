@@ -1227,7 +1227,7 @@
             setTimeout(() => errorElement.style.display = 'none', 5000);
         }
 
-        // FIXED: Enhanced mining reward claim with Supabase Auth
+        // 🆕 UPDATED: Enhanced mining reward claim with Supabase Auth AND Notification
         async function claimMiningReward() {
             try {
                 const loadingIndicator = document.getElementById('loadingIndicator');
@@ -1268,6 +1268,9 @@
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
                 showSuccess(`🎉 Successfully claimed ${CLAIM_AMOUNT} NMX!`);
 
+                // 🆕 NEW: CREATE NOTIFICATION FOR MINING CLAIM
+                await createMiningNotification(userSession.id, CLAIM_AMOUNT, now);
+
                 // Update countdown timer
                 updateCountdownTimer();
 
@@ -1279,8 +1282,177 @@
             }
         }
 
+        // 🆕 NEW: Function to create mining notification
+        async function createMiningNotification(userId, amount, claimTime) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'mining',
+                    title: 'Mining Reward Claimed!',
+                    message: `You successfully claimed ${amount} NMXp from mining. Your balance has been updated.`,
+                    is_read: false,
+                    created_at: claimTime.toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData])
+                    .select();
+
+                if (error) {
+                    console.error('❌ Error creating mining notification:', error);
+                    return;
+                }
+
+                console.log('✅ Mining notification created:', data);
+                
+                // Refresh notification badge count
+                loadNotificationCount();
+
+            } catch (error) {
+                console.error('❌ Error in createMiningNotification:', error);
+            }
+        }
+
+        // 🆕 NEW: Function to create task completion notification
+        async function createTaskNotification(userId, taskName, reward) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'task_completed',
+                    title: 'Task Completed!',
+                    message: `You completed "${taskName}" and earned ${reward} NMXp.`,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ Task notification created');
+                    loadNotificationCount();
+                }
+            } catch (error) {
+                console.error('❌ Error creating task notification:', error);
+            }
+        }
+
+        // 🆕 NEW: Function to create purchase notification
+        async function createPurchaseNotification(userId, packageName, status, amount = null) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: status === 'approved' ? 'purchase_approved' : 'purchase_pending',
+                    title: status === 'approved' ? 'Purchase Approved!' : 'Purchase Pending',
+                    message: status === 'approved' 
+                        ? `Your ${packageName} package (${amount} NMXp) has been approved and is now active!`
+                        : `Your ${packageName} purchase (${amount} NMXp) is pending approval.`,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ Purchase notification created');
+                    loadNotificationCount();
+                }
+            } catch (error) {
+                console.error('❌ Error creating purchase notification:', error);
+            }
+        }
+
+        // 🆕 NEW: Function to create referral notification
+        async function createReferralNotification(userId, referredUser, bonus) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'referral',
+                    title: 'New Referral!',
+                    message: `${referredUser} joined using your referral link. You earned ${bonus} NMXp bonus!`,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ Referral notification created');
+                    loadNotificationCount();
+                }
+            } catch (error) {
+                console.error('❌ Error creating referral notification:', error);
+            }
+        }
+
+        // 🆕 NEW: Function to create system notification
+        async function createSystemNotification(userId, title, message) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'system',
+                    title: title,
+                    message: message,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ System notification created');
+                    loadNotificationCount();
+                }
+            } catch (error) {
+                console.error('❌ Error creating system notification:', error);
+            }
+        }
+
+        // 🆕 NEW: Function to create error notification
+        async function createErrorNotification(userId, title, message) {
+            try {
+                const notificationData = {
+                    user_id: userId,
+                    type: 'error',
+                    title: title,
+                    message: message,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log('✅ Error notification created');
+                    loadNotificationCount();
+                }
+            } catch (error) {
+                console.error('❌ Error creating error notification:', error);
+            }
+        }
+
         // Add click event to claim button
         document.getElementById('claimButton').addEventListener('click', claimMiningReward);
+
+        // 🆕 NEW: Export notification functions for use in other pages
+        window.NemexNotifications = {
+            createMiningNotification,
+            createTaskNotification,
+            createPurchaseNotification,
+            createReferralNotification,
+            createSystemNotification,
+            createErrorNotification
+        };
     </script>
 </body>
 </html>
