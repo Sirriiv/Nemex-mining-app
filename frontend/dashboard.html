@@ -946,13 +946,15 @@
             initializeNavigation();
         });
 
-        // FIXED: Initialize navigation - REMOVED problematic event listeners
+        // Initialize navigation
         function initializeNavigation() {
             // Settings modal functionality
             const settingsButton = document.getElementById('settingsButton');
             const settingsModal = document.getElementById('settingsModal');
             const closeSettings = document.getElementById('closeSettings');
             const logoutButton = document.getElementById('logoutButton');
+            // NEW: Get notifications link
+            const notificationsLink = document.getElementById('notificationsLink');
 
             settingsButton.addEventListener('click', function() {
                 settingsModal.style.display = 'flex';
@@ -967,6 +969,15 @@
                     settingsModal.style.display = 'none';
                 }
             });
+
+            // NEW: Fix notifications link navigation
+            if (notificationsLink) {
+                notificationsLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🔔 Navigating to notifications page...');
+                    window.location.href = 'notification.html';
+                });
+            }
 
             // FIXED: Use Supabase Auth for logout
             logoutButton.addEventListener('click', async function() {
@@ -1272,4 +1283,4 @@
         document.getElementById('claimButton').addEventListener('click', claimMiningReward);
     </script>
 </body>
-</html>
+</html> 
