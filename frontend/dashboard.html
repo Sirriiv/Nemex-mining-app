@@ -685,15 +685,14 @@
                         <span class="settings-text">Profile</span>
                     </a>
 
-                    <!-- NEW: Notifications Tab - Added below Profile -->
-                    <a href="notification.html" class="settings-item" id="notificationsLink">
-                        <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        <span class="settings-text">Notifications</span>
-                        <!-- NEW: Unread Notification Badge -->
-                        <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
-                    </a>
+                   <!-- In your settings modal, make sure it looks like this: -->
+<a href="notification.html" class="settings-item" id="notificationsLink">
+    <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+    </svg>
+    <span class="settings-text">Notifications</span>
+    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+</a>
 
                     <a href="security.html" class="settings-item">
                         <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -946,76 +945,76 @@
             initializeNavigation();
         });
 
-        // Initialize navigation
-        function initializeNavigation() {
-            // Settings modal functionality
-            const settingsButton = document.getElementById('settingsButton');
-            const settingsModal = document.getElementById('settingsModal');
-            const closeSettings = document.getElementById('closeSettings');
-            const logoutButton = document.getElementById('logoutButton');
-            // NEW: Get notifications link
-            const notificationsLink = document.getElementById('notificationsLink');
+  // Initialize navigation
+function initializeNavigation() {
+    // Settings modal functionality
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettings = document.getElementById('closeSettings');
+    const logoutButton = document.getElementById('logoutButton');
+    
+    // NEW: Get notifications link
+    const notificationsLink = document.getElementById('notificationsLink');
 
-            settingsButton.addEventListener('click', function() {
-                settingsModal.style.display = 'flex';
-            });
+    settingsButton.addEventListener('click', function() {
+        settingsModal.style.display = 'flex';
+    });
 
-            closeSettings.addEventListener('click', function() {
-                settingsModal.style.display = 'none';
-            });
+    closeSettings.addEventListener('click', function() {
+        settingsModal.style.display = 'none';
+    });
 
-            settingsModal.addEventListener('click', function(e) {
-                if (e.target === settingsModal) {
-                    settingsModal.style.display = 'none';
-                }
-            });
+    settingsModal.addEventListener('click', function(e) {
+        if (e.target === settingsModal) {
+            settingsModal.style.display = 'none';
+        }
+    });
 
-            // NEW: Fix notifications link navigation
-            if (notificationsLink) {
-                notificationsLink.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    console.log('🔔 Navigating to notifications page...');
-                    window.location.href = 'notification.html';
-                });
+    // NEW: Fix notifications link navigation - ADD THIS
+    if (notificationsLink) {
+        notificationsLink.addEventListener('click', function(e) {
+            console.log('🔔 Navigating to notifications page...');
+            // Let the default link behavior happen (go to notification.html)
+            // Don't prevent default or do anything special
+        });
+    }
+
+    // FIXED: Use Supabase Auth for logout
+    logoutButton.addEventListener('click', async function() {
+        try {
+            // Sign out from Supabase Auth
+            const { error } = await supabaseClient.auth.signOut();
+
+            if (error) {
+                throw error;
             }
 
-            // FIXED: Use Supabase Auth for logout
-            logoutButton.addEventListener('click', async function() {
-                try {
-                    // Sign out from Supabase Auth
-                    const { error } = await supabaseClient.auth.signOut();
+            // Clear any localStorage remnants (backward compatibility)
+            localStorage.removeItem('nemexcoin_user');
 
-                    if (error) {
-                        throw error;
-                    }
-
-                    // Clear any localStorage remnants (backward compatibility)
-                    localStorage.removeItem('nemexcoin_user');
-
-                    showSuccess('Logged out successfully!');
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 1500);
-                } catch (error) {
-                    console.error('Logout error:', error);
-                    showError('Logout failed. Please try again.');
-                }
-            });
-
-            // Highlight current page in navigation
-            const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
-            const navItems = document.querySelectorAll('.nav-item');
-
-            navItems.forEach(item => {
-                const href = item.getAttribute('href');
-                if (href === currentPage || (currentPage === 'dashboard.html' && href === '#')) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
+            showSuccess('Logged out successfully!');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+        } catch (error) {
+            console.error('Logout error:', error);
+            showError('Logout failed. Please try again.');
         }
+    });
 
+    // Highlight current page in navigation
+    const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
+    const navItems = document.querySelectorAll('.nav-item');
+
+    navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (href === currentPage || (currentPage === 'dashboard.html' && href === '#')) {
+            item.classList.add('active');
+        } else {
+            item.classList.remove('active');
+        }
+    });
+}
         // FIXED: Enhanced dashboard initialization with Supabase Auth
         async function initializeDashboard() {
             try {
