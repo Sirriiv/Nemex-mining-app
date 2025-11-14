@@ -631,4 +631,312 @@
                 const mockNotifications = [
                     {
                         id: 1,
-                        type: '
+                        type: 'reward',
+                        title: 'Reward Claimed',
+                        message: 'You successfully claimed 30 NMXp from daily mining',
+                        timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 minutes ago
+                        read: false,
+                        metadata: { amount: 30, currency: 'NMXp' }
+                    },
+                    {
+                        id: 2,
+                        type: 'purchase',
+                        title: 'Package Purchase',
+                        message: 'You purchased Starter Package - Awaiting approval',
+                        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+                        read: false,
+                        metadata: { package: 'Starter Package', status: 'pending' }
+                    },
+                    {
+                        id: 3,
+                        type: 'purchase',
+                        title: 'Purchase Approved',
+                        message: 'Your Starter Package purchase has been approved and activated',
+                        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // 3 hours ago
+                        read: true,
+                        metadata: { package: 'Starter Package', status: 'approved' }
+                    },
+                    {
+                        id: 4,
+                        type: 'security',
+                        title: 'Password Changed',
+                        message: 'Your account password was successfully changed',
+                        timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+                        read: true,
+                        metadata: { action: 'password_change' }
+                    },
+                    {
+                        id: 5,
+                        type: 'admin',
+                        title: 'Admin Message',
+                        message: 'Welcome to NemexCoin! Start mining and earn rewards today.',
+                        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+                        read: true,
+                        metadata: { note: 'Welcome message' }
+                    },
+                    {
+                        id: 6,
+                        type: 'reward',
+                        title: 'Referral Bonus',
+                        message: 'You earned 15 NMXp from referral signup',
+                        timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+                        read: true,
+                        metadata: { amount: 15, currency: 'NMXp', source: 'referral' }
+                    }
+                ];
+
+                notifications = mockNotifications;
+                renderNotifications();
+                updateStats();
+
+            } catch (error) {
+                console.error('❌ Error loading notifications:', error);
+                showError('Failed to load notifications');
+            }
+        }
+
+        // Render notifications based on current filter
+        function renderNotifications() {
+            const container = document.getElementById('notificationsContainer');
+            
+            if (!notifications || notifications.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                        </svg>
+                        <div class="empty-title">No notifications</div>
+                        <div class="empty-description">You're all caught up! New activities will appear here.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Filter notifications
+            let filteredNotifications = notifications;
+            if (currentFilter === 'unread') {
+                filteredNotifications = notifications.filter(n => !n.read);
+            } else if (currentFilter === 'rewards') {
+                filteredNotifications = notifications.filter(n => n.type === 'reward');
+            } else if (currentFilter === 'purchases') {
+                filteredNotifications = notifications.filter(n => n.type === 'purchase');
+            }
+
+            // Group by date
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toDateString();
+            
+            const todayNotifications = filteredNotifications.filter(n => new Date(n.timestamp).toDateString() === today);
+            const yesterdayNotifications = filteredNotifications.filter(n => new Date(n.timestamp).toDateString() === yesterday);
+            const olderNotifications = filteredNotifications.filter(n => {
+                const date = new Date(n.timestamp).toDateString();
+                return date !== today && date !== yesterday;
+            });
+
+            let html = '';
+
+            // Today section
+            if (todayNotifications.length > 0) {
+                html += `<div class="notification-section">
+                    <div class="section-title">Today</div>
+                    <div class="notification-list">
+                        ${todayNotifications.map(notification => createNotificationHTML(notification)).join('')}
+                    </div>
+                </div>`;
+            }
+
+            // Yesterday section
+            if (yesterdayNotifications.length > 0) {
+                html += `<div class="notification-section">
+                    <div class="section-title">Yesterday</div>
+                    <div class="notification-list">
+                        ${yesterdayNotifications.map(notification => createNotificationHTML(notification)).join('')}
+                    </div>
+                </div>`;
+            }
+
+            // Older section
+            if (olderNotifications.length > 0) {
+                html += `<div class="notification-section">
+                    <div class="section-title">Older</div>
+                    <div class="notification-list">
+                        ${olderNotifications.map(notification => createNotificationHTML(notification)).join('')}
+                    </div>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Create HTML for a single notification
+        function createNotificationHTML(notification) {
+            const timeAgo = getTimeAgo(notification.timestamp);
+            const typeClass = getTypeClass(notification.type);
+            const typeLabel = getTypeLabel(notification.type);
+            
+            return `
+                <div class="notification-item ${typeClass} ${!notification.read ? 'unread' : ''}" 
+                     onclick="markAsRead(${notification.id})">
+                    ${!notification.read ? '<div class="unread-badge"></div>' : ''}
+                    <div class="notification-header-row">
+                        <div class="notification-title-text">${notification.title}</div>
+                        <div class="notification-time">${timeAgo}</div>
+                    </div>
+                    <div class="notification-message">${notification.message}</div>
+                    <div class="notification-meta">
+                        <span class="notification-type ${typeClass}">${typeLabel}</span>
+                        <span>${formatDate(notification.timestamp)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get CSS class for notification type
+        function getTypeClass(type) {
+            const typeClasses = {
+                reward: 'success',
+                purchase: 'info',
+                security: 'warning',
+                admin: 'gold'
+            };
+            return typeClasses[type] || 'info';
+        }
+
+        // Get display label for notification type
+        function getTypeLabel(type) {
+            const typeLabels = {
+                reward: 'Reward',
+                purchase: 'Purchase',
+                security: 'Security',
+                admin: 'Admin'
+            };
+            return typeLabels[type] || 'Notification';
+        }
+
+        // Format time ago
+        function getTimeAgo(timestamp) {
+            const now = new Date();
+            const time = new Date(timestamp);
+            const diffMs = now - time;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return formatDate(timestamp);
+        }
+
+        // Format date
+        function formatDate(timestamp) {
+            return new Date(timestamp).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+        }
+
+        // Set filter and re-render
+        function setFilter(filter) {
+            currentFilter = filter;
+            
+            // Update active tab
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderNotifications();
+        }
+
+        // Mark notification as read
+        async function markAsRead(notificationId) {
+            try {
+                // In real implementation, update in database
+                const notification = notifications.find(n => n.id === notificationId);
+                if (notification && !notification.read) {
+                    notification.read = true;
+                    renderNotifications();
+                    updateStats();
+                    
+                    // Show success feedback
+                    showSuccess('Notification marked as read');
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // Mark all notifications as read
+        async function markAllAsRead() {
+            try {
+                // In real implementation, update in database
+                notifications.forEach(notification => {
+                    notification.read = true;
+                });
+                
+                renderNotifications();
+                updateStats();
+                showSuccess('All notifications marked as read');
+            } catch (error) {
+                console.error('Error marking all notifications as read:', error);
+                showError('Failed to mark all as read');
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = notifications.length;
+            const unread = notifications.filter(n => !n.read).length;
+            
+            document.getElementById('totalNotifications').textContent = total;
+            document.getElementById('unreadNotifications').textContent = unread;
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const successElement = document.getElementById('successMessage');
+            successElement.textContent = message;
+            successElement.style.display = 'block';
+            setTimeout(() => {
+                successElement.style.display = 'none';
+            }, 3000);
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('errorMessage');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async function() {
+            const user = await checkAuth();
+            if (!user) return;
+
+            const currentPage = window.location.pathname.split('/').pop() || 'notifications.html';
+            const navItems = document.querySelectorAll('.nav-item');
+
+            navItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPage) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+
+            // Load notifications
+            await loadNotifications();
+        });
+
+        console.log('🔔 Notifications page loaded - Ready for integration');
+    </script>
+</body>
+</html>
