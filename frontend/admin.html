@@ -262,6 +262,8 @@
         .stat-card.with-refs { border-left: 4px solid var(--success); }
         .stat-card.orphaned { border-left: 4px solid var(--warning); }
         .stat-card.total-refs { border-left: 4px solid var(--gold); }
+        .stat-card.revenue { border-left: 4px solid var(--success); }
+        .stat-card.packages { border-left: 4px solid var(--info); }
 
         .stat-number { 
             font-size: 36px; 
@@ -274,6 +276,8 @@
         .stat-card.with-refs .stat-number { color: var(--success); }
         .stat-card.orphaned .stat-number { color: var(--warning); }
         .stat-card.total-refs .stat-number { color: var(--gold); }
+        .stat-card.revenue .stat-number { color: var(--success); }
+        .stat-card.packages .stat-number { color: var(--info); }
 
         .stat-label { 
             color: var(--muted); 
@@ -1083,6 +1087,17 @@
                     <div class="stat-label">Total Referrals</div>
                     <div class="stat-trend trend-up" id="referralsTrend">Loading...</div>
                 </div>
+                <!-- NEW: Purchase Statistics Cards -->
+                <div class="stat-card revenue">
+                    <div class="stat-number" id="totalRevenue">$0</div>
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-trend trend-up" id="revenueTrend">Loading...</div>
+                </div>
+                <div class="stat-card packages">
+                    <div class="stat-number" id="totalPackages">0</div>
+                    <div class="stat-label">Total Packages</div>
+                    <div class="stat-trend trend-up" id="packagesTrend">Loading...</div>
+                </div>
             </div>
 
             <div class="section-header">
@@ -1230,10 +1245,10 @@
         // FIXED: Refresh Data Function
         async function refreshData() {
             console.log('🔄 Manual refresh triggered');
-            
+
             // Clear cache
             dataCache.clear();
-            
+
             // Show loading state
             const refreshBtn = event?.target;
             if (refreshBtn) {
@@ -1263,26 +1278,116 @@
             }
         }
 
-        // Load Overview Data
-        async function loadOverviewData() {
+        // NEW: Enhanced function to fetch user purchase statistics
+        async function fetchUserPurchaseStats() {
             try {
-                console.log('📊 Loading overview data...');
-                const stats = await fetchAdminStatsFromSupabase();
-                updateStatsCards(stats);
-                await loadRecentUsersFromSupabase();
+                console.log('💰 Fetching user purchase statistics...');
+                
+                // Get all completed purchases from user_purchase_history
+                const { data: purchases, error } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('user_id, package_amount, price_usd, status, created_at')
+                    .eq('status', 'approved') // Changed from 'completed' to 'approved' to match your data
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('❌ Error fetching purchases:', error);
+                    return {
+                        totalRevenue: 0,
+                        totalPackages: 0,
+                        userSpending: new Map(),
+                        userPackages: new Map()
+                    };
+                }
+
+                let totalRevenue = 0;
+                let totalPackages = 0;
+                const userSpending = new Map(); // user_id -> total spent
+                const userPackages = new Map(); // user_id -> package count
+
+                // Calculate totals and per-user statistics
+                purchases.forEach(purchase => {
+                    const amount = parseFloat(purchase.price_usd || 0);
+                    totalRevenue += amount;
+                    totalPackages += 1;
+
+                    // Update user spending
+                    const currentSpending = userSpending.get(purchase.user_id) || 0;
+                    userSpending.set(purchase.user_id, currentSpending + amount);
+
+                    // Update user package count
+                    const currentPackages = userPackages.get(purchase.user_id) || 0;
+                    userPackages.set(purchase.user_id, currentPackages + 1);
+                });
+
+                console.log(`✅ Purchase stats: $${totalRevenue.toFixed(2)} revenue, ${totalPackages} packages`);
+
+                return {
+                    totalRevenue,
+                    totalPackages,
+                    userSpending,
+                    userPackages
+                };
+
             } catch (error) {
-                console.error('Error loading overview data:', error);
-                showConnectionError();
+                console.error('❌ Error in fetchUserPurchaseStats:', error);
+                return {
+                    totalRevenue: 0,
+                    totalPackages: 0,
+                    userSpending: new Map(),
+                    userPackages: new Map()
+                };
             }
         }
 
-        // Fetch Admin Stats
+        // NEW: Enhanced function to get user statistics with purchase data
+        async function getUserStatisticsWithPurchases(userId) {
+            try {
+                const { data: purchases, error } = await supabaseClient
+                    .from('user_purchase_history')
+                    .select('package_amount, price_usd, package_name, created_at, status')
+                    .eq('user_id', userId)
+                    .eq('status', 'approved') // Changed from 'completed' to 'approved'
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.warn(`⚠️ No purchase history for user ${userId}:`, error);
+                    return {
+                        totalSpent: 0,
+                        packagesPurchased: 0,
+                        purchaseHistory: []
+                    };
+                }
+
+                const totalSpent = purchases.reduce((sum, purchase) => {
+                    return sum + parseFloat(purchase.price_usd || 0);
+                }, 0);
+
+                return {
+                    totalSpent,
+                    packagesPurchased: purchases.length,
+                    purchaseHistory: purchases
+                };
+
+            } catch (error) {
+                console.error(`❌ Error getting purchase stats for user ${userId}:`, error);
+                return {
+                    totalSpent: 0,
+                    packagesPurchased: 0,
+                    purchaseHistory: []
+                };
+            }
+        }
+
+        // UPDATED: Enhanced fetchAdminStatsFromSupabase function
         async function fetchAdminStatsFromSupabase() {
             const cacheKey = 'adminStats';
             const cachedData = getCachedData(cacheKey);
             if (cachedData) return cachedData;
 
             try {
+                console.log('📊 Loading enhanced admin stats with purchase data...');
+
                 // Get total users count
                 const { count: totalUsers, error: usersError } = await supabaseClient
                     .from('profiles')
@@ -1307,11 +1412,18 @@
                 // Calculate total referrals
                 const totalReferralsCount = await calculateTotalReferrals();
 
+                // NEW: Get purchase statistics
+                const purchaseStats = await fetchUserPurchaseStats();
+
                 const stats = {
                     totalUsers: totalUsers || 0,
                     usersWithReferrals: usersWithReferralsCount,
                     orphanedUsers: orphanedUsersCount,
-                    totalReferrals: totalReferralsCount
+                    totalReferrals: totalReferralsCount,
+                    totalRevenue: purchaseStats.totalRevenue,
+                    totalPackages: purchaseStats.totalPackages,
+                    userSpending: purchaseStats.userSpending,
+                    userPackages: purchaseStats.userPackages
                 };
 
                 setCachedData(cacheKey, stats);
@@ -1323,7 +1435,11 @@
                     totalUsers: 0,
                     usersWithReferrals: 0,
                     orphanedUsers: 0,
-                    totalReferrals: 0
+                    totalReferrals: 0,
+                    totalRevenue: 0,
+                    totalPackages: 0,
+                    userSpending: new Map(),
+                    userPackages: new Map()
                 };
             }
         }
@@ -1362,7 +1478,7 @@
             }
         }
 
-        // Load Recent Users
+        // UPDATED: Enhanced loadRecentUsersFromSupabase function
         async function loadRecentUsersFromSupabase() {
             try {
                 const { data: users, error } = await supabaseClient
@@ -1373,11 +1489,18 @@
 
                 if (error) throw error;
 
+                // Get purchase stats for all recent users
+                const purchaseStats = await fetchUserPurchaseStats();
+
                 const usersWithRefs = await Promise.all(users.map(async (user) => {
                     const { count: referralCount } = await supabaseClient
                         .from('profiles')
                         .select('*', { count: 'exact', head: true })
                         .eq('referred_by', user.id);
+
+                    // NEW: Get user-specific purchase data
+                    const userSpent = purchaseStats.userSpending.get(user.id) || 0;
+                    const userPackages = purchaseStats.userPackages.get(user.id) || 0;
 
                     return {
                         id: user.id,
@@ -1386,7 +1509,10 @@
                         referrals: referralCount || 0,
                         isVip: (user.balance || 0) > 1000,
                         hasReferrer: !!user.referred_by,
-                        created_at: user.created_at
+                        created_at: user.created_at,
+                        // NEW: Purchase statistics
+                        totalSpent: userSpent,
+                        packagesPurchased: userPackages
                     };
                 }));
 
@@ -1395,6 +1521,19 @@
             } catch (error) {
                 console.error('❌ Error loading recent users:', error);
                 displayRecentUsers([]);
+            }
+        }
+
+        // Load Overview Data
+        async function loadOverviewData() {
+            try {
+                console.log('📊 Loading overview data...');
+                const stats = await fetchAdminStatsFromSupabase();
+                updateStatsCards(stats);
+                await loadRecentUsersFromSupabase();
+            } catch (error) {
+                console.error('Error loading overview data:', error);
+                showConnectionError();
             }
         }
 
@@ -1415,11 +1554,18 @@
 
                 if (error) throw error;
 
+                // Get purchase stats for searched users
+                const purchaseStats = await fetchUserPurchaseStats();
+
                 const usersWithRefs = await Promise.all(users.map(async (user) => {
                     const { count: referralCount } = await supabaseClient
                         .from('profiles')
                         .select('*', { count: 'exact', head: true })
                         .eq('referred_by', user.id);
+
+                    // NEW: Get user-specific purchase data
+                    const userSpent = purchaseStats.userSpending.get(user.id) || 0;
+                    const userPackages = purchaseStats.userPackages.get(user.id) || 0;
 
                     return {
                         id: user.id,
@@ -1428,7 +1574,10 @@
                         referrals: referralCount || 0,
                         isVip: (user.balance || 0) > 1000,
                         hasReferrer: !!user.referred_by,
-                        created_at: user.created_at
+                        created_at: user.created_at,
+                        // NEW: Purchase statistics
+                        totalSpent: userSpent,
+                        packagesPurchased: userPackages
                     };
                 }));
 
@@ -1439,7 +1588,7 @@
             }
         }
 
-        // Display Recent Users
+        // UPDATED: Enhanced displayRecentUsers function
         function displayRecentUsers(users) {
             const grid = document.getElementById('recentUsersGrid');
 
@@ -1472,6 +1621,14 @@
                         <div class="user-stat">
                             <div class="user-stat-value">${user.referrals || 0}</div>
                             <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.packagesPurchased || 0}</div>
+                            <div class="user-stat-label">Packages</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">$${(user.totalSpent || 0).toFixed(2)}</div>
+                            <div class="user-stat-label">Spent</div>
                         </div>
                         <div class="user-stat">
                             <div class="user-stat-value">${user.hasReferrer ? 'Yes' : 'No'}</div>
@@ -1846,7 +2003,7 @@
 
             try {
                 let users;
-                
+
                 switch(section) {
                     case 'Orphaned Users (No Referrer)':
                         const { data: orphanedUsers } = await supabaseClient
@@ -1857,15 +2014,15 @@
                             .order('created_at', { ascending: false });
                         users = orphanedUsers;
                         break;
-                        
+
                     case 'Users with Referrals':
                         const { data: referredUsers } = await supabaseClient
                             .from('profiles')
                             .select('referred_by')
                             .not('referred_by', 'is', null);
-                        
+
                         const uniqueReferrerIds = [...new Set(referredUsers.map(user => user.referred_by))];
-                        
+
                         const { data: referrers } = await supabaseClient
                             .from('profiles')
                             .select('id, username, email, balance, created_at, referred_by')
@@ -1874,7 +2031,7 @@
                             .order('created_at', { ascending: false });
                         users = referrers;
                         break;
-                        
+
                     default:
                         const { data: allUsers } = await supabaseClient
                             .from('profiles')
@@ -1953,7 +2110,7 @@
             }
         }
 
-        // Show User Details
+        // UPDATED: Enhanced showUserDetails function
         async function showUserDetails(userId) {
             try {
                 document.getElementById('popupContent').innerHTML = `
@@ -1988,23 +2145,8 @@
                     referrer = referrerData;
                 }
 
-                let purchases = [];
-                let totalSpent = 0;
-                try {
-                    const { data: purchaseData } = await supabaseClient
-                        .from('user_purchase_history')
-                        .select('package_name, amount, created_at')
-                        .eq('user_id', userId)
-                        .eq('status', 'completed')
-                        .order('created_at', { ascending: false });
-
-                    if (purchaseData) {
-                        purchases = purchaseData;
-                        totalSpent = purchases.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-                    }
-                } catch (purchaseError) {
-                    console.warn('Could not load purchase history:', purchaseError);
-                }
+                // NEW: Use enhanced function to get purchase data
+                const purchaseStats = await getUserStatisticsWithPurchases(userId);
 
                 const { count: directReferralsCount } = await supabaseClient
                     .from('profiles')
@@ -2014,12 +2156,12 @@
                 const networkStats = {
                     directReferrals: directReferralsCount || 0,
                     totalNetwork: directReferralsCount || 0,
-                    totalPurchases: purchases.length,
-                    totalRevenue: totalSpent,
+                    totalPurchases: purchaseStats.packagesPurchased,
+                    totalRevenue: purchaseStats.totalSpent,
                     networkRevenue: 0
                 };
 
-                renderUserPopup(user, directReferrals || [], [], referrer, purchases, totalSpent, networkStats);
+                renderUserPopup(user, directReferrals || [], [], referrer, purchaseStats.purchaseHistory, purchaseStats.totalSpent, networkStats);
 
             } catch (error) {
                 console.error('❌ Error loading user details:', error);
@@ -2162,12 +2304,16 @@
             }
         });
 
-        // Update Stats Cards
+        // UPDATED: Enhanced updateStatsCards function
         function updateStatsCards(stats) {
             document.getElementById('totalUsers').textContent = stats.totalUsers?.toLocaleString() || '0';
             document.getElementById('usersWithReferrals').textContent = stats.usersWithReferrals?.toLocaleString() || '0';
             document.getElementById('orphanedUsers').textContent = stats.orphanedUsers?.toLocaleString() || '0';
             document.getElementById('totalReferrals').textContent = stats.totalReferrals?.toLocaleString() || '0';
+            
+            // NEW: Update purchase statistics
+            document.getElementById('totalRevenue').textContent = `$${(stats.totalRevenue || 0).toFixed(2)}`;
+            document.getElementById('totalPackages').textContent = stats.totalPackages?.toLocaleString() || '0';
         }
 
         // Cache Management
@@ -2196,7 +2342,7 @@
             maintenanceMode = !maintenanceMode;
             localStorage.setItem('maintenanceMode', maintenanceMode.toString());
             updateMaintenanceUI();
-            
+
             if (maintenanceMode) {
                 alert('Maintenance mode activated!');
             } else {
@@ -2235,19 +2381,17 @@
 
                 if (error) throw error;
 
+                // Get purchase stats for export
+                const purchaseStats = await fetchUserPurchaseStats();
+
                 const usersWithDetails = await Promise.all(users.map(async (user) => {
                     const { count: referralCount } = await supabaseClient
                         .from('profiles')
                         .select('*', { count: 'exact', head: true })
                         .eq('referred_by', user.id);
 
-                    const { data: purchases } = await supabaseClient
-                        .from('user_purchase_history')
-                        .select('amount')
-                        .eq('user_id', user.id)
-                        .eq('status', 'completed');
-
-                    const totalSpent = purchases?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+                    const userSpent = purchaseStats.userSpending.get(user.id) || 0;
+                    const userPackages = purchaseStats.userPackages.get(user.id) || 0;
 
                     return {
                         'User ID': user.id,
@@ -2255,7 +2399,8 @@
                         'Email': user.email || 'N/A',
                         'Balance': user.balance || 0,
                         'Referral Count': referralCount || 0,
-                        'Total Spent': `$${totalSpent.toFixed(2)}`,
+                        'Packages Purchased': userPackages,
+                        'Total Spent': `$${userSpent.toFixed(2)}`,
                         'Has Referrer': user.referred_by ? 'Yes' : 'No',
                         'Registration Date': new Date(user.created_at).toLocaleDateString()
                     };
@@ -2279,7 +2424,7 @@
             if (!data.length) return '';
             const headers = Object.keys(data[0]);
             const csvRows = [headers.join(',')];
-            
+
             for (const row of data) {
                 const values = headers.map(header => {
                     const value = row[header];
@@ -2290,7 +2435,7 @@
                 });
                 csvRows.push(values.join(','));
             }
-            
+
             return csvRows.join('\n');
         }
 
@@ -2298,11 +2443,11 @@
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
-            
+
             link.setAttribute('href', url);
             link.setAttribute('download', filename);
             link.style.visibility = 'hidden';
-            
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -2313,7 +2458,7 @@
             const notification = document.createElement('div');
             const bgColor = type === 'success' ? 'var(--success)' : 
                            type === 'error' ? 'var(--danger)' : 'var(--info)';
-            
+
             notification.style.cssText = `
                 position: fixed;
                 top: 20px;
