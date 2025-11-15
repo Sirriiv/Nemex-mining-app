@@ -16,6 +16,8 @@
             --success: #00C851;
             --error: #ff4444;
             --ton-blue: #0088cc;
+            --usdt-green: #26a17b;
+            --tron-orange: #ff060a;
         }
 
         * { 
@@ -90,6 +92,21 @@
             overflow-y: auto;
         }
 
+        /* Authentication Guard */
+        .auth-guard {
+            display: none;
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .auth-icon {
+            width: 80px;
+            height: 80px;
+            color: var(--muted);
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
         /* Connection States */
         .connection-state {
             text-align: center;
@@ -132,6 +149,51 @@
         .connection-badge.disconnected .connection-dot {
             background: var(--error);
         }
+
+        /* Market Stats */
+        .market-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .market-stat {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-token {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+
+        .stat-price {
+            font-weight: 700;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-change {
+            font-size: 10px;
+            margin-top: 3px;
+        }
+
+        .change-positive {
+            color: var(--success);
+        }
+
+        .change-negative {
+            color: var(--error);
+        }
+
+        .ton-price { border-left: 3px solid var(--ton-blue); }
+        .usdt-price { border-left: 3px solid var(--usdt-green); }
+        .tron-price { border-left: 3px solid var(--tron-orange); }
 
         /* Wallet Connect Section */
         .wallet-connect-section {
@@ -224,7 +286,7 @@
         .wallet-header {
             display: flex;
             align-items: center;
-            justify-content: between;
+            justify-content: space-between;
             margin-bottom: 20px;
         }
 
@@ -388,7 +450,6 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--ton-blue), #006699);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -397,6 +458,10 @@
             color: white;
             font-size: 16px;
         }
+
+        .ton-icon { background: linear-gradient(135deg, var(--ton-blue), #006699); }
+        .nmx-icon { background: linear-gradient(135deg, var(--gold), #b8941f); }
+        .usdt-icon { background: linear-gradient(135deg, var(--usdt-green), #1e8c6e); }
 
         .token-info {
             flex: 1;
@@ -414,8 +479,14 @@
 
         .token-amount {
             font-weight: 700;
-            color: var(--ton-blue);
             font-family: 'Courier New', monospace;
+            text-align: right;
+        }
+
+        .token-value {
+            color: var(--muted);
+            font-size: 12px;
+            text-align: right;
         }
 
         /* Loading Overlay */
@@ -524,7 +595,19 @@
     </div>
 
     <div class="container">
-        <div class="content-wrapper">
+        <!-- Authentication Guard -->
+        <div class="auth-guard" id="authGuard">
+            <svg class="auth-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <h3>Authentication Required</h3>
+            <p>Please log in to access your wallet</p>
+            <button onclick="redirectToLogin()" style="margin-top: 20px; padding: 10px 20px; background: var(--gold); color: var(--dark-bg); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                Go to Login
+            </button>
+        </div>
+
+        <div class="content-wrapper" id="mainContent" style="display: none;">
             <header class="header">
                 <a class="back-btn" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -539,6 +622,25 @@
                 </div>
                 <div style="width: 20px;"></div>
             </header>
+
+            <!-- Market Statistics -->
+            <div class="market-stats" id="marketStats">
+                <div class="market-stat ton-price">
+                    <div class="stat-token">TON</div>
+                    <div class="stat-price" id="tonPrice">$2.45</div>
+                    <div class="stat-change change-positive" id="tonChange">+1.2%</div>
+                </div>
+                <div class="market-stat usdt-price">
+                    <div class="stat-token">USDT</div>
+                    <div class="stat-price" id="usdtPrice">$1.00</div>
+                    <div class="stat-change">0.0%</div>
+                </div>
+                <div class="market-stat tron-price">
+                    <div class="stat-token">TRX</div>
+                    <div class="stat-price" id="tronPrice">$0.11</div>
+                    <div class="stat-change change-positive" id="tronChange">+0.5%</div>
+                </div>
+            </div>
 
             <!-- Connection Status -->
             <div class="connection-state">
@@ -635,21 +737,39 @@
                     </div>
 
                     <div class="token-card">
-                        <div class="token-icon">T</div>
+                        <div class="token-icon ton-icon">T</div>
                         <div class="token-info">
                             <div class="token-name">Toncoin</div>
                             <div class="token-symbol">TON</div>
                         </div>
-                        <div class="token-amount" id="tonBalance">0</div>
+                        <div>
+                            <div class="token-amount" id="tonBalance">0</div>
+                            <div class="token-value" id="tonValue">$0.00</div>
+                        </div>
                     </div>
 
                     <div class="token-card">
-                        <div class="token-icon">N</div>
+                        <div class="token-icon nmx-icon">N</div>
                         <div class="token-info">
                             <div class="token-name">NemexCoin</div>
                             <div class="token-symbol">NMX</div>
                         </div>
-                        <div class="token-amount" id="nmxBalance">0</div>
+                        <div>
+                            <div class="token-amount" id="nmxBalance">0</div>
+                            <div class="token-value">$0.00</div>
+                        </div>
+                    </div>
+
+                    <div class="token-card">
+                        <div class="token-icon usdt-icon">U</div>
+                        <div class="token-info">
+                            <div class="token-name">Tether</div>
+                            <div class="token-symbol">USDT</div>
+                        </div>
+                        <div>
+                            <div class="token-amount" id="usdtBalance">0</div>
+                            <div class="token-value" id="usdtValue">$0.00</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -658,6 +778,11 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Supabase configuration
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
         // Wallet state
         let connectedWallet = null;
         let walletData = {
@@ -665,11 +790,19 @@
             provider: '',
             balances: {
                 TON: 0,
-                NMX: 0
+                NMX: 0,
+                USDT: 0
             }
         };
 
-        // Loading Screen Function
+        // Market data
+        let marketData = {
+            TON: { price: 2.45, change: 1.2 },
+            USDT: { price: 1.00, change: 0.0 },
+            TRX: { price: 0.11, change: 0.5 }
+        };
+
+        // FIXED: Loading Screen Function
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
@@ -679,20 +812,76 @@
             }, 1500);
         }
 
-        // Check authentication
+        // FIXED: Authentication check with immediate redirect
         async function checkAuth() {
             try {
+                // Show loading immediately
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                document.getElementById('loadingText').textContent = 'Checking authentication...';
+
                 const { data: { session }, error } = await supabase.auth.getSession();
-                if (!session || error) {
-                    showLoadingScreen('login.html', 'Redirecting to Login...');
+                
+                if (error || !session) {
+                    console.log('No valid session found, redirecting to login...');
+                    // Immediately show auth guard, hide loading
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    document.getElementById('authGuard').style.display = 'block';
+                    document.getElementById('mainContent').style.display = 'none';
                     return null;
                 }
+
+                // User is authenticated, show main content
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('authGuard').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
                 return session.user;
+
             } catch (error) {
                 console.error('Auth check error:', error);
-                showLoadingScreen('login.html', 'Redirecting to Login...');
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('authGuard').style.display = 'block';
+                document.getElementById('mainContent').style.display = 'none';
                 return null;
             }
+        }
+
+        function redirectToLogin() {
+            showLoadingScreen('login.html', 'Redirecting to Login...');
+        }
+
+        // Load market data
+        async function loadMarketData() {
+            try {
+                // In a real implementation, you'd fetch from an API
+                // For now, we'll use mock data that updates randomly
+                updateMarketData();
+                
+                // Simulate real-time updates
+                setInterval(updateMarketData, 30000); // Update every 30 seconds
+            } catch (error) {
+                console.error('Error loading market data:', error);
+            }
+        }
+
+        function updateMarketData() {
+            // Simulate price fluctuations
+            const fluctuation = (Math.random() - 0.5) * 0.1;
+            marketData.TON.price = Math.max(2.30, Math.min(2.60, marketData.TON.price + fluctuation));
+            marketData.TON.change = (Math.random() - 0.5) * 2;
+
+            // Update UI
+            document.getElementById('tonPrice').textContent = `$${marketData.TON.price.toFixed(2)}`;
+            document.getElementById('usdtPrice').textContent = `$${marketData.USDT.price.toFixed(2)}`;
+            document.getElementById('tronPrice').textContent = `$${marketData.TRX.price.toFixed(2)}`;
+
+            const tonChangeElement = document.getElementById('tonChange');
+            tonChangeElement.textContent = `${marketData.TON.change >= 0 ? '+' : ''}${marketData.TON.change.toFixed(1)}%`;
+            tonChangeElement.className = `stat-change ${marketData.TON.change >= 0 ? 'change-positive' : 'change-negative'}`;
+
+            const tronChangeElement = document.getElementById('tronChange');
+            tronChangeElement.textContent = `${marketData.TRX.change >= 0 ? '+' : ''}${marketData.TRX.change.toFixed(1)}%`;
+            tronChangeElement.className = `stat-change ${marketData.TRX.change >= 0 ? 'change-positive' : 'change-negative'}`;
         }
 
         // Connect Wallet Function
@@ -701,10 +890,10 @@
                 document.getElementById('loadingText').textContent = `Connecting to ${provider}...`;
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
-                // Simulate wallet connection (in real implementation, this would use TON Connect)
+                // Simulate wallet connection
                 await new Promise(resolve => setTimeout(resolve, 2000));
 
-                // Mock wallet data based on provider
+                // Mock wallet data
                 const mockWallets = {
                     tonkeeper: {
                         address: 'EQD1234567890abcdefghijklmnopqrstuvwxyz',
@@ -712,7 +901,8 @@
                         avatar: 'TK',
                         balances: {
                             TON: 15.75,
-                            NMX: 1250.50
+                            NMX: 1250.50,
+                            USDT: 500.25
                         }
                     },
                     telegram: {
@@ -721,7 +911,8 @@
                         avatar: 'TG',
                         balances: {
                             TON: 8.25,
-                            NMX: 850.75
+                            NMX: 850.75,
+                            USDT: 250.50
                         }
                     },
                     mytonwallet: {
@@ -730,7 +921,8 @@
                         avatar: 'MT',
                         balances: {
                             TON: 22.10,
-                            NMX: 2100.25
+                            NMX: 2100.25,
+                            USDT: 750.80
                         }
                     }
                 };
@@ -738,13 +930,10 @@
                 walletData = mockWallets[provider];
                 connectedWallet = provider;
 
-                // Update UI
                 updateConnectionUI(true);
                 updateWalletData();
 
                 document.getElementById('loadingOverlay').style.display = 'none';
-                
-                // Show success message
                 alert(`✅ Successfully connected to ${walletData.provider}!`);
 
             } catch (error) {
@@ -762,7 +951,8 @@
                 provider: '',
                 balances: {
                     TON: 0,
-                    NMX: 0
+                    NMX: 0,
+                    USDT: 0
                 }
             };
             
@@ -799,15 +989,22 @@
             document.getElementById('walletProvider').textContent = walletData.provider;
             document.getElementById('walletAddress').textContent = `${walletData.address.slice(0, 6)}...${walletData.address.slice(-3)}`;
 
-            // Update balances
-            const totalBalance = walletData.balances.TON + (walletData.balances.NMX * 0.001); // Example conversion
-            document.getElementById('totalBalance').textContent = `${totalBalance.toFixed(2)} TON`;
+            // Update balances with market values
+            const tonValue = walletData.balances.TON * marketData.TON.price;
+            const nmxValue = 0; // NMX not listed yet
+            const usdtValue = walletData.balances.USDT * marketData.USDT.price;
+            
+            const totalBalanceUSD = tonValue + nmxValue + usdtValue;
+            const totalBalanceTON = totalBalanceUSD / marketData.TON.price;
+
+            document.getElementById('totalBalance').textContent = `${totalBalanceTON.toFixed(2)} TON`;
             document.getElementById('tonBalance').textContent = walletData.balances.TON.toFixed(2);
             document.getElementById('nmxBalance').textContent = walletData.balances.NMX.toFixed(2);
+            document.getElementById('usdtBalance').textContent = walletData.balances.USDT.toFixed(2);
 
-            // Calculate USD value (example rates)
-            const usdValue = (walletData.balances.TON * 2.5) + (walletData.balances.NMX * 0.01);
-            document.querySelector('.balance-usd').textContent = `≈ $${usdValue.toFixed(2)} USD`;
+            document.querySelector('.balance-usd').textContent = `≈ $${totalBalanceUSD.toFixed(2)} USD`;
+            document.getElementById('tonValue').textContent = `$${tonValue.toFixed(2)}`;
+            document.getElementById('usdtValue').textContent = `$${usdtValue.toFixed(2)}`;
         }
 
         // Action Functions
@@ -846,14 +1043,7 @@
         // Initialize the page
         document.addEventListener('DOMContentLoaded', async function() {
             await checkAuth();
-            
-            // Check if wallet was previously connected (in real app, this would check localStorage)
-            const savedWallet = localStorage.getItem('connectedWallet');
-            if (savedWallet) {
-                // In real implementation, you'd reconnect to the wallet
-                console.log('Previously connected wallet:', savedWallet);
-            }
-            
+            await loadMarketData();
             updateConnectionUI(false);
         });
     </script>
