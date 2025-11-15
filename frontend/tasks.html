@@ -89,7 +89,6 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding-bottom: 70px;
         }
 
         /* Task Categories */
@@ -346,73 +345,6 @@
             }
         }
 
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
-            border-radius: 8px;
-            margin: 0 1px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-item.active {
-            color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
-            border-radius: 2px;
-        }
-
-        .nav-icon {
-            width: 22px;
-            height: 22px;
-            margin-bottom: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-item.active .nav-icon {
-            color: var(--gold);
-            transform: scale(1.1);
-        }
-
-        .nav-text {
-            margin-top: 2px;
-            text-align: center;
-        }
-
         /* Progress Bar */
         .progress-container {
             width: 100%;
@@ -429,6 +361,110 @@
             border-radius: 3px;
             transition: width 0.3s ease;
         }
+
+        /* Share Modal */
+        .share-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .share-content {
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 350px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .share-title {
+            color: var(--gold);
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .share-message {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: left;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .share-option {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .share-option:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        .share-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 5px;
+        }
+
+        .share-option-text {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.primary {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
+        .modal-btn.secondary {
+            background: var(--border-color);
+            color: var(--text);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px);
+        }
     </style>
 </head>
 <body>
@@ -440,6 +476,50 @@
         <div class="loading-text" id="loadingText">Loading Tasks...</div>
         <div class="loading-progress">
             <div class="loading-progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div class="share-modal" id="shareModal">
+        <div class="share-content">
+            <div class="share-title">Share NemexCoin</div>
+            <div class="share-message" id="shareMessage">
+                Join me on NemexCoin! 🚀<br><br>
+                💰 Earn crypto by mining, completing tasks and referring friends!<br>
+                🔗 Use my referral: <span id="referralLink">Loading...</span><br><br>
+                My username: <span id="userUsername">Loading...</span><br><br>
+                Let's grow together! 💫
+            </div>
+            <div class="share-options">
+                <div class="share-option" onclick="shareToTwitter()">
+                    <svg class="share-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                    <div class="share-option-text">Twitter</div>
+                </div>
+                <div class="share-option" onclick="shareToTelegram()">
+                    <svg class="share-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.191c-.209.548-1.226 3.257-1.226 3.257s-.089.219-.007.336c.054.063.156.142.281.214.135.081.302.17.489.263.403.202.936.462 1.249.676.325.222.498.49.498.806 0 .428-.324.749-.958.749-.613 0-1.351-.184-2.164-.548-1.156-.513-2.296-1.311-3.414-2.254-1.245-1.054-2.313-2.219-3.204-3.494-.563-.806-.842-1.426-.842-1.86 0-.244.089-.458.267-.642.283-.293.774-.293.774-.293s4.552.354 7.405 1.379c.244.089.486.178.727.267.241.089.402.151.482.187.08.036.142.063.187.08.045.018.08.027.107.027.116 0 .214-.089.295-.267z"/>
+                    </svg>
+                    <div class="share-option-text">Telegram</div>
+                </div>
+                <div class="share-option" onclick="shareToWhatsApp()">
+                    <svg class="share-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893-.001-3.189-1.262-6.209-3.553-8.485"/>
+                    </svg>
+                    <div class="share-option-text">WhatsApp</div>
+                </div>
+                <div class="share-option" onclick="copyShareText()">
+                    <svg class="share-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                    </svg>
+                    <div class="share-option-text">Copy Text</div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeShareModal()">Cancel</button>
+                <button class="modal-btn primary" onclick="markShareAsCompleted()">I've Shared</button>
+            </div>
         </div>
     </div>
 
@@ -464,7 +544,6 @@
             <div class="task-categories">
                 <button class="category-btn active" onclick="filterTasks('all')">All Tasks</button>
                 <button class="category-btn" onclick="filterTasks('social')">Social</button>
-                <button class="category-btn" onclick="filterTasks('learning')">Learning</button>
                 <button class="category-btn" onclick="filterTasks('daily')">Daily</button>
             </div>
 
@@ -473,40 +552,6 @@
                 <!-- Tasks will be loaded here -->
             </div>
         </div>
-
-        <!-- Bottom Navigation -->
-        <nav class="bottom-nav">
-            <a class="nav-item" onclick="showLoadingScreen('dashboard.html', 'Loading Dashboard...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                <span class="nav-text">MINING</span>
-            </a>
-            <a class="nav-item active">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                </svg>
-                <span class="nav-text">TASKS</span>
-            </a>
-            <a class="nav-item" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                </svg>
-                <span class="nav-text">BUY NMXp</span>
-            </a>
-            <a class="nav-item" onclick="showLoadingScreen('referrals.html', 'Loading Referrals...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                </svg>
-                <span class="nav-text">REFERRALS</span>
-            </a>
-            <a class="nav-item" onclick="showLoadingScreen('wallet.html', 'Loading Wallet...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                </svg>
-                <span class="nav-text">WALLET</span>
-            </a>
-        </nav>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -516,78 +561,161 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Mock tasks data
+        // Updated tasks data with your requirements
         const mockTasks = [
+            // Social Tasks
             {
                 id: 1,
-                title: "Follow on Twitter",
-                description: "Follow our official Twitter account and stay updated with the latest news",
-                reward: 15,
+                title: "Follow on Twitter/X",
+                description: "Follow our official Twitter/X account and stay updated with the latest news",
+                reward: 300,
                 category: "social",
                 status: "available",
                 action: "Follow",
-                progress: 0,
-                maxProgress: 1
+                link: "https://x.com/NemexCoin?t=b3ATG98sF6NhcMKvEhb1DQ&s=09",
+                type: "external"
             },
             {
                 id: 2,
                 title: "Join Telegram Channel",
                 description: "Join our Telegram community for updates and discussions",
-                reward: 20,
+                reward: 300,
                 category: "social",
                 status: "available",
                 action: "Join",
-                progress: 0,
-                maxProgress: 1
+                link: "https://t.me/NemexCommunity",
+                type: "external"
             },
             {
                 id: 3,
-                title: "Watch Tutorial Video",
-                description: "Watch our getting started guide to learn about NemexCoin",
-                reward: 25,
-                category: "learning",
+                title: "Read Whitepaper",
+                description: "Read our project whitepaper to understand our vision",
+                reward: 100,
+                category: "social",
                 status: "available",
-                action: "Watch",
-                progress: 0,
-                maxProgress: 1
+                action: "Read",
+                link: "https://docs.google.com/document/d/1p8INyf2pQQwkfyNn02qqehb8D8CZpK9xfasvqi9GGf0/edit?usp=drivesdk",
+                type: "external"
             },
             {
                 id: 4,
-                title: "Daily Check-in",
-                description: "Check in daily to earn consistent rewards",
-                reward: 5,
-                category: "daily",
-                status: "available",
-                action: "Check-in",
-                progress: 0,
-                maxProgress: 7
-            },
-            {
-                id: 5,
-                title: "Read Whitepaper",
-                description: "Read our project whitepaper to understand our vision",
-                reward: 30,
-                category: "learning",
-                status: "available",
-                action: "Read",
-                progress: 0,
-                maxProgress: 1
-            },
-            {
-                id: 6,
                 title: "Share on Social Media",
                 description: "Share NemexCoin with your friends on social media",
-                reward: 20,
+                reward: 30,
                 category: "social",
                 status: "available",
                 action: "Share",
+                type: "share"
+            },
+            // Like and Retweet Tasks
+            {
+                id: 5,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1936063803776508247?t=BZYCdGRlvJ-Ca5gLCouTXA&s=19",
+                type: "external"
+            },
+            {
+                id: 6,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1936063748588151116?t=jpKia9_BDuQAy4f9x2DAvQ&s=19",
+                type: "external"
+            },
+            {
+                id: 7,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1936063685379625063?t=eekecdy3Iqp7QVY7rwcfOg&s=19",
+                type: "external"
+            },
+            {
+                id: 8,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1936063624813887908?t=spA-UP8SrWXyUc7GaiklyQ&s=19",
+                type: "external"
+            },
+            {
+                id: 9,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1979845614654652695?t=tDNesjQRvxR_xbuqoRKR8w&s=19",
+                type: "external"
+            },
+            {
+                id: 10,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1979848426897670637?t=Ylywc6fUJYDsXxTCQNkpvw&s=19",
+                type: "external"
+            },
+            {
+                id: 11,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1979848658515533883?t=vo09I4G1iN6CGNUt6g78IA&s=19",
+                type: "external"
+            },
+            {
+                id: 12,
+                title: "Like and Retweet Post",
+                description: "Like and retweet our latest post on Twitter/X",
+                reward: 5,
+                category: "social",
+                status: "available",
+                action: "Like & Retweet",
+                link: "https://x.com/NemexCoin/status/1979848801981751726?t=Z3sz6qulCGAsgUkQJYBfXA&s=19",
+                type: "external"
+            },
+            // Daily Task
+            {
+                id: 13,
+                title: "Daily Check-in",
+                description: "Check in daily to earn consistent rewards",
+                reward: 10,
+                category: "daily",
+                status: "available",
+                action: "Check-in",
+                type: "daily",
                 progress: 0,
-                maxProgress: 1
+                maxProgress: 7
             }
         ];
 
         let completedTasks = [];
         let currentFilter = 'all';
+        let currentUser = null;
+        let userReferralCode = '';
+        let userUsername = '';
 
         // Loading Screen Function
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
@@ -599,7 +727,7 @@
             }, 1500);
         }
 
-        // Check authentication
+        // Check authentication and load user data
         async function checkAuth() {
             try {
                 const { data: { session }, error } = await supabase.auth.getSession();
@@ -607,6 +735,46 @@
                     showLoadingScreen('login.html', 'Redirecting to Login...');
                     return null;
                 }
+
+                currentUser = session.user;
+
+                // Get user profile data
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('username, referral_code, daily_checkins, last_checkin')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profileError) {
+                    console.error('Error fetching profile:', profileError);
+                    return session.user;
+                }
+
+                userReferralCode = profile.referral_code || 'N/A';
+                userUsername = profile.username || 'User';
+
+                // Load completed tasks from database
+                await loadCompletedTasksFromDB();
+
+                // Load daily check-in progress
+                if (profile.daily_checkins) {
+                    const dailyTask = mockTasks.find(task => task.id === 13);
+                    if (dailyTask) {
+                        dailyTask.progress = profile.daily_checkins;
+                        
+                        // Check if last check-in was today
+                        const today = new Date().toDateString();
+                        const lastCheckin = profile.last_checkin ? new Date(profile.last_checkin).toDateString() : null;
+                        
+                        if (lastCheckin === today) {
+                            // User already checked in today, mark as completed
+                            if (!completedTasks.includes(13)) {
+                                completedTasks.push(13);
+                            }
+                        }
+                    }
+                }
+
                 return session.user;
             } catch (error) {
                 console.error('Auth check error:', error);
@@ -615,17 +783,53 @@
             }
         }
 
-        // Load completed tasks from localStorage
-        function loadCompletedTasks() {
-            const saved = localStorage.getItem('completedTasks');
-            if (saved) {
-                completedTasks = JSON.parse(saved);
+        // Load completed tasks from database
+        async function loadCompletedTasksFromDB() {
+            try {
+                const { data: userTasks, error } = await supabase
+                    .from('user_tasks')
+                    .select('task_id')
+                    .eq('user_id', currentUser.id);
+
+                if (error) {
+                    console.error('Error loading completed tasks:', error);
+                    return;
+                }
+
+                // Update completed tasks array
+                completedTasks = userTasks.map(task => task.task_id);
+                console.log('Loaded completed tasks from DB:', completedTasks);
+
+            } catch (error) {
+                console.error('Error loading completed tasks from DB:', error);
             }
         }
 
-        // Save completed tasks to localStorage
-        function saveCompletedTasks() {
-            localStorage.setItem('completedTasks', JSON.stringify(completedTasks));
+        // Save completed task to database
+        async function saveCompletedTaskToDB(taskId) {
+            try {
+                const { data, error } = await supabase
+                    .from('user_tasks')
+                    .insert([
+                        {
+                            user_id: currentUser.id,
+                            task_id: taskId,
+                            verified: true
+                        }
+                    ]);
+
+                if (error) {
+                    console.error('Error saving completed task to DB:', error);
+                    return false;
+                }
+
+                console.log('Task saved to DB:', taskId);
+                return true;
+
+            } catch (error) {
+                console.error('Error saving completed task to DB:', error);
+                return false;
+            }
         }
 
         // Filter tasks by category
@@ -644,9 +848,15 @@
         // Render tasks based on current filter
         function renderTasks() {
             const container = document.getElementById('tasksContainer');
-            const filteredTasks = currentFilter === 'all' 
-                ? mockTasks 
-                : mockTasks.filter(task => task.category === currentFilter);
+            let filteredTasks = [];
+
+            if (currentFilter === 'all') {
+                filteredTasks = mockTasks;
+            } else if (currentFilter === 'social') {
+                filteredTasks = mockTasks.filter(task => task.category === 'social');
+            } else if (currentFilter === 'daily') {
+                filteredTasks = mockTasks.filter(task => task.category === 'daily');
+            }
 
             if (filteredTasks.length === 0) {
                 container.innerHTML = `
@@ -663,7 +873,7 @@
 
             container.innerHTML = filteredTasks.map(task => {
                 const isCompleted = completedTasks.includes(task.id);
-                const progressPercent = (task.progress / task.maxProgress) * 100;
+                const progressPercent = task.maxProgress ? (task.progress / task.maxProgress) * 100 : 0;
 
                 return `
                     <div class="task-card ${isCompleted ? 'completed' : 'available'}">
@@ -689,7 +899,7 @@
                                 ${isCompleted ? 'Completed' : 'Available'}
                             </div>
                             <button class="task-action" 
-                                    onclick="completeTask(${task.id})" 
+                                    onclick="${task.type === 'share' ? 'openShareModal()' : `completeTask(${task.id})`}" 
                                     ${isCompleted ? 'disabled' : ''}>
                                 ${isCompleted ? 'Completed' : task.action}
                             </button>
@@ -699,7 +909,114 @@
             }).join('');
         }
 
-        // ENHANCED: Create task completion notification
+        // Complete a task
+        async function completeTask(taskId) {
+            const user = await checkAuth();
+            if (!user) return;
+
+            const task = mockTasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Show loading
+            const button = document.querySelector(`button[onclick="${task.type === 'share' ? 'openShareModal()' : `completeTask(${taskId})`}"]`);
+            const originalText = button.textContent;
+            button.textContent = 'Processing...';
+            button.disabled = true;
+
+            try {
+                // For external links, open in new tab
+                if (task.type === 'external') {
+                    window.open(task.link, '_blank');
+                    
+                    // Simulate API call delay
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // For daily check-in
+                let dailyCheckinUpdated = false;
+                if (task.type === 'daily') {
+                    const today = new Date().toISOString().split('T')[0];
+                    
+                    // Update daily check-in progress
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('daily_checkins, last_checkin')
+                        .eq('id', user.id)
+                        .single();
+
+                    let newCheckins = (profile.daily_checkins || 0) + 1;
+                    if (newCheckins > 7) newCheckins = 1; // Reset after 7 days
+
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ 
+                            daily_checkins: newCheckins,
+                            last_checkin: today
+                        })
+                        .eq('id', user.id);
+
+                    if (updateError) throw updateError;
+
+                    // Update task progress
+                    task.progress = newCheckins;
+                    dailyCheckinUpdated = true;
+                }
+
+                // Save completed task to database
+                const dbSaved = await saveCompletedTaskToDB(taskId);
+                if (!dbSaved) {
+                    throw new Error('Failed to save task to database');
+                }
+
+                // Update local completed tasks array
+                completedTasks.push(taskId);
+
+                // Update user balance in Supabase
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('balance')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    const newBalance = (profile.balance || 0) + task.reward;
+
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ balance: newBalance })
+                        .eq('id', user.id);
+
+                    if (!updateError) {
+                        // Create task completion notification
+                        await createTaskNotification(user.id, task.title, task.reward);
+
+                        // Show success message
+                        if (task.type === 'external') {
+                            alert(`✅ Task completed! You earned ${task.reward} NMXp!\n\nPlease make sure you actually ${task.action.toLowerCase()}ed to support our project!`);
+                        } else if (task.type === 'daily') {
+                            alert(`🎉 Daily check-in completed! You earned ${task.reward} NMXp!\nProgress: ${task.progress}/7 days`);
+                        } else {
+                            alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
+                        }
+
+                        // Re-render tasks
+                        renderTasks();
+                    } else {
+                        throw new Error('Failed to update balance');
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error completing task:', error);
+                alert('Error completing task. Please try again.');
+
+                // Reset button
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        // Create task completion notification
         async function createTaskNotification(userId, taskName, reward) {
             try {
                 const notificationData = {
@@ -728,69 +1045,77 @@
             }
         }
 
-        // ENHANCED: Complete a task with better notification
-        async function completeTask(taskId) {
-            const user = await checkAuth();
-            if (!user) return;
+        // Share Modal Functions
+        function openShareModal() {
+            document.getElementById('referralLink').textContent = `${window.location.origin}/register?ref=${userReferralCode}`;
+            document.getElementById('userUsername').textContent = userUsername;
+            document.getElementById('shareModal').style.display = 'flex';
+        }
 
-            const task = mockTasks.find(t => t.id === taskId);
-            if (!task) return;
+        function closeShareModal() {
+            document.getElementById('shareModal').style.display = 'none';
+        }
 
-            // Show loading
-            const button = document.querySelector(`button[onclick="completeTask(${taskId})"]`);
-            const originalText = button.textContent;
-            button.textContent = 'Processing...';
-            button.disabled = true;
+        function shareToTwitter() {
+            const text = `Join me on NemexCoin! 🚀
 
-            try {
-                // Simulate API call delay
-                await new Promise(resolve => setTimeout(resolve, 1500));
+💰 Earn crypto by mining, completing tasks and referring friends!
+🔗 Use my referral: ${window.location.origin}/register?ref=${userReferralCode}
 
-                // Mark as completed
-                completedTasks.push(taskId);
-                saveCompletedTasks();
+My username: ${userUsername}
 
-                // Update user balance in Supabase
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('balance')
-                    .eq('id', user.id)
-                    .single();
+Let's grow together! 💫`;
+            
+            const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
 
-                if (profile) {
-                    const newBalance = (profile.balance || 0) + task.reward;
+        function shareToTelegram() {
+            const text = `Join me on NemexCoin! 🚀
 
-                    const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({ balance: newBalance })
-                        .eq('id', user.id);
+💰 Earn crypto by mining, completing tasks and referring friends!
+🔗 Use my referral: ${window.location.origin}/register?ref=${userReferralCode}
 
-                    if (!updateError) {
-                        // Create task completion notification
-                        const notificationCreated = await createTaskNotification(user.id, task.title, task.reward);
+My username: ${userUsername}
 
-                        if (notificationCreated) {
-                            // Show success message
-                            alert(`🎉 Task completed! You earned ${task.reward} NMXp!\n\n✅ Notification created in your notification page.`);
-                        } else {
-                            alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
-                        }
+Let's grow together! 💫`;
+            
+            const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
 
-                        // Re-render tasks
-                        renderTasks();
-                    } else {
-                        throw new Error('Failed to update balance');
-                    }
-                }
+        function shareToWhatsApp() {
+            const text = `Join me on NemexCoin! 🚀
 
-            } catch (error) {
-                console.error('Error completing task:', error);
-                alert('Error completing task. Please try again.');
+💰 Earn crypto by mining, completing tasks and referring friends!
+🔗 Use my referral: ${window.location.origin}/register?ref=${userReferralCode}
 
-                // Reset button
-                button.textContent = originalText;
-                button.disabled = false;
-            }
+My username: ${userUsername}
+
+Let's grow together! 💫`;
+            
+            const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+            window.open(url, '_blank');
+        }
+
+        function copyShareText() {
+            const text = `Join me on NemexCoin! 🚀
+
+💰 Earn crypto by mining, completing tasks and referring friends!
+🔗 Use my referral: ${window.location.origin}/register?ref=${userReferralCode}
+
+My username: ${userUsername}
+
+Let's grow together! 💫`;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Share text copied to clipboard!');
+            });
+        }
+
+        function markShareAsCompleted() {
+            closeShareModal();
+            completeTask(4); // ID 4 is the Share on Social Media task
         }
 
         // Initialize the page
@@ -798,18 +1123,14 @@
             const user = await checkAuth();
             if (!user) return;
 
-            loadCompletedTasks();
             renderTasks();
+        });
 
-            // FIXED: Proper navigation highlighting
-            const navItems = document.querySelectorAll('.nav-item');
-            navItems.forEach(item => {
-                // Remove active class from all items
-                item.classList.remove('active');
-            });
-            
-            // Add active class to current page (Tasks)
-            document.querySelector('.nav-item:nth-child(2)').classList.add('active');
+        // Close modal when clicking outside
+        document.getElementById('shareModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeShareModal();
+            }
         });
     </script>
 </body>
