@@ -466,48 +466,142 @@
             text-align: center;
         }
 
-        /* Loading Screen */
-        .loading-screen {
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--dark-bg);
-            display: flex;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            z-index: 9999;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
             flex-direction: column;
-            gap: 20px;
         }
-        
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(212, 175, 55, 0.3);
-            border-top: 3px solid var(--gold);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+
+        .loading-logo {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            animation: logoGlow 2s ease-in-out infinite alternate;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+
+        .loading-logo-text {
+            font-size: 32px;
+            font-weight: 900;
+            color: #0f0f0f;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 20px;
+            animation: textBlink 1.5s infinite;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #ffd700);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressLoad 2s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes textBlink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes progressLoad {
+            0% {
+                width: 0%;
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(100%);
+            }
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 1001;
+            display: none;
+            text-align: center;
+        }
+
+        .toast.error {
+            background: var(--error);
+        }
+
+        .toast.info {
+            background: var(--gold);
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
-        <div class="loading-spinner"></div>
-        <h3 style="color: var(--gold);">Loading Profile...</h3>
+    <!-- Loading Screen Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo">
+            <div class="loading-logo-text">NMX</div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading Profile...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
 
     <div class="container" id="mainContent" style="display: none;">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">
+                <a class="back-btn" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
@@ -584,31 +678,31 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <a href="dashboard.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('dashboard.html', 'Loading Dashboard...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
                 <span class="nav-text">MINING</span>
             </a>
-            <a href="tasks.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('tasks.html', 'Loading Tasks...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 <span class="nav-text">TASKS</span>
             </a>
-            <a href="buynmxp.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
                 <span class="nav-text">BUY NMXp</span>
             </a>
-            <a href="referrals.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('referrals.html', 'Loading Referrals...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                 </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
-            <a href="wallet.html" class="nav-item active">
+            <a class="nav-item active">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -681,38 +775,101 @@
         let currentUser = null;
         let currentProfile = null;
 
+        // Loading Screen Function
+        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+            document.getElementById('loadingText').textContent = loadingText;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            setTimeout(() => {
+                window.location.href = targetPage;
+            }, 1500);
+        }
+
+        // Toast Notification Function
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast';
+            
+            if (type === 'error') {
+                toast.classList.add('error');
+            } else if (type === 'info') {
+                toast.classList.add('info');
+            }
+            
+            toast.style.display = 'block';
+            
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 3000);
+        }
+
+        // ENHANCED: Create profile update notification
+        async function createProfileUpdateNotification(userId, updateType, oldValue, newValue) {
+            try {
+                let title, message;
+
+                if (updateType === 'username_changed') {
+                    title = 'Username Updated ✏️';
+                    message = `Your username has been changed from "${oldValue}" to "${newValue}". Your referral links will now use your new username.`;
+                } else if (updateType === 'email_changed') {
+                    title = 'Email Updated 📧';
+                    message = `Your email has been updated from "${oldValue}" to "${newValue}".`;
+                }
+
+                const notificationData = {
+                    user_id: userId,
+                    type: updateType,
+                    title: title,
+                    message: message,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert([notificationData]);
+
+                if (!error) {
+                    console.log(`✅ ${updateType} notification created successfully`);
+                    return true;
+                } else {
+                    console.error(`❌ Error creating ${updateType} notification:`, error);
+                    return false;
+                }
+            } catch (error) {
+                console.error(`❌ Error creating ${updateType} notification:`, error);
+                return false;
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', async function() {
             await loadUserProfile();
 
             // Highlight current page in navigation
-            const currentPage = window.location.pathname.split('/').pop() || 'profile.html';
             const navItems = document.querySelectorAll('.nav-item');
-
             navItems.forEach(item => {
-                const href = item.getAttribute('href');
-                if (href === currentPage) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
+                item.classList.remove('active');
             });
+            document.querySelector('.nav-item:nth-child(5)').classList.add('active');
         });
 
         // FIXED: Enhanced profile loading with proper authentication
         async function loadUserProfile() {
             try {
                 console.log('🔄 Loading user profile...');
-                
+
                 // Show loading screen
-                document.getElementById('loadingScreen').style.display = 'flex';
+                document.getElementById('loadingText').textContent = 'Loading Profile...';
+                document.getElementById('loadingOverlay').style.display = 'flex';
                 document.getElementById('mainContent').style.display = 'none';
 
                 // Check authentication using Supabase session
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-                
+
                 if (sessionError || !session) {
                     console.error('❌ No user session found:', sessionError);
-                    window.location.href = 'login.html';
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
                     return;
                 }
 
@@ -754,15 +911,15 @@
                 document.getElementById('totalClaims').textContent = Math.floor((profile.balance || 0) / 30);
 
                 // Hide loading screen and show main content
-                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'flex';
 
                 console.log('✅ Profile loaded successfully');
 
             } catch (error) {
                 console.error('❌ Error loading profile:', error);
-                document.getElementById('loadingScreen').style.display = 'none';
-                alert('Error loading profile. Please try again.');
+                document.getElementById('loadingOverlay').style.display = 'none';
+                showToast('Error loading profile. Please try again.', 'error');
             }
         }
 
@@ -770,7 +927,7 @@
         async function createUserProfile() {
             try {
                 console.log('🔄 Creating user profile...');
-                
+
                 const { data: newProfile, error } = await supabaseClient
                     .from('profiles')
                     .insert({
@@ -795,19 +952,19 @@
 
                 currentProfile = newProfile;
                 console.log('✅ Profile created successfully');
-                
+
                 // Reload profile data
                 await loadUserProfile();
 
             } catch (error) {
                 console.error('❌ Failed to create profile:', error);
-                alert('Error creating user profile. Please contact support.');
+                showToast('Error creating user profile. Please contact support.', 'error');
             }
         }
 
         function openEditModal() {
             if (!currentProfile) {
-                alert('Profile data not loaded yet. Please wait.');
+                showToast('Profile data not loaded yet. Please wait.', 'error');
                 return;
             }
 
@@ -834,7 +991,7 @@
             document.getElementById('emailSuccess').style.display = 'none';
         }
 
-        // FIXED: Enhanced form submission with better error handling
+        // FIXED: Enhanced form submission with better error handling and notifications
         document.getElementById('editForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -852,6 +1009,10 @@
 
             try {
                 let updatesMade = false;
+                let usernameUpdated = false;
+                let emailUpdated = false;
+                const oldUsername = currentProfile.username;
+                const oldEmail = currentProfile.email;
 
                 // Validate inputs
                 if (newUsername.length < 3) {
@@ -916,6 +1077,7 @@
 
                     showSuccess('usernameSuccess', 'Username updated successfully!');
                     updatesMade = true;
+                    usernameUpdated = true;
 
                     // Update current profile data
                     currentProfile.username = newUsername;
@@ -959,25 +1121,38 @@
 
                     showSuccess('emailSuccess', 'Email updated successfully!');
                     updatesMade = true;
+                    emailUpdated = true;
 
                     // Update current profile data
                     currentProfile.email = newEmail;
                 }
 
                 if (updatesMade) {
+                    // Create notifications for updates
+                    if (usernameUpdated) {
+                        await createProfileUpdateNotification(currentUser.id, 'username_changed', oldUsername, newUsername);
+                    }
+                    if (emailUpdated) {
+                        await createProfileUpdateNotification(currentUser.id, 'email_changed', oldEmail, newEmail);
+                    }
+
+                    // Show success message
+                    showToast('Profile updated successfully!', 'success');
+
                     // Reload profile data
                     setTimeout(async () => {
                         await loadUserProfile();
                         closeEditModal();
-                        alert('Profile updated successfully! Your referral links will now use your new username.');
                     }, 1000);
                 } else {
                     closeEditModal();
+                    showToast('No changes were made.', 'info');
                 }
 
             } catch (error) {
                 console.error('❌ Error updating profile:', error);
                 showError('usernameError', 'Failed to update profile: ' + error.message);
+                showToast('Error updating profile. Please try again.', 'error');
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = `
