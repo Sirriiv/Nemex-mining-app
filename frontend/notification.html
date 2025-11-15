@@ -22,7 +22,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background: var(--dark-bg); color: var(--text); min-height: 100vh; }
         .container { width: 100%; max-width: 400px; margin: 0 auto; padding-bottom: 70px; }
-        
+
         /* Header */
         .header { 
             display: flex; 
@@ -48,7 +48,7 @@
             color: var(--gold);
             flex: 1;
         }
-        
+
         /* Action Buttons */
         .header-actions {
             display: flex;
@@ -71,7 +71,7 @@
         .notifications-list { 
             padding: 0;
         }
-        
+
         /* Notification Types */
         .notification-success { border-left: 4px solid var(--success); }
         .notification-warning { border-left: 4px solid var(--warning); }
@@ -92,21 +92,21 @@
         .notification-item.unread {
             background: rgba(212, 175, 55, 0.08);
         }
-        
+
         .notification-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 8px;
         }
-        
+
         .notification-title {
             color: var(--gold);
             font-weight: 600;
             font-size: 14px;
             flex: 1;
         }
-        
+
         .notification-badge {
             background: var(--gold);
             color: var(--dark-bg);
@@ -116,30 +116,30 @@
             font-weight: 700;
             margin-left: 8px;
         }
-        
+
         .notification-message { 
             color: var(--text); 
             font-size: 14px;
             line-height: 1.4;
             margin-bottom: 8px;
         }
-        
+
         .notification-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
+
         .notification-time { 
             color: var(--muted); 
             font-size: 12px;
         }
-        
+
         .notification-actions {
             display: flex;
             gap: 10px;
         }
-        
+
         .notification-action {
             background: none;
             border: none;
@@ -150,12 +150,12 @@
             border-radius: 4px;
             transition: all 0.3s ease;
         }
-        
+
         .notification-action:hover {
             color: var(--gold);
             background: rgba(212, 175, 55, 0.1);
         }
-        
+
         .mark-read-btn { color: var(--success); }
         .delete-btn { color: var(--error); }
 
@@ -165,7 +165,7 @@
             padding: 60px 20px;
             color: var(--muted);
         }
-        
+
         .empty-icon {
             width: 64px;
             height: 64px;
@@ -173,13 +173,13 @@
             margin-bottom: 20px;
             opacity: 0.5;
         }
-        
+
         .empty-title {
             font-size: 18px;
             margin-bottom: 10px;
             color: var(--text);
         }
-        
+
         .empty-message {
             font-size: 14px;
             line-height: 1.4;
@@ -229,6 +229,98 @@
             margin-bottom: 4px;
         }
 
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-logo {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            animation: logoGlow 2s ease-in-out infinite alternate;
+        }
+
+        .loading-logo-text {
+            font-size: 32px;
+            font-weight: 900;
+            color: #0f0f0f;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 20px;
+            animation: textBlink 1.5s infinite;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #ffd700);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressLoad 2s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes textBlink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes progressLoad {
+            0% {
+                width: 0%;
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(100%);
+            }
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             .notification-header {
@@ -243,9 +335,20 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Loading Screen Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo">
+            <div class="loading-logo-text">NMX</div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading Notifications...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display: none;">
         <header class="header">
-            <button class="back-button" onclick="goBack()">
+            <button class="back-button" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
                 <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
@@ -270,31 +373,31 @@
         </div>
 
         <nav class="bottom-nav">
-            <a href="dashboard.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('dashboard.html', 'Loading Dashboard...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
                 <span>MINING</span>
             </a>
-            <a href="tasks.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('tasks.html', 'Loading Tasks...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 <span>TASKS</span>
             </a>
-            <a href="notification.html" class="nav-item active">
+            <a class="nav-item active">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                 </svg>
                 <span>NOTIFICATIONS</span>
             </a>
-            <a href="buynmxp.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
                 <span>BUY NMXp</span>
             </a>
-            <a href="wallet.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('wallet.html', 'Loading Wallet...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -308,10 +411,30 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+        // Loading Screen Function
+        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+            document.getElementById('loadingText').textContent = loadingText;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            setTimeout(() => {
+                window.location.href = targetPage;
+            }, 1500);
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show loading screen briefly for consistency
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                loadNotifications();
+            }, 1000);
+        });
+
         async function checkAuth() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                window.location.href = 'login.html';
+                showLoadingScreen('login.html', 'Redirecting to Login...');
                 return null;
             }
             return session.user;
@@ -351,7 +474,7 @@
             const date = new Date(dateString);
             const now = new Date();
             const diffInHours = (now - date) / (1000 * 60 * 60);
-            
+
             if (diffInHours < 1) {
                 const diffInMinutes = Math.floor(diffInHours * 60);
                 return `${diffInMinutes}m ago`;
@@ -373,7 +496,7 @@
                 .order('created_at', { ascending: false });
 
             const notificationsList = document.getElementById('notificationsList');
-            
+
             if (error) {
                 notificationsList.innerHTML = '<div class="error">Error loading notifications</div>';
                 return;
@@ -422,7 +545,7 @@
                 .from('notifications')
                 .update({ is_read: true })
                 .eq('id', notificationId);
-            
+
             if (!error) {
                 // Refresh the notifications list
                 loadNotifications();
@@ -460,7 +583,7 @@
                 .from('notifications')
                 .delete()
                 .eq('id', notificationId);
-            
+
             if (!error) {
                 loadNotifications();
                 if (window.opener) {
@@ -481,7 +604,7 @@
                 .from('notifications')
                 .delete()
                 .eq('user_id', user.id);
-            
+
             if (!error) {
                 loadNotifications();
                 if (window.opener) {
@@ -491,17 +614,8 @@
         }
 
         function goBack() {
-            window.location.href = 'dashboard.html';
+            showLoadingScreen('dashboard.html', 'Returning to Dashboard...');
         }
-
-        // Listen for messages from dashboard to refresh notifications
-        window.addEventListener('message', function(event) {
-            if (event.data === 'refreshNotifications') {
-                loadNotifications();
-            }
-        });
-
-        document.addEventListener('DOMContentLoaded', loadNotifications);
     </script>
 </body>
 </html>
