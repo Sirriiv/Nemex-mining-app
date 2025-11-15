@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Transaction Management - NemexCoin Admin</title>
     <style>
-        /* Your existing CSS styles remain the same */
+        /* Your existing CSS styles remain exactly the same */
         :root {
             --dark-bg: #0f0f0f;
             --darker-bg: #080808;
@@ -436,38 +436,114 @@
             color: var(--dark-bg);
         }
 
-        /* Loading Screen */
-        .loading-screen {
+        /* Loading Screen Styles */
+        .loading-overlay {
+            display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: var(--dark-bg);
-            display: flex;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            z-index: 9999;
             justify-content: center;
             align-items: center;
-            z-index: 9999;
             flex-direction: column;
-            gap: 20px;
         }
 
-        .loading-screen h3 {
-            color: var(--gold);
+        .loading-logo {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            animation: logoGlow 2s ease-in-out infinite alternate;
+        }
+
+        .loading-logo-text {
+            font-size: 32px;
+            font-weight: 900;
+            color: #0f0f0f;
+        }
+
+        .loading-text {
             font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 20px;
+            animation: textBlink 1.5s infinite;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #ffd700);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressLoad 2s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes textBlink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes progressLoad {
+            0% {
+                width: 0%;
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(100%);
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen -->
-    <div id="loadingScreen" class="loading-screen">
-        <div class="loading-spinner"></div>
-        <h3>Checking Admin Privileges...</h3>
+    <!-- Loading Screen Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo">
+            <div class="loading-logo-text">NMX</div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading Transactions...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
     </div>
 
     <div class="container" id="mainContent" style="display: none;">
         <div class="header">
-            <a href="dashboard.html" class="back-btn">
+            <a href="dashboard.html" class="back-btn" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
@@ -631,21 +707,34 @@
         let userProfiles = new Map();
         let currentTab = 'overview';
 
+        // Loading Screen Function
+        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+            document.getElementById('loadingText').textContent = loadingText;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            setTimeout(() => {
+                window.location.href = targetPage;
+            }, 1500);
+        }
+
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('🚀 Transaction Admin Panel Initializing...');
 
+            // Show loading screen
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
             const isAdmin = await checkAdminAccess();
 
             if (!isAdmin) {
-                document.getElementById('loadingScreen').innerHTML = `
+                document.getElementById('loadingOverlay').innerHTML = `
                     <div style="text-align: center; color: var(--danger);">
                         <svg width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
                         <h3 style="margin: 20px 0 10px;">Access Denied</h3>
                         <p>Administrator privileges required</p>
-                        <button onclick="window.location.href='dashboard.html'" 
+                        <button onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')" 
                                 style="margin-top: 20px; padding: 10px 20px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer;">
                             Return to Dashboard
                         </button>
@@ -654,11 +743,13 @@
                 return;
             }
 
-            document.getElementById('loadingScreen').style.display = 'none';
-            document.getElementById('mainContent').style.display = 'block';
-
-            loadAllTransactionData();
-            setupSearchFilters();
+            // Hide loading screen and show main content
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                loadAllTransactionData();
+                setupSearchFilters();
+            }, 1000);
         });
 
         async function checkAdminAccess() {
@@ -714,10 +805,350 @@
             }
         }
 
+        // NEW FUNCTION: Create Notification for User
+        async function createUserNotification(userId, title, message, type = 'info') {
+            try {
+                console.log(`📢 Creating notification for user ${userId}: ${title}`);
+
+                const notificationData = {
+                    user_id: userId,
+                    title: title,
+                    message: message,
+                    type: type,
+                    is_read: false,
+                    created_at: new Date().toISOString()
+                };
+
+                const { data, error } = await supabaseClient
+                    .from('notifications')
+                    .insert(notificationData);
+
+                if (error) {
+                    console.error('❌ Error creating notification:', error);
+                    return false;
+                }
+
+                console.log('✅ Notification created successfully');
+                return true;
+
+            } catch (error) {
+                console.error('❌ Error in createUserNotification:', error);
+                return false;
+            }
+        }
+
+        // FIXED: Enhanced Approve Transaction Function with NOTIFICATION INTEGRATION
+        async function approveTransaction(transactionId, packageAmount, userId) {
+            try {
+                console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
+
+                // Get current admin user
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) {
+                    console.warn('No admin user found, using system approval');
+                }
+
+                // 1. Get transaction details
+                const { data: transaction, error: txFetchError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*')
+                    .eq('id', transactionId)
+                    .single();
+
+                if (txFetchError) {
+                    throw new Error('Transaction not found: ' + txFetchError.message);
+                }
+
+                // Use package_amount from the transaction
+                const amountToAdd = parseFloat(transaction.package_amount);
+
+                if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${amountToAdd.toLocaleString()} NMX to the user's balance.`)) {
+                    return;
+                }
+
+                const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Approved by admin';
+
+                // 2. Get user's current profile
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileError) {
+                    console.error('Error fetching user profile:', profileError);
+                    throw new Error('User profile not found: ' + profileError.message);
+                }
+
+                // 3. Update user's balance
+                const currentBalance = parseFloat(profile.balance || 0);
+                const newBalance = currentBalance + amountToAdd;
+
+                console.log('💰 Balance update:', { currentBalance, amountToAdd, newBalance });
+
+                const { error: balanceError } = await supabaseClient
+                    .from('profiles')
+                    .update({ 
+                        balance: newBalance,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+
+                if (balanceError) {
+                    console.error('Balance update error:', balanceError);
+                    throw new Error('Failed to update user balance: ' + balanceError.message);
+                }
+
+                // 4. Record in user_purchase_history with CORRECT COLUMN NAMES
+                try {
+                    const purchaseData = {
+                        user_id: userId,
+                        user_email: transaction.user_email,
+                        transaction_id: transactionId,
+                        package_amount: transaction.package_amount,
+                        total_amount: transaction.total_amount,
+                        price_usd: transaction.price_usd,
+                        tx_hash: transaction.tx_hash || 'N/A',
+                        payment_method: transaction.payment_method,
+                        status: 'approved',
+                        level: transaction.level || 1,
+                        is_vip: transaction.is_vip || false,
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        package_name: transaction.package_name,
+                        amount: transaction.package_amount
+                    };
+
+                    console.log('📝 Inserting into user_purchase_history:', purchaseData);
+
+                    const { data: insertedData, error: historyError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .insert(purchaseData)
+                        .select();
+
+                    if (historyError) {
+                        console.error('❌ Error saving to purchase history:', historyError);
+                        throw new Error('Failed to save purchase history: ' + historyError.message);
+                    } else {
+                        console.log('✅ Purchase history recorded successfully:', insertedData);
+                    }
+                } catch (historyError) {
+                    console.error('❌ user_purchase_history table error:', historyError);
+                    throw historyError;
+                }
+
+                // 5. Record wallet transaction for audit
+                try {
+                    const walletData = {
+                        user_id: userId,
+                        transaction_type: 'deposit',
+                        amount: amountToAdd,
+                        balance_before: currentBalance,
+                        balance_after: newBalance,
+                        description: `Package purchase: ${amountToAdd} NMX - ${transaction.package_name}`,
+                        reference_id: transactionId
+                    };
+
+                    const { error: walletError } = await supabaseClient
+                        .from('wallet_transactions')
+                        .insert(walletData);
+
+                    if (walletError) {
+                        console.warn('⚠️ Could not save wallet transaction:', walletError);
+                    }
+                } catch (walletError) {
+                    console.warn('⚠️ wallet_transactions table error:', walletError);
+                }
+
+                // 6. UPDATE VIP STATUS IF THIS IS A VIP PURCHASE
+                if (transaction.is_vip) {
+                    try {
+                        // Check if user already exists in vip_customers
+                        const { data: existingVip } = await supabaseClient
+                            .from('vip_customers')
+                            .select('*')
+                            .eq('user_id', userId)
+                            .single();
+
+                        const vipData = {
+                            user_id: userId,
+                            user_email: transaction.user_email,
+                            vip_level: transaction.vip_level || 1,
+                            total_vip_purchases: (existingVip?.total_vip_purchases || 0) + 1,
+                            total_vip_amount_spent: (parseFloat(existingVip?.total_vip_amount_spent) || 0) + parseFloat(transaction.price_usd),
+                            last_vip_purchase_date: new Date().toISOString(),
+                            first_vip_purchase_date: existingVip?.first_vip_purchase_date || new Date().toISOString()
+                        };
+
+                        if (existingVip) {
+                            // Update existing VIP customer
+                            await supabaseClient
+                                .from('vip_customers')
+                                .update(vipData)
+                                .eq('user_id', userId);
+                        } else {
+                            // Create new VIP customer
+                            await supabaseClient
+                                .from('vip_customers')
+                                .insert(vipData);
+                        }
+                    } catch (vipError) {
+                        console.warn('⚠️ VIP customer update error:', vipError);
+                    }
+                }
+
+                // 7. Update transaction status in pending_transactions to 'approved'
+                const { error: updateError } = await supabaseClient
+                    .from('pending_transactions')
+                    .update({
+                        status: 'approved',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId);
+
+                if (updateError) {
+                    console.error('Transaction update error:', updateError);
+                    throw new Error('Failed to update transaction status: ' + updateError.message);
+                }
+
+                // 8. ✅ CRITICAL: CREATE NOTIFICATION FOR THE USER
+                const notificationTitle = "Package Purchase Approved! 🎉";
+                const notificationMessage = `Your ${transaction.package_name} package has been approved and ${amountToAdd.toLocaleString()} NMX has been credited to your balance.`;
+                
+                const notificationCreated = await createUserNotification(
+                    userId, 
+                    notificationTitle, 
+                    notificationMessage, 
+                    'success'
+                );
+
+                if (notificationCreated) {
+                    console.log('✅ User notification created successfully');
+                } else {
+                    console.warn('⚠️ Could not create user notification');
+                }
+
+                showCustomAlert(`✅ Transaction approved! ${amountToAdd.toLocaleString()} NMX credited to user. Notification sent.`, 'success');
+
+                // Reload data
+                setTimeout(() => {
+                    loadAllTransactionData();
+                }, 1000);
+
+            } catch (error) {
+                console.error('❌ Error approving transaction:', error);
+                showCustomAlert(`❌ Error approving transaction: ${error.message}`, 'error');
+            }
+        }
+
+        // FIXED: Enhanced Reject Transaction Function with NOTIFICATION INTEGRATION
+        async function rejectTransaction(transactionId, userId) {
+            if (!confirm('Are you sure you want to reject this transaction?')) {
+                return;
+            }
+
+            const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Rejected by admin';
+
+            try {
+                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
+                if (adminError) {
+                    console.warn('No admin user found, using system rejection');
+                }
+
+                // 1. First get the transaction details
+                const { data: transaction, error: txError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('*')
+                    .eq('id', transactionId)
+                    .single();
+
+                if (txError) {
+                    throw new Error('Transaction not found: ' + txError.message);
+                }
+
+                // 2. Record in user_purchase_history as rejected
+                try {
+                    const purchaseData = {
+                        user_id: userId,
+                        user_email: transaction.user_email,
+                        transaction_id: transactionId,
+                        package_amount: transaction.package_amount,
+                        total_amount: transaction.total_amount,
+                        price_usd: transaction.price_usd,
+                        transaction_hash: transaction.tx_hash || 'N/A',
+                        payment_method: transaction.payment_method,
+                        status: 'rejected',
+                        level: transaction.level || 1,
+                        is_vip: transaction.is_vip || false,
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        package_name: transaction.package_name,
+                        amount: transaction.package_amount
+                    };
+
+                    const { error: historyError } = await supabaseClient
+                        .from('user_purchase_history')
+                        .insert(purchaseData);
+
+                    if (historyError) {
+                        console.warn('⚠️ Could not save rejected purchase to history:', historyError);
+                    }
+                } catch (historyError) {
+                    console.warn('⚠️ user_purchase_history table error for reject:', historyError);
+                }
+
+                // 3. Update transaction status in pending_transactions to 'rejected'
+                const { error: updateError } = await supabaseClient
+                    .from('pending_transactions')
+                    .update({
+                        status: 'rejected',
+                        admin_notes: adminNotes,
+                        processed_by: adminUser?.id || 'system',
+                        processed_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', transactionId);
+
+                if (updateError) {
+                    throw updateError;
+                }
+
+                // 4. ✅ CREATE NOTIFICATION FOR THE USER ABOUT REJECTION
+                const notificationTitle = "Package Purchase Update";
+                const notificationMessage = `Your ${transaction.package_name} package purchase has been reviewed. Please check with support for details.`;
+                
+                await createUserNotification(
+                    userId, 
+                    notificationTitle, 
+                    notificationMessage, 
+                    'warning'
+                );
+
+                showCustomAlert('✅ Transaction rejected successfully! User notified.', 'success');
+
+                setTimeout(() => {
+                    loadAllTransactionData();
+                }, 1000);
+
+            } catch (error) {
+                console.error('Error rejecting transaction:', error);
+                showCustomAlert(`❌ Error rejecting transaction: ${error.message}`, 'error');
+            }
+        }
+
         // FIXED: Enhanced loadAllTransactionData with automatic status detection
         async function loadAllTransactionData() {
             try {
                 console.log('🔄 Loading all transaction data from Supabase...');
+
+                // Show loading state
+                document.getElementById('loadingText').textContent = 'Loading Transactions...';
+                document.getElementById('loadingOverlay').style.display = 'flex';
 
                 // Load pending transactions
                 const { data: pendingTransactions, error: pendingError } = await supabaseClient
@@ -746,7 +1177,7 @@
 
                 console.log(`✅ Loaded ${allTransactions.length} pending transactions`);
                 console.log(`✅ Loaded ${completedTransactions.length} completed transactions from user_purchase_history`);
-                
+
                 // Debug: Show status breakdown
                 const statusBreakdown = {};
                 completedTransactions.forEach(t => {
@@ -763,14 +1194,21 @@
                 updateProcessedTransactions();
                 updateVipPurchases();
 
+                // Hide loading screen after data is loaded
+                setTimeout(() => {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                }, 500);
+
                 showCustomAlert('Transaction data loaded successfully!', 'success');
 
             } catch (error) {
                 console.error('❌ Error loading transaction data:', error);
                 showCustomAlert('Failed to load transaction data: ' + error.message, 'error');
+                document.getElementById('loadingOverlay').style.display = 'none';
             }
         }
 
+        // ... (rest of your existing functions remain exactly the same)
         async function loadUserProfiles() {
             try {
                 console.log('👥 Loading user profiles...');
@@ -812,282 +1250,6 @@
                 email: 'No email',
                 balance: 0
             };
-        }
-
-        // FIXED: Enhanced Approve Transaction Function with CORRECT COLUMN NAMES
-async function approveTransaction(transactionId, packageAmount, userId) {
-    try {
-        console.log('✅ Approving transaction:', { transactionId, packageAmount, userId });
-
-        // Get current admin user
-        const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-        if (adminError) {
-            console.warn('No admin user found, using system approval');
-        }
-
-        // 1. Get transaction details
-        const { data: transaction, error: txFetchError } = await supabaseClient
-            .from('pending_transactions')
-            .select('*')
-            .eq('id', transactionId)
-            .single();
-
-        if (txFetchError) {
-            throw new Error('Transaction not found: ' + txFetchError.message);
-        }
-
-        // Use package_amount from the transaction
-        const amountToAdd = parseFloat(transaction.package_amount);
-
-        if (!confirm(`Are you sure you want to approve this transaction?\n\nThis will credit ${amountToAdd.toLocaleString()} NMX to the user's balance.`)) {
-            return;
-        }
-
-        const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Approved by admin';
-
-        // 2. Get user's current profile
-        const { data: profile, error: profileError } = await supabaseClient
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-        if (profileError) {
-            console.error('Error fetching user profile:', profileError);
-            throw new Error('User profile not found: ' + profileError.message);
-        }
-
-        // 3. Update user's balance
-        const currentBalance = parseFloat(profile.balance || 0);
-        const newBalance = currentBalance + amountToAdd;
-
-        console.log('💰 Balance update:', { currentBalance, amountToAdd, newBalance });
-
-        const { error: balanceError } = await supabaseClient
-            .from('profiles')
-            .update({ 
-                balance: newBalance,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userId);
-
-        if (balanceError) {
-            console.error('Balance update error:', balanceError);
-            throw new Error('Failed to update user balance: ' + balanceError.message);
-        }
-
-        // 4. Record in user_purchase_history with CORRECT COLUMN NAMES
-        try {
-            const purchaseData = {
-                user_id: userId,
-                user_email: transaction.user_email,
-                transaction_id: transactionId,
-                package_amount: transaction.package_amount,
-                total_amount: transaction.total_amount,
-                price_usd: transaction.price_usd,
-                tx_hash: transaction.tx_hash || 'N/A', // FIXED: Changed from transaction_hash to tx_hash
-                payment_method: transaction.payment_method,
-                status: 'approved',
-                level: transaction.level || 1,
-                is_vip: transaction.is_vip || false,
-                admin_notes: adminNotes,
-                processed_by: adminUser?.id || 'system',
-                processed_at: new Date().toISOString(),
-                package_name: transaction.package_name,
-                amount: transaction.package_amount
-            };
-
-            console.log('📝 Inserting into user_purchase_history:', purchaseData);
-
-            const { data: insertedData, error: historyError } = await supabaseClient
-                .from('user_purchase_history')
-                .insert(purchaseData)
-                .select(); // Added .select() to see what was inserted
-
-            if (historyError) {
-                console.error('❌ Error saving to purchase history:', historyError);
-                throw new Error('Failed to save purchase history: ' + historyError.message);
-            } else {
-                console.log('✅ Purchase history recorded successfully:', insertedData);
-            }
-        } catch (historyError) {
-            console.error('❌ user_purchase_history table error:', historyError);
-            throw historyError; // Re-throw to stop the process
-        }
-
-        // 5. Record wallet transaction for audit
-        try {
-            const walletData = {
-                user_id: userId,
-                transaction_type: 'deposit',
-                amount: amountToAdd,
-                balance_before: currentBalance,
-                balance_after: newBalance,
-                description: `Package purchase: ${amountToAdd} NMX - ${transaction.package_name}`,
-                reference_id: transactionId
-            };
-
-            const { error: walletError } = await supabaseClient
-                .from('wallet_transactions')
-                .insert(walletData);
-
-            if (walletError) {
-                console.warn('⚠️ Could not save wallet transaction:', walletError);
-            }
-        } catch (walletError) {
-            console.warn('⚠️ wallet_transactions table error:', walletError);
-        }
-
-        // 6. Update VIP status if this is a VIP purchase
-        if (transaction.is_vip) {
-            try {
-                // Check if user already exists in vip_customers
-                const { data: existingVip } = await supabaseClient
-                    .from('vip_customers')
-                    .select('*')
-                    .eq('user_id', userId)
-                    .single();
-
-                const vipData = {
-                    user_id: userId,
-                    user_email: transaction.user_email,
-                    vip_level: transaction.vip_level || 1,
-                    total_vip_purchases: (existingVip?.total_vip_purchases || 0) + 1,
-                    total_vip_amount_spent: (parseFloat(existingVip?.total_vip_amount_spent) || 0) + parseFloat(transaction.price_usd),
-                    last_vip_purchase_date: new Date().toISOString(),
-                    first_vip_purchase_date: existingVip?.first_vip_purchase_date || new Date().toISOString()
-                };
-
-                if (existingVip) {
-                    // Update existing VIP customer
-                    await supabaseClient
-                        .from('vip_customers')
-                        .update(vipData)
-                        .eq('user_id', userId);
-                } else {
-                    // Create new VIP customer
-                    await supabaseClient
-                        .from('vip_customers')
-                        .insert(vipData);
-                }
-            } catch (vipError) {
-                console.warn('⚠️ VIP customer update error:', vipError);
-            }
-        }
-
-        // 7. Update transaction status in pending_transactions to 'approved'
-        const { error: updateError } = await supabaseClient
-            .from('pending_transactions')
-            .update({
-                status: 'approved',
-                admin_notes: adminNotes,
-                processed_by: adminUser?.id || 'system',
-                processed_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', transactionId);
-
-        if (updateError) {
-            console.error('Transaction update error:', updateError);
-            throw new Error('Failed to update transaction status: ' + updateError.message);
-        }
-
-        showCustomAlert(`✅ Transaction approved! ${amountToAdd.toLocaleString()} NMX credited to user.`, 'success');
-
-        // Reload data
-        setTimeout(() => {
-            loadAllTransactionData();
-        }, 1000);
-
-    } catch (error) {
-        console.error('❌ Error approving transaction:', error);
-        showCustomAlert(`❌ Error approving transaction: ${error.message}`, 'error');
-    }
-}
-
-        // FIXED: Enhanced Reject Transaction Function
-        async function rejectTransaction(transactionId, userId) {
-            if (!confirm('Are you sure you want to reject this transaction?')) {
-                return;
-            }
-
-            const adminNotes = document.getElementById(`notes-${transactionId}`)?.value || 'Rejected by admin';
-
-            try {
-                const { data: { user: adminUser }, error: adminError } = await supabaseClient.auth.getUser();
-                if (adminError) {
-                    console.warn('No admin user found, using system rejection');
-                }
-
-                // 1. First get the transaction details
-                const { data: transaction, error: txError } = await supabaseClient
-                    .from('pending_transactions')
-                    .select('*')
-                    .eq('id', transactionId)
-                    .single();
-
-                if (txError) {
-                    throw new Error('Transaction not found: ' + txError.message);
-                }
-
-                // 2. Record in user_purchase_history as rejected
-                try {
-                    const purchaseData = {
-                        user_id: userId,
-                        user_email: transaction.user_email,
-                        transaction_id: transactionId,
-                        package_amount: transaction.package_amount,
-                        total_amount: transaction.total_amount,
-                        price_usd: transaction.price_usd,
-                        tx_hash: transaction.tx_hash || 'N/A',
-                        payment_method: transaction.payment_method,
-                        status: 'rejected',
-                        level: transaction.level || 1,
-                        is_vip: transaction.is_vip || false,
-                        admin_notes: adminNotes,
-                        processed_by: adminUser?.id || 'system',
-                        processed_at: new Date().toISOString(),
-                        package_name: transaction.package_name,
-                        amount: transaction.package_amount
-                    };
-
-                    const { error: historyError } = await supabaseClient
-                        .from('user_purchase_history')
-                        .insert(purchaseData);
-
-                    if (historyError) {
-                        console.warn('⚠️ Could not save rejected purchase to history:', historyError);
-                    }
-                } catch (historyError) {
-                    console.warn('⚠️ user_purchase_history table error for reject:', historyError);
-                }
-
-                // 3. Update transaction status in pending_transactions to 'rejected'
-                const { error: updateError } = await supabaseClient
-                    .from('pending_transactions')
-                    .update({
-                        status: 'rejected',
-                        admin_notes: adminNotes,
-                        processed_by: adminUser?.id || 'system',
-                        processed_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', transactionId);
-
-                if (updateError) {
-                    throw updateError;
-                }
-
-                showCustomAlert('✅ Transaction rejected successfully!', 'success');
-
-                setTimeout(() => {
-                    loadAllTransactionData();
-                }, 1000);
-
-            } catch (error) {
-                console.error('Error rejecting transaction:', error);
-                showCustomAlert(`❌ Error rejecting transaction: ${error.message}`, 'error');
-            }
         }
 
         function showTab(tabName) {
@@ -1134,10 +1296,10 @@ async function approveTransaction(transactionId, packageAmount, userId) {
                 const approved = completedTransactions.filter(t => 
                     t.status === 'completed' || t.status === 'approved'
                 ).length;
-                
+
                 // FIXED: Count rejected transactions
                 const rejected = completedTransactions.filter(t => t.status === 'rejected').length;
-                
+
                 const totalPackages = approved;
 
                 const vipPackages = [...allTransactions, ...completedTransactions].filter(t => 
