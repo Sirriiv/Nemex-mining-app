@@ -385,6 +385,36 @@
             background: var(--gold-light);
         }
 
+        /* Settings Modal */
+        .settings-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-option:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .settings-option:last-child {
+            border-bottom: none;
+        }
+
+        .settings-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+        }
+
+        .settings-label {
+            flex: 1;
+            font-weight: 600;
+        }
+
         /* Loading Animation */
         .loading {
             display: inline-block;
@@ -403,7 +433,7 @@
         /* Responsive Adjustments */
         @media (max-width: 380px) {
             .action-buttons {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(4, 1fr);
             }
             
             .balance-amount {
@@ -423,12 +453,9 @@
                 </svg>
             </div>
             <div class="header-icons">
-                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="header-icon" onclick="showSettings()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
                 </svg>
             </div>
         </header>
@@ -455,12 +482,6 @@
                 </svg>
                 <div class="action-label">Receive</div>
             </div>
-            <div class="action-btn" onclick="showScan()">
-                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                </svg>
-                <div class="action-label">Scan</div>
-            </div>
             <div class="action-btn" onclick="showSwap()">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -472,12 +493,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
                 <div class="action-label">Buy</div>
-            </div>
-            <div class="action-btn" onclick="showStake()">
-                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                </svg>
-                <div class="action-label">Stake</div>
             </div>
         </div>
 
@@ -597,6 +612,19 @@
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
         </div>
+
+        <!-- Settings Modal -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Settings</div>
+                <div class="settings-option" onclick="goToDashboard()">
+                    <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <div class="settings-label">Back to Dashboard</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -615,25 +643,28 @@
             document.getElementById('receiveModal').style.display = 'flex';
         }
 
+        function showSettings() {
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
         function closeModal() {
             document.getElementById('receiveModal').style.display = 'none';
+            document.getElementById('settingsModal').style.display = 'none';
         }
 
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('receiveModal');
-            if (event.target === modal) {
-                closeModal();
-            }
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
         }
 
         // Action button functions
         function showSend() {
             alert('Send functionality coming soon!');
-        }
-
-        function showScan() {
-            alert('Scan functionality coming soon!');
         }
 
         function showSwap() {
@@ -644,8 +675,12 @@
             alert('Buy functionality coming soon!');
         }
 
-        function showStake() {
-            alert('Stake functionality coming soon!');
+        // Dashboard navigation
+        function goToDashboard() {
+            // In a real implementation, this would redirect to your dashboard
+            alert('Redirecting to Dashboard...');
+            // window.location.href = 'dashboard.html';
+            closeModal();
         }
 
         // Simulate loading balances
