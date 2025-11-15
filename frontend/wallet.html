@@ -3,184 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wallet - NemexCoin</title>
+    <title>Nemex Wallet</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root { 
-            --dark-bg: #0f0f0f; 
-            --darker-bg: #080808; 
-            --gold: #d4af37; 
-            --text: #f5f5f5; 
-            --muted: #aaa; 
-            --bg-secondary: #1a1a1a;
-            --border-color: #333333;
+        :root {
+            --dark-bg: #0A0A0A;
+            --darker-bg: #080808;
+            --card-bg: #121212;
+            --gold: #D4AF37;
+            --gold-light: #E6C158;
+            --text: #F5F5F5;
+            --text-muted: #AAAAAA;
             --success: #00C851;
-            --error: #ff4444;
-            --ton-blue: #0088cc;
-            --usdt-green: #26a17b;
-            --tron-orange: #ff060a;
+            --error: #FF4444;
+            --border-radius: 16px;
+            --border-radius-sm: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
 
-        body { 
-            background: var(--dark-bg); 
-            color: var(--text); 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column;
+        body {
+            background: var(--dark-bg);
+            color: var(--text);
+            min-height: 100vh;
             padding: 0;
             margin: 0;
+            overflow-x: hidden;
         }
 
-        .container { 
-            width: 100%; 
-            max-width: 400px; 
+        .container {
+            max-width: 480px;
             margin: 0 auto;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
+            padding-bottom: 80px; /* Space for bottom nav */
         }
 
+        /* Header Styles */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
-            background-color: var(--dark-bg);
+            background: var(--dark-bg);
             position: sticky;
             top: 0;
             z-index: 100;
         }
 
-        .back-btn {
-            width: 24px;
-            height: 24px;
-            color: var(--muted);
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-            color: var(--gold);
-            transform: scale(1.1);
-        }
-
-        .header-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold);
+        .wallet-name {
             display: flex;
             align-items: center;
             gap: 8px;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--gold);
+        }
+
+        .wallet-dropdown {
+            width: 24px;
+            height: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .header-icons {
+            display: flex;
+            gap: 16px;
         }
 
         .header-icon {
             width: 24px;
             height: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
         }
 
-        .content-wrapper {
+        /* Balance Section */
+        .balance-section {
             padding: 20px;
-            flex: 1;
-            overflow-y: auto;
-        }
-
-        /* Authentication Guard */
-        .auth-guard {
-            display: none;
             text-align: center;
-            padding: 60px 20px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+            margin: 10px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
         }
 
-        .auth-icon {
-            width: 80px;
-            height: 80px;
-            color: var(--muted);
-            margin-bottom: 20px;
-            opacity: 0.5;
+        .balance-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
         }
 
-        /* Connection States */
-        .connection-state {
-            text-align: center;
-            padding: 20px;
-            margin-bottom: 20px;
+        .balance-amount {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--gold);
+            margin-bottom: 4px;
         }
 
-        .connection-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+        .balance-usd {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .wallet-address {
+            font-size: 14px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
             padding: 8px 16px;
             border-radius: 20px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .connection-badge.connected {
-            background: rgba(0, 200, 81, 0.1);
-            color: var(--success);
-            border: 1px solid var(--success);
-        }
-
-        .connection-badge.disconnected {
-            background: rgba(255, 68, 68, 0.1);
-            color: var(--error);
-            border: 1px solid var(--error);
-        }
-
-        .connection-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .connection-badge.connected .connection-dot {
-            background: var(--success);
-        }
-
-        .connection-badge.disconnected .connection-dot {
-            background: var(--error);
-        }
-
-        /* Market Stats */
-        .market-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .market-stat {
-            background: var(--darker-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .stat-token {
-            font-size: 12px;
-            color: var(--muted);
-            margin-bottom: 5px;
-        }
-
-        .stat-price {
-            font-weight: 700;
-            font-size: 14px;
+            display: inline-block;
             font-family: 'Courier New', monospace;
         }
 
-        .stat-change {
-            font-size: 10px;
-            margin-top: 3px;
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 20px;
+            margin: 0 10px;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 8px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .action-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--gold);
+        }
+
+        .action-label {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Token List */
+        .token-section {
+            padding: 0 20px;
+            margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+        }
+
+        .token-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .token-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .token-card:hover {
+            background: rgba(212, 175, 55, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .token-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+            font-weight: 700;
+            color: white;
+            font-size: 18px;
+        }
+
+        .ton-icon { background: linear-gradient(135deg, #0088CC, #006699); }
+        .nmx-icon { background: linear-gradient(135deg, var(--gold), #B8941F); }
+        .usdt-icon { background: linear-gradient(135deg, #26A17B, #1E8C6E); }
+        .btc-icon { background: linear-gradient(135deg, #F7931A, #E07B15); }
+        .eth-icon { background: linear-gradient(135deg, #627EEA, #4C68C5); }
+
+        .token-info {
+            flex: 1;
+        }
+
+        .token-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .token-price {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .token-change {
+            font-size: 12px;
+            margin-left: 4px;
         }
 
         .change-positive {
@@ -191,860 +249,409 @@
             color: var(--error);
         }
 
-        .ton-price { border-left: 3px solid var(--ton-blue); }
-        .usdt-price { border-left: 3px solid var(--usdt-green); }
-        .tron-price { border-left: 3px solid var(--tron-orange); }
-
-        /* Wallet Connect Section */
-        .wallet-connect-section {
-            background: var(--darker-bg);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-        }
-
-        .connect-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--gold);
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
-        .connect-subtitle {
-            color: var(--muted);
-            text-align: center;
-            margin-bottom: 25px;
-            font-size: 14px;
-        }
-
-        .wallet-options {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .wallet-option {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .wallet-option:hover {
-            background: rgba(212, 175, 55, 0.1);
-            border-color: var(--gold);
-            transform: translateY(-2px);
-        }
-
-        .wallet-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            margin-right: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
-        }
-
-        .tonkeeper { background: linear-gradient(135deg, #0088cc, #006699); }
-        .telegram { background: linear-gradient(135deg, #0088cc, #2AABEE); }
-        .mytonwallet { background: linear-gradient(135deg, #FF6B00, #FF8C00); }
-
-        .wallet-info {
-            flex: 1;
-        }
-
-        .wallet-name {
-            font-weight: 600;
-            margin-bottom: 3px;
-        }
-
-        .wallet-description {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        /* Connected Wallet Info */
-        .connected-wallet {
-            background: var(--darker-bg);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid var(--border-color);
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .wallet-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        .wallet-identity {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-        }
-
-        .wallet-avatar {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--ton-blue), #006699);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            color: white;
-            font-size: 18px;
-        }
-
-        .wallet-details {
-            flex: 1;
-        }
-
-        .wallet-provider {
-            font-weight: 600;
-            color: var(--gold);
-            margin-bottom: 4px;
-        }
-
-        .wallet-address {
-            color: var(--muted);
-            font-size: 12px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .disconnect-btn {
-            background: rgba(255, 68, 68, 0.1);
-            color: var(--error);
-            border: 1px solid var(--error);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .disconnect-btn:hover {
-            background: var(--error);
-            color: white;
-        }
-
-        .balance-card {
-            background: linear-gradient(135deg, rgba(0, 136, 204, 0.1), rgba(0, 102, 153, 0.1));
-            border: 1px solid var(--ton-blue);
-            border-radius: 12px;
-            padding: 25px;
-            text-align: center;
-            margin-bottom: 25px;
-        }
-
-        .balance-label {
-            color: var(--muted);
-            font-size: 14px;
-            margin-bottom: 8px;
-        }
-
-        .balance-amount {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--ton-blue);
-            font-family: 'Courier New', monospace;
-            margin-bottom: 15px;
-        }
-
-        .balance-usd {
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        .action-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        .action-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 15px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .action-btn:hover {
-            background: rgba(0, 136, 204, 0.1);
-            border-color: var(--ton-blue);
-            transform: translateY(-2px);
-        }
-
-        .action-icon {
-            width: 28px;
-            height: 28px;
-            color: var(--ton-blue);
-        }
-
-        .action-label {
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .tokens-grid {
-            margin: 25px 0;
-        }
-
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: var(--gold);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .section-icon {
-            width: 20px;
-            height: 20px;
-        }
-
-        .token-card {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            margin-bottom: 10px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .token-card:hover {
-            background: rgba(0, 136, 204, 0.05);
-            border-color: var(--ton-blue);
-        }
-
-        .token-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-weight: 600;
-            color: white;
-            font-size: 16px;
-        }
-
-        .ton-icon { background: linear-gradient(135deg, var(--ton-blue), #006699); }
-        .nmx-icon { background: linear-gradient(135deg, var(--gold), #b8941f); }
-        .usdt-icon { background: linear-gradient(135deg, var(--usdt-green), #1e8c6e); }
-
-        .token-info {
-            flex: 1;
-        }
-
-        .token-name {
-            font-weight: 600;
-            margin-bottom: 3px;
-        }
-
-        .token-symbol {
-            color: var(--muted);
-            font-size: 12px;
+        .token-balance {
+            text-align: right;
         }
 
         .token-amount {
             font-weight: 700;
             font-family: 'Courier New', monospace;
-            text-align: right;
+            margin-bottom: 4px;
         }
 
         .token-value {
-            color: var(--muted);
             font-size: 12px;
-            text-align: right;
+            color: var(--text-muted);
         }
 
-        /* Loading Overlay */
-        .loading-overlay {
+        /* Bottom Navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .nav-item:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--text-muted);
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+        }
+
+        .nav-label {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .nav-item.active .nav-label {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* QR Code Modal */
+        .modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
-            z-index: 9999;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
             justify-content: center;
             align-items: center;
-            flex-direction: column;
         }
 
-        .loading-logo {
-            background: linear-gradient(135deg, #d4af37, #b8941f);
-            width: 80px;
-            height: 80px;
-            border-radius: 20px;
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            width: 90%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--gold);
+        }
+
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: white;
+            margin: 0 auto 20px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
+            color: var(--dark-bg);
+            font-weight: 700;
+        }
+
+        .wallet-address-modal {
+            font-family: 'Courier New', monospace;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
             margin-bottom: 20px;
-            animation: logoGlow 2s ease-in-out infinite alternate;
+            word-break: break-all;
         }
 
-        .loading-logo-text {
-            font-size: 32px;
-            font-weight: 900;
-            color: #0f0f0f;
-        }
-
-        .loading-text {
-            font-size: 18px;
+        .close-modal {
+            background: var(--gold);
+            color: var(--dark-bg);
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--border-radius-sm);
             font-weight: 600;
-            color: var(--gold);
-            margin-bottom: 20px;
-            animation: textBlink 1.5s infinite;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
 
-        .loading-progress {
-            width: 200px;
-            height: 4px;
-            background: rgba(212, 175, 55, 0.2);
-            border-radius: 2px;
-            overflow: hidden;
+        .close-modal:hover {
+            background: var(--gold-light);
         }
 
-        .loading-progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--gold), #ffd700);
-            border-radius: 2px;
-            width: 0%;
-            animation: progressLoad 2s ease-in-out infinite;
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--gold);
+            animation: spin 1s ease-in-out infinite;
         }
 
-        @keyframes logoGlow {
-            0% {
-                box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
-                transform: scale(1);
-            }
-            100% {
-                box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
-                transform: scale(1.05);
-            }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
-        @keyframes textBlink {
-            0%, 50% {
-                opacity: 1;
+        /* Responsive Adjustments */
+        @media (max-width: 380px) {
+            .action-buttons {
+                grid-template-columns: repeat(2, 1fr);
             }
-            51%, 100% {
-                opacity: 0.7;
-            }
-        }
-
-        @keyframes progressLoad {
-            0% {
-                width: 0%;
-                transform: translateX(-100%);
-            }
-            50% {
-                width: 100%;
-                transform: translateX(0%);
-            }
-            100% {
-                width: 100%;
-                transform: translateX(100%);
+            
+            .balance-amount {
+                font-size: 32px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Loading Screen Overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-logo">
-            <div class="loading-logo-text">NMX</div>
-        </div>
-        <div class="loading-text" id="loadingText">Loading Wallet...</div>
-        <div class="loading-progress">
-            <div class="loading-progress-bar"></div>
-        </div>
-    </div>
-
     <div class="container">
-        <!-- Authentication Guard -->
-        <div class="auth-guard" id="authGuard">
-            <svg class="auth-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-            </svg>
-            <h3>Authentication Required</h3>
-            <p>Please log in to access your wallet</p>
-            <button onclick="redirectToLogin()" style="margin-top: 20px; padding: 10px 20px; background: var(--gold); color: var(--dark-bg); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                Go to Login
-            </button>
+        <!-- Header -->
+        <header class="header">
+            <div class="wallet-name">
+                Nemex Wallet
+                <svg class="wallet-dropdown" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+            <div class="header-icons">
+                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+            </div>
+        </header>
+
+        <!-- Balance Section -->
+        <section class="balance-section">
+            <div class="balance-label">Total Balance</div>
+            <div class="balance-amount">$0.03</div>
+            <div class="balance-usd">0.012 TON</div>
+            <div class="wallet-address">EQD...XyZ</div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <div class="action-btn" onclick="showSend()">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                <div class="action-label">Send</div>
+            </div>
+            <div class="action-btn" onclick="showReceive()">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                <div class="action-label">Receive</div>
+            </div>
+            <div class="action-btn" onclick="showScan()">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                </svg>
+                <div class="action-label">Scan</div>
+            </div>
+            <div class="action-btn" onclick="showSwap()">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                <div class="action-label">Swap</div>
+            </div>
+            <div class="action-btn" onclick="showBuy()">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <div class="action-label">Buy</div>
+            </div>
+            <div class="action-btn" onclick="showStake()">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                </svg>
+                <div class="action-label">Stake</div>
+            </div>
         </div>
 
-        <div class="content-wrapper" id="mainContent" style="display: none;">
-            <header class="header">
-                <a class="back-btn" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                    </svg>
-                </a>
-                <div class="header-title">
-                    <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                    </svg>
-                    Wallet Connect
+        <!-- Token List -->
+        <section class="token-section">
+            <div class="section-title">
+                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Your Assets
+            </div>
+            <div class="token-list">
+                <div class="token-card">
+                    <div class="token-icon ton-icon">T</div>
+                    <div class="token-info">
+                        <div class="token-name">Toncoin</div>
+                        <div class="token-price">
+                            $2.45 <span class="token-change change-positive">+1.2%</span>
+                        </div>
+                    </div>
+                    <div class="token-balance">
+                        <div class="token-amount">0.012</div>
+                        <div class="token-value">$0.03</div>
+                    </div>
                 </div>
-                <div style="width: 20px;"></div>
-            </header>
-
-            <!-- Market Statistics -->
-            <div class="market-stats" id="marketStats">
-                <div class="market-stat ton-price">
-                    <div class="stat-token">TON</div>
-                    <div class="stat-price" id="tonPrice">$2.45</div>
-                    <div class="stat-change change-positive" id="tonChange">+1.2%</div>
+                <div class="token-card">
+                    <div class="token-icon nmx-icon">N</div>
+                    <div class="token-info">
+                        <div class="token-name">NemexCoin</div>
+                        <div class="token-price">
+                            $0.00 <span class="token-change">0.0%</span>
+                        </div>
+                    </div>
+                    <div class="token-balance">
+                        <div class="token-amount">0</div>
+                        <div class="token-value">$0.00</div>
+                    </div>
                 </div>
-                <div class="market-stat usdt-price">
-                    <div class="stat-token">USDT</div>
-                    <div class="stat-price" id="usdtPrice">$1.00</div>
-                    <div class="stat-change">0.0%</div>
+                <div class="token-card">
+                    <div class="token-icon usdt-icon">U</div>
+                    <div class="token-info">
+                        <div class="token-name">Tether</div>
+                        <div class="token-price">
+                            $1.00 <span class="token-change">0.0%</span>
+                        </div>
+                    </div>
+                    <div class="token-balance">
+                        <div class="token-amount">0</div>
+                        <div class="token-value">$0.00</div>
+                    </div>
                 </div>
-                <div class="market-stat tron-price">
-                    <div class="stat-token">TRX</div>
-                    <div class="stat-price" id="tronPrice">$0.11</div>
-                    <div class="stat-change change-positive" id="tronChange">+0.5%</div>
+                <div class="token-card">
+                    <div class="token-icon btc-icon">B</div>
+                    <div class="token-info">
+                        <div class="token-name">Bitcoin</div>
+                        <div class="token-price">
+                            $43,210 <span class="token-change change-positive">+2.3%</span>
+                        </div>
+                    </div>
+                    <div class="token-balance">
+                        <div class="token-amount">0</div>
+                        <div class="token-value">$0.00</div>
+                    </div>
+                </div>
+                <div class="token-card">
+                    <div class="token-icon eth-icon">E</div>
+                    <div class="token-info">
+                        <div class="token-name">Ethereum</div>
+                        <div class="token-price">
+                            $2,850 <span class="token-change change-negative">-0.8%</span>
+                        </div>
+                    </div>
+                    <div class="token-balance">
+                        <div class="token-amount">0</div>
+                        <div class="token-value">$0.00</div>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <!-- Connection Status -->
-            <div class="connection-state">
-                <div class="connection-badge disconnected" id="connectionBadge">
-                    <div class="connection-dot"></div>
-                    <span id="connectionText">Not Connected</span>
-                </div>
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="nav-item active">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <div class="nav-label">Wallet</div>
             </div>
-
-            <!-- Wallet Connect Section (Shown when disconnected) -->
-            <div class="wallet-connect-section" id="walletConnectSection">
-                <div class="connect-title">Connect Your Wallet</div>
-                <div class="connect-subtitle">Connect your TON wallet to view your balances and manage your assets</div>
-                
-                <div class="wallet-options">
-                    <div class="wallet-option" onclick="connectWallet('tonkeeper')">
-                        <div class="wallet-icon tonkeeper">TK</div>
-                        <div class="wallet-info">
-                            <div class="wallet-name">Tonkeeper</div>
-                            <div class="wallet-description">Most popular TON wallet</div>
-                        </div>
-                    </div>
-                    
-                    <div class="wallet-option" onclick="connectWallet('telegram')">
-                        <div class="wallet-icon telegram">TG</div>
-                        <div class="wallet-info">
-                            <div class="wallet-name">Telegram Wallet</div>
-                            <div class="wallet-description">Built-in Telegram wallet</div>
-                        </div>
-                    </div>
-                    
-                    <div class="wallet-option" onclick="connectWallet('mytonwallet')">
-                        <div class="wallet-icon mytonwallet">MT</div>
-                        <div class="wallet-info">
-                            <div class="wallet-name">MyTonWallet</div>
-                            <div class="wallet-description">Web-based TON wallet</div>
-                        </div>
-                    </div>
-                </div>
+            <div class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <div class="nav-label">History</div>
             </div>
+            <div class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <div class="nav-label">Browser</div>
+            </div>
+            <div class="nav-item">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                </svg>
+                <div class="nav-label">Collectibles</div>
+            </div>
+        </nav>
 
-            <!-- Connected Wallet Info (Shown when connected) -->
-            <div class="connected-wallet" id="connectedWallet">
-                <div class="wallet-header">
-                    <div class="wallet-identity">
-                        <div class="wallet-avatar" id="walletAvatar">TK</div>
-                        <div class="wallet-details">
-                            <div class="wallet-provider" id="walletProvider">Tonkeeper</div>
-                            <div class="wallet-address" id="walletAddress">EQD...XyZ</div>
-                        </div>
-                    </div>
-                    <button class="disconnect-btn" onclick="disconnectWallet()">Disconnect</button>
+        <!-- Receive Modal -->
+        <div id="receiveModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Receive Assets</div>
+                <div class="qr-code">
+                    <div>QR CODE</div>
                 </div>
-
-                <div class="balance-card">
-                    <div class="balance-label">Total Balance</div>
-                    <div class="balance-amount" id="totalBalance">0 TON</div>
-                    <div class="balance-usd">≈ $0.00 USD</div>
-                </div>
-
-                <div class="action-buttons">
-                    <a class="action-btn" onclick="showSend()">
-                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                        </svg>
-                        <div class="action-label">Send</div>
-                    </a>
-                    <a class="action-btn" onclick="showReceive()">
-                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                        </svg>
-                        <div class="action-label">Receive</div>
-                    </a>
-                    <a class="action-btn" onclick="showBuy()">
-                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                        <div class="action-label">Buy</div>
-                    </a>
-                    <a class="action-btn" onclick="showSwap()">
-                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                        </svg>
-                        <div class="action-label">Swap</div>
-                    </a>
-                </div>
-
-                <div class="tokens-grid">
-                    <div class="section-title">
-                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                        Your Tokens
-                    </div>
-
-                    <div class="token-card">
-                        <div class="token-icon ton-icon">T</div>
-                        <div class="token-info">
-                            <div class="token-name">Toncoin</div>
-                            <div class="token-symbol">TON</div>
-                        </div>
-                        <div>
-                            <div class="token-amount" id="tonBalance">0</div>
-                            <div class="token-value" id="tonValue">$0.00</div>
-                        </div>
-                    </div>
-
-                    <div class="token-card">
-                        <div class="token-icon nmx-icon">N</div>
-                        <div class="token-info">
-                            <div class="token-name">NemexCoin</div>
-                            <div class="token-symbol">NMX</div>
-                        </div>
-                        <div>
-                            <div class="token-amount" id="nmxBalance">0</div>
-                            <div class="token-value">$0.00</div>
-                        </div>
-                    </div>
-
-                    <div class="token-card">
-                        <div class="token-icon usdt-icon">U</div>
-                        <div class="token-info">
-                            <div class="token-name">Tether</div>
-                            <div class="token-symbol">USDT</div>
-                        </div>
-                        <div>
-                            <div class="token-amount" id="usdtBalance">0</div>
-                            <div class="token-value" id="usdtValue">$0.00</div>
-                        </div>
-                    </div>
-                </div>
+                <div class="wallet-address-modal">EQD1234567890abcdefghijklmnopqrstuvwxyz</div>
+                <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Navigation functionality
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
 
-        // Wallet state
-        let connectedWallet = null;
-        let walletData = {
-            address: '',
-            provider: '',
-            balances: {
-                TON: 0,
-                NMX: 0,
-                USDT: 0
-            }
-        };
-
-        // Market data
-        let marketData = {
-            TON: { price: 2.45, change: 1.2 },
-            USDT: { price: 1.00, change: 0.0 },
-            TRX: { price: 0.11, change: 0.5 }
-        };
-
-        // FIXED: Loading Screen Function
-        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
-            document.getElementById('loadingText').textContent = loadingText;
-            document.getElementById('loadingOverlay').style.display = 'flex';
-
-            setTimeout(() => {
-                window.location.href = targetPage;
-            }, 1500);
-        }
-
-        // FIXED: Authentication check with immediate redirect
-        async function checkAuth() {
-            try {
-                // Show loading immediately
-                document.getElementById('loadingOverlay').style.display = 'flex';
-                document.getElementById('loadingText').textContent = 'Checking authentication...';
-
-                const { data: { session }, error } = await supabase.auth.getSession();
-                
-                if (error || !session) {
-                    console.log('No valid session found, redirecting to login...');
-                    // Immediately show auth guard, hide loading
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    document.getElementById('authGuard').style.display = 'block';
-                    document.getElementById('mainContent').style.display = 'none';
-                    return null;
-                }
-
-                // User is authenticated, show main content
-                document.getElementById('loadingOverlay').style.display = 'none';
-                document.getElementById('authGuard').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                
-                return session.user;
-
-            } catch (error) {
-                console.error('Auth check error:', error);
-                document.getElementById('loadingOverlay').style.display = 'none';
-                document.getElementById('authGuard').style.display = 'block';
-                document.getElementById('mainContent').style.display = 'none';
-                return null;
-            }
-        }
-
-        function redirectToLogin() {
-            showLoadingScreen('login.html', 'Redirecting to Login...');
-        }
-
-        // Load market data
-        async function loadMarketData() {
-            try {
-                // In a real implementation, you'd fetch from an API
-                // For now, we'll use mock data that updates randomly
-                updateMarketData();
-                
-                // Simulate real-time updates
-                setInterval(updateMarketData, 30000); // Update every 30 seconds
-            } catch (error) {
-                console.error('Error loading market data:', error);
-            }
-        }
-
-        function updateMarketData() {
-            // Simulate price fluctuations
-            const fluctuation = (Math.random() - 0.5) * 0.1;
-            marketData.TON.price = Math.max(2.30, Math.min(2.60, marketData.TON.price + fluctuation));
-            marketData.TON.change = (Math.random() - 0.5) * 2;
-
-            // Update UI
-            document.getElementById('tonPrice').textContent = `$${marketData.TON.price.toFixed(2)}`;
-            document.getElementById('usdtPrice').textContent = `$${marketData.USDT.price.toFixed(2)}`;
-            document.getElementById('tronPrice').textContent = `$${marketData.TRX.price.toFixed(2)}`;
-
-            const tonChangeElement = document.getElementById('tonChange');
-            tonChangeElement.textContent = `${marketData.TON.change >= 0 ? '+' : ''}${marketData.TON.change.toFixed(1)}%`;
-            tonChangeElement.className = `stat-change ${marketData.TON.change >= 0 ? 'change-positive' : 'change-negative'}`;
-
-            const tronChangeElement = document.getElementById('tronChange');
-            tronChangeElement.textContent = `${marketData.TRX.change >= 0 ? '+' : ''}${marketData.TRX.change.toFixed(1)}%`;
-            tronChangeElement.className = `stat-change ${marketData.TRX.change >= 0 ? 'change-positive' : 'change-negative'}`;
-        }
-
-        // Connect Wallet Function
-        async function connectWallet(provider) {
-            try {
-                document.getElementById('loadingText').textContent = `Connecting to ${provider}...`;
-                document.getElementById('loadingOverlay').style.display = 'flex';
-
-                // Simulate wallet connection
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                // Mock wallet data
-                const mockWallets = {
-                    tonkeeper: {
-                        address: 'EQD1234567890abcdefghijklmnopqrstuvwxyz',
-                        provider: 'Tonkeeper',
-                        avatar: 'TK',
-                        balances: {
-                            TON: 15.75,
-                            NMX: 1250.50,
-                            USDT: 500.25
-                        }
-                    },
-                    telegram: {
-                        address: 'EQD9876543210zyxwvutsrqponmlkjihgfedcba',
-                        provider: 'Telegram Wallet',
-                        avatar: 'TG',
-                        balances: {
-                            TON: 8.25,
-                            NMX: 850.75,
-                            USDT: 250.50
-                        }
-                    },
-                    mytonwallet: {
-                        address: 'EQDabcdef1234567890ghijklmnopqrstuvwxyz',
-                        provider: 'MyTonWallet',
-                        avatar: 'MT',
-                        balances: {
-                            TON: 22.10,
-                            NMX: 2100.25,
-                            USDT: 750.80
-                        }
-                    }
-                };
-
-                walletData = mockWallets[provider];
-                connectedWallet = provider;
-
-                updateConnectionUI(true);
-                updateWalletData();
-
-                document.getElementById('loadingOverlay').style.display = 'none';
-                alert(`✅ Successfully connected to ${walletData.provider}!`);
-
-            } catch (error) {
-                console.error('Error connecting wallet:', error);
-                document.getElementById('loadingOverlay').style.display = 'none';
-                alert('❌ Failed to connect wallet. Please try again.');
-            }
-        }
-
-        // Disconnect Wallet
-        function disconnectWallet() {
-            connectedWallet = null;
-            walletData = {
-                address: '',
-                provider: '',
-                balances: {
-                    TON: 0,
-                    NMX: 0,
-                    USDT: 0
-                }
-            };
-            
-            updateConnectionUI(false);
-            alert('Wallet disconnected successfully.');
-        }
-
-        // Update Connection UI
-        function updateConnectionUI(isConnected) {
-            const badge = document.getElementById('connectionBadge');
-            const connectionText = document.getElementById('connectionText');
-            const connectSection = document.getElementById('walletConnectSection');
-            const connectedSection = document.getElementById('connectedWallet');
-
-            if (isConnected) {
-                badge.className = 'connection-badge connected';
-                connectionText.textContent = `Connected to ${walletData.provider}`;
-                connectSection.style.display = 'none';
-                connectedSection.style.display = 'block';
-            } else {
-                badge.className = 'connection-badge disconnected';
-                connectionText.textContent = 'Not Connected';
-                connectSection.style.display = 'block';
-                connectedSection.style.display = 'none';
-            }
-        }
-
-        // Update Wallet Data
-        function updateWalletData() {
-            if (!connectedWallet) return;
-
-            // Update wallet info
-            document.getElementById('walletAvatar').textContent = walletData.avatar;
-            document.getElementById('walletProvider').textContent = walletData.provider;
-            document.getElementById('walletAddress').textContent = `${walletData.address.slice(0, 6)}...${walletData.address.slice(-3)}`;
-
-            // Update balances with market values
-            const tonValue = walletData.balances.TON * marketData.TON.price;
-            const nmxValue = 0; // NMX not listed yet
-            const usdtValue = walletData.balances.USDT * marketData.USDT.price;
-            
-            const totalBalanceUSD = tonValue + nmxValue + usdtValue;
-            const totalBalanceTON = totalBalanceUSD / marketData.TON.price;
-
-            document.getElementById('totalBalance').textContent = `${totalBalanceTON.toFixed(2)} TON`;
-            document.getElementById('tonBalance').textContent = walletData.balances.TON.toFixed(2);
-            document.getElementById('nmxBalance').textContent = walletData.balances.NMX.toFixed(2);
-            document.getElementById('usdtBalance').textContent = walletData.balances.USDT.toFixed(2);
-
-            document.querySelector('.balance-usd').textContent = `≈ $${totalBalanceUSD.toFixed(2)} USD`;
-            document.getElementById('tonValue').textContent = `$${tonValue.toFixed(2)}`;
-            document.getElementById('usdtValue').textContent = `$${usdtValue.toFixed(2)}`;
-        }
-
-        // Action Functions
-        function showSend() {
-            if (!connectedWallet) {
-                alert('Please connect your wallet first.');
-                return;
-            }
-            alert(`Send functionality for ${walletData.provider} coming soon!`);
-        }
-
+        // Modal functionality
         function showReceive() {
-            if (!connectedWallet) {
-                alert('Please connect your wallet first.');
-                return;
-            }
-            alert(`Your ${walletData.provider} address:\n\n${walletData.address}\n\nShare this address to receive assets.`);
+            document.getElementById('receiveModal').style.display = 'flex';
         }
 
-        function showBuy() {
-            if (!connectedWallet) {
-                alert('Please connect your wallet first.');
-                return;
+        function closeModal() {
+            document.getElementById('receiveModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('receiveModal');
+            if (event.target === modal) {
+                closeModal();
             }
-            alert(`Buy functionality for ${walletData.provider} coming soon!`);
+        }
+
+        // Action button functions
+        function showSend() {
+            alert('Send functionality coming soon!');
+        }
+
+        function showScan() {
+            alert('Scan functionality coming soon!');
         }
 
         function showSwap() {
-            if (!connectedWallet) {
-                alert('Please connect your wallet first.');
-                return;
-            }
-            alert(`Swap functionality for ${walletData.provider} coming soon!`);
+            alert('Swap functionality coming soon!');
         }
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', async function() {
-            await checkAuth();
-            await loadMarketData();
-            updateConnectionUI(false);
+        function showBuy() {
+            alert('Buy functionality coming soon!');
+        }
+
+        function showStake() {
+            alert('Stake functionality coming soon!');
+        }
+
+        // Simulate loading balances
+        document.addEventListener('DOMContentLoaded', function() {
+            // In a real implementation, you would fetch actual wallet data here
+            console.log('Nemex Wallet loaded successfully!');
         });
     </script>
 </body>
