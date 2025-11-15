@@ -15,6 +15,7 @@
             --border-color: #333333;
             --success: #00C851;
             --error: #ff4444;
+            --ton-blue: #0088cc;
         }
 
         * { 
@@ -87,19 +88,202 @@
             padding: 20px;
             flex: 1;
             overflow-y: auto;
-            padding-bottom: 70px;
         }
 
-        .wallet-section {
+        /* Connection States */
+        .connection-state {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .connection-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .connection-badge.connected {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .connection-badge.disconnected {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .connection-badge.connected .connection-dot {
+            background: var(--success);
+        }
+
+        .connection-badge.disconnected .connection-dot {
+            background: var(--error);
+        }
+
+        /* Wallet Connect Section */
+        .wallet-connect-section {
             background: var(--darker-bg);
             border-radius: 15px;
             padding: 25px;
             border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .connect-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .connect-subtitle {
+            color: var(--muted);
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .wallet-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .wallet-option {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-option:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        .wallet-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            margin-right: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+        }
+
+        .tonkeeper { background: linear-gradient(135deg, #0088cc, #006699); }
+        .telegram { background: linear-gradient(135deg, #0088cc, #2AABEE); }
+        .mytonwallet { background: linear-gradient(135deg, #FF6B00, #FF8C00); }
+
+        .wallet-info {
+            flex: 1;
+        }
+
+        .wallet-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+
+        .wallet-description {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        /* Connected Wallet Info */
+        .connected-wallet {
+            background: var(--darker-bg);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .wallet-header {
+            display: flex;
+            align-items: center;
+            justify-content: between;
+            margin-bottom: 20px;
+        }
+
+        .wallet-identity {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .wallet-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--ton-blue), #006699);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            font-size: 18px;
+        }
+
+        .wallet-details {
+            flex: 1;
+        }
+
+        .wallet-provider {
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .wallet-address {
+            color: var(--muted);
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .disconnect-btn {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .disconnect-btn:hover {
+            background: var(--error);
+            color: white;
         }
 
         .balance-card {
-            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.1));
-            border: 1px solid var(--gold);
+            background: linear-gradient(135deg, rgba(0, 136, 204, 0.1), rgba(0, 102, 153, 0.1));
+            border: 1px solid var(--ton-blue);
             border-radius: 12px;
             padding: 25px;
             text-align: center;
@@ -115,7 +299,7 @@
         .balance-amount {
             font-size: 36px;
             font-weight: 700;
-            color: var(--gold);
+            color: var(--ton-blue);
             font-family: 'Courier New', monospace;
             margin-bottom: 15px;
         }
@@ -149,15 +333,15 @@
         }
 
         .action-btn:hover {
-            background: rgba(212, 175, 55, 0.1);
-            border-color: var(--gold);
+            background: rgba(0, 136, 204, 0.1);
+            border-color: var(--ton-blue);
             transform: translateY(-2px);
         }
 
         .action-icon {
             width: 28px;
             height: 28px;
-            color: var(--gold);
+            color: var(--ton-blue);
         }
 
         .action-label {
@@ -196,21 +380,21 @@
         }
 
         .token-card:hover {
-            background: rgba(212, 175, 55, 0.05);
-            border-color: var(--gold);
+            background: rgba(0, 136, 204, 0.05);
+            border-color: var(--ton-blue);
         }
 
         .token-icon {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--gold), #b8941f);
+            background: linear-gradient(135deg, var(--ton-blue), #006699);
             display: flex;
             align-items: center;
             justify-content: center;
             margin-right: 15px;
             font-weight: 600;
-            color: var(--darker-bg);
+            color: white;
             font-size: 16px;
         }
 
@@ -230,87 +414,8 @@
 
         .token-amount {
             font-weight: 700;
-            color: var(--gold);
+            color: var(--ton-blue);
             font-family: 'Courier New', monospace;
-        }
-
-        .transaction-history {
-            margin-top: 25px;
-        }
-
-        .transaction-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 8px;
-            margin-bottom: 8px;
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
-        }
-
-        .transaction-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .transaction-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: rgba(0, 200, 81, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 12px;
-            color: var(--success);
-        }
-
-        .transaction-icon.sent {
-            background: rgba(255, 68, 68, 0.1);
-            color: var(--error);
-        }
-
-        .transaction-details {
-            flex: 1;
-        }
-
-        .transaction-type {
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 2px;
-        }
-
-        .transaction-date {
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .transaction-amount {
-            font-weight: 700;
-            font-size: 14px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .transaction-amount.positive {
-            color: var(--success);
-        }
-
-        .transaction-amount.negative {
-            color: var(--error);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted);
-        }
-
-        .empty-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 15px;
-            color: var(--muted);
-            opacity: 0.5;
         }
 
         /* Loading Overlay */
@@ -404,73 +509,6 @@
                 transform: translateX(100%);
             }
         }
-
-        /* Bottom Navigation */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            border-top: 1px solid var(--border-color);
-            display: none !important;
-            justify-content: space-around;
-            padding: 12px 5px;
-            z-index: 100;
-            gap: 5px;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-decoration: none;
-            color: var(--muted);
-            font-size: 10px;
-            font-weight: 600;
-            flex: 1;
-            padding: 8px 2px;
-            border-radius: 8px;
-            margin: 0 1px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-item.active {
-            color: var(--gold);
-            background-color: rgba(212, 175, 55, 0.1);
-            position: relative;
-        }
-
-        .nav-item.active::after {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 50%;
-            height: 3px;
-            background: var(--gold);
-            border-radius: 2px;
-        }
-
-        .nav-icon {
-            width: 22px;
-            height: 22px;
-            margin-bottom: 4px;
-            transition: all 0.3s ease;
-        }
-
-        .nav-item.active .nav-icon {
-            color: var(--gold);
-            transform: scale(1.1);
-        }
-
-        .nav-text {
-            margin-top: 2px;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -497,25 +535,71 @@
                     <svg class="header-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                     </svg>
-                    Wallet
+                    Wallet Connect
                 </div>
                 <div style="width: 20px;"></div>
             </header>
 
-            <div class="wallet-section">
+            <!-- Connection Status -->
+            <div class="connection-state">
+                <div class="connection-badge disconnected" id="connectionBadge">
+                    <div class="connection-dot"></div>
+                    <span id="connectionText">Not Connected</span>
+                </div>
+            </div>
+
+            <!-- Wallet Connect Section (Shown when disconnected) -->
+            <div class="wallet-connect-section" id="walletConnectSection">
+                <div class="connect-title">Connect Your Wallet</div>
+                <div class="connect-subtitle">Connect your TON wallet to view your balances and manage your assets</div>
+                
+                <div class="wallet-options">
+                    <div class="wallet-option" onclick="connectWallet('tonkeeper')">
+                        <div class="wallet-icon tonkeeper">TK</div>
+                        <div class="wallet-info">
+                            <div class="wallet-name">Tonkeeper</div>
+                            <div class="wallet-description">Most popular TON wallet</div>
+                        </div>
+                    </div>
+                    
+                    <div class="wallet-option" onclick="connectWallet('telegram')">
+                        <div class="wallet-icon telegram">TG</div>
+                        <div class="wallet-info">
+                            <div class="wallet-name">Telegram Wallet</div>
+                            <div class="wallet-description">Built-in Telegram wallet</div>
+                        </div>
+                    </div>
+                    
+                    <div class="wallet-option" onclick="connectWallet('mytonwallet')">
+                        <div class="wallet-icon mytonwallet">MT</div>
+                        <div class="wallet-info">
+                            <div class="wallet-name">MyTonWallet</div>
+                            <div class="wallet-description">Web-based TON wallet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Connected Wallet Info (Shown when connected) -->
+            <div class="connected-wallet" id="connectedWallet">
+                <div class="wallet-header">
+                    <div class="wallet-identity">
+                        <div class="wallet-avatar" id="walletAvatar">TK</div>
+                        <div class="wallet-details">
+                            <div class="wallet-provider" id="walletProvider">Tonkeeper</div>
+                            <div class="wallet-address" id="walletAddress">EQD...XyZ</div>
+                        </div>
+                    </div>
+                    <button class="disconnect-btn" onclick="disconnectWallet()">Disconnect</button>
+                </div>
+
                 <div class="balance-card">
                     <div class="balance-label">Total Balance</div>
-                    <div class="balance-amount" id="totalBalance">0 NMXp</div>
+                    <div class="balance-amount" id="totalBalance">0 TON</div>
                     <div class="balance-usd">≈ $0.00 USD</div>
                 </div>
 
                 <div class="action-buttons">
-                    <a class="action-btn" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
-                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                        </svg>
-                        <div class="action-label">Buy NMXp</div>
-                    </a>
                     <a class="action-btn" onclick="showSend()">
                         <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -527,6 +611,12 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                         </svg>
                         <div class="action-label">Receive</div>
+                    </a>
+                    <a class="action-btn" onclick="showBuy()">
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                        <div class="action-label">Buy</div>
                     </a>
                     <a class="action-btn" onclick="showSwap()">
                         <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -545,123 +635,45 @@
                     </div>
 
                     <div class="token-card">
-                        <div class="token-icon">N</div>
+                        <div class="token-icon">T</div>
                         <div class="token-info">
-                            <div class="token-name">NemexCoin</div>
-                            <div class="token-symbol">NMXp</div>
+                            <div class="token-name">Toncoin</div>
+                            <div class="token-symbol">TON</div>
                         </div>
-                        <div class="token-amount" id="nmxpBalance">0</div>
+                        <div class="token-amount" id="tonBalance">0</div>
                     </div>
 
                     <div class="token-card">
-                        <div class="token-icon">B</div>
+                        <div class="token-icon">N</div>
                         <div class="token-info">
-                            <div class="token-name">Bonus Tokens</div>
-                            <div class="token-symbol">BONUS</div>
+                            <div class="token-name">NemexCoin</div>
+                            <div class="token-symbol">NMX</div>
                         </div>
-                        <div class="token-amount">0</div>
-                    </div>
-                </div>
-
-                <div class="transaction-history">
-                    <div class="section-title">
-                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                        Recent Transactions
-                    </div>
-
-                    <div class="transaction-item">
-                        <svg class="transaction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                        </svg>
-                        <div class="transaction-details">
-                            <div class="transaction-type">Mining Reward</div>
-                            <div class="transaction-date">Today, 10:30 AM</div>
-                        </div>
-                        <div class="transaction-amount positive">+30 NMXp</div>
-                    </div>
-
-                    <div class="transaction-item">
-                        <svg class="transaction-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
-                        </svg>
-                        <div class="transaction-details">
-                            <div class="transaction-type">Referral Bonus</div>
-                            <div class="transaction-date">Yesterday, 3:15 PM</div>
-                        </div>
-                        <div class="transaction-amount positive">+100 NMXp</div>
-                    </div>
-
-                    <div class="transaction-item">
-                        <svg class="transaction-icon sent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                        </svg>
-                        <div class="transaction-details">
-                            <div class="transaction-type">Sent to Friend</div>
-                            <div class="transaction-date">2 days ago</div>
-                        </div>
-                        <div class="transaction-amount negative">-50 NMXp</div>
-                    </div>
-
-                    <div class="empty-state" id="emptyTransactions" style="display: none;">
-                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
-                        </svg>
-                        <div>No transactions yet</div>
-                        <div style="font-size: 12px; margin-top: 5px;">Start mining to see your transactions here</div>
+                        <div class="token-amount" id="nmxBalance">0</div>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Bottom Navigation -->
-        <nav class="bottom-nav">
-            <a class="nav-item" onclick="showLoadingScreen('dashboard.html', 'Loading Dashboard...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                <span class="nav-text">MINING</span>
-            </a>
-            <a class="nav-item" onclick="showLoadingScreen('tasks.html', 'Loading Tasks...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                </svg>
-                <span class="nav-text">TASKS</span>
-            </a>
-            <a class="nav-item" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                </svg>
-                <span class="nav-text">BUY NMXp</span>
-            </a>
-            <a class="nav-item" onclick="showLoadingScreen('referrals.html', 'Loading Referrals...')">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
-                </svg>
-                <span class="nav-text">REFERRALS</span>
-            </a>
-            <a class="nav-item active">
-                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                </svg>
-                <span class="nav-text">WALLET</span>
-            </a>
-        </nav>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Wallet state
+        let connectedWallet = null;
+        let walletData = {
+            address: '',
+            provider: '',
+            balances: {
+                TON: 0,
+                NMX: 0
+            }
+        };
 
         // Loading Screen Function
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-            
+
             setTimeout(() => {
                 window.location.href = targetPage;
             }, 1500);
@@ -683,106 +695,166 @@
             }
         }
 
-        // Load wallet data
-        async function loadWalletData() {
+        // Connect Wallet Function
+        async function connectWallet(provider) {
             try {
-                // Show loading screen
+                document.getElementById('loadingText').textContent = `Connecting to ${provider}...`;
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
-                // Check authentication
-                const user = await checkAuth();
-                if (!user) return;
+                // Simulate wallet connection (in real implementation, this would use TON Connect)
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
-                console.log('💰 Loading wallet data for user:', user.id);
+                // Mock wallet data based on provider
+                const mockWallets = {
+                    tonkeeper: {
+                        address: 'EQD1234567890abcdefghijklmnopqrstuvwxyz',
+                        provider: 'Tonkeeper',
+                        avatar: 'TK',
+                        balances: {
+                            TON: 15.75,
+                            NMX: 1250.50
+                        }
+                    },
+                    telegram: {
+                        address: 'EQD9876543210zyxwvutsrqponmlkjihgfedcba',
+                        provider: 'Telegram Wallet',
+                        avatar: 'TG',
+                        balances: {
+                            TON: 8.25,
+                            NMX: 850.75
+                        }
+                    },
+                    mytonwallet: {
+                        address: 'EQDabcdef1234567890ghijklmnopqrstuvwxyz',
+                        provider: 'MyTonWallet',
+                        avatar: 'MT',
+                        balances: {
+                            TON: 22.10,
+                            NMX: 2100.25
+                        }
+                    }
+                };
 
-                // Get user profile with balance
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('balance, username, total_earned_from_refs')
-                    .eq('id', user.id)
-                    .single();
+                walletData = mockWallets[provider];
+                connectedWallet = provider;
 
-                if (error) {
-                    console.error('Error loading wallet data:', error);
-                    // Use default values if error
-                    updateWalletUI(0, 0);
-                    return;
-                }
+                // Update UI
+                updateConnectionUI(true);
+                updateWalletData();
 
-                if (profile) {
-                    const balance = profile.balance || 0;
-                    const referralEarnings = profile.total_earned_from_refs || 0;
-                    
-                    updateWalletUI(balance, referralEarnings);
-                }
-
-                // Hide loading screen
                 document.getElementById('loadingOverlay').style.display = 'none';
+                
+                // Show success message
+                alert(`✅ Successfully connected to ${walletData.provider}!`);
 
             } catch (error) {
-                console.error('Error loading wallet data:', error);
-                // Use default values on error
-                updateWalletUI(0, 0);
+                console.error('Error connecting wallet:', error);
                 document.getElementById('loadingOverlay').style.display = 'none';
+                alert('❌ Failed to connect wallet. Please try again.');
             }
         }
 
-        // Update wallet UI with data
-        function updateWalletUI(balance, referralEarnings) {
-            // Update main balance
-            document.getElementById('totalBalance').textContent = `${balance.toLocaleString()} NMXp`;
-            document.getElementById('nmxpBalance').textContent = balance.toLocaleString();
+        // Disconnect Wallet
+        function disconnectWallet() {
+            connectedWallet = null;
+            walletData = {
+                address: '',
+                provider: '',
+                balances: {
+                    TON: 0,
+                    NMX: 0
+                }
+            };
+            
+            updateConnectionUI(false);
+            alert('Wallet disconnected successfully.');
+        }
 
-            // Calculate USD value (example rate: 1 NMXp = $0.01)
-            const usdValue = (balance * 0.01).toFixed(2);
-            document.querySelector('.balance-usd').textContent = `≈ $${usdValue} USD`;
+        // Update Connection UI
+        function updateConnectionUI(isConnected) {
+            const badge = document.getElementById('connectionBadge');
+            const connectionText = document.getElementById('connectionText');
+            const connectSection = document.getElementById('walletConnectSection');
+            const connectedSection = document.getElementById('connectedWallet');
 
-            // Update bonus tokens (example: 10% of referral earnings)
-            const bonusTokens = Math.floor(referralEarnings * 0.1);
-            document.querySelector('.token-card:nth-child(2) .token-amount').textContent = bonusTokens.toLocaleString();
-
-            // Show/hide empty state for transactions
-            const emptyState = document.getElementById('emptyTransactions');
-            if (balance === 0 && referralEarnings === 0) {
-                emptyState.style.display = 'block';
-                // Hide sample transactions
-                document.querySelectorAll('.transaction-item').forEach(item => {
-                    item.style.display = 'none';
-                });
+            if (isConnected) {
+                badge.className = 'connection-badge connected';
+                connectionText.textContent = `Connected to ${walletData.provider}`;
+                connectSection.style.display = 'none';
+                connectedSection.style.display = 'block';
             } else {
-                emptyState.style.display = 'none';
+                badge.className = 'connection-badge disconnected';
+                connectionText.textContent = 'Not Connected';
+                connectSection.style.display = 'block';
+                connectedSection.style.display = 'none';
             }
         }
 
+        // Update Wallet Data
+        function updateWalletData() {
+            if (!connectedWallet) return;
+
+            // Update wallet info
+            document.getElementById('walletAvatar').textContent = walletData.avatar;
+            document.getElementById('walletProvider').textContent = walletData.provider;
+            document.getElementById('walletAddress').textContent = `${walletData.address.slice(0, 6)}...${walletData.address.slice(-3)}`;
+
+            // Update balances
+            const totalBalance = walletData.balances.TON + (walletData.balances.NMX * 0.001); // Example conversion
+            document.getElementById('totalBalance').textContent = `${totalBalance.toFixed(2)} TON`;
+            document.getElementById('tonBalance').textContent = walletData.balances.TON.toFixed(2);
+            document.getElementById('nmxBalance').textContent = walletData.balances.NMX.toFixed(2);
+
+            // Calculate USD value (example rates)
+            const usdValue = (walletData.balances.TON * 2.5) + (walletData.balances.NMX * 0.01);
+            document.querySelector('.balance-usd').textContent = `≈ $${usdValue.toFixed(2)} USD`;
+        }
+
+        // Action Functions
         function showSend() {
-            alert('Send functionality coming soon! You will be able to send NMXp to other users.');
+            if (!connectedWallet) {
+                alert('Please connect your wallet first.');
+                return;
+            }
+            alert(`Send functionality for ${walletData.provider} coming soon!`);
         }
 
         function showReceive() {
-            const address = "NMXp_1A2b3C4d5E6f7G8h9J0kL1mN2oP3qR4sT5u";
-            alert(`Your NMXp receiving address:\n\n${address}\n\nShare this address to receive NMXp from others.`);
+            if (!connectedWallet) {
+                alert('Please connect your wallet first.');
+                return;
+            }
+            alert(`Your ${walletData.provider} address:\n\n${walletData.address}\n\nShare this address to receive assets.`);
+        }
+
+        function showBuy() {
+            if (!connectedWallet) {
+                alert('Please connect your wallet first.');
+                return;
+            }
+            alert(`Buy functionality for ${walletData.provider} coming soon!`);
         }
 
         function showSwap() {
-            alert('Token swap functionality coming soon! You will be able to swap between different cryptocurrencies.');
+            if (!connectedWallet) {
+                alert('Please connect your wallet first.');
+                return;
+            }
+            alert(`Swap functionality for ${walletData.provider} coming soon!`);
         }
 
         // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            loadWalletData();
-
-            // Highlight current page in navigation
-            const currentPage = window.location.pathname.split('/').pop() || 'wallet.html';
-            const navItems = document.querySelectorAll('.nav-item');
-
-            navItems.forEach(item => {
-                const onclick = item.getAttribute('onclick');
-                if (onclick && onclick.includes('wallet.html') || !onclick && item.classList.contains('active')) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAuth();
+            
+            // Check if wallet was previously connected (in real app, this would check localStorage)
+            const savedWallet = localStorage.getItem('connectedWallet');
+            if (savedWallet) {
+                // In real implementation, you'd reconnect to the wallet
+                console.log('Previously connected wallet:', savedWallet);
+            }
+            
+            updateConnectionUI(false);
         });
     </script>
 </body>
