@@ -502,13 +502,116 @@
             margin-top: 2px;
             text-align: center;
         }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-logo {
+            background: linear-gradient(135deg, #d4af37, #b8941f);
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            animation: logoGlow 2s ease-in-out infinite alternate;
+        }
+
+        .loading-logo-text {
+            font-size: 32px;
+            font-weight: 900;
+            color: #0f0f0f;
+        }
+
+        .loading-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 20px;
+            animation: textBlink 1.5s infinite;
+        }
+
+        .loading-progress {
+            width: 200px;
+            height: 4px;
+            background: rgba(212, 175, 55, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), #ffd700);
+            border-radius: 2px;
+            width: 0%;
+            animation: progressLoad 2s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0% {
+                box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+                transform: scale(1);
+            }
+            100% {
+                box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+                transform: scale(1.05);
+            }
+        }
+
+        @keyframes textBlink {
+            0%, 50% {
+                opacity: 1;
+            }
+            51%, 100% {
+                opacity: 0.7;
+            }
+        }
+
+        @keyframes progressLoad {
+            0% {
+                width: 0%;
+                transform: translateX(-100%);
+            }
+            50% {
+                width: 100%;
+                transform: translateX(0%);
+            }
+            100% {
+                width: 100%;
+                transform: translateX(100%);
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Loading Screen Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-logo">
+            <div class="loading-logo-text">NMX</div>
+        </div>
+        <div class="loading-text" id="loadingText">Loading About...</div>
+        <div class="loading-progress">
+            <div class="loading-progress-bar"></div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display: none;">
         <div class="content-wrapper">
             <header class="header">
-                <a href="dashboard.html" class="back-btn">
+                <a class="back-btn" onclick="showLoadingScreen('dashboard.html', 'Returning to Dashboard...')">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
@@ -602,7 +705,7 @@
                     <div class="info-text">
                         The Nemex Ecosystem Launchpad is the groundbreaking second pillar of the NemexCoin Ecosystem, specifically designed to confront the critical lack of trust caused by 'rug pulls' in new crypto project launches by fostering a secure, transparent, and fair environment on the TON blockchain.
                     </div>
-                    
+
                     <div class="highlight-box">
                         <div class="highlight-text">Anti-Rug Pull Mechanism</div>
                     </div>
@@ -718,31 +821,31 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <a href="dashboard.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('dashboard.html', 'Loading Dashboard...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
                 <span class="nav-text">MINING</span>
             </a>
-            <a href="tasks.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('tasks.html', 'Loading Tasks...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                 </svg>
                 <span class="nav-text">TASKS</span>
             </a>
-            <a href="buynmxp.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('buynmxp.html', 'Loading Store...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
                 <span class="nav-text">BUY NMXp</span>
             </a>
-            <a href="referrals.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('referrals.html', 'Loading Referrals...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                 </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
-            <a href="wallet.html" class="nav-item">
+            <a class="nav-item" onclick="showLoadingScreen('wallet.html', 'Loading Wallet...')">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -752,18 +855,28 @@
     </div>
 
     <script>
-        // Highlight current page in navigation
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentPage = window.location.pathname.split('/').pop() || 'about.html';
-            const navItems = document.querySelectorAll('.nav-item');
+        // Loading Screen Function
+        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+            document.getElementById('loadingText').textContent = loadingText;
+            document.getElementById('loadingOverlay').style.display = 'flex';
 
+            setTimeout(() => {
+                window.location.href = targetPage;
+            }, 1500);
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show loading screen briefly for consistency
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'flex';
+            }, 1000);
+
+            // Highlight current page in navigation
+            const navItems = document.querySelectorAll('.nav-item');
             navItems.forEach(item => {
-                const href = item.getAttribute('href');
-                if (href === currentPage) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
+                item.classList.remove('active');
             });
         });
     </script>
