@@ -505,7 +505,7 @@
                 </div>
                 <div class="share-option" onclick="shareToWhatsApp()">
                     <svg class="share-icon" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893-.001-3.189-1.262-6.209-3.553-8.485"/>
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335 .157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893-.001-3.189-1.262-6.209-3.553-8.485"/>
                     </svg>
                     <div class="share-option-text">WhatsApp</div>
                 </div>
@@ -816,9 +816,15 @@
                             task_id: taskId,
                             verified: true
                         }
-                    ]);
+                    ])
+                    .select();
 
                 if (error) {
+                    // If it's a unique constraint violation, the task is already completed
+                    if (error.code === '23505') {
+                        console.log('Task already completed:', taskId);
+                        return true;
+                    }
                     console.error('Error saving completed task to DB:', error);
                     return false;
                 }
@@ -932,79 +938,98 @@
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
 
-                // For daily check-in
+                // For daily check-in - handle separately
                 let dailyCheckinUpdated = false;
                 if (task.type === 'daily') {
                     const today = new Date().toISOString().split('T')[0];
                     
                     // Update daily check-in progress
-                    const { data: profile } = await supabase
+                    const { data: profile, error: profileError } = await supabase
                         .from('profiles')
-                        .select('daily_checkins, last_checkin')
+                        .select('daily_checkins, last_checkin, balance')
                         .eq('id', user.id)
                         .single();
+
+                    if (profileError) {
+                        console.error('Error fetching profile for daily check-in:', profileError);
+                        throw profileError;
+                    }
 
                     let newCheckins = (profile.daily_checkins || 0) + 1;
                     if (newCheckins > 7) newCheckins = 1; // Reset after 7 days
 
+                    const newBalance = (profile.balance || 0) + task.reward;
+
+                    // Update profile with new check-in and balance
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({ 
                             daily_checkins: newCheckins,
-                            last_checkin: today
+                            last_checkin: today,
+                            balance: newBalance
                         })
                         .eq('id', user.id);
 
-                    if (updateError) throw updateError;
+                    if (updateError) {
+                        console.error('Error updating daily check-in:', updateError);
+                        throw updateError;
+                    }
 
                     // Update task progress
                     task.progress = newCheckins;
                     dailyCheckinUpdated = true;
+
+                    console.log('Daily check-in updated:', newCheckins);
                 }
 
-                // Save completed task to database
-                const dbSaved = await saveCompletedTaskToDB(taskId);
-                if (!dbSaved) {
-                    throw new Error('Failed to save task to database');
+                // Save completed task to database (except for daily check-in which is handled separately)
+                if (task.type !== 'daily') {
+                    const dbSaved = await saveCompletedTaskToDB(taskId);
+                    if (!dbSaved) {
+                        throw new Error('Failed to save task to database');
+                    }
+
+                    // Update user balance for non-daily tasks
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('balance')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (profile) {
+                        const newBalance = (profile.balance || 0) + task.reward;
+
+                        const { error: updateError } = await supabase
+                            .from('profiles')
+                            .update({ balance: newBalance })
+                            .eq('id', user.id);
+
+                        if (updateError) {
+                            console.error('Error updating balance:', updateError);
+                            throw updateError;
+                        }
+                    }
                 }
 
                 // Update local completed tasks array
-                completedTasks.push(taskId);
-
-                // Update user balance in Supabase
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('balance')
-                    .eq('id', user.id)
-                    .single();
-
-                if (profile) {
-                    const newBalance = (profile.balance || 0) + task.reward;
-
-                    const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({ balance: newBalance })
-                        .eq('id', user.id);
-
-                    if (!updateError) {
-                        // Create task completion notification
-                        await createTaskNotification(user.id, task.title, task.reward);
-
-                        // Show success message
-                        if (task.type === 'external') {
-                            alert(`✅ Task completed! You earned ${task.reward} NMXp!\n\nPlease make sure you actually ${task.action.toLowerCase()}ed to support our project!`);
-                        } else if (task.type === 'daily') {
-                            alert(`🎉 Daily check-in completed! You earned ${task.reward} NMXp!\nProgress: ${task.progress}/7 days`);
-                        } else {
-                            alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
-                        }
-
-                        // Re-render tasks
-                        renderTasks();
-                    } else {
-                        throw new Error('Failed to update balance');
-                    }
+                if (!completedTasks.includes(taskId)) {
+                    completedTasks.push(taskId);
                 }
+
+                // Create task completion notification
+                await createTaskNotification(user.id, task.title, task.reward);
+
+                // Show success message
+                if (task.type === 'external') {
+                    alert(`✅ Task completed! You earned ${task.reward} NMXp!\n\nPlease make sure you actually ${task.action.toLowerCase()}ed to support our project!`);
+                } else if (task.type === 'daily') {
+                    alert(`🎉 Daily check-in completed! You earned ${task.reward} NMXp!\nProgress: ${task.progress}/7 days`);
+                } else {
+                    alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
+                }
+
+                // Re-render tasks
+                renderTasks();
 
             } catch (error) {
                 console.error('Error completing task:', error);
