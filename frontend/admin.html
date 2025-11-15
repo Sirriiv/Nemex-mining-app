@@ -1062,6 +1062,13 @@
                 </svg>
                 Users with Referrals
             </button>
+            <!-- NEW: Users With No Referrals Tab -->
+            <button class="mini-nav-btn" onclick="showSection('usersWithNoReferrals')">
+                <svg class="mini-nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                </svg>
+                Users With No Referrals
+            </button>
         </nav>
 
         <!-- Overview Section -->
@@ -1108,7 +1115,7 @@
                     Recent Users
                 </h2>
                 <div class="search-controls">
-                    <input type="text" class="search-input" placeholder="Search users by name or email..." onkeyup="searchUsers(this.value)">
+                    <input type="text" class="search-input" id="overviewSearch" placeholder="Search users by name or email..." onkeyup="searchUsers(this.value)">
                 </div>
             </div>
 
@@ -1167,6 +1174,7 @@
         let realtimeSubscription = null;
         let dataCache = new Map();
         const CACHE_DURATION = 30000;
+        let currentUsersData = []; // Store current users for filtering
 
         // Initialize Admin Panel
         document.addEventListener('DOMContentLoaded', async function() {
@@ -1516,6 +1524,8 @@
                     };
                 }));
 
+                // Store the data for filtering
+                currentUsersData = usersWithRefs;
                 displayRecentUsers(usersWithRefs);
 
             } catch (error) {
@@ -1537,55 +1547,24 @@
             }
         }
 
-        // IMPLEMENTED: Search Users Functionality
+        // FIXED: Search Users Functionality
         async function searchUsers(query) {
-            if (!query || query.length < 2) {
-                await loadRecentUsersFromSupabase();
+            if (!query || query.trim().length < 2) {
+                // If query is empty or too short, show all users
+                displayRecentUsers(currentUsersData);
                 return;
             }
 
-            try {
-                const { data: users, error } = await supabaseClient
-                    .from('profiles')
-                    .select('id, username, email, balance, created_at, referred_by')
-                    .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
-                    .order('created_at', { ascending: false })
-                    .limit(20);
+            // Filter the current users data
+            const filteredUsers = currentUsersData.filter(user => {
+                const searchTerm = query.toLowerCase();
+                return (
+                    user.name.toLowerCase().includes(searchTerm) ||
+                    user.email.toLowerCase().includes(searchTerm)
+                );
+            });
 
-                if (error) throw error;
-
-                // Get purchase stats for searched users
-                const purchaseStats = await fetchUserPurchaseStats();
-
-                const usersWithRefs = await Promise.all(users.map(async (user) => {
-                    const { count: referralCount } = await supabaseClient
-                        .from('profiles')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('referred_by', user.id);
-
-                    // NEW: Get user-specific purchase data
-                    const userSpent = purchaseStats.userSpending.get(user.id) || 0;
-                    const userPackages = purchaseStats.userPackages.get(user.id) || 0;
-
-                    return {
-                        id: user.id,
-                        name: user.username || user.email || 'Unknown User',
-                        email: user.email || 'No email',
-                        referrals: referralCount || 0,
-                        isVip: (user.balance || 0) > 1000,
-                        hasReferrer: !!user.referred_by,
-                        created_at: user.created_at,
-                        // NEW: Purchase statistics
-                        totalSpent: userSpent,
-                        packagesPurchased: userPackages
-                    };
-                }));
-
-                displayRecentUsers(usersWithRefs);
-            } catch (error) {
-                console.error('Error searching users:', error);
-                displayRecentUsers([]);
-            }
+            displayRecentUsers(filteredUsers);
         }
 
         // UPDATED: Enhanced displayRecentUsers function
@@ -1599,7 +1578,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                         </svg>
                         <h3>No Users Found</h3>
-                        <p>No recent user registrations to display.</p>
+                        <p>No users matching your search criteria.</p>
                     </div>
                 `;
                 return;
@@ -1687,6 +1666,9 @@
                     case 'usersWithReferrals':
                         htmlContent = await loadUsersWithReferralsSection();
                         break;
+                    case 'usersWithNoReferrals':
+                        htmlContent = await loadUsersWithNoReferralsSection();
+                        break;
                     default:
                         htmlContent = '<div class="no-data-message"><h3>Section Not Implemented</h3></div>';
                 }
@@ -1736,7 +1718,7 @@
                         <div class="section-header">
                             <h2 class="section-title">Complete Referral Tree</h2>
                             <div class="search-controls">
-                                <input type="text" class="search-input" placeholder="Search users..." onkeyup="filterReferralTree(this.value)">
+                                <input type="text" class="search-input" id="treeSearch" placeholder="Search users..." onkeyup="filterReferralTree(this.value)">
                             </div>
                         </div>
                         <div class="tree-info">
@@ -1888,6 +1870,47 @@
             }
         }
 
+        // NEW: Load Users With No Referrals Section
+        async function loadUsersWithNoReferralsSection() {
+            try {
+                // Get all users
+                const { data: allUsers, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance, created_at, referred_by')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // Get purchase stats for all users
+                const purchaseStats = await fetchUserPurchaseStats();
+
+                // Filter users who have no referrals
+                const usersWithNoReferrals = await Promise.all(allUsers.map(async (user) => {
+                    const { count: referralCount } = await supabaseClient
+                        .from('profiles')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('referred_by', user.id);
+
+                    // Get user-specific purchase data
+                    const userSpent = purchaseStats.userSpending.get(user.id) || 0;
+                    const userPackages = purchaseStats.userPackages.get(user.id) || 0;
+
+                    return {
+                        ...user,
+                        referralCount: referralCount || 0,
+                        totalSpent: userSpent,
+                        packagesPurchased: userPackages
+                    };
+                })).then(users => users.filter(user => user.referralCount === 0));
+
+                return createUsersSectionWithPurchaseData('Users With No Referrals', usersWithNoReferrals, 'No users without referrals found.');
+
+            } catch (error) {
+                console.error('❌ Error loading users with no referrals:', error);
+                return createErrorSection('Users With No Referrals');
+            }
+        }
+
         // Create Users Section
         function createUsersSectionWithViewButtons(title, users, emptyMessage) {
             if (!users || users.length === 0) {
@@ -1942,10 +1965,82 @@
                     <div class="section-header">
                         <h2 class="section-title">${title}</h2>
                         <div class="search-controls">
-                            <input type="text" class="search-input" placeholder="Search users..." onkeyup="filterUsers(this.value, '${title}')">
+                            <input type="text" class="search-input" id="${title.replace(/\s+/g, '')}Search" placeholder="Search users..." onkeyup="filterSectionUsers(this.value, '${title}')">
                         </div>
                     </div>
-                    <div class="users-grid">
+                    <div class="users-grid" id="${title.replace(/\s+/g, '')}Grid">
+                        ${usersHTML}
+                    </div>
+                </div>
+            `;
+        }
+
+        // NEW: Create Users Section with Purchase Data
+        function createUsersSectionWithPurchaseData(title, users, emptyMessage) {
+            if (!users || users.length === 0) {
+                return `
+                    <div class="section-content">
+                        <div class="section-header">
+                            <h2 class="section-title">${title}</h2>
+                        </div>
+                        <div class="no-data-message">
+                            <h3>No Data Available</h3>
+                            <p>${emptyMessage}</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const usersHTML = users.map(user => `
+                <div class="user-card">
+                    <div class="user-card-header">
+                        <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
+                        <div class="user-info">
+                            <div class="user-name">
+                                ${user.username || 'Unknown User'}
+                                ${user.balance > 1000 ? '<span class="vip-badge">VIP</span>' : ''}
+                            </div>
+                            <div class="user-email">${user.email || 'No email'}</div>
+                        </div>
+                    </div>
+                    <div class="user-stats">
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.referralCount || 0}</div>
+                            <div class="user-stat-label">Referrals</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.packagesPurchased || 0}</div>
+                            <div class="user-stat-label">Packages</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">$${(user.totalSpent || 0).toFixed(2)}</div>
+                            <div class="user-stat-label">Spent</div>
+                        </div>
+                        <div class="user-stat">
+                            <div class="user-stat-value">${user.balance || 0}</div>
+                            <div class="user-stat-label">Balance</div>
+                        </div>
+                    </div>
+                    <div class="user-card-footer">
+                        <div class="status-badge ${user.referred_by ? 'status-with-refs' : 'status-orphaned'}">
+                            ${user.referred_by ? 'Has Referrer' : 'Orphaned'}
+                        </div>
+                        <div class="action-buttons">
+                            <button class="action-btn view-btn" onclick="showUserDetails('${user.id}')">View</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            return `
+                <div class="section-content">
+                    <div class="section-header">
+                        <h2 class="section-title">${title}</h2>
+                        <div class="search-controls">
+                            <input type="text" class="search-input" id="${title.replace(/\s+/g, '')}Search" placeholder="Search users..." onkeyup="filterSectionUsers(this.value, '${title}')">
+                        </div>
+                    </div>
+                    <div class="users-grid" id="${title.replace(/\s+/g, '')}Grid">
                         ${usersHTML}
                     </div>
                 </div>
@@ -1968,9 +2063,10 @@
             `;
         }
 
-        // Filter Referral Tree
+        // FIXED: Filter Referral Tree
         async function filterReferralTree(query) {
-            if (!query || query.length < 2) {
+            if (!query || query.trim().length < 2) {
+                // If query is empty or too short, reload the full tree
                 await loadSectionData('completeTree');
                 return;
             }
@@ -1994,117 +2090,42 @@
             }
         }
 
-        // Filter Users
-        async function filterUsers(query, section) {
-            if (!query || query.length < 2) {
-                await loadSectionData(currentSection);
+        // FIXED: Filter Users in Sections
+        function filterSectionUsers(query, section) {
+            if (!query || query.trim().length < 2) {
+                // If query is empty or too short, reload the section
+                loadSectionData(currentSection);
                 return;
             }
 
-            try {
-                let users;
+            // Get the current grid element
+            const gridId = section.replace(/\s+/g, '') + 'Grid';
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
 
-                switch(section) {
-                    case 'Orphaned Users (No Referrer)':
-                        const { data: orphanedUsers } = await supabaseClient
-                            .from('profiles')
-                            .select('id, username, email, balance, created_at, referred_by')
-                            .is('referred_by', null)
-                            .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
-                            .order('created_at', { ascending: false });
-                        users = orphanedUsers;
-                        break;
-
-                    case 'Users with Referrals':
-                        const { data: referredUsers } = await supabaseClient
-                            .from('profiles')
-                            .select('referred_by')
-                            .not('referred_by', 'is', null);
-
-                        const uniqueReferrerIds = [...new Set(referredUsers.map(user => user.referred_by))];
-
-                        const { data: referrers } = await supabaseClient
-                            .from('profiles')
-                            .select('id, username, email, balance, created_at, referred_by')
-                            .in('id', uniqueReferrerIds)
-                            .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
-                            .order('created_at', { ascending: false });
-                        users = referrers;
-                        break;
-
-                    default:
-                        const { data: allUsers } = await supabaseClient
-                            .from('profiles')
-                            .select('id, username, email, balance, created_at, referred_by')
-                            .or(`username.ilike.%${query}%,email.ilike.%${query}%`)
-                            .order('created_at', { ascending: false })
-                            .limit(50);
-                        users = allUsers;
+            // Get all user cards in the grid
+            const userCards = grid.querySelectorAll('.user-card');
+            
+            // Filter user cards based on search query
+            userCards.forEach(card => {
+                const userName = card.querySelector('.user-name').textContent.toLowerCase();
+                const userEmail = card.querySelector('.user-email').textContent.toLowerCase();
+                const searchTerm = query.toLowerCase();
+                
+                if (userName.includes(searchTerm) || userEmail.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
                 }
+            });
 
-                if (!users || users.length === 0) {
-                    document.querySelector('.users-grid').innerHTML = `
-                        <div class="no-data-message">
-                            <h3>No Users Found</h3>
-                            <p>No users matching "${query}" found.</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                const usersWithCounts = await Promise.all(users.map(async (user) => {
-                    const { count: referralCount } = await supabaseClient
-                        .from('profiles')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('referred_by', user.id);
-
-                    return {
-                        ...user,
-                        referralCount: referralCount || 0
-                    };
-                }));
-
-                const usersHTML = usersWithCounts.map(user => `
-                    <div class="user-card">
-                        <div class="user-card-header">
-                            <div class="user-avatar">${user.username?.charAt(0) || 'U'}</div>
-                            <div class="user-info">
-                                <div class="user-name">
-                                    ${user.username || 'Unknown User'}
-                                    ${user.balance > 1000 ? '<span class="vip-badge">VIP</span>' : ''}
-                                </div>
-                                <div class="user-email">${user.email || 'No email'}</div>
-                            </div>
-                        </div>
-                        <div class="user-stats">
-                            <div class="user-stat">
-                                <div class="user-stat-value">${user.referralCount || 0}</div>
-                                <div class="user-stat-label">Referrals</div>
-                            </div>
-                            <div class="user-stat">
-                                <div class="user-stat-value">${user.balance || 0}</div>
-                                <div class="user-stat-label">Balance</div>
-                            </div>
-                        </div>
-                        <div class="user-card-footer">
-                            <div class="status-badge ${user.referred_by ? 'status-with-refs' : 'status-orphaned'}">
-                                ${user.referred_by ? 'Has Referrer' : 'Orphaned'}
-                            </div>
-                            <div class="action-buttons">
-                                <button class="action-btn view-btn" onclick="showUserDetails('${user.id}')">View</button>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-
-                document.querySelector('.users-grid').innerHTML = usersHTML;
-
-            } catch (error) {
-                console.error('Error filtering users:', error);
-                document.querySelector('.users-grid').innerHTML = `
+            // Check if any cards are visible
+            const visibleCards = Array.from(userCards).filter(card => card.style.display !== 'none');
+            if (visibleCards.length === 0) {
+                grid.innerHTML = `
                     <div class="no-data-message">
-                        <h3>Error Searching</h3>
-                        <p>Failed to search users. Please try again.</p>
+                        <h3>No Users Found</h3>
+                        <p>No users matching "${query}" found in ${section}.</p>
                     </div>
                 `;
             }
@@ -2231,7 +2252,7 @@
                                 ${purchases.slice(0, 5).map(purchase => `
                                     <div class="purchase-item">
                                         <span class="purchase-name">${purchase.package_name || 'Package'}</span>
-                                        <span class="purchase-amount">$${parseFloat(purchase.amount || 0).toFixed(2)}</span>
+                                        <span class="purchase-amount">$${parseFloat(purchase.price_usd || 0).toFixed(2)}</span>
                                     </div>
                                 `).join('')}
                             </div>
