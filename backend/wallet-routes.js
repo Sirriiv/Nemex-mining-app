@@ -330,4 +330,35 @@ async function getNMXBalance(walletAddress) {
         return "1500.00"; // Fallback for testing
     }
 }
+
+// Add this to your wallet-routes.js to test API key
+router.get('/test-api', async (req, res) => {
+    try {
+        const testAddress = "EQCjL2yM3S80N-Kb4WuYfMUVR"; // Your wallet address
+        
+        const response = await axios.get(`https://toncenter.com/api/v2/getWalletInformation`, {
+            params: {
+                address: testAddress
+            },
+            headers: {
+                'X-API-Key': process.env.TONCENTER_API_KEY
+            }
+        });
+
+        res.json({
+            success: true,
+            message: "API Key is working!",
+            balance: response.data.result.balance,
+            data: response.data
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: "API Key failed: " + error.message,
+            status: error.response?.status
+        });
+    }
+});
+
+
 module.exports = router;
