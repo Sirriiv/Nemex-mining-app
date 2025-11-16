@@ -112,3 +112,11 @@ router.get('/users/:userId', checkAdmin, async (req, res) => {
 });
 
 module.exports = router;
+
+// Add wallet routes to your existing admin routes
+const walletRoutes = require('./wallet-routes');
+
+// Mount wallet routes
+app.use('/api/wallet', walletRoutes);
+
+console.log('✅ Wallet routes added to admin backend');
