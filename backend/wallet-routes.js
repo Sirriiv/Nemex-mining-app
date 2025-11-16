@@ -271,27 +271,31 @@ router.get('/balances/:userId', async (req, res) => {
 });
 
 async function getNMXBalance(walletAddress) {
-    console.log('🔄 Fetching NMX balance using KNOWN contract...');
+    console.log('🔄 Fetching NMX balance with HEX-to-FRIENDLY conversion...');
     
     try {
         const response = await axios.get(`https://tonapi.io/v2/accounts/${walletAddress}/jettons`);
         
         if (response.data.balances && response.data.balances.length > 0) {
-            // Use the EXACT contract address we know has your NMX
-            const nmxContract = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N";
+            // Convert the KNOWN friendly address to raw hex for comparison
+            const knownNMXHex = "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec";
+            
+            console.log('🔍 Looking for hex:', knownNMXHex);
+            console.log('📋 Available contracts (raw):', response.data.balances.map(j => j.jetton.address));
             
             const nmxJetton = response.data.balances.find(jetton => 
-                jetton.jetton.address === nmxContract
+                jetton.jetton.address === knownNMXHex
             );
             
             if (nmxJetton) {
                 const balance = (nmxJetton.balance / Math.pow(10, nmxJetton.jetton.decimals || 9)).toFixed(2);
-                console.log('🎉 NMX FOUND BY CONTRACT! Balance:', balance);
+                console.log('🎉 NMX FOUND! Balance:', balance);
                 return balance;
             } else {
-                console.log('❌ NMX contract not found. Available contracts:');
-                response.data.balances.forEach(j => {
-                    console.log('   -', j.jetton.address);
+                console.log('❌ NMX hex not found. Let me check ALL jettons:');
+                response.data.balances.forEach((jetton, index) => {
+                    const balance = (jetton.balance / Math.pow(10, jetton.jetton.decimals || 9)).toFixed(2);
+                    console.log(`   ${index + 1}. ${jetton.jetton.address} - ${jetton.jetton.symbol} - Balance: ${balance}`);
                 });
             }
         }
