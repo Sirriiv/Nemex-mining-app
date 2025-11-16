@@ -239,6 +239,14 @@ app.post('/api/stop-mining', authenticate, (req, res) => {
     });
 });
 
+// =============================================
+// 🎯 WALLET API ROUTES ADDED HERE
+// =============================================
+const walletRoutes = require('./backend/wallet-routes');
+app.use('/api/wallet', walletRoutes);
+
+console.log('✅ Wallet API routes mounted at /api/wallet');
+
 // Catch-all handler for SPA routing
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
@@ -251,6 +259,7 @@ app.listen(PORT, () => {
     console.log(`📝 Register: http://localhost:${PORT}/register`);
     console.log(`📊 Dashboard: http://localhost:${PORT}/dashboard`);
     console.log(`🩺 API Health: http://localhost:${PORT}/api/health`);
+    console.log(`👛 Wallet API: http://localhost:${PORT}/api/wallet/test`); // ← Add this line
     console.log(`📧 Demo account: test@nemexcoin.com / 123456`);
     console.log(`✅ Frontend folder: ${path.join(__dirname, 'frontend')}`);
 });
