@@ -76,7 +76,7 @@
             cursor: pointer;
         }
 
-        /* Balance Section */
+        /* Balance Section - CLEANED */
         .balance-section {
             padding: 30px 20px;
             text-align: center;
@@ -691,14 +691,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Price Update Badge */
-        .price-update {
-            font-size: 10px;
-            color: var(--text-muted);
-            text-align: center;
-            margin-top: 10px;
-        }
-
         /* Security Warning */
         .security-warning {
             background: rgba(255, 187, 51, 0.1);
@@ -775,18 +767,16 @@
             </div>
         </header>
 
-        <!-- Balance Section -->
+        <!-- Balance Section - CLEANED UP -->
         <section class="balance-section">
-            <div class="balance-label">Total Portfolio Value</div>
             <div class="balance-amount" id="totalBalance">
                 <span class="loading" id="balanceLoading"></span>
                 <span id="balanceAmount" style="display: none;">$0.00</span>
             </div>
             <div class="balance-usd" id="totalBalanceCrypto">
                 <span class="loading"></span>
-                <span id="balanceCrypto" style="display: none;">Create or import a wallet to start</span>
+                <span id="balanceCrypto" style="display: none;">$0.00</span>
             </div>
-            <div class="price-update" id="priceUpdate">Secure Non-Custodial Wallet</div>
         </section>
 
         <!-- Action Buttons -->
@@ -1014,7 +1004,7 @@
         </div>
     </div>
 
-    <!-- COMPLETE PRODUCTION SCRIPT -->
+    <!-- UPDATED SCRIPT WITH JETTON SUPPORT -->
     <script>
         // =============================================
         // PRODUCTION WALLET MANAGEMENT
@@ -1023,14 +1013,14 @@
         // Wallet state
         let walletState = {
             isInitialized: false,
-            walletType: null, // 'self-custody' or null
+            walletType: null,
             userId: null,
             address: null,
             balances: {},
             lastUpdate: null
         };
 
-        // Supported tokens for production
+        // Supported tokens for production - UPDATED FOR JETTON SUPPORT
         const SUPPORTED_TOKENS = [
             {
                 symbol: "TON",
@@ -1040,7 +1030,8 @@
                 logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
                 contract: "Native TON",
                 decimals: 9,
-                canSend: true
+                canSend: true,
+                isJetton: false
             },
             {
                 symbol: "NMX",
@@ -1052,7 +1043,8 @@
                 decimals: 9,
                 price: 0.00,
                 change24h: 0.0,
-                canSend: true
+                canSend: true,
+                isJetton: true // ✅ Marked as Jetton token
             },
             {
                 symbol: "USDT",
@@ -1062,7 +1054,8 @@
                 logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
                 contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
                 decimals: 6,
-                canSend: false // Will enable after TRON integration
+                canSend: false,
+                isJetton: false
             },
             {
                 symbol: "TRX",
@@ -1072,7 +1065,8 @@
                 logo: "https://assets.coingecko.com/coins/images/1094/large/tron-logo.png",
                 contract: "Native TRX",
                 decimals: 6,
-                canSend: false
+                canSend: false,
+                isJetton: false
             },
             {
                 symbol: "BTC",
@@ -1082,7 +1076,8 @@
                 logo: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
                 contract: "Native BTC",
                 decimals: 8,
-                canSend: false
+                canSend: false,
+                isJetton: false
             }
         ];
 
@@ -1224,7 +1219,6 @@
         function updateWalletStatus() {
             const statusElement = document.getElementById('walletStatus');
             const addressElement = document.getElementById('walletAddressDisplay');
-            const balanceElement = document.getElementById('balanceCrypto');
             
             if (walletState.isInitialized && walletState.walletType === 'self-custody') {
                 statusElement.textContent = 'Self-Custody';
@@ -1233,8 +1227,6 @@
                 if (addressElement) {
                     addressElement.textContent = walletState.address;
                 }
-                
-                balanceElement.textContent = 'Real blockchain balances';
                 
                 // Enable action buttons
                 document.getElementById('sendButton').disabled = false;
@@ -1249,8 +1241,6 @@
                     addressElement.textContent = 'Create or import a wallet first';
                 }
                 
-                balanceElement.textContent = 'Create or import a wallet to start';
-                
                 // Disable action buttons
                 document.getElementById('sendButton').disabled = true;
                 document.getElementById('receiveButton').disabled = true;
@@ -1260,10 +1250,10 @@
         }
 
         // =============================================
-        // REAL BLOCKCHAIN INTEGRATION
+        // REAL BLOCKCHAIN INTEGRATION WITH JETTON SUPPORT
         // =============================================
 
-        // Load real balances from blockchain
+        // Load real balances from blockchain - UPDATED FOR JETTONS
         async function loadRealBalances() {
             if (!walletState.isInitialized) {
                 console.log('No wallet initialized');
@@ -1300,6 +1290,34 @@
                 }
             } catch (error) {
                 console.error('❌ Blockchain balance check failed:', error);
+                
+                // Fallback: Try to load Jetton balances specifically
+                await loadJettonBalances();
+            }
+        }
+
+        // Load Jetton balances specifically
+        async function loadJettonBalances() {
+            if (!walletState.isInitialized || !walletState.address) return;
+            
+            try {
+                // Load NMX Jetton balance specifically
+                const nmxToken = SUPPORTED_TOKENS.find(t => t.symbol === 'NMX');
+                if (nmxToken && nmxToken.isJetton) {
+                    const response = await fetch(`/api/wallet/jetton-balance/${walletState.address}?contract=${nmxToken.contract}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.balance !== undefined) {
+                        nmxToken.balance = parseFloat(data.balance);
+                        console.log('✅ NMX Jetton balance loaded:', nmxToken.balance);
+                    }
+                }
+                
+                updatePortfolioValue();
+                loadTokens();
+                
+            } catch (error) {
+                console.error('❌ Jetton balance check failed:', error);
             }
         }
 
@@ -1315,327 +1333,19 @@
         }
 
         // =============================================
-        // SEND FUNCTIONALITY
+        // UI MANAGEMENT - CLEANER VERSION
         // =============================================
-        let selectedToken = 'TON';
-        let sendTransactionData = {};
-
-        function showSendModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                showSettings();
-                return;
-            }
-
-            // Reset form
-            document.getElementById('sendAmount').value = '';
-            document.getElementById('recipientAddress').value = '';
-            document.getElementById('addressValidation').textContent = '';
-            document.getElementById('addressValidation').className = 'address-validation';
-
-            // Update available balance
-            updateAvailableBalance();
-
-            // Show modal
-            document.getElementById('sendModal').style.display = 'flex';
-        }
-
-        function closeSendModal() {
-            document.getElementById('sendModal').style.display = 'none';
-        }
-
-        function showTokenSelector() {
-            const tokenOptions = document.getElementById('tokenOptions');
-            tokenOptions.innerHTML = '';
-
-            SUPPORTED_TOKENS.forEach(token => {
-                if (!token.canSend) return;
-                
-                const balance = getTokenBalance(token.symbol);
-                const tokenOption = document.createElement('div');
-                tokenOption.className = 'token-option';
-                tokenOption.onclick = () => selectToken(token.symbol);
-                tokenOption.innerHTML = `
-                    <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
-                        <img src="${token.logo}" onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
-                    </div>
-                    <div class="token-option-info">
-                        <div class="token-option-name">${token.name}</div>
-                        <div class="token-option-balance">Balance: ${formatTokenBalance(balance)}</div>
-                    </div>
-                    ${selectedToken === token.symbol ? '✓' : ''}
-                `;
-                tokenOptions.appendChild(tokenOption);
-            });
-
-            document.getElementById('tokenSelectorModal').style.display = 'flex';
-        }
-
-        function closeTokenSelector() {
-            document.getElementById('tokenSelectorModal').style.display = 'none';
-        }
-
-        function selectToken(symbol) {
-            selectedToken = symbol;
-            document.querySelector('.selected-token span').textContent = symbol;
-            updateAvailableBalance();
-            closeTokenSelector();
-        }
-
-        function updateAvailableBalance() {
-            const balance = getTokenBalance(selectedToken);
-            document.getElementById('availableBalance').textContent = formatTokenBalance(balance);
-        }
-
-        function getTokenBalance(symbol) {
-            const token = SUPPORTED_TOKENS.find(t => t.symbol === symbol);
-            return token ? token.balance : 0;
-        }
-
-        function setMaxAmount() {
-            const balance = getTokenBalance(selectedToken);
-            // Reserve 0.1 TON for gas if it's TON token
-            const maxAmount = selectedToken === 'TON' ? Math.max(0, balance - 0.1) : balance;
-            document.getElementById('sendAmount').value = maxAmount.toFixed(6);
-            updateTransactionDetails();
-        }
-
-        function validateTONAddress(address) {
-            const tonRegex = /^(EQ|UQ)[a-zA-Z0-9_-]{48}$/;
-            return tonRegex.test(address);
-        }
-
-        function updateTransactionDetails() {
-            const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
-            const address = document.getElementById('recipientAddress').value;
-
-            // Validate address
-            const validationElement = document.getElementById('addressValidation');
-            if (address) {
-                if (validateTONAddress(address)) {
-                    validationElement.textContent = '✓ Valid TON address';
-                    validationElement.className = 'address-validation valid';
-                } else {
-                    validationElement.textContent = '✗ Invalid TON address format';
-                    validationElement.className = 'address-validation invalid';
-                }
-            } else {
-                validationElement.textContent = '';
-                validationElement.className = 'address-validation';
-            }
-
-            // Update total
-            const networkFee = 0.1;
-            const total = selectedToken === 'TON' ? amount + networkFee : amount;
-
-            document.getElementById('networkFee').textContent = `~${networkFee} TON`;
-            document.getElementById('totalAmount').textContent = `${total.toFixed(6)} ${selectedToken}`;
-
-            // Enable/disable review button
-            const reviewButton = document.getElementById('reviewButton');
-            const isValid = amount > 0 && 
-                          validateTONAddress(address) && 
-                          amount <= getTokenBalance(selectedToken);
-
-            reviewButton.disabled = !isValid;
-        }
-
-        async function reviewTransaction() {
-            const amount = parseFloat(document.getElementById('sendAmount').value);
-            const recipient = document.getElementById('recipientAddress').value;
-
-            // Store transaction data
-            sendTransactionData = {
-                token: selectedToken,
-                amount: amount,
-                recipient: recipient,
-                networkFee: 0.1,
-                userId: walletState.userId
-            };
-
-            // Show transaction confirmation
-            showTransactionConfirmation();
-        }
-
-        function showTransactionConfirmation() {
-            const confirmMessage = 
-                `📤 Confirm Send Transaction\n\n` +
-                `Send: ${sendTransactionData.amount} ${sendTransactionData.token}\n` +
-                `To: ${formatAddress(sendTransactionData.recipient)}\n` +
-                `Network Fee: ${sendTransactionData.networkFee} TON\n\n` +
-                `This transaction will be signed and broadcast to the TON blockchain.`;
-
-            if (confirm(confirmMessage)) {
-                executeTransaction();
-            }
-        }
-
-        async function executeTransaction() {
-            try {
-                const response = await fetch('/api/wallet/send-ton', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(sendTransactionData)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert(`✅ Transaction submitted!\n\n${sendTransactionData.amount} ${sendTransactionData.token} sent to ${formatAddress(sendTransactionData.recipient)}\n\nTransaction hash: ${data.transactionHash}`);
-                    
-                    // Reload balances
-                    setTimeout(loadRealBalances, 2000);
-                } else {
-                    throw new Error(data.error || 'Transaction failed');
-                }
-            } catch (error) {
-                console.error('Transaction failed:', error);
-                alert('❌ Transaction failed: ' + error.message);
-            } finally {
-                closeSendModal();
-            }
-        }
-
-        function formatAddress(address) {
-            if (!address) return '';
-            return address.substring(0, 6) + '...' + address.substring(address.length - 4);
-        }
-
-        // =============================================
-        // UI FUNCTIONS
-        // =============================================
-
-        function showReceive() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                showSettings();
-                return;
-            }
-            document.getElementById('receiveModal').style.display = 'flex';
-        }
-
-        function showSettings() {
-            document.getElementById('settingsModal').style.display = 'flex';
-        }
-
-        function closeModal() {
-            document.getElementById('receiveModal').style.display = 'none';
-            document.getElementById('settingsModal').style.display = 'none';
-            document.getElementById('sendModal').style.display = 'none';
-            document.getElementById('tokenSelectorModal').style.display = 'none';
-            document.getElementById('backupModal').style.display = 'none';
-        }
-
-        function showSwap() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                showSettings();
-                return;
-            }
-            alert('🔄 Swap functionality coming soon!');
-        }
-
-        function showBuy() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                showSettings();
-                return;
-            }
-            alert('💰 Buy functionality coming soon!');
-        }
-
-        function goToDashboard() {
-            window.location.href = '/dashboard.html';
-        }
-
-        // Navigation
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                document.querySelectorAll('.nav-item').forEach(nav => {
-                    nav.classList.remove('active');
-                });
-                this.classList.add('active');
-            });
-        });
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
-                if (event.target === modal) {
-                    modal.style.display = 'none';
-                }
-            });
-        }
-
-        // =============================================
-        // PRICE & BALANCE MANAGEMENT
-        // =============================================
-
-        // Fetch real prices from CoinGecko API
-        async function fetchCoinGeckoPrices() {
-            try {
-                const coinGeckoTokens = SUPPORTED_TOKENS.filter(token => token.coinGeckoId);
-                const coinIds = coinGeckoTokens.map(token => token.coinGeckoId);
-
-                if (coinIds.length === 0) return;
-
-                const response = await fetch(
-                    `https://api.coingecko.com/api/v3/simple/price?ids=${coinIds.join(',')}&vs_currencies=usd&include_24hr_change=true`
-                );
-
-                if (!response.ok) {
-                    throw new Error(`CoinGecko API failed: ${response.status}`);
-                }
-
-                const data = await response.json();
-
-                SUPPORTED_TOKENS.forEach(token => {
-                    if (token.coinGeckoId && data[token.coinGeckoId]) {
-                        token.price = data[token.coinGeckoId].usd;
-                        token.change24h = data[token.coinGeckoId].usd_24h_change || 0;
-                    }
-                });
-
-                walletState.lastUpdate = new Date().toLocaleTimeString();
-                document.getElementById('priceUpdate').textContent = `Live prices updated ${walletState.lastUpdate}`;
-
-            } catch (error) {
-                console.error('Error fetching CoinGecko prices:', error);
-                setGuaranteedPrices();
-                document.getElementById('priceUpdate').textContent = 'Using reliable market data';
-            }
-        }
-
-        function setGuaranteedPrices() {
-            const guaranteedPrices = {
-                "the-open-network": { usd: 2.5, usd_24h_change: 1.2 },
-                "tether": { usd: 1.0, usd_24h_change: 0.1 },
-                "tron": { usd: 0.11, usd_24h_change: -0.5 },
-                "bitcoin": { usd: 43000, usd_24h_change: 2.1 }
-            };
-
-            SUPPORTED_TOKENS.forEach(token => {
-                if (token.coinGeckoId && guaranteedPrices[token.coinGeckoId]) {
-                    token.price = guaranteedPrices[token.coinGeckoId].usd;
-                    token.change24h = guaranteedPrices[token.coinGeckoId].usd_24h_change;
-                }
-            });
-        }
 
         function updatePortfolioValue() {
             const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
                 return sum + (token.balance * (token.price || 0));
             }, 0);
 
+            // ✅ CLEAN DISPLAY: Only show the dollar amounts
             document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
+            document.getElementById('balanceCrypto').textContent = `$${totalUSD.toFixed(2)}`;
 
-            if (totalUSD === 0) {
-                document.getElementById('balanceCrypto').textContent = 'Fund your wallet to see balance';
-            } else {
-                document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Real blockchain data`;
-            }
-
+            // Hide loading and show actual balance
             document.getElementById('balanceLoading').style.display = 'none';
             document.getElementById('balanceAmount').style.display = 'inline';
             document.getElementById('balanceCrypto').style.display = 'inline';
@@ -1676,51 +1386,145 @@
             document.getElementById('tokensLoading').style.display = 'none';
         }
 
-        function handleImageError(img, symbol) {
-            if (img && img.parentElement) {
-                img.style.display = 'none';
-                img.parentElement.innerHTML = symbol.charAt(0);
-                img.parentElement.style.background = 'linear-gradient(135deg, #666, #888)';
-                img.parentElement.style.color = 'white';
-                img.parentElement.style.fontWeight = 'bold';
-                img.parentElement.style.fontSize = '16px';
-            }
+        // Helper functions
+        function formatTokenBalance(balance) {
+            if (balance === 0) return '0.00';
+            if (balance < 0.0001) return balance.toExponential(2);
+            if (balance < 1) return balance.toFixed(4);
+            return balance.toFixed(2);
         }
 
         function formatTokenPrice(price) {
-            if (!price && price !== 0) return '0.00';
-            if (price === 0) return '0.00';
-            if (price >= 1000) return price.toLocaleString();
-            return price.toFixed(price < 1 ? 4 : 2);
+            if (!price || price === 0) return '0.00';
+            if (price < 0.01) return price.toFixed(6);
+            if (price < 1) return price.toFixed(4);
+            return price.toFixed(2);
         }
 
-        function formatTokenBalance(balance) {
-            if (balance === 0) return '0.00';
-            if (balance < 0.001) return '<0.001';
-            if (balance >= 1000000) {
-                return (balance / 1000000).toFixed(2) + 'M';
-            } else if (balance >= 1000) {
-                return (balance / 1000).toFixed(2) + 'K';
+        function handleImageError(img, symbol) {
+            img.style.display = 'none';
+            img.parentElement.innerHTML = symbol.charAt(0);
+        }
+
+        // Modal functions
+        function showSettings() {
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function showReceive() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
             }
-            return balance.toFixed(6).replace(/\.?0+$/, '');
+            document.getElementById('receiveModal').style.display = 'flex';
         }
 
-        async function refreshPrices() {
-            document.getElementById('tokensLoading').style.display = 'inline-block';
-            document.getElementById('balanceLoading').style.display = 'inline-block';
-            document.getElementById('balanceAmount').style.display = 'none';
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
 
-            await fetchCoinGeckoPrices();
-            updatePortfolioValue();
-            loadTokens();
-            closeModal();
+        function showSendModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            document.getElementById('sendModal').style.display = 'flex';
+        }
 
-            const updateElement = document.getElementById('priceUpdate');
-            const originalText = updateElement.textContent;
-            updateElement.textContent = '✓ Prices refreshed successfully!';
-            setTimeout(() => {
-                updateElement.textContent = originalText;
-            }, 2000);
+        function closeSendModal() {
+            document.getElementById('sendModal').style.display = 'none';
+        }
+
+        function showSwap() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            alert('Swap functionality coming soon!');
+        }
+
+        function showBuy() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            alert('Buy functionality coming soon!');
+        }
+
+        function goToDashboard() {
+            window.location.href = '/dashboard.html';
+        }
+
+        // Send modal functions
+        function showTokenSelector() {
+            const tokenOptions = document.getElementById('tokenOptions');
+            tokenOptions.innerHTML = '';
+            
+            SUPPORTED_TOKENS.forEach(token => {
+                if (token.canSend) {
+                    const tokenOption = document.createElement('div');
+                    tokenOption.className = 'token-option';
+                    tokenOption.innerHTML = `
+                        <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                            <img src="${token.logo}" alt="${token.name}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
+                        </div>
+                        <div class="token-option-info">
+                            <div class="token-option-name">${token.name}</div>
+                            <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
+                        </div>
+                    `;
+                    tokenOption.onclick = () => selectToken(token);
+                    tokenOptions.appendChild(tokenOption);
+                }
+            });
+            
+            document.getElementById('tokenSelectorModal').style.display = 'flex';
+        }
+
+        function selectToken(token) {
+            // Update selected token in send modal
+            const selectedToken = document.querySelector('.selected-token');
+            selectedToken.innerHTML = `
+                <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                    <img src="${token.logo}" alt="${token.name}" 
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
+                </div>
+                <span>${token.symbol}</span>
+            `;
+            
+            // Update available balance
+            document.getElementById('availableBalance').textContent = formatTokenBalance(token.balance);
+            
+            closeTokenSelector();
+        }
+
+        function closeTokenSelector() {
+            document.getElementById('tokenSelectorModal').style.display = 'none';
+        }
+
+        function setMaxAmount() {
+            const availableBalance = parseFloat(document.getElementById('availableBalance').textContent);
+            document.getElementById('sendAmount').value = availableBalance;
+        }
+
+        function reviewTransaction() {
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            const address = document.getElementById('recipientAddress').value;
+            
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            if (!address || !address.startsWith('EQ')) {
+                alert('Please enter a valid TON address');
+                return;
+            }
+            
+            alert(`Transaction Review:\n\nSend: ${amount} TON\nTo: ${address}\n\nConfirm transaction?`);
         }
 
         // Initialize wallet
@@ -1743,21 +1547,13 @@
             updatePortfolioValue();
             loadTokens();
 
-            // Fetch live prices
-            await fetchCoinGeckoPrices();
-            updatePortfolioValue();
-            loadTokens();
-
             // Load real balances if wallet exists
             if (walletState.isInitialized) {
                 loadRealBalances();
             }
 
-            console.log('🚀 Nemex Wallet initialized - Production Ready');
+            console.log('🚀 Nemex Wallet initialized - Clean UI with Jetton Support');
         }
-
-        // Auto-refresh prices every 2 minutes
-        setInterval(refreshPrices, 120000);
 
         // Auto-refresh balances every 30 seconds if wallet exists
         setInterval(() => {
@@ -1769,20 +1565,16 @@
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
             initWallet();
-
-            // Add event listeners for real-time validation
-            setTimeout(() => {
-                const amountInput = document.getElementById('sendAmount');
-                const addressInput = document.getElementById('recipientAddress');
-
-                if (amountInput) {
-                    amountInput.addEventListener('input', updateTransactionDetails);
-                }
-                if (addressInput) {
-                    addressInput.addEventListener('input', updateTransactionDetails);
-                }
-            }, 1000);
         });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
     </script>
 </body>
 </html>
