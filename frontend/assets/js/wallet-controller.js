@@ -1,4 +1,3 @@
-
 class WalletController {
     constructor() {
         this.tokenBalances = new Map();
@@ -8,28 +7,31 @@ class WalletController {
 
     async initialize() {
         if (this.isInitialized) return;
-        
+
         console.log('🚀 Initializing Nemex Wallet...');
-        
-        this.loadMockBalances();
+        console.log('✅ Using $0.00 balances - Professional mode activated!');
+
+        this.loadZeroBalances(); // ← CHANGED FROM loadMockBalances()
         await this.loadLivePrices();
         this.renderTokens();
-        
+
         this.isInitialized = true;
     }
 
-    loadMockBalances() {
+    loadZeroBalances() { // ← NEW FUNCTION
         const balances = {
-            'TON': 15.784,
-            'NMX': 74995350, 
-            'USDT': 1250.50,
-            'TRX': 850.25,
-            'BTC': 0.0042
+            'TON': 0,      // ← CHANGED FROM 15.784
+            'NMX': 0,      // ← CHANGED FROM 74995350
+            'USDT': 0,     // ← CHANGED FROM 1250.50
+            'TRX': 0,      // ← CHANGED FROM 850.25
+            'BTC': 0       // ← CHANGED FROM 0.0042
         };
-        
+
         Object.entries(balances).forEach(([symbol, balance]) => {
             this.tokenBalances.set(symbol, balance);
         });
+        
+        console.log('✅ All balances set to 0.00');
     }
 
     async loadLivePrices() {
@@ -47,14 +49,14 @@ class WalletController {
     renderTokens() {
         const tokenList = document.getElementById('tokenList');
         if (!tokenList) return;
-        
+
         tokenList.innerHTML = '';
-        
+
         Object.values(TOKEN_CONFIGS).forEach(tokenConfig => {
             const balance = this.tokenBalances.get(tokenConfig.symbol) || 0;
             const priceData = this.tokenPrices.get(tokenConfig.symbol) || { price: 0, change24h: 0 };
             const value = balance * priceData.price;
-            
+
             const tokenElement = this.createTokenElement(tokenConfig, balance, priceData, value);
             tokenList.appendChild(tokenElement);
         });
@@ -63,7 +65,7 @@ class WalletController {
     createTokenElement(tokenConfig, balance, priceData, value) {
         const changeClass = priceData.change24h >= 0 ? 'change-positive' : 'change-negative';
         const changeSymbol = priceData.change24h >= 0 ? '+' : '';
-        
+
         const tokenDiv = document.createElement('div');
         tokenDiv.className = 'token-card';
         tokenDiv.innerHTML = `
@@ -88,7 +90,7 @@ class WalletController {
                 <div class="token-value">$${value.toFixed(2)}</div>
             </div>
         `;
-        
+
         return tokenDiv;
     }
 
@@ -115,8 +117,14 @@ class WalletController {
         });
 
         const balanceElement = document.getElementById('totalBalance');
+        const cryptoElement = document.getElementById('totalBalanceCrypto');
+        
         if (balanceElement) {
             balanceElement.textContent = `$${totalValue.toFixed(2)}`;
+        }
+        
+        if (cryptoElement && totalValue === 0) {
+            cryptoElement.textContent = 'Connect wallet & deposit assets';
         }
     }
 
