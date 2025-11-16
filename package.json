@@ -1,7 +1,7 @@
 {
   "name": "nemexcoin-backend",
   "version": "1.0.0",
-  "description": "Backend API for NemexCoin mining platform",
+  "description": "Backend API for NemexCoin mining platform with TON blockchain integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,7 +12,11 @@
     "cors": "^2.8.5",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.3.1",
-    "@supabase/supabase-js": "^2.38.0"
+    "@supabase/supabase-js": "^2.38.0",
+    "@ton/ton": "^13.12.1",
+    "@ton/crypto": "^3.2.1",
+    "axios": "^1.6.0",
+    "crypto": "^1.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
@@ -24,6 +28,9 @@
     "crypto",
     "mining",
     "nemexcoin",
+    "blockchain",
+    "ton",
+    "wallet",
     "api",
     "backend"
   ],
