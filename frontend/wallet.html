@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nemex Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <!-- ✅ ADD THESE 3 SCRIPT TAGS HERE (in the head) -->
     <script src="assets/js/config/tokens.js"></script>
     <script src="assets/js/api/prices.js"></script>
     <script src="assets/js/wallet-controller.js"></script>
-    
+
     <style>
         :root {
             --dark-bg: #0A0A0A;
@@ -671,13 +671,13 @@
         // FALLBACK FUNCTIONS (if dynamic system not available)
         // =============================================
 
-        // Real Tokens with proper CoinGecko IDs and guaranteed logos
+        // ✅ FIXED: All balances set to 0
         const SUPPORTED_TOKENS = [
             {
                 symbol: "TON",
                 name: "Toncoin",
                 coinGeckoId: "the-open-network",
-                balance: 0,
+                balance: 0, // ✅ CHANGED TO 0
                 logo: "https://cryptologos.cc/logos/toncoin-ton-logo.png",
                 contract: "Native TON",
                 decimals: 9
@@ -686,7 +686,7 @@
                 symbol: "NMX",
                 name: "NemexCoin",
                 coinGeckoId: null,
-                balance: 0,
+                balance: 0, // ✅ CHANGED TO 0
                 logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
                 contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
                 decimals: 9,
@@ -697,7 +697,7 @@
                 symbol: "USDT",
                 name: "Tether",
                 coinGeckoId: "tether",
-                balance: 0,
+                balance: 0, // ✅ CHANGED FROM 450.25 to 0
                 logo: "https://cryptologos.cc/logos/tether-usdt-logo.png",
                 contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
                 decimals: 6
@@ -706,7 +706,7 @@
                 symbol: "TRX",
                 name: "TRON",
                 coinGeckoId: "tron",
-                balance: 0,
+                balance: 0, // ✅ CHANGED TO 0
                 logo: "https://cryptologos.cc/logos/tron-trx-logo.png",
                 contract: "Native TRX",
                 decimals: 6
@@ -715,7 +715,7 @@
                 symbol: "BTC",
                 name: "Bitcoin",
                 coinGeckoId: "bitcoin",
-                balance: 0,
+                balance: 0, // ✅ CHANGED FROM 0.00542 to 0
                 logo: "https://cryptologos.cc/logos/bitcoin-btc-logo.png",
                 contract: "Native BTC",
                 decimals: 8
@@ -790,28 +790,28 @@
             });
         }
 
-        // Update total portfolio value
-function updatePortfolioValue() {
-    const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
-        return sum + (token.balance * (token.price || 0));
-    }, 0);
+        // ✅ FIXED: Update total portfolio value with proper messaging
+        function updatePortfolioValue() {
+            const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
+                return sum + (token.balance * (token.price || 0));
+            }, 0);
 
-    walletState.totalBalanceUSD = totalUSD;
+            walletState.totalBalanceUSD = totalUSD;
 
-    // Always show $0.00 if no balances
-    document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
-    
-    if (totalUSD === 0) {
-        document.getElementById('balanceCrypto').textContent = 'Connect wallet & deposit assets';
-    } else {
-        document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Live prices`;
-    }
+            // Always show $0.00 if no balances
+            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
 
-    // Hide loading and show actual balance
-    document.getElementById('balanceLoading').style.display = 'none';
-    document.getElementById('balanceAmount').style.display = 'inline';
-    document.getElementById('balanceCrypto').style.display = 'inline';
-}
+            if (totalUSD === 0) {
+                document.getElementById('balanceCrypto').textContent = 'Connect wallet & deposit assets';
+            } else {
+                document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Live prices`;
+            }
+
+            // Hide loading and show actual balance
+            document.getElementById('balanceLoading').style.display = 'none';
+            document.getElementById('balanceAmount').style.display = 'inline';
+            document.getElementById('balanceCrypto').style.display = 'inline';
+        }
 
         // Load tokens into UI with guaranteed data
         function loadTokens() {
@@ -899,26 +899,27 @@ function updatePortfolioValue() {
             }, 2000);
         }
 
-     // Initialize wallet
-async function initWallet() {
-    // Show loading states briefly
-    document.getElementById('tokensLoading').style.display = 'inline-block';
-    document.getElementById('balanceLoading').style.display = 'inline-block';
+        // ✅ FIXED: Initialize wallet with proper $0.00 flow
+        async function initWallet() {
+            // Show loading states briefly
+            document.getElementById('tokensLoading').style.display = 'inline-block';
+            document.getElementById('balanceLoading').style.display = 'inline-block';
 
-    // Immediately show $0.00 while prices load in background
-    updatePortfolioValue();
-    loadTokens();
+            // Immediately show $0.00 while prices load in background
+            updatePortfolioValue();
+            loadTokens();
 
-    // Fetch live prices (for display, balances remain 0)
-    await fetchCoinGeckoPrices();
-    updatePortfolioValue();
-    loadTokens();
+            // Fetch live prices (for display, balances remain 0)
+            await fetchCoinGeckoPrices();
+            updatePortfolioValue();
+            loadTokens();
 
-    console.log('Nemex Wallet initialized - Ready for deposits');
-    console.log('All balances start at 0 - professional mode activated!');
-    console.log('Supported tokens:', SUPPORTED_TOKENS.map(t => t.symbol));
-}
-        // Auto-refresh prices every 1 minutes
+            console.log('Nemex Wallet initialized - Ready for deposits');
+            console.log('All balances start at 0 - professional mode activated!');
+            console.log('Supported tokens:', SUPPORTED_TOKENS.map(t => t.symbol));
+        }
+
+        // Auto-refresh prices every 2 minutes
         setInterval(refreshPrices, 120000);
     </script>
 </body>
