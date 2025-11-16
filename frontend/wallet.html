@@ -767,18 +767,18 @@
             </div>
         </header>
 
-        <!-- Balance Section - CLEANED UP -->
-        <section class="balance-section">
-            <div class="balance-label">Total Portfolio Value</div>
-            <div class="balance-amount" id="totalBalance">
-                <span class="loading" id="balanceLoading"></span>
-                <span id="balanceAmount" style="display: none;">$0.00</span>
-            </div>
-            <div class="balance-usd" id="totalBalanceCrypto">
-                <span class="loading"></span>
-                <span id="balanceCrypto" style="display: none;">$0.00</span>
-            </div>
-        </section>
+ <!-- Balance Section - FIXED VERSION -->
+<section class="balance-section">
+    <div class="balance-label">Total Portfolio Value</div>
+    <div class="balance-amount" id="totalBalance">
+        <span class="loading" id="balanceLoading"></span>
+        <span id="balanceAmount" style="display: none;">$0.00</span>
+    </div>
+    <div class="balance-usd" id="totalBalanceCrypto">
+        <span class="loading"></span>
+        <span id="balanceCrypto" style="display: none;">Create or import a wallet to start</span>
+    </div>
+</section>
 
         <!-- Action Buttons -->
         <div class="action-buttons">
@@ -1305,19 +1305,27 @@
         // =============================================
 
         function updatePortfolioValue() {
-            const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
-                return sum + (token.balance * (token.price || 0));
-            }, 0);
+    const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
+        return sum + (token.balance * (token.price || 0));
+    }, 0);
 
-            // Always show $0.00 format - CLEAN AND SIMPLE
-            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
-            document.getElementById('balanceCrypto').textContent = `$${totalUSD.toFixed(2)}`;
+    // ✅ FIXED: Show REAL portfolio value, not just $0.00
+    document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
+    
+    // ✅ FIXED: Show dynamic text based on whether you have balances
+    if (totalUSD === 0 && walletState.isInitialized) {
+        document.getElementById('balanceCrypto').textContent = 'Fund your wallet to see balance';
+    } else if (totalUSD > 0) {
+        document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Real blockchain data`;
+    } else {
+        document.getElementById('balanceCrypto').textContent = 'Create or import a wallet to start';
+    }
 
-            // Hide loading and show actual balance
-            document.getElementById('balanceLoading').style.display = 'none';
-            document.getElementById('balanceAmount').style.display = 'inline';
-            document.getElementById('balanceCrypto').style.display = 'inline';
-        }
+    // Hide loading and show actual balance
+    document.getElementById('balanceLoading').style.display = 'none';
+    document.getElementById('balanceAmount').style.display = 'inline';
+    document.getElementById('balanceCrypto').style.display = 'inline';
+}
 
         function loadTokens() {
             const tokenList = document.getElementById('tokenList');
