@@ -1343,66 +1343,113 @@
         }
 
         // =============================================
-        // FALLBACK FUNCTIONS
-        // =============================================
+// REAL WALLET API INTEGRATION
+// =============================================
 
-        // Real Tokens with ZERO balances
-        const SUPPORTED_TOKENS = [
-            {
-                symbol: "TON",
-                name: "Toncoin",
-                coinGeckoId: "the-open-network",
-                balance: 0,
-                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
-                contract: "Native TON",
-                decimals: 9
-            },
-            {
-                symbol: "NMX",
-                name: "NemexCoin",
-                coinGeckoId: null,
-                balance: 0,
-                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-                decimals: 9,
-                price: 0.00,
-                change24h: 0.0
-            },
-            {
-                symbol: "USDT",
-                name: "Tether",
-                coinGeckoId: "tether",
-                balance: 0,
-                logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
-                contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-                decimals: 6
-            },
-            {
-                symbol: "TRX",
-                name: "TRON",
-                coinGeckoId: "tron",
-                balance: 0,
-                logo: "https://assets.coingecko.com/coins/images/1094/large/tron-logo.png",
-                contract: "Native TRX",
-                decimals: 6
-            },
-            {
-                symbol: "BTC",
-                name: "Bitcoin",
-                coinGeckoId: "bitcoin",
-                balance: 0,
-                logo: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
-                contract: "Native BTC",
-                decimals: 8
-            }
-        ];
+// REAL API Functions
+async function testWalletAPI() {
+    try {
+        const response = await fetch('/api/wallet/test');
+        const data = await response.json();
+        console.log('✅ Wallet API test:', data);
+        return data.success;
+    } catch (error) {
+        console.error('❌ Wallet API test failed:', error);
+        return false;
+    }
+}
 
-        // Wallet state
-        let walletState = {
-            totalBalanceUSD: 0,
-            lastUpdate: null
-        };
+async function loadRealAddresses() {
+    try {
+        const response = await fetch('/api/wallet/addresses');
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update receive modal with real address from API
+            document.getElementById('walletAddressDisplay').textContent = data.addresses.TON;
+            console.log('✅ Real addresses loaded from API:', data.addresses);
+        }
+    } catch (error) {
+        console.error('❌ Failed to load addresses from API:', error);
+    }
+}
 
+async function loadRealBalances() {
+    try {
+        const response = await fetch('/api/wallet/balances');
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ Real balances loaded from API:', data.balances);
+            // Update our tokens with real balances from API
+            updateTokenBalancesFromAPI(data.balances);
+        }
+    } catch (error) {
+        console.error('❌ Failed to load balances from API:', error);
+    }
+}
+
+function updateTokenBalancesFromAPI(apiBalances) {
+    SUPPORTED_TOKENS.forEach(token => {
+        if (apiBalances[token.symbol]) {
+            token.balance = parseFloat(apiBalances[token.symbol]);
+        }
+    });
+    // Refresh the UI with real balances
+    updatePortfolioValue();
+    loadTokens();
+}
+
+// Real Tokens - Will be updated with API balances
+const SUPPORTED_TOKENS = [
+    {
+        symbol: "TON",
+        name: "Toncoin",
+        coinGeckoId: "the-open-network",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
+        contract: "Native TON",
+        decimals: 9
+    },
+    {
+        symbol: "NMX",
+        name: "NemexCoin",
+        coinGeckoId: null,
+        balance: 0, // Will be updated from API
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
+        decimals: 9,
+        price: 0.00,
+        change24h: 0.0
+    },
+    {
+        symbol: "USDT",
+        name: "Tether",
+        coinGeckoId: "tether",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
+        contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+        decimals: 6
+    },
+    {
+        symbol: "TRX",
+        name: "TRON",
+        coinGeckoId: "tron",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/1094/large/tron-logo.png",
+        contract: "Native TRX",
+        decimals: 6
+    },
+    {
+        symbol: "BTC",
+        name: "Bitcoin",
+        coinGeckoId: "bitcoin",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
+        contract: "Native BTC",
+        decimals: 8
+    }
+];
         // Fetch real prices from CoinGecko API
         async function fetchCoinGeckoPrices() {
             try {
