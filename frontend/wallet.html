@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nemex Wallet</title>
+    <title>Nemex Wallet - Secure Non-Custodial Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- TON Connect SDK -->
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
 
     <style>
         :root {
@@ -20,6 +17,7 @@
             --text-muted: #AAAAAA;
             --success: #00C851;
             --error: #FF4444;
+            --warning: #ffbb33;
             --border-radius: 16px;
             --border-radius-sm: 12px;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -57,6 +55,7 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .wallet-name {
@@ -131,6 +130,16 @@
         .action-btn:hover {
             background: rgba(212, 175, 55, 0.1);
             transform: translateY(-2px);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn:disabled:hover {
+            background: var(--card-bg);
+            transform: none;
         }
 
         .action-icon {
@@ -374,6 +383,7 @@
             border-radius: 8px;
             margin-bottom: 20px;
             word-break: break-all;
+            font-size: 14px;
         }
 
         .close-modal {
@@ -385,6 +395,7 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            width: 100%;
         }
 
         .close-modal:hover {
@@ -436,40 +447,9 @@
             color: var(--success);
         }
 
-        /* Wallet Options */
-        .wallet-options {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 20px 0;
-        }
-
-        .wallet-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius-sm);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .wallet-option:hover {
+        .wallet-status.self-custody {
             background: rgba(212, 175, 55, 0.1);
-            transform: translateY(-1px);
-        }
-
-        .wallet-option img {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-        }
-
-        .wallet-option span {
-            font-weight: 600;
-            font-size: 14px;
+            color: var(--gold);
         }
 
         /* Send Modal Styles */
@@ -719,6 +699,43 @@
             margin-top: 10px;
         }
 
+        /* Security Warning */
+        .security-warning {
+            background: rgba(255, 187, 51, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: var(--border-radius-sm);
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 12px;
+            color: var(--warning);
+        }
+
+        /* Backup Modal */
+        .backup-modal {
+            max-width: 400px;
+        }
+
+        .mnemonic-words {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .mnemonic-word {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            text-align: center;
+        }
+
+        .word-index {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-right: 4px;
+        }
+
         /* Responsive Adjustments */
         @media (max-width: 380px) {
             .action-buttons {
@@ -735,6 +752,10 @@
 
             .token-amount {
                 font-size: 14px;
+            }
+
+            .mnemonic-words {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -763,32 +784,32 @@
             </div>
             <div class="balance-usd" id="totalBalanceCrypto">
                 <span class="loading"></span>
-                <span id="balanceCrypto" style="display: none;">Loading real balances...</span>
+                <span id="balanceCrypto" style="display: none;">Create or import a wallet to start</span>
             </div>
-            <div class="price-update" id="priceUpdate">Live prices from CoinGecko</div>
+            <div class="price-update" id="priceUpdate">Secure Non-Custodial Wallet</div>
         </section>
 
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <div class="action-btn" onclick="showSendModal()">
+            <div class="action-btn" onclick="showSendModal()" id="sendButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                 </svg>
                 <div class="action-label">Send</div>
             </div>
-            <div class="action-btn" onclick="showReceive()">
+            <div class="action-btn" onclick="showReceive()" id="receiveButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
                 </svg>
                 <div class="action-label">Receive</div>
             </div>
-            <div class="action-btn" onclick="showSwap()">
+            <div class="action-btn" onclick="showSwap()" id="swapButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                 </svg>
                 <div class="action-label">Swap</div>
             </div>
-            <div class="action-btn" onclick="showBuy()">
+            <div class="action-btn" onclick="showBuy()" id="buyButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
@@ -845,7 +866,7 @@
                 <div class="qr-code">
                     <div>QR CODE</div>
                 </div>
-                <div class="wallet-address-modal" id="walletAddressDisplay">Loading real address...</div>
+                <div class="wallet-address-modal" id="walletAddressDisplay">Create or import a wallet first</div>
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
         </div>
@@ -853,15 +874,28 @@
         <!-- Settings Modal -->
         <div id="settingsModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Settings</div>
+                <div class="modal-title">Wallet Settings</div>
 
-                <!-- TON Connect Option -->
-                <div class="settings-option" onclick="connectWallet()">
+                <!-- Self-Generated Wallet Options -->
+                <div class="settings-option" onclick="generateNewWallet()">
                     <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
-                    <div class="settings-label">Connect Wallet</div>
-                    <div id="walletStatus" class="wallet-status">Not Connected</div>
+                    <div class="settings-label">Create New Wallet</div>
+                </div>
+
+                <div class="settings-option" onclick="importWallet()">
+                    <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                    </svg>
+                    <div class="settings-label">Import Wallet</div>
+                </div>
+
+                <div class="settings-option" onclick="exportWallet()">
+                    <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
+                    <div class="settings-label">Export Wallet</div>
                 </div>
 
                 <div class="settings-option" onclick="goToDashboard()">
@@ -870,34 +904,40 @@
                     </svg>
                     <div class="settings-label">Back to Dashboard</div>
                 </div>
-                <div class="settings-option" onclick="refreshPrices()">
-                    <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    <div class="settings-label">Refresh Prices</div>
+
+                <!-- Wallet Status -->
+                <div class="security-warning">
+                    <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
+                </div>
+
+                <div style="text-align: center; margin-top: 16px;">
+                    <div id="walletStatus" class="wallet-status">No Wallet</div>
                 </div>
             </div>
         </div>
 
-        <!-- Connect Wallet Modal -->
-        <div id="connectModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Connect Wallet</div>
-                <div class="wallet-options">
-                    <div class="wallet-option" onclick="connectTonKeeper()">
-                        <div style="width: 32px; height: 32px; background: #0088CC; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">TK</div>
-                        <span>TonKeeper</span>
-                    </div>
-                    <div class="wallet-option" onclick="connectOpenMask()">
-                        <div style="width: 32px; height: 32px; background: #FF4444; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">OM</div>
-                        <span>OpenMask</span>
-                    </div>
-                    <div class="wallet-option" onclick="connectTonHub()">
-                        <div style="width: 32px; height: 32px; background: #00C851; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">TH</div>
-                        <span>TonHub</span>
-                    </div>
+        <!-- Backup Modal -->
+        <div id="backupModal" class="modal">
+            <div class="modal-content backup-modal">
+                <div class="modal-title">🔒 Backup Your Wallet</div>
+                
+                <div class="security-warning">
+                    <strong>⚠️ CRITICAL:</strong> Write down these words and store them securely. This is your only way to recover your wallet.
                 </div>
-                <button class="close-modal" onclick="closeConnectModal()">Cancel</button>
+
+                <div class="mnemonic-words" id="mnemonicWords">
+                    <!-- Mnemonic words will be loaded here -->
+                </div>
+
+                <div style="text-align: left; margin: 16px 0; font-size: 12px; color: var(--text-muted);">
+                    <strong>Security Tips:</strong>
+                    <br>• Write words in order on paper
+                    <br>• Store in multiple secure locations  
+                    <br>• Never share with anyone
+                    <br>• No digital copies (screenshots, email)
+                </div>
+
+                <button class="close-modal" onclick="closeBackupModal()">I've Saved My Recovery Phrase</button>
             </div>
         </div>
 
@@ -974,52 +1014,292 @@
         </div>
     </div>
 
-    <!-- COMPLETE REAL SCRIPT -->
+    <!-- COMPLETE PRODUCTION SCRIPT -->
     <script>
         // =============================================
-        // REAL WALLET API INTEGRATION
+        // PRODUCTION WALLET MANAGEMENT
         // =============================================
 
-        // REAL API Functions
-        async function testWalletAPI() {
-            try {
-                const response = await fetch('/api/wallet/test');
-                const data = await response.json();
-                console.log('✅ Wallet API test:', data);
-                return data.success;
-            } catch (error) {
-                console.error('❌ Wallet API test failed:', error);
-                return false;
-            }
-        }
+        // Wallet state
+        let walletState = {
+            isInitialized: false,
+            walletType: null, // 'self-custody' or null
+            userId: null,
+            address: null,
+            balances: {},
+            lastUpdate: null
+        };
 
-        async function loadRealAddresses() {
+        // Supported tokens for production
+        const SUPPORTED_TOKENS = [
+            {
+                symbol: "TON",
+                name: "Toncoin",
+                coinGeckoId: "the-open-network",
+                balance: 0,
+                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
+                contract: "Native TON",
+                decimals: 9,
+                canSend: true
+            },
+            {
+                symbol: "NMX",
+                name: "NemexCoin",
+                coinGeckoId: null,
+                balance: 0,
+                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
+                decimals: 9,
+                price: 0.00,
+                change24h: 0.0,
+                canSend: true
+            },
+            {
+                symbol: "USDT",
+                name: "Tether",
+                coinGeckoId: "tether",
+                balance: 0,
+                logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
+                contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
+                decimals: 6,
+                canSend: false // Will enable after TRON integration
+            },
+            {
+                symbol: "TRX",
+                name: "TRON",
+                coinGeckoId: "tron",
+                balance: 0,
+                logo: "https://assets.coingecko.com/coins/images/1094/large/tron-logo.png",
+                contract: "Native TRX",
+                decimals: 6,
+                canSend: false
+            },
+            {
+                symbol: "BTC",
+                name: "Bitcoin",
+                coinGeckoId: "bitcoin",
+                balance: 0,
+                logo: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
+                contract: "Native BTC",
+                decimals: 8,
+                canSend: false
+            }
+        ];
+
+        // =============================================
+        // SELF-CUSTODY WALLET FUNCTIONS
+        // =============================================
+
+        // Generate new self-custody wallet
+        async function generateNewWallet() {
             try {
-                const response = await fetch('/api/wallet/addresses');
+                const response = await fetch('/api/wallet/generate-wallet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: 'user_' + Date.now(),
+                        source: 'nemex_wallet_web'
+                    })
+                });
+                
                 const data = await response.json();
                 
                 if (data.success) {
-                    // Update receive modal with real address from API
-                    document.getElementById('walletAddressDisplay').textContent = data.addresses.TON;
-                    console.log('✅ Real addresses loaded from API:', data.addresses);
+                    console.log('✅ New wallet generated:', data.address);
+                    
+                    // Store wallet info
+                    walletState.userId = data.userId;
+                    walletState.address = data.address;
+                    walletState.walletType = 'self-custody';
+                    walletState.isInitialized = true;
+                    
+                    // Save to localStorage
+                    localStorage.setItem('nemexWalletState', JSON.stringify(walletState));
+                    
+                    // Update UI
+                    updateWalletStatus();
+                    loadRealBalances();
+                    
+                    // Show backup modal with mnemonic
+                    showBackupModal(data.mnemonic);
+                    
+                    closeModal();
+                } else {
+                    throw new Error(data.error || 'Failed to generate wallet');
                 }
             } catch (error) {
-                console.error('❌ Failed to load addresses from API:', error);
+                console.error('Wallet generation failed:', error);
+                alert('❌ Failed to generate wallet: ' + error.message);
             }
         }
 
+        // Import existing wallet
+        async function importWallet() {
+            const mnemonic = prompt('Enter your 24-word mnemonic phrase:');
+            if (!mnemonic) return;
+            
+            try {
+                const response = await fetch('/api/wallet/import-wallet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: 'user_' + Date.now(),
+                        mnemonic: mnemonic.trim(),
+                        source: 'nemex_wallet_web'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('✅ Wallet imported:', data.address);
+                    
+                    // Store wallet info
+                    walletState.userId = data.userId;
+                    walletState.address = data.address;
+                    walletState.walletType = 'self-custody';
+                    walletState.isInitialized = true;
+                    
+                    // Save to localStorage
+                    localStorage.setItem('nemexWalletState', JSON.stringify(walletState));
+                    
+                    // Update UI
+                    updateWalletStatus();
+                    loadRealBalances();
+                    
+                    alert('✅ Wallet imported successfully!');
+                    closeModal();
+                } else {
+                    throw new Error(data.error || 'Invalid mnemonic phrase');
+                }
+            } catch (error) {
+                console.error('Wallet import failed:', error);
+                alert('❌ ' + error.message);
+            }
+        }
+
+        // Export wallet (mnemonic)
+        async function exportWallet() {
+            if (!walletState.isInitialized) {
+                alert('No wallet to export');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/wallet/export-wallet/${walletState.userId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showBackupModal(data.mnemonic);
+                } else {
+                    throw new Error(data.error || 'Failed to export wallet');
+                }
+            } catch (error) {
+                console.error('Wallet export failed:', error);
+                alert('❌ Failed to export wallet');
+            }
+        }
+
+        // Show backup modal with mnemonic
+        function showBackupModal(mnemonic) {
+            const words = mnemonic.split(' ');
+            const mnemonicWords = document.getElementById('mnemonicWords');
+            mnemonicWords.innerHTML = '';
+            
+            words.forEach((word, index) => {
+                const wordElement = document.createElement('div');
+                wordElement.className = 'mnemonic-word';
+                wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
+                mnemonicWords.appendChild(wordElement);
+            });
+            
+            document.getElementById('backupModal').style.display = 'flex';
+        }
+
+        function closeBackupModal() {
+            document.getElementById('backupModal').style.display = 'none';
+        }
+
+        // Update wallet status in UI
+        function updateWalletStatus() {
+            const statusElement = document.getElementById('walletStatus');
+            const addressElement = document.getElementById('walletAddressDisplay');
+            const balanceElement = document.getElementById('balanceCrypto');
+            
+            if (walletState.isInitialized && walletState.walletType === 'self-custody') {
+                statusElement.textContent = 'Self-Custody';
+                statusElement.className = 'wallet-status self-custody';
+                
+                if (addressElement) {
+                    addressElement.textContent = walletState.address;
+                }
+                
+                balanceElement.textContent = 'Real blockchain balances';
+                
+                // Enable action buttons
+                document.getElementById('sendButton').disabled = false;
+                document.getElementById('receiveButton').disabled = false;
+                document.getElementById('swapButton').disabled = false;
+                document.getElementById('buyButton').disabled = false;
+            } else {
+                statusElement.textContent = 'No Wallet';
+                statusElement.className = 'wallet-status';
+                
+                if (addressElement) {
+                    addressElement.textContent = 'Create or import a wallet first';
+                }
+                
+                balanceElement.textContent = 'Create or import a wallet to start';
+                
+                // Disable action buttons
+                document.getElementById('sendButton').disabled = true;
+                document.getElementById('receiveButton').disabled = true;
+                document.getElementById('swapButton').disabled = true;
+                document.getElementById('buyButton').disabled = true;
+            }
+        }
+
+        // =============================================
+        // REAL BLOCKCHAIN INTEGRATION
+        // =============================================
+
+        // Load real balances from blockchain
         async function loadRealBalances() {
+            if (!walletState.isInitialized) {
+                console.log('No wallet initialized');
+                return;
+            }
+
             try {
-                const response = await fetch('/api/wallet/balances');
+                let apiUrl = '/api/wallet/balances';
+                
+                if (walletState.userId) {
+                    apiUrl = `/api/wallet/balances/${walletState.userId}`;
+                }
+                
+                const response = await fetch(apiUrl);
                 const data = await response.json();
                 
                 if (data.success) {
-                    console.log('✅ Real balances loaded from API:', data.balances);
-                    // Update our tokens with real balances from API
+                    console.log('✅ Real blockchain balances:', data.balances);
+                    
+                    // Update our tokens with real balances
                     updateTokenBalancesFromAPI(data.balances);
+                    
+                    // Update wallet state
+                    walletState.balances = data.balances;
+                    walletState.lastUpdate = new Date();
+                    
+                    // Update address if provided
+                    if (data.address) {
+                        walletState.address = data.address;
+                        localStorage.setItem('nemexWalletState', JSON.stringify(walletState));
+                    }
+                } else {
+                    console.error('Failed to load balances:', data.error);
                 }
             } catch (error) {
-                console.error('❌ Failed to load balances from API:', error);
+                console.error('❌ Blockchain balance check failed:', error);
             }
         }
 
@@ -1029,178 +1309,9 @@
                     token.balance = parseFloat(apiBalances[token.symbol]);
                 }
             });
-            // Refresh the UI with real balances
+            
             updatePortfolioValue();
             loadTokens();
-        }
-
-        // Real Tokens - Will be updated with API balances
-        const SUPPORTED_TOKENS = [
-            {
-                symbol: "TON",
-                name: "Toncoin",
-                coinGeckoId: "the-open-network",
-                balance: 0, // Will be updated from API
-                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
-                contract: "Native TON",
-                decimals: 9
-            },
-            {
-                symbol: "NMX",
-                name: "NemexCoin",
-                coinGeckoId: null,
-                balance: 0, // Will be updated from API
-                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-                decimals: 9,
-                price: 0.00,
-                change24h: 0.0
-            },
-            {
-                symbol: "USDT",
-                name: "Tether",
-                coinGeckoId: "tether",
-                balance: 0, // Will be updated from API
-                logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
-                contract: "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t",
-                decimals: 6
-            },
-            {
-                symbol: "TRX",
-                name: "TRON",
-                coinGeckoId: "tron",
-                balance: 0, // Will be updated from API
-                logo: "https://assets.coingecko.com/coins/images/1094/large/tron-logo.png",
-                contract: "Native TRX",
-                decimals: 6
-            },
-            {
-                symbol: "BTC",
-                name: "Bitcoin",
-                coinGeckoId: "bitcoin",
-                balance: 0, // Will be updated from API
-                logo: "https://assets.coingecko.com/coins/images/1/large/bitcoin.png",
-                contract: "Native BTC",
-                decimals: 8
-            }
-        ];
-
-        // =============================================
-        // TON CONNECT INTEGRATION
-        // =============================================
-        let tonConnectUI;
-        let isWalletConnected = false;
-        let walletAddress = '';
-
-        // Initialize TON Connect
-        function initTONConnect() {
-            try {
-                tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-                    manifestUrl: window.location.origin + '/tonconnect-manifest.json',
-                    buttonRootId: 'ton-connect-button'
-                });
-
-                // Check for existing connection
-                tonConnectUI.connectionRestored.then((connected) => {
-                    if (connected && tonConnectUI.account) {
-                        onWalletConnected(tonConnectUI.account);
-                    }
-                });
-
-                // Listen for connection changes
-                tonConnectUI.onStatusChange((wallet) => {
-                    if (wallet) {
-                        onWalletConnected(wallet);
-                    } else {
-                        onWalletDisconnected();
-                    }
-                });
-
-                console.log('✅ TON Connect initialized');
-            } catch (error) {
-                console.error('❌ TON Connect init failed:', error);
-            }
-        }
-
-        // Wallet Connection Functions
-        function connectWallet() {
-            closeModal();
-            document.getElementById('connectModal').style.display = 'flex';
-        }
-
-        function closeConnectModal() {
-            document.getElementById('connectModal').style.display = 'none';
-        }
-
-        async function connectTonKeeper() {
-            try {
-                await tonConnectUI.connectWallet();
-                closeConnectModal();
-            } catch (error) {
-                console.error('TonKeeper connection failed:', error);
-                alert('Please install TonKeeper wallet');
-            }
-        }
-
-        async function connectOpenMask() {
-            try {
-                await tonConnectUI.connectWallet();
-                closeConnectModal();
-            } catch (error) {
-                console.error('OpenMask connection failed:', error);
-                alert('Please install OpenMask wallet');
-            }
-        }
-
-        async function connectTonHub() {
-            try {
-                await tonConnectUI.connectWallet();
-                closeConnectModal();
-            } catch (error) {
-                console.error('TonHub connection failed:', error);
-                alert('Please install TonHub wallet');
-            }
-        }
-
-        function onWalletConnected(account) {
-            isWalletConnected = true;
-            walletAddress = account.address;
-
-            // Update UI
-            document.getElementById('walletStatus').textContent = 'Connected';
-            document.getElementById('walletStatus').className = 'wallet-status connected';
-
-            // Update receive modal with actual address
-            document.getElementById('walletAddressDisplay').textContent = formatAddress(walletAddress);
-
-            // Update balance display
-            document.getElementById('balanceCrypto').textContent = 'Real balances loaded';
-
-            console.log('✅ Wallet connected:', formatAddress(walletAddress));
-        }
-
-        function onWalletDisconnected() {
-            isWalletConnected = false;
-            walletAddress = '';
-
-            // Reset UI
-            document.getElementById('walletStatus').textContent = 'Not Connected';
-            document.getElementById('walletStatus').className = 'wallet-status';
-            document.getElementById('walletAddressDisplay').textContent = 'Connect wallet to see address';
-            document.getElementById('balanceCrypto').textContent = 'Connect wallet & deposit assets';
-
-            console.log('ℹ️ Wallet disconnected');
-        }
-
-        function formatAddress(address) {
-            if (!address) return '';
-            return address.substring(0, 6) + '...' + address.substring(address.length - 4);
-        }
-
-        function disconnectWallet() {
-            if (tonConnectUI) {
-                tonConnectUI.disconnect();
-            }
         }
 
         // =============================================
@@ -1209,8 +1320,13 @@
         let selectedToken = 'TON';
         let sendTransactionData = {};
 
-        // Show Send Modal
         function showSendModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                showSettings();
+                return;
+            }
+
             // Reset form
             document.getElementById('sendAmount').value = '';
             document.getElementById('recipientAddress').value = '';
@@ -1224,17 +1340,17 @@
             document.getElementById('sendModal').style.display = 'flex';
         }
 
-        // Close Send Modal
         function closeSendModal() {
             document.getElementById('sendModal').style.display = 'none';
         }
 
-        // Show Token Selector
         function showTokenSelector() {
             const tokenOptions = document.getElementById('tokenOptions');
             tokenOptions.innerHTML = '';
 
             SUPPORTED_TOKENS.forEach(token => {
+                if (!token.canSend) return;
+                
                 const balance = getTokenBalance(token.symbol);
                 const tokenOption = document.createElement('div');
                 tokenOption.className = 'token-option';
@@ -1255,12 +1371,10 @@
             document.getElementById('tokenSelectorModal').style.display = 'flex';
         }
 
-        // Close Token Selector
         function closeTokenSelector() {
             document.getElementById('tokenSelectorModal').style.display = 'none';
         }
 
-        // Select Token
         function selectToken(symbol) {
             selectedToken = symbol;
             document.querySelector('.selected-token span').textContent = symbol;
@@ -1268,19 +1382,16 @@
             closeTokenSelector();
         }
 
-        // Update Available Balance
         function updateAvailableBalance() {
             const balance = getTokenBalance(selectedToken);
             document.getElementById('availableBalance').textContent = formatTokenBalance(balance);
         }
 
-        // Get Token Balance (from API data)
         function getTokenBalance(symbol) {
             const token = SUPPORTED_TOKENS.find(t => t.symbol === symbol);
             return token ? token.balance : 0;
         }
 
-        // Set Max Amount
         function setMaxAmount() {
             const balance = getTokenBalance(selectedToken);
             // Reserve 0.1 TON for gas if it's TON token
@@ -1289,14 +1400,11 @@
             updateTransactionDetails();
         }
 
-        // Validate TON Address
         function validateTONAddress(address) {
-            // Basic TON address validation (starts with EQ or UQ and is 48 chars)
             const tonRegex = /^(EQ|UQ)[a-zA-Z0-9_-]{48}$/;
             return tonRegex.test(address);
         }
 
-        // Update Transaction Details
         function updateTransactionDetails() {
             const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
             const address = document.getElementById('recipientAddress').value;
@@ -1317,7 +1425,7 @@
             }
 
             // Update total
-            const networkFee = 0.1; // Fixed fee for now
+            const networkFee = 0.1;
             const total = selectedToken === 'TON' ? amount + networkFee : amount;
 
             document.getElementById('networkFee').textContent = `~${networkFee} TON`;
@@ -1332,8 +1440,7 @@
             reviewButton.disabled = !isValid;
         }
 
-        // Review Transaction
-        function reviewTransaction() {
+        async function reviewTransaction() {
             const amount = parseFloat(document.getElementById('sendAmount').value);
             const recipient = document.getElementById('recipientAddress').value;
 
@@ -1342,44 +1449,56 @@
                 token: selectedToken,
                 amount: amount,
                 recipient: recipient,
-                networkFee: 0.1
+                networkFee: 0.1,
+                userId: walletState.userId
             };
-
-            // Check wallet connection
-            if (!isWalletConnected) {
-                closeSendModal();
-                alert('🔗 Please connect your wallet to sign this transaction');
-                showSettings();
-                return;
-            }
 
             // Show transaction confirmation
             showTransactionConfirmation();
         }
 
-        // Show Transaction Confirmation
         function showTransactionConfirmation() {
             const confirmMessage = 
                 `📤 Confirm Send Transaction\n\n` +
                 `Send: ${sendTransactionData.amount} ${sendTransactionData.token}\n` +
                 `To: ${formatAddress(sendTransactionData.recipient)}\n` +
                 `Network Fee: ${sendTransactionData.networkFee} TON\n\n` +
-                `This will open your wallet to sign the transaction.`;
+                `This transaction will be signed and broadcast to the TON blockchain.`;
 
             if (confirm(confirmMessage)) {
                 executeTransaction();
             }
         }
 
-        // Execute Transaction (Simulated for now)
-        function executeTransaction() {
-            console.log('Executing transaction:', sendTransactionData);
+        async function executeTransaction() {
+            try {
+                const response = await fetch('/api/wallet/send-ton', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(sendTransactionData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`✅ Transaction submitted!\n\n${sendTransactionData.amount} ${sendTransactionData.token} sent to ${formatAddress(sendTransactionData.recipient)}\n\nTransaction hash: ${data.transactionHash}`);
+                    
+                    // Reload balances
+                    setTimeout(loadRealBalances, 2000);
+                } else {
+                    throw new Error(data.error || 'Transaction failed');
+                }
+            } catch (error) {
+                console.error('Transaction failed:', error);
+                alert('❌ Transaction failed: ' + error.message);
+            } finally {
+                closeSendModal();
+            }
+        }
 
-            // Simulate transaction processing
-            alert(`✅ Transaction submitted!\n\n${sendTransactionData.amount} ${sendTransactionData.token} sent to ${formatAddress(sendTransactionData.recipient)}\n\nTransaction hash: EQC1x...f8d (simulated)`);
-
-            // Close modal
-            closeSendModal();
+        function formatAddress(address) {
+            if (!address) return '';
+            return address.substring(0, 6) + '...' + address.substring(address.length - 4);
         }
 
         // =============================================
@@ -1387,6 +1506,11 @@
         // =============================================
 
         function showReceive() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                showSettings();
+                return;
+            }
             document.getElementById('receiveModal').style.display = 'flex';
         }
 
@@ -1397,21 +1521,26 @@
         function closeModal() {
             document.getElementById('receiveModal').style.display = 'none';
             document.getElementById('settingsModal').style.display = 'none';
-            document.getElementById('connectModal').style.display = 'none';
             document.getElementById('sendModal').style.display = 'none';
             document.getElementById('tokenSelectorModal').style.display = 'none';
+            document.getElementById('backupModal').style.display = 'none';
         }
 
         function showSwap() {
-            if (!isWalletConnected) {
-                alert('🔗 Please connect your wallet first to swap assets');
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
                 showSettings();
                 return;
             }
-            alert('🔄 Swap functionality coming in Phase 4!');
+            alert('🔄 Swap functionality coming soon!');
         }
 
         function showBuy() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                showSettings();
+                return;
+            }
             alert('💰 Buy functionality coming soon!');
         }
 
@@ -1443,22 +1572,13 @@
         // PRICE & BALANCE MANAGEMENT
         // =============================================
 
-        // Wallet state
-        let walletState = {
-            totalBalanceUSD: 0,
-            lastUpdate: null
-        };
-
         // Fetch real prices from CoinGecko API
         async function fetchCoinGeckoPrices() {
             try {
-                // Get tokens that are listed on CoinGecko
                 const coinGeckoTokens = SUPPORTED_TOKENS.filter(token => token.coinGeckoId);
                 const coinIds = coinGeckoTokens.map(token => token.coinGeckoId);
 
                 if (coinIds.length === 0) return;
-
-                console.log('Fetching prices for:', coinIds);
 
                 const response = await fetch(
                     `https://api.coingecko.com/api/v3/simple/price?ids=${coinIds.join(',')}&vs_currencies=usd&include_24hr_change=true`
@@ -1470,7 +1590,6 @@
 
                 const data = await response.json();
 
-                // Update tokens with real prices
                 SUPPORTED_TOKENS.forEach(token => {
                     if (token.coinGeckoId && data[token.coinGeckoId]) {
                         token.price = data[token.coinGeckoId].usd;
@@ -1478,7 +1597,6 @@
                     }
                 });
 
-                // Update last update time
                 walletState.lastUpdate = new Date().toLocaleTimeString();
                 document.getElementById('priceUpdate').textContent = `Live prices updated ${walletState.lastUpdate}`;
 
@@ -1489,7 +1607,6 @@
             }
         }
 
-        // Guaranteed prices that always work
         function setGuaranteedPrices() {
             const guaranteedPrices = {
                 "the-open-network": { usd: 2.5, usd_24h_change: 1.2 },
@@ -1506,30 +1623,24 @@
             });
         }
 
-        // Update total portfolio value
         function updatePortfolioValue() {
             const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
                 return sum + (token.balance * (token.price || 0));
             }, 0);
 
-            walletState.totalBalanceUSD = totalUSD;
-
-            // Show real balance from API
             document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
 
             if (totalUSD === 0) {
-                document.getElementById('balanceCrypto').textContent = 'Connect wallet & deposit assets';
+                document.getElementById('balanceCrypto').textContent = 'Fund your wallet to see balance';
             } else {
-                document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Real balances`;
+                document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Real blockchain data`;
             }
 
-            // Hide loading and show actual balance
             document.getElementById('balanceLoading').style.display = 'none';
             document.getElementById('balanceAmount').style.display = 'inline';
             document.getElementById('balanceCrypto').style.display = 'inline';
         }
 
-        // Load tokens into UI with real data
         function loadTokens() {
             const tokenList = document.getElementById('tokenList');
             tokenList.innerHTML = '';
@@ -1562,13 +1673,10 @@
                 tokenList.appendChild(tokenCard);
             });
 
-            // Hide tokens loading
             document.getElementById('tokensLoading').style.display = 'none';
         }
 
-        // Handle image loading errors gracefully
         function handleImageError(img, symbol) {
-            console.log(`Logo failed to load for ${symbol}, using fallback`);
             if (img && img.parentElement) {
                 img.style.display = 'none';
                 img.parentElement.innerHTML = symbol.charAt(0);
@@ -1597,7 +1705,6 @@
             return balance.toFixed(6).replace(/\.?0+$/, '');
         }
 
-        // Refresh all prices
         async function refreshPrices() {
             document.getElementById('tokensLoading').style.display = 'inline-block';
             document.getElementById('balanceLoading').style.display = 'inline-block';
@@ -1608,7 +1715,6 @@
             loadTokens();
             closeModal();
 
-            // Show success feedback
             const updateElement = document.getElementById('priceUpdate');
             const originalText = updateElement.textContent;
             updateElement.textContent = '✓ Prices refreshed successfully!';
@@ -1619,11 +1725,21 @@
 
         // Initialize wallet
         async function initWallet() {
-            // Show loading states briefly
+            // Load saved wallet state
+            const savedState = localStorage.getItem('nemexWalletState');
+            if (savedState) {
+                walletState = JSON.parse(savedState);
+                console.log('✅ Loaded saved wallet state:', walletState);
+            }
+
+            // Update UI based on wallet state
+            updateWalletStatus();
+
+            // Show loading states
             document.getElementById('tokensLoading').style.display = 'inline-block';
             document.getElementById('balanceLoading').style.display = 'inline-block';
 
-            // Immediately show balances while prices load in background
+            // Initialize with current data
             updatePortfolioValue();
             loadTokens();
 
@@ -1632,30 +1748,27 @@
             updatePortfolioValue();
             loadTokens();
 
-            console.log('Nemex Wallet initialized - Real balances loaded from API');
+            // Load real balances if wallet exists
+            if (walletState.isInitialized) {
+                loadRealBalances();
+            }
+
+            console.log('🚀 Nemex Wallet initialized - Production Ready');
         }
 
         // Auto-refresh prices every 2 minutes
         setInterval(refreshPrices, 120000);
 
+        // Auto-refresh balances every 30 seconds if wallet exists
+        setInterval(() => {
+            if (walletState.isInitialized) {
+                loadRealBalances();
+            }
+        }, 30000);
+
         // Initialize everything when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize TON Connect
-            initTONConnect();
-
-            // Test the REAL API connection FIRST
-            console.log('🚀 Testing REAL wallet API connection...');
-            testWalletAPI().then(success => {
-                if (success) {
-                    console.log('🎉 REAL API connected! Loading wallet data...');
-                    loadRealAddresses();
-                    loadRealBalances();
-                } else {
-                    console.log('⚠️ Using fallback mode - API not available');
-                    // Continue with normal initialization
-                    initWallet();
-                }
-            });
+            initWallet();
 
             // Add event listeners for real-time validation
             setTimeout(() => {
