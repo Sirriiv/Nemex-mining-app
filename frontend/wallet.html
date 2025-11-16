@@ -446,229 +446,268 @@
             color: var(--gold);
         }
 
-        /* Send Modal Styles */
-        .send-section {
-            margin-bottom: 20px;
-        }
+        /* Send Modal - PERFECT SIZE & POSITION */
+#sendModal .modal-content {
+    background: var(--card-bg);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    width: 90%;
+    max-width: 380px; /* Perfect width */
+    text-align: center;
+    box-shadow: var(--shadow);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-height: 85vh;
+    overflow-y: auto;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
 
-        .send-label {
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
+/* Make sure modal backdrop covers entire screen */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
 
-        .token-selector {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius-sm);
-            cursor: pointer;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
+/* Send sections - better spacing */
+.send-section {
+    margin-bottom: 20px;
+}
 
-        .token-selector:hover {
-            background: rgba(212, 175, 55, 0.1);
-        }
+.send-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+    text-align: left;
+}
 
-        .selected-token {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+/* Token selector improvements */
+.token-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
 
-        .token-icon-small {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-        }
+.token-selector:hover {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: var(--gold);
+}
 
-        .amount-input-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
+.selected-token {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
-        .amount-input {
-            flex: 1;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--border-radius-sm);
-            color: var(--text);
-            font-size: 16px;
-            font-family: 'Courier New', monospace;
-        }
+.token-icon-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
 
-        .amount-input:focus {
-            outline: none;
-            border-color: var(--gold);
-        }
+/* Amount input container */
+.amount-input-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
 
-        .max-button {
-            padding: 8px 12px;
-            background: rgba(212, 175, 55, 0.1);
-            color: var(--gold);
-            border: 1px solid var(--gold);
-            border-radius: 8px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+.amount-input {
+    flex: 1;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-sm);
+    color: var(--text);
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+}
 
-        .max-button:hover {
-            background: var(--gold);
-            color: var(--dark-bg);
-        }
+.amount-input:focus {
+    outline: none;
+    border-color: var(--gold);
+}
 
-        .balance-display {
-            font-size: 12px;
-            color: var(--text-muted);
-            text-align: right;
-        }
+.max-button {
+    padding: 8px 12px;
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
 
-        .address-input {
-            width: 100%;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--border-radius-sm);
-            color: var(--text);
-            font-size: 14px;
-            font-family: 'Courier New', monospace;
-        }
+.max-button:hover {
+    background: var(--gold);
+    color: var(--dark-bg);
+}
 
-        .address-input:focus {
-            outline: none;
-            border-color: var(--gold);
-        }
+.balance-display {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+}
 
-        .address-validation {
-            font-size: 12px;
-            margin-top: 4px;
-            min-height: 16px;
-        }
+.address-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-sm);
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+}
 
-        .address-validation.valid {
-            color: var(--success);
-        }
+.address-input:focus {
+    outline: none;
+    border-color: var(--gold);
+}
 
-        .address-validation.invalid {
-            color: var(--error);
-        }
+.address-validation {
+    font-size: 12px;
+    margin-top: 4px;
+    min-height: 16px;
+}
 
-        .transaction-details {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius-sm);
-            padding: 16px;
-            margin: 20px 0;
-        }
+.address-validation.valid {
+    color: var(--success);
+}
 
-        .detail-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
+.address-validation.invalid {
+    color: var(--error);
+}
 
-        .detail-row:last-child {
-            margin-bottom: 0;
-            font-weight: 600;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 8px;
-        }
+.transaction-details {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    padding: 16px;
+    margin: 20px 0;
+}
 
-        .send-actions {
-            display: flex;
-            gap: 12px;
-        }
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
 
-        .cancel-button {
-            flex: 1;
-            padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--border-radius-sm);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+.detail-row:last-child {
+    margin-bottom: 0;
+    font-weight: 600;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 8px;
+}
 
-        .cancel-button:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
+.send-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
 
-        .review-button {
-            flex: 1;
-            padding: 12px 24px;
-            background: var(--gold);
-            color: var(--dark-bg);
-            border: none;
-            border-radius: var(--border-radius-sm);
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+.cancel-button {
+    flex: 1;
+    padding: 12px 24px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
 
-        .review-button:hover:not(:disabled) {
-            background: var(--gold-light);
-        }
+.cancel-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
 
-        .review-button:disabled {
-            background: rgba(212, 175, 55, 0.3);
-            cursor: not-allowed;
-        }
+.review-button {
+    flex: 1;
+    padding: 12px 24px;
+    background: var(--gold);
+    color: var(--dark-bg);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
 
-        /* Token Options */
-        .token-options {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin: 20px 0;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+.review-button:hover:not(:disabled) {
+    background: var(--gold-light);
+    transform: translateY(-1px);
+}
 
-        .token-option {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius-sm);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+.review-button:disabled {
+    background: rgba(212, 175, 55, 0.3);
+    cursor: not-allowed;
+}
 
-        .token-option:hover {
-            background: rgba(212, 175, 55, 0.1);
-        }
+/* Token Options */
+.token-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 20px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
 
-        .token-option-info {
-            flex: 1;
-        }
+.token-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
 
-        .token-option-name {
-            font-weight: 600;
-            font-size: 14px;
-        }
+.token-option:hover {
+    background: rgba(212, 175, 55, 0.1);
+}
 
-        .token-option-balance {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
+.token-option-info {
+    flex: 1;
+}
+
+.token-option-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.token-option-balance {
+    font-size: 12px;
+    color: var(--text-muted);
+}
 
         /* Loading Animation */
         .loading {
