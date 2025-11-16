@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
-const { TonClient } = require("@ton/ton");
+const { TonClient } = require("ton");
 const { mnemonicToWalletKey } = require("@ton/crypto");
 const { WalletContractV4 } = require("@ton/ton");
 const crypto = require('crypto');
