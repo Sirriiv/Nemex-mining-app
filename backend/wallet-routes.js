@@ -271,32 +271,27 @@ router.get('/balances/:userId', async (req, res) => {
 });
 
 async function getNMXBalance(walletAddress) {
-    console.log('🔄 Fetching NMX balance...');
+    console.log('🔄 Fetching NMX balance using KNOWN contract...');
     
     try {
-        // ✅ USE THE SAME CONTRACT AS FRONTEND
-        const nmxContract = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
-        
-        console.log('🔧 Using NMX Contract:', nmxContract);
-        
         const response = await axios.get(`https://tonapi.io/v2/accounts/${walletAddress}/jettons`);
         
-        console.log('📊 Jettons found:', response.data.balances?.length || 0);
-        
         if (response.data.balances && response.data.balances.length > 0) {
-            // Find NMX by checking the master contract
+            // Use the EXACT contract address we know has your NMX
+            const nmxContract = "EQCD39VS5jcptHL8vMjEXrzGaRcCVYto7HUn4bpAOg8xqB2N";
+            
             const nmxJetton = response.data.balances.find(jetton => 
-                jetton.jetton.master?.address === nmxContract
+                jetton.jetton.address === nmxContract
             );
             
             if (nmxJetton) {
                 const balance = (nmxJetton.balance / Math.pow(10, nmxJetton.jetton.decimals || 9)).toFixed(2);
-                console.log('🎉 NMX BALANCE FOUND:', balance);
+                console.log('🎉 NMX FOUND BY CONTRACT! Balance:', balance);
                 return balance;
             } else {
-                console.log('❌ NMX not found. Available jettons:');
+                console.log('❌ NMX contract not found. Available contracts:');
                 response.data.balances.forEach(j => {
-                    console.log('   -', j.jetton.symbol, 'Master:', j.jetton.master?.address);
+                    console.log('   -', j.jetton.address);
                 });
             }
         }
