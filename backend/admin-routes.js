@@ -110,15 +110,6 @@ router.get('/users/:userId', checkAdmin, async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch user details' });
     }
 });
- =============================================
-// WALLET ROUTES INTEGRATION
-// =============================================
-const walletRoutes = require('./wallet-routes');
-
-// Mount wallet routes under /api/wallet
-app.use('/api/wallet', walletRoutes);
-
-console.log('✅ Wallet routes mounted at /api/wallet');
 
 
 module.exports = router;
