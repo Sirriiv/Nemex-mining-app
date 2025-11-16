@@ -767,18 +767,18 @@
             </div>
         </header>
 
- <!-- Balance Section - FIXED VERSION -->
-<section class="balance-section">
-    <div class="balance-label">Total Portfolio Value</div>
-    <div class="balance-amount" id="totalBalance">
-        <span class="loading" id="balanceLoading"></span>
-        <span id="balanceAmount" style="display: none;">$0.00</span>
-    </div>
-    <div class="balance-usd" id="totalBalanceCrypto">
-        <span class="loading"></span>
-        <span id="balanceCrypto" style="display: none;">Create or import a wallet to start</span>
-    </div>
-</section>
+        <!-- Balance Section - CLEAN BUT SHOWS REAL BALANCES -->
+        <section class="balance-section">
+            <div class="balance-label">Total Portfolio Value</div>
+            <div class="balance-amount" id="totalBalance">
+                <span class="loading" id="balanceLoading"></span>
+                <span id="balanceAmount" style="display: none;">$0.00</span>
+            </div>
+            <div class="balance-usd" id="totalBalanceCrypto">
+                <span class="loading"></span>
+                <span id="balanceCrypto" style="display: none;">Create or import a wallet to start</span>
+            </div>
+        </section>
 
         <!-- Action Buttons -->
         <div class="action-buttons">
@@ -1005,7 +1005,6 @@
         </div>
     </div>
 
-    <!-- UPDATED SCRIPT WITH CLEANER UI -->
     <script>
         // =============================================
         // PRODUCTION WALLET MANAGEMENT
@@ -1301,31 +1300,31 @@
         }
 
         // =============================================
-        // UI MANAGEMENT - CLEANER VERSION
+        // UI MANAGEMENT - FIXED TO SHOW REAL BALANCES
         // =============================================
 
         function updatePortfolioValue() {
-    const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
-        return sum + (token.balance * (token.price || 0));
-    }, 0);
+            const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
+                return sum + (token.balance * (token.price || 0));
+            }, 0);
 
-    // ✅ FIXED: Show REAL portfolio value, not just $0.00
-    document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
-    
-    // ✅ FIXED: Show dynamic text based on whether you have balances
-    if (totalUSD === 0 && walletState.isInitialized) {
-        document.getElementById('balanceCrypto').textContent = 'Fund your wallet to see balance';
-    } else if (totalUSD > 0) {
-        document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Real blockchain data`;
-    } else {
-        document.getElementById('balanceCrypto').textContent = 'Create or import a wallet to start';
-    }
+            // ✅ FIXED: Show REAL portfolio value, not just $0.00
+            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
+            
+            // ✅ FIXED: Show dynamic text based on whether you have balances
+            if (totalUSD === 0 && walletState.isInitialized) {
+                document.getElementById('balanceCrypto').textContent = 'Fund your wallet to see balance';
+            } else if (totalUSD > 0) {
+                document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Real blockchain data`;
+            } else {
+                document.getElementById('balanceCrypto').textContent = 'Create or import a wallet to start';
+            }
 
-    // Hide loading and show actual balance
-    document.getElementById('balanceLoading').style.display = 'none';
-    document.getElementById('balanceAmount').style.display = 'inline';
-    document.getElementById('balanceCrypto').style.display = 'inline';
-}
+            // Hide loading and show actual balance
+            document.getElementById('balanceLoading').style.display = 'none';
+            document.getElementById('balanceAmount').style.display = 'inline';
+            document.getElementById('balanceCrypto').style.display = 'inline';
+        }
 
         function loadTokens() {
             const tokenList = document.getElementById('tokenList');
@@ -1362,8 +1361,146 @@
             document.getElementById('tokensLoading').style.display = 'none';
         }
 
-        // Rest of the functions remain the same...
-        // [Previous send functionality, modal functions, etc.]
+        // Helper functions
+        function formatTokenBalance(balance) {
+            if (balance === 0) return '0.00';
+            if (balance < 0.0001) return balance.toExponential(2);
+            if (balance < 1) return balance.toFixed(4);
+            return balance.toFixed(2);
+        }
+
+        function formatTokenPrice(price) {
+            if (!price || price === 0) return '0.00';
+            if (price < 0.01) return price.toFixed(6);
+            if (price < 1) return price.toFixed(4);
+            return price.toFixed(2);
+        }
+
+        function handleImageError(img, symbol) {
+            img.style.display = 'none';
+            img.parentElement.innerHTML = symbol.charAt(0);
+        }
+
+        // Modal functions
+        function showSettings() {
+            document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function showReceive() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            document.getElementById('receiveModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        function showSendModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            document.getElementById('sendModal').style.display = 'flex';
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendModal').style.display = 'none';
+        }
+
+        function showSwap() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            alert('Swap functionality coming soon!');
+        }
+
+        function showBuy() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            alert('Buy functionality coming soon!');
+        }
+
+        function goToDashboard() {
+            window.location.href = '/dashboard.html';
+        }
+
+        // Send modal functions
+        function showTokenSelector() {
+            const tokenOptions = document.getElementById('tokenOptions');
+            tokenOptions.innerHTML = '';
+            
+            SUPPORTED_TOKENS.forEach(token => {
+                if (token.canSend) {
+                    const tokenOption = document.createElement('div');
+                    tokenOption.className = 'token-option';
+                    tokenOption.innerHTML = `
+                        <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                            <img src="${token.logo}" alt="${token.name}" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
+                        </div>
+                        <div class="token-option-info">
+                            <div class="token-option-name">${token.name}</div>
+                            <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
+                        </div>
+                    `;
+                    tokenOption.onclick = () => selectToken(token);
+                    tokenOptions.appendChild(tokenOption);
+                }
+            });
+            
+            document.getElementById('tokenSelectorModal').style.display = 'flex';
+        }
+
+        function selectToken(token) {
+            // Update selected token in send modal
+            const selectedToken = document.querySelector('.selected-token');
+            selectedToken.innerHTML = `
+                <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                    <img src="${token.logo}" alt="${token.name}" 
+                         onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
+                </div>
+                <span>${token.symbol}</span>
+            `;
+            
+            // Update available balance
+            document.getElementById('availableBalance').textContent = formatTokenBalance(token.balance);
+            
+            closeTokenSelector();
+        }
+
+        function closeTokenSelector() {
+            document.getElementById('tokenSelectorModal').style.display = 'none';
+        }
+
+        function setMaxAmount() {
+            const availableBalance = parseFloat(document.getElementById('availableBalance').textContent);
+            document.getElementById('sendAmount').value = availableBalance;
+        }
+
+        function reviewTransaction() {
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            const address = document.getElementById('recipientAddress').value;
+            
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+            
+            if (!address || !address.startsWith('EQ')) {
+                alert('Please enter a valid TON address');
+                return;
+            }
+            
+            alert(`Transaction Review:\n\nSend: ${amount} TON\nTo: ${address}\n\nConfirm transaction?`);
+        }
 
         // Initialize wallet
         async function initWallet() {
@@ -1390,7 +1527,7 @@
                 loadRealBalances();
             }
 
-            console.log('🚀 Nemex Wallet initialized - Clean UI Version');
+            console.log('🚀 Nemex Wallet initialized - Shows REAL Balances');
         }
 
         // Auto-refresh balances every 30 seconds if wallet exists
@@ -1405,7 +1542,14 @@
             initWallet();
         });
 
-        // [Include all the remaining helper functions from previous versions]
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
     </script>
 </body>
 </html>
