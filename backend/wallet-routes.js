@@ -29,10 +29,10 @@ router.get('/balances', (req, res) => {
     res.json({
         success: true,
         balances: {
-            TON: "12.45",
-            USDT: "450.25", 
-            BTC: "0.00542",
-            TRX: "1250.75"
+            TON: "0",
+            USDT: "0", 
+            BTC: "0",
+            TRX: "0"
         },
         message: "Real blockchain balances coming in Phase 2!"
     });
