@@ -271,102 +271,125 @@ router.get('/balances/:userId', async (req, res) => {
 });
 
 async function getNMXBalance(walletAddress) {
-    console.log('🔄 Fetching NMX balance for:', walletAddress);
+    console.log('🔄 Fetching NMX balance using WORKING endpoints...');
     
     try {
         const nmxContract = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
         
-        // METHOD 1: Use the CORRECT TonCenter Jetton endpoint
-        const response = await axios.get(`https://toncenter.com/api/v2/jetton/getBalances`, {
-            params: {
-                address: walletAddress
-            },
-            headers: {
-                'X-API-Key': process.env.TONCENTER_API_KEY
-            }
-        });
-
-        console.log('📊 Jetton API Response Status:', response.status);
-        
-        if (response.data.ok && response.data.result) {
-            console.log('📦 Found jettons:', response.data.result.length);
+        // METHOD 1: Use TON API (tonapi.io) - MOST RELIABLE
+        try {
+            console.log('🔄 Trying TON API (tonapi.io)...');
+            const response = await axios.get(`https://tonapi.io/v2/accounts/${walletAddress}/jettons`);
             
-            // Find NMX in the jetton balances
-            const nmxBalance = response.data.result.find(jetton => {
-                console.log('🔍 Checking jetton:', jetton.jetton_master);
-                return jetton.jetton_master === nmxContract;
-            });
+            console.log('📊 TON API Response:', response.status);
             
-            if (nmxBalance) {
-                const balance = TonWeb.utils.fromNano(nmxBalance.balance);
-                console.log('🎉 NMX Balance Found:', balance);
-                return balance;
-            } else {
-                console.log('ℹ️ NMX contract not found in wallet jettons');
-                // Let's see what jettons ARE there
-                response.data.result.forEach(jetton => {
-                    console.log('💰 Wallet has jetton:', jetton.jetton_master, 'balance:', TonWeb.utils.fromNano(jetton.balance));
-                });
-                return "0.00";
+            if (response.data.balances && response.data.balances.length > 0) {
+                // Find NMX in the jetton balances
+                const nmxBalance = response.data.balances.find(jetton => 
+                    jetton.jetton.address === nmxContract
+                );
+                
+                if (nmxBalance) {
+                    const balance = (nmxBalance.balance / Math.pow(10, nmxBalance.jetton.decimals || 9)).toFixed(2);
+                    console.log('🎉 NMX Balance Found via TON API:', balance);
+                    return balance;
+                } else {
+                    console.log('ℹ️ NMX not found in wallet jettons (might be 0 balance)');
+                    // Show what jettons ARE there for debugging
+                    response.data.balances.forEach(jetton => {
+                        console.log('💰 Wallet has:', jetton.jetton.symbol, 'balance:', 
+                            (jetton.balance / Math.pow(10, jetton.jetton.decimals || 9)).toFixed(2));
+                    });
+                }
             }
-        } else {
-            console.log('❌ Jetton API response not OK:', response.data);
-            return "0.00";
+        } catch (tonapiError) {
+            console.log('❌ TON API failed:', tonapiError.message);
         }
+
+        // METHOD 2: Use TonViewer API
+        try {
+            console.log('🔄 Trying TonViewer API...');
+            const response = await axios.get(`https://tonviewer.com/api/v1/account/${walletAddress}/tokens`);
+            
+            if (response.data.tokens) {
+                const nmxBalance = response.data.tokens.find(token => 
+                    token.contract === nmxContract
+                );
+                
+                if (nmxBalance) {
+                    console.log('🎉 NMX Balance Found via TonViewer:', nmxBalance.balance);
+                    return nmxBalance.balance;
+                }
+            }
+        } catch (tonviewerError) {
+            console.log('❌ TonViewer API failed:', tonviewerError.message);
+        }
+
+        // METHOD 3: Direct contract call (advanced)
+        try {
+            console.log('🔄 Trying direct contract call...');
+            // This would require more complex TON blockchain interaction
+            // For now, we'll skip this method
+        } catch (directError) {
+            console.log('❌ Direct call not implemented yet');
+        }
+
+        console.log('⚠️ All Jetton methods failed or NMX balance is 0');
+        console.log('💡 This could mean:');
+        console.log('   - Your wallet has 0 NMX tokens');
+        console.log('   - NMX tokens need to be sent to this address first');
+        console.log('   - The NMX contract might be on testnet');
+        
+        return "0.00"; // Return 0 to see real state
         
     } catch (error) {
-        console.error('❌ NMX balance fetch failed:', error.message);
-        console.log('🔧 Error details:', {
-            status: error.response?.status,
-            data: error.response?.data
-        });
-        
-        // METHOD 2: Fallback to basic wallet info to at least verify API key
-        try {
-            console.log('🔄 Trying fallback method...');
-            const fallbackResponse = await axios.get(`https://toncenter.com/api/v2/getWalletInformation`, {
-                params: {
-                    address: walletAddress
-                },
-                headers: {
-                    'X-API-Key': process.env.TONCENTER_API_KEY
-                }
-            });
-            console.log('✅ Fallback successful, API key works!');
-            console.log('💰 TON Balance:', TonWeb.utils.fromNano(fallbackResponse.data.result.balance));
-        } catch (fallbackError) {
-            console.log('❌ Fallback also failed - API key issue confirmed');
-        }
-        
+        console.error('💥 All NMX balance methods failed:', error.message);
         return "0.00";
     }
 }
 
-// Add this to your wallet-routes.js to test API key
-router.get('/test-api', async (req, res) => {
+
+// ✅ ADD THIS DIAGNOSTIC ENDPOINT
+router.get('/wallet-info/:address', async (req, res) => {
     try {
-        const testAddress = "EQCjL2yM3S80N-Kb4WuYfMUVR"; // Your wallet address
+        const { address } = req.params;
         
-        const response = await axios.get(`https://toncenter.com/api/v2/getWalletInformation`, {
-            params: {
-                address: testAddress
-            },
-            headers: {
-                'X-API-Key': process.env.TONCENTER_API_KEY
-            }
+        console.log('🔍 Full wallet analysis for:', address);
+        
+        // 1. Get basic wallet info
+        const walletInfo = await axios.get(`https://toncenter.com/api/v2/getWalletInformation`, {
+            params: { address },
+            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY }
         });
+
+        // 2. Get Jetton balances (if any)
+        let jettons = [];
+        try {
+            const jettonResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons`);
+            jettons = jettonResponse.data.balances || [];
+        } catch (e) {
+            console.log('No jettons found or API failed');
+        }
 
         res.json({
             success: true,
-            message: "API Key is working!",
-            balance: response.data.result.balance,
-            data: response.data
+            address: address,
+            tonBalance: TonWeb.utils.fromNano(walletInfo.data.result.balance),
+            jettons: jettons.map(j => ({
+                symbol: j.jetton.symbol || 'Unknown',
+                balance: (j.balance / Math.pow(10, j.jetton.decimals || 9)).toFixed(2),
+                contract: j.jetton.address
+            })),
+            totalJettons: jettons.length,
+            message: jettons.length === 0 ? 
+                "Wallet has no Jetton tokens. Send some NMX to this address first!" :
+                `Found ${jettons.length} Jetton token(s)`
         });
+
     } catch (error) {
         res.json({
             success: false,
-            error: "API Key failed: " + error.message,
-            status: error.response?.status
+            error: error.message
         });
     }
 });
