@@ -10,15 +10,18 @@ const TOKEN_CONFIGS = {
         type: "native"
     },
     NMX: {
-        symbol: "NMX",
-        name: "NemexCoin", 
-        coinGeckoId: null,
-        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-        decimals: 9,
-        type: "jetton",
-        customPrice: 0.00
-    },
+    symbol: "NMX",
+    name: "NemexCoin",
+    coinGeckoId: null,
+    balance: 0,
+    logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+    contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f", // ✅ PERFECT!
+    decimals: 9,
+    price: 0.10,
+    change24h: 0.0,
+    canSend: true,
+    isJetton: true
+}
     USDT: {
         symbol: "USDT",
         name: "Tether",
