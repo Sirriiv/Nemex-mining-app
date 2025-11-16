@@ -477,6 +477,230 @@
             font-size: 14px;
         }
 
+        /* Send Modal Styles */
+        .send-section {
+            margin-bottom: 20px;
+        }
+
+        .send-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .token-selector {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .token-selector:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .selected-token {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .token-icon-small {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .amount-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .amount-input {
+            flex: 1;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+            color: var(--text);
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .amount-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .max-button {
+            padding: 8px 12px;
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border: 1px solid var(--gold);
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .max-button:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
+        .balance-display {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        .address-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+            color: var(--text);
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .address-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+
+        .address-validation {
+            font-size: 12px;
+            margin-top: 4px;
+            min-height: 16px;
+        }
+
+        .address-validation.valid {
+            color: var(--success);
+        }
+
+        .address-validation.invalid {
+            color: var(--error);
+        }
+
+        .transaction-details {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-sm);
+            padding: 16px;
+            margin: 20px 0;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+            font-weight: 600;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 8px;
+        }
+
+        .send-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .cancel-button {
+            flex: 1;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .review-button {
+            flex: 1;
+            padding: 12px 24px;
+            background: var(--gold);
+            color: var(--dark-bg);
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .review-button:hover:not(:disabled) {
+            background: var(--gold-light);
+        }
+
+        .review-button:disabled {
+            background: rgba(212, 175, 55, 0.3);
+            cursor: not-allowed;
+        }
+
+        /* Token Options */
+        .token-options {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 20px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .token-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .token-option:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .token-option-info {
+            flex: 1;
+        }
+
+        .token-option-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .token-option-balance {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
         /* Loading Animation */
         .loading {
             display: inline-block;
@@ -551,7 +775,7 @@
 
         <!-- Action Buttons -->
         <div class="action-buttons">
-            <div class="action-btn" onclick="showSend()">
+            <div class="action-btn" onclick="showSendModal()">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
                 </svg>
@@ -681,6 +905,78 @@
                 <button class="close-modal" onclick="closeConnectModal()">Cancel</button>
             </div>
         </div>
+
+        <!-- Send Modal -->
+        <div id="sendModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Send Assets</div>
+                
+                <!-- Token Selection -->
+                <div class="send-section">
+                    <div class="send-label">Token</div>
+                    <div class="token-selector" onclick="showTokenSelector()">
+                        <div class="selected-token">
+                            <div class="token-icon-small ton-icon">
+                                <img src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
+                                     onerror="this.style.display='none'; this.parentElement.innerHTML='T'">
+                            </div>
+                            <span>TON</span>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Amount Input -->
+                <div class="send-section">
+                    <div class="send-label">Amount</div>
+                    <div class="amount-input-container">
+                        <input type="number" id="sendAmount" placeholder="0.00" class="amount-input">
+                        <button class="max-button" onclick="setMaxAmount()">MAX</button>
+                    </div>
+                    <div class="balance-display">
+                        Balance: <span id="availableBalance">0.00</span> TON
+                    </div>
+                </div>
+
+                <!-- Recipient Address -->
+                <div class="send-section">
+                    <div class="send-label">To</div>
+                    <input type="text" id="recipientAddress" placeholder="Enter TON address (EQ...)" class="address-input">
+                    <div class="address-validation" id="addressValidation"></div>
+                </div>
+
+                <!-- Transaction Details -->
+                <div class="transaction-details">
+                    <div class="detail-row">
+                        <span>Network Fee</span>
+                        <span id="networkFee">~0.1 TON</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Total</span>
+                        <span id="totalAmount">0.00 TON</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="send-actions">
+                    <button class="cancel-button" onclick="closeSendModal()">Cancel</button>
+                    <button class="review-button" onclick="reviewTransaction()" id="reviewButton">Review Transaction</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Token Selector Modal -->
+        <div id="tokenSelectorModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Select Token</div>
+                <div class="token-options" id="tokenOptions">
+                    <!-- Tokens will be loaded here -->
+                </div>
+                <button class="close-modal" onclick="closeTokenSelector()">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- COMPLETE SCRIPT -->
@@ -804,6 +1100,192 @@
         }
 
         // =============================================
+        // SEND FUNCTIONALITY
+        // =============================================
+        let selectedToken = 'TON';
+        let sendTransactionData = {};
+
+        // Show Send Modal
+        function showSendModal() {
+            // Reset form
+            document.getElementById('sendAmount').value = '';
+            document.getElementById('recipientAddress').value = '';
+            document.getElementById('addressValidation').textContent = '';
+            document.getElementById('addressValidation').className = 'address-validation';
+            
+            // Update available balance
+            updateAvailableBalance();
+            
+            // Show modal
+            document.getElementById('sendModal').style.display = 'flex';
+        }
+
+        // Close Send Modal
+        function closeSendModal() {
+            document.getElementById('sendModal').style.display = 'none';
+        }
+
+        // Show Token Selector
+        function showTokenSelector() {
+            const tokenOptions = document.getElementById('tokenOptions');
+            tokenOptions.innerHTML = '';
+            
+            SUPPORTED_TOKENS.forEach(token => {
+                const balance = getTokenBalance(token.symbol);
+                const tokenOption = document.createElement('div');
+                tokenOption.className = 'token-option';
+                tokenOption.onclick = () => selectToken(token.symbol);
+                tokenOption.innerHTML = `
+                    <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                        <img src="${token.logo}" onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
+                    </div>
+                    <div class="token-option-info">
+                        <div class="token-option-name">${token.name}</div>
+                        <div class="token-option-balance">Balance: ${formatTokenBalance(balance)}</div>
+                    </div>
+                    ${selectedToken === token.symbol ? '✓' : ''}
+                `;
+                tokenOptions.appendChild(tokenOption);
+            });
+            
+            document.getElementById('tokenSelectorModal').style.display = 'flex';
+        }
+
+        // Close Token Selector
+        function closeTokenSelector() {
+            document.getElementById('tokenSelectorModal').style.display = 'none';
+        }
+
+        // Select Token
+        function selectToken(symbol) {
+            selectedToken = symbol;
+            document.querySelector('.selected-token span').textContent = symbol;
+            updateAvailableBalance();
+            closeTokenSelector();
+        }
+
+        // Update Available Balance
+        function updateAvailableBalance() {
+            const balance = getTokenBalance(selectedToken);
+            document.getElementById('availableBalance').textContent = formatTokenBalance(balance);
+        }
+
+        // Get Token Balance (from walletController or fallback)
+        function getTokenBalance(symbol) {
+            if (window.walletController && walletController.tokenBalances) {
+                return walletController.tokenBalances.get(symbol) || 0;
+            }
+            // Fallback to SUPPORTED_TOKENS
+            const token = SUPPORTED_TOKENS.find(t => t.symbol === symbol);
+            return token ? token.balance : 0;
+        }
+
+        // Set Max Amount
+        function setMaxAmount() {
+            const balance = getTokenBalance(selectedToken);
+            // Reserve 0.1 TON for gas if it's TON token
+            const maxAmount = selectedToken === 'TON' ? Math.max(0, balance - 0.1) : balance;
+            document.getElementById('sendAmount').value = maxAmount.toFixed(6);
+            updateTransactionDetails();
+        }
+
+        // Validate TON Address
+        function validateTONAddress(address) {
+            // Basic TON address validation (starts with EQ or UQ and is 48 chars)
+            const tonRegex = /^(EQ|UQ)[a-zA-Z0-9_-]{48}$/;
+            return tonRegex.test(address);
+        }
+
+        // Update Transaction Details
+        function updateTransactionDetails() {
+            const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
+            const address = document.getElementById('recipientAddress').value;
+            
+            // Validate address
+            const validationElement = document.getElementById('addressValidation');
+            if (address) {
+                if (validateTONAddress(address)) {
+                    validationElement.textContent = '✓ Valid TON address';
+                    validationElement.className = 'address-validation valid';
+                } else {
+                    validationElement.textContent = '✗ Invalid TON address format';
+                    validationElement.className = 'address-validation invalid';
+                }
+            } else {
+                validationElement.textContent = '';
+                validationElement.className = 'address-validation';
+            }
+            
+            // Update total
+            const networkFee = 0.1; // Fixed fee for now
+            const total = selectedToken === 'TON' ? amount + networkFee : amount;
+            
+            document.getElementById('networkFee').textContent = `~${networkFee} TON`;
+            document.getElementById('totalAmount').textContent = `${total.toFixed(6)} ${selectedToken}`;
+            
+            // Enable/disable review button
+            const reviewButton = document.getElementById('reviewButton');
+            const isValid = amount > 0 && 
+                          validateTONAddress(address) && 
+                          amount <= getTokenBalance(selectedToken);
+            
+            reviewButton.disabled = !isValid;
+        }
+
+        // Review Transaction
+        function reviewTransaction() {
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            const recipient = document.getElementById('recipientAddress').value;
+            
+            // Store transaction data
+            sendTransactionData = {
+                token: selectedToken,
+                amount: amount,
+                recipient: recipient,
+                networkFee: 0.1
+            };
+            
+            // Check wallet connection
+            if (!isWalletConnected) {
+                closeSendModal();
+                alert('🔗 Please connect your wallet to sign this transaction');
+                showSettings();
+                return;
+            }
+            
+            // Show transaction confirmation
+            showTransactionConfirmation();
+        }
+
+        // Show Transaction Confirmation
+        function showTransactionConfirmation() {
+            const confirmMessage = 
+                `📤 Confirm Send Transaction\n\n` +
+                `Send: ${sendTransactionData.amount} ${sendTransactionData.token}\n` +
+                `To: ${formatAddress(sendTransactionData.recipient)}\n` +
+                `Network Fee: ${sendTransactionData.networkFee} TON\n\n` +
+                `This will open your wallet to sign the transaction.`;
+            
+            if (confirm(confirmMessage)) {
+                executeTransaction();
+            }
+        }
+
+        // Execute Transaction (Simulated for now)
+        function executeTransaction() {
+            // In Phase 3, this will integrate with TON blockchain
+            // For now, we'll simulate the transaction
+            
+            console.log('Executing transaction:', sendTransactionData);
+            
+            // Simulate transaction processing
+            alert(`✅ Transaction submitted!\n\n${sendTransactionData.amount} ${sendTransactionData.token} sent to ${formatAddress(sendTransactionData.recipient)}\n\nTransaction hash: EQC1x...f8d (simulated)`);
+            
+            // Close modal
+            closeSendModal();
+        }
+
+        // =============================================
         // UI FUNCTIONS
         // =============================================
 
@@ -819,15 +1301,8 @@
             document.getElementById('receiveModal').style.display = 'none';
             document.getElementById('settingsModal').style.display = 'none';
             document.getElementById('connectModal').style.display = 'none';
-        }
-
-        function showSend() {
-            if (!isWalletConnected) {
-                alert('🔗 Please connect your wallet first to send assets');
-                showSettings();
-                return;
-            }
-            alert('📤 Send functionality coming in Phase 3!');
+            document.getElementById('sendModal').style.display = 'none';
+            document.getElementById('tokenSelectorModal').style.display = 'none';
         }
 
         function showSwap() {
@@ -1129,6 +1604,19 @@
                 console.log('Using fallback wallet initialization');
                 initWallet();
             }
+
+            // Add event listeners for real-time validation
+            setTimeout(() => {
+                const amountInput = document.getElementById('sendAmount');
+                const addressInput = document.getElementById('recipientAddress');
+                
+                if (amountInput) {
+                    amountInput.addEventListener('input', updateTransactionDetails);
+                }
+                if (addressInput) {
+                    addressInput.addEventListener('input', updateTransactionDetails);
+                }
+            }, 1000);
         });
     </script>
 </body>
