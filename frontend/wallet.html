@@ -791,21 +791,27 @@
         }
 
         // Update total portfolio value
-        function updatePortfolioValue() {
-            const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
-                return sum + (token.balance * (token.price || 0));
-            }, 0);
+function updatePortfolioValue() {
+    const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
+        return sum + (token.balance * (token.price || 0));
+    }, 0);
 
-            walletState.totalBalanceUSD = totalUSD;
+    walletState.totalBalanceUSD = totalUSD;
 
-            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
-            document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Live prices`;
+    // Always show $0.00 if no balances
+    document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
+    
+    if (totalUSD === 0) {
+        document.getElementById('balanceCrypto').textContent = 'Connect wallet & deposit assets';
+    } else {
+        document.getElementById('balanceCrypto').textContent = `${SUPPORTED_TOKENS.length} assets • Live prices`;
+    }
 
-            // Hide loading and show actual balance
-            document.getElementById('balanceLoading').style.display = 'none';
-            document.getElementById('balanceAmount').style.display = 'inline';
-            document.getElementById('balanceCrypto').style.display = 'inline';
-        }
+    // Hide loading and show actual balance
+    document.getElementById('balanceLoading').style.display = 'none';
+    document.getElementById('balanceAmount').style.display = 'inline';
+    document.getElementById('balanceCrypto').style.display = 'inline';
+}
 
         // Load tokens into UI with guaranteed data
         function loadTokens() {
