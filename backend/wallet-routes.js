@@ -5,11 +5,12 @@ const router = express.Router();
 router.get('/test', (req, res) => {
     res.json({ 
         success: true, 
-        message: 'Wallet API is working!' 
+        message: 'Wallet API is working!',
+        timestamp: new Date().toISOString()
     });
 });
 
-// Get wallet addresses (we'll make this real later)
+// Get wallet addresses 
 router.get('/addresses', (req, res) => {
     res.json({
         success: true,
@@ -18,11 +19,12 @@ router.get('/addresses', (req, res) => {
             USDT: "TDemoAddress123456789012345678901234567890",
             BTC: "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
             TRX: "TDemoAddress123456789012345678901234567890"
-        }
+        },
+        message: "Real addresses coming in Phase 2!"
     });
 });
 
-// Get balances (we'll make this real later)  
+// Get balances
 router.get('/balances', (req, res) => {
     res.json({
         success: true,
@@ -31,7 +33,8 @@ router.get('/balances', (req, res) => {
             USDT: "450.25", 
             BTC: "0.00542",
             TRX: "1250.75"
-        }
+        },
+        message: "Real blockchain balances coming in Phase 2!"
     });
 });
 
