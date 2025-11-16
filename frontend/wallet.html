@@ -893,24 +893,26 @@
             }, 2000);
         }
 
-        // Initialize wallet
-        async function initWallet() {
-            // Show loading states
-            document.getElementById('tokensLoading').style.display = 'inline-block';
-            document.getElementById('balanceLoading').style.display = 'inline-block';
+     // Initialize wallet
+async function initWallet() {
+    // Show loading states briefly
+    document.getElementById('tokensLoading').style.display = 'inline-block';
+    document.getElementById('balanceLoading').style.display = 'inline-block';
 
-            // Fetch real prices from CoinGecko
-            await fetchCoinGeckoPrices();
+    // Immediately show $0.00 while prices load in background
+    updatePortfolioValue();
+    loadTokens();
 
-            // Update UI with real data
-            updatePortfolioValue();
-            loadTokens();
+    // Fetch live prices (for display, balances remain 0)
+    await fetchCoinGeckoPrices();
+    updatePortfolioValue();
+    loadTokens();
 
-            console.log('Nemex Wallet initialized with complete token integration!');
-            console.log('Supported tokens:', SUPPORTED_TOKENS.map(t => t.symbol));
-        }
-
-        // Auto-refresh prices every 2 minutes
+    console.log('Nemex Wallet initialized - Ready for deposits');
+    console.log('All balances start at 0 - professional mode activated!');
+    console.log('Supported tokens:', SUPPORTED_TOKENS.map(t => t.symbol));
+}
+        // Auto-refresh prices every 1 minutes
         setInterval(refreshPrices, 120000);
     </script>
 </body>
