@@ -1586,7 +1586,122 @@ Confirm transaction?
             resetSendForm();
         }
 
-        // ... your existing showTokenSelector, selectToken, closeTokenSelector functions stay as they are ...
+        // ===== ENHANCED TOKEN SELECTOR FUNCTIONS =====
+
+// Proper token logo error handling
+function handleTokenLogoError(img, symbol) {
+    img.style.display = 'none';
+    const container = img.parentElement;
+    container.innerHTML = symbol.charAt(0);
+    container.style.background = getTokenColor(symbol);
+    container.style.color = 'white';
+    container.style.fontWeight = 'bold';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.fontSize = '12px';
+}
+
+// Generate consistent color based on token symbol
+function getTokenColor(symbol) {
+    const colors = [
+        'linear-gradient(135deg, #0088CC, #006699)', // TON Blue
+        'linear-gradient(135deg, #D4AF37, #B8941F)', // Gold
+        'linear-gradient(135deg, #26A17B, #1E8C6E)', // USDT Green
+        'linear-gradient(135deg, #FF060A, #CC0000)', // TRON Red
+        'linear-gradient(135deg, #F7931A, #E07B15)', // Bitcoin Orange
+    ];
+    
+    const index = symbol.charCodeAt(0) % colors.length;
+    return colors[index];
+}
+
+// Enhanced token selector with search
+function showTokenSelector() {
+    const tokenOptions = document.getElementById('tokenOptions');
+    if (!tokenOptions) return;
+    
+    tokenOptions.innerHTML = '';
+
+    SUPPORTED_TOKENS.forEach(token => {
+        if (token.canSend) {
+            const tokenOption = document.createElement('div');
+            tokenOption.className = 'token-option';
+            tokenOption.innerHTML = `
+                <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                    <img src="${token.logo}" 
+                         alt="${token.name}" 
+                         class="token-logo"
+                         onerror="handleTokenLogoError(this, '${token.symbol}')">
+                </div>
+                <div class="token-option-info">
+                    <div class="token-option-name">${token.name}</div>
+                    <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
+                </div>
+            `;
+            tokenOption.onclick = () => selectToken(token);
+            tokenOptions.appendChild(tokenOption);
+        }
+    });
+
+    // Reset search
+    const searchInput = document.getElementById('tokenSearch');
+    if (searchInput) searchInput.value = '';
+    document.getElementById('tokenSelectorModal').style.display = 'flex';
+}
+
+// Filter tokens by search
+function filterTokens() {
+    const searchTerm = document.getElementById('tokenSearch').value.toLowerCase();
+    const tokenOptions = document.querySelectorAll('.token-option');
+    
+    tokenOptions.forEach(option => {
+        const tokenName = option.querySelector('.token-option-name').textContent.toLowerCase();
+        const tokenBalance = option.querySelector('.token-option-balance').textContent.toLowerCase();
+        
+        if (tokenName.includes(searchTerm) || tokenBalance.includes(searchTerm)) {
+            option.style.display = 'flex';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+}
+
+// Enhanced token selection
+function selectToken(token) {
+    // Update selected token in send modal
+    const selectedTokenElement = document.querySelector('.selected-token');
+    if (selectedTokenElement) {
+        selectedTokenElement.innerHTML = `
+            <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                <img src="${token.logo}" 
+                     alt="${token.name}" 
+                     class="token-logo"
+                     onerror="handleTokenLogoError(this, '${token.symbol}')">
+            </div>
+            <span class="token-symbol">${token.symbol}</span>
+        `;
+    }
+
+    // Update available balance display
+    const remainingElement = document.querySelector('.remaining-balance span');
+    if (remainingElement) {
+        remainingElement.innerHTML = 
+            `Remaining: <span id="availableBalance">${formatTokenBalance(token.balance)}</span> ${token.symbol}`;
+    }
+    
+    // Reset amount and USD value
+    const amountInput = document.getElementById('sendAmount');
+    const usdElement = document.querySelector('.usd-value span');
+    if (amountInput) amountInput.value = '';
+    if (usdElement) usdElement.textContent = 'USD 0';
+
+    closeTokenSelector();
+}
+
+function closeTokenSelector() {
+    document.getElementById('tokenSelectorModal').style.display = 'none';
+}
 
         // Initialize wallet
 async function initWallet() {
