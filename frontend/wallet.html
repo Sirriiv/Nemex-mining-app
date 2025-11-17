@@ -1205,17 +1205,19 @@
             <label class="send-label">Amount</label>
             <div class="amount-input-container">
                 <input type="number" id="sendAmount" placeholder="0.00" class="amount-input">
+                <!-- FIXED TOKEN DROPDOWN - CORRECT STRUCTURE -->
                 <div class="token-dropdown" onclick="showTokenSelector()">
                     <div class="selected-token">
                         <div class="token-icon-small ton-icon">
                             <img src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML='T'">
+                                 alt="TON" class="token-logo"
+                                 onerror="handleTokenLogoError(this, 'TON')">
                         </div>
-                        <span>TON</span>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M7 10l5 5 5-5z"/>
-                        </svg>
+                        <span class="token-symbol">TON</span>
                     </div>
+                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 10l5 5 5-5z"/>
+                    </svg>
                 </div>
             </div>
             
@@ -1244,7 +1246,6 @@
         </button>
     </div>
 </div>
-
                 <!-- Action Buttons -->
                 <div class="send-actions">
                     <button class="cancel-button" onclick="closeSendModal()">Cancel</button>
@@ -1253,17 +1254,20 @@
             </div>
         </div>
 
-        <!-- Token Selector Modal -->
-        <div id="tokenSelectorModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Select Token</div>
-                <div class="token-options" id="tokenOptions">
-                    <!-- Tokens will be loaded here -->
-                </div>
-                <button class="close-modal" onclick="closeTokenSelector()">Cancel</button>
-            </div>
+       <!-- Enhanced Token Selector Modal -->
+<div id="tokenSelectorModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">Select Token</div>
+        
+        <!-- Search Bar -->
+        <input type="text" id="tokenSearch" placeholder="Search tokens..." class="token-search" onkeyup="filterTokens()">
+        
+        <div class="token-options" id="tokenOptions">
+            <!-- Tokens will be loaded here -->
         </div>
+        <button class="cancel-button" onclick="closeTokenSelector()" style="width: 100%; margin-top: 16px;">Cancel</button>
     </div>
+</div>
 
     <!-- FIXED SCRIPT WITH JETTON SUPPORT AND PROPER BALANCE CALCULATION -->
     <script>
@@ -1351,7 +1355,7 @@
         ];
 
 
-        // =============================================
+                // =============================================
         // ENHANCED SEND MODAL FUNCTIONS
         // =============================================
 
@@ -1391,32 +1395,42 @@
             }
         }
 
+        // Get currently selected token - FIXED SELECTOR
+        function getSelectedToken() {
+            const tokenElement = document.querySelector('.token-symbol');
+            if (!tokenElement) return SUPPORTED_TOKENS[0]; // Fallback to TON
+            
+            const tokenSymbol = tokenElement.textContent;
+            return SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol) || SUPPORTED_TOKENS[0];
+        }
+
         // Update USD value when amount changes
         function updateUsdValue() {
             const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
             const selectedToken = getSelectedToken();
             const usdValue = amount * (selectedToken?.price || 0);
             
-            document.querySelector('.usd-value span').textContent = `USD ${usdValue.toFixed(2)}`;
+            // Update USD display
+            const usdElement = document.querySelector('.usd-value span');
+            if (usdElement) {
+                usdElement.textContent = `USD ${usdValue.toFixed(2)}`;
+            }
             
             // Update remaining balance display
             if (selectedToken) {
-                const remaining = selectedToken.balance - amount;
-                document.querySelector('.remaining-balance span').innerHTML = 
-                    `Remaining: <span id="availableBalance">${remaining.toFixed(4)}</span> ${selectedToken.symbol}`;
+                const remaining = Math.max(0, selectedToken.balance - amount);
+                const remainingElement = document.querySelector('.remaining-balance span');
+                if (remainingElement) {
+                    remainingElement.innerHTML = 
+                        `Remaining: <span id="availableBalance">${remaining.toFixed(4)}</span> ${selectedToken.symbol}`;
+                }
             }
-        }
-
-        // Get currently selected token
-        function getSelectedToken() {
-            const tokenSymbol = document.querySelector('.selected-token span').textContent;
-            return SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol);
         }
 
         // Enhanced set max amount
         function setMaxAmount() {
             const selectedToken = getSelectedToken();
-            if (selectedToken) {
+            if (selectedToken && selectedToken.balance > 0) {
                 document.getElementById('sendAmount').value = selectedToken.balance;
                 updateUsdValue();
             }
@@ -1424,9 +1438,18 @@
 
         // Enhanced review transaction
         function reviewTransaction() {
-            const amount = parseFloat(document.getElementById('sendAmount').value);
-            const address = document.getElementById('recipientAddress').value;
-            const comment = document.getElementById('transactionComment').value;
+            const amountInput = document.getElementById('sendAmount');
+            const addressInput = document.getElementById('recipientAddress');
+            const commentInput = document.getElementById('transactionComment');
+            
+            if (!amountInput || !addressInput) {
+                alert('Form elements not found');
+                return;
+            }
+
+            const amount = parseFloat(amountInput.value);
+            const address = addressInput.value;
+            const comment = commentInput ? commentInput.value : '';
             const selectedToken = getSelectedToken();
 
             if (!amount || amount <= 0) {
@@ -1440,7 +1463,7 @@
             }
 
             if (amount > selectedToken.balance) {
-                alert('Insufficient balance');
+                alert(`Insufficient balance. You have ${selectedToken.balance} ${selectedToken.symbol}`);
                 return;
             }
 
@@ -1466,8 +1489,10 @@ Confirm transaction?
             try {
                 // Show loading state
                 const continueButton = document.getElementById('continueButton');
-                continueButton.innerHTML = '<div class="loading"></div> Processing...';
-                continueButton.disabled = true;
+                if (continueButton) {
+                    continueButton.innerHTML = '<div class="loading"></div> Processing...';
+                    continueButton.disabled = true;
+                }
 
                 // Simulate API call
                 await new Promise(resolve => setTimeout(resolve, 2000));
@@ -1482,26 +1507,59 @@ Confirm transaction?
             } catch (error) {
                 alert('❌ Transaction failed: ' + error.message);
             } finally {
-                continueButton.innerHTML = 'Continue';
-                continueButton.disabled = false;
+                const continueButton = document.getElementById('continueButton');
+                if (continueButton) {
+                    continueButton.innerHTML = 'Continue';
+                    continueButton.disabled = false;
+                }
             }
         }
 
         // Reset send form
         function resetSendForm() {
-            document.getElementById('sendAmount').value = '';
-            document.getElementById('recipientAddress').value = '';
-            document.getElementById('transactionComment').value = '';
-            document.querySelector('.usd-value span').textContent = 'USD 0';
-            document.getElementById('addressValidation').innerHTML = '';
+            const amountInput = document.getElementById('sendAmount');
+            const addressInput = document.getElementById('recipientAddress');
+            const commentInput = document.getElementById('transactionComment');
+            const usdElement = document.querySelector('.usd-value span');
+            const validationElement = document.getElementById('addressValidation');
+            
+            if (amountInput) amountInput.value = '';
+            if (addressInput) addressInput.value = '';
+            if (commentInput) commentInput.value = '';
+            if (usdElement) usdElement.textContent = 'USD 0';
+            if (validationElement) validationElement.innerHTML = '';
             
             // Reset remaining balance
             const selectedToken = getSelectedToken();
-            if (selectedToken) {
-                document.querySelector('.remaining-balance span').innerHTML = 
+            const remainingElement = document.querySelector('.remaining-balance span');
+            if (remainingElement && selectedToken) {
+                remainingElement.innerHTML = 
                     `Remaining: <span id="availableBalance">${selectedToken.balance.toFixed(4)}</span> ${selectedToken.symbol}`;
             }
         }
+
+        // Enhanced show send modal
+        function showSendModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            document.getElementById('sendModal').style.display = 'flex';
+            
+            // Initialize form with current balances
+            const selectedToken = getSelectedToken();
+            const remainingElement = document.querySelector('.remaining-balance span');
+            if (remainingElement && selectedToken) {
+                remainingElement.innerHTML = 
+                    `Remaining: <span id="availableBalance">${selectedToken.balance.toFixed(4)}</span> ${selectedToken.symbol}`;
+            }
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendModal').style.display = 'none';
+            resetSendForm();
+        }
+
 
         // =============================================
         // EXISTING FUNCTIONS (KEEP THESE - THEY STAY)
@@ -1531,20 +1589,20 @@ Confirm transaction?
         // ... your existing showTokenSelector, selectToken, closeTokenSelector functions stay as they are ...
 
         // Initialize wallet
-        async function initWallet() {
-            // ... your existing init code ...
-            
-            // Add event listeners for real-time validation
-            const addressInput = document.getElementById('recipientAddress');
-            const amountInput = document.getElementById('sendAmount');
+async function initWallet() {
+    // ... your existing init code ...
+    
+    // Add event listeners for real-time validation
+    const addressInput = document.getElementById('recipientAddress');
+    const amountInput = document.getElementById('sendAmount');
 
-            if (addressInput) {
-                addressInput.addEventListener('input', (e) => validateAddress(e.target.value));
-            }
-            if (amountInput) {
-                amountInput.addEventListener('input', updateUsdValue);
-            }
-        }
+    if (addressInput) {
+        addressInput.addEventListener('input', (e) => validateAddress(e.target.value));
+    }
+    if (amountInput) {
+        amountInput.addEventListener('input', updateUsdValue);
+    }
+}
 
         // =============================================
         // SELF-CUSTODY WALLET FUNCTIONS
