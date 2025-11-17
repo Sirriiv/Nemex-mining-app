@@ -6,6 +6,9 @@
     <title>Nemex Wallet - Secure Non-Custodial Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- Add the wallet.js API script -->
+    <script src="assets/js/wallet.js"></script>
+
     <style>
         :root {
             --dark-bg: #0A0A0A;
@@ -907,6 +910,88 @@
             font-size: 12px;
             color: var(--warning);
         }
+
+        /* Mnemonic Display */
+        .mnemonic-words {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 16px 0;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .mnemonic-word {
+            padding: 8px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 4px;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+        }
+
+        .word-index {
+            color: var(--gold);
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        /* Address Validation */
+        .address-validation {
+            font-size: 12px;
+            margin-top: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .address-validation.valid {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .address-validation.invalid {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        /* Featured Token Styles */
+        .featured-token {
+            border: 2px solid var(--gold);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+        }
+        
+        .native-badge {
+            background: var(--gold);
+            color: var(--dark-bg);
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 8px;
+            font-weight: bold;
+        }
+        
+        .featured-star {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--gold);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        
+        .token-icon {
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -1124,7 +1209,7 @@
         <div id="settingsModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Wallet Settings</div>
-                
+
                 <!-- Wallet Management Section -->
                 <div class="wallet-management">
                     <div class="section-title">Your Wallets</div>
@@ -1221,7 +1306,7 @@
 
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT WITH FIXED SEND MODAL -->
+    <!-- COMPLETE WALLET SCRIPT WITH REAL API INTEGRATION -->
     <script>
         // =============================================
         // WALLET STATE MANAGEMENT
@@ -1240,130 +1325,43 @@
         let userWallets = [];
         let customTokens = [];
 
-        // In your wallet.html script section, update the tokens configuration:
+        // Supported tokens with NMX as primary
+        const SUPPORTED_TOKENS = [
+            {
+                symbol: "NMX",
+                name: "NemexCoin",
+                balance: 1000,
+                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                price: 0.10,
+                change24h: 5.2,
+                canSend: true,
+                isNative: true,
+                isFeatured: true,
+                contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f"
+            },
+            {
+                symbol: "TON",
+                name: "Toncoin", 
+                balance: 0, // Will be updated with real balance
+                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
+                price: 2.50,
+                change24h: 1.5,
+                canSend: true,
+                isNative: false
+            },
+            {
+                symbol: "USDT",
+                name: "Tether",
+                balance: 0,
+                logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
+                price: 1.00,
+                change24h: 0.0,
+                canSend: false,
+                isNative: false
+            }
+        ];
 
-// Supported tokens with NMX as primary
-const SUPPORTED_TOKENS = [
-    {
-        symbol: "NMX",
-        name: "NemexCoin",
-        balance: 1000,
-        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        price: 0.10,
-        change24h: 5.2, // Positive growth
-        canSend: true,
-        isNative: true, // This makes NMX appear as native
-        isFeatured: true,
-        contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f"
-    },
-    {
-        symbol: "TON",
-        name: "Toncoin", 
-        balance: 15.5,
-        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
-        price: 2.50,
-        change24h: 1.5,
-        canSend: true,
-        isNative: false
-    },
-    {
-        symbol: "USDT",
-        name: "Tether",
-        balance: 50,
-        logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
-        price: 1.00,
-        change24h: 0.0,
-        canSend: false,
-        isNative: false
-    }
-];
-
-// Update the loadTokens function to highlight NMX
-function loadTokens() {
-    const tokenList = document.getElementById('tokenList');
-    const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-    
-    tokenList.innerHTML = '';
-
-    allTokens.forEach(token => {
-        const tokenValue = (token.balance || 0) * (token.price || 0);
-        const changeClass = (token.change24h || 0) >= 0 ? 'change-positive' : 'change-negative';
-        const changeSymbol = (token.change24h || 0) >= 0 ? '+' : '';
-        
-        // Add featured class for NMX
-        const featuredClass = token.isFeatured ? 'featured-token' : '';
-        const nativeBadge = token.isNative ? '<span class="native-badge">Native</span>' : '';
-
-        const tokenCard = document.createElement('div');
-        tokenCard.className = `token-card ${featuredClass}`;
-        tokenCard.innerHTML = `
-            <div class="token-icon ${token.symbol.toLowerCase()}-icon">
-                <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
-                     onerror="handleTokenLogoError(this, '${token.symbol}')">
-                ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
-            </div>
-            <div class="token-info">
-                <div class="token-name">
-                    ${token.name}
-                    ${nativeBadge}
-                </div>
-                <div class="token-symbol">${token.symbol}</div>
-                <div class="token-price">
-                    $${formatTokenPrice(token.price)} 
-                    <span class="token-change ${changeClass}">${changeSymbol}${(token.change24h || 0).toFixed(1)}%</span>
-                </div>
-            </div>
-            <div class="token-balance">
-                <div class="token-amount">${formatTokenBalance(token.balance)}</div>
-                <div class="token-value">$${tokenValue.toFixed(2)}</div>
-            </div>
-        `;
-        tokenList.appendChild(tokenCard);
-    });
-
-    document.getElementById('tokensLoading').style.display = 'none';
-}
-
-// Update CSS to highlight NMX
-const additionalStyles = `
-    .featured-token {
-        border: 2px solid var(--gold);
-        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
-    }
-    
-    .native-badge {
-        background: var(--gold);
-        color: var(--dark-bg);
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 8px;
-        margin-left: 8px;
-        font-weight: bold;
-    }
-    
-    .featured-star {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: var(--gold);
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-    }
-    
-    .token-icon {
-        position: relative;
-    }
-    
-    /* Make NMX appear first in send modal */
-    .token-option:first-child {
-        border: 2px solid var(--gold);
-        background: rgba(212, 175, 55, 0.1);
-    }
+        let selectedToken = SUPPORTED_TOKENS[0];
 
         // =============================================
         // INITIALIZATION
@@ -1371,6 +1369,9 @@ const additionalStyles = `
 
         async function initWallet() {
             console.log('🔄 Initializing wallet...');
+            
+            // Initialize API
+            await window.nemexWalletAPI.init();
             
             // Load saved data
             const savedWallets = localStorage.getItem('nemexUserWallets');
@@ -1389,6 +1390,9 @@ const additionalStyles = `
             if (userWallets.length > 0) {
                 walletState = userWallets[0];
                 walletState.currentWalletIndex = 0;
+                
+                // Fetch real balances
+                await updateRealBalances();
             }
 
             updateWalletDisplay();
@@ -1457,23 +1461,49 @@ const additionalStyles = `
         }
 
         // =============================================
-        // WALLET CREATION & IMPORT
+        // REAL BALANCE UPDATES
+        // =============================================
+
+        async function updateRealBalances() {
+            if (!walletState.isInitialized) return;
+
+            try {
+                // Get real TON balance from blockchain
+                const balanceResult = await window.nemexWalletAPI.getRealBalance(walletState.address);
+                
+                // Update TON balance in your tokens
+                const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
+                if (tonToken) {
+                    tonToken.balance = parseFloat(balanceResult.balance);
+                }
+
+                // Update portfolio display
+                updatePortfolioValue();
+                loadTokens();
+                
+            } catch (error) {
+                console.error('Failed to update real balances:', error);
+            }
+        }
+
+        // =============================================
+        // WALLET CREATION & IMPORT (REAL API)
         // =============================================
 
         async function generateNewWallet() {
             try {
                 console.log('🔄 Generating new wallet...');
                 
-                const mnemonic = generateSecureMnemonic();
-                const address = await generateAddressFromMnemonic(mnemonic);
+                // REAL API CALL - No more mock data!
+                const result = await window.nemexWalletAPI.generateNewWallet(24);
                 
                 const newWallet = {
                     isInitialized: true,
                     walletType: 'new',
-                    userId: 'user_' + Date.now(),
-                    address: address,
+                    userId: window.nemexWalletAPI.currentUser.id,
+                    address: result.wallet.address,
                     balances: {},
-                    mnemonic: mnemonic
+                    mnemonic: result.wallet.mnemonic
                 };
 
                 userWallets.push(newWallet);
@@ -1482,11 +1512,11 @@ const additionalStyles = `
 
                 localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
 
-                console.log('✅ New wallet created:', address);
+                console.log('✅ New wallet created:', result.wallet.address);
 
                 updateWalletDisplay();
                 updateWalletsList();
-                showBackupModal(mnemonic);
+                showBackupModal(result.wallet.mnemonic);
                 closeModal();
 
             } catch (error) {
@@ -1505,13 +1535,14 @@ const additionalStyles = `
             try {
                 console.log('🔄 Importing wallet...');
                 
-                const address = await generateAddressFromMnemonic(mnemonic);
+                // REAL API CALL - No more mock data!
+                const result = await window.nemexWalletAPI.importWallet(mnemonic);
                 
                 const importedWallet = {
                     isInitialized: true,
                     walletType: 'imported',
-                    userId: 'user_imported_' + Date.now(),
-                    address: address,
+                    userId: window.nemexWalletAPI.currentUser.id,
+                    address: result.wallet.address,
                     balances: {},
                     mnemonic: mnemonic
                 };
@@ -1522,7 +1553,7 @@ const additionalStyles = `
 
                 localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
 
-                console.log('✅ Wallet imported:', address);
+                console.log('✅ Wallet imported:', result.wallet.address);
 
                 updateWalletDisplay();
                 updateWalletsList();
@@ -1535,36 +1566,9 @@ const additionalStyles = `
             }
         }
 
-        function generateSecureMnemonic() {
-            const wordList = [
-                'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
-                'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid',
-                'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual'
-            ];
-            
-            let mnemonic = [];
-            for (let i = 0; i < 24; i++) {
-                const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
-                mnemonic.push(randomWord);
-            }
-            
-            return mnemonic.join(' ');
-        }
-
-        async function generateAddressFromMnemonic(mnemonic) {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-            let address = 'EQ';
-            for (let i = 0; i < 46; i++) {
-                address += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return address;
-        }
-
         // =============================================
-        // SEND MODAL FUNCTIONALITY - RESTORED
+        // SEND MODAL FUNCTIONALITY
         // =============================================
-
-        let selectedToken = SUPPORTED_TOKENS[0];
 
         function showSendModal() {
             if (!walletState.isInitialized) {
@@ -1601,7 +1605,7 @@ const additionalStyles = `
             });
         }
 
-        function validateAddress(address) {
+        async function validateAddress(address) {
             const validation = document.getElementById('addressValidation');
             if (!address) {
                 validation.innerHTML = '';
@@ -1609,12 +1613,20 @@ const additionalStyles = `
                 return false;
             }
 
-            if (address.startsWith('EQ') || address.startsWith('UQ')) {
-                validation.innerHTML = '✓ Valid TON address';
-                validation.className = 'address-validation valid';
-                return true;
-            } else {
-                validation.innerHTML = '⚠ Invalid TON address format';
+            try {
+                const result = await window.nemexWalletAPI.validateAddress(address);
+                
+                if (result.isValid) {
+                    validation.innerHTML = '✓ Valid TON address';
+                    validation.className = 'address-validation valid';
+                    return true;
+                } else {
+                    validation.innerHTML = '⚠ Invalid TON address format';
+                    validation.className = 'address-validation invalid';
+                    return false;
+                }
+            } catch (error) {
+                validation.innerHTML = '⚠ Error validating address';
                 validation.className = 'address-validation invalid';
                 return false;
             }
@@ -1665,7 +1677,7 @@ const additionalStyles = `
 
         function selectToken(token) {
             selectedToken = token;
-            
+
             // Update selected token display
             const selectedTokenElement = document.querySelector('.selected-token');
             if (selectedTokenElement) {
@@ -1680,11 +1692,11 @@ const additionalStyles = `
 
             // Update available balance
             updateAvailableBalance();
-            
+
             // Reset amount and USD value
             document.getElementById('sendAmount').value = '';
             updateUsdValue();
-            
+
             closeTokenSelector();
         }
 
@@ -1716,11 +1728,6 @@ const additionalStyles = `
                 return;
             }
 
-            if (!validateAddress(address)) {
-                alert('Please enter a valid TON address');
-                return;
-            }
-
             if (amount > selectedToken.balance) {
                 alert(`Insufficient balance. You have ${selectedToken.balance} ${selectedToken.symbol}`);
                 return;
@@ -1747,12 +1754,12 @@ Confirm transaction?
             continueButton.disabled = true;
 
             try {
-                // Simulate API call
+                // Simulate API call (you'll implement real transaction later)
                 await new Promise(resolve => setTimeout(resolve, 2000));
-                
+
                 alert(`✅ ${amount} ${token.symbol} sent successfully to ${address}`);
                 closeSendModal();
-                
+
             } catch (error) {
                 alert('❌ Transaction failed: ' + error.message);
             } finally {
@@ -1765,18 +1772,6 @@ Confirm transaction?
             document.getElementById('sendModal').style.display = 'none';
         }
 
-        function handleTokenLogoError(img, symbol) {
-            img.style.display = 'none';
-            const container = img.parentElement;
-            container.innerHTML = symbol.charAt(0);
-            container.style.background = 'rgba(255, 255, 255, 0.1)';
-            container.style.color = 'white';
-            container.style.fontWeight = 'bold';
-            container.style.display = 'flex';
-            container.style.alignItems = 'center';
-            container.style.justifyContent = 'center';
-        }
-
         // =============================================
         // TOKEN MANAGEMENT
         // =============================================
@@ -1784,7 +1779,7 @@ Confirm transaction?
         function loadTokens() {
             const tokenList = document.getElementById('tokenList');
             const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-            
+
             tokenList.innerHTML = '';
 
             allTokens.forEach(token => {
@@ -1792,15 +1787,23 @@ Confirm transaction?
                 const changeClass = (token.change24h || 0) >= 0 ? 'change-positive' : 'change-negative';
                 const changeSymbol = (token.change24h || 0) >= 0 ? '+' : '';
 
+                // Add featured class for NMX
+                const featuredClass = token.isFeatured ? 'featured-token' : '';
+                const nativeBadge = token.isNative ? '<span class="native-badge">Native</span>' : '';
+
                 const tokenCard = document.createElement('div');
-                tokenCard.className = 'token-card';
+                tokenCard.className = `token-card ${featuredClass}`;
                 tokenCard.innerHTML = `
                     <div class="token-icon ${token.symbol.toLowerCase()}-icon">
                         <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
-                             onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
+                             onerror="handleTokenLogoError(this, '${token.symbol}')">
+                        ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
                     </div>
                     <div class="token-info">
-                        <div class="token-name">${token.name}</div>
+                        <div class="token-name">
+                            ${token.name}
+                            ${nativeBadge}
+                        </div>
                         <div class="token-symbol">${token.symbol}</div>
                         <div class="token-price">
                             $${formatTokenPrice(token.price)} 
@@ -1839,7 +1842,7 @@ Confirm transaction?
 
             customTokens.push(newToken);
             localStorage.setItem('nemexCustomTokens', JSON.stringify(customTokens));
-            
+
             loadTokens();
             closeModal();
             alert('✅ Custom token added successfully!');
@@ -1876,6 +1879,18 @@ Confirm transaction?
             document.getElementById('balanceLoading').style.display = 'none';
             document.getElementById('balanceAmount').style.display = 'inline';
             document.getElementById('balanceCrypto').style.display = 'inline';
+        }
+
+        function handleTokenLogoError(img, symbol) {
+            img.style.display = 'none';
+            const container = img.parentElement;
+            container.innerHTML = symbol.charAt(0);
+            container.style.background = 'rgba(255, 255, 255, 0.1)';
+            container.style.color = 'white';
+            container.style.fontWeight = 'bold';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
         }
 
         // =============================================
@@ -1926,8 +1941,7 @@ Confirm transaction?
                 alert('Please create or import a wallet first');
                 return;
             }
-            document.getElementById('walletAddressDisplay').textContent = walletState.address;
-            document.getElementById('receiveModal').style.display = 'flex';
+            alert(`Your TON address:\n\n${walletState.address}\n\nShare this address to receive funds.`);
         }
 
         function showSwap() {
@@ -1950,12 +1964,12 @@ Confirm transaction?
 
         document.addEventListener('DOMContentLoaded', function() {
             initWallet();
-            
+
             // Add event listeners for real-time validation
             document.getElementById('recipientAddress').addEventListener('input', (e) => {
                 validateAddress(e.target.value);
             });
-            
+
             document.getElementById('sendAmount').addEventListener('input', updateUsdValue);
         });
 
