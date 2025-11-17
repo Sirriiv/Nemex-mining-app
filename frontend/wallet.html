@@ -1023,28 +1023,32 @@
         // =============================================
 
         async function initWallet() {
-            console.log('🔄 Initializing wallet...');
-            
-            // Initialize API
-            await window.nemexWalletAPI.init();
-            
-            // Load saved data
-            const savedWallets = localStorage.getItem('nemexUserWallets');
-            const savedTokens = localStorage.getItem('nemexCustomTokens');
-            
-            if (savedWallets) {
-                userWallets = JSON.parse(savedWallets);
-                console.log('✅ Loaded saved wallets:', userWallets);
-            }
-            
-            if (savedTokens) {
-                customTokens = JSON.parse(savedTokens);
-            }
+    console.log('🔄 Initializing wallet...');
 
-            // Set first wallet as active if available
-            if (userWallets.length > 0) {
-                walletState = userWallets[0];
-                walletState.currentWalletIndex = 0;
+    // Initialize API
+    await window.nemexWalletAPI.init();
+
+    // Load saved data
+    const savedWallets = localStorage.getItem('nemexUserWallets');
+    console.log('🔍 Saved wallets from localStorage:', savedWallets); // ✅ Debug
+
+    if (savedWallets) {
+        userWallets = JSON.parse(savedWallets);
+        console.log('✅ Loaded saved wallets:', userWallets);
+    }
+
+    // Set first wallet as active if available
+    if (userWallets.length > 0) {
+        walletState = userWallets[0];
+        walletState.currentWalletIndex = 0;
+        
+        console.log('🔍 walletState after loading:', walletState); // ✅ Debug
+        console.log('🔍 walletState.address:', walletState.address); // ✅ Debug
+
+        // Fetch real balances
+        await updateRealBalances();
+    }
+    
                 
                 // Fetch real balances
                 await updateRealBalances();
