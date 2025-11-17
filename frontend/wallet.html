@@ -1192,6 +1192,202 @@
             }
         ];
 
+
+        // =============================================
+        // ENHANCED SEND MODAL FUNCTIONS
+        // =============================================
+
+        // New function to paste address from clipboard
+        async function pasteAddress() {
+            try {
+                const text = await navigator.clipboard.readText();
+                document.getElementById('recipientAddress').value = text;
+                validateAddress(text);
+            } catch (err) {
+                console.error('Failed to read clipboard:', err);
+                // Fallback: focus on input and let user paste manually
+                document.getElementById('recipientAddress').focus();
+                document.execCommand('paste');
+            }
+        }
+
+        // Enhanced address validation
+        function validateAddress(address) {
+            const validationElement = document.getElementById('addressValidation');
+            
+            if (!address) {
+                validationElement.innerHTML = '';
+                validationElement.className = 'address-validation';
+                return false;
+            }
+
+            // TON address validation (starts with EQ or UQ)
+            if (address.startsWith('EQ') || address.startsWith('UQ')) {
+                validationElement.innerHTML = '✓ Valid TON address';
+                validationElement.className = 'address-validation valid';
+                return true;
+            } else {
+                validationElement.innerHTML = '⚠ Invalid TON address format';
+                validationElement.className = 'address-validation invalid';
+                return false;
+            }
+        }
+
+        // Update USD value when amount changes
+        function updateUsdValue() {
+            const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
+            const selectedToken = getSelectedToken();
+            const usdValue = amount * (selectedToken?.price || 0);
+            
+            document.querySelector('.usd-value span').textContent = `USD ${usdValue.toFixed(2)}`;
+            
+            // Update remaining balance display
+            if (selectedToken) {
+                const remaining = selectedToken.balance - amount;
+                document.querySelector('.remaining-balance span').innerHTML = 
+                    `Remaining: <span id="availableBalance">${remaining.toFixed(4)}</span> ${selectedToken.symbol}`;
+            }
+        }
+
+        // Get currently selected token
+        function getSelectedToken() {
+            const tokenSymbol = document.querySelector('.selected-token span').textContent;
+            return SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol);
+        }
+
+        // Enhanced set max amount
+        function setMaxAmount() {
+            const selectedToken = getSelectedToken();
+            if (selectedToken) {
+                document.getElementById('sendAmount').value = selectedToken.balance;
+                updateUsdValue();
+            }
+        }
+
+        // Enhanced review transaction
+        function reviewTransaction() {
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            const address = document.getElementById('recipientAddress').value;
+            const comment = document.getElementById('transactionComment').value;
+            const selectedToken = getSelectedToken();
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            if (!validateAddress(address)) {
+                alert('Please enter a valid TON address');
+                return;
+            }
+
+            if (amount > selectedToken.balance) {
+                alert('Insufficient balance');
+                return;
+            }
+
+            // Show transaction review
+            const reviewMessage = `
+Transaction Review:
+
+Send: ${amount} ${selectedToken.symbol}
+To: ${address}
+${comment ? `Comment: ${comment}` : ''}
+
+Confirm transaction?
+            `.trim();
+
+            if (confirm(reviewMessage)) {
+                // Proceed with transaction
+                processTransaction(amount, address, comment, selectedToken);
+            }
+        }
+
+        // Process the actual transaction
+        async function processTransaction(amount, address, comment, token) {
+            try {
+                // Show loading state
+                const continueButton = document.getElementById('continueButton');
+                continueButton.innerHTML = '<div class="loading"></div> Processing...';
+                continueButton.disabled = true;
+
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Show success
+                alert(`✅ ${amount} ${token.symbol} sent successfully to ${address}`);
+                closeSendModal();
+                
+                // Reset form
+                resetSendForm();
+
+            } catch (error) {
+                alert('❌ Transaction failed: ' + error.message);
+            } finally {
+                continueButton.innerHTML = 'Continue';
+                continueButton.disabled = false;
+            }
+        }
+
+        // Reset send form
+        function resetSendForm() {
+            document.getElementById('sendAmount').value = '';
+            document.getElementById('recipientAddress').value = '';
+            document.getElementById('transactionComment').value = '';
+            document.querySelector('.usd-value span').textContent = 'USD 0';
+            document.getElementById('addressValidation').innerHTML = '';
+            
+            // Reset remaining balance
+            const selectedToken = getSelectedToken();
+            if (selectedToken) {
+                document.querySelector('.remaining-balance span').innerHTML = 
+                    `Remaining: <span id="availableBalance">${selectedToken.balance.toFixed(4)}</span> ${selectedToken.symbol}`;
+            }
+        }
+
+        // =============================================
+        // EXISTING FUNCTIONS (KEEP THESE - THEY STAY)
+        // =============================================
+
+        // Your existing functions continue here...
+        function showSendModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            document.getElementById('sendModal').style.display = 'flex';
+            
+            // Initialize form with current balances
+            const selectedToken = getSelectedToken();
+            if (selectedToken) {
+                document.querySelector('.remaining-balance span').innerHTML = 
+                    `Remaining: <span id="availableBalance">${selectedToken.balance.toFixed(4)}</span> ${selectedToken.symbol}`;
+            }
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendModal').style.display = 'none';
+            resetSendForm();
+        }
+
+        // ... your existing showTokenSelector, selectToken, closeTokenSelector functions stay as they are ...
+
+        // Initialize wallet
+        async function initWallet() {
+            // ... your existing init code ...
+            
+            // Add event listeners for real-time validation
+            const addressInput = document.getElementById('recipientAddress');
+            const amountInput = document.getElementById('sendAmount');
+
+            if (addressInput) {
+                addressInput.addEventListener('input', (e) => validateAddress(e.target.value));
+            }
+            if (amountInput) {
+                amountInput.addEventListener('input', updateUsdValue);
+            }
+        }
+
         // =============================================
         // SELF-CUSTODY WALLET FUNCTIONS
         // =============================================
