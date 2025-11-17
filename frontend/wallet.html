@@ -446,73 +446,152 @@
             color: var(--gold);
         }
 
-        /* Send Modal - PERFECT SIZE & POSITION */
+      /* ===== ENHANCED SEND MODAL DESIGN ===== */
 #sendModal .modal-content {
     background: var(--card-bg);
-    border-radius: var(--border-radius);
-    padding: 24px;
+    border-radius: 20px;
+    padding: 28px 24px;
     width: 90%;
-    max-width: 380px; /* Perfect width */
-    text-align: center;
-    box-shadow: var(--shadow);
+    max-width: 420px;
+    text-align: left;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     max-height: 85vh;
     overflow-y: auto;
-    border: 1px solid rgba(212, 175, 55, 0.3);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    backdrop-filter: blur(20px);
 }
 
-/* Make sure modal backdrop covers entire screen */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    z-index: 2000;
-    justify-content: center;
-    align-items: center;
+/* Modal Header */
+.modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 24px;
+    text-align: center;
+    letter-spacing: -0.5px;
 }
 
-/* Send sections - better spacing */
+/* Input Sections */
 .send-section {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
 }
 
 .send-label {
     font-size: 14px;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     font-weight: 600;
-    text-align: left;
+    display: block;
 }
 
-/* Token selector improvements */
-.token-selector {
+/* Address Input with Paste Button */
+.address-input-container {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.address-input {
+    flex: 1;
+    padding: 16px 18px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius-sm);
-    cursor: pointer;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1.5px solid rgba(212, 175, 55, 0.3);
+    border-radius: 14px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: 'Inter', sans-serif;
     transition: all 0.3s ease;
 }
 
-.token-selector:hover {
-    background: rgba(212, 175, 55, 0.1);
+.address-input:focus {
+    outline: none;
     border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.05);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.paste-button {
+    padding: 12px 16px;
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--gold);
+    border: 1.5px solid var(--gold);
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    min-width: 70px;
+}
+
+.paste-button:hover {
+    background: var(--gold);
+    color: var(--dark-bg);
+    transform: translateY(-1px);
+}
+
+/* Amount Input with Token Dropdown */
+.amount-input-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.amount-input {
+    flex: 1;
+    padding: 16px 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1.5px solid rgba(212, 175, 55, 0.3);
+    border-radius: 14px;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.3s ease;
+}
+
+.amount-input:focus {
+    outline: none;
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.05);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.token-dropdown {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1.5px solid var(--gold);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+    justify-content: center;
+}
+
+.token-dropdown:hover {
+    background: var(--gold);
+    transform: translateY(-1px);
 }
 
 .selected-token {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-weight: 600;
+    color: var(--gold);
+}
+
+.token-dropdown:hover .selected-token {
+    color: var(--dark-bg);
 }
 
 .token-icon-small {
@@ -527,41 +606,48 @@
     color: white;
 }
 
-/* Amount input container */
-.amount-input-container {
+/* Transaction Information */
+.transaction-info {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 14px;
+    padding: 18px;
+    margin: 20px 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.usd-value {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
     margin-bottom: 8px;
 }
 
-.amount-input {
-    flex: 1;
-    padding: 12px 16px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-sm);
-    color: var(--text);
-    font-size: 16px;
-    font-family: 'Courier New', monospace;
+.up-arrow {
+    color: var(--success);
+    font-weight: bold;
 }
 
-.amount-input:focus {
-    outline: none;
-    border-color: var(--gold);
+.remaining-balance {
+    font-size: 13px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .max-button {
-    padding: 8px 12px;
     background: rgba(212, 175, 55, 0.1);
     color: var(--gold);
     border: 1px solid var(--gold);
     border-radius: 8px;
-    font-size: 12px;
+    padding: 4px 8px;
+    font-size: 11px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    white-space: nowrap;
 }
 
 .max-button:hover {
@@ -569,130 +655,88 @@
     color: var(--dark-bg);
 }
 
-.balance-display {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: right;
-}
-
-.address-input {
+/* Comment Section */
+.comment-input {
     width: 100%;
-    padding: 12px 16px;
+    padding: 14px 18px;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-sm);
+    border: 1.5px solid rgba(212, 175, 55, 0.3);
+    border-radius: 14px;
     color: var(--text);
     font-size: 14px;
-    font-family: 'Courier New', monospace;
+    font-family: 'Inter', sans-serif;
+    resize: vertical;
+    min-height: 60px;
+    transition: all 0.3s ease;
 }
 
-.address-input:focus {
+.comment-input:focus {
     outline: none;
     border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.05);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
 }
 
-.address-validation {
-    font-size: 12px;
-    margin-top: 4px;
-    min-height: 16px;
-}
-
-.address-validation.valid {
-    color: var(--success);
-}
-
-.address-validation.invalid {
-    color: var(--error);
-}
-
-.transaction-details {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius-sm);
-    padding: 16px;
-    margin: 20px 0;
-}
-
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.detail-row:last-child {
-    margin-bottom: 0;
-    font-weight: 600;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 8px;
-}
-
-.send-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 20px;
-}
-
-.cancel-button {
-    flex: 1;
-    padding: 12px 24px;
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--border-radius-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.cancel-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.review-button {
-    flex: 1;
-    padding: 12px 24px;
-    background: var(--gold);
+/* Continue Button */
+.continue-button {
+    width: 100%;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, var(--gold), #E6C34E);
     color: var(--dark-bg);
     border: none;
-    border-radius: var(--border-radius-sm);
-    font-weight: 600;
+    border-radius: 16px;
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
+    margin-top: 8px;
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+    letter-spacing: 0.5px;
 }
 
-.review-button:hover:not(:disabled) {
-    background: var(--gold-light);
-    transform: translateY(-1px);
+.continue-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #E6C34E, var(--gold));
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(212, 175, 55, 0.4);
 }
 
-.review-button:disabled {
+.continue-button:disabled {
     background: rgba(212, 175, 55, 0.3);
     cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
-/* Token Options */
+/* Token Selector Modal */
+#tokenSelectorModal .modal-content {
+    max-width: 380px;
+}
+
 .token-options {
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin: 20px 0;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
 }
 
 .token-option {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 14px;
+    padding: 16px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius-sm);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
     cursor: pointer;
     transition: all 0.3s ease;
 }
 
 .token-option:hover {
     background: rgba(212, 175, 55, 0.1);
+    border-color: var(--gold);
+    transform: translateY(-1px);
 }
 
 .token-option-info {
@@ -701,12 +745,31 @@
 
 .token-option-name {
     font-weight: 600;
-    font-size: 14px;
+    font-size: 15px;
+    margin-bottom: 2px;
 }
 
 .token-option-balance {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-muted);
+}
+
+/* Address Validation */
+.address-validation {
+    font-size: 12px;
+    margin-top: 6px;
+    min-height: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.address-validation.valid {
+    color: var(--success);
+}
+
+.address-validation.invalid {
+    color: var(--error);
 }
 
         /* Loading Animation */
@@ -964,58 +1027,65 @@
             </div>
         </div>
 
-        <!-- Send Modal -->
-        <div id="sendModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Send Assets</div>
+        <!-- Enhanced Send Modal -->
+<div id="sendModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">Send</div>
 
-                <!-- Token Selection -->
-                <div class="send-section">
-                    <div class="send-label">Token</div>
-                    <div class="token-selector" onclick="showTokenSelector()">
-                        <div class="selected-token">
-                            <div class="token-icon-small ton-icon">
-                                <img src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
-                                     onerror="this.style.display='none'; this.parentElement.innerHTML='T'">
-                            </div>
-                            <span>TON</span>
+        <!-- Address Input with Paste Button -->
+        <div class="send-section">
+            <label class="send-label">Address or Name</label>
+            <div class="address-input-container">
+                <input type="text" id="recipientAddress" placeholder="Address or Name" class="address-input">
+                <button class="paste-button" onclick="pasteAddress()">Paste</button>
+            </div>
+            <div class="address-validation" id="addressValidation"></div>
+        </div>
+
+        <!-- Amount Input with Token Dropdown -->
+        <div class="send-section">
+            <label class="send-label">Amount</label>
+            <div class="amount-input-container">
+                <input type="number" id="sendAmount" placeholder="0.00" class="amount-input">
+                <div class="token-dropdown" onclick="showTokenSelector()">
+                    <div class="selected-token">
+                        <div class="token-icon-small ton-icon">
+                            <img src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
+                                 onerror="this.style.display='none'; this.parentElement.innerHTML='T'">
                         </div>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        <span>TON</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7 10l5 5 5-5z"/>
                         </svg>
                     </div>
                 </div>
-
-                <!-- Amount Input -->
-                <div class="send-section">
-                    <div class="send-label">Amount</div>
-                    <div class="amount-input-container">
-                        <input type="number" id="sendAmount" placeholder="0.00" class="amount-input">
-                        <button class="max-button" onclick="setMaxAmount()">MAX</button>
-                    </div>
-                    <div class="balance-display">
-                        Balance: <span id="availableBalance">0.00</span> TON
-                    </div>
+            </div>
+            
+            <!-- Transaction Information -->
+            <div class="transaction-info">
+                <div class="usd-value">
+                    <span>USD 0</span>
+                    <span class="up-arrow">↗</span>
                 </div>
-
-                <!-- Recipient Address -->
-                <div class="send-section">
-                    <div class="send-label">To</div>
-                    <input type="text" id="recipientAddress" placeholder="Enter TON address (EQ...)" class="address-input">
-                    <div class="address-validation" id="addressValidation"></div>
+                <div class="remaining-balance">
+                    <span>Remaining: <span id="availableBalance">0.00</span> TON</span>
+                    <button class="max-button" onclick="setMaxAmount()">MAX</button>
                 </div>
+            </div>
+        </div>
 
-                <!-- Transaction Details -->
-                <div class="transaction-details">
-                    <div class="detail-row">
-                        <span>Network Fee</span>
-                        <span id="networkFee">~0.1 TON</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Total</span>
-                        <span id="totalAmount">0.00 TON</span>
-                    </div>
-                </div>
+        <!-- Comment Section -->
+        <div class="send-section">
+            <label class="send-label">Comment (Optional)</label>
+            <textarea id="transactionComment" placeholder="Add a note about this transaction" class="comment-input"></textarea>
+        </div>
+
+        <!-- Continue Button -->
+        <button class="continue-button" onclick="reviewTransaction()" id="continueButton">
+            Continue
+        </button>
+    </div>
+</div>
 
                 <!-- Action Buttons -->
                 <div class="send-actions">
