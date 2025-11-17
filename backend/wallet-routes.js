@@ -102,7 +102,7 @@ function decrypt(encryptedData) {
 async function getRealBalance(address) {
     try {
         console.log('🔄 Fetching TON balance for:', address);
-        
+
         // Use the CORRECT TON API endpoint
         const response = await axios.get(`https://toncenter.com/api/v2/getAddressInformation`, {
             params: {
@@ -116,9 +116,9 @@ async function getRealBalance(address) {
         if (response.data && response.data.result) {
             const balance = response.data.result.balance;
             const tonBalance = TonWeb.utils.fromNano(balance);
-            
+
             console.log('✅ TON Balance fetched:', tonBalance);
-            
+
             return {
                 success: true,
                 balance: parseFloat(tonBalance).toFixed(4),
@@ -131,7 +131,7 @@ async function getRealBalance(address) {
 
     } catch (error) {
         console.error('❌ TON balance fetch failed:', error.message);
-        
+
         // Fallback: Try alternative API
         try {
             console.log('🔄 Trying alternative balance fetch...');
@@ -140,7 +140,7 @@ async function getRealBalance(address) {
                     account: address
                 }
             });
-            
+
             if (fallbackResponse.data && fallbackResponse.data.balance) {
                 const tonBalance = TonWeb.utils.fromNano(fallbackResponse.data.balance);
                 return {
@@ -153,7 +153,7 @@ async function getRealBalance(address) {
         } catch (fallbackError) {
             console.error('❌ Fallback also failed:', fallbackError.message);
         }
-        
+
         // Final fallback - return 0 but don't crash
         return {
             success: true,
@@ -168,7 +168,7 @@ async function getRealBalance(address) {
 async function getNMXBalance(address) {
     try {
         console.log('🔄 Fetching REAL NMX balance from MAINNET...');
-        
+
         // Use OFFICIAL TON Foundation API for jettons
         const response = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
             params: { 
@@ -180,13 +180,13 @@ async function getNMXBalance(address) {
 
         // Check ALL available jettons to find NMX using BOTH contract formats
         let nmxJetton = null;
-        
+
         if (response.data.balances && response.data.balances.length > 0) {
             // Try to find NMX by BOTH contract addresses
             nmxJetton = response.data.balances.find(j => {
                 const jettonAddress = j.jetton.address;
                 console.log('🔍 Checking jetton:', jettonAddress);
-                
+
                 // Check BOTH NMX contract formats
                 return jettonAddress === "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec" ||
                        jettonAddress === "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
@@ -196,7 +196,7 @@ async function getNMXBalance(address) {
         if (nmxJetton) {
             const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
             console.log('✅ REAL NMX Balance found:', nmxBalance, 'NMX');
-            
+
             return {
                 success: true,
                 balance: parseFloat(nmxBalance).toFixed(2),
@@ -217,10 +217,10 @@ async function getNMXBalance(address) {
                 source: 'tonapi.io (MAINNET) - no NMX found'
             };
         }
-        
+
     } catch (error) {
         console.error('❌ NMX balance fetch failed:', error.message);
-        
+
         return {
             success: true,
             balance: "0",
@@ -236,7 +236,7 @@ async function getNMXBalance(address) {
 async function getAllBalances(address) {
     try {
         console.log('🔄 Fetching ALL balances for:', address);
-        
+
         const [tonBalance, nmxBalance] = await Promise.all([
             getRealBalance(address),
             getNMXBalance(address)
@@ -255,7 +255,7 @@ async function getAllBalances(address) {
 
     } catch (error) {
         console.error('❌ All balances fetch failed:', error);
-        
+
         // Return zeros but don't crash
         return {
             success: true,
@@ -269,50 +269,8 @@ async function getAllBalances(address) {
     }
 }
 
-
 // =============================================
-// COMPLETE WALLET RESET - ADD THIS FUNCTION
-// =============================================
-
-function completeWalletReset() {
-    console.log('🔄 Performing complete wallet reset...');
-    
-    // Clear ALL localStorage data
-    localStorage.removeItem('nemexUserWallets');
-    localStorage.removeItem('nemexCustomTokens');
-    localStorage.removeItem('nemexWalletState');
-    
-    // Reset all state variables
-    walletState = {
-        isInitialized: false,
-        walletType: null,
-        userId: null,
-        address: null,
-        balances: {},
-        lastUpdate: null,
-        currentWalletIndex: 0
-    };
-    
-    userWallets = [];
-    customTokens = [];
-    
-    // Force refresh the display
-    updateWalletDisplay();
-    
-    console.log('✅ Complete wallet reset done!');
-    alert('✅ Wallet completely reset! You can now import your wallet fresh.');
-}
-
-// Add this to your wallet.html somewhere - maybe in settings modal or as a hidden button
-function showResetOption() {
-    if (confirm('🚨 COMPLETE WALLET RESET\n\nThis will:\n• Delete ALL saved wallets\n• Clear ALL balance data\n• Reset to new user state\n\nAre you sure?')) {
-        completeWalletReset();
-    }
-}
-
-
-// =============================================
-// API ROUTES
+// API ROUTES - CLEAN VERSION
 // =============================================
 
 // Generate new TON wallet
@@ -365,7 +323,7 @@ router.post('/generate-wallet', async (req, res) => {
     }
 });
 
-// Import TON wallet from mnemonic - ADD DEBUG LOGGING
+// Import TON wallet from mnemonic
 router.post('/import-wallet', async (req, res) => {
     try {
         const { userId, mnemonic } = req.body;
@@ -450,7 +408,7 @@ router.post('/import-wallet', async (req, res) => {
     }
 });
 
-// Get real TON balance from blockchain - UPDATED
+// Get real TON balance from blockchain
 router.get('/real-balance/:address', async (req, res) => {
     try {
         const { address } = req.params;
@@ -465,7 +423,7 @@ router.get('/real-balance/:address', async (req, res) => {
     }
 });
 
-// Get NMX balance - UPDATED
+// Get NMX balance
 router.get('/nmx-balance/:address', async (req, res) => {
     try {
         const { address } = req.params;
@@ -480,7 +438,7 @@ router.get('/nmx-balance/:address', async (req, res) => {
     }
 });
 
-// Get all balances at once - UPDATED
+// Get all balances at once
 router.get('/all-balances/:address', async (req, res) => {
     try {
         const { address } = req.params;
@@ -495,18 +453,17 @@ router.get('/all-balances/:address', async (req, res) => {
     }
 });
 
-// Validate TON address
+// Validate TON address - SIMPLIFIED (NO TESTNET)
 router.get('/validate-address/:address', async (req, res) => {
     try {
         const { address } = req.params;
 
+        // ✅ Simple validation - only check for valid TON address format
         const isValid = address.startsWith('EQ') || address.startsWith('UQ');
-        const isTestnet = address.startsWith('kQ') || address.startsWith('0Q');
 
         res.json({
             success: true,
             isValid: isValid,
-            isTestnet: isTestnet,
             address: address
         });
 
@@ -561,56 +518,5 @@ router.get('/supported-tokens', async (req, res) => {
         });
     }
 });
-
-// Add this to check both NMX contracts
-router.get('/debug-nmx-contracts', async (req, res) => {
-    try {
-        const testAddress = "EQY6nnF19BvNpaZbBZwdkfJOjRVluIuxaOVCuH2qNqMH4GeN";
-        
-        console.log('🔍 Checking BOTH NMX contracts on MAINNET...');
-        
-        const response = await axios.get('https://tonapi.io/v1/jetton/getBalances', {
-            params: { account: testAddress }
-        });
-
-        const nmxContractHex = "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec";
-        const nmxContractFriendly = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
-        
-        const nmxHex = response.data.balances?.find(j => j.jetton.address === nmxContractHex);
-        const nmxFriendly = response.data.balances?.find(j => j.jetton.address === nmxContractFriendly);
-        
-        const allJettons = response.data.balances?.map(j => ({
-            address: j.jetton.address,
-            symbol: j.jetton.symbol,
-            name: j.jetton.name,
-            balance: TonWeb.utils.fromNano(j.balance)
-        })) || [];
-
-        res.json({
-            success: true,
-            network: 'MAINNET',
-            nmxContractHex: {
-                address: nmxContractHex,
-                found: !!nmxHex,
-                balance: nmxHex ? TonWeb.utils.fromNano(nmxHex.balance) : '0'
-            },
-            nmxContractFriendly: {
-                address: nmxContractFriendly,
-                found: !!nmxFriendly,
-                balance: nmxFriendly ? TonWeb.utils.fromNano(nmxFriendly.balance) : '0'
-            },
-            allJettons: allJettons,
-            message: 'Checked both NMX contract formats on MAINNET'
-        });
-        
-    } catch (error) {
-        console.error('❌ NMX contract debug failed:', error.message);
-        res.json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
 
 module.exports = router;
