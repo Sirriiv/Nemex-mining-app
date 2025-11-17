@@ -28,28 +28,28 @@ async function generateRealTONWallet(wordCount = 24) {
         // Generate secure mnemonic using bip39
         const strength = wordCount === 12 ? 128 : 256;
         const mnemonic = bip39.generateMnemonic(strength);
-        
+
         // Convert mnemonic to key pair using @ton/crypto
         const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
-        
+
         // Create wallet using tonweb
         const WalletClass = tonweb.wallet.all.v4R2;
         const wallet = new WalletClass(tonweb.provider, {
             publicKey: keyPair.publicKey,
             wc: 0
         });
-        
+
         // Get wallet address
         const walletAddress = await wallet.getAddress();
         const address = walletAddress.toString(true, true, true);
-        
+
         return {
             mnemonic: mnemonic,
             address: address,
             publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
             privateKey: TonWeb.utils.bytesToHex(keyPair.secretKey)
         };
-        
+
     } catch (error) {
         console.error('Real TON wallet generation failed:', error);
         throw new Error('Failed to generate TON wallet: ' + error.message);
@@ -92,6 +92,136 @@ function decrypt(encryptedData) {
     } catch (error) {
         console.error('Decryption failed:', error);
         throw new Error('Decryption error');
+    }
+}
+
+// =============================================
+// BALANCE CONTROLLER FUNCTIONS
+// =============================================
+
+async function getRealBalance(address) {
+    try {
+        console.log('🔄 Fetching real balance for:', address);
+        
+        // Validate address format first
+        if (!address.startsWith('EQ') && !address.startsWith('UQ')) {
+            throw new Error('Invalid TON address format');
+        }
+
+        // Use toncenter API directly for better reliability
+        const response = await axios.get('https://toncenter.com/api/v2/getAddressInformation', {
+            params: { address: address },
+            headers: {
+                'X-API-Key': process.env.TONCENTER_API_KEY
+            }
+        });
+
+        const balance = response.data.result.balance;
+        const tonBalance = TonWeb.utils.fromNano(balance);
+
+        return {
+            success: true,
+            balance: parseFloat(tonBalance).toFixed(4),
+            address: address,
+            rawBalance: balance.toString()
+        };
+
+    } catch (error) {
+        console.error('❌ Balance check failed:', error.message);
+        
+        // Fallback to tonweb if direct API fails
+        try {
+            const balance = await tonweb.provider.getBalance(address);
+            const tonBalance = TonWeb.utils.fromNano(balance);
+            
+            return {
+                success: true,
+                balance: parseFloat(tonBalance).toFixed(4),
+                address: address,
+                rawBalance: balance.toString()
+            };
+        } catch (fallbackError) {
+            throw new Error(`Balance fetch failed: ${fallbackError.message}`);
+        }
+    }
+}
+
+async function getNMXBalance(address) {
+    try {
+        console.log('🔄 Fetching NMX balance for:', address);
+        
+        // Use the Jetton balances endpoint to get NMX balance
+        const response = await axios.get('https://toncenter.com/api/v2/jetton/balances', {
+            params: { 
+                address: address 
+            },
+            headers: {
+                'X-API-Key': process.env.TONCENTER_API_KEY
+            }
+        });
+
+        // Find NMX token in the balances using YOUR contract address
+        const nmxJetton = response.data.balances.find(j => 
+            j.jetton.address === "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec"
+        );
+
+        if (nmxJetton) {
+            // Convert balance from nano units (assuming 9 decimals like TON)
+            const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+            return {
+                success: true,
+                balance: parseFloat(nmxBalance).toFixed(2),
+                address: address,
+                rawBalance: nmxJetton.balance,
+                token: "NMX"
+            };
+        } else {
+            // No NMX tokens found
+            return {
+                success: true,
+                balance: "0",
+                address: address,
+                rawBalance: "0",
+                token: "NMX"
+            };
+        }
+        
+    } catch (error) {
+        console.error('❌ NMX balance check failed:', error.message);
+        
+        // Return zero balance as fallback
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            token: "NMX",
+            error: error.message
+        };
+    }
+}
+
+async function getAllBalances(address) {
+    try {
+        console.log('🔄 Fetching all balances for:', address);
+        
+        const [tonBalance, nmxBalance] = await Promise.all([
+            getRealBalance(address),
+            getNMXBalance(address)
+        ]);
+
+        return {
+            success: true,
+            balances: {
+                TON: tonBalance.balance,
+                NMX: nmxBalance.balance
+            },
+            address: address
+        };
+
+    } catch (error) {
+        console.error('❌ All balances fetch failed:', error);
+        throw new Error(`Failed to fetch balances: ${error.message}`);
     }
 }
 
@@ -166,13 +296,13 @@ router.post('/import-wallet', async (req, res) => {
 
         // Generate wallet from mnemonic
         const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
-        
+
         const WalletClass = tonweb.wallet.all.v4R2;
         const wallet = new WalletClass(tonweb.provider, {
             publicKey: keyPair.publicKey,
             wc: 0
         });
-        
+
         const walletAddress = await wallet.getAddress();
         const address = walletAddress.toString(true, true, true);
 
@@ -214,29 +344,47 @@ router.post('/import-wallet', async (req, res) => {
     }
 });
 
-// Get real TON balance from blockchain
+// Get real TON balance from blockchain - UPDATED
 router.get('/real-balance/:address', async (req, res) => {
     try {
         const { address } = req.params;
-
-        console.log('🔄 Fetching balance for:', address);
-
-        // Get balance using tonweb
-        const balance = await tonweb.getBalance(address);
-        const tonBalance = TonWeb.utils.fromNano(balance);
-
-        res.json({
-            success: true,
-            balance: parseFloat(tonBalance).toFixed(4),
-            address: address,
-            rawBalance: balance.toString()
-        });
-
+        const result = await getRealBalance(address);
+        res.json(result);
     } catch (error) {
         console.error('❌ Balance check error:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to fetch balance from blockchain'
+            error: error.message
+        });
+    }
+});
+
+// Get NMX balance - NEW ENDPOINT
+router.get('/nmx-balance/:address', async (req, res) => {
+    try {
+        const { address } = req.params;
+        const result = await getNMXBalance(address);
+        res.json(result);
+    } catch (error) {
+        console.error('❌ NMX balance error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get all balances at once - NEW ENDPOINT
+router.get('/all-balances/:address', async (req, res) => {
+    try {
+        const { address } = req.params;
+        const result = await getAllBalances(address);
+        res.json(result);
+    } catch (error) {
+        console.error('❌ All balances error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
@@ -300,21 +448,10 @@ router.get('/validate-address/:address', async (req, res) => {
     }
 });
 
-// Get supported tokens (NMX as primary)
+// Get supported tokens - UPDATED (TON as native, NMX as featured)
 router.get('/supported-tokens', async (req, res) => {
     try {
         const tokens = [
-            {
-                symbol: "NMX",
-                name: "NemexCoin",
-                contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-                decimals: 9,
-                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                price: 0.10,
-                canSend: true,
-                isNative: true,
-                isFeatured: true
-            },
             {
                 symbol: "TON",
                 name: "Toncoin",
@@ -323,14 +460,26 @@ router.get('/supported-tokens', async (req, res) => {
                 logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
                 price: 2.50,
                 canSend: true,
-                isNative: false
+                isNative: true,
+                isFeatured: true
+            },
+            {
+                symbol: "NMX",
+                name: "NemexCoin",
+                contract: "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec",
+                decimals: 9,
+                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                price: 0.10,
+                canSend: true,
+                isNative: false,
+                isFeatured: true
             }
         ];
 
         res.json({
             success: true,
             tokens: tokens,
-            primaryToken: "NMX"
+            primaryToken: "TON" // Changed to TON as primary
         });
 
     } catch (error) {
