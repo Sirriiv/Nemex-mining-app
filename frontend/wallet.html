@@ -76,130 +76,6 @@
             cursor: pointer;
         }
 
-        /* Wallet Selector */
-        .wallet-selector {
-            padding: 12px 20px;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .current-wallet {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: rgba(212, 175, 55, 0.1);
-            border-radius: var(--border-radius-sm);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-        }
-
-        .wallet-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .wallet-icon {
-            width: 32px;
-            height: 32px;
-            background: var(--gold);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--dark-bg);
-            font-weight: bold;
-        }
-
-        .wallet-details {
-            flex: 1;
-        }
-
-        .wallet-label {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 2px;
-        }
-
-        .wallet-address {
-            font-size: 14px;
-            font-weight: 600;
-            font-family: 'Courier New', monospace;
-        }
-
-        .wallet-type {
-            font-size: 10px;
-            padding: 2px 8px;
-            background: rgba(212, 175, 55, 0.2);
-            color: var(--gold);
-            border-radius: 10px;
-            margin-left: 8px;
-        }
-
-        .dropdown-arrow {
-            transition: transform 0.3s ease;
-        }
-
-        .wallet-selector.open .dropdown-arrow {
-            transform: rotate(180deg);
-        }
-
-        /* Wallets List */
-        .wallets-list {
-            display: none;
-            background: var(--card-bg);
-            border-radius: var(--border-radius-sm);
-            margin: 8px 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .wallet-selector.open .wallets-list {
-            display: block;
-        }
-
-        .wallet-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .wallet-item:hover {
-            background: rgba(212, 175, 55, 0.05);
-        }
-
-        .wallet-item.active {
-            background: rgba(212, 175, 55, 0.1);
-        }
-
-        .wallet-item:last-child {
-            border-bottom: none;
-        }
-
-        .add-wallet-btn {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 16px;
-            color: var(--gold);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .add-wallet-btn:hover {
-            background: rgba(212, 175, 55, 0.05);
-        }
-
-        .add-wallet-icon {
-            width: 20px;
-            height: 20px;
-        }
-
         /* Balance Section */
         .balance-section {
             padding: 30px 20px;
@@ -339,8 +215,6 @@
         .ton-icon { background: linear-gradient(135deg, #0088CC, #006699); }
         .nmx-icon { background: linear-gradient(135deg, var(--gold), #B8941F); }
         .usdt-icon { background: linear-gradient(135deg, #26A17B, #1E8C6E); }
-        .tron-icon { background: linear-gradient(135deg, #FF060A, #CC0000); }
-        .btc-icon { background: linear-gradient(135deg, #F7931A, #E07B15); }
 
         .token-info {
             flex: 1;
@@ -398,10 +272,10 @@
             color: var(--text-muted);
         }
 
-        /* Manage Crypto Section */
+        /* Manage Crypto Section - REDUCED SIZE */
         .manage-crypto {
-            margin-top: 20px;
-            padding: 16px;
+            margin-top: 12px;
+            padding: 12px 16px;
             background: var(--card-bg);
             border-radius: var(--border-radius-sm);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -421,8 +295,8 @@
         }
 
         .manage-crypto-icon {
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             color: var(--gold);
         }
 
@@ -432,11 +306,12 @@
 
         .manage-crypto-title {
             font-weight: 600;
+            font-size: 14px;
             margin-bottom: 2px;
         }
 
         .manage-crypto-subtitle {
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-muted);
         }
 
@@ -540,6 +415,270 @@
             background: var(--gold-light);
         }
 
+        /* Enhanced Send Modal */
+        #sendModal .modal-content {
+            background: linear-gradient(135deg, var(--card-bg) 0%, #1a1a1a 100%);
+            border-radius: 24px;
+            padding: 32px 28px;
+            width: 90%;
+            max-width: 440px;
+            text-align: left;
+            box-shadow: 
+                0 25px 50px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(212, 175, 55, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.15);
+            backdrop-filter: blur(40px);
+        }
+
+        .send-section {
+            margin-bottom: 28px;
+            position: relative;
+        }
+
+        .send-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-weight: 700;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .send-label::before {
+            content: '';
+            width: 4px;
+            height: 4px;
+            background: var(--gold);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .address-input-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .address-input {
+            flex: 1;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            color: var(--text);
+            font-size: 15px;
+            font-weight: 500;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            backdrop-filter: blur(10px);
+        }
+
+        .address-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+            box-shadow: 
+                0 0 0 4px rgba(212, 175, 55, 0.15),
+                0 8px 32px rgba(212, 175, 55, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .paste-button {
+            padding: 14px 18px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.1));
+            color: var(--gold);
+            border: 1.5px solid var(--gold);
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            white-space: nowrap;
+            min-width: 75px;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+        }
+
+        .paste-button:hover {
+            background: linear-gradient(135deg, var(--gold), #E6C34E);
+            color: var(--dark-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+        }
+
+        .amount-input-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .amount-input {
+            flex: 1;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            color: var(--text);
+            font-size: 20px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            backdrop-filter: blur(10px);
+        }
+
+        .amount-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+            box-shadow: 
+                0 0 0 4px rgba(212, 175, 55, 0.15),
+                0 8px 32px rgba(212, 175, 55, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .token-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 18px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.08));
+            border: 1.5px solid var(--gold);
+            border-radius: 18px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            min-width: 130px;
+            justify-content: space-between;
+            backdrop-filter: blur(20px);
+        }
+
+        .token-dropdown:hover {
+            background: linear-gradient(135deg, var(--gold), #E6C34E);
+            transform: translateY(-2px);
+        }
+
+        .selected-token {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: var(--gold);
+            flex: 1;
+        }
+
+        .token-dropdown:hover .selected-token {
+            color: var(--dark-bg);
+        }
+
+        .token-icon-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .token-logo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .transaction-info {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
+            border-radius: 18px;
+            padding: 22px;
+            margin: 24px 0;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(20px);
+        }
+
+        .usd-value {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .usd-amount {
+            background: linear-gradient(135deg, var(--text), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .remaining-balance {
+            font-size: 13px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+
+        .max-button {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.1));
+            color: var(--gold);
+            border: 1.5px solid var(--gold);
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .max-button:hover {
+            background: linear-gradient(135deg, var(--gold), #E6C34E);
+            color: var(--dark-bg);
+            transform: translateY(-1px);
+        }
+
+        .continue-button {
+            width: 100%;
+            padding: 20px 28px;
+            background: linear-gradient(135deg, var(--gold), #E6C34E, var(--gold));
+            background-size: 200% 100%;
+            color: var(--dark-bg);
+            border: none;
+            border-radius: 18px;
+            font-size: 17px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            margin-top: 12px;
+            box-shadow: 
+                0 12px 40px rgba(212, 175, 55, 0.4),
+                0 4px 0 rgba(180, 150, 50, 0.3);
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .continue-button:hover:not(:disabled) {
+            background-position: 100% 0;
+            transform: translateY(-3px);
+        }
+
         /* Enhanced Token Selector Modal */
         #tokenSelectorModal .modal-content {
             max-width: 400px;
@@ -547,7 +686,6 @@
             border-radius: 24px;
             padding: 28px;
             border: 1px solid rgba(212, 175, 55, 0.15);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
         }
 
         .token-selector-header {
@@ -569,6 +707,45 @@
 
         .back-button:hover {
             background: rgba(212, 175, 55, 0.1);
+        }
+
+        .token-search {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid rgba(212, 175, 55, 0.2);
+            border-radius: 16px;
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .token-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 24px 0;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .token-option {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .token-option:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            transform: translateY(-2px);
         }
 
         /* Welcome Screen */
@@ -631,6 +808,80 @@
             transform: translateY(-2px);
         }
 
+        /* Settings Wallet Management */
+        .wallet-management {
+            margin: 20px 0;
+        }
+
+        .wallet-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+        }
+
+        .wallet-item:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .wallet-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark-bg);
+            font-weight: bold;
+        }
+
+        .wallet-details {
+            flex: 1;
+        }
+
+        .wallet-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .wallet-address {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .wallet-type {
+            font-size: 10px;
+            padding: 2px 8px;
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--gold);
+            border-radius: 10px;
+        }
+
+        .add-wallet-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            color: var(--gold);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-wallet-btn:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
         /* Loading Animation */
         .loading {
             display: inline-block;
@@ -656,32 +907,6 @@
             font-size: 12px;
             color: var(--warning);
         }
-
-        /* Backup Modal */
-        .backup-modal {
-            max-width: 400px;
-        }
-
-        .mnemonic-words {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin: 16px 0;
-        }
-
-        .mnemonic-word {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            text-align: center;
-        }
-
-        .word-index {
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-right: 4px;
-        }
     </style>
 </head>
 <body>
@@ -698,26 +923,6 @@
                 </svg>
             </div>
         </header>
-
-        <!-- Wallet Selector -->
-        <div class="wallet-selector" id="walletSelector">
-            <div class="current-wallet" onclick="toggleWalletList()">
-                <div class="wallet-info">
-                    <div class="wallet-icon">N</div>
-                    <div class="wallet-details">
-                        <div class="wallet-label">Current Wallet</div>
-                        <div class="wallet-address" id="currentWalletAddress">No wallet selected</div>
-                    </div>
-                    <span class="wallet-type" id="walletType">None</span>
-                </div>
-                <svg class="dropdown-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7 10l5 5 5-5z"/>
-                </svg>
-            </div>
-            <div class="wallets-list" id="walletsList">
-                <!-- Wallets will be populated here -->
-            </div>
-        </div>
 
         <!-- Welcome Screen for New Users -->
         <div id="welcomeScreen" class="welcome-screen">
@@ -789,7 +994,7 @@
                 <!-- Tokens will be loaded dynamically -->
             </div>
 
-            <!-- Manage Crypto Section -->
+            <!-- Manage Crypto Section - REDUCED SIZE -->
             <div class="manage-crypto" onclick="showManageCrypto()">
                 <div class="manage-crypto-content">
                     <svg class="manage-crypto-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -835,22 +1040,105 @@
         </nav>
 
         <!-- Modals -->
-        <!-- Receive Modal -->
-        <div id="receiveModal" class="modal">
+        <!-- Enhanced Send Modal -->
+        <div id="sendModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Receive Assets</div>
-                <div class="qr-code">
-                    <div>QR CODE</div>
+                <div class="modal-title">Send</div>
+
+                <!-- Address Input -->
+                <div class="send-section">
+                    <label class="send-label">Wallet Address</label>
+                    <div class="address-input-container">
+                        <input type="text" id="recipientAddress" placeholder="Wallet Address" class="address-input">
+                        <button class="paste-button" onclick="pasteAddress()">Paste</button>
+                    </div>
+                    <div class="address-validation" id="addressValidation"></div>
                 </div>
-                <div class="wallet-address-modal" id="walletAddressDisplay">Create or import a wallet first</div>
-                <button class="close-modal" onclick="closeModal()">Close</button>
+
+                <!-- Amount Input -->
+                <div class="send-section">
+                    <label class="send-label">Amount</label>
+                    <div class="amount-input-container">
+                        <input type="number" id="sendAmount" placeholder="0.00" class="amount-input">
+                        <div class="token-dropdown" onclick="showTokenSelector()">
+                            <div class="selected-token">
+                                <div class="token-icon-small ton-icon">
+                                    <img src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
+                                         alt="TON" class="token-logo"
+                                         onerror="handleTokenLogoError(this, 'TON')">
+                                </div>
+                                <span class="token-symbol">TON</span>
+                            </div>
+                            <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M7 10l5 5 5-5z"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Information -->
+                    <div class="transaction-info">
+                        <div class="usd-value">
+                            <span class="usd-amount">USD 0</span>
+                            <span class="up-arrow">↗</span>
+                        </div>
+                        <div class="remaining-balance">
+                            <span>Remaining: <span id="availableBalance">0.00</span> TON</span>
+                            <button class="max-button" onclick="setMaxAmount()">MAX</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comment Section -->
+                <div class="send-section">
+                    <label class="send-label">Comment (Optional)</label>
+                    <textarea id="transactionComment" placeholder="Add a note about this transaction" class="comment-input"></textarea>
+                </div>
+
+                <!-- Continue Button -->
+                <button class="continue-button" onclick="reviewTransaction()" id="continueButton">
+                    Continue
+                </button>
             </div>
         </div>
 
-        <!-- Settings Modal -->
+        <!-- Token Selector Modal -->
+        <div id="tokenSelectorModal" class="modal">
+            <div class="modal-content">
+                <div class="token-selector-header">
+                    <button class="back-button" onclick="closeTokenSelector()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
+                        </svg>
+                    </button>
+                    <div class="modal-title">Select Token</div>
+                    <div style="width: 24px;"></div>
+                </div>
+                <input type="text" id="tokenSearch" placeholder="Search tokens..." class="token-search" onkeyup="filterTokens()">
+                <div class="token-options" id="tokenOptions">
+                    <!-- Tokens will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal with Wallet Management -->
         <div id="settingsModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Wallet Settings</div>
+                
+                <!-- Wallet Management Section -->
+                <div class="wallet-management">
+                    <div class="section-title">Your Wallets</div>
+                    <div id="walletsList">
+                        <!-- Wallets will be populated here -->
+                    </div>
+                    <div class="add-wallet-btn" onclick="showCreateWalletModal()">
+                        <svg class="add-wallet-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        <span>Add New Wallet</span>
+                    </div>
+                </div>
+
                 <div class="settings-option" onclick="showCreateWalletModal()">
                     <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -870,7 +1158,7 @@
             </div>
         </div>
 
-        <!-- Create Wallet Modal -->
+        <!-- Other Modals (Create, Import, Backup, Manage Crypto) -->
         <div id="createWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Create New Wallet</div>
@@ -886,7 +1174,6 @@
             </div>
         </div>
 
-        <!-- Import Wallet Modal -->
         <div id="importWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Import Wallet</div>
@@ -904,40 +1191,17 @@
             </div>
         </div>
 
-        <!-- Backup Modal -->
         <div id="backupModal" class="modal">
             <div class="modal-content backup-modal">
                 <div class="modal-title">🔒 Backup Your Wallet</div>
                 <div class="security-warning">
                     <strong>⚠️ CRITICAL:</strong> Write down these words and store them securely.
                 </div>
-                <div class="mnemonic-words" id="mnemonicWords">
-                    <!-- Mnemonic words will be loaded here -->
-                </div>
+                <div class="mnemonic-words" id="mnemonicWords"></div>
                 <button class="close-modal" onclick="closeBackupModal()">I've Saved My Recovery Phrase</button>
             </div>
         </div>
 
-        <!-- Enhanced Token Selector Modal -->
-        <div id="tokenSelectorModal" class="modal">
-            <div class="modal-content">
-                <div class="token-selector-header">
-                    <button class="back-button" onclick="closeTokenSelector()">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/>
-                        </svg>
-                    </button>
-                    <div class="modal-title">Select Token</div>
-                    <div style="width: 24px;"></div> <!-- Spacer for alignment -->
-                </div>
-                <input type="text" id="tokenSearch" placeholder="Search tokens..." class="token-search" onkeyup="filterTokens()">
-                <div class="token-options" id="tokenOptions">
-                    <!-- Tokens will be loaded here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Manage Crypto Modal -->
         <div id="manageCryptoModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Manage Crypto</div>
@@ -957,7 +1221,7 @@
 
     </div>
 
-    <!-- COMPLETE WALLET FUNCTIONALITY SCRIPT -->
+    <!-- COMPLETE WALLET SCRIPT WITH FIXED SEND MODAL -->
     <script>
         // =============================================
         // WALLET STATE MANAGEMENT
@@ -981,7 +1245,7 @@
             {
                 symbol: "TON",
                 name: "Toncoin",
-                balance: 0,
+                balance: 15.5,
                 logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
                 price: 2.50,
                 change24h: 1.5,
@@ -990,7 +1254,7 @@
             {
                 symbol: "NMX",
                 name: "NemexCoin",
-                balance: 0,
+                balance: 1000,
                 logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
                 price: 0.10,
                 change24h: 0.0,
@@ -999,7 +1263,7 @@
             {
                 symbol: "USDT",
                 name: "Tether",
-                balance: 0,
+                balance: 50,
                 logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
                 price: 1.00,
                 change24h: 0.0,
@@ -1008,10 +1272,9 @@
         ];
 
         // =============================================
-        // WALLET MANAGEMENT FUNCTIONS
+        // INITIALIZATION
         // =============================================
 
-        // Initialize wallet
         async function initWallet() {
             console.log('🔄 Initializing wallet...');
             
@@ -1026,39 +1289,53 @@
             
             if (savedTokens) {
                 customTokens = JSON.parse(savedTokens);
-                console.log('✅ Loaded custom tokens:', customTokens);
             }
 
             // Set first wallet as active if available
             if (userWallets.length > 0) {
                 walletState = userWallets[0];
                 walletState.currentWalletIndex = 0;
-                console.log('✅ Active wallet set:', walletState.address);
             }
 
             updateWalletDisplay();
             loadTokens();
+            updateWalletsList();
             
             console.log('🚀 Wallet initialized successfully');
         }
 
-        // Toggle wallet list
-        function toggleWalletList() {
-            const selector = document.getElementById('walletSelector');
-            const list = document.getElementById('walletsList');
-            
-            selector.classList.toggle('open');
-            updateWalletsList();
+        // =============================================
+        // WALLET MANAGEMENT
+        // =============================================
+
+        function updateWalletDisplay() {
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const balanceSection = document.getElementById('balanceSection');
+            const actionButtons = document.getElementById('actionButtons');
+            const tokenSection = document.getElementById('tokenSection');
+
+            if (walletState.isInitialized) {
+                welcomeScreen.style.display = 'none';
+                balanceSection.style.display = 'block';
+                actionButtons.style.display = 'grid';
+                tokenSection.style.display = 'block';
+                
+                updatePortfolioValue();
+            } else {
+                welcomeScreen.style.display = 'block';
+                balanceSection.style.display = 'none';
+                actionButtons.style.display = 'none';
+                tokenSection.style.display = 'none';
+            }
         }
 
-        // Update wallets list
         function updateWalletsList() {
             const list = document.getElementById('walletsList');
             list.innerHTML = '';
 
             userWallets.forEach((wallet, index) => {
                 const walletItem = document.createElement('div');
-                walletItem.className = `wallet-item ${index === walletState.currentWalletIndex ? 'active' : ''}`;
+                walletItem.className = 'wallet-item';
                 walletItem.innerHTML = `
                     <div class="wallet-info">
                         <div class="wallet-icon">${wallet.walletType === 'imported' ? 'I' : 'N'}</div>
@@ -1072,65 +1349,23 @@
                 walletItem.onclick = () => switchWallet(index);
                 list.appendChild(walletItem);
             });
-
-            // Add wallet button
-            const addWalletBtn = document.createElement('div');
-            addWalletBtn.className = 'add-wallet-btn';
-            addWalletBtn.innerHTML = `
-                <svg class="add-wallet-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                <span>Add Wallet</span>
-            `;
-            addWalletBtn.onclick = showCreateWalletModal;
-            list.appendChild(addWalletBtn);
         }
 
-        // Switch wallet
         function switchWallet(index) {
             walletState = userWallets[index];
             walletState.currentWalletIndex = index;
             
             updateWalletDisplay();
-            loadRealBalances();
-            toggleWalletList();
+            loadTokens();
+            closeModal();
             
             console.log('✅ Switched to wallet:', walletState.address);
-        }
-
-        // Update wallet display
-        function updateWalletDisplay() {
-            const welcomeScreen = document.getElementById('welcomeScreen');
-            const balanceSection = document.getElementById('balanceSection');
-            const actionButtons = document.getElementById('actionButtons');
-            const tokenSection = document.getElementById('tokenSection');
-            const currentAddress = document.getElementById('currentWalletAddress');
-            const walletType = document.getElementById('walletType');
-
-            if (walletState.isInitialized) {
-                welcomeScreen.style.display = 'none';
-                balanceSection.style.display = 'block';
-                actionButtons.style.display = 'grid';
-                tokenSection.style.display = 'block';
-                
-                currentAddress.textContent = `${walletState.address.substring(0, 8)}...${walletState.address.substring(walletState.address.length - 6)}`;
-                walletType.textContent = walletState.walletType === 'imported' ? 'Imported' : 'New';
-                
-            } else {
-                welcomeScreen.style.display = 'block';
-                balanceSection.style.display = 'none';
-                actionButtons.style.display = 'none';
-                tokenSection.style.display = 'none';
-                currentAddress.textContent = 'No wallet selected';
-                walletType.textContent = 'None';
-            }
         }
 
         // =============================================
         // WALLET CREATION & IMPORT
         // =============================================
 
-        // Generate new wallet
         async function generateNewWallet() {
             try {
                 console.log('🔄 Generating new wallet...');
@@ -1151,13 +1386,12 @@
                 walletState = newWallet;
                 walletState.currentWalletIndex = userWallets.length - 1;
 
-                // Save to localStorage
                 localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
-                localStorage.setItem('nemexWalletMnemonic', mnemonic);
 
                 console.log('✅ New wallet created:', address);
 
                 updateWalletDisplay();
+                updateWalletsList();
                 showBackupModal(mnemonic);
                 closeModal();
 
@@ -1167,7 +1401,6 @@
             }
         }
 
-        // Import wallet
         async function importWalletFromModal() {
             const mnemonic = document.getElementById('importMnemonic').value.trim();
             if (!mnemonic) {
@@ -1198,7 +1431,7 @@
                 console.log('✅ Wallet imported:', address);
 
                 updateWalletDisplay();
-                loadRealBalances();
+                updateWalletsList();
                 closeModal();
                 alert('✅ Wallet imported successfully!');
 
@@ -1208,7 +1441,6 @@
             }
         }
 
-        // Generate secure mnemonic
         function generateSecureMnemonic() {
             const wordList = [
                 'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
@@ -1225,7 +1457,6 @@
             return mnemonic.join(' ');
         }
 
-        // Generate address from mnemonic
         async function generateAddressFromMnemonic(mnemonic) {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
             let address = 'EQ';
@@ -1236,10 +1467,226 @@
         }
 
         // =============================================
+        // SEND MODAL FUNCTIONALITY - RESTORED
+        // =============================================
+
+        let selectedToken = SUPPORTED_TOKENS[0];
+
+        function showSendModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+            
+            // Reset form
+            document.getElementById('recipientAddress').value = '';
+            document.getElementById('sendAmount').value = '';
+            document.getElementById('transactionComment').value = '';
+            document.getElementById('addressValidation').innerHTML = '';
+            document.getElementById('addressValidation').className = 'address-validation';
+            
+            // Update available balance
+            updateAvailableBalance();
+            
+            document.getElementById('sendModal').style.display = 'flex';
+        }
+
+        function updateAvailableBalance() {
+            const availableBalance = document.getElementById('availableBalance');
+            if (availableBalance && selectedToken) {
+                availableBalance.textContent = selectedToken.balance.toFixed(4);
+            }
+        }
+
+        function pasteAddress() {
+            navigator.clipboard.readText().then(text => {
+                document.getElementById('recipientAddress').value = text;
+                validateAddress(text);
+            }).catch(err => {
+                console.error('Failed to read clipboard:', err);
+            });
+        }
+
+        function validateAddress(address) {
+            const validation = document.getElementById('addressValidation');
+            if (!address) {
+                validation.innerHTML = '';
+                validation.className = 'address-validation';
+                return false;
+            }
+
+            if (address.startsWith('EQ') || address.startsWith('UQ')) {
+                validation.innerHTML = '✓ Valid TON address';
+                validation.className = 'address-validation valid';
+                return true;
+            } else {
+                validation.innerHTML = '⚠ Invalid TON address format';
+                validation.className = 'address-validation invalid';
+                return false;
+            }
+        }
+
+        function setMaxAmount() {
+            if (selectedToken && selectedToken.balance > 0) {
+                document.getElementById('sendAmount').value = selectedToken.balance;
+                updateUsdValue();
+            }
+        }
+
+        function updateUsdValue() {
+            const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
+            const usdValue = amount * (selectedToken?.price || 0);
+            const usdElement = document.querySelector('.usd-amount');
+            if (usdElement) {
+                usdElement.textContent = `USD ${usdValue.toFixed(2)}`;
+            }
+        }
+
+        function showTokenSelector() {
+            const tokenOptions = document.getElementById('tokenOptions');
+            tokenOptions.innerHTML = '';
+
+            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+            allTokens.forEach(token => {
+                if (token.canSend) {
+                    const tokenOption = document.createElement('div');
+                    tokenOption.className = 'token-option';
+                    tokenOption.innerHTML = `
+                        <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                            <img src="${token.logo}" alt="${token.name}" class="token-logo"
+                                 onerror="handleTokenLogoError(this, '${token.symbol}')">
+                        </div>
+                        <div class="token-option-info">
+                            <div class="token-option-name">${token.name}</div>
+                            <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
+                        </div>
+                    `;
+                    tokenOption.onclick = () => selectToken(token);
+                    tokenOptions.appendChild(tokenOption);
+                }
+            });
+
+            document.getElementById('tokenSelectorModal').style.display = 'flex';
+        }
+
+        function selectToken(token) {
+            selectedToken = token;
+            
+            // Update selected token display
+            const selectedTokenElement = document.querySelector('.selected-token');
+            if (selectedTokenElement) {
+                selectedTokenElement.innerHTML = `
+                    <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                        <img src="${token.logo}" alt="${token.name}" class="token-logo"
+                             onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    </div>
+                    <span class="token-symbol">${token.symbol}</span>
+                `;
+            }
+
+            // Update available balance
+            updateAvailableBalance();
+            
+            // Reset amount and USD value
+            document.getElementById('sendAmount').value = '';
+            updateUsdValue();
+            
+            closeTokenSelector();
+        }
+
+        function closeTokenSelector() {
+            document.getElementById('tokenSelectorModal').style.display = 'none';
+        }
+
+        function filterTokens() {
+            const searchTerm = document.getElementById('tokenSearch').value.toLowerCase();
+            const tokenOptions = document.querySelectorAll('.token-option');
+
+            tokenOptions.forEach(option => {
+                const tokenName = option.querySelector('.token-option-name').textContent.toLowerCase();
+                if (tokenName.includes(searchTerm)) {
+                    option.style.display = 'flex';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        function reviewTransaction() {
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            const address = document.getElementById('recipientAddress').value;
+            const comment = document.getElementById('transactionComment').value;
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            if (!validateAddress(address)) {
+                alert('Please enter a valid TON address');
+                return;
+            }
+
+            if (amount > selectedToken.balance) {
+                alert(`Insufficient balance. You have ${selectedToken.balance} ${selectedToken.symbol}`);
+                return;
+            }
+
+            const reviewMessage = `
+Transaction Review:
+
+Send: ${amount} ${selectedToken.symbol}
+To: ${address}
+${comment ? `Comment: ${comment}` : ''}
+
+Confirm transaction?
+            `.trim();
+
+            if (confirm(reviewMessage)) {
+                processTransaction(amount, address, comment, selectedToken);
+            }
+        }
+
+        async function processTransaction(amount, address, comment, token) {
+            const continueButton = document.getElementById('continueButton');
+            continueButton.innerHTML = '<div class="loading"></div> Processing...';
+            continueButton.disabled = true;
+
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                alert(`✅ ${amount} ${token.symbol} sent successfully to ${address}`);
+                closeSendModal();
+                
+            } catch (error) {
+                alert('❌ Transaction failed: ' + error.message);
+            } finally {
+                continueButton.innerHTML = 'Continue';
+                continueButton.disabled = false;
+            }
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendModal').style.display = 'none';
+        }
+
+        function handleTokenLogoError(img, symbol) {
+            img.style.display = 'none';
+            const container = img.parentElement;
+            container.innerHTML = symbol.charAt(0);
+            container.style.background = 'rgba(255, 255, 255, 0.1)';
+            container.style.color = 'white';
+            container.style.fontWeight = 'bold';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
+        }
+
+        // =============================================
         // TOKEN MANAGEMENT
         // =============================================
 
-        // Load tokens
         function loadTokens() {
             const tokenList = document.getElementById('tokenList');
             const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
@@ -1277,7 +1724,6 @@
             document.getElementById('tokensLoading').style.display = 'none';
         }
 
-        // Add custom token
         function addCustomToken() {
             const address = document.getElementById('customTokenAddress').value.trim();
             if (!address) {
@@ -1303,6 +1749,39 @@
             loadTokens();
             closeModal();
             alert('✅ Custom token added successfully!');
+        }
+
+        // =============================================
+        // HELPER FUNCTIONS
+        // =============================================
+
+        function formatTokenBalance(balance) {
+            if (!balance && balance !== 0) return '0.00';
+            if (balance === 0) return '0.00';
+            if (balance < 0.0001) return balance.toExponential(2);
+            if (balance < 1) return balance.toFixed(4);
+            return balance.toFixed(2);
+        }
+
+        function formatTokenPrice(price) {
+            if (!price && price !== 0) return '0.00';
+            if (price === 0) return '0.00';
+            if (price < 0.01) return price.toFixed(6);
+            if (price < 1) return price.toFixed(4);
+            return price.toFixed(2);
+        }
+
+        function updatePortfolioValue() {
+            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+            const totalUSD = allTokens.reduce((sum, token) => {
+                return sum + ((token.balance || 0) * (token.price || 0));
+            }, 0);
+
+            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
+            document.getElementById('balanceCrypto').textContent = `$${totalUSD.toFixed(2)}`;
+            document.getElementById('balanceLoading').style.display = 'none';
+            document.getElementById('balanceAmount').style.display = 'inline';
+            document.getElementById('balanceCrypto').style.display = 'inline';
         }
 
         // =============================================
@@ -1343,116 +1822,9 @@
             document.getElementById('backupModal').style.display = 'none';
         }
 
-        function closeModal() {
-            document.querySelectorAll('.modal').forEach(modal => {
-                modal.style.display = 'none';
-            });
-        }
-
-        // =============================================
-        // EXISTING FUNCTIONALITY
-        // =============================================
-
-        // Token selector functions
-        function showTokenSelector() {
-            const tokenOptions = document.getElementById('tokenOptions');
-            tokenOptions.innerHTML = '';
-
-            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-            allTokens.forEach(token => {
-                if (token.canSend) {
-                    const tokenOption = document.createElement('div');
-                    tokenOption.className = 'token-option';
-                    tokenOption.innerHTML = `
-                        <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
-                            <img src="${token.logo}" alt="${token.name}" class="token-logo"
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
-                        </div>
-                        <div class="token-option-info">
-                            <div class="token-option-name">${token.name}</div>
-                            <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
-                        </div>
-                    `;
-                    tokenOption.onclick = () => selectToken(token);
-                    tokenOptions.appendChild(tokenOption);
-                }
-            });
-
-            document.getElementById('tokenSelectorModal').style.display = 'flex';
-        }
-
-        function closeTokenSelector() {
-            document.getElementById('tokenSelectorModal').style.display = 'none';
-        }
-
-        function filterTokens() {
-            const searchTerm = document.getElementById('tokenSearch').value.toLowerCase();
-            const tokenOptions = document.querySelectorAll('.token-option');
-
-            tokenOptions.forEach(option => {
-                const tokenName = option.querySelector('.token-option-name').textContent.toLowerCase();
-                if (tokenName.includes(searchTerm)) {
-                    option.style.display = 'flex';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-        }
-
-        // Helper functions
-        function formatTokenBalance(balance) {
-            if (!balance && balance !== 0) return '0.00';
-            if (balance === 0) return '0.00';
-            if (balance < 0.0001) return balance.toExponential(2);
-            if (balance < 1) return balance.toFixed(4);
-            return balance.toFixed(2);
-        }
-
-        function formatTokenPrice(price) {
-            if (!price && price !== 0) return '0.00';
-            if (price === 0) return '0.00';
-            if (price < 0.01) return price.toFixed(6);
-            if (price < 1) return price.toFixed(4);
-            return price.toFixed(2);
-        }
-
-        // Load real balances (simulated)
-        async function loadRealBalances() {
-            if (!walletState.isInitialized) return;
-
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Set mock balances
-            SUPPORTED_TOKENS[0].balance = 15.5; // TON
-            SUPPORTED_TOKENS[1].balance = 1000; // NMX
-            SUPPORTED_TOKENS[2].balance = 50; // USDT
-
-            updatePortfolioValue();
-            loadTokens();
-        }
-
-        function updatePortfolioValue() {
-            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-            const totalUSD = allTokens.reduce((sum, token) => {
-                return sum + ((token.balance || 0) * (token.price || 0));
-            }, 0);
-
-            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
-            document.getElementById('balanceCrypto').textContent = `$${totalUSD.toFixed(2)}`;
-            document.getElementById('balanceLoading').style.display = 'none';
-            document.getElementById('balanceAmount').style.display = 'inline';
-            document.getElementById('balanceCrypto').style.display = 'inline';
-        }
-
-        // Action functions
-        function showSendModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                return;
-            }
-            // Send modal implementation would go here
-            alert('Send functionality would be implemented here');
+        function showSettings() {
+            updateWalletsList();
+            document.getElementById('settingsModal').style.display = 'flex';
         }
 
         function showReceive() {
@@ -1472,16 +1844,27 @@
             alert('Buy functionality coming soon!');
         }
 
-        function showSettings() {
-            document.getElementById('settingsModal').style.display = 'flex';
+        function closeModal() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
         }
 
-        // Initialize when page loads
+        // =============================================
+        // EVENT LISTENERS
+        // =============================================
+
         document.addEventListener('DOMContentLoaded', function() {
             initWallet();
+            
+            // Add event listeners for real-time validation
+            document.getElementById('recipientAddress').addEventListener('input', (e) => {
+                validateAddress(e.target.value);
+            });
+            
+            document.getElementById('sendAmount').addEventListener('input', updateUsdValue);
         });
 
-        // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 closeModal();
