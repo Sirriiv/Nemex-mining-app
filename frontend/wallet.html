@@ -1085,49 +1085,56 @@
         // =============================================
 
         async function updateRealBalances() {
-            if (!walletState.isInitialized) {
-                console.log('❌ Wallet not initialized, skipping balance update');
-                return;
-            }
+    if (!walletState.isInitialized) {
+        console.log('❌ Wallet not initialized, skipping balance update');
+        return;
+    }
 
-            console.log('🔍 [DEBUG] updateRealBalances called');
-            console.log('🔍 [DEBUG] walletState.address:', walletState.address);
-            console.log('🔍 [DEBUG] walletState.isInitialized:', walletState.isInitialized);
+    console.log('🔍 [DEBUG] updateRealBalances called');
+    console.log('🔍 [DEBUG] walletState.address:', walletState.address);
+    console.log('🔍 [DEBUG] walletState.isInitialized:', walletState.isInitialized);
 
-            if (!walletState.address) {
-                console.log('❌ ERROR: walletState.address is EMPTY!');
-                return;
-            }
+    if (!walletState.address) {
+        console.log('❌ ERROR: walletState.address is EMPTY!');
+        return;
+    }
 
-            try {
-                console.log('🔄 Calling getAllBalances with:', walletState.address);
-                const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
-                console.log('✅ Balance result received:', balanceResult);
+    // ✅ ADD THIS CRITICAL CHECK
+    if (walletState.address === "EQY6nnF19BvNpaZbBZwdkfJOjRVluIuxaOVCuH2qNqMH4GeN") {
+        console.log('🚨 🚨 🚨 HARCODED ADDRESS DETECTED IN walletState!');
+        console.log('🚨 Current walletState:', walletState);
+        return;
+    }
 
-                // Update TON balance
-                const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-                if (tonToken && balanceResult.balances.TON) {
-                    tonToken.balance = parseFloat(balanceResult.balances.TON);
-                }
+    try {
+        console.log('🔄 Calling getAllBalances with:', walletState.address);
+        const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
+        console.log('✅ Balance result received:', balanceResult);
 
-                // Update NMX balance  
-                const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-                if (nmxToken && balanceResult.balances.NMX) {
-                    nmxToken.balance = parseFloat(balanceResult.balances.NMX);
-                }
-
-                // Update portfolio display
-                updatePortfolioValue();
-                loadTokens();
-
-                console.log('✅ Real balances updated:', balanceResult.balances);
-
-            } catch (error) {
-                console.error('Failed to update real balances:', error);
-                // Try individual balance fetching as fallback
-                await updateBalancesIndividually();
-            }
+        // Update TON balance
+        const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
+        if (tonToken && balanceResult.balances.TON) {
+            tonToken.balance = parseFloat(balanceResult.balances.TON);
         }
+
+        // Update NMX balance  
+        const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
+        if (nmxToken && balanceResult.balances.NMX) {
+            nmxToken.balance = parseFloat(balanceResult.balances.NMX);
+        }
+
+        // Update portfolio display
+        updatePortfolioValue();
+        loadTokens();
+
+        console.log('✅ Real balances updated:', balanceResult.balances);
+
+    } catch (error) {
+        console.error('Failed to update real balances:', error);
+        // Try individual balance fetching as fallback
+        await updateBalancesIndividually();
+    }
+}
 
         async function updateBalancesIndividually() {
             try {
