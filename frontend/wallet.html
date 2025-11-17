@@ -922,14 +922,14 @@
         <div id="settingsModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Settings</div>
-                
+
                 <div class="settings-option" onclick="showCreateWalletModal()">
                     <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
                     <div>Create New Wallet</div>
                 </div>
-                
+
                 <div class="settings-option" onclick="showImportWalletModal()">
                     <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
@@ -940,7 +940,7 @@
                 <div class="security-warning">
                     <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
                 </div>
-                
+
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
         </div>
@@ -969,7 +969,7 @@
 
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT -->
+    <!-- COMPLETE WALLET SCRIPT - FIXED VERSION -->
     <script>
         // =============================================
         // WALLET STATE MANAGEMENT
@@ -1019,44 +1019,39 @@
         const GAS_FEE = 0.01; // Your low gas fee
 
         // =============================================
-        // INITIALIZATION
+        // INITIALIZATION - FIXED VERSION
         // =============================================
 
         async function initWallet() {
-    console.log('🔄 Initializing wallet...');
+            console.log('🔄 Initializing wallet...');
 
-    // Initialize API
-    await window.nemexWalletAPI.init();
+            // Initialize API
+            await window.nemexWalletAPI.init();
 
-    // Load saved data
-    const savedWallets = localStorage.getItem('nemexUserWallets');
-    console.log('🔍 Saved wallets from localStorage:', savedWallets); // ✅ Debug
+            // Load saved data
+            const savedWallets = localStorage.getItem('nemexUserWallets');
+            console.log('🔍 Saved wallets from localStorage:', savedWallets);
 
-    if (savedWallets) {
-        userWallets = JSON.parse(savedWallets);
-        console.log('✅ Loaded saved wallets:', userWallets);
-    }
+            if (savedWallets) {
+                userWallets = JSON.parse(savedWallets);
+                console.log('✅ Loaded saved wallets:', userWallets);
+            }
 
-    // Set first wallet as active if available
-    if (userWallets.length > 0) {
-        walletState = userWallets[0];
-        walletState.currentWalletIndex = 0;
-        
-        console.log('🔍 walletState after loading:', walletState); // ✅ Debug
-        console.log('🔍 walletState.address:', walletState.address); // ✅ Debug
+            // Set first wallet as active if available
+            if (userWallets.length > 0) {
+                walletState = userWallets[0];
+                walletState.currentWalletIndex = 0;
 
-        // Fetch real balances
-        await updateRealBalances();
-    }
-    
-                
+                console.log('🔍 walletState after loading:', walletState);
+                console.log('🔍 walletState.address:', walletState.address);
+
                 // Fetch real balances
                 await updateRealBalances();
             }
 
             updateWalletDisplay();
             loadTokens();
-            
+
             console.log('🚀 Wallet initialized successfully');
         }
 
@@ -1075,7 +1070,7 @@
                 balanceSection.style.display = 'block';
                 actionButtons.style.display = 'grid';
                 tokenSection.style.display = 'block';
-                
+
                 updatePortfolioValue();
             } else {
                 welcomeScreen.style.display = 'block';
@@ -1086,16 +1081,29 @@
         }
 
         // =============================================
-        // REAL BALANCE UPDATES
+        // REAL BALANCE UPDATES - WITH DEBUG LOGGING
         // =============================================
 
         async function updateRealBalances() {
-            if (!walletState.isInitialized) return;
+            if (!walletState.isInitialized) {
+                console.log('❌ Wallet not initialized, skipping balance update');
+                return;
+            }
+
+            console.log('🔍 [DEBUG] updateRealBalances called');
+            console.log('🔍 [DEBUG] walletState.address:', walletState.address);
+            console.log('🔍 [DEBUG] walletState.isInitialized:', walletState.isInitialized);
+
+            if (!walletState.address) {
+                console.log('❌ ERROR: walletState.address is EMPTY!');
+                return;
+            }
 
             try {
-                // Get ALL balances at once (TON + NMX)
+                console.log('🔄 Calling getAllBalances with:', walletState.address);
                 const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
-                
+                console.log('✅ Balance result received:', balanceResult);
+
                 // Update TON balance
                 const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
                 if (tonToken && balanceResult.balances.TON) {
@@ -1111,9 +1119,9 @@
                 // Update portfolio display
                 updatePortfolioValue();
                 loadTokens();
-                
+
                 console.log('✅ Real balances updated:', balanceResult.balances);
-                
+
             } catch (error) {
                 console.error('Failed to update real balances:', error);
                 // Try individual balance fetching as fallback
@@ -1139,7 +1147,7 @@
 
                 updatePortfolioValue();
                 loadTokens();
-                
+
             } catch (error) {
                 console.error('Individual balance update failed:', error);
             }
@@ -1152,9 +1160,9 @@
         async function generateNewWallet() {
             try {
                 console.log('🔄 Generating new wallet...');
-                
+
                 const result = await window.nemexWalletAPI.generateNewWallet(24);
-                
+
                 const newWallet = {
                     isInitialized: true,
                     walletType: 'new',
@@ -1170,7 +1178,7 @@
 
                 localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
 
-                console.log('✅ New wallet created:', result.wallet.address);
+                console.log('✅ New wallet created. Address:', walletState.address);
 
                 updateWalletDisplay();
                 showBackupModal(result.wallet.mnemonic);
@@ -1191,9 +1199,9 @@
 
             try {
                 console.log('🔄 Importing wallet...');
-                
+
                 const result = await window.nemexWalletAPI.importWallet(mnemonic);
-                
+
                 const importedWallet = {
                     isInitialized: true,
                     walletType: 'imported',
@@ -1209,7 +1217,7 @@
 
                 localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
 
-                console.log('✅ Wallet imported:', result.wallet.address);
+                console.log('✅ Wallet imported. Address:', walletState.address);
 
                 updateWalletDisplay();
                 closeModal();
@@ -1233,17 +1241,17 @@
                 alert('Please create or import a wallet first');
                 return;
             }
-            
+
             // Reset form
             document.getElementById('recipientAddress').value = '';
             document.getElementById('sendAmount').value = '';
             document.getElementById('transactionComment').value = '';
             document.getElementById('addressValidation').innerHTML = '';
             document.getElementById('addressValidation').className = 'address-validation';
-            
+
             // Update available balance
             updateAvailableBalance();
-            
+
             document.getElementById('sendModal').style.display = 'flex';
         }
 
@@ -1273,7 +1281,7 @@
 
             try {
                 const result = await window.nemexWalletAPI.validateAddress(address);
-                
+
                 if (result.isValid) {
                     validation.innerHTML = '✓ Valid TON address';
                     validation.className = 'address-validation valid';
@@ -1402,7 +1410,7 @@ Confirm transaction?
                 alert('Please create or import a wallet first');
                 return;
             }
-            
+
             document.getElementById('walletAddressDisplay').textContent = walletState.address;
             document.getElementById('receiveModal').style.display = 'flex';
         }
