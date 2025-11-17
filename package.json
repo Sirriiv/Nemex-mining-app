@@ -18,13 +18,12 @@
     "@ton/crypto": "^3.2.1",
     "tonweb": "^0.0.60",
     
-    // ADD THESE FOR REAL TON FUNCTIONALITY:
-    "bip39": "^3.1.0",                    // For seed phrase generation
-    "crypto": "^1.0.1",                   // For encryption (built-in but explicit)
-    "node-fetch": "^3.3.2",               // For HTTP requests (better than axios for TON)
-    "@ton/ton": "^13.6.0",                // Modern TON SDK (recommended)
-    "@ton/core": "^0.54.0",               // Core TON functionality
-    "@ton/connect": "^2.0.2"              // TON Connect for wallet auth
+    // COMPATIBLE VERSIONS FOR TON:
+    "bip39": "^3.1.0",
+    "node-fetch": "^2.6.7",               // Use v2 for better compatibility
+    "@ton/ton": "^13.1.0",                // Stable version
+    "@ton/core": "^0.49.1",               // Compatible with @ton/ton
+    "@ton/connect": "^2.1.2"              // Latest stable
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
