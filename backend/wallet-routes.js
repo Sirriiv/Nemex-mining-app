@@ -101,128 +101,34 @@ function encrypt(text) {
 // BALANCE FUNCTIONS - CLEAN VERSION
 // =============================================
 
-async function getRealBalance(address) {
+async getAllBalances(address) {
     try {
-        console.log('🔄 Fetching TON balance for:', address);
-
-        const response = await axios.get(`https://toncenter.com/api/v2/getAddressInformation`, {
-            params: { address: address },
-            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY }
-        });
-
-        if (response.data && response.data.result) {
-            const balance = response.data.result.balance;
-            const tonBalance = TonWeb.utils.fromNano(balance);
-
-            console.log('✅ TON Balance fetched:', tonBalance);
-
-            return {
-                success: true,
-                balance: parseFloat(tonBalance).toFixed(4),
-                address: address,
-                rawBalance: balance.toString()
-            };
-        } else {
-            throw new Error('Invalid response from TON API');
+        console.log('🔄 [FRONTEND DEBUG] Fetching all balances for:', address);
+        
+        // ✅ ADD THIS CRITICAL CHECK
+        if (address === "EQY6nnF19BvNpaZbBZwdkfJOjRVluIuxaOVCuH2qNqMH4GeN") {
+            console.log('🚨 🚨 🚨 HARCODED ADDRESS BEING SENT TO BACKEND!');
+            console.log('🚨 Stack trace:');
+            console.trace(); // This will show where it's coming from
         }
 
-    } catch (error) {
-        console.error('❌ TON balance fetch failed:', error.message);
+        const response = await fetch(`${this.apiBase}/all-balances/${address}`);
 
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            rawBalance: "0",
-            error: error.message
-        };
-    }
-}
-
-async function getNMXBalance(address) {
-    try {
-        console.log('🔄 Fetching NMX balance for:', address);
-
-        const response = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
-            params: { account: address }
-        });
-
-        let nmxJetton = null;
-
-        if (response.data.balances && response.data.balances.length > 0) {
-            nmxJetton = response.data.balances.find(j => {
-                const jettonAddress = j.jetton.address;
-                return jettonAddress === "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec" ||
-                       jettonAddress === "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
-            });
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        if (nmxJetton) {
-            const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-            console.log('✅ NMX Balance found:', nmxBalance, 'NMX');
+        const result = await response.json();
 
-            return {
-                success: true,
-                balance: parseFloat(nmxBalance).toFixed(2),
-                address: address,
-                rawBalance: nmxJetton.balance
-            };
-        } else {
-            console.log('ℹ️ No NMX tokens found');
-            return {
-                success: true,
-                balance: "0",
-                address: address,
-                rawBalance: "0"
-            };
+        if (!result.success) {
+            throw new Error(result.error);
         }
 
+        console.log('✅ [FRONTEND DEBUG] All balances fetched:', result.balances);
+        return result;
     } catch (error) {
-        console.error('❌ NMX balance fetch failed:', error.message);
-
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            rawBalance: "0",
-            error: error.message
-        };
-    }
-}
-
-async function getAllBalances(address) {
-    try {
-        console.log('🔍 [DEBUG] getAllBalances called with address:', address);
-
-        const [tonBalance, nmxBalance] = await Promise.all([
-            getRealBalance(address),
-            getNMXBalance(address)
-        ]);
-
-        console.log('✅ All balances fetched for:', address);
-        console.log('✅ TON:', tonBalance.balance, 'NMX:', nmxBalance.balance);
-
-        return {
-            success: true,
-            balances: {
-                TON: tonBalance.balance,
-                NMX: nmxBalance.balance
-            },
-            address: address
-        };
-
-    } catch (error) {
-        console.error('❌ All balances fetch failed:', error);
-
-        return {
-            success: true,
-            balances: {
-                TON: "0",
-                NMX: "0"
-            },
-            address: address,
-            error: error.message
-        };
+        console.error('API: All balances fetch failed:', error);
+        throw new Error(`Failed to fetch balances: ${error.message}`);
     }
 }
 
