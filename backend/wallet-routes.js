@@ -329,7 +329,7 @@ router.post('/generate-wallet', async (req, res) => {
 
         // Store in Supabase
         const { data, error } = await supabase
-            .from('wallets')
+            .from('user_wallets')
             .insert([
                 {
                     user_id: userId,
@@ -413,7 +413,7 @@ router.post('/import-wallet', async (req, res) => {
         const encryptedMnemonic = encrypt(mnemonic);
 
         const { data, error } = await supabase
-            .from('wallets')
+            .from('user_wallets')
             .insert([
                 {
                     user_id: userId,
