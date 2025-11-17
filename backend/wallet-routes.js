@@ -1,3 +1,11 @@
+console.log('🔄 ==========================================');
+console.log('🔄 wallet-routes.js LOADED - CHECKING FOR HARCODED ADDRESSES...');
+console.log('🔄 ==========================================');
+
+// Add this to getAllBalances function to see what address is received
+async function getAllBalances(address) {
+    console.log('🔍 [DEBUG] getAllBalances received address:', address);
+    console.log('🔍 [DEBUG] Is it the hardcoded one?', address === "EQY6nnF19BvNpaZbBZwdkfJOjRVluIuxaOVCuH2qNqMH4GeN");
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
