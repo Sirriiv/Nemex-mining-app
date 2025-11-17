@@ -1,4 +1,4 @@
-// frontend/assets/js/wallet.js
+// frontend/assets/js/wallet.js - FIXED VERSION (NO DEMO FALLBACKS)
 class NemexWalletAPI {
     constructor() {
         this.apiBase = '/api/wallet';
@@ -6,12 +6,11 @@ class NemexWalletAPI {
     }
 
     async init() {
-        await this.checkAuthentication();
+        return await this.checkAuthentication();
     }
 
     async checkAuthentication() {
         try {
-            // Get user from your existing auth system
             if (window.supabase) {
                 const { data: { user } } = await window.supabase.auth.getUser();
                 if (user) {
@@ -20,33 +19,23 @@ class NemexWalletAPI {
                     return true;
                 }
             }
-            
-            console.log('❌ User not authenticated - using demo mode');
-            // For demo purposes, create a mock user
-            this.currentUser = { id: 'demo_user_' + Date.now() };
-            return true;
-            
+            console.log('⚠️ Please log in to use full wallet features');
+            return false;
         } catch (error) {
             console.error('Auth check failed:', error);
-            // Fallback for demo
-            this.currentUser = { id: 'demo_user_' + Date.now() };
-            return true;
+            return false;
         }
     }
 
     async generateNewWallet(wordCount = 24) {
         try {
-            if (!this.currentUser) {
-                throw new Error('Please log in to create a wallet');
-            }
-
             const response = await fetch(`${this.apiBase}/generate-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.currentUser.id,
+                    userId: this.currentUser?.id || 'user_' + Date.now(),
                     wordCount: wordCount
                 })
             });
@@ -64,30 +53,19 @@ class NemexWalletAPI {
             return result;
         } catch (error) {
             console.error('API: Wallet generation failed:', error);
-            
-            // Fallback for demo - return mock data if backend is not available
-            if (error.message.includes('Failed to fetch') || error.message.includes('HTTP error')) {
-                console.log('🔄 Using demo wallet generation');
-                return this.generateDemoWallet();
-            }
-            
-            throw error;
+            throw new Error('Wallet generation failed. Please check your backend connection.');
         }
     }
 
     async importWallet(mnemonic) {
         try {
-            if (!this.currentUser) {
-                throw new Error('Please log in to import a wallet');
-            }
-
             const response = await fetch(`${this.apiBase}/import-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.currentUser.id,
+                    userId: this.currentUser?.id || 'user_imported_' + Date.now(),
                     mnemonic: mnemonic
                 })
             });
@@ -105,19 +83,14 @@ class NemexWalletAPI {
             return result;
         } catch (error) {
             console.error('API: Wallet import failed:', error);
-            
-            // Fallback for demo
-            if (error.message.includes('Failed to fetch') || error.message.includes('HTTP error')) {
-                console.log('🔄 Using demo wallet import');
-                return this.importDemoWallet(mnemonic);
-            }
-            
-            throw error;
+            throw new Error('Wallet import failed. Please check your recovery phrase and backend connection.');
         }
     }
 
     async getRealBalance(address) {
         try {
+            console.log('🔄 Fetching TON balance for:', address);
+            
             const response = await fetch(`${this.apiBase}/real-balance/${address}`);
             
             if (!response.ok) {
@@ -130,28 +103,39 @@ class NemexWalletAPI {
                 throw new Error(result.error);
             }
 
+            console.log('✅ TON Balance fetched:', result.balance, 'TON');
             return result;
         } catch (error) {
-            console.error('API: Balance fetch failed:', error);
-            
-            // Fallback for demo
-            if (error.message.includes('Failed to fetch') || error.message.includes('HTTP error')) {
-                console.log('🔄 Using demo balance');
-                return {
-                    success: true,
-                    balance: (Math.random() * 10).toFixed(4),
-                    address: address,
-                    rawBalance: '1000000000'
-                };
-            }
-            
-            throw error;
+            console.error('API: TON balance fetch failed:', error);
+            throw new Error(`Failed to fetch TON balance: ${error.message}`);
         }
     }
 
-    async getTransactions(address) {
+    async getNMXBalance(address) {
         try {
-            const response = await fetch(`${this.apiBase}/transactions/${address}`);
+            console.log('🔄 Fetching NMX balance for:', address);
+            
+            const response = await fetch(`${this.apiBase}/nmx-balance/${address}`);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            console.log('✅ NMX Balance fetched:', result.balance, 'NMX');
+            return result;
+        } catch (error) {
+            console.error('API: NMX balance fetch failed:', error);
+            throw new Error(`Failed to fetch NMX balance: ${error.message}`);
+        }
+    }
+
+    async getAllBalances(address) {
+        try {
+            console.log('🔄 Fetching all balances for:', address);
+            
+            const response = await fetch(`${this.apiBase}/all-balances/${address}`);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -163,10 +147,11 @@ class NemexWalletAPI {
                 throw new Error(result.error);
             }
 
+            console.log('✅ All balances fetched:', result.balances);
             return result;
         } catch (error) {
-            console.error('API: Transactions fetch failed:', error);
-            throw error;
+            console.error('API: All balances fetch failed:', error);
+            throw new Error(`Failed to fetch balances: ${error.message}`);
         }
     }
 
@@ -181,19 +166,6 @@ class NemexWalletAPI {
             return await response.json();
         } catch (error) {
             console.error('API: Address validation failed:', error);
-            
-            // Fallback for demo
-            if (error.message.includes('Failed to fetch') || error.message.includes('HTTP error')) {
-                console.log('🔄 Using demo address validation');
-                const isValid = address.startsWith('EQ') || address.startsWith('UQ');
-                return {
-                    success: true,
-                    isValid: isValid,
-                    isTestnet: false,
-                    address: address
-                };
-            }
-            
             throw error;
         }
     }
@@ -213,35 +185,7 @@ class NemexWalletAPI {
         }
     }
 
-    // Demo fallback functions
-    generateDemoWallet() {
-        const demoMnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-        const demoAddress = 'EQ' + Math.random().toString(36).substring(2, 48);
-        
-        return {
-            success: true,
-            wallet: {
-                address: demoAddress,
-                mnemonic: demoMnemonic,
-                wordCount: 12,
-                type: 'TON'
-            },
-            message: 'Demo wallet generated successfully'
-        };
-    }
-
-    importDemoWallet(mnemonic) {
-        const demoAddress = 'EQ' + Math.random().toString(36).substring(2, 48);
-        
-        return {
-            success: true,
-            wallet: {
-                address: demoAddress,
-                type: 'TON'
-            },
-            message: 'Demo wallet imported successfully'
-        };
-    }
+    // REMOVED ALL DEMO FALLBACK FUNCTIONS - Using real API only
 }
 
 // Initialize global API instance
