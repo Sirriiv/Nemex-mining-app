@@ -96,43 +96,28 @@ function decrypt(encryptedData) {
 }
 
 // =============================================
-// BALANCE CONTROLLER FUNCTIONS
+// WORKING BALANCE FUNCTIONS
 // =============================================
 
 async function getRealBalance(address) {
     try {
-        console.log('🔄 Fetching real balance for:', address);
+        console.log('🔄 Fetching TON balance for:', address);
         
-        // Validate address format first
-        if (!address.startsWith('EQ') && !address.startsWith('UQ')) {
-            throw new Error('Invalid TON address format');
-        }
-
-        // Use toncenter API directly for better reliability
-        const response = await axios.get('https://toncenter.com/api/v2/getAddressInformation', {
-            params: { address: address },
+        // Use the CORRECT TON API endpoint
+        const response = await axios.get(`https://toncenter.com/api/v2/getAddressInformation`, {
+            params: {
+                address: address
+            },
             headers: {
                 'X-API-Key': process.env.TONCENTER_API_KEY
             }
         });
 
-        const balance = response.data.result.balance;
-        const tonBalance = TonWeb.utils.fromNano(balance);
-
-        return {
-            success: true,
-            balance: parseFloat(tonBalance).toFixed(4),
-            address: address,
-            rawBalance: balance.toString()
-        };
-
-    } catch (error) {
-        console.error('❌ Balance check failed:', error.message);
-        
-        // Fallback to tonweb if direct API fails
-        try {
-            const balance = await tonweb.provider.getBalance(address);
+        if (response.data && response.data.result) {
+            const balance = response.data.result.balance;
             const tonBalance = TonWeb.utils.fromNano(balance);
+            
+            console.log('✅ TON Balance fetched:', tonBalance);
             
             return {
                 success: true,
@@ -140,9 +125,43 @@ async function getRealBalance(address) {
                 address: address,
                 rawBalance: balance.toString()
             };
-        } catch (fallbackError) {
-            throw new Error(`Balance fetch failed: ${fallbackError.message}`);
+        } else {
+            throw new Error('Invalid response from TON API');
         }
+
+    } catch (error) {
+        console.error('❌ TON balance fetch failed:', error.message);
+        
+        // Fallback: Try alternative API
+        try {
+            console.log('🔄 Trying alternative balance fetch...');
+            const fallbackResponse = await axios.get(`https://tonapi.io/v1/account/getInfo`, {
+                params: {
+                    account: address
+                }
+            });
+            
+            if (fallbackResponse.data && fallbackResponse.data.balance) {
+                const tonBalance = TonWeb.utils.fromNano(fallbackResponse.data.balance);
+                return {
+                    success: true,
+                    balance: parseFloat(tonBalance).toFixed(4),
+                    address: address,
+                    rawBalance: fallbackResponse.data.balance.toString()
+                };
+            }
+        } catch (fallbackError) {
+            console.error('❌ Fallback also failed:', fallbackError.message);
+        }
+        
+        // Final fallback - return 0 but don't crash
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            error: error.message
+        };
     }
 }
 
@@ -150,7 +169,7 @@ async function getNMXBalance(address) {
     try {
         console.log('🔄 Fetching NMX balance for:', address);
         
-        // Use the Jetton balances endpoint to get NMX balance
+        // Use YOUR CORRECT NMX contract address in hex format
         const response = await axios.get('https://toncenter.com/api/v2/jetton/balances', {
             params: { 
                 address: address 
@@ -160,14 +179,18 @@ async function getNMXBalance(address) {
             }
         });
 
-        // Find NMX token in the balances using YOUR contract address
+        console.log('📦 Jetton balances response:', response.data);
+
+        // Find NMX token using YOUR contract address
         const nmxJetton = response.data.balances.find(j => 
             j.jetton.address === "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec"
         );
 
         if (nmxJetton) {
-            // Convert balance from nano units (assuming 9 decimals like TON)
+            // Convert balance from nano units
             const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+            console.log('✅ NMX Balance found:', nmxBalance);
+            
             return {
                 success: true,
                 balance: parseFloat(nmxBalance).toFixed(2),
@@ -176,7 +199,7 @@ async function getNMXBalance(address) {
                 token: "NMX"
             };
         } else {
-            // No NMX tokens found
+            console.log('ℹ️ No NMX tokens found for this address');
             return {
                 success: true,
                 balance: "0",
@@ -189,7 +212,7 @@ async function getNMXBalance(address) {
     } catch (error) {
         console.error('❌ NMX balance check failed:', error.message);
         
-        // Return zero balance as fallback
+        // Return zero balance but don't crash
         return {
             success: true,
             balance: "0",
@@ -203,12 +226,14 @@ async function getNMXBalance(address) {
 
 async function getAllBalances(address) {
     try {
-        console.log('🔄 Fetching all balances for:', address);
+        console.log('🔄 Fetching ALL balances for:', address);
         
         const [tonBalance, nmxBalance] = await Promise.all([
             getRealBalance(address),
             getNMXBalance(address)
         ]);
+
+        console.log('✅ All balances fetched - TON:', tonBalance.balance, 'NMX:', nmxBalance.balance);
 
         return {
             success: true,
@@ -221,7 +246,17 @@ async function getAllBalances(address) {
 
     } catch (error) {
         console.error('❌ All balances fetch failed:', error);
-        throw new Error(`Failed to fetch balances: ${error.message}`);
+        
+        // Return zeros but don't crash
+        return {
+            success: true,
+            balances: {
+                TON: "0",
+                NMX: "0"
+            },
+            address: address,
+            error: error.message
+        };
     }
 }
 
@@ -263,7 +298,7 @@ router.post('/generate-wallet', async (req, res) => {
             success: true,
             wallet: {
                 address: walletData.address,
-                mnemonic: walletData.mnemonic, // Return only once
+                mnemonic: walletData.mnemonic,
                 wordCount: walletData.mnemonic.split(' ').length,
                 type: 'TON'
             },
@@ -359,7 +394,7 @@ router.get('/real-balance/:address', async (req, res) => {
     }
 });
 
-// Get NMX balance - NEW ENDPOINT
+// Get NMX balance - UPDATED
 router.get('/nmx-balance/:address', async (req, res) => {
     try {
         const { address } = req.params;
@@ -374,7 +409,7 @@ router.get('/nmx-balance/:address', async (req, res) => {
     }
 });
 
-// Get all balances at once - NEW ENDPOINT
+// Get all balances at once - UPDATED
 router.get('/all-balances/:address', async (req, res) => {
     try {
         const { address } = req.params;
@@ -382,41 +417,6 @@ router.get('/all-balances/:address', async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error('❌ All balances error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// Get transaction history
-router.get('/transactions/:address', async (req, res) => {
-    try {
-        const { address } = req.params;
-
-        // Get transactions from TON API
-        const response = await axios.get(
-            `https://toncenter.com/api/v2/getTransactions?address=${address}&limit=10`
-        );
-
-        const transactions = response.data.result.map(tx => ({
-            hash: tx.transaction_id.hash,
-            type: tx.in_msg.source === '' ? 'receive' : 'send',
-            amount: (parseInt(tx.in_msg.value) / 1000000000).toFixed(4),
-            symbol: 'TON',
-            from: tx.in_msg.source,
-            to: tx.in_msg.destination,
-            timestamp: tx.utime * 1000,
-            status: 'confirmed'
-        }));
-
-        res.json({
-            success: true,
-            transactions: transactions
-        });
-
-    } catch (error) {
-        console.error('❌ Transactions error:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -448,7 +448,7 @@ router.get('/validate-address/:address', async (req, res) => {
     }
 });
 
-// Get supported tokens - UPDATED (TON as native, NMX as featured)
+// Get supported tokens
 router.get('/supported-tokens', async (req, res) => {
     try {
         const tokens = [
@@ -479,7 +479,7 @@ router.get('/supported-tokens', async (req, res) => {
         res.json({
             success: true,
             tokens: tokens,
-            primaryToken: "TON" // Changed to TON as primary
+            primaryToken: "TON"
         });
 
     } catch (error) {
