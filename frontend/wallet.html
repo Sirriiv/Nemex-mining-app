@@ -1240,36 +1240,130 @@
         let userWallets = [];
         let customTokens = [];
 
-        // Supported tokens
-        const SUPPORTED_TOKENS = [
-            {
-                symbol: "TON",
-                name: "Toncoin",
-                balance: 15.5,
-                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
-                price: 2.50,
-                change24h: 1.5,
-                canSend: true
-            },
-            {
-                symbol: "NMX",
-                name: "NemexCoin",
-                balance: 1000,
-                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                price: 0.10,
-                change24h: 0.0,
-                canSend: true
-            },
-            {
-                symbol: "USDT",
-                name: "Tether",
-                balance: 50,
-                logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
-                price: 1.00,
-                change24h: 0.0,
-                canSend: false
-            }
-        ];
+        // In your wallet.html script section, update the tokens configuration:
+
+// Supported tokens with NMX as primary
+const SUPPORTED_TOKENS = [
+    {
+        symbol: "NMX",
+        name: "NemexCoin",
+        balance: 1000,
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        price: 0.10,
+        change24h: 5.2, // Positive growth
+        canSend: true,
+        isNative: true, // This makes NMX appear as native
+        isFeatured: true,
+        contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f"
+    },
+    {
+        symbol: "TON",
+        name: "Toncoin", 
+        balance: 15.5,
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
+        price: 2.50,
+        change24h: 1.5,
+        canSend: true,
+        isNative: false
+    },
+    {
+        symbol: "USDT",
+        name: "Tether",
+        balance: 50,
+        logo: "https://assets.coingecko.com/coins/images/325/large/Tether.png",
+        price: 1.00,
+        change24h: 0.0,
+        canSend: false,
+        isNative: false
+    }
+];
+
+// Update the loadTokens function to highlight NMX
+function loadTokens() {
+    const tokenList = document.getElementById('tokenList');
+    const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+    
+    tokenList.innerHTML = '';
+
+    allTokens.forEach(token => {
+        const tokenValue = (token.balance || 0) * (token.price || 0);
+        const changeClass = (token.change24h || 0) >= 0 ? 'change-positive' : 'change-negative';
+        const changeSymbol = (token.change24h || 0) >= 0 ? '+' : '';
+        
+        // Add featured class for NMX
+        const featuredClass = token.isFeatured ? 'featured-token' : '';
+        const nativeBadge = token.isNative ? '<span class="native-badge">Native</span>' : '';
+
+        const tokenCard = document.createElement('div');
+        tokenCard.className = `token-card ${featuredClass}`;
+        tokenCard.innerHTML = `
+            <div class="token-icon ${token.symbol.toLowerCase()}-icon">
+                <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                     onerror="handleTokenLogoError(this, '${token.symbol}')">
+                ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
+            </div>
+            <div class="token-info">
+                <div class="token-name">
+                    ${token.name}
+                    ${nativeBadge}
+                </div>
+                <div class="token-symbol">${token.symbol}</div>
+                <div class="token-price">
+                    $${formatTokenPrice(token.price)} 
+                    <span class="token-change ${changeClass}">${changeSymbol}${(token.change24h || 0).toFixed(1)}%</span>
+                </div>
+            </div>
+            <div class="token-balance">
+                <div class="token-amount">${formatTokenBalance(token.balance)}</div>
+                <div class="token-value">$${tokenValue.toFixed(2)}</div>
+            </div>
+        `;
+        tokenList.appendChild(tokenCard);
+    });
+
+    document.getElementById('tokensLoading').style.display = 'none';
+}
+
+// Update CSS to highlight NMX
+const additionalStyles = `
+    .featured-token {
+        border: 2px solid var(--gold);
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+    }
+    
+    .native-badge {
+        background: var(--gold);
+        color: var(--dark-bg);
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 8px;
+        margin-left: 8px;
+        font-weight: bold;
+    }
+    
+    .featured-star {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: var(--gold);
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+    }
+    
+    .token-icon {
+        position: relative;
+    }
+    
+    /* Make NMX appear first in send modal */
+    .token-option:first-child {
+        border: 2px solid var(--gold);
+        background: rgba(212, 175, 55, 0.1);
+    }
 
         // =============================================
         // INITIALIZATION
