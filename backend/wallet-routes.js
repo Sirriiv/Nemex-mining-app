@@ -260,6 +260,7 @@ async function getAllBalances(address) {
     }
 }
 
+
 // =============================================
 // API ROUTES
 // =============================================
@@ -490,5 +491,56 @@ router.get('/supported-tokens', async (req, res) => {
         });
     }
 });
+
+// Add this to check both NMX contracts
+router.get('/debug-nmx-contracts', async (req, res) => {
+    try {
+        const testAddress = "EQY6nnF19BvNpaZbBZwdkfJOjRVluIuxaOVCuH2qNqMH4GeN";
+        
+        console.log('🔍 Checking BOTH NMX contracts on MAINNET...');
+        
+        const response = await axios.get('https://tonapi.io/v1/jetton/getBalances', {
+            params: { account: testAddress }
+        });
+
+        const nmxContractHex = "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec";
+        const nmxContractFriendly = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
+        
+        const nmxHex = response.data.balances?.find(j => j.jetton.address === nmxContractHex);
+        const nmxFriendly = response.data.balances?.find(j => j.jetton.address === nmxContractFriendly);
+        
+        const allJettons = response.data.balances?.map(j => ({
+            address: j.jetton.address,
+            symbol: j.jetton.symbol,
+            name: j.jetton.name,
+            balance: TonWeb.utils.fromNano(j.balance)
+        })) || [];
+
+        res.json({
+            success: true,
+            network: 'MAINNET',
+            nmxContractHex: {
+                address: nmxContractHex,
+                found: !!nmxHex,
+                balance: nmxHex ? TonWeb.utils.fromNano(nmxHex.balance) : '0'
+            },
+            nmxContractFriendly: {
+                address: nmxContractFriendly,
+                found: !!nmxFriendly,
+                balance: nmxFriendly ? TonWeb.utils.fromNano(nmxFriendly.balance) : '0'
+            },
+            allJettons: allJettons,
+            message: 'Checked both NMX contract formats on MAINNET'
+        });
+        
+    } catch (error) {
+        console.error('❌ NMX contract debug failed:', error.message);
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 
 module.exports = router;
