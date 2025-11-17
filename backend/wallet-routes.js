@@ -167,58 +167,67 @@ async function getRealBalance(address) {
 
 async function getNMXBalance(address) {
     try {
-        console.log('🔄 Fetching NMX balance for:', address);
+        console.log('🔄 Fetching REAL NMX balance from MAINNET...');
         
-        // Use YOUR CORRECT NMX contract address in hex format
-        const response = await axios.get('https://toncenter.com/api/v2/jetton/balances', {
+        // Use OFFICIAL TON Foundation API for jettons
+        const response = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
             params: { 
-                address: address 
-            },
-            headers: {
-                'X-API-Key': process.env.TONCENTER_API_KEY
+                account: address 
             }
         });
 
-        console.log('📦 Jetton balances response:', response.data);
+        console.log('📦 All MAINNET Jettons found:', response.data.balances);
 
-        // Find NMX token using YOUR contract address
-        const nmxJetton = response.data.balances.find(j => 
-            j.jetton.address === "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec"
-        );
+        // Check ALL available jettons to find NMX using BOTH contract formats
+        let nmxJetton = null;
+        
+        if (response.data.balances && response.data.balances.length > 0) {
+            // Try to find NMX by BOTH contract addresses
+            nmxJetton = response.data.balances.find(j => {
+                const jettonAddress = j.jetton.address;
+                console.log('🔍 Checking jetton:', jettonAddress);
+                
+                // Check BOTH NMX contract formats
+                return jettonAddress === "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec" ||
+                       jettonAddress === "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
+            });
+        }
 
         if (nmxJetton) {
-            // Convert balance from nano units
             const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-            console.log('✅ NMX Balance found:', nmxBalance);
+            console.log('✅ REAL NMX Balance found:', nmxBalance, 'NMX');
             
             return {
                 success: true,
                 balance: parseFloat(nmxBalance).toFixed(2),
                 address: address,
                 rawBalance: nmxJetton.balance,
-                token: "NMX"
+                token: "NMX",
+                contract: nmxJetton.jetton.address,
+                source: 'tonapi.io (MAINNET blockchain)'
             };
         } else {
-            console.log('ℹ️ No NMX tokens found for this address');
+            console.log('ℹ️ No NMX tokens found at this MAINNET address');
             return {
                 success: true,
                 balance: "0",
                 address: address,
                 rawBalance: "0",
-                token: "NMX"
+                token: "NMX",
+                source: 'tonapi.io (MAINNET) - no NMX found'
             };
         }
         
     } catch (error) {
-        console.error('❌ NMX balance check failed:', error.message);
+        console.error('❌ NMX balance fetch failed:', error.message);
         
-        // Return zero balance but don't crash
         return {
             success: true,
             balance: "0",
             address: address,
             rawBalance: "0",
             token: "NMX",
+            source: 'error - assuming 0 NMX',
             error: error.message
         };
     }
