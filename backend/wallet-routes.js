@@ -22,6 +22,27 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
 // =============================================
+// TEST ROUTE - ADD THIS!
+// =============================================
+
+router.get('/test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Wallet API is working!',
+        timestamp: new Date().toISOString(),
+        routes: [
+            '/generate-wallet',
+            '/import-wallet', 
+            '/real-balance/:address',
+            '/nmx-balance/:address',
+            '/all-balances/:address',
+            '/validate-address/:address',
+            '/supported-tokens'
+        ]
+    });
+});
+
+// =============================================
 // WALLET GENERATION
 // =============================================
 
@@ -107,7 +128,7 @@ async function getRealBalance(address) {
 
     } catch (error) {
         console.error('❌ TON balance fetch failed:', error.message);
-        
+
         return {
             success: true,
             balance: "0",
@@ -172,7 +193,7 @@ async function getNMXBalance(address) {
 async function getAllBalances(address) {
     try {
         console.log('🔍 [DEBUG] getAllBalances called with address:', address);
-        
+
         const [tonBalance, nmxBalance] = await Promise.all([
             getRealBalance(address),
             getNMXBalance(address)
