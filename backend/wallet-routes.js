@@ -3,150 +3,142 @@ const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const crypto = require('crypto');
-
-console.log('🔧 Initializing wallet routes with @ton/crypto + tonweb...');
+const bip39 = require('bip39');
+const { mnemonicToWalletKey } = require('@ton/crypto');
+const { WalletContractV4 } = require('@ton/ton');
+const { TonClient } = require('@ton/ton');
+const { toNano } = require('@ton/core');
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Load TON libraries
-let tonCryptoAvailable = false;
-let TonWebAvailable = false;
-let mnemonicToWalletKey, TonWeb;
-
-try {
-    ({ mnemonicToWalletKey } = require("@ton/crypto"));
-    tonCryptoAvailable = true;
-    console.log('✅ @ton/crypto loaded successfully');
-} catch (error) {
-    console.log('❌ @ton/crypto failed:', error.message);
-}
-
-try {
-    TonWeb = require("tonweb");
-    TonWebAvailable = true;
-    console.log('✅ tonweb loaded successfully');
-} catch (error) {
-    console.log('❌ tonweb failed:', error.message);
-}
-
-// Initialize TonWeb client
-const tonweb = TonWebAvailable ? new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/jsonRPC', {
+// Initialize TON Client (modern approach)
+const tonClient = new TonClient({
+    endpoint: 'https://toncenter.com/api/v2/jsonRPC',
     apiKey: process.env.TONCENTER_API_KEY
-})) : null;
-
-// REAL TON wallet generation using @ton/crypto + tonweb
-async function generateRealWallet() {
-    if (!tonCryptoAvailable || !TonWebAvailable) {
-        throw new Error('TON libraries not fully available');
-    }
-    
-    // Generate mnemonic using @ton/crypto
-    const mnemonic = await mnemonicToWalletKey.generateMnemonic();
-    
-    // Convert mnemonic to key pair using @ton/crypto
-    const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
-    
-    // Create wallet using tonweb
-    const WalletClass = tonweb.wallet.all.v4R2;
-    const wallet = new WalletClass(tonweb.provider, {
-        publicKey: keyPair.publicKey,
-        wc: 0
-    });
-    
-    // Get wallet address
-    const walletAddress = await wallet.getAddress();
-    const addressString = walletAddress.toString(true, true, true);
-    
-    return {
-        mnemonic: mnemonic,
-        address: addressString,
-        publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey)
-    };
-}
-
-// REAL wallet import using @ton/crypto + tonweb
-async function importRealWallet(mnemonicPhrase) {
-    if (!tonCryptoAvailable || !TonWebAvailable) {
-        throw new Error('TON libraries not fully available');
-    }
-    
-    // Convert mnemonic to key pair using @ton/crypto
-    const keyPair = await mnemonicToWalletKey(mnemonicPhrase.split(' '));
-    
-    // Create wallet using tonweb
-    const WalletClass = tonweb.wallet.all.v4R2;
-    const wallet = new WalletClass(tonweb.provider, {
-        publicKey: keyPair.publicKey,
-        wc: 0
-    });
-    
-    // Get wallet address
-    const walletAddress = await wallet.getAddress();
-    const addressString = walletAddress.toString(true, true, true);
-    
-    return {
-        address: addressString,
-        publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey)
-    };
-}
-
-// Get REAL TON balance using tonweb
-async function getTONBalance(address) {
-    if (!TonWebAvailable) {
-        throw new Error('tonweb not available');
-    }
-    
-    try {
-        const balance = await tonweb.getBalance(address);
-        return TonWeb.utils.fromNano(balance); // Convert from nanoTON to TON
-    } catch (error) {
-        console.error('TON balance check failed:', error.message);
-        return '0';
-    }
-}
-
-// ========== ROUTES ========== //
-
-// Test TON libraries
-router.get('/ton-status', (req, res) => {
-    res.json({
-        success: true,
-        tonCrypto: tonCryptoAvailable ? '✅ Available' : '❌ Unavailable',
-        tonweb: TonWebAvailable ? '✅ Available' : '❌ Unavailable',
-        realWalletsAvailable: tonCryptoAvailable && TonWebAvailable
-    });
 });
 
-// Generate REAL wallet
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+
+// =============================================
+// REAL TON WALLET GENERATION
+// =============================================
+
+// Generate real TON wallet with @ton/ton
+async function generateRealTONWallet() {
+    try {
+        // Generate 24-word mnemonic (BIP39 standard)
+        const mnemonic = bip39.generateMnemonic(256);
+        
+        // Convert mnemonic to key pair
+        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+        
+        // Create wallet contract
+        const wallet = WalletContractV4.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey
+        });
+        
+        // Get wallet address
+        const address = wallet.address.toString();
+        
+        return {
+            mnemonic: mnemonic,
+            address: address,
+            publicKey: Buffer.from(keyPair.publicKey).toString('hex'),
+            privateKey: Buffer.from(keyPair.secretKey).toString('hex')
+        };
+        
+    } catch (error) {
+        console.error('Real TON wallet generation failed:', error);
+        throw new Error('Failed to generate TON wallet: ' + error.message);
+    }
+}
+
+// Generate wallet (12 words - simpler for users)
+async function generateSimpleTONWallet() {
+    try {
+        // Generate 12-word mnemonic (easier for users)
+        const mnemonic = bip39.generateMnemonic(128);
+        
+        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+        const wallet = WalletContractV4.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey
+        });
+        
+        return {
+            mnemonic: mnemonic,
+            address: wallet.address.toString(),
+            publicKey: Buffer.from(keyPair.publicKey).toString('hex')
+        };
+        
+    } catch (error) {
+        console.error('Simple TON wallet generation failed:', error);
+        throw error;
+    }
+}
+
+// =============================================
+// ENCRYPTION FUNCTIONS
+// =============================================
+
+function encrypt(text) {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
+    let encrypted = cipher.update(text, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag();
+    return {
+        iv: iv.toString('hex'),
+        data: encrypted,
+        authTag: authTag.toString('hex')
+    };
+}
+
+function decrypt(encryptedData) {
+    const decipher = crypto.createDecipheriv(
+        'aes-256-gcm', 
+        Buffer.from(ENCRYPTION_KEY, 'hex'), 
+        Buffer.from(encryptedData.iv, 'hex')
+    );
+    decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
+    let decrypted = decipher.update(encryptedData.data, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+}
+
+// =============================================
+// REAL TON API ROUTES
+// =============================================
+
+// Generate new TON wallet (24 words)
 router.post('/generate-wallet', async (req, res) => {
     try {
-        const { userId } = req.body;
-        
-        if (!tonCryptoAvailable || !TonWebAvailable) {
-            return res.status(500).json({
-                success: false,
-                error: 'Real wallet generation not available',
-                message: 'TON libraries are being installed'
-            });
+        const { userId, type = '24word' } = req.body;
+
+        let walletData;
+        if (type === '12word') {
+            walletData = await generateSimpleTONWallet();
+        } else {
+            walletData = await generateRealTONWallet();
         }
 
-        const wallet = await generateRealWallet();
-        
+        // Encrypt mnemonic for secure storage
+        const encryptedMnemonic = encrypt(walletData.mnemonic);
+
         // Store in Supabase
         const { data, error } = await supabase
-            .from('user_wallets')
+            .from('wallets')
             .insert([
                 {
                     user_id: userId,
-                    wallet_address: wallet.address,
-                    public_key: wallet.publicKey,
-                    encrypted_mnemonic: wallet.mnemonic, // Encrypt in production!
-                    encryption_iv: 'temp_iv',
-                    encryption_auth_tag: 'temp_tag',
-                    source: 'nemex_wallet_web',
+                    address: walletData.address,
+                    encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+                    public_key: walletData.publicKey,
+                    wallet_type: 'TON',
                     created_at: new Date().toISOString()
                 }
             ]);
@@ -155,16 +147,17 @@ router.post('/generate-wallet', async (req, res) => {
 
         res.json({
             success: true,
-            userId: userId,
-            address: wallet.address,
-            mnemonic: wallet.mnemonic, // Only for testing - encrypt in production!
-            publicKey: wallet.publicKey,
-            message: "REAL TON wallet generated successfully!",
-            warning: "SAVE YOUR MNEMONIC - it won't be shown again"
+            wallet: {
+                address: walletData.address,
+                mnemonic: walletData.mnemonic, // Return only once
+                type: 'TON',
+                wordCount: walletData.mnemonic.split(' ').length
+            },
+            message: `TON wallet with ${walletData.mnemonic.split(' ').length} words generated successfully`
         });
 
     } catch (error) {
-        console.error('Real wallet generation error:', error);
+        console.error('Wallet generation error:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -172,32 +165,40 @@ router.post('/generate-wallet', async (req, res) => {
     }
 });
 
-// Import REAL wallet
+// Import TON wallet from mnemonic
 router.post('/import-wallet', async (req, res) => {
     try {
         const { userId, mnemonic } = req.body;
-        
-        if (!tonCryptoAvailable || !TonWebAvailable) {
-            return res.status(500).json({
+
+        // Validate mnemonic
+        if (!bip39.validateMnemonic(mnemonic)) {
+            return res.status(400).json({
                 success: false,
-                error: 'Real wallet import not available yet'
+                error: 'Invalid mnemonic phrase'
             });
         }
 
-        const wallet = await importRealWallet(mnemonic);
-        
-        // Store in Supabase
+        // Generate wallet from mnemonic
+        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+        const wallet = WalletContractV4.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey
+        });
+
+        const address = wallet.address.toString();
+
+        // Encrypt and store
+        const encryptedMnemonic = encrypt(mnemonic);
+
         const { data, error } = await supabase
-            .from('user_wallets')
+            .from('wallets')
             .insert([
                 {
                     user_id: userId,
-                    wallet_address: wallet.address,
-                    public_key: wallet.publicKey,
-                    encrypted_mnemonic: mnemonic, // Encrypt in production!
-                    encryption_iv: 'temp_iv',
-                    encryption_auth_tag: 'temp_tag',
-                    source: 'nemex_wallet_web',
+                    address: address,
+                    encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+                    public_key: Buffer.from(keyPair.publicKey).toString('hex'),
+                    wallet_type: 'TON',
                     created_at: new Date().toISOString()
                 }
             ]);
@@ -206,260 +207,103 @@ router.post('/import-wallet', async (req, res) => {
 
         res.json({
             success: true,
-            userId: userId,
-            address: wallet.address,
-            publicKey: wallet.publicKey,
-            message: "REAL TON wallet imported successfully!"
+            wallet: {
+                address: address,
+                type: 'TON'
+            },
+            message: 'TON wallet imported successfully'
         });
 
     } catch (error) {
-        console.error('Real wallet import error:', error);
+        console.error('Wallet import error:', error);
         res.status(500).json({
             success: false,
-            error: 'Invalid mnemonic or import failed: ' + error.message
+            error: error.message
         });
     }
 });
 
-// Get REAL balances using tonweb
-router.get('/balances/:userId', async (req, res) => {
+// Get real TON balance from blockchain
+router.get('/real-balance/:address', async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { address } = req.params;
 
-        // Get user wallet from Supabase
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (error || !wallet) {
-            return res.status(404).json({
-                success: false,
-                error: "Wallet not found. Generate a wallet first."
-            });
-        }
-
-        // Get REAL TON balance from blockchain using tonweb
-        const tonBalance = await getTONBalance(wallet.wallet_address);
-        
-        // ✅ ADDED: Get NMX Jetton balance
-        const nmxBalance = await getNMXBalance(wallet.wallet_address);
-
-        const realBalances = {
-            TON: parseFloat(tonBalance).toFixed(6),
-            USDT: "0.00",
-            BTC: "0.00", 
-            TRX: "0.00",
-            NMX: await getNMXBalance(wallet.wallet_address)  // ✅ This now uses the correct contract
-        };
+        // Use modern TON client
+        const balance = await tonClient.getBalance(address);
+        const tonBalance = balance.toString() / 1000000000; // Convert from nanoTON
 
         res.json({
             success: true,
-            balances: realBalances,
-            address: wallet.wallet_address,
-            message: "Real blockchain balances loaded"
+            balance: tonBalance.toFixed(4),
+            address: address,
+            rawBalance: balance.toString()
         });
 
     } catch (error) {
-        console.error('Balance check error:', error);
+        console.error('Real balance check error:', error);
         res.status(500).json({
             success: false,
-            error: "Failed to fetch balances: " + error.message
+            error: 'Failed to fetch balance from blockchain'
         });
     }
 });
 
-async function getNMXBalance(walletAddress) {
-    console.log('🔄 Fetching NMX balance with HEX-to-FRIENDLY conversion...');
-    
+// Get transaction history
+router.get('/transactions/:address', async (req, res) => {
     try {
-        const response = await axios.get(`https://tonapi.io/v2/accounts/${walletAddress}/jettons`);
-        
-        if (response.data.balances && response.data.balances.length > 0) {
-            // Convert the KNOWN friendly address to raw hex for comparison
-            const knownNMXHex = "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec";
-            
-            console.log('🔍 Looking for hex:', knownNMXHex);
-            console.log('📋 Available contracts (raw):', response.data.balances.map(j => j.jetton.address));
-            
-            const nmxJetton = response.data.balances.find(jetton => 
-                jetton.jetton.address === knownNMXHex
-            );
-            
-            if (nmxJetton) {
-                const balance = (nmxJetton.balance / Math.pow(10, nmxJetton.jetton.decimals || 9)).toFixed(2);
-                console.log('🎉 NMX FOUND! Balance:', balance);
-                return balance;
-            } else {
-                console.log('❌ NMX hex not found. Let me check ALL jettons:');
-                response.data.balances.forEach((jetton, index) => {
-                    const balance = (jetton.balance / Math.pow(10, jetton.jetton.decimals || 9)).toFixed(2);
-                    console.log(`   ${index + 1}. ${jetton.jetton.address} - ${jetton.jetton.symbol} - Balance: ${balance}`);
-                });
-            }
-        }
-        
-        return "0.00";
-        
-    } catch (error) {
-        console.error('NMX balance fetch failed:', error.message);
-        return "0.00";
-    }
-}
+        const { address } = req.params;
 
+        // Get transactions from TON API
+        const response = await axios.get(
+            `https://toncenter.com/api/v2/getTransactions?address=${address}&limit=10`
+        );
 
-// ✅ REAL TON SEND FUNCTIONALITY
-router.post('/send-ton', async (req, res) => {
-    try {
-        const { userId, recipient, amount, memo = '' } = req.body;
-
-        console.log('🔄 Processing TON send:', { userId, recipient, amount, memo });
-
-        // 1. Get user wallet from Supabase
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (error || !wallet) {
-            return res.status(404).json({
-                success: false,
-                error: "Wallet not found"
-            });
-        }
-
-        // 2. Validate recipient address
-        if (!recipient.startsWith('EQ') && !recipient.startsWith('UQ')) {
-            return res.status(400).json({
-                success: false,
-                error: "Invalid TON address format"
-            });
-        }
-
-        // 3. Check balance
-        const currentBalance = await getTONBalance(wallet.wallet_address);
-        const sendAmount = parseFloat(amount);
-        const gasFee = 0.1; // Estimated gas fee
-
-        if (sendAmount + gasFee > parseFloat(currentBalance)) {
-            return res.status(400).json({
-                success: false,
-                error: `Insufficient balance. Need ${sendAmount + gasFee} TON (including gas)`
-            });
-        }
-
-        // 4. For now - simulate successful transaction
-        // In production, you'd sign and broadcast to blockchain
-        console.log('✅ Simulating TON send transaction:');
-        console.log('   From:', wallet.wallet_address);
-        console.log('   To:', recipient);
-        console.log('   Amount:', sendAmount, 'TON');
-        console.log('   Memo:', memo);
-
-        // Simulate blockchain delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // 5. Return success response
-        const transactionHash = 'simulated_' + Date.now(); // Replace with real tx hash
+        const transactions = response.data.result.map(tx => ({
+            hash: tx.transaction_id.hash,
+            type: tx.in_msg.source === '' ? 'receive' : 'send',
+            amount: (parseInt(tx.in_msg.value) / 1000000000).toFixed(4),
+            symbol: 'TON',
+            from: tx.in_msg.source,
+            to: tx.in_msg.destination,
+            timestamp: tx.utime * 1000, // Convert to milliseconds
+            status: 'confirmed'
+        }));
 
         res.json({
             success: true,
-            message: "TON sent successfully!",
-            transactionHash: transactionHash,
-            details: {
-                from: wallet.wallet_address,
-                to: recipient,
-                amount: sendAmount,
-                fee: gasFee,
-                memo: memo,
-                explorerUrl: `https://tonscan.org/tx/${transactionHash}`
-            }
+            transactions: transactions
         });
 
     } catch (error) {
-        console.error('TON send error:', error);
+        console.error('Transactions error:', error);
         res.status(500).json({
             success: false,
-            error: "Send failed: " + error.message
+            error: error.message
         });
     }
 });
 
-// ✅ REAL TON SEND FUNCTIONALITY
-router.post('/send-ton', async (req, res) => {
+// Check if address is valid TON address
+router.get('/validate-address/:address', async (req, res) => {
     try {
-        const { userId, recipient, amount, memo = '' } = req.body;
+        const { address } = req.params;
 
-        console.log('🔄 Processing TON send:', { userId, recipient, amount, memo });
-
-        // 1. Get user wallet from Supabase
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (error || !wallet) {
-            return res.status(404).json({
-                success: false,
-                error: "Wallet not found"
-            });
-        }
-
-        // 2. Validate recipient address
-        if (!recipient.startsWith('EQ') && !recipient.startsWith('UQ')) {
-            return res.status(400).json({
-                success: false,
-                error: "Invalid TON address format"
-            });
-        }
-
-        // 3. Check balance
-        const currentBalance = await getTONBalance(wallet.wallet_address);
-        const sendAmount = parseFloat(amount);
-        const gasFee = 0.1; // Estimated gas fee
-
-        if (sendAmount + gasFee > parseFloat(currentBalance)) {
-            return res.status(400).json({
-                success: false,
-                error: `Insufficient balance. Need ${sendAmount + gasFee} TON (including gas)`
-            });
-        }
-
-        // 4. For now - simulate successful transaction
-        console.log('✅ Simulating TON send transaction:');
-        console.log('   From:', wallet.wallet_address);
-        console.log('   To:', recipient);
-        console.log('   Amount:', sendAmount, 'TON');
-        console.log('   Memo:', memo);
-
-        // Simulate blockchain delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // 5. Return success response
-        const transactionHash = 'simulated_' + Date.now();
+        // Simple TON address validation
+        const isValid = address.startsWith('EQ') || address.startsWith('UQ');
+        const isTestnet = address.startsWith('kQ') || address.startsWith('0Q');
 
         res.json({
             success: true,
-            message: "TON sent successfully!",
-            transactionHash: transactionHash,
-            details: {
-                from: wallet.wallet_address,
-                to: recipient,
-                amount: sendAmount,
-                fee: gasFee,
-                memo: memo,
-                explorerUrl: `https://tonscan.org/tx/${transactionHash}`
-            }
+            isValid: isValid,
+            isTestnet: isTestnet,
+            address: address
         });
 
     } catch (error) {
-        console.error('TON send error:', error);
+        console.error('Address validation error:', error);
         res.status(500).json({
             success: false,
-            error: "Send failed: " + error.message
+            error: error.message
         });
     }
 });
