@@ -446,7 +446,7 @@
             color: var(--gold);
         }
 
-    /* ===== ENHANCED SEND MODAL DESIGN ===== */
+  /* ===== ENHANCED SEND MODAL DESIGN ===== */
 #sendModal .modal-content {
     background: var(--card-bg);
     border-radius: 20px;
@@ -741,6 +741,148 @@
     box-shadow: none;
 }
 
+/* ===== FIXED TOKEN CARD LAYOUT - NO OVERLAP ===== */
+.token-card {
+    display: flex;
+    align-items: center;
+    padding: 18px 16px;
+    background: var(--card-bg);
+    border-radius: var(--border-radius-sm);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 8px;
+    gap: 14px;
+}
+
+.token-card:hover {
+    background: rgba(212, 175, 55, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* FIXED: Token icon container - prevents overlap */
+.token-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0;
+    font-weight: 700;
+    color: white;
+    font-size: 16px;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+    z-index: 2;
+}
+
+/* FIXED: Token logo image - perfect containment */
+.token-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 50%;
+    padding: 3px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Token background gradients with better separation */
+.ton-icon { 
+    background: linear-gradient(135deg, #0088CC, #006699); 
+}
+.nmx-icon { 
+    background: linear-gradient(135deg, var(--gold), #B8941F); 
+}
+.usdt-icon { 
+    background: linear-gradient(135deg, #26A17B, #1E8C6E); 
+}
+.tron-icon { 
+    background: linear-gradient(135deg, #FF060A, #CC0000); 
+}
+.btc-icon { 
+    background: linear-gradient(135deg, #F7931A, #E07B15); 
+}
+
+/* FIXED: Token info - proper spacing and overflow */
+.token-info {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+    padding-right: 10px;
+}
+
+.token-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+}
+
+.token-symbol {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.token-price {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.token-change {
+    font-size: 11px;
+    margin-left: 4px;
+    font-weight: 600;
+}
+
+.change-positive {
+    color: var(--success);
+}
+
+.change-negative {
+    color: var(--error);
+}
+
+/* FIXED: Token balance - proper alignment */
+.token-balance {
+    text-align: right;
+    flex-shrink: 0;
+    margin-left: 0;
+    position: relative;
+    z-index: 1;
+    min-width: 100px;
+}
+
+.token-amount {
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    margin-bottom: 4px;
+    font-size: 16px;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.token-value {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
 /* Token Options Modal - Enhanced */
 #tokenSelectorModal .modal-content {
     max-width: 380px;
@@ -759,6 +901,7 @@
     overflow-y: auto;
 }
 
+/* ===== ENHANCED TOKEN SELECTOR MODAL - FIXED OVERLAP ===== */
 .token-option {
     display: flex;
     align-items: center;
@@ -770,12 +913,16 @@
     cursor: pointer;
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 8px;
 }
 
 .token-option:hover {
     background: rgba(212, 175, 55, 0.1);
     border-color: var(--gold);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .token-option.selected {
@@ -783,9 +930,10 @@
     border-color: var(--gold);
 }
 
+/* FIXED: Token option icon container */
 .token-option-icon {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -793,7 +941,9 @@
     flex-shrink: 0;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.1);
-    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    z-index: 2;
 }
 
 .token-option-logo {
@@ -802,11 +952,16 @@
     object-fit: contain;
     border-radius: 50%;
     padding: 3px;
+    background: rgba(255, 255, 255, 0.05);
 }
 
+/* FIXED: Token option info - proper text containment */
 .token-option-info {
     flex: 1;
     min-width: 0;
+    position: relative;
+    z-index: 1;
+    padding-right: 10px;
 }
 
 .token-option-name {
@@ -830,6 +985,7 @@
     font-size: 13px;
     color: var(--text-muted);
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .token-option-balance {
@@ -837,6 +993,7 @@
     color: var(--text-muted);
     text-align: right;
     white-space: nowrap;
+    font-family: 'Courier New', monospace;
 }
 
 /* Search bar for token selector */
@@ -881,7 +1038,70 @@
     color: var(--error);
 }
 
-        /* Loading Animation */
+/* ===== RESPONSIVE FIXES ===== */
+@media (max-width: 380px) {
+    .token-card {
+        padding: 14px 12px;
+        gap: 12px;
+    }
+    
+    .token-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .token-name {
+        font-size: 14px;
+    }
+    
+    .token-amount {
+        font-size: 14px;
+    }
+    
+    .token-option {
+        padding: 14px 12px;
+        gap: 12px;
+    }
+    
+    .token-option-icon {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* ===== Z-INDEX STACKING ORDER ===== */
+.token-card,
+.token-option {
+    z-index: 1;
+    position: relative;
+}
+
+.token-icon,
+.token-option-icon {
+    z-index: 2;
+}
+
+.token-info,
+.token-option-info {
+    z-index: 1;
+}
+
+.token-balance {
+    z-index: 1;
+}
+
+/* ===== OVERFLOW PROTECTION ===== */
+.token-list,
+.token-options {
+    overflow: visible;
+}
+
+.token-card:last-child,
+.token-option:last-child {
+    margin-bottom: 0;
+}
+
+      /* Loading Animation */
         .loading {
             display: inline-block;
             width: 16px;
