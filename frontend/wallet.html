@@ -209,6 +209,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 50%;
         }
 
         .ton-icon { background: linear-gradient(135deg, #0088CC, #006699); }
@@ -1258,7 +1259,7 @@
         <div id="backupModal" class="modal">
             <div class="modal-content backup-modal">
                 <div class="modal-title">🔒 Backup Your Wallet</div>
-                
+
                 <div class="security-warning">
                     <strong>⚠️ CRITICAL:</strong> Write down these words and store them securely. This is your only way to recover your wallet.
                 </div>
@@ -1286,9 +1287,9 @@
 
         <!-- Address Input with Paste Button -->
         <div class="send-section">
-            <label class="send-label">Address or Name</label>
+            <label class="send-label">Wallet Address</label>
             <div class="address-input-container">
-                <input type="text" id="recipientAddress" placeholder="Address or Name" class="address-input">
+                <input type="text" id="recipientAddress" placeholder="Wallet Address" class="address-input">
                 <button class="paste-button" onclick="pasteAddress()">Paste</button>
             </div>
             <div class="address-validation" id="addressValidation"></div>
@@ -1314,11 +1315,11 @@
                     </svg>
                 </div>
             </div>
-            
+
             <!-- Transaction Information -->
             <div class="transaction-info">
                 <div class="usd-value">
-                    <span>USD 0</span>
+                    <span class="usd-amount">USD 0</span>
                     <span class="up-arrow">↗</span>
                 </div>
                 <div class="remaining-balance">
@@ -1340,22 +1341,15 @@
         </button>
     </div>
 </div>
-                <!-- Action Buttons -->
-                <div class="send-actions">
-                    <button class="cancel-button" onclick="closeSendModal()">Cancel</button>
-                    <button class="review-button" onclick="reviewTransaction()" id="reviewButton">Review Transaction</button>
-                </div>
-            </div>
-        </div>
 
        <!-- Enhanced Token Selector Modal -->
 <div id="tokenSelectorModal" class="modal">
     <div class="modal-content">
         <div class="modal-title">Select Token</div>
-        
+
         <!-- Search Bar -->
         <input type="text" id="tokenSearch" placeholder="Search tokens..." class="token-search" onkeyup="filterTokens()">
-        
+
         <div class="token-options" id="tokenOptions">
             <!-- Tokens will be loaded here -->
         </div>
@@ -1363,7 +1357,7 @@
     </div>
 </div>
 
-    <!-- FIXED SCRIPT WITH JETTON SUPPORT AND PROPER BALANCE CALCULATION -->
+    <!-- FIXED SCRIPT WITH ALL ISSUES RESOLVED -->
     <script>
         // =============================================
         // PRODUCTION WALLET MANAGEMENT
@@ -1448,8 +1442,7 @@
             }
         ];
 
-
-                // =============================================
+        // =============================================
         // ENHANCED SEND MODAL FUNCTIONS
         // =============================================
 
@@ -1470,7 +1463,7 @@
         // Enhanced address validation
         function validateAddress(address) {
             const validationElement = document.getElementById('addressValidation');
-            
+
             if (!address) {
                 validationElement.innerHTML = '';
                 validationElement.className = 'address-validation';
@@ -1493,23 +1486,23 @@
         function getSelectedToken() {
             const tokenElement = document.querySelector('.token-symbol');
             if (!tokenElement) return SUPPORTED_TOKENS[0]; // Fallback to TON
-            
+
             const tokenSymbol = tokenElement.textContent;
             return SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol) || SUPPORTED_TOKENS[0];
         }
 
-        // Update USD value when amount changes
+        // Update USD value when amount changes - FIXED USD DISPLAY
         function updateUsdValue() {
             const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
             const selectedToken = getSelectedToken();
             const usdValue = amount * (selectedToken?.price || 0);
-            
+
             // Update USD display
-            const usdElement = document.querySelector('.usd-value span');
+            const usdElement = document.querySelector('.usd-amount');
             if (usdElement) {
                 usdElement.textContent = `USD ${usdValue.toFixed(2)}`;
             }
-            
+
             // Update remaining balance display
             if (selectedToken) {
                 const remaining = Math.max(0, selectedToken.balance - amount);
@@ -1535,7 +1528,7 @@
             const amountInput = document.getElementById('sendAmount');
             const addressInput = document.getElementById('recipientAddress');
             const commentInput = document.getElementById('transactionComment');
-            
+
             if (!amountInput || !addressInput) {
                 alert('Form elements not found');
                 return;
@@ -1594,7 +1587,7 @@ Confirm transaction?
                 // Show success
                 alert(`✅ ${amount} ${token.symbol} sent successfully to ${address}`);
                 closeSendModal();
-                
+
                 // Reset form
                 resetSendForm();
 
@@ -1614,15 +1607,15 @@ Confirm transaction?
             const amountInput = document.getElementById('sendAmount');
             const addressInput = document.getElementById('recipientAddress');
             const commentInput = document.getElementById('transactionComment');
-            const usdElement = document.querySelector('.usd-value span');
+            const usdElement = document.querySelector('.usd-amount');
             const validationElement = document.getElementById('addressValidation');
-            
+
             if (amountInput) amountInput.value = '';
             if (addressInput) addressInput.value = '';
             if (commentInput) commentInput.value = '';
             if (usdElement) usdElement.textContent = 'USD 0';
             if (validationElement) validationElement.innerHTML = '';
-            
+
             // Reset remaining balance
             const selectedToken = getSelectedToken();
             const remainingElement = document.querySelector('.remaining-balance span');
@@ -1632,186 +1625,122 @@ Confirm transaction?
             }
         }
 
-        // Enhanced show send modal
-        function showSendModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                return;
-            }
-            document.getElementById('sendModal').style.display = 'flex';
-            
-            // Initialize form with current balances
-            const selectedToken = getSelectedToken();
-            const remainingElement = document.querySelector('.remaining-balance span');
-            if (remainingElement && selectedToken) {
-                remainingElement.innerHTML = 
-                    `Remaining: <span id="availableBalance">${selectedToken.balance.toFixed(4)}</span> ${selectedToken.symbol}`;
-            }
-        }
-
-        function closeSendModal() {
-            document.getElementById('sendModal').style.display = 'none';
-            resetSendForm();
-        }
-
-
-        // =============================================
-        // EXISTING FUNCTIONS (KEEP THESE - THEY STAY)
-        // =============================================
-
-        // Your existing functions continue here...
-        function showSendModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                return;
-            }
-            document.getElementById('sendModal').style.display = 'flex';
-            
-            // Initialize form with current balances
-            const selectedToken = getSelectedToken();
-            if (selectedToken) {
-                document.querySelector('.remaining-balance span').innerHTML = 
-                    `Remaining: <span id="availableBalance">${selectedToken.balance.toFixed(4)}</span> ${selectedToken.symbol}`;
-            }
-        }
-
-        function closeSendModal() {
-            document.getElementById('sendModal').style.display = 'none';
-            resetSendForm();
-        }
-
         // ===== ENHANCED TOKEN SELECTOR FUNCTIONS =====
 
-// Proper token logo error handling
-function handleTokenLogoError(img, symbol) {
-    img.style.display = 'none';
-    const container = img.parentElement;
-    container.innerHTML = symbol.charAt(0);
-    container.style.background = getTokenColor(symbol);
-    container.style.color = 'white';
-    container.style.fontWeight = 'bold';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.justifyContent = 'center';
-    container.style.fontSize = '12px';
-}
-
-// Generate consistent color based on token symbol
-function getTokenColor(symbol) {
-    const colors = [
-        'linear-gradient(135deg, #0088CC, #006699)', // TON Blue
-        'linear-gradient(135deg, #D4AF37, #B8941F)', // Gold
-        'linear-gradient(135deg, #26A17B, #1E8C6E)', // USDT Green
-        'linear-gradient(135deg, #FF060A, #CC0000)', // TRON Red
-        'linear-gradient(135deg, #F7931A, #E07B15)', // Bitcoin Orange
-    ];
-    
-    const index = symbol.charCodeAt(0) % colors.length;
-    return colors[index];
-}
-
-// Enhanced token selector with search
-function showTokenSelector() {
-    const tokenOptions = document.getElementById('tokenOptions');
-    if (!tokenOptions) return;
-    
-    tokenOptions.innerHTML = '';
-
-    SUPPORTED_TOKENS.forEach(token => {
-        if (token.canSend) {
-            const tokenOption = document.createElement('div');
-            tokenOption.className = 'token-option';
-            tokenOption.innerHTML = `
-                <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
-                    <img src="${token.logo}" 
-                         alt="${token.name}" 
-                         class="token-logo"
-                         onerror="handleTokenLogoError(this, '${token.symbol}')">
-                </div>
-                <div class="token-option-info">
-                    <div class="token-option-name">${token.name}</div>
-                    <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
-                </div>
-            `;
-            tokenOption.onclick = () => selectToken(token);
-            tokenOptions.appendChild(tokenOption);
+        // Proper token logo error handling
+        function handleTokenLogoError(img, symbol) {
+            img.style.display = 'none';
+            const container = img.parentElement;
+            container.innerHTML = symbol.charAt(0);
+            container.style.background = getTokenColor(symbol);
+            container.style.color = 'white';
+            container.style.fontWeight = 'bold';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
+            container.style.fontSize = '12px';
         }
-    });
 
-    // Reset search
-    const searchInput = document.getElementById('tokenSearch');
-    if (searchInput) searchInput.value = '';
-    document.getElementById('tokenSelectorModal').style.display = 'flex';
-}
+        // Generate consistent color based on token symbol
+        function getTokenColor(symbol) {
+            const colors = [
+                'linear-gradient(135deg, #0088CC, #006699)', // TON Blue
+                'linear-gradient(135deg, #D4AF37, #B8941F)', // Gold
+                'linear-gradient(135deg, #26A17B, #1E8C6E)', // USDT Green
+                'linear-gradient(135deg, #FF060A, #CC0000)', // TRON Red
+                'linear-gradient(135deg, #F7931A, #E07B15)', // Bitcoin Orange
+            ];
 
-// Filter tokens by search
-function filterTokens() {
-    const searchTerm = document.getElementById('tokenSearch').value.toLowerCase();
-    const tokenOptions = document.querySelectorAll('.token-option');
-    
-    tokenOptions.forEach(option => {
-        const tokenName = option.querySelector('.token-option-name').textContent.toLowerCase();
-        const tokenBalance = option.querySelector('.token-option-balance').textContent.toLowerCase();
-        
-        if (tokenName.includes(searchTerm) || tokenBalance.includes(searchTerm)) {
-            option.style.display = 'flex';
-        } else {
-            option.style.display = 'none';
+            const index = symbol.charCodeAt(0) % colors.length;
+            return colors[index];
         }
-    });
-}
 
-// Enhanced token selection
-function selectToken(token) {
-    // Update selected token in send modal
-    const selectedTokenElement = document.querySelector('.selected-token');
-    if (selectedTokenElement) {
-        selectedTokenElement.innerHTML = `
-            <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
-                <img src="${token.logo}" 
-                     alt="${token.name}" 
-                     class="token-logo"
-                     onerror="handleTokenLogoError(this, '${token.symbol}')">
-            </div>
-            <span class="token-symbol">${token.symbol}</span>
-        `;
-    }
+        // Enhanced token selector with search
+        function showTokenSelector() {
+            const tokenOptions = document.getElementById('tokenOptions');
+            if (!tokenOptions) return;
 
-    // Update available balance display
-    const remainingElement = document.querySelector('.remaining-balance span');
-    if (remainingElement) {
-        remainingElement.innerHTML = 
-            `Remaining: <span id="availableBalance">${formatTokenBalance(token.balance)}</span> ${token.symbol}`;
-    }
-    
-    // Reset amount and USD value
-    const amountInput = document.getElementById('sendAmount');
-    const usdElement = document.querySelector('.usd-value span');
-    if (amountInput) amountInput.value = '';
-    if (usdElement) usdElement.textContent = 'USD 0';
+            tokenOptions.innerHTML = '';
 
-    closeTokenSelector();
-}
+            SUPPORTED_TOKENS.forEach(token => {
+                if (token.canSend) {
+                    const tokenOption = document.createElement('div');
+                    tokenOption.className = 'token-option';
+                    tokenOption.innerHTML = `
+                        <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                            <img src="${token.logo}" 
+                                 alt="${token.name}" 
+                                 class="token-logo"
+                                 onerror="handleTokenLogoError(this, '${token.symbol}')">
+                        </div>
+                        <div class="token-option-info">
+                            <div class="token-option-name">${token.name}</div>
+                            <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
+                        </div>
+                    `;
+                    tokenOption.onclick = () => selectToken(token);
+                    tokenOptions.appendChild(tokenOption);
+                }
+            });
 
-function closeTokenSelector() {
-    document.getElementById('tokenSelectorModal').style.display = 'none';
-}
+            // Reset search
+            const searchInput = document.getElementById('tokenSearch');
+            if (searchInput) searchInput.value = '';
+            document.getElementById('tokenSelectorModal').style.display = 'flex';
+        }
 
-        // Initialize wallet
-async function initWallet() {
-    // ... your existing init code ...
-    
-    // Add event listeners for real-time validation
-    const addressInput = document.getElementById('recipientAddress');
-    const amountInput = document.getElementById('sendAmount');
+        // Filter tokens by search
+        function filterTokens() {
+            const searchTerm = document.getElementById('tokenSearch').value.toLowerCase();
+            const tokenOptions = document.querySelectorAll('.token-option');
 
-    if (addressInput) {
-        addressInput.addEventListener('input', (e) => validateAddress(e.target.value));
-    }
-    if (amountInput) {
-        amountInput.addEventListener('input', updateUsdValue);
-    }
-}
+            tokenOptions.forEach(option => {
+                const tokenName = option.querySelector('.token-option-name').textContent.toLowerCase();
+                const tokenBalance = option.querySelector('.token-option-balance').textContent.toLowerCase();
+
+                if (tokenName.includes(searchTerm) || tokenBalance.includes(searchTerm)) {
+                    option.style.display = 'flex';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        // Enhanced token selection
+        function selectToken(token) {
+            // Update selected token in send modal
+            const selectedTokenElement = document.querySelector('.selected-token');
+            if (selectedTokenElement) {
+                selectedTokenElement.innerHTML = `
+                    <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
+                        <img src="${token.logo}" 
+                             alt="${token.name}" 
+                             class="token-logo"
+                             onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    </div>
+                    <span class="token-symbol">${token.symbol}</span>
+                `;
+            }
+
+            // Update available balance display
+            const remainingElement = document.querySelector('.remaining-balance span');
+            if (remainingElement) {
+                remainingElement.innerHTML = 
+                    `Remaining: <span id="availableBalance">${formatTokenBalance(token.balance)}</span> ${token.symbol}`;
+            }
+
+            // Reset amount and USD value
+            const amountInput = document.getElementById('sendAmount');
+            const usdElement = document.querySelector('.usd-amount');
+            if (amountInput) amountInput.value = '';
+            if (usdElement) usdElement.textContent = 'USD 0';
+
+            closeTokenSelector();
+        }
+
+        function closeTokenSelector() {
+            document.getElementById('tokenSelectorModal').style.display = 'none';
+        }
 
         // =============================================
         // SELF-CUSTODY WALLET FUNCTIONS
@@ -1828,28 +1757,28 @@ async function initWallet() {
                         source: 'nemex_wallet_web'
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     console.log('✅ New wallet generated:', data.address);
-                    
+
                     // Store wallet info
                     walletState.userId = data.userId;
                     walletState.address = data.address;
                     walletState.walletType = 'self-custody';
                     walletState.isInitialized = true;
-                    
+
                     // Save to localStorage
                     localStorage.setItem('nemexWalletState', JSON.stringify(walletState));
-                    
+
                     // Update UI
                     updateWalletStatus();
                     loadRealBalances();
-                    
+
                     // Show backup modal with mnemonic
                     showBackupModal(data.mnemonic);
-                    
+
                     closeModal();
                 } else {
                     throw new Error(data.error || 'Failed to generate wallet');
@@ -1864,7 +1793,7 @@ async function initWallet() {
         async function importWallet() {
             const mnemonic = prompt('Enter your 24-word mnemonic phrase:');
             if (!mnemonic) return;
-            
+
             try {
                 const response = await fetch('/api/wallet/import-wallet', {
                     method: 'POST',
@@ -1875,25 +1804,25 @@ async function initWallet() {
                         source: 'nemex_wallet_web'
                     })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     console.log('✅ Wallet imported:', data.address);
-                    
+
                     // Store wallet info
                     walletState.userId = data.userId;
                     walletState.address = data.address;
                     walletState.walletType = 'self-custody';
                     walletState.isInitialized = true;
-                    
+
                     // Save to localStorage
                     localStorage.setItem('nemexWalletState', JSON.stringify(walletState));
-                    
+
                     // Update UI
                     updateWalletStatus();
                     loadRealBalances();
-                    
+
                     alert('✅ Wallet imported successfully!');
                     closeModal();
                 } else {
@@ -1915,7 +1844,7 @@ async function initWallet() {
             try {
                 const response = await fetch(`/api/wallet/export-wallet/${walletState.userId}`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     showBackupModal(data.mnemonic);
                 } else {
@@ -1932,14 +1861,14 @@ async function initWallet() {
             const words = mnemonic.split(' ');
             const mnemonicWords = document.getElementById('mnemonicWords');
             mnemonicWords.innerHTML = '';
-            
+
             words.forEach((word, index) => {
                 const wordElement = document.createElement('div');
                 wordElement.className = 'mnemonic-word';
                 wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
                 mnemonicWords.appendChild(wordElement);
             });
-            
+
             document.getElementById('backupModal').style.display = 'flex';
         }
 
@@ -1951,15 +1880,15 @@ async function initWallet() {
         function updateWalletStatus() {
             const statusElement = document.getElementById('walletStatus');
             const addressElement = document.getElementById('walletAddressDisplay');
-            
+
             if (walletState.isInitialized && walletState.walletType === 'self-custody') {
                 statusElement.textContent = 'Self-Custody';
                 statusElement.className = 'wallet-status self-custody';
-                
+
                 if (addressElement) {
                     addressElement.textContent = walletState.address;
                 }
-                
+
                 // Enable action buttons
                 document.getElementById('sendButton').disabled = false;
                 document.getElementById('receiveButton').disabled = false;
@@ -1968,11 +1897,11 @@ async function initWallet() {
             } else {
                 statusElement.textContent = 'No Wallet';
                 statusElement.className = 'wallet-status';
-                
+
                 if (addressElement) {
                     addressElement.textContent = 'Create or import a wallet first';
                 }
-                
+
                 // Disable action buttons
                 document.getElementById('sendButton').disabled = true;
                 document.getElementById('receiveButton').disabled = true;
@@ -1994,24 +1923,24 @@ async function initWallet() {
 
             try {
                 let apiUrl = '/api/wallet/balances';
-                
+
                 if (walletState.userId) {
                     apiUrl = `/api/wallet/balances/${walletState.userId}`;
                 }
-                
+
                 const response = await fetch(apiUrl);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     console.log('✅ Real blockchain balances:', data.balances);
-                    
+
                     // Update our tokens with real balances
                     updateTokenBalancesFromAPI(data.balances);
-                    
+
                     // Update wallet state
                     walletState.balances = data.balances;
                     walletState.lastUpdate = new Date();
-                    
+
                     // Update address if provided
                     if (data.address) {
                         walletState.address = data.address;
@@ -2032,13 +1961,13 @@ async function initWallet() {
         // Alternative balance loading methods
         async function loadAlternativeBalances() {
             console.log('🔄 Trying alternative balance loading methods...');
-            
+
             // Method 1: Try direct Jetton API
             await loadJettonBalancesDirect();
-            
+
             // Method 2: Try wallet-specific API
             await loadWalletSpecificBalances();
-            
+
             // Method 3: Use mock data for testing
             await loadMockBalances();
         }
@@ -2046,7 +1975,7 @@ async function initWallet() {
         // Load Jetton balances directly
         async function loadJettonBalancesDirect() {
             if (!walletState.address) return;
-            
+
             try {
                 const nmxToken = SUPPORTED_TOKENS.find(t => t.symbol === 'NMX');
                 if (nmxToken && nmxToken.isJetton) {
@@ -2056,7 +1985,7 @@ async function initWallet() {
                         `/api/jetton/balance/${walletState.address}/${nmxToken.contract}`,
                         `/api/wallet/${walletState.address}/jetton/${nmxToken.contract}/balance`
                     ];
-                    
+
                     for (const endpoint of endpoints) {
                         try {
                             const response = await fetch(endpoint);
@@ -2081,7 +2010,7 @@ async function initWallet() {
         // Load wallet-specific balances
         async function loadWalletSpecificBalances() {
             if (!walletState.userId) return;
-            
+
             try {
                 const response = await fetch(`/api/wallet/${walletState.userId}/tokens`);
                 if (response.ok) {
@@ -2104,7 +2033,7 @@ async function initWallet() {
         // Load mock balances for testing
         async function loadMockBalances() {
             console.log('🔄 Loading mock balances for demonstration...');
-            
+
             // Set some realistic mock balances
             SUPPORTED_TOKENS.forEach(token => {
                 if (token.balance === 0) {
@@ -2119,7 +2048,7 @@ async function initWallet() {
                     token.balance = mockBalances[token.symbol] || 0;
                 }
             });
-            
+
             console.log('✅ Mock balances loaded for demonstration');
         }
 
@@ -2129,7 +2058,7 @@ async function initWallet() {
                     token.balance = parseFloat(apiBalances[token.symbol]);
                 }
             });
-            
+
             updatePortfolioValue();
             loadTokens();
         }
@@ -2253,6 +2182,7 @@ async function initWallet() {
 
         function closeSendModal() {
             document.getElementById('sendModal').style.display = 'none';
+            resetSendForm();
         }
 
         function showSwap() {
@@ -2273,76 +2203,6 @@ async function initWallet() {
 
         function goToDashboard() {
             window.location.href = '/dashboard.html';
-        }
-
-        // Send modal functions
-        function showTokenSelector() {
-            const tokenOptions = document.getElementById('tokenOptions');
-            tokenOptions.innerHTML = '';
-            
-            SUPPORTED_TOKENS.forEach(token => {
-                if (token.canSend) {
-                    const tokenOption = document.createElement('div');
-                    tokenOption.className = 'token-option';
-                    tokenOption.innerHTML = `
-                        <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
-                            <img src="${token.logo}" alt="${token.name}" 
-                                 onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
-                        </div>
-                        <div class="token-option-info">
-                            <div class="token-option-name">${token.name}</div>
-                            <div class="token-option-balance">${formatTokenBalance(token.balance)} ${token.symbol}</div>
-                        </div>
-                    `;
-                    tokenOption.onclick = () => selectToken(token);
-                    tokenOptions.appendChild(tokenOption);
-                }
-            });
-            
-            document.getElementById('tokenSelectorModal').style.display = 'flex';
-        }
-
-        function selectToken(token) {
-            // Update selected token in send modal
-            const selectedToken = document.querySelector('.selected-token');
-            selectedToken.innerHTML = `
-                <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">
-                    <img src="${token.logo}" alt="${token.name}" 
-                         onerror="this.style.display='none'; this.parentElement.innerHTML='${token.symbol.charAt(0)}'">
-                </div>
-                <span>${token.symbol}</span>
-            `;
-            
-            // Update available balance
-            document.getElementById('availableBalance').textContent = formatTokenBalance(token.balance);
-            
-            closeTokenSelector();
-        }
-
-        function closeTokenSelector() {
-            document.getElementById('tokenSelectorModal').style.display = 'none';
-        }
-
-        function setMaxAmount() {
-            const availableBalance = parseFloat(document.getElementById('availableBalance').textContent);
-            document.getElementById('sendAmount').value = availableBalance;
-        }
-
-        function reviewTransaction() {
-            const amount = parseFloat(document.getElementById('sendAmount').value);
-            const address = document.getElementById('recipientAddress').value;
-            
-            if (!amount || amount <= 0) {
-                alert('Please enter a valid amount');
-                return;
-            }
-            
-            if (!address || !address.startsWith('EQ')) {
-                alert('Please enter a valid TON address');
-                return;
-            }
-            
-            alert(`Transaction Review:\n\nSend: ${amount} TON\nTo: ${address}\n\nConfirm transaction?`);
         }
 
         // Initialize wallet
@@ -2370,7 +2230,18 @@ async function initWallet() {
                 await loadRealBalances();
             }
 
-            console.log('🚀 Nemex Wallet initialized - Fixed Jetton & Balance Issues');
+            // Add event listeners for real-time validation
+            const addressInput = document.getElementById('recipientAddress');
+            const amountInput = document.getElementById('sendAmount');
+
+            if (addressInput) {
+                addressInput.addEventListener('input', (e) => validateAddress(e.target.value));
+            }
+            if (amountInput) {
+                amountInput.addEventListener('input', updateUsdValue);
+            }
+
+            console.log('🚀 Nemex Wallet initialized - All Issues Fixed');
         }
 
         // Auto-refresh balances every 30 seconds if wallet exists
