@@ -271,6 +271,47 @@ async function getAllBalances(address) {
 
 
 // =============================================
+// COMPLETE WALLET RESET - ADD THIS FUNCTION
+// =============================================
+
+function completeWalletReset() {
+    console.log('🔄 Performing complete wallet reset...');
+    
+    // Clear ALL localStorage data
+    localStorage.removeItem('nemexUserWallets');
+    localStorage.removeItem('nemexCustomTokens');
+    localStorage.removeItem('nemexWalletState');
+    
+    // Reset all state variables
+    walletState = {
+        isInitialized: false,
+        walletType: null,
+        userId: null,
+        address: null,
+        balances: {},
+        lastUpdate: null,
+        currentWalletIndex: 0
+    };
+    
+    userWallets = [];
+    customTokens = [];
+    
+    // Force refresh the display
+    updateWalletDisplay();
+    
+    console.log('✅ Complete wallet reset done!');
+    alert('✅ Wallet completely reset! You can now import your wallet fresh.');
+}
+
+// Add this to your wallet.html somewhere - maybe in settings modal or as a hidden button
+function showResetOption() {
+    if (confirm('🚨 COMPLETE WALLET RESET\n\nThis will:\n• Delete ALL saved wallets\n• Clear ALL balance data\n• Reset to new user state\n\nAre you sure?')) {
+        completeWalletReset();
+    }
+}
+
+
+// =============================================
 // API ROUTES
 // =============================================
 
