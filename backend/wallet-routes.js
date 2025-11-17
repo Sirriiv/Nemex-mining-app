@@ -324,20 +324,35 @@ router.post('/generate-wallet', async (req, res) => {
     }
 });
 
-// Import TON wallet from mnemonic
+// Import TON wallet from mnemonic - ADD DEBUG LOGGING
 router.post('/import-wallet', async (req, res) => {
     try {
         const { userId, mnemonic } = req.body;
 
         console.log('🔄 Importing TON wallet...');
+        console.log('📝 Received mnemonic:', mnemonic);
+        console.log('📝 User ID:', userId);
+        console.log('📝 Mnemonic word count:', mnemonic ? mnemonic.split(' ').length : 'none');
 
-        // Validate mnemonic
-        if (!bip39.validateMnemonic(mnemonic)) {
+        // Validate mnemonic exists
+        if (!mnemonic) {
+            console.log('❌ No mnemonic provided');
             return res.status(400).json({
                 success: false,
-                error: 'Invalid mnemonic phrase. Must be valid BIP39 mnemonic.'
+                error: 'No mnemonic phrase provided'
             });
         }
+
+        // Validate mnemonic format
+        if (!bip39.validateMnemonic(mnemonic)) {
+            console.log('❌ Invalid mnemonic format');
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid mnemonic phrase. Must be valid BIP39 mnemonic with 12 or 24 words.'
+            });
+        }
+
+        console.log('✅ Mnemonic validation passed');
 
         // Generate wallet from mnemonic
         const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
@@ -350,6 +365,8 @@ router.post('/import-wallet', async (req, res) => {
 
         const walletAddress = await wallet.getAddress();
         const address = walletAddress.toString(true, true, true);
+
+        console.log('✅ Wallet generated:', address);
 
         // Encrypt and store
         const encryptedMnemonic = encrypt(mnemonic);
@@ -367,7 +384,10 @@ router.post('/import-wallet', async (req, res) => {
                 }
             ]);
 
-        if (error) throw error;
+        if (error) {
+            console.log('❌ Supabase error:', error);
+            throw error;
+        }
 
         console.log('✅ Wallet imported successfully:', address);
 
