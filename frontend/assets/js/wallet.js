@@ -1,4 +1,4 @@
-// assets/js/wallet.js - DATABASE-FIRST VERSION WITH REAL PRICES
+// assets/js/wallet.js - COMPLETE FIXED VERSION
 class NemexWalletAPI {
     constructor() {
         this.baseURL = window.location.origin + '/api/wallet';
@@ -6,7 +6,6 @@ class NemexWalletAPI {
     }
 
     getUserId() {
-        // Use a consistent user ID - in real app, this would be from authentication
         let userId = localStorage.getItem('nemexUserId');
         if (!userId) {
             userId = 'user_' + Date.now();
@@ -17,7 +16,6 @@ class NemexWalletAPI {
 
     async init() {
         console.log('🔄 Initializing Nemex Wallet API...');
-        // Test connection
         try {
             const response = await fetch(`${this.baseURL}/test`);
             const data = await response.json();
@@ -67,6 +65,13 @@ class NemexWalletAPI {
         try {
             console.log('🔄 Importing wallet via API...');
 
+            // Clean and validate mnemonic
+            const cleanedMnemonic = this.cleanMnemonic(mnemonic);
+            
+            if (!this.isValidMnemonic(cleanedMnemonic)) {
+                throw new Error('Invalid mnemonic format. Must be 12 or 24 words.');
+            }
+
             const response = await fetch(`${this.baseURL}/import-wallet`, {
                 method: 'POST',
                 headers: {
@@ -74,15 +79,16 @@ class NemexWalletAPI {
                 },
                 body: JSON.stringify({
                     userId: this.userId,
-                    mnemonic: mnemonic
+                    mnemonic: cleanedMnemonic
                 })
             });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
             const data = await response.json();
+
+            if (!response.ok) {
+                console.error('❌ Server response:', data);
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            }
 
             if (data.success) {
                 console.log('✅ Wallet imported via API:', data.wallet.address);
@@ -95,6 +101,21 @@ class NemexWalletAPI {
             console.error('❌ Wallet import failed:', error);
             throw error;
         }
+    }
+
+    // Clean mnemonic input
+    cleanMnemonic(mnemonic) {
+        return mnemonic
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, ' ')
+            .replace(/[^a-z\s]/g, '');
+    }
+
+    // Basic mnemonic validation
+    isValidMnemonic(mnemonic) {
+        const words = mnemonic.split(' ');
+        return words.length === 12 || words.length === 24;
     }
 
     async getRealBalance(address) {
@@ -134,7 +155,6 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ NEW: REAL PRICE FETCHING FUNCTION
     async getTokenPrices() {
         try {
             console.log('🔄 Fetching real token prices...');
@@ -149,7 +169,6 @@ class NemexWalletAPI {
             }
         } catch (error) {
             console.error('❌ Price fetch failed:', error);
-            // Return fallback prices if API fails
             return {
                 success: true,
                 prices: {
@@ -174,24 +193,17 @@ class NemexWalletAPI {
     async getUserWallets() {
         try {
             console.log('🔄 Fetching user wallets from database...');
-
-            // Since we don't have a specific endpoint for this yet,
-            // we'll create a client-side solution that syncs with database
-            // For now, return empty array - we'll enhance this later
             return [];
-
         } catch (error) {
             console.error('Failed to fetch user wallets:', error);
             return [];
         }
     }
 
-    // ✅ NEW: GET ALL REAL DATA (BALANCES + PRICES) IN ONE CALL
     async getAllRealData(address) {
         try {
             console.log('🔄 Fetching ALL real data for:', address);
             
-            // Fetch both balances and prices simultaneously for better performance
             const [balanceResult, priceResult] = await Promise.all([
                 this.getAllBalances(address),
                 this.getTokenPrices()
@@ -219,5 +231,4 @@ class NemexWalletAPI {
     }
 }
 
-// Initialize global API instance
 window.nemexWalletAPI = new NemexWalletAPI();
