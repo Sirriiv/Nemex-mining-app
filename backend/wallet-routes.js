@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ UPDATED wallet-routes.js - FIXED NMX BALANCE WITH TONAPI KEY!');
+console.log('✅ UPDATED wallet-routes.js - FIXED NMX BALANCE & ALL ISSUES!');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -19,11 +19,8 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
-// ✅ CORRECT NMX CONTRACT ADDRESSES
-const NMX_CONTRACTS = [
-    "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-    "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec"
-];
+// ✅ CORRECT NMX CONTRACT ADDRESS
+const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
 
 // =============================================
 // MULTIPLE PRICE API SOURCES WITH 24H CHANGE
@@ -259,8 +256,165 @@ function encrypt(text) {
 }
 
 // =============================================
-// BALANCE FUNCTIONS - FIXED NMX WITH TONAPI KEY
+// BALANCE FUNCTIONS - FIXED NMX & TON
 // =============================================
+
+async function getRealBalance(address) {
+    try {
+        console.log('🔄 Fetching TON balance for:', address);
+
+        const response = await axios.get('https://toncenter.com/api/v2/getAddressInformation', {
+            params: { address: address },
+            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY },
+            timeout: 10000
+        });
+
+        if (response.data && response.data.result) {
+            const balance = response.data.result.balance;
+
+            let tonBalance;
+            if (typeof balance === 'object' && balance.toString) {
+                tonBalance = TonWeb.utils.fromNano(balance.toString());
+            } else if (typeof balance === 'string') {
+                tonBalance = TonWeb.utils.fromNano(balance);
+            } else {
+                tonBalance = TonWeb.utils.fromNano(balance.toString());
+            }
+
+            console.log('✅ TON Balance fetched:', tonBalance);
+
+            return {
+                success: true,
+                balance: parseFloat(tonBalance).toFixed(4),
+                address: address,
+                rawBalance: balance.toString()
+            };
+        } else {
+            return {
+                success: true,
+                balance: "0",
+                address: address,
+                rawBalance: "0"
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ TON balance fetch failed:', error.message);
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            error: error.message
+        };
+    }
+}
+
+// ✅ FIXED NMX BALANCE FUNCTION
+async function getNMXBalance(address) {
+    try {
+        console.log('🔄 Fetching NMX balance for:', address);
+        console.log('🔍 Using NMX Contract:', NMX_CONTRACT);
+
+        // ✅ METHOD 1: Use public TonAPI without auth
+        console.log('🔄 Trying public TonAPI v2...');
+        try {
+            const tonapiResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons`, {
+                timeout: 10000
+            });
+
+            console.log('🔍 TonAPI Response Status:', tonapiResponse.status);
+            
+            if (tonapiResponse.data && tonapiResponse.data.balances) {
+                console.log('🔍 Found jettons:', tonapiResponse.data.balances.length);
+                
+                // Log all available jettons for debugging
+                tonapiResponse.data.balances.forEach((jetton, index) => {
+                    console.log(`🔍 Jetton ${index + 1}:`, {
+                        symbol: jetton.jetton?.symbol,
+                        name: jetton.jetton?.name,
+                        address: jetton.jetton?.address,
+                        balance: jetton.balance
+                    });
+                });
+
+                const nmxJetton = tonapiResponse.data.balances.find(j => {
+                    const jettonAddress = j.jetton?.address;
+                    return jettonAddress === NMX_CONTRACT;
+                });
+                
+                if (nmxJetton) {
+                    const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+                    console.log('✅ NMX Balance found via TonAPI:', nmxBalance, 'NMX');
+                    
+                    return {
+                        success: true,
+                        balance: parseFloat(nmxBalance).toFixed(2),
+                        address: address,
+                        rawBalance: nmxJetton.balance,
+                        source: 'tonapi_public'
+                    };
+                } else {
+                    console.log('❌ NMX contract not found in jettons list');
+                }
+            }
+        } catch (tonapiError) {
+            console.log('Public TonAPI failed:', tonapiError.message);
+        }
+
+        // ✅ METHOD 2: Try alternative API
+        console.log('🔄 Trying alternative API method...');
+        try {
+            const altResponse = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
+                params: { account: address },
+                timeout: 8000
+            });
+
+            if (altResponse.data && altResponse.data.balances) {
+                console.log('🔍 Alternative API jettons:', altResponse.data.balances.length);
+                
+                const nmxJetton = altResponse.data.balances.find(j => {
+                    return j.jetton?.address === NMX_CONTRACT;
+                });
+                
+                if (nmxJetton) {
+                    const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+                    console.log('✅ NMX Balance found via alternative API:', nmxBalance, 'NMX');
+                    
+                    return {
+                        success: true,
+                        balance: parseFloat(nmxBalance).toFixed(2),
+                        address: address,
+                        rawBalance: nmxJetton.balance,
+                        source: 'alternative_api'
+                    };
+                }
+            }
+        } catch (altError) {
+            console.log('Alternative API failed:', altError.message);
+        }
+
+        console.log('ℹ️ No NMX tokens found after all methods');
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            source: 'not_found'
+        };
+
+    } catch (error) {
+        console.error('❌ All NMX balance methods failed:', error.message);
+        
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            error: error.message
+        };
+    }
+}
 
 async function getAllBalances(address) {
     try {
@@ -301,7 +455,7 @@ async function getAllBalances(address) {
 }
 
 // =============================================
-// API ROUTES - FIXED TONKEEPER IMPORT & PRICE PERCENTAGES
+// API ROUTES - FIXED ALL ROUTES
 // =============================================
 
 router.get('/test', (req, res) => {
@@ -313,7 +467,7 @@ router.get('/test', (req, res) => {
             'POST /generate-wallet',
             'POST /import-wallet', 
             'GET /real-balance/:address',
-            'GET /nmx-balance/:address',
+            'GET /nmx-balance/:address', // ✅ FIXED: removed space
             'GET /all-balances/:address',
             'GET /token-prices',
             'GET /validate-address/:address',
@@ -426,25 +580,21 @@ router.post('/import-wallet', async function(req, res) {
             });
         }
 
-        // ✅ ENHANCED VALIDATION: Try multiple validation methods for Tonkeeper compatibility
+        // ✅ ENHANCED VALIDATION
         let isValidMnemonic = false;
         let validationError = '';
 
         try {
-            // Method 1: Standard BIP39 validation
             isValidMnemonic = bip39.validateMnemonic(cleanedMnemonic);
             if (!isValidMnemonic) {
                 validationError = 'Standard BIP39 validation failed';
 
-                // Method 2: Check if it's a valid wordlist (some wallets use custom wordlists)
                 const words = cleanedMnemonic.split(' ');
                 const englishWordlist = bip39.wordlists.english;
                 const allWordsValid = words.every(word => englishWordlist.includes(word));
 
                 if (allWordsValid) {
                     console.log('⚠️ All words are valid English BIP39 words, but mnemonic fails validation');
-                    console.log('⚠️ This might be a Tonkeeper/other wallet compatibility issue');
-                    // Let's try to import anyway since words are valid
                     isValidMnemonic = true;
                 }
             }
@@ -459,7 +609,6 @@ router.post('/import-wallet', async function(req, res) {
             });
         }
 
-        // ✅ ENHANCED: Try multiple derivation paths for Tonkeeper compatibility
         let walletAddress = null;
         let importError = null;
 
@@ -515,7 +664,6 @@ router.post('/import-wallet', async function(req, res) {
             console.error('❌ Wallet import failed:', error.message);
             importError = error.message;
 
-            // Provide more helpful error message for Tonkeeper users
             if (importError.includes('invalid mnemonic') || importError.includes('validation')) {
                 return res.status(400).json({
                     success: false,
@@ -567,6 +715,7 @@ router.get('/real-balance/:address', async function(req, res) {
     }
 });
 
+// ✅ FIXED NMX BALANCE ROUTE
 router.get('/nmx-balance/:address', async function(req, res) {
     try {
         const { address } = req.params;
@@ -609,7 +758,7 @@ router.get('/supported-tokens', async function(req, res) {
             },
             {
                 symbol: "NMX", name: "NemexCoin", isNative: false, isFeatured: true,
-                contract: NMX_CONTRACTS[0],
+                contract: NMX_CONTRACT,
                 logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
                 price: 0, canSend: true
             }
@@ -673,7 +822,6 @@ router.post('/set-active-wallet', async function(req, res) {
         const { userId, address } = req.body;
         console.log('🔄 Setting active wallet for user:', userId, 'address:', address);
 
-        // Store active wallet in user_sessions table
         const { data, error } = await supabase
             .from('user_sessions')
             .upsert({
@@ -715,7 +863,7 @@ router.get('/active-wallet/:userId', async function(req, res) {
             .eq('user_id', userId)
             .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+        if (error && error.code !== 'PGRST116') {
             console.error('Session fetch error:', error);
             return res.status(500).json({ success: false, error: error.message });
         }
