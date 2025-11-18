@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ UPDATED wallet-routes.js - TONKEEPER FIX & PRICE PERCENTAGES!');
+console.log('✅ UPDATED wallet-routes.js - FIXED NMX BALANCE WITH TONAPI KEY!');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -18,7 +18,12 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 }));
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-const NMX_CONTRACT = "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec";
+
+// ✅ CORRECT NMX CONTRACT ADDRESSES
+const NMX_CONTRACTS = [
+    "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
+    "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec"
+];
 
 // =============================================
 // MULTIPLE PRICE API SOURCES WITH 24H CHANGE
@@ -26,7 +31,7 @@ const NMX_CONTRACT = "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac
 
 async function getRealTokenPrices() {
     console.log('🔄 Fetching token prices from multiple sources...');
-    
+
     const priceSources = [
         getBinancePrice,
         getMEXCPrice,
@@ -67,7 +72,7 @@ async function getBinancePrice() {
             const tonPrice = parseFloat(response.data.lastPrice);
             const priceChangePercent = parseFloat(response.data.priceChangePercent);
             console.log('✅ Binance TON price:', tonPrice, 'Change:', priceChangePercent + '%');
-            
+
             return {
                 TON: { price: tonPrice, change24h: priceChangePercent },
                 NMX: { price: 0.10, change24h: 0 }
@@ -90,7 +95,7 @@ async function getMEXCPrice() {
             const tonPrice = parseFloat(response.data.lastPrice);
             const priceChangePercent = parseFloat(response.data.priceChangePercent);
             console.log('✅ MEXC TON price:', tonPrice, 'Change:', priceChangePercent + '%');
-            
+
             return {
                 TON: { price: tonPrice, change24h: priceChangePercent },
                 NMX: { price: 0.10, change24h: 0 }
@@ -113,7 +118,7 @@ async function getGateIOPrice() {
             const tonPrice = parseFloat(response.data[0].last);
             const changePercentage = parseFloat(response.data[0].change_percentage);
             console.log('✅ Gate.io TON price:', tonPrice, 'Change:', changePercentage + '%');
-            
+
             return {
                 TON: { price: tonPrice, change24h: changePercentage },
                 NMX: { price: 0.10, change24h: 0 }
@@ -136,7 +141,7 @@ async function getBybitPrice() {
             const tonPrice = parseFloat(response.data.result[0].last_price);
             const priceChangePercent = parseFloat(response.data.result[0].price_24h_pcnt) * 100;
             console.log('✅ Bybit TON price:', tonPrice, 'Change:', priceChangePercent + '%');
-            
+
             return {
                 TON: { price: tonPrice, change24h: priceChangePercent },
                 NMX: { price: 0.10, change24h: 0 }
@@ -158,7 +163,7 @@ async function getCoinGeckoPrice() {
         const tonData = response.data['the-open-network'];
         if (tonData && tonData.usd) {
             console.log('✅ CoinGecko TON price:', tonData.usd, 'Change:', tonData.usd_24h_change + '%');
-            
+
             return {
                 TON: { 
                     price: tonData.usd, 
@@ -192,7 +197,7 @@ function getFallbackPrice() {
 async function generateRealTONWallet(wordCount = 12) {
     try {
         console.log(`🔄 Generating ${wordCount}-word TON wallet...`);
-        
+
         if (wordCount !== 12 && wordCount !== 24) {
             throw new Error('Word count must be 12 or 24');
         }
@@ -254,7 +259,7 @@ function encrypt(text) {
 }
 
 // =============================================
-// BALANCE FUNCTIONS - FIXED
+// BALANCE FUNCTIONS - FIXED NMX WITH TONAPI KEY
 // =============================================
 
 async function getRealBalance(address) {
@@ -269,7 +274,7 @@ async function getRealBalance(address) {
 
         if (response.data && response.data.result) {
             const balance = response.data.result.balance;
-            
+
             let tonBalance;
             if (typeof balance === 'object' && balance.toString) {
                 tonBalance = TonWeb.utils.fromNano(balance.toString());
@@ -309,109 +314,143 @@ async function getRealBalance(address) {
 async function getNMXBalance(address) {
     try {
         console.log('🔄 Fetching NMX balance for:', address);
-        
-        // ✅ CORRECT NMX CONTRACT ADDRESS (from your research)
-        const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
-        console.log('🔍 Using NMX Contract:', NMX_CONTRACT);
+        console.log('🔍 Using NMX Contracts:', NMX_CONTRACTS);
 
-        // ✅ METHOD 1: Try TonAPI first (most reliable for jettons)
-        console.log('🔄 Trying TonAPI for NMX balance...');
-        const tonapiResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons`, {
-            timeout: 10000
-        });
-
-        console.log('🔍 TonAPI Response:', tonapiResponse.data);
-
-        if (tonapiResponse.data && tonapiResponse.data.balances) {
-            const nmxJetton = tonapiResponse.data.balances.find(j => 
-                j.jetton.address === NMX_CONTRACT
-            );
-            
-            if (nmxJetton) {
-                const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-                console.log('✅ NMX Balance found via TonAPI:', nmxBalance, 'NMX');
-                
-                return {
-                    success: true,
-                    balance: parseFloat(nmxBalance).toFixed(2),
-                    address: address,
-                    rawBalance: nmxJetton.balance
-                };
-            }
-        }
-
-        // ✅ METHOD 2: Try TonCenter as fallback
-        console.log('🔄 Trying TonCenter for NMX balance...');
-        const toncenterResponse = await axios.get(`https://toncenter.com/api/v2/getJettonData`, {
-            params: { 
-                address: address,
-                jetton_master: NMX_CONTRACT
-            },
-            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY },
-            timeout: 10000
-        });
-
-        console.log('🔍 TonCenter Response:', toncenterResponse.data);
-
-        if (toncenterResponse.data && toncenterResponse.data.result) {
-            const balance = toncenterResponse.data.result.balance;
-            let nmxBalance;
-            
-            if (typeof balance === 'object' && balance.toString) {
-                nmxBalance = TonWeb.utils.fromNano(balance.toString());
-            } else {
-                nmxBalance = TonWeb.utils.fromNano(balance);
-            }
-
-            console.log('✅ NMX Balance found via TonCenter:', nmxBalance, 'NMX');
-
-            return {
-                success: true,
-                balance: parseFloat(nmxBalance).toFixed(2),
-                address: address,
-                rawBalance: balance.toString()
-            };
-        }
-
-        // ✅ METHOD 3: Try direct contract call
-        console.log('🔄 Trying direct contract call...');
+        // ✅ METHOD 1: TONAPI v2 with your API key (most reliable)
+        console.log('🔄 Using TONAPI v2 with API key...');
         try {
-            const directResponse = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
-                params: { account: address },
-                timeout: 5000
+            const tonapiResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons`, {
+                timeout: 15000,
+                headers: {
+                    'Authorization': `Bearer ${process.env.TONAPI_KEY}`
+                }
             });
 
-            if (directResponse.data && directResponse.data.balances) {
-                const nmxJetton = directResponse.data.balances.find(j => 
-                    j.jetton.address === NMX_CONTRACT
-                );
-                
-                if (nmxJetton) {
-                    const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-                    console.log('✅ NMX Balance found via direct call:', nmxBalance, 'NMX');
+            console.log('🔍 TONAPI v2 Full Response:', JSON.stringify(tonapiResponse.data, null, 2));
+
+            if (tonapiResponse.data && tonapiResponse.data.balances) {
+                for (const contract of NMX_CONTRACTS) {
+                    const nmxJetton = tonapiResponse.data.balances.find(j => {
+                        const jettonAddress = j.jetton?.address;
+                        return jettonAddress === contract;
+                    });
                     
-                    return {
-                        success: true,
-                        balance: parseFloat(nmxBalance).toFixed(2),
-                        address: address,
-                        rawBalance: nmxJetton.balance
-                    };
+                    if (nmxJetton) {
+                        const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+                        console.log('✅ NMX Balance found via TONAPI:', nmxBalance, 'NMX');
+                        
+                        return {
+                            success: true,
+                            balance: parseFloat(nmxBalance).toFixed(2),
+                            address: address,
+                            rawBalance: nmxJetton.balance,
+                            source: 'tonapi_v2'
+                        };
+                    }
+                }
+                
+                console.log('ℹ️ NMX contract not found in balances, available jettons:', 
+                    tonapiResponse.data.balances.map(j => j.jetton?.address));
+            }
+        } catch (tonapiError) {
+            console.log('TONAPI v2 failed:', tonapiError.message);
+            if (tonapiError.response) {
+                console.log('TONAPI Error details:', tonapiError.response.data);
+            }
+        }
+
+        // ✅ METHOD 2: TON Center API (fallback with your existing key)
+        console.log('🔄 Trying TON Center API as fallback...');
+        try {
+            const jettonResponse = await axios.get(`https://toncenter.com/api/v2/jettons`, {
+                params: { address: address },
+                headers: { 
+                    'X-API-Key': process.env.TONCENTER_API_KEY 
+                },
+                timeout: 15000
+            });
+
+            console.log('🔍 TON Center Jettons Response:', JSON.stringify(jettonResponse.data, null, 2));
+
+            if (jettonResponse.data && jettonResponse.data.jettons) {
+                for (const contract of NMX_CONTRACTS) {
+                    const nmxJetton = jettonResponse.data.jettons.find(j => {
+                        return j.jetton_address === contract;
+                    });
+                    
+                    if (nmxJetton) {
+                        const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+                        console.log('✅ NMX Balance found via TON Center:', nmxBalance, 'NMX');
+                        
+                        return {
+                            success: true,
+                            balance: parseFloat(nmxBalance).toFixed(2),
+                            address: address,
+                            rawBalance: nmxJetton.balance,
+                            source: 'toncenter'
+                        };
+                    }
+                }
+            }
+        } catch (toncenterError) {
+            console.log('TON Center API failed:', toncenterError.message);
+        }
+
+        // ✅ METHOD 3: Direct jetton info call
+        console.log('🔄 Trying direct jetton info call...');
+        try {
+            // Get specific jetton data for NMX
+            for (const contract of NMX_CONTRACTS) {
+                const jettonInfoResponse = await axios.get(`https://tonapi.io/v2/jettons/${contract}`, {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.TONAPI_KEY}`
+                    },
+                    timeout: 10000
+                });
+
+                if (jettonInfoResponse.data) {
+                    console.log(`🔍 NMX Jetton ${contract} info:`, jettonInfoResponse.data);
+                    
+                    // Now try to get holder balance
+                    const holderResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons/${contract}`, {
+                        headers: {
+                            'Authorization': `Bearer ${process.env.TONAPI_KEY}`
+                        },
+                        timeout: 10000
+                    });
+
+                    if (holderResponse.data && holderResponse.data.balance) {
+                        const nmxBalance = TonWeb.utils.fromNano(holderResponse.data.balance);
+                        console.log('✅ NMX Balance found via direct jetton call:', nmxBalance, 'NMX');
+                        
+                        return {
+                            success: true,
+                            balance: parseFloat(nmxBalance).toFixed(2),
+                            address: address,
+                            rawBalance: holderResponse.data.balance,
+                            source: 'direct_jetton'
+                        };
+                    }
                 }
             }
         } catch (directError) {
-            console.log('Direct contract call failed:', directError.message);
+            console.log('Direct jetton call failed:', directError.message);
         }
 
-        console.log('ℹ️ No NMX tokens found for address:', address);
+        console.log('ℹ️ No NMX tokens found after all methods');
         return {
             success: true,
             balance: "0",
             address: address,
-            rawBalance: "0"
+            rawBalance: "0",
+            source: 'not_found'
         };
 
     } catch (error) {
         console.error('❌ All NMX balance methods failed:', error.message);
+        if (error.response) {
+            console.error('Error response:', error.response.data);
+        }
         
         return {
             success: true,
@@ -573,32 +612,32 @@ router.post('/import-wallet', async function(req, res) {
 
         const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
         const wordCount = cleanedMnemonic.split(' ').length;
-        
+
         console.log('🔍 Import Debug - Word count:', wordCount);
         console.log('🔍 Import Debug - First 3 words:', cleanedMnemonic.split(' ').slice(0, 3));
-        
+
         if (wordCount !== 12 && wordCount !== 24) {
             return res.status(400).json({
                 success: false,
                 error: 'Mnemonic must be 12 or 24 words. Found: ' + wordCount + ' words'
             });
         }
-        
+
         // ✅ ENHANCED VALIDATION: Try multiple validation methods for Tonkeeper compatibility
         let isValidMnemonic = false;
         let validationError = '';
-        
+
         try {
             // Method 1: Standard BIP39 validation
             isValidMnemonic = bip39.validateMnemonic(cleanedMnemonic);
             if (!isValidMnemonic) {
                 validationError = 'Standard BIP39 validation failed';
-                
+
                 // Method 2: Check if it's a valid wordlist (some wallets use custom wordlists)
                 const words = cleanedMnemonic.split(' ');
                 const englishWordlist = bip39.wordlists.english;
                 const allWordsValid = words.every(word => englishWordlist.includes(word));
-                
+
                 if (allWordsValid) {
                     console.log('⚠️ All words are valid English BIP39 words, but mnemonic fails validation');
                     console.log('⚠️ This might be a Tonkeeper/other wallet compatibility issue');
@@ -672,7 +711,7 @@ router.post('/import-wallet', async function(req, res) {
         } catch (error) {
             console.error('❌ Wallet import failed:', error.message);
             importError = error.message;
-            
+
             // Provide more helpful error message for Tonkeeper users
             if (importError.includes('invalid mnemonic') || importError.includes('validation')) {
                 return res.status(400).json({
@@ -680,7 +719,7 @@ router.post('/import-wallet', async function(req, res) {
                     error: 'Unable to import this wallet. This may be due to compatibility issues with the source wallet. Please ensure you are using a standard TON wallet mnemonic.'
                 });
             }
-            
+
             return res.status(500).json({ 
                 success: false, 
                 error: 'Failed to import wallet: ' + importError 
@@ -767,7 +806,7 @@ router.get('/supported-tokens', async function(req, res) {
             },
             {
                 symbol: "NMX", name: "NemexCoin", isNative: false, isFeatured: true,
-                contract: NMX_CONTRACT,
+                contract: NMX_CONTRACTS[0],
                 logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
                 price: 0, canSend: true
             }
