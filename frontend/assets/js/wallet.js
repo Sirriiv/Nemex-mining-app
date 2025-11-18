@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION WITH 12-WORD SUPPORT
+// assets/js/wallet.js - COMPLETE FIXED VERSION
 class NemexWalletAPI {
     constructor() {
         this.baseURL = window.location.origin + '/api/wallet';
@@ -27,7 +27,7 @@ class NemexWalletAPI {
         }
     }
 
-    async generateNewWallet(wordCount = 12) { // ✅ CHANGED DEFAULT TO 12 WORDS
+    async generateNewWallet(wordCount = 12) {
         try {
             console.log('🔄 Generating new wallet via API...');
 
@@ -65,7 +65,6 @@ class NemexWalletAPI {
         try {
             console.log('🔄 Importing wallet via API...');
 
-            // Clean and validate mnemonic
             const cleanedMnemonic = this.cleanMnemonic(mnemonic);
             
             if (!this.isValidMnemonic(cleanedMnemonic)) {
@@ -103,7 +102,6 @@ class NemexWalletAPI {
         }
     }
 
-    // Clean mnemonic input
     cleanMnemonic(mnemonic) {
         return mnemonic
             .trim()
@@ -112,10 +110,9 @@ class NemexWalletAPI {
             .replace(/[^a-z\s]/g, '');
     }
 
-    // Basic mnemonic validation - SUPPORTS BOTH 12 & 24 WORDS
     isValidMnemonic(mnemonic) {
         const words = mnemonic.split(' ');
-        return words.length === 12 || words.length === 24; // ✅ BOTH SUPPORTED
+        return words.length === 12 || words.length === 24;
     }
 
     async getRealBalance(address) {
@@ -172,8 +169,8 @@ class NemexWalletAPI {
             return {
                 success: true,
                 prices: {
-                    TON: { price: 2.50, change24h: 1.5 },
-                    NMX: { price: 0.10, change24h: 5.2 }
+                    TON: { price: 0, change24h: 0 },
+                    NMX: { price: 0, change24h: 0 }
                 }
             };
         }
@@ -222,8 +219,8 @@ class NemexWalletAPI {
                 success: false,
                 balances: { TON: "0", NMX: "0" },
                 prices: {
-                    TON: { price: 2.50, change24h: 1.5 },
-                    NMX: { price: 0.10, change24h: 5.2 }
+                    TON: { price: 0, change24h: 0 },
+                    NMX: { price: 0, change24h: 0 }
                 },
                 error: error.message
             };
