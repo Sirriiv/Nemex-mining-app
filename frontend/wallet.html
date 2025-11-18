@@ -1000,7 +1000,7 @@
                 </div>
 
                 <button class="close-modal" id="confirmBackupBtn" onclick="confirmBackupAndContinue()" disabled>
-                    🚀 Continue to Dashboard
+                     Continue to Dashboard
                 </button>
 
                 <div class="security-warning" style="margin-top: 15px; text-align: center;">
@@ -1073,13 +1073,13 @@
                     </div>
                 </div>
 
-                <!-- Logout Option -->
+                <!-- back to Dashboard Option -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                         </svg>
-                        <div>Logout</div>
+                        <div>back to Dashboard</div>
                     </div>
                 </div>
 
@@ -1162,32 +1162,31 @@
     let currentMnemonic = null;
 
     // Supported tokens
-    const SUPPORTED_TOKENS = [
-        {
-            symbol: "TON",
-            name: "Toncoin",
-            balance: 0,
-            logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
-            price: 2.50,
-            change24h: 1.5,
-            canSend: true,
-            isNative: true,
-            isFeatured: true
-        },
-        {
-            symbol: "NMX",
-            name: "NemexCoin",
-            balance: 0,
-            logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-            price: 0.10,
-            change24h: 5.2,
-            canSend: true,
-            isNative: false,
-            isFeatured: true,
-            contract: "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec"
-        }
-    ];
-
+    // ✅ ADD THIS DYNAMIC TOKEN DATA
+let SUPPORTED_TOKENS = [
+    {
+        symbol: "TON",
+        name: "Toncoin",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+        price: 0, // Will be updated from API
+        change24h: 0, // Will be updated from API
+        canSend: true,
+        isNative: true,
+        isFeatured: true
+    },
+    {
+        symbol: "NMX", 
+        name: "NemexCoin",
+        balance: 0, // Will be updated from API
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        price: 0, // Will be updated from API
+        change24h: 0, // Will be updated from API
+        canSend: true,
+        isNative: false,
+        isFeatured: true
+    }
+];
     // =============================================
     // INITIALIZATION & SESSION MANAGEMENT
     // =============================================
