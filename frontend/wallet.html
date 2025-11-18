@@ -838,9 +838,27 @@
             cursor: pointer;
             margin-top: 10px;
         }
+
+        /* Reset Button */
+        .reset-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: red;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            z-index: 9999;
+            font-size: 12px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <!-- Reset Button for Testing -->
+    <button class="reset-button" onclick="resetAllWallets()">🔄 RESET</button>
+
     <div class="container">
         <!-- Header -->
         <header class="header">
@@ -1068,7 +1086,7 @@
                 </div>
 
                 <div class="wallet-list" id="walletList">
-                    <!-- Wallets will be loaded here -->
+                    <!-- Wallets will be loaded from database -->
                 </div>
 
                 <div class="settings-option" onclick="showCreateWalletModal()">
@@ -1117,10 +1135,10 @@
 
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT - FIXED VERSION -->
+    <!-- COMPLETE WALLET SCRIPT - DATABASE ONLY VERSION -->
     <script>
         // =============================================
-        // WALLET STATE MANAGEMENT
+        // WALLET STATE MANAGEMENT - DATABASE ONLY
         // =============================================
 
         let walletState = {
@@ -1129,19 +1147,18 @@
             userId: null,
             address: null,
             balances: {},
-            lastUpdate: null,
-            currentWalletIndex: 0
+            lastUpdate: null
         };
 
-        let userWallets = [];
+        let userWallets = []; // This will be populated from database
         let customTokens = [];
 
-        // Supported tokens - TON as native, NMX as featured
+        // Supported tokens
         const SUPPORTED_TOKENS = [
             {
                 symbol: "TON",
                 name: "Toncoin",
-                balance: 0, // Will be updated with real balance
+                balance: 0,
                 logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
                 price: 2.50,
                 change24h: 1.5,
@@ -1152,7 +1169,7 @@
             {
                 symbol: "NMX",
                 name: "NemexCoin",
-                balance: 0, // Will be updated with real balance
+                balance: 0,
                 logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
                 price: 0.10,
                 change24h: 5.2,
@@ -1163,117 +1180,37 @@
             }
         ];
 
-        let selectedToken = SUPPORTED_TOKENS[0]; // TON as default
-        const GAS_FEE = 0.01; // Your low gas fee
+        let selectedToken = SUPPORTED_TOKENS[0];
+        const GAS_FEE = 0.01;
 
         // =============================================
-        // INITIALIZATION - FIXED VERSION
+        // INITIALIZATION - DATABASE ONLY
         // =============================================
 
         async function initWallet() {
-            console.log('🔄 Initializing wallet...');
+            console.log('🔄 Initializing wallet (Database Only)...');
 
             // Initialize API
-            await window.nemexWalletAPI.init();
-
-            // Load saved data
-            const savedWallets = localStorage.getItem('nemexUserWallets');
-            console.log('🔍 Saved wallets from localStorage:', savedWallets);
-
-            if (savedWallets) {
-                userWallets = JSON.parse(savedWallets);
-                console.log('✅ Loaded saved wallets:', userWallets);
+            const apiReady = await window.nemexWalletAPI.init();
+            if (!apiReady) {
+                showStatusMessage('❌ Cannot connect to wallet server', 'error');
+                return;
             }
 
-            // Set first wallet as active if available
-            if (userWallets.length > 0) {
-                walletState = userWallets[0];
-                walletState.currentWalletIndex = 0;
-
-                console.log('🔍 walletState after loading:', walletState);
-                console.log('🔍 walletState.address:', walletState.address);
-
-                // Fetch real balances
-                await updateRealBalances();
+            // For now, we'll use a simple approach - check if we have any wallet in memory
+            // In a real app, you'd query the database for user's wallets
+            if (!walletState.isInitialized) {
+                console.log('ℹ️ No active wallet found');
             }
 
             updateWalletDisplay();
             loadTokens();
-            updateWalletList(); // Initialize wallet list
 
             console.log('🚀 Wallet initialized successfully');
         }
 
         // =============================================
-        // WALLET MANAGEMENT - NEW FUNCTIONS
-        // =============================================
-
-        function updateWalletList() {
-            const walletList = document.getElementById('walletList');
-            walletList.innerHTML = '';
-
-            if (userWallets.length === 0) {
-                walletList.innerHTML = '<div class="security-warning">No wallets found. Create or import a wallet to get started.</div>';
-                return;
-            }
-
-            userWallets.forEach((wallet, index) => {
-                const isActive = index === walletState.currentWalletIndex;
-                const walletItem = document.createElement('div');
-                walletItem.className = `wallet-item ${isActive ? 'active' : ''}`;
-                walletItem.innerHTML = `
-                    <div class="wallet-icon">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <div class="wallet-info">
-                        <div class="wallet-name-display">
-                            ${wallet.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} 
-                            ${isActive ? ' (Active)' : ''}
-                        </div>
-                        <div class="wallet-address">${wallet.address}</div>
-                        <div class="wallet-type">${wallet.walletType || 'unknown'}</div>
-                    </div>
-                    <div class="wallet-actions">
-                        ${!isActive ? `<button class="wallet-action-btn" onclick="switchWallet(${index})">Switch</button>` : ''}
-                        <button class="wallet-action-btn" onclick="viewWalletDetails(${index})">View</button>
-                    </div>
-                `;
-                walletList.appendChild(walletItem);
-            });
-        }
-
-        function switchWallet(index) {
-            if (index >= 0 && index < userWallets.length) {
-                walletState = userWallets[index];
-                walletState.currentWalletIndex = index;
-                
-                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
-                
-                updateWalletDisplay();
-                updateWalletList();
-                updateRealBalances();
-                
-                console.log('✅ Switched to wallet:', walletState.address);
-                showStatusMessage('Wallet switched successfully!', 'success');
-            }
-        }
-
-        function viewWalletDetails(index) {
-            const wallet = userWallets[index];
-            const message = `
-Wallet Details:
-
-Type: ${wallet.walletType === 'new' ? 'Generated' : 'Imported'}
-Address: ${wallet.address}
-Created: ${new Date().toLocaleDateString()}
-Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
-            `.trim();
-            
-            alert(message);
-        }
-
-        // =============================================
-        // WALLET CREATION & IMPORT - WITH PROPER FEEDBACK
+        // WALLET CREATION & IMPORT - DATABASE ONLY
         // =============================================
 
         async function generateNewWallet() {
@@ -1281,41 +1218,33 @@ Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
             const statusDiv = document.getElementById('createWalletStatus');
             
             try {
-                // Show loading state
                 generateBtn.innerHTML = '<div class="loading"></div> Generating...';
                 generateBtn.disabled = true;
                 showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
 
-                console.log('🔄 Generating new wallet...');
+                console.log('🔄 Creating wallet via database...');
 
                 const result = await window.nemexWalletAPI.generateNewWallet(24);
 
-                const newWallet = {
+                // Update wallet state from database response
+                walletState = {
                     isInitialized: true,
                     walletType: 'new',
-                    userId: 'user_' + Date.now(),
+                    userId: result.wallet.userId,
                     address: result.wallet.address,
-                    balances: {},
-                    mnemonic: result.wallet.mnemonic
+                    balances: {}
                 };
 
-                userWallets.push(newWallet);
-                walletState = newWallet;
-                walletState.currentWalletIndex = userWallets.length - 1;
-
-                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
-
-                console.log('✅ New wallet created. Address:', walletState.address);
+                console.log('✅ Wallet created in database:', walletState.address);
                 showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
 
                 updateWalletDisplay();
-                updateWalletList();
+                
+                // Show backup modal with mnemonic
                 showBackupModal(result.wallet.mnemonic);
                 
-                // Close modal after success
                 setTimeout(() => {
                     closeModal();
-                    // Refresh balances
                     updateRealBalances();
                 }, 2000);
 
@@ -1339,40 +1268,30 @@ Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
             }
 
             try {
-                // Show loading state
                 importBtn.innerHTML = '<div class="loading"></div> Importing...';
                 importBtn.disabled = true;
                 showStatusMessage('Importing your wallet...', 'loading', statusDiv);
 
-                console.log('🔄 Importing wallet...');
+                console.log('🔄 Importing wallet via database...');
 
                 const result = await window.nemexWalletAPI.importWallet(mnemonic);
 
-                const importedWallet = {
+                // Update wallet state from database response
+                walletState = {
                     isInitialized: true,
-                    walletType: 'imported',
-                    userId: 'user_imported_' + Date.now(),
+                    walletType: 'imported', 
+                    userId: result.wallet.userId,
                     address: result.wallet.address,
-                    balances: {},
-                    mnemonic: mnemonic
+                    balances: {}
                 };
 
-                userWallets.push(importedWallet);
-                walletState = importedWallet;
-                walletState.currentWalletIndex = userWallets.length - 1;
-
-                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
-
-                console.log('✅ Wallet imported. Address:', walletState.address);
+                console.log('✅ Wallet imported to database:', walletState.address);
                 showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
 
                 updateWalletDisplay();
-                updateWalletList();
                 
-                // Close modal after success
                 setTimeout(() => {
                     closeModal();
-                    // Refresh balances
                     updateRealBalances();
                 }, 2000);
 
@@ -1386,45 +1305,17 @@ Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
         }
 
         // =============================================
-        // STATUS MESSAGE HELPER
-        // =============================================
-
-        function showStatusMessage(message, type, container) {
-            if (!container) return;
-            
-            container.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
-            
-            // Auto-remove success messages after 5 seconds
-            if (type === 'success') {
-                setTimeout(() => {
-                    container.innerHTML = '';
-                }, 5000);
-            }
-        }
-
-        // =============================================
-        // REAL BALANCE UPDATES - WITH DEBUG LOGGING
+        // BALANCE UPDATES - DATABASE ONLY
         // =============================================
 
         async function updateRealBalances() {
-            if (!walletState.isInitialized) {
-                console.log('❌ Wallet not initialized, skipping balance update');
-                return;
-            }
-
-            console.log('🔍 [DEBUG] updateRealBalances called');
-            console.log('🔍 [DEBUG] walletState.address:', walletState.address);
-            console.log('🔍 [DEBUG] walletState.isInitialized:', walletState.isInitialized);
-
-            if (!walletState.address) {
-                console.log('❌ ERROR: walletState.address is EMPTY!');
+            if (!walletState.isInitialized || !walletState.address) {
                 return;
             }
 
             try {
-                console.log('🔄 Calling getAllBalances with:', walletState.address);
+                console.log('🔄 Fetching balances from API...');
                 const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
-                console.log('✅ Balance result received:', balanceResult);
 
                 // Update TON balance
                 const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
@@ -1438,45 +1329,68 @@ Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
                     nmxToken.balance = parseFloat(balanceResult.balances.NMX);
                 }
 
-                // Update portfolio display
                 updatePortfolioValue();
                 loadTokens();
 
-                console.log('✅ Real balances updated:', balanceResult.balances);
+                console.log('✅ Balances updated from database');
 
             } catch (error) {
-                console.error('Failed to update real balances:', error);
-                // Try individual balance fetching as fallback
-                await updateBalancesIndividually();
-            }
-        }
-
-        async function updateBalancesIndividually() {
-            try {
-                // Fetch TON balance
-                const tonBalance = await window.nemexWalletAPI.getRealBalance(walletState.address);
-                const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-                if (tonToken) {
-                    tonToken.balance = parseFloat(tonBalance.balance);
-                }
-
-                // Fetch NMX balance
-                const nmxBalance = await window.nemexWalletAPI.getNMXBalance(walletState.address);
-                const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-                if (nmxToken) {
-                    nmxToken.balance = parseFloat(nmxBalance.balance);
-                }
-
-                updatePortfolioValue();
-                loadTokens();
-
-            } catch (error) {
-                console.error('Individual balance update failed:', error);
+                console.error('Failed to update balances:', error);
             }
         }
 
         // =============================================
-        // WALLET DISPLAY & UI UPDATES
+        // WALLET MANAGEMENT - DATABASE ONLY
+        // =============================================
+
+        function updateWalletList() {
+            const walletList = document.getElementById('walletList');
+            
+            // For now, show current wallet only
+            // In future, implement proper multi-wallet from database
+            if (walletState.isInitialized) {
+                walletList.innerHTML = `
+                    <div class="wallet-item active">
+                        <div class="wallet-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="wallet-info">
+                            <div class="wallet-name-display">
+                                ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} (Active)
+                            </div>
+                            <div class="wallet-address">${walletState.address}</div>
+                            <div class="wallet-type">${walletState.walletType || 'active'}</div>
+                        </div>
+                        <div class="wallet-actions">
+                            <button class="wallet-action-btn" onclick="viewWalletDetails()">View</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                walletList.innerHTML = '<div class="security-warning">No active wallet. Create or import a wallet to get started.</div>';
+            }
+        }
+
+        function viewWalletDetails() {
+            if (!walletState.isInitialized) {
+                alert('No wallet active');
+                return;
+            }
+
+            const message = `
+Wallet Details:
+
+Type: ${walletState.walletType === 'new' ? 'Generated' : 'Imported'}
+Address: ${walletState.address}
+Status: Active
+Balances: ${SUPPORTED_TOKENS[0].balance} TON, ${SUPPORTED_TOKENS[1].balance} NMX
+            `.trim();
+            
+            alert(message);
+        }
+
+        // =============================================
+        // UI UPDATES
         // =============================================
 
         function updateWalletDisplay() {
@@ -1490,7 +1404,6 @@ Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
                 balanceSection.style.display = 'block';
                 actionButtons.style.display = 'grid';
                 tokenSection.style.display = 'block';
-
                 updatePortfolioValue();
             } else {
                 welcomeScreen.style.display = 'block';
@@ -1498,202 +1411,22 @@ Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
                 actionButtons.style.display = 'none';
                 tokenSection.style.display = 'none';
             }
+            
+            updateWalletList();
         }
 
-        // =============================================
-        // SEND MODAL FUNCTIONALITY
-        // =============================================
+        function updatePortfolioValue() {
+            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+            const totalUSD = allTokens.reduce((sum, token) => {
+                return sum + ((token.balance || 0) * (token.price || 0));
+            }, 0);
 
-        function showSendModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                return;
-            }
-
-            // Reset form
-            document.getElementById('recipientAddress').value = '';
-            document.getElementById('sendAmount').value = '';
-            document.getElementById('transactionComment').value = '';
-            document.getElementById('addressValidation').innerHTML = '';
-            document.getElementById('addressValidation').className = 'address-validation';
-
-            // Update available balance
-            updateAvailableBalance();
-
-            document.getElementById('sendModal').style.display = 'flex';
+            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
+            document.getElementById('balanceCrypto').textContent = `$${totalUSD.toFixed(2)}`;
+            document.getElementById('balanceLoading').style.display = 'none';
+            document.getElementById('balanceAmount').style.display = 'inline';
+            document.getElementById('balanceCrypto').style.display = 'inline';
         }
-
-        function updateAvailableBalance() {
-            const availableBalance = document.getElementById('availableBalance');
-            if (availableBalance && selectedToken) {
-                availableBalance.textContent = selectedToken.balance.toFixed(4) + ' ' + selectedToken.symbol;
-            }
-        }
-
-        function pasteAddress() {
-            navigator.clipboard.readText().then(text => {
-                document.getElementById('recipientAddress').value = text;
-                validateAddress(text);
-            }).catch(err => {
-                console.error('Failed to read clipboard:', err);
-            });
-        }
-
-        async function validateAddress(address) {
-            const validation = document.getElementById('addressValidation');
-            if (!address) {
-                validation.innerHTML = '';
-                validation.className = 'address-validation';
-                return false;
-            }
-
-            try {
-                const result = await window.nemexWalletAPI.validateAddress(address);
-
-                if (result.isValid) {
-                    validation.innerHTML = '✓ Valid TON address';
-                    validation.className = 'address-validation valid';
-                    return true;
-                } else {
-                    validation.innerHTML = '⚠ Invalid TON address format';
-                    validation.className = 'address-validation invalid';
-                    return false;
-                }
-            } catch (error) {
-                validation.innerHTML = '⚠ Error validating address';
-                validation.className = 'address-validation invalid';
-                return false;
-            }
-        }
-
-        function showTokenSelector() {
-            // Simple token selector - you can enhance this later
-            const currentSymbol = selectedToken.symbol;
-            const nextToken = SUPPORTED_TOKENS.find(t => t.symbol !== currentSymbol && t.canSend) || selectedToken;
-            selectToken(nextToken);
-        }
-
-        function selectToken(token) {
-            selectedToken = token;
-
-            // Update selected token display
-            const tokenDropdown = document.querySelector('.token-dropdown');
-            if (tokenDropdown) {
-                tokenDropdown.innerHTML = `
-                    <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">${token.symbol.charAt(0)}</div>
-                    <span>${token.symbol}</span>
-                `;
-            }
-
-            // Update available balance
-            updateAvailableBalance();
-
-            // Reset amount
-            document.getElementById('sendAmount').value = '';
-
-            console.log('✅ Selected token:', token.symbol);
-        }
-
-        function reviewTransaction() {
-            const amount = parseFloat(document.getElementById('sendAmount').value);
-            const address = document.getElementById('recipientAddress').value;
-            const comment = document.getElementById('transactionComment').value;
-
-            if (!amount || amount <= 0) {
-                alert('Please enter a valid amount');
-                return;
-            }
-
-            if (!address) {
-                alert('Please enter a recipient address');
-                return;
-            }
-
-            // Validate gas fees
-            const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
-            if (!tonToken || tonToken.balance < GAS_FEE) {
-                alert(`Insufficient TON for gas fees. Need ${GAS_FEE} TON.`);
-                return;
-            }
-
-            if (selectedToken.symbol === 'TON' && (amount + GAS_FEE) > tonToken.balance) {
-                alert(`Insufficient TON balance. Remember ${GAS_FEE} TON gas fee. Available: ${(tonToken.balance - GAS_FEE).toFixed(4)} TON`);
-                return;
-            }
-
-            if (amount > selectedToken.balance) {
-                alert(`Insufficient ${selectedToken.symbol} balance. You have ${selectedToken.balance} ${selectedToken.symbol}`);
-                return;
-            }
-
-            const reviewMessage = `
-Transaction Review:
-
-Send: ${amount} ${selectedToken.symbol}
-To: ${address}
-Gas Fee: ${GAS_FEE} TON
-${comment ? `Comment: ${comment}` : ''}
-
-Confirm transaction?
-            `.trim();
-
-            if (confirm(reviewMessage)) {
-                processTransaction(amount, address, comment, selectedToken);
-            }
-        }
-
-        async function processTransaction(amount, address, comment, token) {
-            const continueButton = document.getElementById('continueButton');
-            continueButton.innerHTML = '<div class="loading"></div> Processing...';
-            continueButton.disabled = true;
-
-            try {
-                // Simulate API call (you'll implement real transaction later)
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                alert(`✅ ${amount} ${token.symbol} sent successfully to ${address}`);
-                closeSendModal();
-
-                // Refresh balances
-                await updateRealBalances();
-
-            } catch (error) {
-                alert('❌ Transaction failed: ' + error.message);
-            } finally {
-                continueButton.innerHTML = 'Continue';
-                continueButton.disabled = false;
-            }
-        }
-
-        function closeSendModal() {
-            document.getElementById('sendModal').style.display = 'none';
-        }
-
-        // =============================================
-        // RECEIVE MODAL
-        // =============================================
-
-        function showReceiveModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                return;
-            }
-
-            document.getElementById('walletAddressDisplay').textContent = walletState.address;
-            document.getElementById('receiveModal').style.display = 'flex';
-        }
-
-        function copyAddress() {
-            navigator.clipboard.writeText(walletState.address).then(() => {
-                alert('Address copied to clipboard!');
-            }).catch(err => {
-                console.error('Failed to copy address:', err);
-            });
-        }
-
-        // =============================================
-        // TOKEN MANAGEMENT
-        // =============================================
 
         function loadTokens() {
             const tokenList = document.getElementById('tokenList');
@@ -1755,19 +1488,6 @@ Confirm transaction?
             return price.toFixed(2);
         }
 
-        function updatePortfolioValue() {
-            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-            const totalUSD = allTokens.reduce((sum, token) => {
-                return sum + ((token.balance || 0) * (token.price || 0));
-            }, 0);
-
-            document.getElementById('balanceAmount').textContent = `$${totalUSD.toFixed(2)}`;
-            document.getElementById('balanceCrypto').textContent = `$${totalUSD.toFixed(2)}`;
-            document.getElementById('balanceLoading').style.display = 'none';
-            document.getElementById('balanceAmount').style.display = 'inline';
-            document.getElementById('balanceCrypto').style.display = 'inline';
-        }
-
         function handleTokenLogoError(img, symbol) {
             img.style.display = 'none';
             const container = img.parentElement;
@@ -1780,20 +1500,30 @@ Confirm transaction?
             container.style.justifyContent = 'center';
         }
 
+        function showStatusMessage(message, type, container) {
+            if (!container) return;
+            
+            container.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
+            }
+        }
+
         // =============================================
         // MODAL MANAGEMENT
         // =============================================
 
         function showCreateWalletModal() {
             closeModal();
-            // Clear previous status messages
             document.getElementById('createWalletStatus').innerHTML = '';
             document.getElementById('createWalletModal').style.display = 'flex';
         }
 
         function showImportWalletModal() {
             closeModal();
-            // Clear previous status messages and input
             document.getElementById('importWalletStatus').innerHTML = '';
             document.getElementById('importMnemonic').value = '';
             document.getElementById('importWalletModal').style.display = 'flex';
@@ -1820,8 +1550,34 @@ Confirm transaction?
 
         function showSettingsModal() {
             closeModal();
-            updateWalletList(); // Refresh wallet list when opening settings
+            updateWalletList();
             document.getElementById('settingsModal').style.display = 'flex';
+        }
+
+        function showSendModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+
+            document.getElementById('recipientAddress').value = '';
+            document.getElementById('sendAmount').value = '';
+            document.getElementById('transactionComment').value = '';
+            document.getElementById('addressValidation').innerHTML = '';
+            document.getElementById('addressValidation').className = 'address-validation';
+
+            updateAvailableBalance();
+            document.getElementById('sendModal').style.display = 'flex';
+        }
+
+        function showReceiveModal() {
+            if (!walletState.isInitialized) {
+                alert('Please create or import a wallet first');
+                return;
+            }
+
+            document.getElementById('walletAddressDisplay').textContent = walletState.address;
+            document.getElementById('receiveModal').style.display = 'flex';
         }
 
         function showSwapModal() {
@@ -1849,13 +1605,186 @@ Confirm transaction?
         }
 
         // =============================================
+        // SEND FUNCTIONALITY
+        // =============================================
+
+        function updateAvailableBalance() {
+            const availableBalance = document.getElementById('availableBalance');
+            if (availableBalance && selectedToken) {
+                availableBalance.textContent = selectedToken.balance.toFixed(4) + ' ' + selectedToken.symbol;
+            }
+        }
+
+        function pasteAddress() {
+            navigator.clipboard.readText().then(text => {
+                document.getElementById('recipientAddress').value = text;
+                validateAddress(text);
+            }).catch(err => {
+                console.error('Failed to read clipboard:', err);
+            });
+        }
+
+        async function validateAddress(address) {
+            const validation = document.getElementById('addressValidation');
+            if (!address) {
+                validation.innerHTML = '';
+                validation.className = 'address-validation';
+                return false;
+            }
+
+            try {
+                const result = await window.nemexWalletAPI.validateAddress(address);
+
+                if (result.isValid) {
+                    validation.innerHTML = '✓ Valid TON address';
+                    validation.className = 'address-validation valid';
+                    return true;
+                } else {
+                    validation.innerHTML = '⚠ Invalid TON address format';
+                    validation.className = 'address-validation invalid';
+                    return false;
+                }
+            } catch (error) {
+                validation.innerHTML = '⚠ Error validating address';
+                validation.className = 'address-validation invalid';
+                return false;
+            }
+        }
+
+        function showTokenSelector() {
+            const currentSymbol = selectedToken.symbol;
+            const nextToken = SUPPORTED_TOKENS.find(t => t.symbol !== currentSymbol && t.canSend) || selectedToken;
+            selectToken(nextToken);
+        }
+
+        function selectToken(token) {
+            selectedToken = token;
+
+            const tokenDropdown = document.querySelector('.token-dropdown');
+            if (tokenDropdown) {
+                tokenDropdown.innerHTML = `
+                    <div class="token-icon-small ${token.symbol.toLowerCase()}-icon">${token.symbol.charAt(0)}</div>
+                    <span>${token.symbol}</span>
+                `;
+            }
+
+            updateAvailableBalance();
+            document.getElementById('sendAmount').value = '';
+        }
+
+        function reviewTransaction() {
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            const address = document.getElementById('recipientAddress').value;
+            const comment = document.getElementById('transactionComment').value;
+
+            if (!amount || amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            if (!address) {
+                alert('Please enter a recipient address');
+                return;
+            }
+
+            const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+            if (!tonToken || tonToken.balance < GAS_FEE) {
+                alert(`Insufficient TON for gas fees. Need ${GAS_FEE} TON.`);
+                return;
+            }
+
+            if (selectedToken.symbol === 'TON' && (amount + GAS_FEE) > tonToken.balance) {
+                alert(`Insufficient TON balance. Remember ${GAS_FEE} TON gas fee. Available: ${(tonToken.balance - GAS_FEE).toFixed(4)} TON`);
+                return;
+            }
+
+            if (amount > selectedToken.balance) {
+                alert(`Insufficient ${selectedToken.symbol} balance. You have ${selectedToken.balance} ${selectedToken.symbol}`);
+                return;
+            }
+
+            const reviewMessage = `
+Transaction Review:
+
+Send: ${amount} ${selectedToken.symbol}
+To: ${address}
+Gas Fee: ${GAS_FEE} TON
+${comment ? `Comment: ${comment}` : ''}
+
+Confirm transaction?
+            `.trim();
+
+            if (confirm(reviewMessage)) {
+                processTransaction(amount, address, comment, selectedToken);
+            }
+        }
+
+        async function processTransaction(amount, address, comment, token) {
+            const continueButton = document.getElementById('continueButton');
+            continueButton.innerHTML = '<div class="loading"></div> Processing...';
+            continueButton.disabled = true;
+
+            try {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                alert(`✅ ${amount} ${token.symbol} sent successfully to ${address}`);
+                closeSendModal();
+                await updateRealBalances();
+            } catch (error) {
+                alert('❌ Transaction failed: ' + error.message);
+            } finally {
+                continueButton.innerHTML = 'Continue';
+                continueButton.disabled = false;
+            }
+        }
+
+        function closeSendModal() {
+            document.getElementById('sendModal').style.display = 'none';
+        }
+
+        function copyAddress() {
+            navigator.clipboard.writeText(walletState.address).then(() => {
+                alert('Address copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy address:', err);
+            });
+        }
+
+        // =============================================
+        // RESET FUNCTION
+        // =============================================
+
+        function resetAllWallets() {
+            // Clear any localStorage remnants
+            localStorage.removeItem('nemexUserWallets');
+            
+            // Reset wallet state
+            walletState = {
+                isInitialized: false,
+                walletType: null,
+                userId: null,
+                address: null,
+                balances: {},
+                lastUpdate: null
+            };
+            
+            // Reset tokens
+            SUPPORTED_TOKENS[0].balance = 0;
+            SUPPORTED_TOKENS[1].balance = 0;
+            
+            // Reset UI
+            updateWalletDisplay();
+            updateWalletList();
+            
+            alert('✅ Wallet state reset! You can now create a fresh wallet.');
+        }
+
+        // =============================================
         // EVENT LISTENERS
         // =============================================
 
         document.addEventListener('DOMContentLoaded', function() {
             initWallet();
 
-            // Add event listeners for real-time validation
             const recipientAddress = document.getElementById('recipientAddress');
             if (recipientAddress) {
                 recipientAddress.addEventListener('input', (e) => {
