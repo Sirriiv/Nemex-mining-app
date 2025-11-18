@@ -718,4 +718,122 @@ router.get('/supported-tokens', async function(req, res) {
     }
 });
 
+// =============================================
+// MULTI-WALLET MANAGEMENT
+// =============================================
+
+// GET all wallets for a user
+router.get('/user-wallets/:userId', async function(req, res) {
+    try {
+        const { userId } = req.params;
+        console.log('🔄 Fetching all wallets for user:', userId);
+
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        console.log(`✅ Found ${data.length} wallets for user ${userId}`);
+
+        res.json({
+            success: true,
+            wallets: data.map(wallet => ({
+                id: wallet.id,
+                userId: wallet.user_id,
+                address: wallet.address,
+                walletType: wallet.source === 'generated' ? 'new' : 'imported',
+                type: wallet.wallet_type,
+                source: wallet.source,
+                wordCount: wallet.word_count,
+                createdAt: wallet.created_at
+            }))
+        });
+
+    } catch (error) {
+        console.error('Get user wallets error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// SET active wallet
+router.post('/set-active-wallet', async function(req, res) {
+    try {
+        const { userId, address } = req.body;
+        console.log('🔄 Setting active wallet for user:', userId, 'address:', address);
+
+        // Store active wallet in user_sessions table
+        const { data, error } = await supabase
+            .from('user_sessions')
+            .upsert({
+                user_id: userId,
+                active_wallet_address: address,
+                last_active: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
+            });
+
+        if (error) {
+            console.error('Session update error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        console.log('✅ Active wallet set:', address);
+
+        res.json({
+            success: true,
+            message: 'Active wallet set successfully'
+        });
+
+    } catch (error) {
+        console.error('Set active wallet error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// GET active wallet
+router.get('/active-wallet/:userId', async function(req, res) {
+    try {
+        const { userId } = req.params;
+        console.log('🔄 Getting active wallet for user:', userId);
+
+        const { data, error } = await supabase
+            .from('user_sessions')
+            .select('active_wallet_address')
+            .eq('user_id', userId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows
+            console.error('Session fetch error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        const activeWalletAddress = data?.active_wallet_address;
+
+        if (activeWalletAddress) {
+            console.log('✅ Active wallet found:', activeWalletAddress);
+            res.json({
+                success: true,
+                activeWallet: activeWalletAddress
+            });
+        } else {
+            console.log('ℹ️ No active wallet found for user');
+            res.json({
+                success: true,
+                activeWallet: null
+            });
+        }
+
+    } catch (error) {
+        console.error('Get active wallet error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 module.exports = router;
