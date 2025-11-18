@@ -1,4 +1,4 @@
-// assets/js/wallet.js - DATABASE-FIRST VERSION WITH REAL PRICES
+// assets/js/wallet.js - FIXED IMPORT VERSION
 class NemexWalletAPI {
     constructor() {
         this.baseURL = window.location.origin + '/api/wallet';
@@ -66,7 +66,8 @@ class NemexWalletAPI {
     async importWallet(mnemonic) {
         try {
             console.log('🔄 Importing wallet via API...');
-
+            console.log('🔍 Sending mnemonic:', mnemonic);
+            
             const response = await fetch(`${this.baseURL}/import-wallet`, {
                 method: 'POST',
                 headers: {
@@ -74,16 +75,27 @@ class NemexWalletAPI {
                 },
                 body: JSON.stringify({
                     userId: this.userId,
-                    mnemonic: mnemonic
+                    mnemonic: mnemonic.trim()
                 })
             });
 
+            console.log('🔍 Import response status:', response.status);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Get more detailed error information
+                let errorDetails = '';
+                try {
+                    const errorData = await response.json();
+                    errorDetails = errorData.error || 'No error details';
+                } catch (e) {
+                    errorDetails = await response.text();
+                }
+                console.error('❌ Import error details:', errorDetails);
+                throw new Error(`HTTP error! status: ${response.status}. Details: ${errorDetails}`);
             }
 
             const data = await response.json();
-
+            
             if (data.success) {
                 console.log('✅ Wallet imported via API:', data.wallet.address);
                 return data;
@@ -134,32 +146,6 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ NEW: REAL PRICE FETCHING FUNCTION
-    async getTokenPrices() {
-        try {
-            console.log('🔄 Fetching real token prices...');
-            const response = await fetch(`${this.baseURL}/token-prices`);
-            const data = await response.json();
-            
-            if (data.success) {
-                console.log('✅ Real prices fetched:', data.prices);
-                return data;
-            } else {
-                throw new Error(data.error || 'Failed to fetch prices');
-            }
-        } catch (error) {
-            console.error('❌ Price fetch failed:', error);
-            // Return fallback prices if API fails
-            return {
-                success: true,
-                prices: {
-                    TON: { price: 2.50, change24h: 1.5 },
-                    NMX: { price: 0.10, change24h: 5.2 }
-                }
-            };
-        }
-    }
-
     async validateAddress(address) {
         try {
             const response = await fetch(`${this.baseURL}/validate-address/${encodeURIComponent(address)}`);
@@ -183,38 +169,6 @@ class NemexWalletAPI {
         } catch (error) {
             console.error('Failed to fetch user wallets:', error);
             return [];
-        }
-    }
-
-    // ✅ NEW: GET ALL REAL DATA (BALANCES + PRICES) IN ONE CALL
-    async getAllRealData(address) {
-        try {
-            console.log('🔄 Fetching ALL real data for:', address);
-            
-            // Fetch both balances and prices simultaneously for better performance
-            const [balanceResult, priceResult] = await Promise.all([
-                this.getAllBalances(address),
-                this.getTokenPrices()
-            ]);
-
-            return {
-                success: balanceResult.success && priceResult.success,
-                balances: balanceResult.balances,
-                prices: priceResult.prices,
-                address: address
-            };
-
-        } catch (error) {
-            console.error('❌ All real data fetch failed:', error);
-            return {
-                success: false,
-                balances: { TON: "0", NMX: "0" },
-                prices: {
-                    TON: { price: 2.50, change24h: 1.5 },
-                    NMX: { price: 0.10, change24h: 5.2 }
-                },
-                error: error.message
-            };
         }
     }
 }
