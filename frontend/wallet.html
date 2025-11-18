@@ -360,6 +360,21 @@
             box-shadow: var(--shadow);
         }
 
+        /* FULL SCREEN SETTINGS MODAL */
+        .modal.fullscreen {
+            align-items: flex-start;
+            overflow-y: auto;
+            padding: 20px 0;
+        }
+
+        .modal.fullscreen .modal-content {
+            max-width: 100%;
+            width: 100%;
+            min-height: 100vh;
+            border-radius: 0;
+            padding: 20px;
+        }
+
         .modal-title {
             font-size: 20px;
             font-weight: 700;
@@ -606,6 +621,90 @@
             color: var(--gold);
         }
 
+        /* NEW: Wallet Selection Styles */
+        .wallet-list {
+            margin: 20px 0;
+        }
+
+        .wallet-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .wallet-item.active {
+            border: 2px solid var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .wallet-item:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .wallet-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: var(--gold);
+        }
+
+        .wallet-info {
+            flex: 1;
+        }
+
+        .wallet-name-display {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .wallet-address {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .wallet-type {
+            font-size: 10px;
+            padding: 2px 8px;
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--gold);
+            border-radius: 10px;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .wallet-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .wallet-action-btn {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-action-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
         /* Security Warning */
         .security-warning {
             background: rgba(255, 187, 51, 0.1);
@@ -676,6 +775,33 @@
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        /* Success/Error Messages */
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-error {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .status-loading {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border: 1px solid var(--gold);
         }
 
         /* Receive Modal */
@@ -887,7 +1013,12 @@
                 <div class="security-warning">
                     <strong>⚠️ IMPORTANT:</strong> You will generate a 24-word recovery phrase. Store it securely!
                 </div>
-                <button class="close-modal" onclick="generateNewWallet()">Generate New Wallet</button>
+                
+                <div id="createWalletStatus"></div>
+                
+                <button class="close-modal" onclick="generateNewWallet()" id="generateWalletBtn">
+                    Generate New Wallet
+                </button>
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
             </div>
         </div>
@@ -901,7 +1032,12 @@
                 </div>
                 <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
                           class="comment-input" rows="4"></textarea>
-                <button class="close-modal" onclick="importWalletFromModal()">Import Wallet</button>
+                
+                <div id="importWalletStatus"></div>
+                
+                <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
+                    Import Wallet
+                </button>
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
             </div>
         </div>
@@ -918,10 +1054,22 @@
             </div>
         </div>
 
-        <!-- Settings Modal -->
-        <div id="settingsModal" class="modal">
+        <!-- Settings Modal - NOW FULL SCREEN -->
+        <div id="settingsModal" class="modal fullscreen">
             <div class="modal-content">
                 <div class="modal-title">Settings</div>
+
+                <!-- Wallet Management Section -->
+                <div class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Wallet Management
+                </div>
+
+                <div class="wallet-list" id="walletList">
+                    <!-- Wallets will be loaded here -->
+                </div>
 
                 <div class="settings-option" onclick="showCreateWalletModal()">
                     <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -941,7 +1089,7 @@
                     <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
                 </div>
 
-                <button class="close-modal" onclick="closeModal()">Close</button>
+                <button class="close-modal" onclick="closeModal()">Close Settings</button>
             </div>
         </div>
 
@@ -1051,32 +1199,206 @@
 
             updateWalletDisplay();
             loadTokens();
+            updateWalletList(); // Initialize wallet list
 
             console.log('🚀 Wallet initialized successfully');
         }
 
         // =============================================
-        // WALLET MANAGEMENT
+        // WALLET MANAGEMENT - NEW FUNCTIONS
         // =============================================
 
-        function updateWalletDisplay() {
-            const welcomeScreen = document.getElementById('welcomeScreen');
-            const balanceSection = document.getElementById('balanceSection');
-            const actionButtons = document.getElementById('actionButtons');
-            const tokenSection = document.getElementById('tokenSection');
+        function updateWalletList() {
+            const walletList = document.getElementById('walletList');
+            walletList.innerHTML = '';
 
-            if (walletState.isInitialized) {
-                welcomeScreen.style.display = 'none';
-                balanceSection.style.display = 'block';
-                actionButtons.style.display = 'grid';
-                tokenSection.style.display = 'block';
+            if (userWallets.length === 0) {
+                walletList.innerHTML = '<div class="security-warning">No wallets found. Create or import a wallet to get started.</div>';
+                return;
+            }
 
-                updatePortfolioValue();
-            } else {
-                welcomeScreen.style.display = 'block';
-                balanceSection.style.display = 'none';
-                actionButtons.style.display = 'none';
-                tokenSection.style.display = 'none';
+            userWallets.forEach((wallet, index) => {
+                const isActive = index === walletState.currentWalletIndex;
+                const walletItem = document.createElement('div');
+                walletItem.className = `wallet-item ${isActive ? 'active' : ''}`;
+                walletItem.innerHTML = `
+                    <div class="wallet-icon">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div class="wallet-info">
+                        <div class="wallet-name-display">
+                            ${wallet.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} 
+                            ${isActive ? ' (Active)' : ''}
+                        </div>
+                        <div class="wallet-address">${wallet.address}</div>
+                        <div class="wallet-type">${wallet.walletType || 'unknown'}</div>
+                    </div>
+                    <div class="wallet-actions">
+                        ${!isActive ? `<button class="wallet-action-btn" onclick="switchWallet(${index})">Switch</button>` : ''}
+                        <button class="wallet-action-btn" onclick="viewWalletDetails(${index})">View</button>
+                    </div>
+                `;
+                walletList.appendChild(walletItem);
+            });
+        }
+
+        function switchWallet(index) {
+            if (index >= 0 && index < userWallets.length) {
+                walletState = userWallets[index];
+                walletState.currentWalletIndex = index;
+                
+                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
+                
+                updateWalletDisplay();
+                updateWalletList();
+                updateRealBalances();
+                
+                console.log('✅ Switched to wallet:', walletState.address);
+                showStatusMessage('Wallet switched successfully!', 'success');
+            }
+        }
+
+        function viewWalletDetails(index) {
+            const wallet = userWallets[index];
+            const message = `
+Wallet Details:
+
+Type: ${wallet.walletType === 'new' ? 'Generated' : 'Imported'}
+Address: ${wallet.address}
+Created: ${new Date().toLocaleDateString()}
+Status: ${index === walletState.currentWalletIndex ? 'Active' : 'Inactive'}
+            `.trim();
+            
+            alert(message);
+        }
+
+        // =============================================
+        // WALLET CREATION & IMPORT - WITH PROPER FEEDBACK
+        // =============================================
+
+        async function generateNewWallet() {
+            const generateBtn = document.getElementById('generateWalletBtn');
+            const statusDiv = document.getElementById('createWalletStatus');
+            
+            try {
+                // Show loading state
+                generateBtn.innerHTML = '<div class="loading"></div> Generating...';
+                generateBtn.disabled = true;
+                showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
+
+                console.log('🔄 Generating new wallet...');
+
+                const result = await window.nemexWalletAPI.generateNewWallet(24);
+
+                const newWallet = {
+                    isInitialized: true,
+                    walletType: 'new',
+                    userId: 'user_' + Date.now(),
+                    address: result.wallet.address,
+                    balances: {},
+                    mnemonic: result.wallet.mnemonic
+                };
+
+                userWallets.push(newWallet);
+                walletState = newWallet;
+                walletState.currentWalletIndex = userWallets.length - 1;
+
+                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
+
+                console.log('✅ New wallet created. Address:', walletState.address);
+                showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
+
+                updateWalletDisplay();
+                updateWalletList();
+                showBackupModal(result.wallet.mnemonic);
+                
+                // Close modal after success
+                setTimeout(() => {
+                    closeModal();
+                    // Refresh balances
+                    updateRealBalances();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Wallet creation failed:', error);
+                showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error', statusDiv);
+            } finally {
+                generateBtn.innerHTML = 'Generate New Wallet';
+                generateBtn.disabled = false;
+            }
+        }
+
+        async function importWalletFromModal() {
+            const importBtn = document.getElementById('importWalletBtn');
+            const statusDiv = document.getElementById('importWalletStatus');
+            const mnemonic = document.getElementById('importMnemonic').value.trim();
+            
+            if (!mnemonic) {
+                showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
+                return;
+            }
+
+            try {
+                // Show loading state
+                importBtn.innerHTML = '<div class="loading"></div> Importing...';
+                importBtn.disabled = true;
+                showStatusMessage('Importing your wallet...', 'loading', statusDiv);
+
+                console.log('🔄 Importing wallet...');
+
+                const result = await window.nemexWalletAPI.importWallet(mnemonic);
+
+                const importedWallet = {
+                    isInitialized: true,
+                    walletType: 'imported',
+                    userId: 'user_imported_' + Date.now(),
+                    address: result.wallet.address,
+                    balances: {},
+                    mnemonic: mnemonic
+                };
+
+                userWallets.push(importedWallet);
+                walletState = importedWallet;
+                walletState.currentWalletIndex = userWallets.length - 1;
+
+                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
+
+                console.log('✅ Wallet imported. Address:', walletState.address);
+                showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+                updateWalletDisplay();
+                updateWalletList();
+                
+                // Close modal after success
+                setTimeout(() => {
+                    closeModal();
+                    // Refresh balances
+                    updateRealBalances();
+                }, 2000);
+
+            } catch (error) {
+                console.error('Wallet import failed:', error);
+                showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error', statusDiv);
+            } finally {
+                importBtn.innerHTML = 'Import Wallet';
+                importBtn.disabled = false;
+            }
+        }
+
+        // =============================================
+        // STATUS MESSAGE HELPER
+        // =============================================
+
+        function showStatusMessage(message, type, container) {
+            if (!container) return;
+            
+            container.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+            
+            // Auto-remove success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 5000);
             }
         }
 
@@ -1085,56 +1407,49 @@
         // =============================================
 
         async function updateRealBalances() {
-    if (!walletState.isInitialized) {
-        console.log('❌ Wallet not initialized, skipping balance update');
-        return;
-    }
+            if (!walletState.isInitialized) {
+                console.log('❌ Wallet not initialized, skipping balance update');
+                return;
+            }
 
-    console.log('🔍 [DEBUG] updateRealBalances called');
-    console.log('🔍 [DEBUG] walletState.address:', walletState.address);
-    console.log('🔍 [DEBUG] walletState.isInitialized:', walletState.isInitialized);
+            console.log('🔍 [DEBUG] updateRealBalances called');
+            console.log('🔍 [DEBUG] walletState.address:', walletState.address);
+            console.log('🔍 [DEBUG] walletState.isInitialized:', walletState.isInitialized);
 
-    if (!walletState.address) {
-        console.log('❌ ERROR: walletState.address is EMPTY!');
-        return;
-    }
+            if (!walletState.address) {
+                console.log('❌ ERROR: walletState.address is EMPTY!');
+                return;
+            }
 
-    // ✅ ADD THIS CRITICAL CHECK
-    if (walletState.address === "EQY6nnF19BvNpaZbBZwdkfJOjRVluIuxaOVCuH2qNqMH4GeN") {
-        console.log('🚨 🚨 🚨 HARCODED ADDRESS DETECTED IN walletState!');
-        console.log('🚨 Current walletState:', walletState);
-        return;
-    }
+            try {
+                console.log('🔄 Calling getAllBalances with:', walletState.address);
+                const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
+                console.log('✅ Balance result received:', balanceResult);
 
-    try {
-        console.log('🔄 Calling getAllBalances with:', walletState.address);
-        const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
-        console.log('✅ Balance result received:', balanceResult);
+                // Update TON balance
+                const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
+                if (tonToken && balanceResult.balances.TON) {
+                    tonToken.balance = parseFloat(balanceResult.balances.TON);
+                }
 
-        // Update TON balance
-        const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-        if (tonToken && balanceResult.balances.TON) {
-            tonToken.balance = parseFloat(balanceResult.balances.TON);
+                // Update NMX balance  
+                const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
+                if (nmxToken && balanceResult.balances.NMX) {
+                    nmxToken.balance = parseFloat(balanceResult.balances.NMX);
+                }
+
+                // Update portfolio display
+                updatePortfolioValue();
+                loadTokens();
+
+                console.log('✅ Real balances updated:', balanceResult.balances);
+
+            } catch (error) {
+                console.error('Failed to update real balances:', error);
+                // Try individual balance fetching as fallback
+                await updateBalancesIndividually();
+            }
         }
-
-        // Update NMX balance  
-        const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-        if (nmxToken && balanceResult.balances.NMX) {
-            nmxToken.balance = parseFloat(balanceResult.balances.NMX);
-        }
-
-        // Update portfolio display
-        updatePortfolioValue();
-        loadTokens();
-
-        console.log('✅ Real balances updated:', balanceResult.balances);
-
-    } catch (error) {
-        console.error('Failed to update real balances:', error);
-        // Try individual balance fetching as fallback
-        await updateBalancesIndividually();
-    }
-}
 
         async function updateBalancesIndividually() {
             try {
@@ -1161,81 +1476,27 @@
         }
 
         // =============================================
-        // WALLET CREATION & IMPORT (REAL API)
+        // WALLET DISPLAY & UI UPDATES
         // =============================================
 
-        async function generateNewWallet() {
-            try {
-                console.log('🔄 Generating new wallet...');
+        function updateWalletDisplay() {
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const balanceSection = document.getElementById('balanceSection');
+            const actionButtons = document.getElementById('actionButtons');
+            const tokenSection = document.getElementById('tokenSection');
 
-                const result = await window.nemexWalletAPI.generateNewWallet(24);
+            if (walletState.isInitialized) {
+                welcomeScreen.style.display = 'none';
+                balanceSection.style.display = 'block';
+                actionButtons.style.display = 'grid';
+                tokenSection.style.display = 'block';
 
-                const newWallet = {
-                    isInitialized: true,
-                    walletType: 'new',
-                    userId: 'user_' + Date.now(),
-                    address: result.wallet.address,
-                    balances: {},
-                    mnemonic: result.wallet.mnemonic
-                };
-
-                userWallets.push(newWallet);
-                walletState = newWallet;
-                walletState.currentWalletIndex = userWallets.length - 1;
-
-                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
-
-                console.log('✅ New wallet created. Address:', walletState.address);
-
-                updateWalletDisplay();
-                showBackupModal(result.wallet.mnemonic);
-                closeModal();
-
-            } catch (error) {
-                console.error('Wallet creation failed:', error);
-                alert('❌ Failed to create wallet: ' + error.message);
-            }
-        }
-
-        async function importWalletFromModal() {
-            const mnemonic = document.getElementById('importMnemonic').value.trim();
-            if (!mnemonic) {
-                alert('Please enter your recovery phrase');
-                return;
-            }
-
-            try {
-                console.log('🔄 Importing wallet...');
-
-                const result = await window.nemexWalletAPI.importWallet(mnemonic);
-
-                const importedWallet = {
-                    isInitialized: true,
-                    walletType: 'imported',
-                    userId: 'user_imported_' + Date.now(),
-                    address: result.wallet.address,
-                    balances: {},
-                    mnemonic: mnemonic
-                };
-
-                userWallets.push(importedWallet);
-                walletState = importedWallet;
-                walletState.currentWalletIndex = userWallets.length - 1;
-
-                localStorage.setItem('nemexUserWallets', JSON.stringify(userWallets));
-
-                console.log('✅ Wallet imported. Address:', walletState.address);
-
-                updateWalletDisplay();
-                closeModal();
-                alert('✅ Wallet imported successfully!');
-
-                // Refresh balances
-                await updateRealBalances();
-
-            } catch (error) {
-                console.error('Wallet import failed:', error);
-                alert('❌ Failed to import wallet: ' + error.message);
+                updatePortfolioValue();
+            } else {
+                welcomeScreen.style.display = 'block';
+                balanceSection.style.display = 'none';
+                actionButtons.style.display = 'none';
+                tokenSection.style.display = 'none';
             }
         }
 
@@ -1525,11 +1786,16 @@ Confirm transaction?
 
         function showCreateWalletModal() {
             closeModal();
+            // Clear previous status messages
+            document.getElementById('createWalletStatus').innerHTML = '';
             document.getElementById('createWalletModal').style.display = 'flex';
         }
 
         function showImportWalletModal() {
             closeModal();
+            // Clear previous status messages and input
+            document.getElementById('importWalletStatus').innerHTML = '';
+            document.getElementById('importMnemonic').value = '';
             document.getElementById('importWalletModal').style.display = 'flex';
         }
 
@@ -1554,6 +1820,7 @@ Confirm transaction?
 
         function showSettingsModal() {
             closeModal();
+            updateWalletList(); // Refresh wallet list when opening settings
             document.getElementById('settingsModal').style.display = 'flex';
         }
 
