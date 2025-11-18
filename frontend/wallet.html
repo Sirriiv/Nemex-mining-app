@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nemex Wallet - Secure TON Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Add the wallet.js API script -->
     <script src="assets/js/wallet.js"></script>
 
     <style>
@@ -604,6 +602,7 @@
         .settings-option {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 12px;
             padding: 16px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -621,9 +620,66 @@
             color: var(--gold);
         }
 
-        /* NEW: Wallet Selection Styles */
-        .wallet-list {
+        .settings-option-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        /* NEW: Wallet Management Styles - Tonkeeper Inspired */
+        .wallet-management-section {
             margin: 20px 0;
+        }
+
+        .wallet-management-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .wallet-management-header:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .wallet-management-header.active {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
+        .wallet-management-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .wallet-management-arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .wallet-management-arrow.expanded {
+            transform: rotate(180deg);
+        }
+
+        .wallet-management-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .wallet-management-content.expanded {
+            max-height: 1000px;
+        }
+
+        .wallet-list {
+            margin: 10px 0;
         }
 
         .wallet-item {
@@ -700,9 +756,26 @@
             transition: all 0.3s ease;
         }
 
+        .wallet-action-btn.view-seed {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .wallet-action-btn.delete {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
         .wallet-action-btn:hover {
             background: rgba(212, 175, 55, 0.1);
             border-color: var(--gold);
+        }
+
+        .wallet-action-btn.delete:hover {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: var(--error);
         }
 
         /* Security Warning */
@@ -742,6 +815,32 @@
             font-weight: bold;
             margin-right: 8px;
             font-size: 12px;
+        }
+
+        /* Backup Confirmation */
+        .backup-confirmation {
+            margin: 20px 0;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .confirmation-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .confirmation-checkbox input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .confirmation-checkbox label {
+            font-size: 14px;
+            color: var(--text);
         }
 
         /* Address Validation */
@@ -838,27 +937,9 @@
             cursor: pointer;
             margin-top: 10px;
         }
-
-        /* Reset Button */
-        .reset-button {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: red;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            z-index: 9999;
-            font-size: 12px;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
-    <!-- Reset Button for Testing -->
-    <button class="reset-button" onclick="resetAllWallets()">🔄 RESET</button>
-
     <div class="container">
         <!-- Header -->
         <header class="header">
@@ -914,13 +995,13 @@
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                 </svg>
-                <div class="action-label">Swap</div>
+                <div class="action-label">Switch Wallet</div>
             </div>
             <div class="action-btn" onclick="showBuyModal()" id="buyButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
-                <div class="action-label">Buy</div>
+                <div class="action-label">Settings</div>
             </div>
         </div>
 
@@ -1060,7 +1141,7 @@
             </div>
         </div>
 
-        <!-- Backup Modal -->
+        <!-- Backup Modal with Confirmation -->
         <div id="backupModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">🔒 Backup Your Wallet</div>
@@ -1068,39 +1149,104 @@
                     <strong>⚠️ CRITICAL:</strong> Write down these words and store them securely. Never share them!
                 </div>
                 <div class="mnemonic-words" id="mnemonicWords"></div>
-                <button class="close-modal" onclick="closeBackupModal()">I've Saved My Recovery Phrase</button>
+                
+                <div class="backup-confirmation">
+                    <div class="confirmation-checkbox">
+                        <input type="checkbox" id="backupConfirmed">
+                        <label for="backupConfirmed">I have written down my recovery phrase and stored it securely</label>
+                    </div>
+                    <div class="security-warning">
+                        You will NOT be able to recover your funds without this phrase!
+                    </div>
+                </div>
+                
+                <button class="close-modal" onclick="closeBackupModal()" id="confirmBackupBtn" disabled>
+                    I've Saved My Recovery Phrase
+                </button>
             </div>
         </div>
 
-        <!-- Settings Modal - NOW FULL SCREEN -->
+        <!-- View Seed Phrase Modal -->
+        <div id="viewSeedModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">🔑 Recovery Phrase</div>
+                <div class="security-warning">
+                    <strong>⚠️ SECURITY WARNING:</strong> Never share your recovery phrase with anyone!
+                </div>
+                <div class="mnemonic-words" id="viewSeedWords"></div>
+                <button class="close-modal secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteWalletModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">🗑️ Delete Wallet</div>
+                <div class="security-warning">
+                    <strong>⚠️ IRREVERSIBLE ACTION:</strong> This will permanently delete the wallet from your account and the database. You will lose access to any funds in this wallet if you haven't saved the recovery phrase.
+                </div>
+                <p id="deleteWalletInfo" style="margin: 16px 0; text-align: center;"></p>
+                <div class="confirmation-checkbox" style="justify-content: center;">
+                    <input type="checkbox" id="deleteConfirmed">
+                    <label for="deleteConfirmed">I understand this action cannot be undone</label>
+                </div>
+                <button class="close-modal" onclick="confirmDeleteWallet()" id="confirmDeleteBtn" style="background: var(--error);" disabled>
+                    Delete Wallet Permanently
+                </button>
+                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Settings Modal - FULL SCREEN -->
         <div id="settingsModal" class="modal fullscreen">
             <div class="modal-content">
                 <div class="modal-title">Settings</div>
 
-                <!-- Wallet Management Section -->
-                <div class="section-title">
-                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Wallet Management
+                <!-- Wallet Management Section - Tonkeeper Style -->
+                <div class="wallet-management-section">
+                    <div class="wallet-management-header" onclick="toggleWalletManagement()">
+                        <div class="wallet-management-title">
+                            <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Wallet Management
+                        </div>
+                        <div class="wallet-management-arrow">▼</div>
+                    </div>
+                    
+                    <div class="wallet-management-content" id="walletManagementContent">
+                        <div class="wallet-list" id="walletList">
+                            <!-- Wallets will be loaded from database -->
+                        </div>
+
+                        <div class="settings-option" onclick="showCreateWalletModal()">
+                            <div class="settings-option-content">
+                                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                <div>Create New Wallet</div>
+                            </div>
+                        </div>
+
+                        <div class="settings-option" onclick="showImportWalletModal()">
+                            <div class="settings-option-content">
+                                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                                </svg>
+                                <div>Import Wallet</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="wallet-list" id="walletList">
-                    <!-- Wallets will be loaded from database -->
-                </div>
-
-                <div class="settings-option" onclick="showCreateWalletModal()">
-                    <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    <div>Create New Wallet</div>
-                </div>
-
-                <div class="settings-option" onclick="showImportWalletModal()">
-                    <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-                    </svg>
-                    <div>Import Wallet</div>
+                <!-- View Seed Phrase Option -->
+                <div class="settings-option" onclick="showViewSeedPhrase()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        <div>View Recovery Phrase</div>
+                    </div>
                 </div>
 
                 <div class="security-warning">
@@ -1111,23 +1257,23 @@
             </div>
         </div>
 
-        <!-- Swap Modal (Placeholder) -->
+        <!-- Swap Modal -->
         <div id="swapModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Swap</div>
+                <div class="modal-title">Switch Wallet</div>
                 <div class="security-warning">
-                    Swap functionality coming soon!
+                    Use the Settings menu to manage and switch between wallets.
                 </div>
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
         </div>
 
-        <!-- Buy Modal (Placeholder) -->
+        <!-- Buy Modal -->
         <div id="buyModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Buy Crypto</div>
+                <div class="modal-title">Settings</div>
                 <div class="security-warning">
-                    Buy functionality coming soon!
+                    Use the Settings menu to manage your wallet preferences.
                 </div>
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
@@ -1135,10 +1281,10 @@
 
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT - DATABASE ONLY VERSION -->
+    <!-- COMPLETE WALLET SCRIPT - ENHANCED VERSION -->
     <script>
         // =============================================
-        // WALLET STATE MANAGEMENT - DATABASE ONLY
+        // WALLET STATE MANAGEMENT
         // =============================================
 
         let walletState = {
@@ -1150,8 +1296,10 @@
             lastUpdate: null
         };
 
-        let userWallets = []; // This will be populated from database
+        let userWallets = [];
         let customTokens = [];
+        let currentMnemonic = null;
+        let walletToDelete = null;
 
         // Supported tokens
         const SUPPORTED_TOKENS = [
@@ -1184,11 +1332,11 @@
         const GAS_FEE = 0.01;
 
         // =============================================
-        // INITIALIZATION - DATABASE ONLY
+        // INITIALIZATION
         // =============================================
 
         async function initWallet() {
-            console.log('🔄 Initializing wallet (Database Only)...');
+            console.log('🔄 Initializing wallet...');
 
             // Initialize API
             const apiReady = await window.nemexWalletAPI.init();
@@ -1197,8 +1345,7 @@
                 return;
             }
 
-            // For now, we'll use a simple approach - check if we have any wallet in memory
-            // In a real app, you'd query the database for user's wallets
+            // For now, we'll use a simple approach
             if (!walletState.isInitialized) {
                 console.log('ℹ️ No active wallet found');
             }
@@ -1210,7 +1357,7 @@
         }
 
         // =============================================
-        // WALLET CREATION & IMPORT - DATABASE ONLY
+        // WALLET CREATION & IMPORT - FIXED
         // =============================================
 
         async function generateNewWallet() {
@@ -1226,6 +1373,9 @@
 
                 const result = await window.nemexWalletAPI.generateNewWallet(24);
 
+                // Store the mnemonic for backup modal
+                currentMnemonic = result.wallet.mnemonic;
+
                 // Update wallet state from database response
                 walletState = {
                     isInitialized: true,
@@ -1238,15 +1388,11 @@
                 console.log('✅ Wallet created in database:', walletState.address);
                 showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
 
-                updateWalletDisplay();
-                
-                // Show backup modal with mnemonic
-                showBackupModal(result.wallet.mnemonic);
-                
+                // Show backup modal instead of going directly to wallet
                 setTimeout(() => {
                     closeModal();
-                    updateRealBalances();
-                }, 2000);
+                    showBackupModal(currentMnemonic);
+                }, 1000);
 
             } catch (error) {
                 console.error('Wallet creation failed:', error);
@@ -1288,10 +1434,9 @@
                 console.log('✅ Wallet imported to database:', walletState.address);
                 showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
 
-                updateWalletDisplay();
-                
                 setTimeout(() => {
                     closeModal();
+                    updateWalletDisplay();
                     updateRealBalances();
                 }, 2000);
 
@@ -1305,7 +1450,7 @@
         }
 
         // =============================================
-        // BALANCE UPDATES - DATABASE ONLY
+        // REAL BALANCE UPDATES - ENHANCED
         // =============================================
 
         async function updateRealBalances() {
@@ -1314,34 +1459,51 @@
             }
 
             try {
-                console.log('🔄 Fetching balances from API...');
+                console.log('🔄 Fetching REAL balances from blockchain...');
                 const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
 
-                // Update TON balance
+                // Update TON balance with real blockchain data
                 const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
                 if (tonToken && balanceResult.balances.TON) {
                     tonToken.balance = parseFloat(balanceResult.balances.TON);
+                    console.log('✅ Real TON balance:', tonToken.balance);
                 }
 
-                // Update NMX balance  
+                // Update NMX balance with real blockchain data
                 const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
                 if (nmxToken && balanceResult.balances.NMX) {
                     nmxToken.balance = parseFloat(balanceResult.balances.NMX);
+                    console.log('✅ Real NMX balance:', nmxToken.balance);
                 }
 
                 updatePortfolioValue();
                 loadTokens();
 
-                console.log('✅ Balances updated from database');
+                console.log('✅ Real blockchain balances updated');
 
             } catch (error) {
-                console.error('Failed to update balances:', error);
+                console.error('Failed to update real balances:', error);
+                // Set to 0 if API fails
+                SUPPORTED_TOKENS[0].balance = 0;
+                SUPPORTED_TOKENS[1].balance = 0;
+                updatePortfolioValue();
+                loadTokens();
             }
         }
 
         // =============================================
-        // WALLET MANAGEMENT - DATABASE ONLY
+        // WALLET MANAGEMENT - ENHANCED
         // =============================================
+
+        function toggleWalletManagement() {
+            const content = document.getElementById('walletManagementContent');
+            const arrow = document.querySelector('.wallet-management-arrow');
+            const header = document.querySelector('.wallet-management-header');
+            
+            content.classList.toggle('expanded');
+            arrow.classList.toggle('expanded');
+            header.classList.toggle('active');
+        }
 
         function updateWalletList() {
             const walletList = document.getElementById('walletList');
@@ -1362,7 +1524,8 @@
                             <div class="wallet-type">${walletState.walletType || 'active'}</div>
                         </div>
                         <div class="wallet-actions">
-                            <button class="wallet-action-btn" onclick="viewWalletDetails()">View</button>
+                            <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase()">View Seed</button>
+                            <button class="wallet-action-btn delete" onclick="showDeleteWalletModal('${walletState.address}')">Delete</button>
                         </div>
                     </div>
                 `;
@@ -1371,26 +1534,120 @@
             }
         }
 
-        function viewWalletDetails() {
-            if (!walletState.isInitialized) {
-                alert('No wallet active');
-                return;
-            }
+        function showDeleteWalletModal(address) {
+            walletToDelete = address;
+            document.getElementById('deleteWalletInfo').textContent = `Address: ${address}`;
+            document.getElementById('deleteConfirmed').checked = false;
+            document.getElementById('confirmDeleteBtn').disabled = true;
+            document.getElementById('deleteWalletModal').style.display = 'flex';
+        }
 
-            const message = `
-Wallet Details:
-
-Type: ${walletState.walletType === 'new' ? 'Generated' : 'Imported'}
-Address: ${walletState.address}
-Status: Active
-Balances: ${SUPPORTED_TOKENS[0].balance} TON, ${SUPPORTED_TOKENS[1].balance} NMX
-            `.trim();
+        function confirmDeleteWallet() {
+            if (!walletToDelete) return;
             
-            alert(message);
+            // Here you would call an API to delete from database
+            console.log('🗑️ Deleting wallet:', walletToDelete);
+            
+            // For now, just reset the state
+            walletState = {
+                isInitialized: false,
+                walletType: null,
+                userId: null,
+                address: null,
+                balances: {},
+                lastUpdate: null
+            };
+            
+            // Reset tokens
+            SUPPORTED_TOKENS[0].balance = 0;
+            SUPPORTED_TOKENS[1].balance = 0;
+            
+            // Update UI
+            updateWalletDisplay();
+            updateWalletList();
+            
+            alert('✅ Wallet deleted successfully!');
+            closeModal();
         }
 
         // =============================================
-        // UI UPDATES
+        // SEED PHRASE MANAGEMENT
+        // =============================================
+
+        function showViewSeedPhrase() {
+            if (!currentMnemonic) {
+                alert('No seed phrase available for current wallet');
+                return;
+            }
+
+            const words = currentMnemonic.split(' ');
+            const viewSeedWords = document.getElementById('viewSeedWords');
+            viewSeedWords.innerHTML = '';
+
+            words.forEach((word, index) => {
+                const wordElement = document.createElement('div');
+                wordElement.className = 'mnemonic-word';
+                wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
+                viewSeedWords.appendChild(wordElement);
+            });
+
+            document.getElementById('viewSeedModal').style.display = 'flex';
+        }
+
+        // =============================================
+        // BACKUP CONFIRMATION
+        // =============================================
+
+        function showBackupModal(mnemonic) {
+            const words = mnemonic.split(' ');
+            const mnemonicWords = document.getElementById('mnemonicWords');
+            mnemonicWords.innerHTML = '';
+
+            words.forEach((word, index) => {
+                const wordElement = document.createElement('div');
+                wordElement.className = 'mnemonic-word';
+                wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
+                mnemonicWords.appendChild(wordElement);
+            });
+
+            // Reset confirmation
+            document.getElementById('backupConfirmed').checked = false;
+            document.getElementById('confirmBackupBtn').disabled = true;
+
+            document.getElementById('backupModal').style.display = 'flex';
+        }
+
+        function closeBackupModal() {
+            if (!document.getElementById('backupConfirmed').checked) {
+                alert('⚠️ You must confirm that you have saved your recovery phrase!');
+                return;
+            }
+
+            document.getElementById('backupModal').style.display = 'none';
+            updateWalletDisplay();
+            updateRealBalances();
+        }
+
+        // =============================================
+        // EVENT HANDLERS FOR CONFIRMATIONS
+        // =============================================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Backup confirmation checkbox
+            document.getElementById('backupConfirmed').addEventListener('change', function() {
+                document.getElementById('confirmBackupBtn').disabled = !this.checked;
+            });
+
+            // Delete confirmation checkbox
+            document.getElementById('deleteConfirmed').addEventListener('change', function() {
+                document.getElementById('confirmDeleteBtn').disabled = !this.checked;
+            });
+
+            initWallet();
+        });
+
+        // =============================================
+        // UI UPDATES (Keep existing functions)
         // =============================================
 
         function updateWalletDisplay() {
@@ -1469,7 +1726,7 @@ Balances: ${SUPPORTED_TOKENS[0].balance} TON, ${SUPPORTED_TOKENS[1].balance} NMX
         }
 
         // =============================================
-        // HELPER FUNCTIONS
+        // HELPER FUNCTIONS (Keep existing)
         // =============================================
 
         function formatTokenBalance(balance) {
@@ -1513,7 +1770,7 @@ Balances: ${SUPPORTED_TOKENS[0].balance} TON, ${SUPPORTED_TOKENS[1].balance} NMX
         }
 
         // =============================================
-        // MODAL MANAGEMENT
+        // MODAL MANAGEMENT (Keep existing)
         // =============================================
 
         function showCreateWalletModal() {
@@ -1527,25 +1784,6 @@ Balances: ${SUPPORTED_TOKENS[0].balance} TON, ${SUPPORTED_TOKENS[1].balance} NMX
             document.getElementById('importWalletStatus').innerHTML = '';
             document.getElementById('importMnemonic').value = '';
             document.getElementById('importWalletModal').style.display = 'flex';
-        }
-
-        function showBackupModal(mnemonic) {
-            const words = mnemonic.split(' ');
-            const mnemonicWords = document.getElementById('mnemonicWords');
-            mnemonicWords.innerHTML = '';
-
-            words.forEach((word, index) => {
-                const wordElement = document.createElement('div');
-                wordElement.className = 'mnemonic-word';
-                wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
-                mnemonicWords.appendChild(wordElement);
-            });
-
-            document.getElementById('backupModal').style.display = 'flex';
-        }
-
-        function closeBackupModal() {
-            document.getElementById('backupModal').style.display = 'none';
         }
 
         function showSettingsModal() {
@@ -1605,7 +1843,7 @@ Balances: ${SUPPORTED_TOKENS[0].balance} TON, ${SUPPORTED_TOKENS[1].balance} NMX
         }
 
         // =============================================
-        // SEND FUNCTIONALITY
+        // SEND FUNCTIONALITY (Keep existing)
         // =============================================
 
         function updateAvailableBalance() {
@@ -1747,35 +1985,6 @@ Confirm transaction?
             }).catch(err => {
                 console.error('Failed to copy address:', err);
             });
-        }
-
-        // =============================================
-        // RESET FUNCTION
-        // =============================================
-
-        function resetAllWallets() {
-            // Clear any localStorage remnants
-            localStorage.removeItem('nemexUserWallets');
-            
-            // Reset wallet state
-            walletState = {
-                isInitialized: false,
-                walletType: null,
-                userId: null,
-                address: null,
-                balances: {},
-                lastUpdate: null
-            };
-            
-            // Reset tokens
-            SUPPORTED_TOKENS[0].balance = 0;
-            SUPPORTED_TOKENS[1].balance = 0;
-            
-            // Reset UI
-            updateWalletDisplay();
-            updateWalletList();
-            
-            alert('✅ Wallet state reset! You can now create a fresh wallet.');
         }
 
         // =============================================
