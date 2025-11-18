@@ -277,9 +277,14 @@ async function getRealBalance(address) {
 
             let tonBalance;
             if (typeof balance === 'object' && balance.toString) {
+                // Handle BigNumber objects properly
                 tonBalance = TonWeb.utils.fromNano(balance.toString());
-            } else {
+            } else if (typeof balance === 'string') {
+                // Handle string balances
                 tonBalance = TonWeb.utils.fromNano(balance);
+            } else {
+                // Handle number balances
+                tonBalance = TonWeb.utils.fromNano(balance.toString());
             }
 
             console.log('✅ TON Balance fetched:', tonBalance);
@@ -306,192 +311,6 @@ async function getRealBalance(address) {
             balance: "0",
             address: address,
             rawBalance: "0",
-            error: error.message
-        };
-    }
-}
-
-async function getNMXBalance(address) {
-    try {
-        console.log('🔄 Fetching NMX balance for:', address);
-        console.log('🔍 Using NMX Contracts:', NMX_CONTRACTS);
-
-        // ✅ METHOD 1: TONAPI v2 with your API key (most reliable)
-        console.log('🔄 Using TONAPI v2 with API key...');
-        try {
-            const tonapiResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons`, {
-                timeout: 15000,
-                headers: {
-                    'Authorization': `Bearer ${process.env.TONAPI_KEY}`
-                }
-            });
-
-            console.log('🔍 TONAPI v2 Full Response:', JSON.stringify(tonapiResponse.data, null, 2));
-
-            if (tonapiResponse.data && tonapiResponse.data.balances) {
-                for (const contract of NMX_CONTRACTS) {
-                    const nmxJetton = tonapiResponse.data.balances.find(j => {
-                        const jettonAddress = j.jetton?.address;
-                        return jettonAddress === contract;
-                    });
-                    
-                    if (nmxJetton) {
-                        const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-                        console.log('✅ NMX Balance found via TONAPI:', nmxBalance, 'NMX');
-                        
-                        return {
-                            success: true,
-                            balance: parseFloat(nmxBalance).toFixed(2),
-                            address: address,
-                            rawBalance: nmxJetton.balance,
-                            source: 'tonapi_v2'
-                        };
-                    }
-                }
-                
-                console.log('ℹ️ NMX contract not found in balances, available jettons:', 
-                    tonapiResponse.data.balances.map(j => j.jetton?.address));
-            }
-        } catch (tonapiError) {
-            console.log('TONAPI v2 failed:', tonapiError.message);
-            if (tonapiError.response) {
-                console.log('TONAPI Error details:', tonapiError.response.data);
-            }
-        }
-
-        // ✅ METHOD 2: TON Center API (fallback with your existing key)
-        console.log('🔄 Trying TON Center API as fallback...');
-        try {
-            const jettonResponse = await axios.get(`https://toncenter.com/api/v2/jettons`, {
-                params: { address: address },
-                headers: { 
-                    'X-API-Key': process.env.TONCENTER_API_KEY 
-                },
-                timeout: 15000
-            });
-
-            console.log('🔍 TON Center Jettons Response:', JSON.stringify(jettonResponse.data, null, 2));
-
-            if (jettonResponse.data && jettonResponse.data.jettons) {
-                for (const contract of NMX_CONTRACTS) {
-                    const nmxJetton = jettonResponse.data.jettons.find(j => {
-                        return j.jetton_address === contract;
-                    });
-                    
-                    if (nmxJetton) {
-                        const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-                        console.log('✅ NMX Balance found via TON Center:', nmxBalance, 'NMX');
-                        
-                        return {
-                            success: true,
-                            balance: parseFloat(nmxBalance).toFixed(2),
-                            address: address,
-                            rawBalance: nmxJetton.balance,
-                            source: 'toncenter'
-                        };
-                    }
-                }
-            }
-        } catch (toncenterError) {
-            console.log('TON Center API failed:', toncenterError.message);
-        }
-
-        // ✅ METHOD 3: Direct jetton info call
-        console.log('🔄 Trying direct jetton info call...');
-        try {
-            // Get specific jetton data for NMX
-            for (const contract of NMX_CONTRACTS) {
-                const jettonInfoResponse = await axios.get(`https://tonapi.io/v2/jettons/${contract}`, {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.TONAPI_KEY}`
-                    },
-                    timeout: 10000
-                });
-
-                if (jettonInfoResponse.data) {
-                    console.log(`🔍 NMX Jetton ${contract} info:`, jettonInfoResponse.data);
-                    
-                    // Now try to get holder balance
-                    const holderResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons/${contract}`, {
-                        headers: {
-                            'Authorization': `Bearer ${process.env.TONAPI_KEY}`
-                        },
-                        timeout: 10000
-                    });
-
-                    if (holderResponse.data && holderResponse.data.balance) {
-                        const nmxBalance = TonWeb.utils.fromNano(holderResponse.data.balance);
-                        console.log('✅ NMX Balance found via direct jetton call:', nmxBalance, 'NMX');
-                        
-                        return {
-                            success: true,
-                            balance: parseFloat(nmxBalance).toFixed(2),
-                            address: address,
-                            rawBalance: holderResponse.data.balance,
-                            source: 'direct_jetton'
-                        };
-                    }
-                }
-            }
-        } catch (directError) {
-            console.log('Direct jetton call failed:', directError.message);
-        }
-
-        console.log('ℹ️ No NMX tokens found after all methods');
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            rawBalance: "0",
-            source: 'not_found'
-        };
-
-    } catch (error) {
-        console.error('❌ All NMX balance methods failed:', error.message);
-        if (error.response) {
-            console.error('Error response:', error.response.data);
-        }
-        
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            rawBalance: "0",
-            error: error.message
-        };
-    }
-}
-
-async function getAllBalances(address) {
-    try {
-        console.log('🔍 [DEBUG] getAllBalances called with address:', address);
-
-        const [tonBalance, nmxBalance] = await Promise.all([
-            getRealBalance(address),
-            getNMXBalance(address)
-        ]);
-
-        console.log('✅ All balances fetched for:', address);
-        console.log('✅ TON:', tonBalance.balance, 'NMX:', nmxBalance.balance);
-
-        return {
-            success: true,
-            balances: {
-                TON: tonBalance.balance,
-                NMX: nmxBalance.balance
-            },
-            address: address
-        };
-
-    } catch (error) {
-        console.error('❌ All balances fetch failed:', error);
-        return {
-            success: true,
-            balances: {
-                TON: "0",
-                NMX: "0"
-            },
-            address: address,
             error: error.message
         };
     }
