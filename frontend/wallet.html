@@ -1453,62 +1453,46 @@
         }
 
         // =============================================
-// REAL BALANCE & PRICE UPDATES - COMPLETE REAL DATA
-// =============================================
+        // REAL BALANCE UPDATES - ENHANCED
+        // =============================================
 
-async function updateRealBalances() {
-    if (!walletState.isInitialized || !walletState.address) {
-        return;
-    }
-
-    try {
-        console.log('🔄 Fetching REAL balances and prices...');
-        
-        // ✅ OPTIMIZED: Fetch both balances AND real prices in one call
-        const realData = await window.nemexWalletAPI.getAllRealData(walletState.address);
-
-        if (!realData.success) {
-            throw new Error('Failed to fetch real data');
-        }
-
-        // Update TON balance with real blockchain data
-        const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-        if (tonToken && realData.balances.TON) {
-            tonToken.balance = parseFloat(realData.balances.TON);
-            // ✅ UPDATE WITH REAL PRICE
-            if (realData.prices.TON) {
-                tonToken.price = realData.prices.TON.price;
-                tonToken.change24h = realData.prices.TON.change24h;
+        async function updateRealBalances() {
+            if (!walletState.isInitialized || !walletState.address) {
+                return;
             }
-            console.log('✅ Real TON data:', tonToken.balance, 'TON @ $' + tonToken.price);
-        }
 
-        // Update NMX balance with real blockchain data
-        const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-        if (nmxToken && realData.balances.NMX) {
-            nmxToken.balance = parseFloat(realData.balances.NMX);
-            // ✅ UPDATE WITH REAL PRICE
-            if (realData.prices.NMX) {
-                nmxToken.price = realData.prices.NMX.price;
-                nmxToken.change24h = realData.prices.NMX.change24h;
+            try {
+                console.log('🔄 Fetching REAL balances from blockchain...');
+                const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
+
+                // Update TON balance with real blockchain data
+                const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
+                if (tonToken && balanceResult.balances.TON) {
+                    tonToken.balance = parseFloat(balanceResult.balances.TON);
+                    console.log('✅ Real TON balance:', tonToken.balance);
+                }
+
+                // Update NMX balance with real blockchain data
+                const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
+                if (nmxToken && balanceResult.balances.NMX) {
+                    nmxToken.balance = parseFloat(balanceResult.balances.NMX);
+                    console.log('✅ Real NMX balance:', nmxToken.balance);
+                }
+
+                updatePortfolioValue();
+                loadTokens();
+
+                console.log('✅ Real blockchain balances updated');
+
+            } catch (error) {
+                console.error('Failed to update real balances:', error);
+                // Set to 0 if API fails
+                SUPPORTED_TOKENS[0].balance = 0;
+                SUPPORTED_TOKENS[1].balance = 0;
+                updatePortfolioValue();
+                loadTokens();
             }
-            console.log('✅ Real NMX data:', nmxToken.balance, 'NMX @ $' + nmxToken.price);
         }
-
-        updatePortfolioValue();
-        loadTokens();
-
-        console.log('✅ Real blockchain balances & prices updated');
-
-    } catch (error) {
-        console.error('Failed to update real data:', error);
-        // Set to 0 if API fails but keep trying
-        SUPPORTED_TOKENS[0].balance = 0;
-        SUPPORTED_TOKENS[1].balance = 0;
-        updatePortfolioValue();
-        loadTokens();
-    }
-}
 
         // =============================================
         // WALLET MANAGEMENT - ENHANCED
