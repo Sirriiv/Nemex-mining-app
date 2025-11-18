@@ -7,14 +7,12 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ UPDATED wallet-routes.js - REAL PRICES ADDED!');
+console.log('✅ UPDATED wallet-routes.js - REAL PRICES & FIXED IMPORT!');
 
-// Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Initialize TON with tonweb
 const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/jsonRPC', {
     apiKey: process.env.TONCENTER_API_KEY
 }));
@@ -29,18 +27,7 @@ router.get('/test', (req, res) => {
     res.json({
         success: true,
         message: 'Wallet API is working!',
-        timestamp: new Date().toISOString(),
-        routes: [
-            '/generate-wallet',
-            '/import-wallet', 
-            '/real-balance/:address',
-            '/nmx-balance/:address',
-            '/all-balances/:address',
-            '/validate-address/:address',
-            '/supported-tokens',
-            '/token-prices', // ✅ NEW: Real prices endpoint
-            '/analytics/wallet-stats'
-        ]
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -100,20 +87,18 @@ function encrypt(text) {
 }
 
 // =============================================
-// REAL PRICE FETCHING FUNCTIONS - ✅ NEW SECTION
+// REAL PRICE FETCHING FUNCTIONS
 // =============================================
 
 async function getRealTokenPrices() {
     try {
         console.log('🔄 Fetching REAL token prices from CoinGecko...');
         
-        // Fetch TON price from CoinGecko
         const tonResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true');
         const tonData = tonResponse.data['the-open-network'];
         
         console.log('✅ Real TON price fetched:', tonData.usd, 'USD');
         
-        // For NMX, we'll use a fixed price for now since it might not be on major exchanges
         const nmxPrice = 0.10;
         const nmxChange = 5.2;
         
@@ -133,26 +118,18 @@ async function getRealTokenPrices() {
         
     } catch (error) {
         console.error('❌ Real price fetch failed:', error.message);
-        
-        // Fallback to reasonable estimates
         return {
             success: true,
             prices: {
-                TON: {
-                    price: 2.50, // Reasonable fallback
-                    change24h: 1.5
-                },
-                NMX: {
-                    price: 0.10,
-                    change24h: 5.2
-                }
+                TON: { price: 2.50, change24h: 1.5 },
+                NMX: { price: 0.10, change24h: 5.2 }
             }
         };
     }
 }
 
 // =============================================
-// BALANCE FUNCTIONS - ✅ THESE ARE ALREADY REAL!
+// BALANCE FUNCTIONS
 // =============================================
 
 async function getRealBalance(address) {
@@ -182,7 +159,6 @@ async function getRealBalance(address) {
 
     } catch (error) {
         console.error('❌ TON balance fetch failed:', error.message);
-
         return {
             success: true,
             balance: "0",
@@ -233,7 +209,6 @@ async function getNMXBalance(address) {
 
     } catch (error) {
         console.error('❌ NMX balance fetch failed:', error.message);
-
         return {
             success: true,
             balance: "0",
@@ -265,7 +240,6 @@ async function getAllBalances(address) {
 
     } catch (error) {
         console.error('❌ All balances fetch failed:', error);
-
         return {
             success: true,
             balances: {
@@ -279,7 +253,7 @@ async function getAllBalances(address) {
 }
 
 // =============================================
-// API ROUTES - FIXED USERID ISSUE
+// API ROUTES - FIXED IMPORT
 // =============================================
 
 router.post('/generate-wallet', async function(req, res) {
@@ -297,7 +271,6 @@ router.post('/generate-wallet', async function(req, res) {
         const walletData = await generateRealTONWallet(wordCount);
         const encryptedMnemonic = encrypt(walletData.mnemonic);
 
-        // Try to insert into Supabase
         try {
             const { data, error } = await supabase
                 .from('user_wallets')
@@ -313,22 +286,19 @@ router.post('/generate-wallet', async function(req, res) {
 
             if (error) {
                 console.warn('⚠️ Supabase insert failed:', error.message);
-                // Continue anyway - the wallet was generated successfully
             } else {
                 console.log('✅ Wallet saved to database (generated)');
             }
         } catch (dbError) {
             console.warn('⚠️ Database error:', dbError.message);
-            // Continue anyway - the wallet was generated successfully
         }
 
         console.log('✅ Wallet generated:', walletData.address);
 
-        // ✅ FIX: Return userId in response
         res.json({
             success: true,
             wallet: {
-                userId: userId, // ✅ ADDED THIS
+                userId: userId,
                 address: walletData.address,
                 mnemonic: walletData.mnemonic,
                 wordCount: walletData.mnemonic.split(' ').length,
@@ -362,14 +332,17 @@ router.post('/import-wallet', async function(req, res) {
             });
         }
 
-        if (!bip39.validateMnemonic(mnemonic)) {
+        // Enhanced mnemonic validation and cleaning
+        const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
+        
+        if (!bip39.validateMnemonic(cleanedMnemonic)) {
             return res.status(400).json({
                 success: false,
-                error: 'Invalid mnemonic phrase.'
+                error: 'Invalid mnemonic phrase. Please check your words.'
             });
         }
 
-        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+        const keyPair = await mnemonicToWalletKey(cleanedMnemonic.split(' '));
         const WalletClass = tonweb.wallet.all.v4R2;
         const wallet = new WalletClass(tonweb.provider, {
             publicKey: keyPair.publicKey,
@@ -378,9 +351,8 @@ router.post('/import-wallet', async function(req, res) {
 
         const walletAddress = await wallet.getAddress();
         const address = walletAddress.toString(true, true, true);
-        const encryptedMnemonic = encrypt(mnemonic);
+        const encryptedMnemonic = encrypt(cleanedMnemonic);
 
-        // Try to insert into Supabase
         try {
             const { data, error } = await supabase
                 .from('user_wallets')
@@ -396,22 +368,19 @@ router.post('/import-wallet', async function(req, res) {
 
             if (error) {
                 console.warn('⚠️ Supabase insert failed:', error.message);
-                // Continue anyway - the wallet was imported successfully
             } else {
                 console.log('✅ Wallet saved to database (imported)');
             }
         } catch (dbError) {
             console.warn('⚠️ Database error:', dbError.message);
-            // Continue anyway - the wallet was imported successfully
         }
 
         console.log('✅ Wallet imported:', address);
 
-        // ✅ FIX: Return userId in response
         res.json({
             success: true,
             wallet: { 
-                userId: userId, // ✅ ADDED THIS
+                userId: userId,
                 address: address, 
                 type: 'TON',
                 source: 'imported'
@@ -420,52 +389,15 @@ router.post('/import-wallet', async function(req, res) {
 
     } catch (error) {
         console.error('Wallet import error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// =============================================
-// NEW ROUTE: GET USER WALLETS
-// =============================================
-
-router.get('/user-wallets/:userId', async function(req, res) {
-    try {
-        const { userId } = req.params;
-        console.log('🔄 Fetching wallets for user:', userId);
-
-        const { data, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Database error:', error);
-            return res.status(500).json({ success: false, error: error.message });
-        }
-
-        console.log(`✅ Found ${data.length} wallets for user ${userId}`);
-
-        res.json({
-            success: true,
-            wallets: data.map(wallet => ({
-                userId: wallet.user_id,
-                address: wallet.address,
-                walletType: wallet.source === 'generated' ? 'new' : 'imported',
-                type: wallet.wallet_type,
-                source: wallet.source,
-                createdAt: wallet.created_at
-            }))
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to import wallet: ' + error.message 
         });
-
-    } catch (error) {
-        console.error('Get user wallets error:', error);
-        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 // =============================================
-// REAL PRICE API ENDPOINT - ✅ NEW ROUTE
+// REAL PRICE API ENDPOINT
 // =============================================
 
 router.get('/token-prices', async function(req, res) {
@@ -526,111 +458,25 @@ router.get('/validate-address/:address', async function(req, res) {
 
 router.get('/supported-tokens', async function(req, res) {
     try {
-        // ✅ UPDATED: This endpoint now returns basic token info, but prices come from /token-prices
         const tokens = [
             {
                 symbol: "TON", name: "Toncoin", isNative: true, isFeatured: true,
                 logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
-                price: 2.50, canSend: true // ⚠️ This price is just a fallback
+                price: 2.50, canSend: true
             },
             {
                 symbol: "NMX", name: "NemexCoin", isNative: false, isFeatured: true,
                 contract: "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec",
                 logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                price: 0.10, canSend: true // ⚠️ This price is just a fallback
+                price: 0.10, canSend: true
             }
         ];
         res.json({ 
             success: true, 
             tokens: tokens, 
-            primaryToken: "TON",
-            note: "Use /token-prices endpoint for real-time prices" // ✅ Added note
+            primaryToken: "TON"
         });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// =============================================
-// ANALYTICS ENDPOINTS
-// =============================================
-
-router.get('/analytics/wallet-stats', async function(req, res) {
-    try {
-        const { data, error } = await supabase
-            .from('user_wallets')
-            .select('source, created_at');
-
-        if (error) throw error;
-
-        const total = data.length;
-        const generated = data.filter(w => w.source === 'generated').length;
-        const imported = data.filter(w => w.source === 'imported').length;
-
-        // Calculate daily stats for the last 7 days
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-        const recentWallets = data.filter(w => new Date(w.created_at) >= sevenDaysAgo);
-        const dailyStats = {};
-
-        recentWallets.forEach(wallet => {
-            const date = new Date(wallet.created_at).toISOString().split('T')[0];
-            if (!dailyStats[date]) {
-                dailyStats[date] = { generated: 0, imported: 0, total: 0 };
-            }
-            dailyStats[date][wallet.source]++;
-            dailyStats[date].total++;
-        });
-
-        res.json({
-            success: true,
-            stats: {
-                total_wallets: total,
-                generated_wallets: generated,
-                imported_wallets: imported,
-                generated_percentage: total > 0 ? ((generated / total) * 100).toFixed(2) : 0,
-                imported_percentage: total > 0 ? ((imported / total) * 100).toFixed(2) : 0,
-                daily_stats: dailyStats
-            },
-            message: `📊 Wallet Analytics: ${generated} generated, ${imported} imported (${((generated / total) * 100).toFixed(1)}% new users)`
-        });
-    } catch (error) {
-        console.error('Analytics error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-router.get('/analytics/daily-stats', async function(req, res) {
-    try {
-        const { data, error } = await supabase
-            .from('user_wallets')
-            .select('source, created_at')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        // Group by date and source
-        const dailyStats = {};
-        data.forEach(wallet => {
-            const date = new Date(wallet.created_at).toISOString().split('T')[0];
-            if (!dailyStats[date]) {
-                dailyStats[date] = { date: date, generated: 0, imported: 0, total: 0 };
-            }
-            dailyStats[date][wallet.source]++;
-            dailyStats[date].total++;
-        });
-
-        // Convert to array and sort by date
-        const statsArray = Object.values(dailyStats).sort((a, b) => b.date.localeCompare(a.date));
-
-        res.json({
-            success: true,
-            daily_stats: statsArray,
-            total_days: statsArray.length
-        });
-    } catch (error) {
-        console.error('Daily stats error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
