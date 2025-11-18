@@ -309,9 +309,40 @@ async function getRealBalance(address) {
 async function getNMXBalance(address) {
     try {
         console.log('🔄 Fetching NMX balance for:', address);
+        
+        // ✅ CORRECT NMX CONTRACT ADDRESS (from your research)
+        const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
+        console.log('🔍 Using NMX Contract:', NMX_CONTRACT);
 
-        // ✅ FIXED: Use the correct API endpoint for NMX balance
-        const response = await axios.get(`https://toncenter.com/api/v2/getJettonData`, {
+        // ✅ METHOD 1: Try TonAPI first (most reliable for jettons)
+        console.log('🔄 Trying TonAPI for NMX balance...');
+        const tonapiResponse = await axios.get(`https://tonapi.io/v2/accounts/${address}/jettons`, {
+            timeout: 10000
+        });
+
+        console.log('🔍 TonAPI Response:', tonapiResponse.data);
+
+        if (tonapiResponse.data && tonapiResponse.data.balances) {
+            const nmxJetton = tonapiResponse.data.balances.find(j => 
+                j.jetton.address === NMX_CONTRACT
+            );
+            
+            if (nmxJetton) {
+                const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+                console.log('✅ NMX Balance found via TonAPI:', nmxBalance, 'NMX');
+                
+                return {
+                    success: true,
+                    balance: parseFloat(nmxBalance).toFixed(2),
+                    address: address,
+                    rawBalance: nmxJetton.balance
+                };
+            }
+        }
+
+        // ✅ METHOD 2: Try TonCenter as fallback
+        console.log('🔄 Trying TonCenter for NMX balance...');
+        const toncenterResponse = await axios.get(`https://toncenter.com/api/v2/getJettonData`, {
             params: { 
                 address: address,
                 jetton_master: NMX_CONTRACT
@@ -320,10 +351,10 @@ async function getNMXBalance(address) {
             timeout: 10000
         });
 
-        console.log('🔍 NMX API Response:', response.data);
+        console.log('🔍 TonCenter Response:', toncenterResponse.data);
 
-        if (response.data && response.data.result) {
-            const balance = response.data.result.balance;
+        if (toncenterResponse.data && toncenterResponse.data.result) {
+            const balance = toncenterResponse.data.result.balance;
             let nmxBalance;
             
             if (typeof balance === 'object' && balance.toString) {
@@ -332,7 +363,7 @@ async function getNMXBalance(address) {
                 nmxBalance = TonWeb.utils.fromNano(balance);
             }
 
-            console.log('✅ NMX Balance found:', nmxBalance, 'NMX');
+            console.log('✅ NMX Balance found via TonCenter:', nmxBalance, 'NMX');
 
             return {
                 success: true,
@@ -340,37 +371,24 @@ async function getNMXBalance(address) {
                 address: address,
                 rawBalance: balance.toString()
             };
-        } else {
-            console.log('ℹ️ No NMX tokens found for address:', address);
-            return {
-                success: true,
-                balance: "0",
-                address: address,
-                rawBalance: "0"
-            };
         }
 
-    } catch (error) {
-        console.error('❌ NMX balance fetch failed:', error.message);
-        console.error('Error details:', error.response?.data);
-        
-        // ✅ ADDED: Try alternative API as fallback
+        // ✅ METHOD 3: Try direct contract call
+        console.log('🔄 Trying direct contract call...');
         try {
-            console.log('🔄 Trying alternative NMX API...');
-            const altResponse = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
+            const directResponse = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
                 params: { account: address },
                 timeout: 5000
             });
 
-            if (altResponse.data && altResponse.data.balances) {
-                const nmxJetton = altResponse.data.balances.find(j => 
-                    j.jetton.address === NMX_CONTRACT || 
-                    j.jetton.address === "0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec"
+            if (directResponse.data && directResponse.data.balances) {
+                const nmxJetton = directResponse.data.balances.find(j => 
+                    j.jetton.address === NMX_CONTRACT
                 );
                 
                 if (nmxJetton) {
                     const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-                    console.log('✅ Alternative NMX Balance found:', nmxBalance, 'NMX');
+                    console.log('✅ NMX Balance found via direct call:', nmxBalance, 'NMX');
                     
                     return {
                         success: true,
@@ -380,9 +398,20 @@ async function getNMXBalance(address) {
                     };
                 }
             }
-        } catch (altError) {
-            console.log('Alternative NMX API also failed:', altError.message);
+        } catch (directError) {
+            console.log('Direct contract call failed:', directError.message);
         }
+
+        console.log('ℹ️ No NMX tokens found for address:', address);
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0"
+        };
+
+    } catch (error) {
+        console.error('❌ All NMX balance methods failed:', error.message);
         
         return {
             success: true,
