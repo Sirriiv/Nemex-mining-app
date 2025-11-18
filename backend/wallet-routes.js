@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ UPDATED wallet-routes.js - REAL PRICES & FIXED IMPORT!');
+console.log('✅ UPDATED wallet-routes.js - 12/24 WORD MNEMONICS & FIXED IMPORT!');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -32,13 +32,25 @@ router.get('/test', (req, res) => {
 });
 
 // =============================================
-// WALLET GENERATION
+// WALLET GENERATION - UPDATED FOR 12/24 WORDS
 // =============================================
 
-async function generateRealTONWallet(wordCount) {
+async function generateRealTONWallet(wordCount = 12) { // ✅ DEFAULT TO 12 WORDS
     try {
+        console.log(`🔄 Generating ${wordCount}-word TON wallet...`);
+        
+        // Validate word count
+        if (wordCount !== 12 && wordCount !== 24) {
+            throw new Error('Word count must be 12 or 24');
+        }
+
         const strength = wordCount === 12 ? 128 : 256;
         const mnemonic = bip39.generateMnemonic(strength);
+
+        // Validate the generated mnemonic
+        if (!bip39.validateMnemonic(mnemonic)) {
+            throw new Error('Generated mnemonic validation failed');
+        }
 
         const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
 
@@ -51,11 +63,14 @@ async function generateRealTONWallet(wordCount) {
         const walletAddress = await wallet.getAddress();
         const address = walletAddress.toString(true, true, true);
 
+        console.log(`✅ ${wordCount}-word wallet generated: ${address}`);
+
         return {
             mnemonic: mnemonic,
             address: address,
             publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
-            privateKey: TonWeb.utils.bytesToHex(keyPair.secretKey)
+            privateKey: TonWeb.utils.bytesToHex(keyPair.secretKey),
+            wordCount: wordCount
         };
 
     } catch (error) {
@@ -253,18 +268,26 @@ async function getAllBalances(address) {
 }
 
 // =============================================
-// API ROUTES - FIXED IMPORT
+// API ROUTES - FIXED IMPORT & 12/24 WORD SUPPORT
 // =============================================
 
 router.post('/generate-wallet', async function(req, res) {
     try {
-        const { userId, wordCount = 24 } = req.body;
-        console.log('🔄 Generating TON wallet for user:', userId);
+        const { userId, wordCount = 12 } = req.body; // ✅ DEFAULT TO 12 WORDS
+        console.log('🔄 Generating TON wallet for user:', userId, 'with', wordCount, 'words');
 
         if (!userId) {
             return res.status(400).json({
                 success: false,
                 error: 'User ID is required'
+            });
+        }
+
+        // Validate word count
+        if (wordCount !== 12 && wordCount !== 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'Word count must be 12 or 24'
             });
         }
 
@@ -281,6 +304,7 @@ router.post('/generate-wallet', async function(req, res) {
                     public_key: walletData.publicKey,
                     wallet_type: 'TON',
                     source: 'generated',
+                    word_count: wordCount, // ✅ STORE WORD COUNT
                     created_at: new Date().toISOString()
                 }]);
 
@@ -301,7 +325,7 @@ router.post('/generate-wallet', async function(req, res) {
                 userId: userId,
                 address: walletData.address,
                 mnemonic: walletData.mnemonic,
-                wordCount: walletData.mnemonic.split(' ').length,
+                wordCount: walletData.wordCount,
                 type: 'TON',
                 source: 'generated'
             }
@@ -334,6 +358,15 @@ router.post('/import-wallet', async function(req, res) {
 
         // Enhanced mnemonic validation and cleaning
         const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
+        const wordCount = cleanedMnemonic.split(' ').length;
+        
+        // Validate word count
+        if (wordCount !== 12 && wordCount !== 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'Mnemonic must be 12 or 24 words. Found: ' + wordCount + ' words'
+            });
+        }
         
         if (!bip39.validateMnemonic(cleanedMnemonic)) {
             return res.status(400).json({
@@ -363,6 +396,7 @@ router.post('/import-wallet', async function(req, res) {
                     public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
                     wallet_type: 'TON',
                     source: 'imported',
+                    word_count: wordCount, // ✅ STORE IMPORTED WORD COUNT
                     created_at: new Date().toISOString()
                 }]);
 
@@ -383,7 +417,8 @@ router.post('/import-wallet', async function(req, res) {
                 userId: userId,
                 address: address, 
                 type: 'TON',
-                source: 'imported'
+                source: 'imported',
+                wordCount: wordCount // ✅ RETURN WORD COUNT
             }
         });
 
