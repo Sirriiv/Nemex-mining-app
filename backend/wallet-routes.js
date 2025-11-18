@@ -37,7 +37,8 @@ router.get('/test', (req, res) => {
             '/nmx-balance/:address',
             '/all-balances/:address',
             '/validate-address/:address',
-            '/supported-tokens'
+            '/supported-tokens',
+            '/analytics/wallet-stats'
         ]
     });
 });
@@ -225,7 +226,7 @@ async function getAllBalances(address) {
 }
 
 // =============================================
-// API ROUTES
+// API ROUTES - WITH ANALYTICS TRACKING
 // =============================================
 
 router.post('/generate-wallet', async function(req, res) {
@@ -236,7 +237,7 @@ router.post('/generate-wallet', async function(req, res) {
         const walletData = await generateRealTONWallet(wordCount);
         const encryptedMnemonic = encrypt(walletData.mnemonic);
 
-        // Try to insert into Supabase, but don't crash if it fails
+        // Try to insert into Supabase
         try {
             const { data, error } = await supabase
                 .from('user_wallets')
@@ -246,13 +247,14 @@ router.post('/generate-wallet', async function(req, res) {
                     encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
                     public_key: walletData.publicKey,
                     wallet_type: 'TON',
+                    source: 'generated', // ✅ ANALYTICS: Track as generated wallet
                     created_at: new Date().toISOString()
                 }]);
 
             if (error) {
                 console.warn('⚠️ Supabase insert failed (continuing without DB):', error.message);
             } else {
-                console.log('✅ Wallet saved to database');
+                console.log('✅ Wallet saved to database (generated)');
             }
         } catch (dbError) {
             console.warn('⚠️ Database error (continuing without DB):', dbError.message);
@@ -266,7 +268,8 @@ router.post('/generate-wallet', async function(req, res) {
                 address: walletData.address,
                 mnemonic: walletData.mnemonic,
                 wordCount: walletData.mnemonic.split(' ').length,
-                type: 'TON'
+                type: 'TON',
+                source: 'generated' // ✅ Return source to frontend
             }
         });
 
@@ -299,7 +302,7 @@ router.post('/import-wallet', async function(req, res) {
         const address = walletAddress.toString(true, true, true);
         const encryptedMnemonic = encrypt(mnemonic);
 
-        // Try to insert into Supabase, but don't crash if it fails
+        // Try to insert into Supabase
         try {
             const { data, error } = await supabase
                 .from('user_wallets')
@@ -309,13 +312,14 @@ router.post('/import-wallet', async function(req, res) {
                     encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
                     public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
                     wallet_type: 'TON',
+                    source: 'imported', // ✅ ANALYTICS: Track as imported wallet
                     created_at: new Date().toISOString()
                 }]);
 
             if (error) {
                 console.warn('⚠️ Supabase insert failed (continuing without DB):', error.message);
             } else {
-                console.log('✅ Wallet saved to database');
+                console.log('✅ Wallet saved to database (imported)');
             }
         } catch (dbError) {
             console.warn('⚠️ Database error (continuing without DB):', dbError.message);
@@ -325,7 +329,11 @@ router.post('/import-wallet', async function(req, res) {
 
         res.json({
             success: true,
-            wallet: { address: address, type: 'TON' }
+            wallet: { 
+                address: address, 
+                type: 'TON',
+                source: 'imported' // ✅ Return source to frontend
+            }
         });
 
     } catch (error) {
@@ -394,6 +402,90 @@ router.get('/supported-tokens', async function(req, res) {
         ];
         res.json({ success: true, tokens: tokens, primaryToken: "TON" });
     } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// =============================================
+// ANALYTICS ENDPOINTS
+// =============================================
+
+router.get('/analytics/wallet-stats', async function(req, res) {
+    try {
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .select('source, created_at');
+
+        if (error) throw error;
+
+        const total = data.length;
+        const generated = data.filter(w => w.source === 'generated').length;
+        const imported = data.filter(w => w.source === 'imported').length;
+
+        // Calculate daily stats for the last 7 days
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        
+        const recentWallets = data.filter(w => new Date(w.created_at) >= sevenDaysAgo);
+        const dailyStats = {};
+        
+        recentWallets.forEach(wallet => {
+            const date = new Date(wallet.created_at).toISOString().split('T')[0];
+            if (!dailyStats[date]) {
+                dailyStats[date] = { generated: 0, imported: 0, total: 0 };
+            }
+            dailyStats[date][wallet.source]++;
+            dailyStats[date].total++;
+        });
+
+        res.json({
+            success: true,
+            stats: {
+                total_wallets: total,
+                generated_wallets: generated,
+                imported_wallets: imported,
+                generated_percentage: total > 0 ? ((generated / total) * 100).toFixed(2) : 0,
+                imported_percentage: total > 0 ? ((imported / total) * 100).toFixed(2) : 0,
+                daily_stats: dailyStats
+            },
+            message: `📊 Wallet Analytics: ${generated} generated, ${imported} imported (${((generated / total) * 100).toFixed(1)}% new users)`
+        });
+    } catch (error) {
+        console.error('Analytics error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+router.get('/analytics/daily-stats', async function(req, res) {
+    try {
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .select('source, created_at')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Group by date and source
+        const dailyStats = {};
+        data.forEach(wallet => {
+            const date = new Date(wallet.created_at).toISOString().split('T')[0];
+            if (!dailyStats[date]) {
+                dailyStats[date] = { date: date, generated: 0, imported: 0, total: 0 };
+            }
+            dailyStats[date][wallet.source]++;
+            dailyStats[date].total++;
+        });
+
+        // Convert to array and sort by date
+        const statsArray = Object.values(dailyStats).sort((a, b) => b.date.localeCompare(a.date));
+
+        res.json({
+            success: true,
+            daily_stats: statsArray,
+            total_days: statsArray.length
+        });
+    } catch (error) {
+        console.error('Daily stats error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
