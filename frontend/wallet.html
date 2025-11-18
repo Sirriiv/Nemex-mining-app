@@ -1823,44 +1823,50 @@ async function updateRealBalances() {
         }
 
         function loadTokens() {
-            const tokenList = document.getElementById('tokenList');
-            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+    const tokenList = document.getElementById('tokenList');
+    const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
 
-            tokenList.innerHTML = '';
+    tokenList.innerHTML = '';
 
-            allTokens.forEach(token => {
-                const tokenValue = (token.balance || 0) * (token.price || 0);
-                const changeClass = (token.change24h || 0) >= 0 ? 'change-positive' : 'change-negative';
-                const changeSymbol = (token.change24h || 0) >= 0 ? '+' : '';
+    allTokens.forEach(token => {
+        const tokenValue = (token.balance || 0) * (token.price || 0);
+        
+        // ✅ FIXED: Proper percentage formatting
+        const change24h = token.change24h || 0;
+        const changeClass = change24h >= 0 ? 'change-positive' : 'change-negative';
+        const changeSymbol = change24h >= 0 ? '+' : '';
+        
+        // ✅ FIXED: Format percentage to 2 decimal places
+        const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
 
-                const featuredClass = token.isFeatured ? 'featured' : '';
+        const featuredClass = token.isFeatured ? 'featured' : '';
 
-                const tokenCard = document.createElement('div');
-                tokenCard.className = `token-card ${featuredClass}`;
-                tokenCard.innerHTML = `
-                    <div class="token-icon ${token.symbol.toLowerCase()}-icon">
-                        <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
-                             onerror="handleTokenLogoError(this, '${token.symbol}')">
-                        ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
-                    </div>
-                    <div class="token-info">
-                        <div class="token-name">${token.name}</div>
-                        <div class="token-symbol">${token.symbol}</div>
-                        <div class="token-price">
-                            $${formatTokenPrice(token.price)} 
-                            <span class="token-change ${changeClass}">${changeSymbol}${(token.change24h || 0).toFixed(1)}%</span>
-                        </div>
-                    </div>
-                    <div class="token-balance">
-                        <div class="token-amount">${formatTokenBalance(token.balance)}</div>
-                        <div class="token-value">$${tokenValue.toFixed(2)}</div>
-                    </div>
-                `;
-                tokenList.appendChild(tokenCard);
-            });
+        const tokenCard = document.createElement('div');
+        tokenCard.className = `token-card ${featuredClass}`;
+        tokenCard.innerHTML = `
+            <div class="token-icon ${token.symbol.toLowerCase()}-icon">
+                <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                     onerror="handleTokenLogoError(this, '${token.symbol}')">
+                ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
+            </div>
+            <div class="token-info">
+                <div class="token-name">${token.name}</div>
+                <div class="token-symbol">${token.symbol}</div>
+                <div class="token-price">
+                    $${formatTokenPrice(token.price)} 
+                    <span class="token-change ${changeClass}">${formattedChange}</span>
+                </div>
+            </div>
+            <div class="token-balance">
+                <div class="token-amount">${formatTokenBalance(token.balance)}</div>
+                <div class="token-value">$${tokenValue.toFixed(2)}</div>
+            </div>
+        `;
+        tokenList.appendChild(tokenCard);
+    });
 
-            document.getElementById('tokensLoading').style.display = 'none';
-        }
+    document.getElementById('tokensLoading').style.display = 'none';
+}
 
         // =============================================
         // HELPER FUNCTIONS
