@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE UPDATED VERSION WITH SESSION MANAGEMENT
+// assets/js/wallet.js - FIXED VERSION (NO MOCK DATA)
 class NemexWalletAPI {
     constructor() {
         this.baseURL = window.location.origin + '/api/wallet';
@@ -49,7 +49,7 @@ class NemexWalletAPI {
             const data = await response.json();
             console.log('✅ API Connection:', data.message);
             
-            // ✅ Check for active session and restore wallet
+            // Check for active session and restore wallet
             await this.restoreSession();
             
             this.isInitialized = true;
@@ -299,6 +299,8 @@ class NemexWalletAPI {
             
             if (data.success) {
                 console.log('✅ All balances fetched - TON:', data.balances.TON, 'NMX:', data.balances.NMX);
+            } else {
+                console.error('All balances fetch failed:', data.error);
             }
             
             return data;
@@ -327,24 +329,13 @@ class NemexWalletAPI {
         } catch (error) {
             console.error('❌ Price fetch failed:', error);
             return {
-                success: true,
+                success: false,
                 prices: {
                     TON: { price: 0, change24h: 0 },
                     NMX: { price: 0, change24h: 0 }
                 },
                 source: 'fallback'
             };
-        }
-    }
-
-    async validateAddress(address) {
-        try {
-            const response = await fetch(`${this.baseURL}/validate-address/${encodeURIComponent(address)}`);
-            const data = await response.json();
-            return data;
-        } catch (error) {
-            console.error('Address validation failed:', error);
-            return { success: false, isValid: false, error: error.message };
         }
     }
 
@@ -379,24 +370,24 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ NEW: Check if user has any wallets
+    // Check if user has any wallets
     async hasWallets() {
         const wallets = await this.getUserWallets();
         return wallets.length > 0;
     }
 
-    // ✅ NEW: Get current active wallet address
+    // Get current active wallet address
     getCurrentWalletAddress() {
         return this.currentWallet ? this.currentWallet.address : null;
     }
 
-    // ✅ NEW: Clear session (logout)
+    // Clear session (logout)
     clearSession() {
         this.setStoredWallet(null);
         console.log('✅ Session cleared');
     }
 
-    // ✅ NEW: Check if wallet is loaded
+    // Check if wallet is loaded
     isWalletLoaded() {
         return this.currentWallet !== null;
     }
