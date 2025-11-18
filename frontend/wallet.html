@@ -1148,21 +1148,27 @@
                 <div class="security-warning">
                     <strong>⚠️ CRITICAL:</strong> Write down these words and store them securely. Never share them!
                 </div>
+                
                 <div class="mnemonic-words" id="mnemonicWords"></div>
 
                 <div class="backup-confirmation">
                     <div class="confirmation-checkbox">
                         <input type="checkbox" id="backupConfirmed">
-                        <label for="backupConfirmed">I have written down my recovery phrase and stored it securely</label>
+                        <label for="backupConfirmed">✅ I have written down my recovery phrase and stored it securely</label>
                     </div>
                     <div class="security-warning">
-                        You will NOT be able to recover your funds without this phrase!
+                        <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
+                        We don't store your recovery phrase in plain text and cannot recover it for you.
                     </div>
                 </div>
 
                 <button class="close-modal" onclick="confirmBackupAndContinue()" id="confirmBackupBtn" disabled>
-                    ✅ Continue to Wallet
+                    🚀 Continue to Dashboard
                 </button>
+                
+                <div class="security-warning" style="margin-top: 15px; text-align: center;">
+                    <strong>🔒 Your wallet is not active until you confirm backup</strong>
+                </div>
             </div>
         </div>
 
@@ -1453,7 +1459,7 @@
         }
 
         // =============================================
-        // REAL BALANCE UPDATES - ENHANCED
+        // REAL BALANCE & PRICE UPDATES - COMPLETE REAL DATA
         // =============================================
 
         async function updateRealBalances() {
@@ -1462,31 +1468,46 @@
             }
 
             try {
-                console.log('🔄 Fetching REAL balances from blockchain...');
-                const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
+                console.log('🔄 Fetching REAL balances and prices...');
+                
+                // ✅ OPTIMIZED: Fetch both balances AND real prices simultaneously
+                const [balanceResult, priceResult] = await Promise.all([
+                    window.nemexWalletAPI.getAllBalances(walletState.address),
+                    window.nemexWalletAPI.getTokenPrices()
+                ]);
 
                 // Update TON balance with real blockchain data
                 const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
                 if (tonToken && balanceResult.balances.TON) {
                     tonToken.balance = parseFloat(balanceResult.balances.TON);
-                    console.log('✅ Real TON balance:', tonToken.balance);
+                    // ✅ UPDATE WITH REAL PRICE
+                    if (priceResult.prices && priceResult.prices.TON) {
+                        tonToken.price = priceResult.prices.TON.price;
+                        tonToken.change24h = priceResult.prices.TON.change24h;
+                    }
+                    console.log('✅ Real TON data:', tonToken.balance, 'TON @ $' + tonToken.price);
                 }
 
                 // Update NMX balance with real blockchain data
                 const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
                 if (nmxToken && balanceResult.balances.NMX) {
                     nmxToken.balance = parseFloat(balanceResult.balances.NMX);
-                    console.log('✅ Real NMX balance:', nmxToken.balance);
+                    // ✅ UPDATE WITH REAL PRICE
+                    if (priceResult.prices && priceResult.prices.NMX) {
+                        nmxToken.price = priceResult.prices.NMX.price;
+                        nmxToken.change24h = priceResult.prices.NMX.change24h;
+                    }
+                    console.log('✅ Real NMX data:', nmxToken.balance, 'NMX @ $' + nmxToken.price);
                 }
 
                 updatePortfolioValue();
                 loadTokens();
 
-                console.log('✅ Real blockchain balances updated');
+                console.log('✅ Real blockchain balances & prices updated');
 
             } catch (error) {
-                console.error('Failed to update real balances:', error);
-                // Set to 0 if API fails
+                console.error('Failed to update real data:', error);
+                // Set to 0 if API fails but keep trying
                 SUPPORTED_TOKENS[0].balance = 0;
                 SUPPORTED_TOKENS[1].balance = 0;
                 updatePortfolioValue();
@@ -1616,29 +1637,41 @@
             // Store the mnemonic for later use
             currentMnemonic = mnemonic;
 
-            // Reset confirmation
+            // Reset confirmation state
             document.getElementById('backupConfirmed').checked = false;
             document.getElementById('confirmBackupBtn').disabled = true;
+            document.getElementById('confirmBackupBtn').innerHTML = '🚀 Continue to Dashboard';
 
+            // Show the modal
             document.getElementById('backupModal').style.display = 'flex';
+            
+            console.log('📝 Backup modal shown with 24-word phrase');
         }
 
-        // ✅ FIXED: NEW FUNCTION FOR BACKUP CONFIRMATION
+        // ✅ FIXED: BACKUP CONFIRMATION WITH PROPER FLOW
         function confirmBackupAndContinue() {
-            if (!document.getElementById('backupConfirmed').checked) {
+            const confirmationCheckbox = document.getElementById('backupConfirmed');
+            
+            if (!confirmationCheckbox.checked) {
                 alert('⚠️ You must confirm that you have saved your recovery phrase!');
                 return;
             }
 
-            // Close backup modal
-            document.getElementById('backupModal').style.display = 'none';
+            console.log('✅ User confirmed backup, activating wallet...');
             
-            // Update wallet display and fetch balances
+            // Close backup modal
+            closeModal();
+
+            // Update wallet display to show dashboard
             updateWalletDisplay();
+            
+            // Fetch real balances and prices
             updateRealBalances();
             
             // Show success message
-            alert('✅ Wallet setup complete! Your recovery phrase has been saved.');
+            showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
+            
+            console.log('🎉 Wallet setup complete! User can now access dashboard.');
         }
 
         // =============================================
