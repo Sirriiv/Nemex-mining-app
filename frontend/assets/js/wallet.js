@@ -1,41 +1,45 @@
-// frontend/assets/js/wallet.js - FIXED VERSION (NO DEMO FALLBACKS)
+// assets/js/wallet.js - DATABASE-FIRST VERSION
 class NemexWalletAPI {
     constructor() {
-        this.apiBase = '/api/wallet';
-        this.currentUser = null;
+        this.baseURL = window.location.origin + '/api/wallet';
+        this.userId = this.getUserId();
+    }
+
+    getUserId() {
+        // Use a consistent user ID - in real app, this would be from authentication
+        let userId = localStorage.getItem('nemexUserId');
+        if (!userId) {
+            userId = 'user_' + Date.now();
+            localStorage.setItem('nemexUserId', userId);
+        }
+        return userId;
     }
 
     async init() {
-        return await this.checkAuthentication();
-    }
-
-    async checkAuthentication() {
+        console.log('🔄 Initializing Nemex Wallet API...');
+        // Test connection
         try {
-            if (window.supabase) {
-                const { data: { user } } = await window.supabase.auth.getUser();
-                if (user) {
-                    this.currentUser = user;
-                    console.log('✅ User authenticated:', user.id);
-                    return true;
-                }
-            }
-            console.log('⚠️ Please log in to use full wallet features');
-            return false;
+            const response = await fetch(`${this.baseURL}/test`);
+            const data = await response.json();
+            console.log('✅ API Connection:', data.message);
+            return true;
         } catch (error) {
-            console.error('Auth check failed:', error);
+            console.error('❌ API Connection failed:', error);
             return false;
         }
     }
 
     async generateNewWallet(wordCount = 24) {
         try {
-            const response = await fetch(`${this.apiBase}/generate-wallet`, {
+            console.log('🔄 Generating new wallet via API...');
+            
+            const response = await fetch(`${this.baseURL}/generate-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.currentUser?.id || 'user_' + Date.now(),
+                    userId: this.userId,
                     wordCount: wordCount
                 })
             });
@@ -44,28 +48,32 @@ class NemexWalletAPI {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error);
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('✅ Wallet generated via API:', data.wallet.address);
+                return data;
+            } else {
+                throw new Error(data.error || 'Failed to generate wallet');
             }
 
-            return result;
         } catch (error) {
-            console.error('API: Wallet generation failed:', error);
-            throw new Error('Wallet generation failed. Please check your backend connection.');
+            console.error('❌ Wallet generation failed:', error);
+            throw error;
         }
     }
 
     async importWallet(mnemonic) {
         try {
-            const response = await fetch(`${this.apiBase}/import-wallet`, {
+            console.log('🔄 Importing wallet via API...');
+            
+            const response = await fetch(`${this.baseURL}/import-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.currentUser?.id || 'user_imported_' + Date.now(),
+                    userId: this.userId,
                     mnemonic: mnemonic
                 })
             });
@@ -74,118 +82,83 @@ class NemexWalletAPI {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error);
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('✅ Wallet imported via API:', data.wallet.address);
+                return data;
+            } else {
+                throw new Error(data.error || 'Failed to import wallet');
             }
 
-            return result;
         } catch (error) {
-            console.error('API: Wallet import failed:', error);
-            throw new Error('Wallet import failed. Please check your recovery phrase and backend connection.');
+            console.error('❌ Wallet import failed:', error);
+            throw error;
         }
     }
 
     async getRealBalance(address) {
         try {
-            console.log('🔄 Fetching TON balance for:', address);
-            
-            const response = await fetch(`${this.apiBase}/real-balance/${address}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-
-            console.log('✅ TON Balance fetched:', result.balance, 'TON');
-            return result;
+            const response = await fetch(`${this.baseURL}/real-balance/${encodeURIComponent(address)}`);
+            const data = await response.json();
+            return data;
         } catch (error) {
-            console.error('API: TON balance fetch failed:', error);
-            throw new Error(`Failed to fetch TON balance: ${error.message}`);
+            console.error('Balance fetch failed:', error);
+            return { success: false, balance: "0", error: error.message };
         }
     }
 
     async getNMXBalance(address) {
         try {
-            console.log('🔄 Fetching NMX balance for:', address);
-            
-            const response = await fetch(`${this.apiBase}/nmx-balance/${address}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            console.log('✅ NMX Balance fetched:', result.balance, 'NMX');
-            return result;
+            const response = await fetch(`${this.baseURL}/nmx-balance/${encodeURIComponent(address)}`);
+            const data = await response.json();
+            return data;
         } catch (error) {
-            console.error('API: NMX balance fetch failed:', error);
-            throw new Error(`Failed to fetch NMX balance: ${error.message}`);
+            console.error('NMX balance fetch failed:', error);
+            return { success: false, balance: "0", error: error.message };
         }
     }
 
     async getAllBalances(address) {
         try {
-            console.log('🔄 Fetching all balances for:', address);
-            
-            const response = await fetch(`${this.apiBase}/all-balances/${address}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-
-            console.log('✅ All balances fetched:', result.balances);
-            return result;
+            const response = await fetch(`${this.baseURL}/all-balances/${encodeURIComponent(address)}`);
+            const data = await response.json();
+            return data;
         } catch (error) {
-            console.error('API: All balances fetch failed:', error);
-            throw new Error(`Failed to fetch balances: ${error.message}`);
+            console.error('All balances fetch failed:', error);
+            return { 
+                success: false, 
+                balances: { TON: "0", NMX: "0" }, 
+                error: error.message 
+            };
         }
     }
 
     async validateAddress(address) {
         try {
-            const response = await fetch(`${this.apiBase}/validate-address/${address}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
+            const response = await fetch(`${this.baseURL}/validate-address/${encodeURIComponent(address)}`);
+            const data = await response.json();
+            return data;
         } catch (error) {
-            console.error('API: Address validation failed:', error);
-            throw error;
+            console.error('Address validation failed:', error);
+            return { success: false, isValid: false, error: error.message };
         }
     }
 
-    async getSupportedTokens() {
+    async getUserWallets() {
         try {
-            const response = await fetch(`${this.apiBase}/supported-tokens`);
+            console.log('🔄 Fetching user wallets from database...');
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            // Since we don't have a specific endpoint for this yet,
+            // we'll create a client-side solution that syncs with database
+            // For now, return empty array - we'll enhance this later
+            return [];
             
-            return await response.json();
         } catch (error) {
-            console.error('API: Tokens fetch failed:', error);
-            throw error;
+            console.error('Failed to fetch user wallets:', error);
+            return [];
         }
     }
-
-    // REMOVED ALL DEMO FALLBACK FUNCTIONS - Using real API only
 }
 
 // Initialize global API instance
