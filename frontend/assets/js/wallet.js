@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION
+// assets/js/wallet.js - COMPLETE FIXED VERSION WITH 12-WORD SUPPORT
 class NemexWalletAPI {
     constructor() {
         this.baseURL = window.location.origin + '/api/wallet';
@@ -27,7 +27,7 @@ class NemexWalletAPI {
         }
     }
 
-    async generateNewWallet(wordCount = 24) {
+    async generateNewWallet(wordCount = 12) { // ✅ CHANGED DEFAULT TO 12 WORDS
         try {
             console.log('🔄 Generating new wallet via API...');
 
@@ -112,10 +112,10 @@ class NemexWalletAPI {
             .replace(/[^a-z\s]/g, '');
     }
 
-    // Basic mnemonic validation
+    // Basic mnemonic validation - SUPPORTS BOTH 12 & 24 WORDS
     isValidMnemonic(mnemonic) {
         const words = mnemonic.split(' ');
-        return words.length === 12 || words.length === 24;
+        return words.length === 12 || words.length === 24; // ✅ BOTH SUPPORTED
     }
 
     async getRealBalance(address) {
