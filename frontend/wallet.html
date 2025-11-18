@@ -1364,118 +1364,188 @@
         }
 
         // =============================================
-        // WALLET CREATION & IMPORT - FIXED
-        // =============================================
+// WALLET CREATION & IMPORT - FIXED
+// =============================================
 
-        async function generateNewWallet() {
-            const generateBtn = document.getElementById('generateWalletBtn');
-            const statusDiv = document.getElementById('createWalletStatus');
+async function generateNewWallet() {
+    const generateBtn = document.getElementById('generateWalletBtn');
+    const statusDiv = document.getElementById('createWalletStatus');
 
-            try {
-                generateBtn.innerHTML = '<div class="loading"></div> Generating...';
-                generateBtn.disabled = true;
-                showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
+    try {
+        generateBtn.innerHTML = '<div class="loading"></div> Generating...';
+        generateBtn.disabled = true;
+        showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
 
-                console.log('🔄 Creating wallet via database...');
+        console.log('🔄 Creating wallet via database...');
 
-                const result = await window.nemexWalletAPI.generateNewWallet(24);
+        const result = await window.nemexWalletAPI.generateNewWallet(12); // ✅ CHANGED TO 12 WORDS
 
-                // Store the mnemonic for backup modal
-                currentMnemonic = result.wallet.mnemonic;
+        // Store the mnemonic for backup modal
+        currentMnemonic = result.wallet.mnemonic;
 
-                // Update wallet state from database response
-                walletState = {
-                    isInitialized: true,
-                    walletType: 'new',
-                    userId: result.wallet.userId,
-                    address: result.wallet.address,
-                    balances: {}
-                };
+        // Update wallet state from database response
+        walletState = {
+            isInitialized: true,
+            walletType: 'new',
+            userId: result.wallet.userId,
+            address: result.wallet.address,
+            balances: {}
+        };
 
-                console.log('✅ Wallet created in database:', walletState.address);
-                showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
+        console.log('✅ Wallet created in database:', walletState.address);
+        showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
 
-                // Show backup modal instead of going directly to wallet
-                setTimeout(() => {
-                    closeModal();
-                    showBackupModal(currentMnemonic);
-                }, 1000);
+        // Show backup modal instead of going directly to wallet
+        setTimeout(() => {
+            closeModal();
+            showBackupModal(currentMnemonic);
+        }, 1000);
 
-            } catch (error) {
-                console.error('Wallet creation failed:', error);
-                showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error', statusDiv);
-            } finally {
-                generateBtn.innerHTML = 'Generate New Wallet';
-                generateBtn.disabled = false;
-            }
+    } catch (error) {
+        console.error('Wallet creation failed:', error);
+        showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error', statusDiv);
+    } finally {
+        generateBtn.innerHTML = 'Generate New Wallet';
+        generateBtn.disabled = false;
+    }
+}
+
+async function importWalletFromModal() {
+    const importBtn = document.getElementById('importWalletBtn');
+    const statusDiv = document.getElementById('importWalletStatus');
+    const mnemonicInput = document.getElementById('importMnemonic');
+    const mnemonic = mnemonicInput.value.trim();
+
+    if (!mnemonic) {
+        showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
+        return;
+    }
+
+    // Basic client-side validation
+    const wordCount = mnemonic.split(' ').length;
+    if (wordCount !== 12 && wordCount !== 24) {
+        showStatusMessage('Recovery phrase must be 12 or 24 words', 'error', statusDiv);
+        return;
+    }
+
+    try {
+        importBtn.innerHTML = '<div class="loading"></div> Importing...';
+        importBtn.disabled = true;
+        showStatusMessage('Importing your wallet...', 'loading', statusDiv);
+
+        console.log('🔄 Importing wallet via database...');
+
+        const result = await window.nemexWalletAPI.importWallet(mnemonic);
+
+        // ✅ STORE MNEMONIC FOR IMPORTED WALLETS - ENSURES CORRECT ASSOCIATION
+        currentMnemonic = mnemonic;
+
+        // Update wallet state from database response
+        walletState = {
+            isInitialized: true,
+            walletType: 'imported', 
+            userId: result.wallet.userId,
+            address: result.wallet.address,
+            balances: {}
+        };
+
+        console.log('✅ Wallet imported to database:', walletState.address);
+        console.log('🔑 Mnemonic stored for imported wallet');
+        showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+        setTimeout(() => {
+            closeModal();
+            updateWalletDisplay();
+            updateRealBalances();
+        }, 2000);
+
+    } catch (error) {
+        console.error('Wallet import failed:', error);
+        
+        // Better error messages for common issues
+        let errorMessage = error.message;
+        if (error.message.includes('400')) {
+            errorMessage = 'Invalid recovery phrase format. Please check your words.';
+        } else if (error.message.includes('Network')) {
+            errorMessage = 'Network error. Please check your connection.';
         }
+        
+        showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
+    } finally {
+        importBtn.innerHTML = 'Import Wallet';
+        importBtn.disabled = false;
+    }
+}
 
-        async function importWalletFromModal() {
-            const importBtn = document.getElementById('importWalletBtn');
-            const statusDiv = document.getElementById('importWalletStatus');
-            const mnemonicInput = document.getElementById('importMnemonic');
-            const mnemonic = mnemonicInput.value.trim();
+// =============================================
+// BACKUP CONFIRMATION - FIXED CONTINUE BUTTON
+// =============================================
 
-            if (!mnemonic) {
-                showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
-                return;
-            }
+function toggleContinueButton() {
+    const confirmationCheckbox = document.getElementById('backupConfirmed');
+    const continueButton = document.getElementById('confirmBackupBtn');
+    
+    if (confirmationCheckbox && continueButton) {
+        continueButton.disabled = !confirmationCheckbox.checked;
+        console.log('🔘 Continue button state:', continueButton.disabled ? 'disabled' : 'enabled');
+    }
+}
 
-            // Basic client-side validation
-            const wordCount = mnemonic.split(' ').length;
-            if (wordCount !== 12 && wordCount !== 24) {
-                showStatusMessage('Recovery phrase must be 12 or 24 words', 'error', statusDiv);
-                return;
-            }
+function showBackupModal(mnemonic) {
+    const words = mnemonic.split(' ');
+    const mnemonicWords = document.getElementById('mnemonicWords');
+    mnemonicWords.innerHTML = '';
 
-            try {
-                importBtn.innerHTML = '<div class="loading"></div> Importing...';
-                importBtn.disabled = true;
-                showStatusMessage('Importing your wallet...', 'loading', statusDiv);
+    words.forEach((word, index) => {
+        const wordElement = document.createElement('div');
+        wordElement.className = 'mnemonic-word';
+        wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
+        mnemonicWords.appendChild(wordElement);
+    });
 
-                console.log('🔄 Importing wallet via database...');
+    // Store the mnemonic for later use
+    currentMnemonic = mnemonic;
 
-                const result = await window.nemexWalletAPI.importWallet(mnemonic);
+    // Reset confirmation state
+    document.getElementById('backupConfirmed').checked = false;
+    document.getElementById('confirmBackupBtn').disabled = true;
+    
+    // Show the modal
+    document.getElementById('backupModal').style.display = 'flex';
+    
+    console.log('📝 Backup modal shown with 12-word phrase for wallet:', walletState.address);
+}
 
-                // ✅ STORE MNEMONIC FOR IMPORTED WALLETS - ENSURES CORRECT ASSOCIATION
-                currentMnemonic = mnemonic;
+function confirmBackupAndContinue() {
+    const confirmationCheckbox = document.getElementById('backupConfirmed');
+    const continueButton = document.getElementById('confirmBackupBtn');
+    
+    if (!confirmationCheckbox.checked) {
+        alert('⚠️ You must confirm that you have saved your recovery phrase!');
+        return;
+    }
 
-                // Update wallet state from database response
-                walletState = {
-                    isInitialized: true,
-                    walletType: 'imported', 
-                    userId: result.wallet.userId,
-                    address: result.wallet.address,
-                    balances: {}
-                };
+    if (continueButton.disabled) {
+        alert('⚠️ Please confirm you have saved the recovery phrase first!');
+        return;
+    }
 
-                console.log('✅ Wallet imported to database:', walletState.address);
-                console.log('🔑 Mnemonic stored for imported wallet');
-                showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+    console.log('✅ User confirmed backup for wallet:', walletState.address);
+    
+    // Close backup modal
+    closeModal();
 
-                setTimeout(() => {
-                    closeModal();
-                    updateWalletDisplay();
-                    updateRealBalances();
-                }, 2000);
-
-            } catch (error) {
-                console.error('Wallet import failed:', error);
-                
-                // Better error messages for common issues
-                let errorMessage = error.message;
-                if (error.message.includes('400')) {
-                    errorMessage = 'Invalid recovery phrase format. Please check your words.';
-                } else if (error.message.includes('Network')) {
-                    errorMessage = 'Network error. Please check your connection.';
-                }
-                
-                showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
-            } finally {
-                importBtn.innerHTML = 'Import Wallet';
-                importBtn.disabled = false;
-            }
-        }
+    // Update wallet display to show dashboard
+    updateWalletDisplay();
+    
+    // Fetch real balances and prices
+    updateRealBalances();
+    
+    // Show success message
+    showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
+    
+    console.log('🎉 Wallet setup complete! User can now access dashboard for:', walletState.address);
+}
 
         // =============================================
         // REAL BALANCE & PRICE UPDATES - COMPLETE REAL DATA
