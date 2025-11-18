@@ -1141,37 +1141,37 @@
             </div>
         </div>
 
-        <!-- Backup Modal with Confirmation - FIXED -->
-        <div id="backupModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">🔒 Backup Your Wallet</div>
-                <div class="security-warning">
-                    <strong>⚠️ CRITICAL:</strong> Write down these words and store them securely. Never share them!
-                </div>
-                
-                <div class="mnemonic-words" id="mnemonicWords"></div>
+    <!-- Backup Modal with Confirmation - FIXED -->
+<div id="backupModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-title">🔒 Backup Your Wallet</div>
+        <div class="security-warning">
+            <strong>⚠️ CRITICAL:</strong> Write down these 12 words and store them securely. Never share them!
+        </div>
+        
+        <div class="mnemonic-words" id="mnemonicWords"></div>
 
-                <div class="backup-confirmation">
-                    <div class="confirmation-checkbox">
-                        <input type="checkbox" id="backupConfirmed">
-                        <label for="backupConfirmed">✅ I have written down my recovery phrase and stored it securely</label>
-                    </div>
-                    <div class="security-warning">
-                        <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
-                        We don't store your recovery phrase in plain text and cannot recover it for you.
-                    </div>
-                </div>
-
-                <!-- ✅ FIXED: PROPERLY WORKING CONTINUE BUTTON -->
-                <button class="close-modal" onclick="confirmBackupAndContinue()" id="confirmBackupBtn" disabled>
-                    🚀 Continue to Dashboard
-                </button>
-                
-                <div class="security-warning" style="margin-top: 15px; text-align: center;">
-                    <strong>🔒 Your wallet is not active until you confirm backup</strong>
-                </div>
+        <div class="backup-confirmation">
+            <div class="confirmation-checkbox">
+                <input type="checkbox" id="backupConfirmed" onchange="toggleContinueButton()">
+                <label for="backupConfirmed">✅ I have written down my recovery phrase and stored it securely</label>
+            </div>
+            <div class="security-warning">
+                <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
+                We don't store your recovery phrase in plain text and cannot recover it for you.
             </div>
         </div>
+
+        <!-- ✅ FIXED: PROPERLY WORKING CONTINUE BUTTON -->
+        <button class="close-modal" id="confirmBackupBtn" onclick="confirmBackupAndContinue()" disabled>
+            🚀 Continue to Dashboard
+        </button>
+        
+        <div class="security-warning" style="margin-top: 15px; text-align: center;">
+            <strong>🔒 Your wallet is not active until you confirm backup</strong>
+        </div>
+    </div>
+</div>
 
         <!-- View Seed Phrase Modal -->
         <div id="viewSeedModal" class="modal">
