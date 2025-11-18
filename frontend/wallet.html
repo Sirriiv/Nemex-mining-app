@@ -995,13 +995,13 @@
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                 </svg>
-                <div class="action-label">Switch Wallet</div>
+                <div class="action-label">Swap</div>
             </div>
             <div class="action-btn" onclick="showBuyModal()" id="buyButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
                 </svg>
-                <div class="action-label">Settings</div>
+                <div class="action-label">Buy</div>
             </div>
         </div>
 
@@ -1112,9 +1112,9 @@
                 <div class="security-warning">
                     <strong>⚠️ IMPORTANT:</strong> You will generate a 24-word recovery phrase. Store it securely!
                 </div>
-                
+
                 <div id="createWalletStatus"></div>
-                
+
                 <button class="close-modal" onclick="generateNewWallet()" id="generateWalletBtn">
                     Generate New Wallet
                 </button>
@@ -1131,9 +1131,9 @@
                 </div>
                 <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
                           class="comment-input" rows="4"></textarea>
-                
+
                 <div id="importWalletStatus"></div>
-                
+
                 <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
                     Import Wallet
                 </button>
@@ -1141,7 +1141,7 @@
             </div>
         </div>
 
-        <!-- Backup Modal with Confirmation -->
+        <!-- Backup Modal with Confirmation - FIXED -->
         <div id="backupModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">🔒 Backup Your Wallet</div>
@@ -1149,7 +1149,7 @@
                     <strong>⚠️ CRITICAL:</strong> Write down these words and store them securely. Never share them!
                 </div>
                 <div class="mnemonic-words" id="mnemonicWords"></div>
-                
+
                 <div class="backup-confirmation">
                     <div class="confirmation-checkbox">
                         <input type="checkbox" id="backupConfirmed">
@@ -1159,9 +1159,9 @@
                         You will NOT be able to recover your funds without this phrase!
                     </div>
                 </div>
-                
-                <button class="close-modal" onclick="closeBackupModal()" id="confirmBackupBtn" disabled>
-                    I've Saved My Recovery Phrase
+
+                <button class="close-modal" onclick="confirmBackupAndContinue()" id="confirmBackupBtn" disabled>
+                    ✅ Continue to Wallet
                 </button>
             </div>
         </div>
@@ -1213,7 +1213,7 @@
                         </div>
                         <div class="wallet-management-arrow">▼</div>
                     </div>
-                    
+
                     <div class="wallet-management-content" id="walletManagementContent">
                         <div class="wallet-list" id="walletList">
                             <!-- Wallets will be loaded from database -->
@@ -1257,12 +1257,12 @@
             </div>
         </div>
 
-        <!-- Swap Modal -->
+        <!-- Swap Modal - RESTORED -->
         <div id="swapModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Switch Wallet</div>
+                <div class="modal-title">Swap</div>
                 <div class="security-warning">
-                    Use the Settings menu to manage and switch between wallets.
+                    Swap functionality coming soon!
                 </div>
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
@@ -1271,9 +1271,9 @@
         <!-- Buy Modal -->
         <div id="buyModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Settings</div>
+                <div class="modal-title">Buy Crypto</div>
                 <div class="security-warning">
-                    Use the Settings menu to manage your wallet preferences.
+                    Buy functionality coming soon!
                 </div>
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
@@ -1281,7 +1281,7 @@
 
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT - ENHANCED VERSION -->
+    <!-- COMPLETE WALLET SCRIPT - FIXED VERSION -->
     <script>
         // =============================================
         // WALLET STATE MANAGEMENT
@@ -1363,7 +1363,7 @@
         async function generateNewWallet() {
             const generateBtn = document.getElementById('generateWalletBtn');
             const statusDiv = document.getElementById('createWalletStatus');
-            
+
             try {
                 generateBtn.innerHTML = '<div class="loading"></div> Generating...';
                 generateBtn.disabled = true;
@@ -1407,7 +1407,7 @@
             const importBtn = document.getElementById('importWalletBtn');
             const statusDiv = document.getElementById('importWalletStatus');
             const mnemonic = document.getElementById('importMnemonic').value.trim();
-            
+
             if (!mnemonic) {
                 showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
                 return;
@@ -1421,6 +1421,9 @@
                 console.log('🔄 Importing wallet via database...');
 
                 const result = await window.nemexWalletAPI.importWallet(mnemonic);
+
+                // ✅ FIX: STORE MNEMONIC FOR IMPORTED WALLETS TOO
+                currentMnemonic = mnemonic;
 
                 // Update wallet state from database response
                 walletState = {
@@ -1499,7 +1502,7 @@
             const content = document.getElementById('walletManagementContent');
             const arrow = document.querySelector('.wallet-management-arrow');
             const header = document.querySelector('.wallet-management-header');
-            
+
             content.classList.toggle('expanded');
             arrow.classList.toggle('expanded');
             header.classList.toggle('active');
@@ -1507,7 +1510,7 @@
 
         function updateWalletList() {
             const walletList = document.getElementById('walletList');
-            
+
             // For now, show current wallet only
             // In future, implement proper multi-wallet from database
             if (walletState.isInitialized) {
@@ -1544,10 +1547,10 @@
 
         function confirmDeleteWallet() {
             if (!walletToDelete) return;
-            
+
             // Here you would call an API to delete from database
             console.log('🗑️ Deleting wallet:', walletToDelete);
-            
+
             // For now, just reset the state
             walletState = {
                 isInitialized: false,
@@ -1557,21 +1560,21 @@
                 balances: {},
                 lastUpdate: null
             };
-            
+
             // Reset tokens
             SUPPORTED_TOKENS[0].balance = 0;
             SUPPORTED_TOKENS[1].balance = 0;
-            
+
             // Update UI
             updateWalletDisplay();
             updateWalletList();
-            
+
             alert('✅ Wallet deleted successfully!');
             closeModal();
         }
 
         // =============================================
-        // SEED PHRASE MANAGEMENT
+        // SEED PHRASE MANAGEMENT - FIXED
         // =============================================
 
         function showViewSeedPhrase() {
@@ -1595,7 +1598,7 @@
         }
 
         // =============================================
-        // BACKUP CONFIRMATION
+        // BACKUP CONFIRMATION - FIXED
         // =============================================
 
         function showBackupModal(mnemonic) {
@@ -1610,6 +1613,9 @@
                 mnemonicWords.appendChild(wordElement);
             });
 
+            // Store the mnemonic for later use
+            currentMnemonic = mnemonic;
+
             // Reset confirmation
             document.getElementById('backupConfirmed').checked = false;
             document.getElementById('confirmBackupBtn').disabled = true;
@@ -1617,15 +1623,22 @@
             document.getElementById('backupModal').style.display = 'flex';
         }
 
-        function closeBackupModal() {
+        // ✅ FIXED: NEW FUNCTION FOR BACKUP CONFIRMATION
+        function confirmBackupAndContinue() {
             if (!document.getElementById('backupConfirmed').checked) {
                 alert('⚠️ You must confirm that you have saved your recovery phrase!');
                 return;
             }
 
+            // Close backup modal
             document.getElementById('backupModal').style.display = 'none';
+            
+            // Update wallet display and fetch balances
             updateWalletDisplay();
             updateRealBalances();
+            
+            // Show success message
+            alert('✅ Wallet setup complete! Your recovery phrase has been saved.');
         }
 
         // =============================================
@@ -1647,7 +1660,7 @@
         });
 
         // =============================================
-        // UI UPDATES (Keep existing functions)
+        // UI UPDATES
         // =============================================
 
         function updateWalletDisplay() {
@@ -1668,7 +1681,7 @@
                 actionButtons.style.display = 'none';
                 tokenSection.style.display = 'none';
             }
-            
+
             updateWalletList();
         }
 
@@ -1726,7 +1739,7 @@
         }
 
         // =============================================
-        // HELPER FUNCTIONS (Keep existing)
+        // HELPER FUNCTIONS
         // =============================================
 
         function formatTokenBalance(balance) {
@@ -1759,9 +1772,9 @@
 
         function showStatusMessage(message, type, container) {
             if (!container) return;
-            
+
             container.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
-            
+
             if (type === 'success') {
                 setTimeout(() => {
                     container.innerHTML = '';
@@ -1770,7 +1783,7 @@
         }
 
         // =============================================
-        // MODAL MANAGEMENT (Keep existing)
+        // MODAL MANAGEMENT
         // =============================================
 
         function showCreateWalletModal() {
@@ -1843,7 +1856,7 @@
         }
 
         // =============================================
-        // SEND FUNCTIONALITY (Keep existing)
+        // SEND FUNCTIONALITY
         // =============================================
 
         function updateAvailableBalance() {
