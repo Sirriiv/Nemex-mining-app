@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ CLEAN wallet-routes.js LOADED - NO HARCODED ADDRESSES!');
+console.log('✅ UPDATED wallet-routes.js - FIXED USERID ISSUE!');
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -226,13 +226,20 @@ async function getAllBalances(address) {
 }
 
 // =============================================
-// API ROUTES - WITH ANALYTICS TRACKING
+// API ROUTES - FIXED USERID ISSUE
 // =============================================
 
 router.post('/generate-wallet', async function(req, res) {
     try {
         const { userId, wordCount = 24 } = req.body;
-        console.log('🔄 Generating TON wallet...');
+        console.log('🔄 Generating TON wallet for user:', userId);
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID is required'
+            });
+        }
 
         const walletData = await generateRealTONWallet(wordCount);
         const encryptedMnemonic = encrypt(walletData.mnemonic);
@@ -247,29 +254,33 @@ router.post('/generate-wallet', async function(req, res) {
                     encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
                     public_key: walletData.publicKey,
                     wallet_type: 'TON',
-                    source: 'generated', // ✅ ANALYTICS: Track as generated wallet
+                    source: 'generated',
                     created_at: new Date().toISOString()
                 }]);
 
             if (error) {
-                console.warn('⚠️ Supabase insert failed (continuing without DB):', error.message);
+                console.warn('⚠️ Supabase insert failed:', error.message);
+                // Continue anyway - the wallet was generated successfully
             } else {
                 console.log('✅ Wallet saved to database (generated)');
             }
         } catch (dbError) {
-            console.warn('⚠️ Database error (continuing without DB):', dbError.message);
+            console.warn('⚠️ Database error:', dbError.message);
+            // Continue anyway - the wallet was generated successfully
         }
 
         console.log('✅ Wallet generated:', walletData.address);
 
+        // ✅ FIX: Return userId in response
         res.json({
             success: true,
             wallet: {
+                userId: userId, // ✅ ADDED THIS
                 address: walletData.address,
                 mnemonic: walletData.mnemonic,
                 wordCount: walletData.mnemonic.split(' ').length,
                 type: 'TON',
-                source: 'generated' // ✅ Return source to frontend
+                source: 'generated'
             }
         });
 
@@ -282,7 +293,21 @@ router.post('/generate-wallet', async function(req, res) {
 router.post('/import-wallet', async function(req, res) {
     try {
         const { userId, mnemonic } = req.body;
-        console.log('🔄 Importing TON wallet...');
+        console.log('🔄 Importing TON wallet for user:', userId);
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID is required'
+            });
+        }
+
+        if (!mnemonic) {
+            return res.status(400).json({
+                success: false,
+                error: 'Mnemonic phrase is required'
+            });
+        }
 
         if (!bip39.validateMnemonic(mnemonic)) {
             return res.status(400).json({
@@ -312,32 +337,76 @@ router.post('/import-wallet', async function(req, res) {
                     encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
                     public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
                     wallet_type: 'TON',
-                    source: 'imported', // ✅ ANALYTICS: Track as imported wallet
+                    source: 'imported',
                     created_at: new Date().toISOString()
                 }]);
 
             if (error) {
-                console.warn('⚠️ Supabase insert failed (continuing without DB):', error.message);
+                console.warn('⚠️ Supabase insert failed:', error.message);
+                // Continue anyway - the wallet was imported successfully
             } else {
                 console.log('✅ Wallet saved to database (imported)');
             }
         } catch (dbError) {
-            console.warn('⚠️ Database error (continuing without DB):', dbError.message);
+            console.warn('⚠️ Database error:', dbError.message);
+            // Continue anyway - the wallet was imported successfully
         }
 
         console.log('✅ Wallet imported:', address);
 
+        // ✅ FIX: Return userId in response
         res.json({
             success: true,
             wallet: { 
+                userId: userId, // ✅ ADDED THIS
                 address: address, 
                 type: 'TON',
-                source: 'imported' // ✅ Return source to frontend
+                source: 'imported'
             }
         });
 
     } catch (error) {
         console.error('Wallet import error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// =============================================
+// NEW ROUTE: GET USER WALLETS
+// =============================================
+
+router.get('/user-wallets/:userId', async function(req, res) {
+    try {
+        const { userId } = req.params;
+        console.log('🔄 Fetching wallets for user:', userId);
+
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Database error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        console.log(`✅ Found ${data.length} wallets for user ${userId}`);
+
+        res.json({
+            success: true,
+            wallets: data.map(wallet => ({
+                userId: wallet.user_id,
+                address: wallet.address,
+                walletType: wallet.source === 'generated' ? 'new' : 'imported',
+                type: wallet.wallet_type,
+                source: wallet.source,
+                createdAt: wallet.created_at
+            }))
+        });
+
+    } catch (error) {
+        console.error('Get user wallets error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -425,10 +494,10 @@ router.get('/analytics/wallet-stats', async function(req, res) {
         // Calculate daily stats for the last 7 days
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        
+
         const recentWallets = data.filter(w => new Date(w.created_at) >= sevenDaysAgo);
         const dailyStats = {};
-        
+
         recentWallets.forEach(wallet => {
             const date = new Date(wallet.created_at).toISOString().split('T')[0];
             if (!dailyStats[date]) {
