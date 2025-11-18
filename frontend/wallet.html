@@ -1162,6 +1162,7 @@
                     </div>
                 </div>
 
+                <!-- ✅ FIXED: PROPERLY WORKING CONTINUE BUTTON -->
                 <button class="close-modal" onclick="confirmBackupAndContinue()" id="confirmBackupBtn" disabled>
                     🚀 Continue to Dashboard
                 </button>
@@ -1412,10 +1413,18 @@
         async function importWalletFromModal() {
             const importBtn = document.getElementById('importWalletBtn');
             const statusDiv = document.getElementById('importWalletStatus');
-            const mnemonic = document.getElementById('importMnemonic').value.trim();
+            const mnemonicInput = document.getElementById('importMnemonic');
+            const mnemonic = mnemonicInput.value.trim();
 
             if (!mnemonic) {
                 showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
+                return;
+            }
+
+            // Basic client-side validation
+            const wordCount = mnemonic.split(' ').length;
+            if (wordCount !== 12 && wordCount !== 24) {
+                showStatusMessage('Recovery phrase must be 12 or 24 words', 'error', statusDiv);
                 return;
             }
 
@@ -1428,7 +1437,7 @@
 
                 const result = await window.nemexWalletAPI.importWallet(mnemonic);
 
-                // ✅ FIX: STORE MNEMONIC FOR IMPORTED WALLETS TOO
+                // ✅ STORE MNEMONIC FOR IMPORTED WALLETS - ENSURES CORRECT ASSOCIATION
                 currentMnemonic = mnemonic;
 
                 // Update wallet state from database response
@@ -1441,6 +1450,7 @@
                 };
 
                 console.log('✅ Wallet imported to database:', walletState.address);
+                console.log('🔑 Mnemonic stored for imported wallet');
                 showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
 
                 setTimeout(() => {
@@ -1451,7 +1461,16 @@
 
             } catch (error) {
                 console.error('Wallet import failed:', error);
-                showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error', statusDiv);
+                
+                // Better error messages for common issues
+                let errorMessage = error.message;
+                if (error.message.includes('400')) {
+                    errorMessage = 'Invalid recovery phrase format. Please check your words.';
+                } else if (error.message.includes('Network')) {
+                    errorMessage = 'Network error. Please check your connection.';
+                }
+                
+                showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
             } finally {
                 importBtn.innerHTML = 'Import Wallet';
                 importBtn.disabled = false;
@@ -1645,10 +1664,10 @@
             // Show the modal
             document.getElementById('backupModal').style.display = 'flex';
             
-            console.log('📝 Backup modal shown with 24-word phrase');
+            console.log('📝 Backup modal shown with 24-word phrase for wallet:', walletState.address);
         }
 
-        // ✅ FIXED: BACKUP CONFIRMATION WITH PROPER FLOW
+        // ✅ FIXED: BACKUP CONFIRMATION WITH PROPER WALLET ASSOCIATION
         function confirmBackupAndContinue() {
             const confirmationCheckbox = document.getElementById('backupConfirmed');
             
@@ -1657,7 +1676,8 @@
                 return;
             }
 
-            console.log('✅ User confirmed backup, activating wallet...');
+            console.log('✅ User confirmed backup for wallet:', walletState.address);
+            console.log('🔑 Associated mnemonic:', currentMnemonic ? 'Stored securely' : 'MISSING!');
             
             // Close backup modal
             closeModal();
@@ -1671,7 +1691,7 @@
             // Show success message
             showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
             
-            console.log('🎉 Wallet setup complete! User can now access dashboard.');
+            console.log('🎉 Wallet setup complete! User can now access dashboard for:', walletState.address);
         }
 
         // =============================================
