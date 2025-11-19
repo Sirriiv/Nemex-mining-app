@@ -1057,7 +1057,7 @@
                 <div class="security-warning">
                     <strong>🔑 Enter your 12 or 24-word recovery phrase:</strong>
                 </div>
-                
+
                 <div class="form-group">
                     <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
                               class="form-textarea" rows="4"></textarea>
@@ -1264,7 +1264,7 @@
 
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT - UPDATED WITH MULTI-PATH IMPORT -->
+    <!-- COMPLETE WALLET SCRIPT - FIXED NMX BALANCE DISPLAY -->
     <script>
     // =============================================
     // WALLET STATE MANAGEMENT
@@ -1283,31 +1283,31 @@
     let customTokens = [];
     let currentMnemonic = null;
 
-    // Supported tokens - ENSURE NMX IS PROPERLY INITIALIZED
-let SUPPORTED_TOKENS = [
-    {
-        symbol: "TON",
-        name: "Toncoin",
-        balance: 0, // Will be updated from API
-        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-        price: 0, // Will be updated from API
-        change24h: 0, // Will be updated from API
-        canSend: true,
-        isNative: true,
-        isFeatured: true
-    },
-    {
-        symbol: "NMX", 
-        name: "NemexCoin",
-        balance: 0, // Will be updated from API - THIS WAS THE ISSUE!
-        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        price: 0.10, // Default price
-        change24h: 0,
-        canSend: true,
-        isNative: false,
-        isFeatured: true
-    }
-];
+    // Supported tokens - FIXED: Ensure NMX is properly initialized
+    let SUPPORTED_TOKENS = [
+        {
+            symbol: "TON",
+            name: "Toncoin",
+            balance: 0, // Will be updated from API
+            logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+            price: 0, // Will be updated from API
+            change24h: 0, // Will be updated from API
+            canSend: true,
+            isNative: true,
+            isFeatured: true
+        },
+        {
+            symbol: "NMX", 
+            name: "NemexCoin",
+            balance: 0, // Will be updated from API - THIS WAS THE ISSUE!
+            logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+            price: 0.10, // Default price
+            change24h: 0,
+            canSend: true,
+            isNative: false,
+            isFeatured: true
+        }
+    ];
 
     // =============================================
     // INITIALIZATION & SESSION MANAGEMENT
@@ -1326,7 +1326,7 @@ let SUPPORTED_TOKENS = [
 
         // Check if we have an active session
         const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
-        
+
         if (hasActiveSession) {
             const currentWallet = window.nemexWalletAPI.getStoredWallet();
             if (currentWallet) {
@@ -1338,12 +1338,12 @@ let SUPPORTED_TOKENS = [
                     balances: {},
                     lastUpdate: null
                 };
-                
+
                 console.log('✅ Session restored:', walletState.address);
                 updateSessionStatus('✅ Session active', 'active');
                 updateWalletDisplay();
                 updateRealBalances();
-                
+
                 // Load user wallets for management
                 await loadUserWallets();
             }
@@ -1424,7 +1424,7 @@ let SUPPORTED_TOKENS = [
         const statusDiv = document.getElementById('importWalletStatus');
         const mnemonicInput = document.getElementById('importMnemonic');
         const targetAddressInput = document.getElementById('targetAddress');
-        
+
         const mnemonic = mnemonicInput.value.trim();
         const targetAddress = targetAddressInput.value.trim();
 
@@ -1454,10 +1454,10 @@ let SUPPORTED_TOKENS = [
             if (result.success && result.wallets) {
                 console.log('🔍 Multiple wallets found, showing selection modal');
                 showStatusMessage(`Found ${result.wallets.length} wallets. Please select one.`, 'success', statusDiv);
-                
+
                 // Store the mnemonic for later use
                 currentMnemonic = mnemonic;
-                
+
                 // Show wallet selection modal
                 setTimeout(() => {
                     closeModal();
@@ -1469,7 +1469,7 @@ let SUPPORTED_TOKENS = [
             // ✅ SINGLE WALLET FOUND
             if (result.success && result.wallet) {
                 console.log('✅ Single wallet imported via API:', result.wallet.address);
-                
+
                 // Store mnemonic for imported wallet
                 currentMnemonic = mnemonic;
 
@@ -1498,7 +1498,7 @@ let SUPPORTED_TOKENS = [
         } catch (error) {
             console.error('Wallet import failed:', error);
             let errorMessage = error.message;
-            
+
             if (error.message.includes('400')) {
                 if (error.message.includes('No wallet matches')) {
                     errorMessage = 'No wallet derived from this phrase matches your target address. Try without target address to see all options.';
@@ -1508,7 +1508,7 @@ let SUPPORTED_TOKENS = [
             } else if (error.message.includes('Network')) {
                 errorMessage = 'Network error. Please check your connection.';
             }
-            
+
             showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
         } finally {
             importBtn.innerHTML = 'Import Wallet';
@@ -1523,7 +1523,7 @@ let SUPPORTED_TOKENS = [
     function showWalletSelectionModal(wallets) {
         const selectionList = document.getElementById('walletSelectionList');
         const selectionModal = document.getElementById('walletSelectionModal');
-        
+
         if (!selectionList || !selectionModal) return;
 
         // Clear previous content
@@ -1534,13 +1534,13 @@ let SUPPORTED_TOKENS = [
             const walletOption = document.createElement('div');
             walletOption.className = 'wallet-option';
             walletOption.onclick = () => selectWalletForImport(wallet.path);
-            
+
             walletOption.innerHTML = `
                 <div class="wallet-path">${wallet.description || wallet.path}</div>
                 <div class="wallet-address-display">${wallet.address}</div>
                 <div class="wallet-description">${getPathDescription(wallet.path)}</div>
             `;
-            
+
             selectionList.appendChild(walletOption);
         });
 
@@ -1550,7 +1550,7 @@ let SUPPORTED_TOKENS = [
 
     async function selectWalletForImport(selectedPath) {
         const statusDiv = document.getElementById('walletSelectionStatus');
-        
+
         try {
             showStatusMessage('Importing selected wallet...', 'loading', statusDiv);
             console.log('🔄 Selecting wallet with path:', selectedPath);
@@ -1559,7 +1559,7 @@ let SUPPORTED_TOKENS = [
 
             if (result.success && result.wallet) {
                 console.log('✅ Selected wallet imported:', result.wallet.address);
-                
+
                 // Update wallet state
                 walletState = {
                     isInitialized: true,
@@ -1601,7 +1601,7 @@ let SUPPORTED_TOKENS = [
             "m/44'/607'/0'/0": "Minimal path",
             "m/44'/607'/0'/0'": "Hardened variant"
         };
-        
+
         return descriptions[path] || path;
     }
 
@@ -1624,7 +1624,7 @@ let SUPPORTED_TOKENS = [
     function updateWalletList() {
         const walletList = document.getElementById('walletList');
         if (!walletList) return;
-        
+
         if (userWallets.length > 0) {
             walletList.innerHTML = userWallets.map(wallet => `
                 <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
@@ -1674,9 +1674,9 @@ let SUPPORTED_TOKENS = [
     async function switchToWallet(address) {
         try {
             console.log('🔄 Switching to wallet:', address);
-            
+
             const result = await window.nemexWalletAPI.setActiveWallet(address);
-            
+
             if (result.success) {
                 // Update local state
                 const wallet = userWallets.find(w => w.address === address);
@@ -1688,13 +1688,13 @@ let SUPPORTED_TOKENS = [
                         address: wallet.address,
                         balances: {}
                     };
-                    
+
                     console.log('✅ Switched to wallet:', address);
                     updateSessionStatus('✅ Session active', 'active');
                     updateWalletDisplay();
                     updateRealBalances();
                     updateWalletList();
-                    
+
                     showStatusMessage(`✅ Switched to wallet: ${address.substring(0, 8)}...`, 'success');
                 }
             }
@@ -1716,11 +1716,11 @@ let SUPPORTED_TOKENS = [
                 lastUpdate: null
             };
             currentMnemonic = null;
-            
+
             updateSessionStatus('🔒 Logged out', 'inactive');
             updateWalletDisplay();
             updateWalletList();
-            
+
             showStatusMessage('✅ Logged out successfully', 'success');
             closeModal();
         }
@@ -1757,7 +1757,7 @@ let SUPPORTED_TOKENS = [
 
         const backupConfirmed = document.getElementById('backupConfirmed');
         const confirmBackupBtn = document.getElementById('confirmBackupBtn');
-        
+
         if (backupConfirmed && confirmBackupBtn) {
             backupConfirmed.checked = false;
             confirmBackupBtn.disabled = true;
@@ -1816,165 +1816,205 @@ let SUPPORTED_TOKENS = [
     }
 
     // =============================================
-// BALANCE & PRICE UPDATES - FIXED VERSION
-// =============================================
+    // BALANCE & PRICE UPDATES - FIXED VERSION
+    // =============================================
 
-async function updateRealBalances() {
-    if (!walletState.isInitialized || !walletState.address) {
-        return;
-    }
+    async function updateRealBalances() {
+        if (!walletState.isInitialized || !walletState.address) {
+            return;
+        }
 
-    try {
-        console.log('🔄 Fetching REAL balances and prices...');
+        try {
+            console.log('🔄 Fetching REAL balances and prices...');
 
-        const [balanceResult, priceResult] = await Promise.all([
-            window.nemexWalletAPI.getAllBalances(walletState.address),
-            window.nemexWalletAPI.getTokenPrices()
-        ]);
+            const [balanceResult, priceResult] = await Promise.all([
+                window.nemexWalletAPI.getAllBalances(walletState.address),
+                window.nemexWalletAPI.getTokenPrices()
+            ]);
 
-        console.log('🔍 Balance result:', balanceResult);
-        console.log('🔍 Price result:', priceResult);
+            console.log('🔍 Balance result:', balanceResult);
+            console.log('🔍 Price result:', priceResult);
 
-        // ✅ FIX: Update TON balance PROPERLY
-        const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-        if (tonToken && balanceResult.balances) {
-            // Handle both string and number balances
-            const tonBalance = parseFloat(balanceResult.balances.TON || "0");
-            tonToken.balance = tonBalance;
-            console.log('✅ TON balance updated:', tonToken.balance);
+            // ✅ FIX: Update TON balance PROPERLY
+            const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
+            if (tonToken && balanceResult.balances) {
+                // Handle both string and number balances
+                const tonBalance = parseFloat(balanceResult.balances.TON || "0");
+                tonToken.balance = tonBalance;
+                console.log('✅ TON balance updated:', tonToken.balance);
+                
+                if (priceResult.prices && priceResult.prices.TON) {
+                    tonToken.price = priceResult.prices.TON.price || 0;
+                    tonToken.change24h = priceResult.prices.TON.change24h || 0;
+                }
+            }
+
+            // ✅ FIX: Update NMX balance PROPERLY - THIS WAS THE MAIN ISSUE
+            let nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
             
-            if (priceResult.prices && priceResult.prices.TON) {
-                tonToken.price = priceResult.prices.TON.price || 0;
-                tonToken.change24h = priceResult.prices.TON.change24h || 0;
+            // Ensure NMX token exists in supported tokens
+            if (!nmxToken) {
+                console.log('⚠️ NMX token not found in SUPPORTED_TOKENS, adding it...');
+                nmxToken = {
+                    symbol: "NMX",
+                    name: "NemexCoin",
+                    balance: 0,
+                    logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                    price: 0,
+                    change24h: 0,
+                    canSend: true,
+                    isNative: false,
+                    isFeatured: true
+                };
+                SUPPORTED_TOKENS.push(nmxToken);
             }
-        }
 
-        // ✅ FIX: Update NMX balance PROPERLY - THIS WAS THE MAIN ISSUE
-        let nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-        
-        // Ensure NMX token exists in supported tokens
-        if (!nmxToken) {
-            console.log('⚠️ NMX token not found in SUPPORTED_TOKENS, adding it...');
-            nmxToken = {
-                symbol: "NMX",
-                name: "NemexCoin",
-                balance: 0,
-                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                price: 0,
-                change24h: 0,
-                canSend: true,
-                isNative: false,
-                isFeatured: true
-            };
-            SUPPORTED_TOKENS.push(nmxToken);
-        }
-
-        if (nmxToken && balanceResult.balances) {
-            // ✅ CRITICAL FIX: Properly parse NMX balance
-            const nmxBalance = parseFloat(balanceResult.balances.NMX || "0");
-            nmxToken.balance = nmxBalance;
-            console.log('✅ NMX balance updated:', nmxToken.balance, 'NMX');
-            
-            if (priceResult.prices && priceResult.prices.NMX) {
-                nmxToken.price = priceResult.prices.NMX.price || 0;
-                nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
-            } else {
-                // Fallback NMX price if not available from API
-                nmxToken.price = 0.10;
-                nmxToken.change24h = 0;
+            if (nmxToken && balanceResult.balances) {
+                // ✅ CRITICAL FIX: Properly parse NMX balance
+                const nmxBalance = parseFloat(balanceResult.balances.NMX || "0");
+                nmxToken.balance = nmxBalance;
+                console.log('✅ NMX balance updated:', nmxToken.balance, 'NMX');
+                
+                if (priceResult.prices && priceResult.prices.NMX) {
+                    nmxToken.price = priceResult.prices.NMX.price || 0;
+                    nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
+                } else {
+                    // Fallback NMX price if not available from API
+                    nmxToken.price = 0.10;
+                    nmxToken.change24h = 0;
+                }
             }
+
+            // ✅ DEBUG: Log all token balances
+            console.log('🔍 Final token balances:');
+            SUPPORTED_TOKENS.forEach(token => {
+                console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
+            });
+
+            updatePortfolioValue();
+            loadTokens();
+
+            console.log('✅ Real blockchain balances & prices updated');
+
+        } catch (error) {
+            console.error('Failed to update real data:', error);
+            // Set fallback balances
+            SUPPORTED_TOKENS.forEach(token => {
+                if (token.symbol === 'TON' || token.symbol === 'NMX') {
+                    token.balance = 0;
+                }
+            });
+            updatePortfolioValue();
+            loadTokens();
         }
-
-        // ✅ DEBUG: Log all token balances
-        console.log('🔍 Final token balances:');
-        SUPPORTED_TOKENS.forEach(token => {
-            console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
-        });
-
-        updatePortfolioValue();
-        loadTokens();
-
-        console.log('✅ Real blockchain balances & prices updated');
-
-    } catch (error) {
-        console.error('Failed to update real data:', error);
-        // Set fallback balances
-        SUPPORTED_TOKENS.forEach(token => {
-            if (token.symbol === 'TON' || token.symbol === 'NMX') {
-                token.balance = 0;
-            }
-        });
-        updatePortfolioValue();
-        loadTokens();
-    }
-}
-
-// =============================================
-// UI UPDATES - ENHANCED DEBUGGING
-// =============================================
-
-function loadTokens() {
-    const tokenList = document.getElementById('tokenList');
-    const tokensLoading = document.getElementById('tokensLoading');
-    if (!tokenList) return;
-
-    const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-
-    // ✅ DEBUG: Log what tokens are being rendered
-    console.log('🔄 Rendering tokens:', allTokens.map(t => ({
-        symbol: t.symbol,
-        balance: t.balance,
-        price: t.price,
-        value: (t.balance || 0) * (t.price || 0)
-    })));
-
-    tokenList.innerHTML = '';
-
-    if (allTokens.length === 0) {
-        tokenList.innerHTML = '<div class="security-warning">No tokens found</div>';
-        return;
     }
 
-    allTokens.forEach(token => {
-        const tokenValue = (token.balance || 0) * (token.price || 0);
-        const change24h = token.change24h || 0;
-        const changeClass = change24h >= 0 ? 'change-positive' : 'change-negative';
-        const changeSymbol = change24h >= 0 ? '+' : '';
-        const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
-        const featuredClass = token.isFeatured ? 'featured' : '';
+    // =============================================
+    // UI UPDATES - ENHANCED DEBUGGING
+    // =============================================
 
-        // ✅ DEBUG: Log each token being created
-        console.log(`🎨 Creating token card: ${token.symbol} - Balance: ${token.balance} - Value: $${tokenValue}`);
+    function updateWalletDisplay() {
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        const balanceSection = document.getElementById('balanceSection');
+        const actionButtons = document.getElementById('actionButtons');
+        const tokenSection = document.getElementById('tokenSection');
 
-        const tokenCard = document.createElement('div');
-        tokenCard.className = `token-card ${featuredClass}`;
-        tokenCard.innerHTML = `
-            <div class="token-icon ${token.symbol.toLowerCase()}-icon">
-                <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
-                     onerror="handleTokenLogoError(this, '${token.symbol}')">
-                ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
-            </div>
-            <div class="token-info">
-                <div class="token-name">${token.name}</div>
-                <div class="token-symbol">${token.symbol}</div>
-                <div class="token-price">
-                    $${formatTokenPrice(token.price)} 
-                    <span class="token-change ${changeClass}">${formattedChange}</span>
+        if (walletState.isInitialized) {
+            if (welcomeScreen) welcomeScreen.style.display = 'none';
+            if (balanceSection) balanceSection.style.display = 'block';
+            if (actionButtons) actionButtons.style.display = 'grid';
+            if (tokenSection) tokenSection.style.display = 'block';
+            updatePortfolioValue();
+        } else {
+            if (welcomeScreen) welcomeScreen.style.display = 'block';
+            if (balanceSection) balanceSection.style.display = 'none';
+            if (actionButtons) actionButtons.style.display = 'none';
+            if (tokenSection) tokenSection.style.display = 'none';
+        }
+
+        updateWalletList();
+    }
+
+    function updatePortfolioValue() {
+        const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+        const totalUSD = allTokens.reduce((sum, token) => {
+            return sum + ((token.balance || 0) * (token.price || 0));
+        }, 0);
+
+        const balanceAmount = document.getElementById('balanceAmount');
+        const balanceCrypto = document.getElementById('balanceCrypto');
+        const balanceLoading = document.getElementById('balanceLoading');
+
+        if (balanceAmount) balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
+        if (balanceCrypto) balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
+        if (balanceLoading) balanceLoading.style.display = 'none';
+        if (balanceAmount) balanceAmount.style.display = 'inline';
+        if (balanceCrypto) balanceCrypto.style.display = 'inline';
+    }
+
+    function loadTokens() {
+        const tokenList = document.getElementById('tokenList');
+        const tokensLoading = document.getElementById('tokensLoading');
+        if (!tokenList) return;
+
+        const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+
+        // ✅ DEBUG: Log what tokens are being rendered
+        console.log('🔄 Rendering tokens:', allTokens.map(t => ({
+            symbol: t.symbol,
+            balance: t.balance,
+            price: t.price,
+            value: (t.balance || 0) * (t.price || 0)
+        })));
+
+        tokenList.innerHTML = '';
+
+        if (allTokens.length === 0) {
+            tokenList.innerHTML = '<div class="security-warning">No tokens found</div>';
+            return;
+        }
+
+        allTokens.forEach(token => {
+            const tokenValue = (token.balance || 0) * (token.price || 0);
+            const change24h = token.change24h || 0;
+            const changeClass = change24h >= 0 ? 'change-positive' : 'change-negative';
+            const changeSymbol = change24h >= 0 ? '+' : '';
+            const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
+            const featuredClass = token.isFeatured ? 'featured' : '';
+
+            // ✅ DEBUG: Log each token being created
+            console.log(`🎨 Creating token card: ${token.symbol} - Balance: ${token.balance} - Value: $${tokenValue}`);
+
+            const tokenCard = document.createElement('div');
+            tokenCard.className = `token-card ${featuredClass}`;
+            tokenCard.innerHTML = `
+                <div class="token-icon ${token.symbol.toLowerCase()}-icon">
+                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                         onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
                 </div>
-            </div>
-            <div class="token-balance">
-                <div class="token-amount">${formatTokenBalance(token.balance)}</div>
-                <div class="token-value">$${tokenValue.toFixed(2)}</div>
-            </div>
-        `;
-        tokenList.appendChild(tokenCard);
-    });
+                <div class="token-info">
+                    <div class="token-name">${token.name}</div>
+                    <div class="token-symbol">${token.symbol}</div>
+                    <div class="token-price">
+                        $${formatTokenPrice(token.price)} 
+                        <span class="token-change ${changeClass}">${formattedChange}</span>
+                    </div>
+                </div>
+                <div class="token-balance">
+                    <div class="token-amount">${formatTokenBalance(token.balance)}</div>
+                    <div class="token-value">$${tokenValue.toFixed(2)}</div>
+                </div>
+            `;
+            tokenList.appendChild(tokenCard);
+        });
 
-    if (tokensLoading) tokensLoading.style.display = 'none';
-    
-    // ✅ DEBUG: Confirm rendering completed
-    console.log(`✅ Rendered ${allTokens.length} tokens in UI`);
-}
+        if (tokensLoading) tokensLoading.style.display = 'none';
+        
+        // ✅ DEBUG: Confirm rendering completed
+        console.log(`✅ Rendered ${allTokens.length} tokens in UI`);
+    }
+
     // =============================================
     // HELPER FUNCTIONS
     // =============================================
@@ -2117,12 +2157,31 @@ function loadTokens() {
 
     function copyAddress() {
         if (!walletState.address) return;
-        
+
         navigator.clipboard.writeText(walletState.address).then(() => {
             alert('Address copied to clipboard!');
         }).catch(err => {
             console.error('Failed to copy address:', err);
         });
+    }
+
+    // =============================================
+    // DEBUG FUNCTION - TEST NMX BALANCE DISPLAY
+    // =============================================
+
+    // Temporary debug function - call this in browser console
+    async function debugBalances() {
+        console.log('🔍 DEBUG: Checking current state...');
+        console.log('Wallet State:', walletState);
+        console.log('Supported Tokens:', SUPPORTED_TOKENS);
+        
+        if (walletState.address) {
+            const balances = await window.nemexWalletAPI.getAllBalances(walletState.address);
+            console.log('API Balances:', balances);
+        }
+        
+        // Force refresh
+        await updateRealBalances();
     }
 
     // =============================================
@@ -2136,7 +2195,7 @@ function loadTokens() {
     // Listen for wallet ready event
     document.addEventListener('walletReady', function(event) {
         console.log('🎉 Wallet ready event received:', event.detail);
-        
+
         if (event.detail.hasWallet) {
             console.log('✅ Active wallet found on page load:', event.detail.walletAddress);
         }
