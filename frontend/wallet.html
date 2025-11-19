@@ -428,6 +428,97 @@
             background: rgba(212, 175, 55, 0.1);
         }
 
+        /* Form Inputs */
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+            color: var(--text);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+            color: var(--text);
+            font-size: 16px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        /* Wallet Selection Styles */
+        .wallet-selection-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 16px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+        }
+
+        .wallet-option {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-option:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .wallet-option:last-child {
+            border-bottom: none;
+        }
+
+        .wallet-path {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .wallet-address-display {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .wallet-description {
+            font-size: 11px;
+            color: var(--gold);
+            margin-top: 4px;
+        }
+
         /* Welcome Screen */
         .welcome-screen {
             padding: 40px 20px;
@@ -966,14 +1057,45 @@
                 <div class="security-warning">
                     <strong>🔑 Enter your 12 or 24-word recovery phrase:</strong>
                 </div>
-                <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
-                          class="comment-input" rows="4"></textarea>
+                
+                <div class="form-group">
+                    <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
+                              class="form-textarea" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Target Wallet Address (Optional)</label>
+                    <input type="text" id="targetAddress" class="form-input" 
+                           placeholder="EQ... (if you know which address to import)">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        If you know your Tonkeeper address, enter it here for automatic detection
+                    </div>
+                </div>
 
                 <div id="importWalletStatus"></div>
 
                 <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
                     Import Wallet
                 </button>
+                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Wallet Selection Modal -->
+        <div id="walletSelectionModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Multiple Wallets Found</div>
+                <div class="security-warning">
+                    <strong>🔍 We found multiple wallets from your recovery phrase.</strong><br>
+                    Please select the one that matches your Tonkeeper wallet:
+                </div>
+
+                <div class="wallet-selection-list" id="walletSelectionList">
+                    <!-- Wallet options will be populated here -->
+                </div>
+
+                <div id="walletSelectionStatus"></div>
+
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
             </div>
         </div>
@@ -1073,13 +1195,13 @@
                     </div>
                 </div>
 
-                <!-- back to Dashboard Option -->
+                <!-- Logout Option -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                         </svg>
-                        <div>back to Dashboard</div>
+                        <div>Logout</div>
                     </div>
                 </div>
 
@@ -1142,7 +1264,7 @@
 
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT - UPDATED WITH SESSION MANAGEMENT -->
+    <!-- COMPLETE WALLET SCRIPT - UPDATED WITH MULTI-PATH IMPORT -->
     <script>
     // =============================================
     // WALLET STATE MANAGEMENT
@@ -1162,31 +1284,31 @@
     let currentMnemonic = null;
 
     // Supported tokens
-    // ✅ ADD THIS DYNAMIC TOKEN DATA
-let SUPPORTED_TOKENS = [
-    {
-        symbol: "TON",
-        name: "Toncoin",
-        balance: 0, // Will be updated from API
-        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-        price: 0, // Will be updated from API
-        change24h: 0, // Will be updated from API
-        canSend: true,
-        isNative: true,
-        isFeatured: true
-    },
-    {
-        symbol: "NMX", 
-        name: "NemexCoin",
-        balance: 0, // Will be updated from API
-        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        price: 0, // Will be updated from API
-        change24h: 0, // Will be updated from API
-        canSend: true,
-        isNative: false,
-        isFeatured: true
-    }
-];
+    let SUPPORTED_TOKENS = [
+        {
+            symbol: "TON",
+            name: "Toncoin",
+            balance: 0, // Will be updated from API
+            logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+            price: 0, // Will be updated from API
+            change24h: 0, // Will be updated from API
+            canSend: true,
+            isNative: true,
+            isFeatured: true
+        },
+        {
+            symbol: "NMX", 
+            name: "NemexCoin",
+            balance: 0, // Will be updated from API
+            logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+            price: 0, // Will be updated from API
+            change24h: 0, // Will be updated from API
+            canSend: true,
+            isNative: false,
+            isFeatured: true
+        }
+    ];
+
     // =============================================
     // INITIALIZATION & SESSION MANAGEMENT
     // =============================================
@@ -1251,7 +1373,7 @@ let SUPPORTED_TOKENS = [
     }
 
     // =============================================
-    // WALLET CREATION & IMPORT
+    // WALLET CREATION & IMPORT - MULTI-PATH SUPPORT
     // =============================================
 
     async function generateNewWallet() {
@@ -1301,7 +1423,10 @@ let SUPPORTED_TOKENS = [
         const importBtn = document.getElementById('importWalletBtn');
         const statusDiv = document.getElementById('importWalletStatus');
         const mnemonicInput = document.getElementById('importMnemonic');
+        const targetAddressInput = document.getElementById('targetAddress');
+        
         const mnemonic = mnemonicInput.value.trim();
+        const targetAddress = targetAddressInput.value.trim();
 
         if (!mnemonic) {
             showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
@@ -1321,45 +1446,163 @@ let SUPPORTED_TOKENS = [
             showStatusMessage('Importing your wallet...', 'loading', statusDiv);
 
             console.log('🔄 Importing wallet via database...');
+            console.log('🔍 Target address provided:', targetAddress || 'None');
 
-            const result = await window.nemexWalletAPI.importWallet(mnemonic);
+            const result = await window.nemexWalletAPI.importWallet(mnemonic, targetAddress);
 
-            // Store mnemonic for imported wallet
-            currentMnemonic = mnemonic;
+            // ✅ HANDLE MULTIPLE WALLETS FOUND
+            if (result.success && result.wallets) {
+                console.log('🔍 Multiple wallets found, showing selection modal');
+                showStatusMessage(`Found ${result.wallets.length} wallets. Please select one.`, 'success', statusDiv);
+                
+                // Store the mnemonic for later use
+                currentMnemonic = mnemonic;
+                
+                // Show wallet selection modal
+                setTimeout(() => {
+                    closeModal();
+                    showWalletSelectionModal(result.wallets);
+                }, 1000);
+                return;
+            }
 
-            // Update wallet state from database response
-            walletState = {
-                isInitialized: true,
-                walletType: 'imported', 
-                userId: result.wallet.userId,
-                address: result.wallet.address,
-                balances: {}
-            };
+            // ✅ SINGLE WALLET FOUND
+            if (result.success && result.wallet) {
+                console.log('✅ Single wallet imported via API:', result.wallet.address);
+                
+                // Store mnemonic for imported wallet
+                currentMnemonic = mnemonic;
 
-            console.log('✅ Wallet imported to database:', walletState.address);
-            showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+                // Update wallet state from database response
+                walletState = {
+                    isInitialized: true,
+                    walletType: 'imported', 
+                    userId: result.wallet.userId,
+                    address: result.wallet.address,
+                    balances: {}
+                };
 
-            setTimeout(() => {
-                closeModal();
-                updateSessionStatus('✅ Session active', 'active');
-                updateWalletDisplay();
-                updateRealBalances();
-                loadUserWallets();
-            }, 2000);
+                showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+                setTimeout(() => {
+                    closeModal();
+                    updateSessionStatus('✅ Session active', 'active');
+                    updateWalletDisplay();
+                    updateRealBalances();
+                    loadUserWallets();
+                }, 2000);
+            } else {
+                throw new Error(result.error || 'Failed to import wallet');
+            }
 
         } catch (error) {
             console.error('Wallet import failed:', error);
             let errorMessage = error.message;
+            
             if (error.message.includes('400')) {
-                errorMessage = 'Invalid recovery phrase format. Please check your words.';
+                if (error.message.includes('No wallet matches')) {
+                    errorMessage = 'No wallet derived from this phrase matches your target address. Try without target address to see all options.';
+                } else {
+                    errorMessage = 'Invalid recovery phrase format. Please check your words.';
+                }
             } else if (error.message.includes('Network')) {
                 errorMessage = 'Network error. Please check your connection.';
             }
+            
             showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
         } finally {
             importBtn.innerHTML = 'Import Wallet';
             importBtn.disabled = false;
         }
+    }
+
+    // =============================================
+    // WALLET SELECTION FOR MULTI-PATH IMPORT
+    // =============================================
+
+    function showWalletSelectionModal(wallets) {
+        const selectionList = document.getElementById('walletSelectionList');
+        const selectionModal = document.getElementById('walletSelectionModal');
+        
+        if (!selectionList || !selectionModal) return;
+
+        // Clear previous content
+        selectionList.innerHTML = '';
+
+        // Add each wallet as an option
+        wallets.forEach((wallet, index) => {
+            const walletOption = document.createElement('div');
+            walletOption.className = 'wallet-option';
+            walletOption.onclick = () => selectWalletForImport(wallet.path);
+            
+            walletOption.innerHTML = `
+                <div class="wallet-path">${wallet.description || wallet.path}</div>
+                <div class="wallet-address-display">${wallet.address}</div>
+                <div class="wallet-description">${getPathDescription(wallet.path)}</div>
+            `;
+            
+            selectionList.appendChild(walletOption);
+        });
+
+        // Show the modal
+        selectionModal.style.display = 'flex';
+    }
+
+    async function selectWalletForImport(selectedPath) {
+        const statusDiv = document.getElementById('walletSelectionStatus');
+        
+        try {
+            showStatusMessage('Importing selected wallet...', 'loading', statusDiv);
+            console.log('🔄 Selecting wallet with path:', selectedPath);
+
+            const result = await window.nemexWalletAPI.selectWalletForImport(selectedPath);
+
+            if (result.success && result.wallet) {
+                console.log('✅ Selected wallet imported:', result.wallet.address);
+                
+                // Update wallet state
+                walletState = {
+                    isInitialized: true,
+                    walletType: 'imported',
+                    userId: result.wallet.userId,
+                    address: result.wallet.address,
+                    balances: {}
+                };
+
+                showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+                setTimeout(() => {
+                    closeModal();
+                    updateSessionStatus('✅ Session active', 'active');
+                    updateWalletDisplay();
+                    updateRealBalances();
+                    loadUserWallets();
+                }, 2000);
+            } else {
+                throw new Error(result.error || 'Failed to import selected wallet');
+            }
+
+        } catch (error) {
+            console.error('Wallet selection failed:', error);
+            showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error', statusDiv);
+        }
+    }
+
+    function getPathDescription(path) {
+        const descriptions = {
+            "m/44'/607'/0'/0/0": "Primary BIP-44 (Most compatible)",
+            "m/44'/607'/0'": "Short variant (Common)",
+            "m/44'/607'/0'/0/0/0": "Ledger variant",
+            "m/44'/607'/0'/0/0": "Account 0",
+            "m/44'/607'/1'/0/0": "Account 1", 
+            "m/44'/607'/2'/0/0": "Account 2",
+            "m/44'/607'/3'/0/0": "Account 3",
+            "m/44'/607'/4'/0/0": "Account 4",
+            "m/44'/607'/0'/0": "Minimal path",
+            "m/44'/607'/0'/0'": "Hardened variant"
+        };
+        
+        return descriptions[path] || path;
     }
 
     // =============================================
@@ -1791,6 +2034,8 @@ let SUPPORTED_TOKENS = [
         if (importWalletStatus) importWalletStatus.innerHTML = '';
         const importMnemonic = document.getElementById('importMnemonic');
         if (importMnemonic) importMnemonic.value = '';
+        const targetAddress = document.getElementById('targetAddress');
+        if (targetAddress) targetAddress.value = '';
         const importWalletModal = document.getElementById('importWalletModal');
         if (importWalletModal) importWalletModal.style.display = 'flex';
     }
