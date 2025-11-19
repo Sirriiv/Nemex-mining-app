@@ -1,10 +1,11 @@
-// assets/js/wallet.js - FIXED VERSION (NO MOCK DATA)
+// assets/js/wallet.js - FIXED WITH MULTI-PATH IMPORT SUPPORT
 class NemexWalletAPI {
     constructor() {
         this.baseURL = window.location.origin + '/api/wallet';
         this.userId = this.getUserId();
         this.currentWallet = this.getStoredWallet();
         this.isInitialized = false;
+        this.pendingImport = null; // Store pending import data
     }
 
     getUserId() {
@@ -49,7 +50,6 @@ class NemexWalletAPI {
             const data = await response.json();
             console.log('✅ API Connection:', data.message);
             
-            // Check for active session and restore wallet
             await this.restoreSession();
             
             this.isInitialized = true;
@@ -64,20 +64,17 @@ class NemexWalletAPI {
         try {
             console.log('🔄 Restoring wallet session...');
             
-            // Check if we have a stored wallet
             if (this.currentWallet) {
                 console.log('✅ Found stored wallet:', this.currentWallet.address);
                 return this.currentWallet;
             }
 
-            // Check database for active wallet
             const activeWalletResponse = await fetch(`${this.baseURL}/active-wallet/${this.userId}`);
             const activeData = await activeWalletResponse.json();
 
             if (activeData.success && activeData.activeWallet) {
                 console.log('✅ Found active wallet in database:', activeData.activeWallet);
                 
-                // Get wallet details
                 const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${this.userId}`);
                 const walletsData = await walletsResponse.json();
 
@@ -118,7 +115,6 @@ class NemexWalletAPI {
             const data = await response.json();
 
             if (data.success) {
-                // Get wallet details to store locally
                 const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${this.userId}`);
                 const walletsData = await walletsResponse.json();
 
@@ -180,10 +176,7 @@ class NemexWalletAPI {
 
             if (data.success) {
                 console.log('✅ Wallet generated via API:', data.wallet.address);
-                
-                // Set as active wallet
                 await this.setActiveWallet(data.wallet.address);
-                
                 return data;
             } else {
                 throw new Error(data.error || 'Failed to generate wallet');
@@ -195,9 +188,11 @@ class NemexWalletAPI {
         }
     }
 
-    async importWallet(mnemonic) {
+    // ✅ ENHANCED IMPORT WITH MULTI-PATH SUPPORT
+    async importWallet(mnemonic, targetAddress = null) {
         try {
-            console.log('🔄 Importing wallet via API...');
+            console.log('🔄 Importing wallet with multi-path support...');
+            console.log('🔍 Target address:', targetAddress);
 
             const cleanedMnemonic = this.cleanMnemonic(mnemonic);
 
@@ -212,7 +207,8 @@ class NemexWalletAPI {
                 },
                 body: JSON.stringify({
                     userId: this.userId,
-                    mnemonic: cleanedMnemonic
+                    mnemonic: cleanedMnemonic,
+                    targetAddress: targetAddress
                 })
             });
 
@@ -223,21 +219,82 @@ class NemexWalletAPI {
                 throw new Error(data.error || `HTTP error! status: ${response.status}`);
             }
 
-            if (data.success) {
-                console.log('✅ Wallet imported via API:', data.wallet.address);
-                
-                // Set as active wallet
-                await this.setActiveWallet(data.wallet.address);
-                
-                return data;
-            } else {
-                throw new Error(data.error || 'Failed to import wallet');
+            // ✅ HANDLE MULTIPLE WALLETS FOUND
+            if (data.success && data.wallets) {
+                console.log('🔍 Multiple wallets found, storing for selection');
+                this.pendingImport = {
+                    mnemonic: cleanedMnemonic,
+                    wallets: data.wallets
+                };
+                return data; // Return with wallets for selection
             }
+
+            // ✅ SINGLE WALLET FOUND
+            if (data.success && data.wallet) {
+                console.log('✅ Single wallet imported via API:', data.wallet.address);
+                await this.setActiveWallet(data.wallet.address);
+                this.pendingImport = null; // Clear pending import
+                return data;
+            }
+
+            throw new Error(data.error || 'Failed to import wallet');
 
         } catch (error) {
             console.error('❌ Wallet import failed:', error);
             throw error;
         }
+    }
+
+    // ✅ SELECT SPECIFIC WALLET FROM MULTIPLE OPTIONS
+    async selectWalletForImport(selectedPath) {
+        try {
+            if (!this.pendingImport) {
+                throw new Error('No pending import found');
+            }
+
+            console.log('🔄 Selecting wallet with path:', selectedPath);
+
+            const response = await fetch(`${this.baseURL}/import-wallet-select`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: this.userId,
+                    mnemonic: this.pendingImport.mnemonic,
+                    selectedPath: selectedPath
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || `HTTP error! status: ${response.status}`);
+            }
+
+            if (data.success && data.wallet) {
+                console.log('✅ Selected wallet imported:', data.wallet.address);
+                await this.setActiveWallet(data.wallet.address);
+                this.pendingImport = null; // Clear pending import
+                return data;
+            }
+
+            throw new Error(data.error || 'Failed to import selected wallet');
+
+        } catch (error) {
+            console.error('❌ Wallet selection failed:', error);
+            throw error;
+        }
+    }
+
+    // ✅ GET PENDING IMPORT DATA
+    getPendingImport() {
+        return this.pendingImport;
+    }
+
+    // ✅ CLEAR PENDING IMPORT
+    clearPendingImport() {
+        this.pendingImport = null;
     }
 
     cleanMnemonic(mnemonic) {
@@ -384,12 +441,18 @@ class NemexWalletAPI {
     // Clear session (logout)
     clearSession() {
         this.setStoredWallet(null);
+        this.pendingImport = null;
         console.log('✅ Session cleared');
     }
 
     // Check if wallet is loaded
     isWalletLoaded() {
         return this.currentWallet !== null;
+    }
+
+    // Check if there's a pending import
+    hasPendingImport() {
+        return this.pendingImport !== null;
     }
 }
 
@@ -403,11 +466,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (success) {
             console.log('✅ Nemex Wallet API Ready!');
             
-            // Dispatch event that wallet is ready
             document.dispatchEvent(new CustomEvent('walletReady', {
                 detail: { 
                     hasWallet: window.nemexWalletAPI.isWalletLoaded(),
-                    walletAddress: window.nemexWalletAPI.getCurrentWalletAddress()
+                    walletAddress: window.nemexWalletAPI.getCurrentWalletAddress(),
+                    hasPendingImport: window.nemexWalletAPI.hasPendingImport()
                 }
             }));
         } else {
