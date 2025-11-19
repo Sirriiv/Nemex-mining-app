@@ -477,139 +477,97 @@
             background: rgba(212, 175, 55, 0.05);
         }
 
-        /* Wallet Selection Styles */
-        .wallet-selection-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 16px 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+        /* ============================================= */
+        /* MANAGE CRYPTO STYLES */
+        /* ============================================= */
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            background: var(--card-bg);
             border-radius: var(--border-radius-sm);
+            padding: 4px;
+            margin: 16px 0;
         }
 
-        .wallet-option {
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .tab.active {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Token Preview */
+        .token-preview {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-sm);
+            padding: 16px;
+            margin: 16px 0;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        /* Manage Crypto Button */
+        .manage-crypto-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: var(--border-radius-sm);
+            color: var(--gold);
             cursor: pointer;
             transition: all 0.3s ease;
+            margin: 10px 0;
         }
 
-        .wallet-option:hover {
-            background: rgba(212, 175, 55, 0.1);
+        .manage-crypto-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
         }
 
-        .wallet-option:last-child {
-            border-bottom: none;
+        /* Custom Token List */
+        .custom-token-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .wallet-path {
+        .custom-token-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .remove-token-btn {
+            background: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
             font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
         }
-
-        .wallet-address-display {
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            word-break: break-all;
-        }
-
-        .wallet-description {
-            font-size: 11px;
-            color: var(--gold);
-            margin-top: 4px;
-        }
-
-/* ============================================= */
-/* MANAGE CRYPTO STYLES */
-/* ============================================= */
-
-/* Tab Navigation */
-.tab-navigation {
-    display: flex;
-    background: var(--card-bg);
-    border-radius: var(--border-radius-sm);
-    padding: 4px;
-    margin: 16px 0;
-}
-
-.tab {
-    flex: 1;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    font-weight: 600;
-}
-
-.tab.active {
-    background: var(--gold);
-    color: var(--dark-bg);
-}
-
-.tab-content {
-    display: none;
-}
-
-.tab-content.active {
-    display: block;
-}
-
-/* Token Preview */
-.token-preview {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: var(--border-radius-sm);
-    padding: 16px;
-    margin: 16px 0;
-    border: 1px solid rgba(212, 175, 55, 0.3);
-}
-
-/* Manage Crypto Button */
-.manage-crypto-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: rgba(212, 175, 55, 0.1);
-    border: 1px solid var(--gold);
-    border-radius: var(--border-radius-sm);
-    color: var(--gold);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin: 10px 0;
-}
-
-.manage-crypto-btn:hover {
-    background: rgba(212, 175, 55, 0.2);
-}
-
-/* Custom Token List */
-.custom-token-item {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    background: var(--card-bg);
-    border-radius: var(--border-radius-sm);
-    margin-bottom: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.custom-token-actions {
-    display: flex;
-    gap: 8px;
-    margin-left: auto;
-}
-
-.remove-token-btn {
-    background: rgba(255, 68, 68, 0.1);
-    border: 1px solid var(--error);
-    color: var(--error);
-    padding: 6px 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 12px;
-}
 
         /* Welcome Screen */
         .welcome-screen {
@@ -1088,27 +1046,26 @@
         </div>
 
         <!-- Token List -->
-<section class="token-section" id="tokenSection" style="display: none;">
-    <div class="section-title">
-        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-        </svg>
-        Your Assets
-        <span class="loading" id="tokensLoading"></span>
-    </div>
-    <div class="token-list" id="tokenList">
-        <!-- Tokens will be loaded dynamically -->
-    </div>
-    
-    <!-- ADD THIS BUTTON -->
-    <div class="manage-crypto-btn" onclick="showManageCryptoModal()">
-        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-        </svg>
-        Manage Crypto
-    </div>
-</section>
-
+        <section class="token-section" id="tokenSection" style="display: none;">
+            <div class="section-title">
+                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+                Your Assets
+                <span class="loading" id="tokensLoading"></span>
+            </div>
+            <div class="token-list" id="tokenList">
+                <!-- Tokens will be loaded dynamically -->
+            </div>
+            
+            <!-- ADD THIS BUTTON -->
+            <div class="manage-crypto-btn" onclick="showManageCryptoModal()">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                Manage Crypto
+            </div>
+        </section>
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
@@ -1296,13 +1253,13 @@
                     </div>
                 </div>
 
-                <!-- back to Dashboard Option -->
+                <!-- Logout Option -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                         </svg>
-                        <div>back to Dashboard</div>
+                        <div>Logout</div>
                     </div>
                 </div>
 
@@ -1311,6 +1268,156 @@
                 </div>
 
                 <button class="close-modal" onclick="closeModal()">Close Settings</button>
+            </div>
+        </div>
+
+        <!-- ============================================= -->
+        <!-- MANAGE CRYPTO MODALS -->
+        <!-- ============================================= -->
+
+        <!-- Manage Crypto Modal -->
+        <div id="manageCryptoModal" class="modal fullscreen">
+            <div class="modal-content">
+                <div class="modal-title">
+                    <span onclick="closeModal()" style="cursor: pointer; margin-right: 15px;">←</span>
+                    Manage Crypto
+                </div>
+
+                <!-- Search Bar -->
+                <div class="form-group">
+                    <input type="text" id="tokenSearch" class="form-input" placeholder="Search tokens...">
+                </div>
+
+                <!-- Network Selection -->
+                <div class="form-group">
+                    <label class="form-label">Network</label>
+                    <select id="networkSelect" class="form-input">
+                        <option value="TON">TON Blockchain</option>
+                        <option value="ETH">Ethereum</option>
+                        <option value="BSC">Binance Smart Chain</option>
+                        <option value="POLYGON">Polygon</option>
+                    </select>
+                </div>
+
+                <!-- Popular Tokens List -->
+                <div class="section-title" style="margin-top: 20px;">
+                    Popular Tokens
+                </div>
+                <div class="token-list" id="popularTokensList">
+                    <!-- Popular tokens will be loaded here -->
+                </div>
+
+                <!-- Your Tokens List -->
+                <div class="section-title" style="margin-top: 20px;">
+                    Your Tokens
+                </div>
+                <div class="token-list" id="yourTokensList">
+                    <!-- User's custom tokens will be loaded here -->
+                </div>
+
+                <!-- Add Custom Token Button -->
+                <div class="settings-option" onclick="showImportCryptoModal()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
+                        <div>Add Custom Token</div>
+                    </div>
+                    <div style="color: var(--gold);">+</div>
+                </div>
+
+                <button class="close-modal" onclick="closeModal()" style="margin-top: 20px;">Close</button>
+            </div>
+        </div>
+
+        <!-- Import Crypto Modal -->
+        <div id="importCryptoModal" class="modal fullscreen">
+            <div class="modal-content">
+                <div class="modal-title">
+                    <span onclick="showManageCryptoModal()" style="cursor: pointer; margin-right: 15px;">←</span>
+                    Import Crypto
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="tab-navigation">
+                    <div class="tab active" data-tab="token">Token</div>
+                    <div class="tab" data-tab="nft">NFT</div>
+                </div>
+
+                <!-- Token Tab Content -->
+                <div id="tokenTab" class="tab-content active">
+                    <div class="form-group">
+                        <label class="form-label">Network *</label>
+                        <select id="importNetwork" class="form-input" required>
+                            <option value="TON">TON Blockchain</option>
+                            <option value="ETH">Ethereum</option>
+                            <option value="BSC">Binance Smart Chain</option>
+                            <option value="POLYGON">Polygon</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Token Contract Address *</label>
+                        <input type="text" id="tokenAddress" class="form-input" placeholder="EQ..." required>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            The contract address of the token
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Token Name *</label>
+                        <input type="text" id="tokenName" class="form-input" placeholder="e.g., NemexCoin" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Token Symbol *</label>
+                        <input type="text" id="tokenSymbol" class="form-input" placeholder="e.g., NMX" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Decimals *</label>
+                        <input type="number" id="tokenDecimals" class="form-input" placeholder="e.g., 9" value="9" required>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            Usually 18 for ETH/BSC, 9 for TON tokens
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Token Logo URL (Optional)</label>
+                        <input type="text" id="tokenLogo" class="form-input" placeholder="https://...">
+                    </div>
+
+                    <!-- Token Preview -->
+                    <div class="token-preview" id="tokenPreview" style="display: none;">
+                        <div class="section-title">Preview</div>
+                        <div class="token-card">
+                            <div class="token-icon">
+                                <img id="previewLogo" src="" class="token-icon-img" onerror="handleTokenLogoError(this, 'TKN')">
+                            </div>
+                            <div class="token-info">
+                                <div class="token-name" id="previewName">Token Name</div>
+                                <div class="token-symbol" id="previewSymbol">SYMBOL</div>
+                            </div>
+                            <div class="token-balance">
+                                <div class="token-amount">0.00</div>
+                                <div class="token-value">$0.00</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="importTokenStatus"></div>
+
+                    <button class="close-modal" onclick="importCustomToken()" id="importTokenBtn">
+                        Import Token
+                    </button>
+                </div>
+
+                <!-- NFT Tab Content -->
+                <div id="nftTab" class="tab-content">
+                    <div class="security-warning">
+                        NFT import functionality coming soon!
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1363,159 +1470,9 @@
             </div>
         </div>
 
-<!-- ============================================= -->
-<!-- MANAGE CRYPTO MODALS -->
-<!-- ============================================= -->
-
-<!-- Manage Crypto Modal -->
-<div id="manageCryptoModal" class="modal fullscreen">
-    <div class="modal-content">
-        <div class="modal-title">
-            <span onclick="closeModal()" style="cursor: pointer; margin-right: 15px;">←</span>
-            Manage Crypto
-        </div>
-
-        <!-- Search Bar -->
-        <div class="form-group">
-            <input type="text" id="tokenSearch" class="form-input" placeholder="Search tokens...">
-        </div>
-
-        <!-- Network Selection -->
-        <div class="form-group">
-            <label class="form-label">Network</label>
-            <select id="networkSelect" class="form-input">
-                <option value="TON">TON Blockchain</option>
-                <option value="ETH">Ethereum</option>
-                <option value="BSC">Binance Smart Chain</option>
-                <option value="POLYGON">Polygon</option>
-            </select>
-        </div>
-
-        <!-- Popular Tokens List -->
-        <div class="section-title" style="margin-top: 20px;">
-            Popular Tokens
-        </div>
-        <div class="token-list" id="popularTokensList">
-            <!-- Popular tokens will be loaded here -->
-        </div>
-
-        <!-- Your Tokens List -->
-        <div class="section-title" style="margin-top: 20px;">
-            Your Tokens
-        </div>
-        <div class="token-list" id="yourTokensList">
-            <!-- User's custom tokens will be loaded here -->
-        </div>
-
-        <!-- Add Custom Token Button -->
-        <div class="settings-option" onclick="showImportCryptoModal()">
-            <div class="settings-option-content">
-                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                <div>Add Custom Token</div>
-            </div>
-            <div style="color: var(--gold);">+</div>
-        </div>
-
-        <button class="close-modal" onclick="closeModal()" style="margin-top: 20px;">Close</button>
-    </div>
-</div>
-
-<!-- Import Crypto Modal -->
-<div id="importCryptoModal" class="modal fullscreen">
-    <div class="modal-content">
-        <div class="modal-title">
-            <span onclick="showManageCryptoModal()" style="cursor: pointer; margin-right: 15px;">←</span>
-            Import Crypto
-        </div>
-
-        <!-- Tab Navigation -->
-        <div class="tab-navigation">
-            <div class="tab active" data-tab="token">Token</div>
-            <div class="tab" data-tab="nft">NFT</div>
-        </div>
-
-        <!-- Token Tab Content -->
-        <div id="tokenTab" class="tab-content active">
-            <div class="form-group">
-                <label class="form-label">Network *</label>
-                <select id="importNetwork" class="form-input" required>
-                    <option value="TON">TON Blockchain</option>
-                    <option value="ETH">Ethereum</option>
-                    <option value="BSC">Binance Smart Chain</option>
-                    <option value="POLYGON">Polygon</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Token Contract Address *</label>
-                <input type="text" id="tokenAddress" class="form-input" placeholder="EQ..." required>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                    The contract address of the token
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Token Name *</label>
-                <input type="text" id="tokenName" class="form-input" placeholder="e.g., NemexCoin" required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Token Symbol *</label>
-                <input type="text" id="tokenSymbol" class="form-input" placeholder="e.g., NMX" required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Decimals *</label>
-                <input type="number" id="tokenDecimals" class="form-input" placeholder="e.g., 9" value="9" required>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                    Usually 18 for ETH/BSC, 9 for TON tokens
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Token Logo URL (Optional)</label>
-                <input type="text" id="tokenLogo" class="form-input" placeholder="https://...">
-            </div>
-
-            <!-- Token Preview -->
-            <div class="token-preview" id="tokenPreview" style="display: none;">
-                <div class="section-title">Preview</div>
-                <div class="token-card">
-                    <div class="token-icon">
-                        <img id="previewLogo" src="" class="token-icon-img" onerror="handleTokenLogoError(this, 'TKN')">
-                    </div>
-                    <div class="token-info">
-                        <div class="token-name" id="previewName">Token Name</div>
-                        <div class="token-symbol" id="previewSymbol">SYMBOL</div>
-                    </div>
-                    <div class="token-balance">
-                        <div class="token-amount">0.00</div>
-                        <div class="token-value">$0.00</div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="importTokenStatus"></div>
-
-            <button class="close-modal" onclick="importCustomToken()" id="importTokenBtn">
-                Import Token
-            </button>
-        </div>
-
-        <!-- NFT Tab Content -->
-        <div id="nftTab" class="tab-content">
-            <div class="security-warning">
-                NFT import functionality coming soon!
-            </div>
-        </div>
-    </div>
-</div>
-
     </div>
 
-    <!-- COMPLETE WALLET SCRIPT - UPDATED WITH MULTI-PATH IMPORT -->
+    <!-- COMPLETE WALLET SCRIPT - UPDATED WITH MANAGE CRYPTO -->
     <script>
     // =============================================
     // WALLET STATE MANAGEMENT
@@ -1532,7 +1489,6 @@
 
     let userWallets = [];
     let customTokens = [];
-    let currentMnemonic = null;
 
     // Supported tokens
     let SUPPORTED_TOKENS = [
@@ -1560,180 +1516,320 @@
         }
     ];
 
-// =============================================
-// MANAGE CRYPTO FEATURE - SECURE STORAGE
-// =============================================
+    // =============================================
+    // MANAGE CRYPTO FEATURE - SECURE STORAGE
+    // =============================================
 
-let customTokens = [];
+    // Popular tokens for quick add
+    const POPULAR_TOKENS = [
+        {
+            symbol: "NMX",
+            name: "NemexCoin", 
+            address: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
+            network: "TON",
+            decimals: 9,
+            logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+            isCustom: true
+        },
+        {
+            symbol: "USDT",
+            name: "Tether USD",
+            address: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+            network: "TON",
+            decimals: 6,
+            logo: "https://cryptologos.cc/logos/tether-usdt-logo.png",
+            isCustom: true
+        },
+        {
+            symbol: "NOT", 
+            name: "Notcoin",
+            address: "EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728",
+            network: "TON",
+            decimals: 9,
+            logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/18360.png",
+            isCustom: true
+        }
+    ];
 
-// Load custom tokens from secure storage
-async function loadCustomTokens() {
-    try {
-        const storedTokens = await window.nemexWalletAPI.storage.getItem('nemex_custom_tokens');
-        customTokens = storedTokens || [];
-        console.log(`✅ Loaded ${customTokens.length} custom tokens from secure storage`);
-    } catch (error) {
-        console.error('Failed to load custom tokens:', error);
-        customTokens = [];
+    // Load custom tokens from secure storage
+    async function loadCustomTokens() {
+        try {
+            const storedTokens = await window.nemexWalletAPI.storage.getItem('nemex_custom_tokens');
+            customTokens = storedTokens || [];
+            console.log(`✅ Loaded ${customTokens.length} custom tokens from secure storage`);
+        } catch (error) {
+            console.error('Failed to load custom tokens:', error);
+            customTokens = [];
+        }
     }
-}
 
-// Save custom tokens to secure storage
-async function saveCustomTokens() {
-    try {
-        await window.nemexWalletAPI.storage.setItem('nemex_custom_tokens', customTokens);
-        console.log(`✅ Saved ${customTokens.length} custom tokens to secure storage`);
-    } catch (error) {
-        console.error('Failed to save custom tokens:', error);
-        showStatusMessage('❌ Failed to save tokens', 'error');
+    // Save custom tokens to secure storage
+    async function saveCustomTokens() {
+        try {
+            await window.nemexWalletAPI.storage.setItem('nemex_custom_tokens', customTokens);
+            console.log(`✅ Saved ${customTokens.length} custom tokens to secure storage`);
+        } catch (error) {
+            console.error('Failed to save custom tokens:', error);
+            showStatusMessage('❌ Failed to save tokens', 'error');
+        }
     }
-}
 
-// Initialize custom tokens when wallet loads
-async function initCustomTokens() {
-    await loadCustomTokens();
-}
-
-// Popular tokens for quick add
-const POPULAR_TOKENS = [
-    {
-        symbol: "NMX",
-        name: "NemexCoin", 
-        address: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-        network: "TON",
-        decimals: 9,
-        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        isCustom: true
-    },
-    {
-        symbol: "USDT",
-        name: "Tether USD",
-        address: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
-        network: "TON",
-        decimals: 6,
-        logo: "https://cryptologos.cc/logos/tether-usdt-logo.png",
-        isCustom: true
-    },
-    {
-        symbol: "NOT", 
-        name: "Notcoin",
-        address: "EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728",
-        network: "TON",
-        decimals: 9,
-        logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/18360.png",
-        isCustom: true
+    // Initialize custom tokens when wallet loads
+    async function initCustomTokens() {
+        await loadCustomTokens();
     }
-];
 
-// Update the functions to use async storage
-async function loadManageCryptoInterface() {
-    await loadCustomTokens(); // Ensure tokens are loaded
-    loadPopularTokens();
-    loadUserTokens();
-    setupTokenSearch();
-}
+    function showManageCryptoModal() {
+        closeModal();
+        loadManageCryptoInterface();
+        const manageCryptoModal = document.getElementById('manageCryptoModal');
+        if (manageCryptoModal) {
+            manageCryptoModal.style.display = 'flex';
+        }
+    }
 
-async function addPopularToken(symbol) {
-    const token = POPULAR_TOKENS.find(t => t.symbol === symbol);
-    if (token) {
-        // Check if already added
-        if (customTokens.find(t => t.address === token.address)) {
-            showStatusMessage('Token already added!', 'error');
+    function showImportCryptoModal() {
+        closeModal();
+        const importCryptoModal = document.getElementById('importCryptoModal');
+        if (importCryptoModal) {
+            importCryptoModal.style.display = 'flex';
+            resetImportForm();
+        }
+    }
+
+    async function loadManageCryptoInterface() {
+        await loadCustomTokens(); // Ensure tokens are loaded
+        loadPopularTokens();
+        loadUserTokens();
+        setupTokenSearch();
+    }
+
+    function loadPopularTokens() {
+        const popularTokensList = document.getElementById('popularTokensList');
+        if (!popularTokensList) return;
+
+        popularTokensList.innerHTML = POPULAR_TOKENS.map(token => `
+            <div class="custom-token-item">
+                <div class="token-icon" style="width: 32px; height: 32px; margin-right: 12px;">
+                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                         onerror="handleTokenLogoError(this, '${token.symbol}')">
+                </div>
+                <div class="token-info" style="flex: 1;">
+                    <div class="token-name">${token.name}</div>
+                    <div class="token-symbol">${token.symbol}</div>
+                </div>
+                <button class="wallet-action-btn switch" onclick="addPopularToken('${token.symbol}')">
+                    Add
+                </button>
+            </div>
+        `).join('');
+    }
+
+    function loadUserTokens() {
+        const yourTokensList = document.getElementById('yourTokensList');
+        if (!yourTokensList) return;
+
+        if (customTokens.length > 0) {
+            yourTokensList.innerHTML = customTokens.map((token, index) => `
+                <div class="custom-token-item">
+                    <div class="token-icon" style="width: 32px; height: 32px; margin-right: 12px;">
+                        <img src="${token.logo || ''}" alt="${token.name}" class="token-icon-img" 
+                             onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    </div>
+                    <div class="token-info" style="flex: 1;">
+                        <div class="token-name">${token.name}</div>
+                        <div class="token-symbol">${token.symbol} • ${token.network}</div>
+                    </div>
+                    <div class="custom-token-actions">
+                        <button class="remove-token-btn" onclick="removeCustomToken(${index})">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            yourTokensList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No custom tokens added yet</div>';
+        }
+    }
+
+    function setupTokenSearch() {
+        const searchInput = document.getElementById('tokenSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                filterTokens(searchTerm);
+            });
+        }
+    }
+
+    function filterTokens(searchTerm) {
+        // Filter popular tokens
+        const filteredPopular = POPULAR_TOKENS.filter(token => 
+            token.name.toLowerCase().includes(searchTerm) || 
+            token.symbol.toLowerCase().includes(searchTerm)
+        );
+        
+        const popularTokensList = document.getElementById('popularTokensList');
+        if (popularTokensList) {
+            popularTokensList.innerHTML = filteredPopular.map(token => `
+                <div class="custom-token-item">
+                    <div class="token-icon" style="width: 32px; height: 32px; margin-right: 12px;">
+                        <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                             onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    </div>
+                    <div class="token-info" style="flex: 1;">
+                        <div class="token-name">${token.name}</div>
+                        <div class="token-symbol">${token.symbol}</div>
+                    </div>
+                    <button class="wallet-action-btn switch" onclick="addPopularToken('${token.symbol}')">
+                        Add
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Filter user tokens
+        const filteredCustom = customTokens.filter(token => 
+            token.name.toLowerCase().includes(searchTerm) || 
+            token.symbol.toLowerCase().includes(searchTerm)
+        );
+        
+        const yourTokensList = document.getElementById('yourTokensList');
+        if (yourTokensList) {
+            if (filteredCustom.length > 0) {
+                yourTokensList.innerHTML = filteredCustom.map((token, index) => `
+                    <div class="custom-token-item">
+                        <div class="token-icon" style="width: 32px; height: 32px; margin-right: 12px;">
+                            <img src="${token.logo || ''}" alt="${token.name}" class="token-icon-img" 
+                                 onerror="handleTokenLogoError(this, '${token.symbol}')">
+                        </div>
+                        <div class="token-info" style="flex: 1;">
+                            <div class="token-name">${token.name}</div>
+                            <div class="token-symbol">${token.symbol} • ${token.network}</div>
+                        </div>
+                        <div class="custom-token-actions">
+                            <button class="remove-token-btn" onclick="removeCustomToken(${customTokens.indexOf(token)})">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                yourTokensList.innerHTML = '<div style="text-align: center; color: var(--text-muted); padding: 20px;">No tokens found</div>';
+            }
+        }
+    }
+
+    async function addPopularToken(symbol) {
+        const token = POPULAR_TOKENS.find(t => t.symbol === symbol);
+        if (token) {
+            // Check if already added
+            if (customTokens.find(t => t.address === token.address)) {
+                showStatusMessage('Token already added!', 'error');
+                return;
+            }
+            
+            customTokens.push({
+                ...token,
+                balance: 0,
+                price: 0,
+                change24h: 0,
+                canSend: true,
+                isNative: false,
+                isFeatured: false
+            });
+            await saveCustomTokens();
+            loadUserTokens();
+            showStatusMessage(`✅ ${token.name} added successfully!`, 'success');
+            loadTokens(); // Refresh main token list
+        }
+    }
+
+    async function removeCustomToken(index) {
+        if (confirm('Are you sure you want to remove this token?')) {
+            const tokenName = customTokens[index].name;
+            customTokens.splice(index, 1);
+            await saveCustomTokens();
+            loadUserTokens();
+            showStatusMessage(`✅ ${tokenName} removed`, 'success');
+            loadTokens(); // Refresh main token list
+        }
+    }
+
+    function resetImportForm() {
+        document.getElementById('tokenAddress').value = '';
+        document.getElementById('tokenName').value = '';
+        document.getElementById('tokenSymbol').value = '';
+        document.getElementById('tokenDecimals').value = '9';
+        document.getElementById('tokenLogo').value = '';
+        document.getElementById('tokenPreview').style.display = 'none';
+        document.getElementById('importTokenStatus').innerHTML = '';
+    }
+
+    async function importCustomToken() {
+        const importBtn = document.getElementById('importTokenBtn');
+        const statusDiv = document.getElementById('importTokenStatus');
+        
+        const network = document.getElementById('importNetwork').value;
+        const address = document.getElementById('tokenAddress').value.trim();
+        const name = document.getElementById('tokenName').value.trim();
+        const symbol = document.getElementById('tokenSymbol').value.trim();
+        const decimals = parseInt(document.getElementById('tokenDecimals').value);
+        const logo = document.getElementById('tokenLogo').value.trim();
+
+        // Validation
+        if (!address || !name || !symbol || isNaN(decimals)) {
+            showStatusMessage('Please fill all required fields', 'error', statusDiv);
             return;
         }
-        
-        customTokens.push({
-            ...token,
-            balance: 0,
-            price: 0,
-            change24h: 0,
-            canSend: true,
-            isNative: false,
-            isFeatured: false
-        });
-        await saveCustomTokens(); // Use async save
-        loadUserTokens();
-        showStatusMessage(`✅ ${token.name} added successfully!`, 'success');
-        loadTokens(); // Refresh main token list
+
+        // Check if token already exists
+        if (customTokens.find(token => token.address === address)) {
+            showStatusMessage('This token is already imported!', 'error', statusDiv);
+            return;
+        }
+
+        try {
+            importBtn.innerHTML = '<div class="loading"></div> Importing...';
+            importBtn.disabled = true;
+            showStatusMessage('Importing token...', 'loading', statusDiv);
+
+            const newToken = {
+                symbol: symbol.toUpperCase(),
+                name: name,
+                address: address,
+                network: network,
+                decimals: decimals,
+                logo: logo || '',
+                balance: 0,
+                price: 0,
+                change24h: 0,
+                canSend: true,
+                isNative: false,
+                isFeatured: false,
+                isCustom: true
+            };
+
+            // Add to custom tokens
+            customTokens.push(newToken);
+            await saveCustomTokens();
+
+            showStatusMessage(`✅ ${name} imported successfully!`, 'success', statusDiv);
+            
+            setTimeout(() => {
+                closeModal();
+                showManageCryptoModal();
+                loadTokens(); // Refresh main token list
+            }, 1500);
+
+        } catch (error) {
+            console.error('Token import failed:', error);
+            showStatusMessage('❌ Failed to import token: ' + error.message, 'error', statusDiv);
+        } finally {
+            importBtn.innerHTML = 'Import Token';
+            importBtn.disabled = false;
+        }
     }
-}
-
-async function removeCustomToken(index) {
-    if (confirm('Are you sure you want to remove this token?')) {
-        const tokenName = customTokens[index].name;
-        customTokens.splice(index, 1);
-        await saveCustomTokens(); // Use async save
-        loadUserTokens();
-        showStatusMessage(`✅ ${tokenName} removed`, 'success');
-        loadTokens(); // Refresh main token list
-    }
-}
-
-// Update the import function
-async function importCustomToken() {
-    const importBtn = document.getElementById('importTokenBtn');
-    const statusDiv = document.getElementById('importTokenStatus');
-    
-    const network = document.getElementById('importNetwork').value;
-    const address = document.getElementById('tokenAddress').value.trim();
-    const name = document.getElementById('tokenName').value.trim();
-    const symbol = document.getElementById('tokenSymbol').value.trim();
-    const decimals = parseInt(document.getElementById('tokenDecimals').value);
-    const logo = document.getElementById('tokenLogo').value.trim();
-
-    // Validation
-    if (!address || !name || !symbol || isNaN(decimals)) {
-        showStatusMessage('Please fill all required fields', 'error', statusDiv);
-        return;
-    }
-
-    // Check if token already exists
-    if (customTokens.find(token => token.address === address)) {
-        showStatusMessage('This token is already imported!', 'error', statusDiv);
-        return;
-    }
-
-    try {
-        importBtn.innerHTML = '<div class="loading"></div> Importing...';
-        importBtn.disabled = true;
-        showStatusMessage('Importing token...', 'loading', statusDiv);
-
-        const newToken = {
-            symbol: symbol.toUpperCase(),
-            name: name,
-            address: address,
-            network: network,
-            decimals: decimals,
-            logo: logo || '',
-            balance: 0,
-            price: 0,
-            change24h: 0,
-            canSend: true,
-            isNative: false,
-            isFeatured: false,
-            isCustom: true
-        };
-
-        // Add to custom tokens
-        customTokens.push(newToken);
-        await saveCustomTokens(); // Use async save
-
-        showStatusMessage(`✅ ${name} imported successfully!`, 'success', statusDiv);
-        
-        setTimeout(() => {
-            closeModal();
-            showManageCryptoModal();
-            loadTokens(); // Refresh main token list
-        }, 1500);
-
-    } catch (error) {
-        console.error('Token import failed:', error);
-        showStatusMessage('❌ Failed to import token: ' + error.message, 'error', statusDiv);
-    } finally {
-        importBtn.innerHTML = 'Import Token';
-        importBtn.disabled = false;
-    }
-}
 
     // =============================================
     // INITIALIZATION & SESSION MANAGEMENT
@@ -1749,9 +1845,9 @@ async function importCustomToken() {
             updateSessionStatus('❌ API connection failed', 'inactive');
             return;
         }
-        
-      await initCustomTokens();
 
+        // ✅ Initialize custom tokens
+        await initCustomTokens();
 
         // Check if we have an active session
         const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
@@ -1802,7 +1898,7 @@ async function importCustomToken() {
     }
 
     // =============================================
-    // WALLET CREATION & IMPORT - MULTI-PATH SUPPORT
+    // WALLET CREATION & IMPORT
     // =============================================
 
     async function generateNewWallet() {
@@ -2028,7 +2124,10 @@ async function importCustomToken() {
             "m/44'/607'/3'/0/0": "Account 3",
             "m/44'/607'/4'/0/0": "Account 4",
             "m/44'/607'/0'/0": "Minimal path",
-            "m/44'/607'/0'/0'": "Hardened variant"
+            "m/44'/607'/0'/0'": "Hardened variant",
+            "m/44'/607'/0'/0'/0'": "Tonkeeper variant 1",
+            "m/44'/607'/0'/0'/0": "Tonkeeper variant 2",
+            "m/44'/607'/0'/0'/0/0": "Tonkeeper variant 3"
         };
         
         return descriptions[path] || path;
@@ -2354,6 +2453,7 @@ async function importCustomToken() {
             const changeSymbol = change24h >= 0 ? '+' : '';
             const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
             const featuredClass = token.isFeatured ? 'featured' : '';
+            const customBadge = token.isCustom ? '<div style="font-size: 10px; color: var(--gold); margin-top: 2px;">Custom</div>' : '';
 
             const tokenCard = document.createElement('div');
             tokenCard.className = `token-card ${featuredClass}`;
@@ -2366,6 +2466,7 @@ async function importCustomToken() {
                 <div class="token-info">
                     <div class="token-name">${token.name}</div>
                     <div class="token-symbol">${token.symbol}</div>
+                    ${customBadge}
                     <div class="token-price">
                         $${formatTokenPrice(token.price)} 
                         <span class="token-change ${changeClass}">${formattedChange}</span>
@@ -2533,6 +2634,71 @@ async function importCustomToken() {
     }
 
     // =============================================
+    // TAB FUNCTIONALITY FOR MANAGE CRYPTO
+    // =============================================
+
+    // Tab functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                
+                // Update active tab
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Show corresponding content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.getElementById(tabName + 'Tab').classList.add('active');
+            });
+        });
+
+        // Token preview on input
+        const tokenInputs = ['tokenName', 'tokenSymbol', 'tokenLogo'];
+        tokenInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('input', updateTokenPreview);
+            }
+        });
+    });
+
+    function updateTokenPreview() {
+        const name = document.getElementById('tokenName').value;
+        const symbol = document.getElementById('tokenSymbol').value;
+        const logo = document.getElementById('tokenLogo').value;
+        
+        const preview = document.getElementById('tokenPreview');
+        const previewName = document.getElementById('previewName');
+        const previewSymbol = document.getElementById('previewSymbol');
+        const previewLogo = document.getElementById('previewLogo');
+        
+        if (name || symbol) {
+            preview.style.display = 'block';
+            previewName.textContent = name || 'Token Name';
+            previewSymbol.textContent = symbol || 'SYMBOL';
+            if (logo) {
+                previewLogo.src = logo;
+                previewLogo.style.display = 'block';
+            } else {
+                previewLogo.style.display = 'none';
+                const iconContainer = previewLogo.parentElement;
+                iconContainer.innerHTML = symbol ? symbol.charAt(0) : 'T';
+                iconContainer.style.background = 'rgba(255, 255, 255, 0.1)';
+                iconContainer.style.color = 'white';
+                iconContainer.style.display = 'flex';
+                iconContainer.style.alignItems = 'center';
+                iconContainer.style.justifyContent = 'center';
+            }
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    // =============================================
     // EVENT LISTENERS
     // =============================================
 
@@ -2554,71 +2720,6 @@ async function importCustomToken() {
             closeModal();
         }
     }
-
-// =============================================
-// TAB FUNCTIONALITY FOR MANAGE CRYPTO
-// =============================================
-
-// Tab functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Tab switching
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            const tabName = this.getAttribute('data-tab');
-            
-            // Update active tab
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-            
-            // Show corresponding content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            document.getElementById(tabName + 'Tab').classList.add('active');
-        });
-    });
-
-    // Token preview on input
-    const tokenInputs = ['tokenName', 'tokenSymbol', 'tokenLogo'];
-    tokenInputs.forEach(inputId => {
-        const input = document.getElementById(inputId);
-        if (input) {
-            input.addEventListener('input', updateTokenPreview);
-        }
-    });
-});
-
-function updateTokenPreview() {
-    const name = document.getElementById('tokenName').value;
-    const symbol = document.getElementById('tokenSymbol').value;
-    const logo = document.getElementById('tokenLogo').value;
-    
-    const preview = document.getElementById('tokenPreview');
-    const previewName = document.getElementById('previewName');
-    const previewSymbol = document.getElementById('previewSymbol');
-    const previewLogo = document.getElementById('previewLogo');
-    
-    if (name || symbol) {
-        preview.style.display = 'block';
-        previewName.textContent = name || 'Token Name';
-        previewSymbol.textContent = symbol || 'SYMBOL';
-        if (logo) {
-            previewLogo.src = logo;
-            previewLogo.style.display = 'block';
-        } else {
-            previewLogo.style.display = 'none';
-            const iconContainer = previewLogo.parentElement;
-            iconContainer.innerHTML = symbol ? symbol.charAt(0) : 'T';
-            iconContainer.style.background = 'rgba(255, 255, 255, 0.1)';
-            iconContainer.style.color = 'white';
-            iconContainer.style.display = 'flex';
-            iconContainer.style.alignItems = 'center';
-            iconContainer.style.justifyContent = 'center';
-        }
-    } else {
-        preview.style.display = 'none';
-    }
-}
 </script>
 </body>
 </html>
