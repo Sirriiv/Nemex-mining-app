@@ -1209,7 +1209,7 @@ button:hover {
                 <div class="backup-confirmation">
                     <div class="confirmation-checkbox">
                         <input type="checkbox" id="backupConfirmed" onchange="toggleContinueButton()">
-                        <label for="backupConfirmed">✅ I have written down my recovery phrase and stored it securely</label>
+                        <label for="backupConfirmed">I have written down my recovery phrase and stored it securely</label>
                     </div>
                     <div class="security-warning">
                         <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
@@ -1227,17 +1227,62 @@ button:hover {
             </div>
         </div>
 
-        <!-- View Seed Phrase Modal -->
-        <div id="viewSeedModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">🔑 Recovery Phrase</div>
-                <div class="security-warning">
-                    <strong>⚠️ SECURITY WARNING:</strong> Never share your recovery phrase with anyone!
+        <!-- Enhanced View Seed Phrase Modal - Fullscreen -->
+<div id="viewSeedModal" class="modal fullscreen">
+    <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh;">
+        <!-- Premium Header -->
+        <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
+            <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                    <button onclick="closeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                        <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                    <div>
+                        <div class="modal-title" style="color: var(--gold); font-size: 24px; font-weight: 700; margin: 0;">Recovery Phrase</div>
+                        <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Your wallet's secret backup phrase</div>
+                    </div>
                 </div>
-                <div class="mnemonic-words" id="viewSeedWords"></div>
-                <button class="close-modal secondary" onclick="closeModal()">Close</button>
             </div>
         </div>
+
+        <div style="padding: 32px 24px; max-width: 500px; margin: 0 auto; width: 100%;">
+            <!-- Critical Security Warning -->
+            <div class="security-warning" style="background: rgba(255, 68, 68, 0.1); border: 1px solid var(--error); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                <div style="display: flex; align-items: flex-start; gap: 12px;">
+                    <div style="width: 24px; height: 24px; background: var(--error); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <svg style="width: 14px; height: 14px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 16px; color: var(--error); font-weight: 700; margin-bottom: 8px;">CRITICAL SECURITY WARNING</div>
+                        <div style="font-size: 14px; color: var(--text); line-height: 1.5;">
+                            • <strong>Never share</strong> your recovery phrase with anyone<br>
+                            • <strong>Never enter</strong> it on any website or app<br>
+                            • <strong>Store securely</strong> offline - we cannot recover it for you<br>
+                            • Anyone with these words can access your funds
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mnemonic Words Display -->
+            <div class="mnemonic-words" id="viewSeedWords" style="grid-template-columns: 1fr 1fr 1fr; gap: 12px; background: rgba(212, 175, 55, 0.05); border: 2px solid rgba(212, 175, 55, 0.2); padding: 24px; border-radius: 16px; margin: 24px 0;"></div>
+
+            <!-- Copy Button -->
+            <button onclick="copySeedPhrase()" style="width: 100%; background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--dark-bg); border: none; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-bottom: 16px;">
+                Copy Recovery Phrase
+            </button>
+
+            <!-- Close Button -->
+            <button class="close-modal secondary" onclick="closeModal()" style="width: 100%; background: transparent; border: 2px solid rgba(212, 175, 55, 0.4); color: var(--gold); padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease;">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
 
         <!-- Settings Modal - FULL SCREEN -->
         <div id="settingsModal" class="modal fullscreen">
