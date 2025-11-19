@@ -1749,6 +1749,9 @@ async function importCustomToken() {
             updateSessionStatus('❌ API connection failed', 'inactive');
             return;
         }
+        
+      await initCustomTokens();
+
 
         // Check if we have an active session
         const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
@@ -2551,6 +2554,71 @@ async function importCustomToken() {
             closeModal();
         }
     }
+
+// =============================================
+// TAB FUNCTIONALITY FOR MANAGE CRYPTO
+// =============================================
+
+// Tab functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            
+            // Update active tab
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            // Show corresponding content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        });
+    });
+
+    // Token preview on input
+    const tokenInputs = ['tokenName', 'tokenSymbol', 'tokenLogo'];
+    tokenInputs.forEach(inputId => {
+        const input = document.getElementById(inputId);
+        if (input) {
+            input.addEventListener('input', updateTokenPreview);
+        }
+    });
+});
+
+function updateTokenPreview() {
+    const name = document.getElementById('tokenName').value;
+    const symbol = document.getElementById('tokenSymbol').value;
+    const logo = document.getElementById('tokenLogo').value;
+    
+    const preview = document.getElementById('tokenPreview');
+    const previewName = document.getElementById('previewName');
+    const previewSymbol = document.getElementById('previewSymbol');
+    const previewLogo = document.getElementById('previewLogo');
+    
+    if (name || symbol) {
+        preview.style.display = 'block';
+        previewName.textContent = name || 'Token Name';
+        previewSymbol.textContent = symbol || 'SYMBOL';
+        if (logo) {
+            previewLogo.src = logo;
+            previewLogo.style.display = 'block';
+        } else {
+            previewLogo.style.display = 'none';
+            const iconContainer = previewLogo.parentElement;
+            iconContainer.innerHTML = symbol ? symbol.charAt(0) : 'T';
+            iconContainer.style.background = 'rgba(255, 255, 255, 0.1)';
+            iconContainer.style.color = 'white';
+            iconContainer.style.display = 'flex';
+            iconContainer.style.alignItems = 'center';
+            iconContainer.style.justifyContent = 'center';
+        }
+    } else {
+        preview.style.display = 'none';
+    }
+}
 </script>
 </body>
 </html>
