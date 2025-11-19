@@ -519,6 +519,98 @@
             margin-top: 4px;
         }
 
+/* ============================================= */
+/* MANAGE CRYPTO STYLES */
+/* ============================================= */
+
+/* Tab Navigation */
+.tab-navigation {
+    display: flex;
+    background: var(--card-bg);
+    border-radius: var(--border-radius-sm);
+    padding: 4px;
+    margin: 16px 0;
+}
+
+.tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+}
+
+.tab.active {
+    background: var(--gold);
+    color: var(--dark-bg);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Token Preview */
+.token-preview {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius-sm);
+    padding: 16px;
+    margin: 16px 0;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+/* Manage Crypto Button */
+.manage-crypto-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(212, 175, 55, 0.1);
+    border: 1px solid var(--gold);
+    border-radius: var(--border-radius-sm);
+    color: var(--gold);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px 0;
+}
+
+.manage-crypto-btn:hover {
+    background: rgba(212, 175, 55, 0.2);
+}
+
+/* Custom Token List */
+.custom-token-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: var(--card-bg);
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.custom-token-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.remove-token-btn {
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid var(--error);
+    color: var(--error);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
         /* Welcome Screen */
         .welcome-screen {
             padding: 40px 20px;
@@ -996,18 +1088,27 @@
         </div>
 
         <!-- Token List -->
-        <section class="token-section" id="tokenSection" style="display: none;">
-            <div class="section-title">
-                <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                Your Assets
-                <span class="loading" id="tokensLoading"></span>
-            </div>
-            <div class="token-list" id="tokenList">
-                <!-- Tokens will be loaded dynamically -->
-            </div>
-        </section>
+<section class="token-section" id="tokenSection" style="display: none;">
+    <div class="section-title">
+        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+        </svg>
+        Your Assets
+        <span class="loading" id="tokensLoading"></span>
+    </div>
+    <div class="token-list" id="tokenList">
+        <!-- Tokens will be loaded dynamically -->
+    </div>
+    
+    <!-- ADD THIS BUTTON -->
+    <div class="manage-crypto-btn" onclick="showManageCryptoModal()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Manage Crypto
+    </div>
+</section>
+
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
@@ -1195,13 +1296,13 @@
                     </div>
                 </div>
 
-                <!-- Logout Option -->
+                <!-- back to Dashboard Option -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                         </svg>
-                        <div>Logout</div>
+                        <div>back to Dashboard</div>
                     </div>
                 </div>
 
@@ -1261,6 +1362,156 @@
                 <button class="close-modal" onclick="closeModal()">Close</button>
             </div>
         </div>
+
+<!-- ============================================= -->
+<!-- MANAGE CRYPTO MODALS -->
+<!-- ============================================= -->
+
+<!-- Manage Crypto Modal -->
+<div id="manageCryptoModal" class="modal fullscreen">
+    <div class="modal-content">
+        <div class="modal-title">
+            <span onclick="closeModal()" style="cursor: pointer; margin-right: 15px;">←</span>
+            Manage Crypto
+        </div>
+
+        <!-- Search Bar -->
+        <div class="form-group">
+            <input type="text" id="tokenSearch" class="form-input" placeholder="Search tokens...">
+        </div>
+
+        <!-- Network Selection -->
+        <div class="form-group">
+            <label class="form-label">Network</label>
+            <select id="networkSelect" class="form-input">
+                <option value="TON">TON Blockchain</option>
+                <option value="ETH">Ethereum</option>
+                <option value="BSC">Binance Smart Chain</option>
+                <option value="POLYGON">Polygon</option>
+            </select>
+        </div>
+
+        <!-- Popular Tokens List -->
+        <div class="section-title" style="margin-top: 20px;">
+            Popular Tokens
+        </div>
+        <div class="token-list" id="popularTokensList">
+            <!-- Popular tokens will be loaded here -->
+        </div>
+
+        <!-- Your Tokens List -->
+        <div class="section-title" style="margin-top: 20px;">
+            Your Tokens
+        </div>
+        <div class="token-list" id="yourTokensList">
+            <!-- User's custom tokens will be loaded here -->
+        </div>
+
+        <!-- Add Custom Token Button -->
+        <div class="settings-option" onclick="showImportCryptoModal()">
+            <div class="settings-option-content">
+                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                </svg>
+                <div>Add Custom Token</div>
+            </div>
+            <div style="color: var(--gold);">+</div>
+        </div>
+
+        <button class="close-modal" onclick="closeModal()" style="margin-top: 20px;">Close</button>
+    </div>
+</div>
+
+<!-- Import Crypto Modal -->
+<div id="importCryptoModal" class="modal fullscreen">
+    <div class="modal-content">
+        <div class="modal-title">
+            <span onclick="showManageCryptoModal()" style="cursor: pointer; margin-right: 15px;">←</span>
+            Import Crypto
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation">
+            <div class="tab active" data-tab="token">Token</div>
+            <div class="tab" data-tab="nft">NFT</div>
+        </div>
+
+        <!-- Token Tab Content -->
+        <div id="tokenTab" class="tab-content active">
+            <div class="form-group">
+                <label class="form-label">Network *</label>
+                <select id="importNetwork" class="form-input" required>
+                    <option value="TON">TON Blockchain</option>
+                    <option value="ETH">Ethereum</option>
+                    <option value="BSC">Binance Smart Chain</option>
+                    <option value="POLYGON">Polygon</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Token Contract Address *</label>
+                <input type="text" id="tokenAddress" class="form-input" placeholder="EQ..." required>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    The contract address of the token
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Token Name *</label>
+                <input type="text" id="tokenName" class="form-input" placeholder="e.g., NemexCoin" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Token Symbol *</label>
+                <input type="text" id="tokenSymbol" class="form-input" placeholder="e.g., NMX" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Decimals *</label>
+                <input type="number" id="tokenDecimals" class="form-input" placeholder="e.g., 9" value="9" required>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    Usually 18 for ETH/BSC, 9 for TON tokens
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Token Logo URL (Optional)</label>
+                <input type="text" id="tokenLogo" class="form-input" placeholder="https://...">
+            </div>
+
+            <!-- Token Preview -->
+            <div class="token-preview" id="tokenPreview" style="display: none;">
+                <div class="section-title">Preview</div>
+                <div class="token-card">
+                    <div class="token-icon">
+                        <img id="previewLogo" src="" class="token-icon-img" onerror="handleTokenLogoError(this, 'TKN')">
+                    </div>
+                    <div class="token-info">
+                        <div class="token-name" id="previewName">Token Name</div>
+                        <div class="token-symbol" id="previewSymbol">SYMBOL</div>
+                    </div>
+                    <div class="token-balance">
+                        <div class="token-amount">0.00</div>
+                        <div class="token-value">$0.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="importTokenStatus"></div>
+
+            <button class="close-modal" onclick="importCustomToken()" id="importTokenBtn">
+                Import Token
+            </button>
+        </div>
+
+        <!-- NFT Tab Content -->
+        <div id="nftTab" class="tab-content">
+            <div class="security-warning">
+                NFT import functionality coming soon!
+            </div>
+        </div>
+    </div>
+</div>
 
     </div>
 
