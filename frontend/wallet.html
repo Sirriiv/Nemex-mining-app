@@ -1214,16 +1214,124 @@
         </div>
 
         <!-- Other Modals (Send, Receive, Swap, Buy) remain the same -->
-        <!-- Send Modal -->
-        <div id="sendModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Send</div>
-                <div class="security-warning">
-                    Send functionality coming soon!
+        <!-- Enhanced Send Modal with Gold/Dark Theme -->
+<div id="sendModal" class="modal">
+    <div class="modal-content" style="background: var(--card-bg); border: 2px solid var(--gold);">
+        <!-- Modal Header -->
+        <div class="modal-title" style="color: var(--gold); border-bottom: 1px solid var(--gold); padding-bottom: 15px; margin-bottom: 20px;">
+            <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--gold);">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+            Send
+        </div>
+
+        <!-- Token Selector -->
+        <div class="form-group">
+            <label class="form-label" style="color: var(--gold);">SELECT TOKEN</label>
+            <select id="sendTokenSelect" class="form-input" onchange="updateSendToken()" 
+                    style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text);">
+                <option value="TON">💎 TON (Toncoin)</option>
+                <option value="NMX">🎯 NMX (NemexCoin)</option>
+                <!-- Future tokens will be dynamically added -->
+            </select>
+        </div>
+
+        <!-- Address Input with Paste Button -->
+        <div class="form-group">
+            <label class="form-label" style="color: var(--gold);">ADDRESS OR NAME</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="sendToAddress" class="form-input" 
+                       placeholder="Enter wallet address or name"
+                       style="flex: 1; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text);"
+                       oninput="validateSendAddress()">
+                <button type="button" onclick="pasteAddress()" 
+                        style="background: var(--gold); color: var(--dark-bg); border: none; padding: 12px 16px; border-radius: var(--border-radius-sm); font-weight: 600; cursor: pointer; white-space: nowrap;">
+                    PASTE
+                </button>
+            </div>
+            <div id="addressValidation" style="font-size: 12px; margin-top: 8px;"></div>
+        </div>
+
+        <!-- Amount Input -->
+        <div class="form-group">
+            <label class="form-label" style="color: var(--gold);">AMOUNT</label>
+            <input type="number" id="sendAmount" class="form-input" 
+                   placeholder="0.00" step="0.000001" 
+                   style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text); font-size: 18px; font-weight: 600;"
+                   oninput="updateSendSummary()">
+            
+            <!-- USD Conversion & Balance -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                    <div style="font-size: 12px; color: var(--text-muted);">
+                        USD <span id="sendUsdValue">0</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--gold); margin-top: 2px;">
+                        Remaining: <span id="remainingBalance">0.00</span> <span id="remainingToken">TON</span>
+                    </div>
                 </div>
-                <button class="close-modal" onclick="closeModal()">Close</button>
+                <button type="button" onclick="setMaxAmount()" 
+                        style="background: rgba(212, 175, 55, 0.2); color: var(--gold); border: 1px solid var(--gold); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">
+                    MAX
+                </button>
             </div>
         </div>
+
+        <!-- Transaction Fee -->
+        <div class="form-group" style="background: rgba(212, 175, 55, 0.05); padding: 12px; border-radius: var(--border-radius-sm); border: 1px solid rgba(212, 175, 55, 0.3);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 14px; color: var(--gold); font-weight: 600;">Transaction Fee</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Network fee for this transaction</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 14px; color: var(--text); font-weight: 600;" id="transactionFee">0.001 TON</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">≈ $<span id="feeUsdValue">0.00</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comment (Optional) -->
+        <div class="form-group">
+            <label class="form-label" style="color: var(--gold);">
+                COMMENT (OPTIONAL)
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: normal; margin-left: 5px;">
+                    Add a note about this transaction
+                </span>
+            </label>
+            <input type="text" id="sendMemo" class="form-input" 
+                   placeholder="Add a note about this transaction"
+                   style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text);"
+                   oninput="updateSendSummary()">
+        </div>
+
+        <!-- Transaction Summary -->
+        <div id="sendSummary" class="security-warning" style="display: none; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold);">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <svg style="width: 16px; height: 16px; color: var(--gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <strong style="color: var(--gold);">Transaction Summary</strong>
+            </div>
+            <div id="sendSummaryDetails" style="font-size: 13px; color: var(--text); line-height: 1.4;"></div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="sendStatus" style="margin: 15px 0;"></div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 12px; margin-top: 20px;">
+            <button class="close-modal secondary" onclick="closeModal()" 
+                    style="flex: 1; background: transparent; border: 2px solid var(--gold); color: var(--gold);">
+                Cancel
+            </button>
+            <button class="close-modal" onclick="confirmSendTransaction()" id="confirmSendBtn"
+                    style="flex: 1; background: var(--gold); color: var(--dark-bg); border: none; font-weight: 600;">
+                Confirm Send
+            </button>
+        </div>
+    </div>
+</div>
 
         <!-- Receive Modal -->
         <div id="receiveModal" class="modal">
