@@ -2120,76 +2120,90 @@ button:hover {
 }
 
     // =============================================
-    // BACKUP & SEED PHRASE MANAGEMENT
-    // =============================================
+// BACKUP & SEED PHRASE MANAGEMENT
+// =============================================
 
-    function toggleContinueButton() {
-        const confirmationCheckbox = document.getElementById('backupConfirmed');
-        const continueButton = document.getElementById('confirmBackupBtn');
+function toggleContinueButton() {
+    const confirmationCheckbox = document.getElementById('backupConfirmed');
+    const continueButton = document.getElementById('confirmBackupBtn');
 
-        if (confirmationCheckbox && continueButton) {
-            continueButton.disabled = !confirmationCheckbox.checked;
-        }
+    if (confirmationCheckbox && continueButton) {
+        continueButton.disabled = !confirmationCheckbox.checked;
+    }
+}
+
+function showBackupModal(mnemonic) {
+    const words = mnemonic.split(' ');
+    const mnemonicWords = document.getElementById('mnemonicWords');
+    if (!mnemonicWords) return;
+
+    mnemonicWords.innerHTML = '';
+
+    words.forEach((word, index) => {
+        const wordElement = document.createElement('div');
+        wordElement.className = 'mnemonic-word';
+        wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
+        mnemonicWords.appendChild(wordElement);
+    });
+
+    currentMnemonic = mnemonic;
+
+    const backupConfirmed = document.getElementById('backupConfirmed');
+    const confirmBackupBtn = document.getElementById('confirmBackupBtn');
+
+    if (backupConfirmed && confirmBackupBtn) {
+        backupConfirmed.checked = false;
+        confirmBackupBtn.disabled = true;
     }
 
-    function showBackupModal(mnemonic) {
-        const words = mnemonic.split(' ');
-        const mnemonicWords = document.getElementById('mnemonicWords');
-        if (!mnemonicWords) return;
-
-        mnemonicWords.innerHTML = '';
-
-        words.forEach((word, index) => {
-            const wordElement = document.createElement('div');
-            wordElement.className = 'mnemonic-word';
-            wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
-            mnemonicWords.appendChild(wordElement);
-        });
-
-        currentMnemonic = mnemonic;
-
-        const backupConfirmed = document.getElementById('backupConfirmed');
-        const confirmBackupBtn = document.getElementById('confirmBackupBtn');
-
-        if (backupConfirmed && confirmBackupBtn) {
-            backupConfirmed.checked = false;
-            confirmBackupBtn.disabled = true;
-        }
-
-        const backupModal = document.getElementById('backupModal');
-        if (backupModal) {
-            backupModal.style.display = 'flex';
-        }
-
-        console.log('📝 Backup modal shown for wallet:', walletState.address);
+    const backupModal = document.getElementById('backupModal');
+    if (backupModal) {
+        backupModal.style.display = 'flex';
     }
 
-    function confirmBackupAndContinue() {
-        const confirmationCheckbox = document.getElementById('backupConfirmed');
+    console.log('📝 Backup modal shown for wallet:', walletState.address);
+}
 
-        if (!confirmationCheckbox || !confirmationCheckbox.checked) {
-            alert('⚠️ You must confirm that you have saved your recovery phrase!');
-            return;
-        }
+function confirmBackupAndContinue() {
+    const confirmationCheckbox = document.getElementById('backupConfirmed');
 
-        console.log('✅ User confirmed backup for wallet:', walletState.address);
-
-        closeModal();
-        updateSessionStatus('✅ Session active', 'active');
-        updateWalletDisplay();
-        updateRealBalances();
-        loadUserWallets();
-
-        showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
+    if (!confirmationCheckbox || !confirmationCheckbox.checked) {
+        alert('⚠️ You must confirm that you have saved your recovery phrase!');
+        return;
     }
 
-    function showViewSeedPhrase() {
-        if (!currentMnemonic) {
+    console.log('✅ User confirmed backup for wallet:', walletState.address);
+
+    closeModal();
+    updateSessionStatus('✅ Session active', 'active');
+    updateWalletDisplay();
+    updateRealBalances();
+    loadUserWallets();
+
+    showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
+}
+
+async function showViewSeedPhrase(walletAddress = null) {
+    try {
+        let targetMnemonic = currentMnemonic;
+        
+        // If specific wallet address provided, try to get its mnemonic
+        if (walletAddress && walletAddress !== walletState.address) {
+            const targetWallet = userWallets.find(w => w.address === walletAddress);
+            if (targetWallet && targetWallet.mnemonic) {
+                targetMnemonic = targetWallet.mnemonic;
+            } else {
+                alert('Seed phrase not available for this wallet. It may have been imported without storing the phrase locally for security.');
+                return;
+            }
+        }
+        
+        if (!targetMnemonic) {
             alert('No seed phrase available for current wallet. This may be because the wallet was imported and the phrase is not stored locally for security.');
             return;
         }
 
-        const words = currentMnemonic.split(' ');
+        const words = targetMnemonic.split(' ');
         const viewSeedWords = document.getElementById('viewSeedWords');
         if (!viewSeedWords) return;
 
@@ -2198,7 +2212,17 @@ button:hover {
         words.forEach((word, index) => {
             const wordElement = document.createElement('div');
             wordElement.className = 'mnemonic-word';
-            wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
+            wordElement.style.padding = '12px 8px';
+            wordElement.style.background = 'rgba(212, 175, 55, 0.1)';
+            wordElement.style.borderRadius = '8px';
+            wordElement.style.fontFamily = 'monospace';
+            wordElement.style.display = 'flex';
+            wordElement.style.alignItems = 'center';
+            wordElement.style.justifyContent = 'center';
+            wordElement.style.textAlign = 'center';
+            wordElement.style.fontWeight = '600';
+            wordElement.style.fontSize = '14px';
+            wordElement.innerHTML = `<span class="word-index" style="color: var(--gold); font-weight: bold; margin-right: 8px; font-size: 12px;">${index + 1}.</span> ${word}`;
             viewSeedWords.appendChild(wordElement);
         });
 
@@ -2206,7 +2230,45 @@ button:hover {
         if (viewSeedModal) {
             viewSeedModal.style.display = 'flex';
         }
+    } catch (error) {
+        console.error('Error showing seed phrase:', error);
+        alert('Error accessing seed phrase: ' + error.message);
     }
+}
+
+// Copy seed phrase to clipboard
+async function copySeedPhrase() {
+    try {
+        if (!currentMnemonic) {
+            alert('No seed phrase available to copy');
+            return;
+        }
+        
+        await navigator.clipboard.writeText(currentMnemonic);
+        
+        // Show success message
+        const tempDiv = document.createElement('div');
+        tempDiv.className = 'status-message status-success';
+        tempDiv.textContent = '✅ Recovery phrase copied to clipboard!';
+        tempDiv.style.position = 'fixed';
+        tempDiv.style.top = '100px';
+        tempDiv.style.left = '50%';
+        tempDiv.style.transform = 'translateX(-50%)';
+        tempDiv.style.zIndex = '3000';
+        tempDiv.style.maxWidth = '90%';
+        document.body.appendChild(tempDiv);
+
+        setTimeout(() => {
+            if (document.body.contains(tempDiv)) {
+                document.body.removeChild(tempDiv);
+            }
+        }, 3000);
+        
+    } catch (error) {
+        console.error('Failed to copy seed phrase:', error);
+        alert('Failed to copy recovery phrase to clipboard');
+    }
+}
 
     // =============================================
     // BALANCE & PRICE UPDATES - FIXED VERSION
