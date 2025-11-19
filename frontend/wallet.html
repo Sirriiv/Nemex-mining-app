@@ -1283,31 +1283,31 @@
     let customTokens = [];
     let currentMnemonic = null;
 
-    // Supported tokens
-    let SUPPORTED_TOKENS = [
-        {
-            symbol: "TON",
-            name: "Toncoin",
-            balance: 0, // Will be updated from API
-            logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-            price: 0, // Will be updated from API
-            change24h: 0, // Will be updated from API
-            canSend: true,
-            isNative: true,
-            isFeatured: true
-        },
-        {
-            symbol: "NMX", 
-            name: "NemexCoin",
-            balance: 0, // Will be updated from API
-            logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-            price: 0, // Will be updated from API
-            change24h: 0, // Will be updated from API
-            canSend: true,
-            isNative: false,
-            isFeatured: true
-        }
-    ];
+    // Supported tokens - ENSURE NMX IS PROPERLY INITIALIZED
+let SUPPORTED_TOKENS = [
+    {
+        symbol: "TON",
+        name: "Toncoin",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+        price: 0, // Will be updated from API
+        change24h: 0, // Will be updated from API
+        canSend: true,
+        isNative: true,
+        isFeatured: true
+    },
+    {
+        symbol: "NMX", 
+        name: "NemexCoin",
+        balance: 0, // Will be updated from API - THIS WAS THE ISSUE!
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        price: 0.10, // Default price
+        change24h: 0,
+        canSend: true,
+        isNative: false,
+        isFeatured: true
+    }
+];
 
     // =============================================
     // INITIALIZATION & SESSION MANAGEMENT
