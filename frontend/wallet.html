@@ -1560,6 +1560,181 @@
         }
     ];
 
+// =============================================
+// MANAGE CRYPTO FEATURE - SECURE STORAGE
+// =============================================
+
+let customTokens = [];
+
+// Load custom tokens from secure storage
+async function loadCustomTokens() {
+    try {
+        const storedTokens = await window.nemexWalletAPI.storage.getItem('nemex_custom_tokens');
+        customTokens = storedTokens || [];
+        console.log(`✅ Loaded ${customTokens.length} custom tokens from secure storage`);
+    } catch (error) {
+        console.error('Failed to load custom tokens:', error);
+        customTokens = [];
+    }
+}
+
+// Save custom tokens to secure storage
+async function saveCustomTokens() {
+    try {
+        await window.nemexWalletAPI.storage.setItem('nemex_custom_tokens', customTokens);
+        console.log(`✅ Saved ${customTokens.length} custom tokens to secure storage`);
+    } catch (error) {
+        console.error('Failed to save custom tokens:', error);
+        showStatusMessage('❌ Failed to save tokens', 'error');
+    }
+}
+
+// Initialize custom tokens when wallet loads
+async function initCustomTokens() {
+    await loadCustomTokens();
+}
+
+// Popular tokens for quick add
+const POPULAR_TOKENS = [
+    {
+        symbol: "NMX",
+        name: "NemexCoin", 
+        address: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
+        network: "TON",
+        decimals: 9,
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        isCustom: true
+    },
+    {
+        symbol: "USDT",
+        name: "Tether USD",
+        address: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs",
+        network: "TON",
+        decimals: 6,
+        logo: "https://cryptologos.cc/logos/tether-usdt-logo.png",
+        isCustom: true
+    },
+    {
+        symbol: "NOT", 
+        name: "Notcoin",
+        address: "EQB-MPwrd1G6WKNkLz_VnV6WqBDd142KMQv-g1O-8QUA3728",
+        network: "TON",
+        decimals: 9,
+        logo: "https://s2.coinmarketcap.com/static/img/coins/64x64/18360.png",
+        isCustom: true
+    }
+];
+
+// Update the functions to use async storage
+async function loadManageCryptoInterface() {
+    await loadCustomTokens(); // Ensure tokens are loaded
+    loadPopularTokens();
+    loadUserTokens();
+    setupTokenSearch();
+}
+
+async function addPopularToken(symbol) {
+    const token = POPULAR_TOKENS.find(t => t.symbol === symbol);
+    if (token) {
+        // Check if already added
+        if (customTokens.find(t => t.address === token.address)) {
+            showStatusMessage('Token already added!', 'error');
+            return;
+        }
+        
+        customTokens.push({
+            ...token,
+            balance: 0,
+            price: 0,
+            change24h: 0,
+            canSend: true,
+            isNative: false,
+            isFeatured: false
+        });
+        await saveCustomTokens(); // Use async save
+        loadUserTokens();
+        showStatusMessage(`✅ ${token.name} added successfully!`, 'success');
+        loadTokens(); // Refresh main token list
+    }
+}
+
+async function removeCustomToken(index) {
+    if (confirm('Are you sure you want to remove this token?')) {
+        const tokenName = customTokens[index].name;
+        customTokens.splice(index, 1);
+        await saveCustomTokens(); // Use async save
+        loadUserTokens();
+        showStatusMessage(`✅ ${tokenName} removed`, 'success');
+        loadTokens(); // Refresh main token list
+    }
+}
+
+// Update the import function
+async function importCustomToken() {
+    const importBtn = document.getElementById('importTokenBtn');
+    const statusDiv = document.getElementById('importTokenStatus');
+    
+    const network = document.getElementById('importNetwork').value;
+    const address = document.getElementById('tokenAddress').value.trim();
+    const name = document.getElementById('tokenName').value.trim();
+    const symbol = document.getElementById('tokenSymbol').value.trim();
+    const decimals = parseInt(document.getElementById('tokenDecimals').value);
+    const logo = document.getElementById('tokenLogo').value.trim();
+
+    // Validation
+    if (!address || !name || !symbol || isNaN(decimals)) {
+        showStatusMessage('Please fill all required fields', 'error', statusDiv);
+        return;
+    }
+
+    // Check if token already exists
+    if (customTokens.find(token => token.address === address)) {
+        showStatusMessage('This token is already imported!', 'error', statusDiv);
+        return;
+    }
+
+    try {
+        importBtn.innerHTML = '<div class="loading"></div> Importing...';
+        importBtn.disabled = true;
+        showStatusMessage('Importing token...', 'loading', statusDiv);
+
+        const newToken = {
+            symbol: symbol.toUpperCase(),
+            name: name,
+            address: address,
+            network: network,
+            decimals: decimals,
+            logo: logo || '',
+            balance: 0,
+            price: 0,
+            change24h: 0,
+            canSend: true,
+            isNative: false,
+            isFeatured: false,
+            isCustom: true
+        };
+
+        // Add to custom tokens
+        customTokens.push(newToken);
+        await saveCustomTokens(); // Use async save
+
+        showStatusMessage(`✅ ${name} imported successfully!`, 'success', statusDiv);
+        
+        setTimeout(() => {
+            closeModal();
+            showManageCryptoModal();
+            loadTokens(); // Refresh main token list
+        }, 1500);
+
+    } catch (error) {
+        console.error('Token import failed:', error);
+        showStatusMessage('❌ Failed to import token: ' + error.message, 'error', statusDiv);
+    } finally {
+        importBtn.innerHTML = 'Import Token';
+        importBtn.disabled = false;
+    }
+}
+
     // =============================================
     // INITIALIZATION & SESSION MANAGEMENT
     // =============================================
