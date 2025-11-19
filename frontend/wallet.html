@@ -2019,110 +2019,60 @@ button:hover {
         }
     }
 
-    function updateWalletList() {
-        const walletList = document.getElementById('walletList');
-        if (!walletList) return;
+   function updateWalletList() {
+    const walletList = document.getElementById('walletList');
+    if (!walletList) return;
 
-        if (userWallets.length > 0) {
-            walletList.innerHTML = userWallets.map(wallet => `
-                <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
-                    <div class="wallet-icon">
-                        <i class="fas fa-wallet"></i>
-                    </div>
-                    <div class="wallet-info">
-                        <div class="wallet-name-display">
-                            ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
-                            ${wallet.address === walletState.address ? '(Active)' : ''}
-                        </div>
-                        <div class="wallet-address">${wallet.address}</div>
-                        <div class="wallet-type">${wallet.source}</div>
-                    </div>
-                    <div class="wallet-actions">
-                        ${wallet.address !== walletState.address ? 
-                            `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')">Switch</button>` : 
-                            ''
-                        }
-                        <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase()">View Seed</button>
-                    </div>
+    // Remove duplicate wallets by address
+    const uniqueWallets = userWallets.filter((wallet, index, self) => 
+        index === self.findIndex(w => w.address === wallet.address)
+    );
+
+    if (uniqueWallets.length > 0) {
+        walletList.innerHTML = uniqueWallets.map(wallet => `
+            <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
                 </div>
-            `).join('');
-        } else if (walletState.isInitialized) {
-            walletList.innerHTML = `
-                <div class="wallet-item active">
-                    <div class="wallet-icon">
-                        <i class="fas fa-wallet"></i>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
+                        ${wallet.address === walletState.address ? '(Active)' : ''}
                     </div>
-                    <div class="wallet-info">
-                        <div class="wallet-name-display">
-                            ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} (Active)
-                        </div>
-                        <div class="wallet-address">${walletState.address}</div>
-                        <div class="wallet-type">${walletState.walletType || 'active'}</div>
-                    </div>
-                    <div class="wallet-actions">
-                        <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase()">View Seed</button>
-                    </div>
+                    <div class="wallet-address">${wallet.address}</div>
+                    <div class="wallet-type">${wallet.source}</div>
                 </div>
-            `;
-        } else {
-            walletList.innerHTML = '<div class="security-warning">No active wallet. Create or import a wallet to get started.</div>';
-        }
+                <div class="wallet-actions">
+                    ${wallet.address !== walletState.address ? 
+                        `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')">Switch</button>` : 
+                        ''
+                    }
+                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')">View Seed</button>
+                </div>
+            </div>
+        `).join('');
+    } else if (walletState.isInitialized) {
+        walletList.innerHTML = `
+            <div class="wallet-item active">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} (Active)
+                    </div>
+                    <div class="wallet-address">${walletState.address}</div>
+                    <div class="wallet-type">${walletState.walletType || 'active'}</div>
+                </div>
+                <div class="wallet-actions">
+                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')">View Seed</button>
+                </div>
+            </div>
+        `;
+    } else {
+        walletList.innerHTML = '<div class="security-warning">No active wallet. Create or import a wallet to get started.</div>';
     }
-
-    async function switchToWallet(address) {
-        try {
-            console.log('🔄 Switching to wallet:', address);
-
-            const result = await window.nemexWalletAPI.setActiveWallet(address);
-
-            if (result.success) {
-                // Update local state
-                const wallet = userWallets.find(w => w.address === address);
-                if (wallet) {
-                    walletState = {
-                        isInitialized: true,
-                        walletType: wallet.source,
-                        userId: wallet.userId,
-                        address: wallet.address,
-                        balances: {}
-                    };
-
-                    console.log('✅ Switched to wallet:', address);
-                    updateSessionStatus('✅ Session active', 'active');
-                    updateWalletDisplay();
-                    updateRealBalances();
-                    updateWalletList();
-
-                    showStatusMessage(`✅ Switched to wallet: ${address.substring(0, 8)}...`, 'success');
-                }
-            }
-        } catch (error) {
-            console.error('Wallet switch failed:', error);
-            showStatusMessage('❌ Failed to switch wallet: ' + error.message, 'error');
-        }
-    }
-
-    function logout() {
-        if (confirm('Are you sure you want to logout? Your wallet data will remain stored but you\'ll need to select a wallet again.')) {
-            window.nemexWalletAPI.clearSession();
-            walletState = {
-                isInitialized: false,
-                walletType: null,
-                userId: null,
-                address: null,
-                balances: {},
-                lastUpdate: null
-            };
-            currentMnemonic = null;
-
-            updateSessionStatus('🔒 Logged out', 'inactive');
-            updateWalletDisplay();
-            updateWalletList();
-
-            showStatusMessage('✅ Logged out successfully', 'success');
-            closeModal();
-        }
-    }
+}
 
     // =============================================
     // BACKUP & SEED PHRASE MANAGEMENT
