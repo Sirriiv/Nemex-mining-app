@@ -2632,22 +2632,18 @@ function toggleTokenDropdown() {
 function selectToken(symbol, name, logoUrl) {
     currentSendToken = symbol;
     
-    // Update selected token display
+    // Update selected token display - FIXED: Now properly updates name and symbol
     const selectedLogo = document.getElementById('selectedTokenLogo');
-    const selectedToken = document.querySelector('.dropdown-selected');
+    const selectedTokenName = document.getElementById('selectedTokenName');
+    const selectedTokenSymbol = document.getElementById('selectedTokenSymbol');
     
     selectedLogo.src = logoUrl;
     selectedLogo.alt = name;
     selectedLogo.onerror = function() { handleTokenLogoError(this, symbol); };
     
-    // Update the text (we need to find the child elements)
-    const textContainer = selectedToken.querySelector('div:first-child');
-    if (textContainer) {
-        const nameElement = textContainer.querySelector('div:first-child');
-        const symbolElement = textContainer.querySelector('div:last-child');
-        if (nameElement) nameElement.textContent = name;
-        if (symbolElement) symbolElement.textContent = symbol;
-    }
+    // FIX: Properly update the token name and symbol
+    if (selectedTokenName) selectedTokenName.textContent = name;
+    if (selectedTokenSymbol) selectedTokenSymbol.textContent = symbol;
     
     // Close dropdown
     toggleTokenDropdown();
@@ -2658,6 +2654,7 @@ function selectToken(symbol, name, logoUrl) {
     updateSendSummary();
     
     // Add visual feedback
+    const selectedToken = document.querySelector('.dropdown-selected');
     selectedToken.style.borderColor = 'var(--gold)';
     selectedToken.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.1) 100%)';
     setTimeout(() => {
@@ -2665,6 +2662,7 @@ function selectToken(symbol, name, logoUrl) {
         selectedToken.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%)';
     }, 500);
 }
+    
 
 function updateDropdownBalances() {
     // Update TON balance in dropdown
