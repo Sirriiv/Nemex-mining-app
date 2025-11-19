@@ -1214,121 +1214,318 @@
         </div>
 
         <!-- Other Modals (Send, Receive, Swap, Buy) remain the same -->
-        <!-- Enhanced Send Modal with Gold/Dark Theme -->
+        <!-- Professional Send Modal with Real Logos & Dropdown -->
 <div id="sendModal" class="modal">
-    <div class="modal-content" style="background: var(--card-bg); border: 2px solid var(--gold);">
-        <!-- Modal Header -->
-        <div class="modal-title" style="color: var(--gold); border-bottom: 1px solid var(--gold); padding-bottom: 15px; margin-bottom: 20px;">
-            <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--gold);">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-            </svg>
-            Send
+    <div class="modal-content" style="background: linear-gradient(135deg, var(--card-bg) 0%, #1a1a1a 100%); border: 2px solid var(--gold); border-radius: 20px; overflow: hidden; max-width: 440px;">
+        <!-- Premium Modal Header -->
+        <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 24px 24px 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; background: var(--gold); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <svg style="width: 20px; height: 20px; color: var(--dark-bg);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                </div>
+                <div>
+                    <div class="modal-title" style="color: var(--gold); font-size: 22px; font-weight: 700; margin: 0;">Send Assets</div>
+                    <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Securely transfer your tokens</div>
+                </div>
+            </div>
         </div>
 
-        <!-- Token Selector -->
-        <div class="form-group">
-            <label class="form-label" style="color: var(--gold);">SELECT TOKEN</label>
-            <select id="sendTokenSelect" class="form-input" onchange="updateSendToken()" 
-                    style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text);">
-                <option value="TON">💎 TON (Toncoin)</option>
-                <option value="NMX">🎯 NMX (NemexCoin)</option>
-                <!-- Future tokens will be dynamically added -->
-            </select>
-        </div>
+        <div style="padding: 24px;">
+            <!-- Token Selector - Professional Dropdown -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    SELECT TOKEN
+                </label>
+                
+                <!-- Custom Dropdown Container -->
+                <div class="custom-dropdown" style="position: relative;">
+                    <!-- Selected Token Display -->
+                    <div class="dropdown-selected" onclick="toggleTokenDropdown()" 
+                         style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                border: 2px solid rgba(212, 175, 55, 0.3); 
+                                padding: 16px; 
+                                border-radius: 12px;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                gap: 12px;
+                                transition: all 0.3s ease;">
+                        <img id="selectedTokenLogo" src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
+                             style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"
+                             onerror="handleTokenLogoError(this, 'TON')">
+                        <div style="flex: 1;">
+                            <div style="font-size: 16px; font-weight: 600; color: var(--text);">Toncoin</div>
+                            <div style="font-size: 13px; color: var(--text-muted);">TON</div>
+                        </div>
+                        <svg id="dropdownArrow" style="width: 20px; height: 20px; color: var(--gold); transition: transform 0.3s ease;" 
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
 
-        <!-- Address Input with Paste Button -->
-        <div class="form-group">
-            <label class="form-label" style="color: var(--gold);">ADDRESS OR NAME</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="sendToAddress" class="form-input" 
-                       placeholder="Enter wallet address or name"
-                       style="flex: 1; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text);"
-                       oninput="validateSendAddress()">
-                <button type="button" onclick="pasteAddress()" 
-                        style="background: var(--gold); color: var(--dark-bg); border: none; padding: 12px 16px; border-radius: var(--border-radius-sm); font-weight: 600; cursor: pointer; white-space: nowrap;">
-                    PASTE
+                    <!-- Dropdown Options -->
+                    <div id="tokenDropdown" class="dropdown-options" 
+                         style="display: none; 
+                                position: absolute; 
+                                top: 100%; 
+                                left: 0; 
+                                right: 0; 
+                                background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                                border: 2px solid rgba(212, 175, 55, 0.3);
+                                border-top: none;
+                                border-radius: 0 0 12px 12px;
+                                margin-top: -2px;
+                                z-index: 1000;
+                                max-height: 200px;
+                                overflow-y: auto;
+                                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);">
+                        
+                        <!-- TON Option -->
+                        <div class="token-option" onclick="selectToken('TON', 'Toncoin', 'https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png')"
+                             style="padding: 16px; 
+                                    cursor: pointer; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    gap: 12px;
+                                    transition: all 0.3s ease;
+                                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                            <img src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
+                                 style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"
+                                 onerror="handleTokenLogoError(this, 'TON')">
+                            <div style="flex: 1;">
+                                <div style="font-size: 16px; font-weight: 600; color: var(--text);">Toncoin</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">TON</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--text);" id="tonBalanceDropdown">0.00</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Balance</div>
+                            </div>
+                        </div>
+
+                        <!-- NMX Option -->
+                        <div class="token-option" onclick="selectToken('NMX', 'NemexCoin', 'https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1')"
+                             style="padding: 16px; 
+                                    cursor: pointer; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    gap: 12px;
+                                    transition: all 0.3s ease;">
+                            <img src="https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1" 
+                                 style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;"
+                                 onerror="handleTokenLogoError(this, 'NMX')">
+                            <div style="flex: 1;">
+                                <div style="font-size: 16px; font-weight: 600; color: var(--text);">NemexCoin</div>
+                                <div style="font-size: 13px; color: var(--text-muted);">NMX</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 14px; font-weight: 600; color: var(--text);" id="nmxBalanceDropdown">0.00</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Balance</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address Input with Enhanced Design -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                    </svg>
+                    RECIPIENT ADDRESS
+                </label>
+                <div style="display: flex; gap: 12px; align-items: flex-start;">
+                    <div style="flex: 1; position: relative;">
+                        <input type="text" id="sendToAddress" class="form-input" 
+                               placeholder="Enter wallet address (EQ...)"
+                               style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                      border: 2px solid rgba(212, 175, 55, 0.3); 
+                                      color: var(--text); 
+                                      padding: 16px;
+                                      border-radius: 12px;
+                                      font-family: 'Courier New', monospace;
+                                      font-size: 14px;
+                                      transition: all 0.3s ease;"
+                               oninput="validateSendAddress()">
+                    </div>
+                    <button type="button" onclick="pasteAddress()" 
+                            style="background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); 
+                                   color: var(--dark-bg); 
+                                   border: none; 
+                                   padding: 16px 20px; 
+                                   border-radius: 12px; 
+                                   font-weight: 700; 
+                                   cursor: pointer; 
+                                   white-space: nowrap;
+                                   font-size: 14px;
+                                   transition: all 0.3s ease;
+                                   box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);">
+                        📋 PASTE
+                    </button>
+                </div>
+                <div id="addressValidation" style="font-size: 13px; margin-top: 8px; min-height: 20px;"></div>
+            </div>
+
+            <!-- Amount Input - Premium Design -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 12px;">
+                    <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                        <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                        AMOUNT
+                    </label>
+                    <button type="button" onclick="setMaxAmount()" 
+                            style="background: rgba(212, 175, 55, 0.15); 
+                                   color: var(--gold); 
+                                   border: 1px solid rgba(212, 175, 55, 0.4); 
+                                   padding: 8px 16px; 
+                                   border-radius: 8px; 
+                                   font-size: 12px; 
+                                   font-weight: 700; 
+                                   cursor: pointer;
+                                   transition: all 0.3s ease;">
+                        MAX
+                    </button>
+                </div>
+                
+                <div style="position: relative;">
+                    <input type="number" id="sendAmount" class="form-input" 
+                           placeholder="0.00" step="0.000001" 
+                           style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                  border: 2px solid rgba(212, 175, 55, 0.3); 
+                                  color: var(--text); 
+                                  font-size: 24px; 
+                                  font-weight: 700; 
+                                  padding: 20px 16px;
+                                  border-radius: 12px;
+                                  text-align: center;
+                                  transition: all 0.3s ease;"
+                           oninput="updateSendSummary()">
+                </div>
+
+                <!-- Balance and USD Conversion -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 0 8px;">
+                    <div>
+                        <div style="font-size: 13px; color: var(--text-muted);">
+                            ≈ $<span id="sendUsdValue">0.00</span> USD
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 12px; color: var(--gold); font-weight: 600;">
+                            Available: <span id="remainingBalance">0.00</span> <span id="remainingToken">TON</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Fee - Premium Card -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%); 
+                            padding: 16px; 
+                            border-radius: 12px; 
+                            border: 1px solid rgba(212, 175, 55, 0.2);
+                            backdrop-filter: blur(10px);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="width: 32px; height: 32px; background: rgba(212, 175, 55, 0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                <svg style="width: 16px; height: 16px; color: var(--gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div style="font-size: 14px; color: var(--gold); font-weight: 600;">Network Fee</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">Transaction cost</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 16px; color: var(--text); font-weight: 700;" id="transactionFee">0.001 TON</div>
+                            <div style="font-size: 12px; color: var(--text-muted);">≈ $<span id="feeUsdValue">0.00</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comment Input - Premium Design -->
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                    </svg>
+                    MEMO (OPTIONAL)
+                </label>
+                <input type="text" id="sendMemo" class="form-input" 
+                       placeholder="Add a note about this transaction..."
+                       style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                              border: 2px solid rgba(212, 175, 55, 0.3); 
+                              color: var(--text); 
+                              padding: 16px;
+                              borderRadius: 12px;
+                              fontSize: 14px;
+                              transition: all 0.3s ease;"
+                       oninput="updateSendSummary()">
+            </div>
+
+            <!-- Enhanced Transaction Summary -->
+            <div id="sendSummary" style="display: none; 
+                                        background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                        border: 1px solid rgba(212, 175, 55, 0.3);
+                                        border-radius: 12px;
+                                        padding: 20px;
+                                        margin-bottom: 20px;
+                                        backdrop-filter: blur(10px);">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <div style="width: 24px; height: 24px; background: var(--gold); border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                        <svg style="width: 14px; height: 14px; color: var(--dark-bg);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div style="font-size: 16px; color: var(--gold); font-weight: 700;">Transaction Ready</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Review details before sending</div>
+                    </div>
+                </div>
+                <div id="sendSummaryDetails" style="font-size: 14px; color: var(--text); line-height: 1.6; background: rgba(0, 0, 0, 0.2); padding: 16px; border-radius: 8px;"></div>
+            </div>
+
+            <!-- Status Messages -->
+            <div id="sendStatus" style="margin: 16px 0;"></div>
+
+            <!-- Premium Action Buttons -->
+            <div style="display: flex; gap: 12px; margin-top: 8px;">
+                <button class="close-modal secondary" onclick="closeModal()" 
+                        style="flex: 1; 
+                               background: transparent; 
+                               border: 2px solid rgba(212, 175, 55, 0.4); 
+                               color: var(--gold); 
+                               padding: 16px;
+                               border-radius: 12px;
+                               font-weight: 700;
+                               font-size: 16px;
+                               cursor: pointer;
+                               transition: all 0.3s ease;">
+                    Cancel
+                </button>
+                <button class="close-modal" onclick="confirmSendTransaction()" id="confirmSendBtn"
+                        style="flex: 1; 
+                               background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); 
+                               color: var(--dark-bg); 
+                               border: none; 
+                               padding: 16px;
+                               border-radius: 12px;
+                               font-weight: 700;
+                               font-size: 16px;
+                               cursor: pointer;
+                               transition: all 0.3s ease;
+                               box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);">
+                    Confirm Send
                 </button>
             </div>
-            <div id="addressValidation" style="font-size: 12px; margin-top: 8px;"></div>
-        </div>
-
-        <!-- Amount Input -->
-        <div class="form-group">
-            <label class="form-label" style="color: var(--gold);">AMOUNT</label>
-            <input type="number" id="sendAmount" class="form-input" 
-                   placeholder="0.00" step="0.000001" 
-                   style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text); font-size: 18px; font-weight: 600;"
-                   oninput="updateSendSummary()">
-            
-            <!-- USD Conversion & Balance -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                <div>
-                    <div style="font-size: 12px; color: var(--text-muted);">
-                        USD <span id="sendUsdValue">0</span>
-                    </div>
-                    <div style="font-size: 11px; color: var(--gold); margin-top: 2px;">
-                        Remaining: <span id="remainingBalance">0.00</span> <span id="remainingToken">TON</span>
-                    </div>
-                </div>
-                <button type="button" onclick="setMaxAmount()" 
-                        style="background: rgba(212, 175, 55, 0.2); color: var(--gold); border: 1px solid var(--gold); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">
-                    MAX
-                </button>
-            </div>
-        </div>
-
-        <!-- Transaction Fee -->
-        <div class="form-group" style="background: rgba(212, 175, 55, 0.05); padding: 12px; border-radius: var(--border-radius-sm); border: 1px solid rgba(212, 175, 55, 0.3);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <div style="font-size: 14px; color: var(--gold); font-weight: 600;">Transaction Fee</div>
-                    <div style="font-size: 12px; color: var(--text-muted);">Network fee for this transaction</div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 14px; color: var(--text); font-weight: 600;" id="transactionFee">0.001 TON</div>
-                    <div style="font-size: 11px; color: var(--text-muted);">≈ $<span id="feeUsdValue">0.00</span></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Comment (Optional) -->
-        <div class="form-group">
-            <label class="form-label" style="color: var(--gold);">
-                COMMENT (OPTIONAL)
-                <span style="font-size: 11px; color: var(--text-muted); font-weight: normal; margin-left: 5px;">
-                    Add a note about this transaction
-                </span>
-            </label>
-            <input type="text" id="sendMemo" class="form-input" 
-                   placeholder="Add a note about this transaction"
-                   style="background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold); color: var(--text);"
-                   oninput="updateSendSummary()">
-        </div>
-
-        <!-- Transaction Summary -->
-        <div id="sendSummary" class="security-warning" style="display: none; background: rgba(212, 175, 55, 0.1); border: 1px solid var(--gold);">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                <svg style="width: 16px; height: 16px; color: var(--gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <strong style="color: var(--gold);">Transaction Summary</strong>
-            </div>
-            <div id="sendSummaryDetails" style="font-size: 13px; color: var(--text); line-height: 1.4;"></div>
-        </div>
-
-        <!-- Status Messages -->
-        <div id="sendStatus" style="margin: 15px 0;"></div>
-
-        <!-- Action Buttons -->
-        <div style="display: flex; gap: 12px; margin-top: 20px;">
-            <button class="close-modal secondary" onclick="closeModal()" 
-                    style="flex: 1; background: transparent; border: 2px solid var(--gold); color: var(--gold);">
-                Cancel
-            </button>
-            <button class="close-modal" onclick="confirmSendTransaction()" id="confirmSendBtn"
-                    style="flex: 1; background: var(--gold); color: var(--dark-bg); border: none; font-weight: 600;">
-                Confirm Send
-            </button>
         </div>
     </div>
 </div>
