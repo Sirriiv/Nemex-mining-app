@@ -1816,143 +1816,165 @@
     }
 
     // =============================================
-    // BALANCE & PRICE UPDATES
-    // =============================================
+// BALANCE & PRICE UPDATES - FIXED VERSION
+// =============================================
 
-    async function updateRealBalances() {
-        if (!walletState.isInitialized || !walletState.address) {
-            return;
-        }
+async function updateRealBalances() {
+    if (!walletState.isInitialized || !walletState.address) {
+        return;
+    }
 
-        try {
-            console.log('🔄 Fetching REAL balances and prices...');
+    try {
+        console.log('🔄 Fetching REAL balances and prices...');
 
-            const [balanceResult, priceResult] = await Promise.all([
-                window.nemexWalletAPI.getAllBalances(walletState.address),
-                window.nemexWalletAPI.getTokenPrices()
-            ]);
+        const [balanceResult, priceResult] = await Promise.all([
+            window.nemexWalletAPI.getAllBalances(walletState.address),
+            window.nemexWalletAPI.getTokenPrices()
+        ]);
 
-            // Update TON balance
-            const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-            if (tonToken && balanceResult.balances && balanceResult.balances.TON) {
-                tonToken.balance = parseFloat(balanceResult.balances.TON);
-                if (priceResult.prices && priceResult.prices.TON) {
-                    tonToken.price = priceResult.prices.TON.price;
-                    tonToken.change24h = priceResult.prices.TON.change24h || 0;
-                }
+        console.log('🔍 Balance result:', balanceResult);
+        console.log('🔍 Price result:', priceResult);
+
+        // ✅ FIX: Update TON balance PROPERLY
+        const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
+        if (tonToken && balanceResult.balances) {
+            // Handle both string and number balances
+            const tonBalance = parseFloat(balanceResult.balances.TON || "0");
+            tonToken.balance = tonBalance;
+            console.log('✅ TON balance updated:', tonToken.balance);
+            
+            if (priceResult.prices && priceResult.prices.TON) {
+                tonToken.price = priceResult.prices.TON.price || 0;
+                tonToken.change24h = priceResult.prices.TON.change24h || 0;
             }
+        }
 
-            // Update NMX balance
-            const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-            if (nmxToken && balanceResult.balances && balanceResult.balances.NMX) {
-                nmxToken.balance = parseFloat(balanceResult.balances.NMX);
-                if (priceResult.prices && priceResult.prices.NMX) {
-                    nmxToken.price = priceResult.prices.NMX.price;
-                    nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
-                }
+        // ✅ FIX: Update NMX balance PROPERLY - THIS WAS THE MAIN ISSUE
+        let nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
+        
+        // Ensure NMX token exists in supported tokens
+        if (!nmxToken) {
+            console.log('⚠️ NMX token not found in SUPPORTED_TOKENS, adding it...');
+            nmxToken = {
+                symbol: "NMX",
+                name: "NemexCoin",
+                balance: 0,
+                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                price: 0,
+                change24h: 0,
+                canSend: true,
+                isNative: false,
+                isFeatured: true
+            };
+            SUPPORTED_TOKENS.push(nmxToken);
+        }
+
+        if (nmxToken && balanceResult.balances) {
+            // ✅ CRITICAL FIX: Properly parse NMX balance
+            const nmxBalance = parseFloat(balanceResult.balances.NMX || "0");
+            nmxToken.balance = nmxBalance;
+            console.log('✅ NMX balance updated:', nmxToken.balance, 'NMX');
+            
+            if (priceResult.prices && priceResult.prices.NMX) {
+                nmxToken.price = priceResult.prices.NMX.price || 0;
+                nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
+            } else {
+                // Fallback NMX price if not available from API
+                nmxToken.price = 0.10;
+                nmxToken.change24h = 0;
             }
-
-            updatePortfolioValue();
-            loadTokens();
-
-            console.log('✅ Real blockchain balances & prices updated');
-
-        } catch (error) {
-            console.error('Failed to update real data:', error);
-            SUPPORTED_TOKENS[0].balance = 0;
-            SUPPORTED_TOKENS[1].balance = 0;
-            updatePortfolioValue();
-            loadTokens();
-        }
-    }
-
-    // =============================================
-    // UI UPDATES
-    // =============================================
-
-    function updateWalletDisplay() {
-        const welcomeScreen = document.getElementById('welcomeScreen');
-        const balanceSection = document.getElementById('balanceSection');
-        const actionButtons = document.getElementById('actionButtons');
-        const tokenSection = document.getElementById('tokenSection');
-
-        if (walletState.isInitialized) {
-            if (welcomeScreen) welcomeScreen.style.display = 'none';
-            if (balanceSection) balanceSection.style.display = 'block';
-            if (actionButtons) actionButtons.style.display = 'grid';
-            if (tokenSection) tokenSection.style.display = 'block';
-            updatePortfolioValue();
-        } else {
-            if (welcomeScreen) welcomeScreen.style.display = 'block';
-            if (balanceSection) balanceSection.style.display = 'none';
-            if (actionButtons) actionButtons.style.display = 'none';
-            if (tokenSection) tokenSection.style.display = 'none';
         }
 
-        updateWalletList();
-    }
-
-    function updatePortfolioValue() {
-        const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-        const totalUSD = allTokens.reduce((sum, token) => {
-            return sum + ((token.balance || 0) * (token.price || 0));
-        }, 0);
-
-        const balanceAmount = document.getElementById('balanceAmount');
-        const balanceCrypto = document.getElementById('balanceCrypto');
-        const balanceLoading = document.getElementById('balanceLoading');
-
-        if (balanceAmount) balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
-        if (balanceCrypto) balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
-        if (balanceLoading) balanceLoading.style.display = 'none';
-        if (balanceAmount) balanceAmount.style.display = 'inline';
-        if (balanceCrypto) balanceCrypto.style.display = 'inline';
-    }
-
-    function loadTokens() {
-        const tokenList = document.getElementById('tokenList');
-        const tokensLoading = document.getElementById('tokensLoading');
-        if (!tokenList) return;
-
-        const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-
-        tokenList.innerHTML = '';
-
-        allTokens.forEach(token => {
-            const tokenValue = (token.balance || 0) * (token.price || 0);
-            const change24h = token.change24h || 0;
-            const changeClass = change24h >= 0 ? 'change-positive' : 'change-negative';
-            const changeSymbol = change24h >= 0 ? '+' : '';
-            const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
-            const featuredClass = token.isFeatured ? 'featured' : '';
-
-            const tokenCard = document.createElement('div');
-            tokenCard.className = `token-card ${featuredClass}`;
-            tokenCard.innerHTML = `
-                <div class="token-icon ${token.symbol.toLowerCase()}-icon">
-                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
-                         onerror="handleTokenLogoError(this, '${token.symbol}')">
-                    ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
-                </div>
-                <div class="token-info">
-                    <div class="token-name">${token.name}</div>
-                    <div class="token-symbol">${token.symbol}</div>
-                    <div class="token-price">
-                        $${formatTokenPrice(token.price)} 
-                        <span class="token-change ${changeClass}">${formattedChange}</span>
-                    </div>
-                </div>
-                <div class="token-balance">
-                    <div class="token-amount">${formatTokenBalance(token.balance)}</div>
-                    <div class="token-value">$${tokenValue.toFixed(2)}</div>
-                </div>
-            `;
-            tokenList.appendChild(tokenCard);
+        // ✅ DEBUG: Log all token balances
+        console.log('🔍 Final token balances:');
+        SUPPORTED_TOKENS.forEach(token => {
+            console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
         });
 
-        if (tokensLoading) tokensLoading.style.display = 'none';
+        updatePortfolioValue();
+        loadTokens();
+
+        console.log('✅ Real blockchain balances & prices updated');
+
+    } catch (error) {
+        console.error('Failed to update real data:', error);
+        // Set fallback balances
+        SUPPORTED_TOKENS.forEach(token => {
+            if (token.symbol === 'TON' || token.symbol === 'NMX') {
+                token.balance = 0;
+            }
+        });
+        updatePortfolioValue();
+        loadTokens();
+    }
+}
+
+// =============================================
+// UI UPDATES - ENHANCED DEBUGGING
+// =============================================
+
+function loadTokens() {
+    const tokenList = document.getElementById('tokenList');
+    const tokensLoading = document.getElementById('tokensLoading');
+    if (!tokenList) return;
+
+    const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+
+    // ✅ DEBUG: Log what tokens are being rendered
+    console.log('🔄 Rendering tokens:', allTokens.map(t => ({
+        symbol: t.symbol,
+        balance: t.balance,
+        price: t.price,
+        value: (t.balance || 0) * (t.price || 0)
+    })));
+
+    tokenList.innerHTML = '';
+
+    if (allTokens.length === 0) {
+        tokenList.innerHTML = '<div class="security-warning">No tokens found</div>';
+        return;
     }
 
+    allTokens.forEach(token => {
+        const tokenValue = (token.balance || 0) * (token.price || 0);
+        const change24h = token.change24h || 0;
+        const changeClass = change24h >= 0 ? 'change-positive' : 'change-negative';
+        const changeSymbol = change24h >= 0 ? '+' : '';
+        const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
+        const featuredClass = token.isFeatured ? 'featured' : '';
+
+        // ✅ DEBUG: Log each token being created
+        console.log(`🎨 Creating token card: ${token.symbol} - Balance: ${token.balance} - Value: $${tokenValue}`);
+
+        const tokenCard = document.createElement('div');
+        tokenCard.className = `token-card ${featuredClass}`;
+        tokenCard.innerHTML = `
+            <div class="token-icon ${token.symbol.toLowerCase()}-icon">
+                <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                     onerror="handleTokenLogoError(this, '${token.symbol}')">
+                ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
+            </div>
+            <div class="token-info">
+                <div class="token-name">${token.name}</div>
+                <div class="token-symbol">${token.symbol}</div>
+                <div class="token-price">
+                    $${formatTokenPrice(token.price)} 
+                    <span class="token-change ${changeClass}">${formattedChange}</span>
+                </div>
+            </div>
+            <div class="token-balance">
+                <div class="token-amount">${formatTokenBalance(token.balance)}</div>
+                <div class="token-value">$${tokenValue.toFixed(2)}</div>
+            </div>
+        `;
+        tokenList.appendChild(tokenCard);
+    });
+
+    if (tokensLoading) tokensLoading.style.display = 'none';
+    
+    // ✅ DEBUG: Confirm rendering completed
+    console.log(`✅ Rendered ${allTokens.length} tokens in UI`);
+}
     // =============================================
     // HELPER FUNCTIONS
     // =============================================
