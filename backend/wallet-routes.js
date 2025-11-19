@@ -4,10 +4,11 @@ const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const crypto = require('crypto');
 const bip39 = require('bip39');
-const { mnemonicToWalletKey } = require('@ton/crypto');
+const { mnemonicToWalletKey, mnemonicToSeed } = require('@ton/crypto');
+const { HDKey } = require('@scure/bip32');
 const TonWeb = require('tonweb');
 
-console.log('✅ UPDATED wallet-routes.js - FIXED NMX BALANCE & ALL ISSUES!');
+console.log('✅ UPDATED wallet-routes.js - MULTI-PATH DERIVATION SUPPORT!');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -18,12 +19,366 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 }));
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-
-// ✅ CORRECT NMX CONTRACT ADDRESS
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
 
 // =============================================
-// MULTIPLE PRICE API SOURCES WITH 24H CHANGE
+// MULTI-PATH DERIVATION FOR TON WALLETS
+// =============================================
+
+// ✅ ALL SUPPORTED DERIVATION PATHS
+const DERIVATION_PATHS = [
+    // Primary BIP-44 (most compatible)
+    "m/44'/607'/0'/0/0",
+    
+    // Common shorter variant
+    "m/44'/607'/0'",
+    
+    // Ledger variant 1
+    "m/44'/607'/0'/0/0/0",
+    
+    // Account variants (n = 0-4)
+    "m/44'/607'/0'/0/0",
+    "m/44'/607'/1'/0/0", 
+    "m/44'/607'/2'/0/0",
+    "m/44'/607'/3'/0/0",
+    "m/44'/607'/4'/0/0",
+    
+    // Additional variants reported in wild
+    "m/44'/607'/0'/0",
+    "m/44'/607'/0'/0'"
+];
+
+async function deriveWalletFromPath(mnemonic, path) {
+    try {
+        console.log(`🔄 Deriving wallet with path: ${path}`);
+        
+        const seed = await mnemonicToSeed(mnemonic.split(' '));
+        const hdKey = HDKey.fromMasterSeed(seed);
+        
+        // Parse derivation path
+        const segments = path.split('/').slice(1);
+        let currentKey = hdKey;
+        
+        for (const segment of segments) {
+            let index;
+            let hardened = false;
+            
+            if (segment.endsWith("'")) {
+                hardened = true;
+                index = parseInt(segment.slice(0, -1));
+            } else {
+                index = parseInt(segment);
+            }
+            
+            if (isNaN(index)) {
+                throw new Error(`Invalid path segment: ${segment}`);
+            }
+            
+            if (hardened) {
+                index += 0x80000000;
+            }
+            
+            currentKey = currentKey.deriveChild(index);
+        }
+        
+        // Use the derived private key
+        const keyPair = {
+            publicKey: currentKey.publicKey,
+            secretKey: currentKey.privateKey
+        };
+        
+        const WalletClass = tonweb.wallet.all.v4R2;
+        const wallet = new WalletClass(tonweb.provider, {
+            publicKey: keyPair.publicKey,
+            wc: 0
+        });
+        
+        const walletAddress = await wallet.getAddress();
+        const address = walletAddress.toString(true, true, true);
+        const addressNonBounceable = walletAddress.toString(true, true, false);
+        
+        return {
+            path: path,
+            address: address,
+            addressNonBounceable: addressNonBounceable,
+            publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
+            keyPair: keyPair
+        };
+        
+    } catch (error) {
+        console.log(`❌ Derivation failed for path ${path}:`, error.message);
+        return null;
+    }
+}
+
+async function deriveAllWalletAddresses(mnemonic) {
+    console.log('🔄 Deriving wallets from all supported paths...');
+    
+    const results = [];
+    
+    for (const path of DERIVATION_PATHS) {
+        const result = await deriveWalletFromPath(mnemonic, path);
+        if (result) {
+            results.push(result);
+            console.log(`✅ Path ${path}: ${result.addressNonBounceable}`);
+        }
+    }
+    
+    console.log(`✅ Derived ${results.length} wallet addresses`);
+    return results;
+}
+
+// =============================================
+// ENCRYPTION FUNCTIONS
+// =============================================
+
+function encrypt(text) {
+    try {
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        const authTag = cipher.getAuthTag();
+        return {
+            iv: iv.toString('hex'),
+            data: encrypted,
+            authTag: authTag.toString('hex')
+        };
+    } catch (error) {
+        console.error('Encryption failed:', error);
+        throw new Error('Encryption error');
+    }
+}
+
+// =============================================
+// BALANCE FUNCTIONS - FIXED NMX & TON
+// =============================================
+
+async function getRealBalance(address) {
+    try {
+        console.log('🔄 Fetching TON balance for:', address);
+
+        const response = await axios.get('https://toncenter.com/api/v2/getAddressInformation', {
+            params: { address: address },
+            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY },
+            timeout: 10000
+        });
+
+        if (response.data && response.data.result) {
+            const balance = response.data.result.balance;
+
+            let tonBalance;
+            if (typeof balance === 'object' && balance.toString) {
+                tonBalance = TonWeb.utils.fromNano(balance.toString());
+            } else if (typeof balance === 'string') {
+                tonBalance = TonWeb.utils.fromNano(balance);
+            } else {
+                tonBalance = TonWeb.utils.fromNano(balance.toString());
+            }
+
+            console.log('✅ TON Balance fetched:', tonBalance);
+
+            return {
+                success: true,
+                balance: parseFloat(tonBalance).toFixed(4),
+                address: address,
+                rawBalance: balance.toString()
+            };
+        } else {
+            return {
+                success: true,
+                balance: "0",
+                address: address,
+                rawBalance: "0"
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ TON balance fetch failed:', error.message);
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            error: error.message
+        };
+    }
+}
+
+// ✅ FIXED NMX BALANCE FUNCTION
+async function getNMXBalance(address) {
+    try {
+        console.log('🔄 Fetching NMX balance for:', address);
+        console.log('🔍 Using NMX Contract:', NMX_CONTRACT);
+
+        // Convert address to non-bounceable format (like Tonkeeper uses)
+        const nonBounceableAddress = address.replace(/^EQ/, 'UQ');
+        console.log('🔍 Also checking non-bounceable:', nonBounceableAddress);
+        
+        const NMX_CONTRACTS = [
+            "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
+            "EQDcBvcg2WBPb8vQkArfS2fIZrzi2pFjnfJfZbsKp4rWVfQH"
+        ];
+
+        console.log('🔍 Using NMX Contracts:', NMX_CONTRACTS);
+
+        // ✅ METHOD 1: Try both address formats
+        const addressesToCheck = [address, nonBounceableAddress];
+        
+        for (const checkAddress of addressesToCheck) {
+            console.log('🔄 Checking address format:', checkAddress);
+            
+            try {
+                const tonapiResponse = await axios.get(`https://tonapi.io/v2/accounts/${checkAddress}/jettons`, {
+                    timeout: 15000
+                });
+
+                console.log('🔍 TonAPI Response for', checkAddress, ':', tonapiResponse.status);
+                
+                if (tonapiResponse.data && tonapiResponse.data.balances) {
+                    console.log('🔍 Found', tonapiResponse.data.balances.length, 'jettons');
+                    
+                    // Log ALL jettons found for debugging
+                    tonapiResponse.data.balances.forEach((jetton, index) => {
+                        console.log(`🔍 Jetton ${index + 1}:`, {
+                            symbol: jetton.jetton?.symbol,
+                            name: jetton.jetton?.name,
+                            address: jetton.jetton?.address,
+                            balance: TonWeb.utils.fromNano(jetton.balance)
+                        });
+                    });
+
+                    // Check all possible NMX contracts
+                    for (const contract of NMX_CONTRACTS) {
+                        const nmxJetton = tonapiResponse.data.balances.find(j => {
+                            const jettonAddress = j.jetton?.address;
+                            return jettonAddress === contract;
+                        });
+                        
+                        if (nmxJetton) {
+                            const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+                            console.log('✅ NMX Balance found:', nmxBalance, 'NMX from contract:', contract);
+                            
+                            return {
+                                success: true,
+                                balance: parseFloat(nmxBalance).toFixed(2),
+                                address: address,
+                                rawBalance: nmxJetton.balance,
+                                source: 'tonapi_direct'
+                            };
+                        }
+                    }
+                }
+            } catch (tonapiError) {
+                console.log('TonAPI failed for', checkAddress, ':', tonapiError.message);
+            }
+        }
+
+        // ✅ METHOD 2: Try direct contract call
+        console.log('🔄 Trying direct contract call...');
+        try {
+            const directResponse = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
+                params: { account: address },
+                timeout: 10000
+            });
+
+            if (directResponse.data && directResponse.data.balances) {
+                console.log('🔍 Direct API found', directResponse.data.balances.length, 'tokens');
+                
+                directResponse.data.balances.forEach((token, index) => {
+                    console.log(`🔍 Token ${index + 1}:`, {
+                        symbol: token.jetton?.symbol,
+                        name: token.jetton?.name,
+                        address: token.jetton?.address,
+                        balance: TonWeb.utils.fromNano(token.balance)
+                    });
+                });
+
+                for (const contract of NMX_CONTRACTS) {
+                    const nmxJetton = directResponse.data.balances.find(j => {
+                        return j.jetton?.address === contract;
+                    });
+                    
+                    if (nmxJetton) {
+                        const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
+                        console.log('✅ NMX Balance found via direct API:', nmxBalance, 'NMX');
+                        
+                        return {
+                            success: true,
+                            balance: parseFloat(nmxBalance).toFixed(2),
+                            address: address,
+                            rawBalance: nmxJetton.balance,
+                            source: 'direct_api'
+                        };
+                    }
+                }
+            }
+        } catch (directError) {
+            console.log('Direct API failed:', directError.message);
+        }
+
+        console.log('ℹ️ No NMX tokens found after all methods');
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            source: 'not_found'
+        };
+
+    } catch (error) {
+        console.error('❌ All NMX balance methods failed:', error.message);
+        
+        return {
+            success: true,
+            balance: "0",
+            address: address,
+            rawBalance: "0",
+            error: error.message
+        };
+    }
+}
+
+async function getAllBalances(address) {
+    try {
+        console.log('🔍 [DEBUG] getAllBalances called with address:', address);
+
+        const [tonBalance, nmxBalance] = await Promise.all([
+            getRealBalance(address),
+            getNMXBalance(address)
+        ]);
+
+        console.log('✅ All balances fetched for:', address);
+        console.log('✅ TON:', tonBalance.balance, 'TON');
+        console.log('✅ NMX:', nmxBalance.balance, 'NMX');
+        console.log('✅ NMX Source:', nmxBalance.source);
+
+        return {
+            success: true,
+            balances: {
+                TON: tonBalance.balance,
+                NMX: nmxBalance.balance
+            },
+            address: address,
+            nmxSource: nmxBalance.source
+        };
+
+    } catch (error) {
+        console.error('❌ All balances fetch failed:', error);
+        return {
+            success: false,
+            balances: {
+                TON: "0",
+                NMX: "0"
+            },
+            address: address,
+            error: error.message
+        };
+    }
+}
+
+// =============================================
+// PRICE API FUNCTIONS
 // =============================================
 
 async function getRealTokenPrices() {
@@ -234,245 +589,232 @@ async function generateRealTONWallet(wordCount = 12) {
 }
 
 // =============================================
-// ENCRYPTION FUNCTIONS
+// ENHANCED WALLET IMPORT WITH PATH DETECTION
 // =============================================
 
-function encrypt(text) {
+router.post('/import-wallet', async function(req, res) {
     try {
-        const iv = crypto.randomBytes(16);
-        const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
-        let encrypted = cipher.update(text, 'utf8', 'hex');
-        encrypted += cipher.final('hex');
-        const authTag = cipher.getAuthTag();
-        return {
-            iv: iv.toString('hex'),
-            data: encrypted,
-            authTag: authTag.toString('hex')
-        };
-    } catch (error) {
-        console.error('Encryption failed:', error);
-        throw new Error('Encryption error');
-    }
-}
+        const { userId, mnemonic, targetAddress } = req.body;
+        console.log('🔄 Enhanced wallet import with path detection...');
 
-// =============================================
-// BALANCE FUNCTIONS - FIXED NMX & TON
-// =============================================
+        if (!userId || !mnemonic) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID and mnemonic are required'
+            });
+        }
 
-async function getRealBalance(address) {
-    try {
-        console.log('🔄 Fetching TON balance for:', address);
+        const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
+        const wordCount = cleanedMnemonic.split(' ').length;
 
-        const response = await axios.get('https://toncenter.com/api/v2/getAddressInformation', {
-            params: { address: address },
-            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY },
-            timeout: 10000
+        if (wordCount !== 12 && wordCount !== 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'Mnemonic must be 12 or 24 words. Found: ' + wordCount + ' words'
+            });
+        }
+
+        // ✅ VALIDATE MNEMONIC
+        let isValidMnemonic = false;
+        try {
+            isValidMnemonic = bip39.validateMnemonic(cleanedMnemonic);
+            if (!isValidMnemonic) {
+                // Check if words are valid anyway (Tonkeeper compatibility)
+                const words = cleanedMnemonic.split(' ');
+                const englishWordlist = bip39.wordlists.english;
+                const allWordsValid = words.every(word => englishWordlist.includes(word));
+                if (allWordsValid) {
+                    console.log('⚠️ Words are valid but mnemonic fails BIP39 validation - proceeding anyway');
+                    isValidMnemonic = true;
+                }
+            }
+        } catch (validationErr) {
+            return res.status(400).json({
+                success: false,
+                error: 'Mnemonic validation failed: ' + validationErr.message
+            });
+        }
+
+        if (!isValidMnemonic) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid mnemonic phrase. Please check your words.'
+            });
+        }
+
+        // ✅ DERIVE ALL POSSIBLE WALLETS
+        const derivedWallets = await deriveAllWalletAddresses(cleanedMnemonic);
+        
+        if (derivedWallets.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Could not derive any wallets from this mnemonic'
+            });
+        }
+
+        // ✅ IF TARGET ADDRESS PROVIDED, FIND MATCHING WALLET
+        if (targetAddress) {
+            console.log('🔍 Looking for wallet matching:', targetAddress);
+            
+            const matchingWallet = derivedWallets.find(wallet => 
+                wallet.address === targetAddress || 
+                wallet.addressNonBounceable === targetAddress ||
+                wallet.address.replace(/^EQ/, 'UQ') === targetAddress ||
+                wallet.addressNonBounceable.replace(/^UQ/, 'EQ') === targetAddress
+            );
+            
+            if (matchingWallet) {
+                console.log('✅ Found matching wallet! Path:', matchingWallet.path);
+                return await saveAndReturnWallet(matchingWallet, userId, cleanedMnemonic, wordCount, res);
+            } else {
+                console.log('❌ No wallet matches the target address');
+                return res.status(400).json({
+                    success: false,
+                    error: 'No wallet derived from this mnemonic matches your target address. The mnemonic might be for a different wallet.',
+                    derivedAddresses: derivedWallets.map(w => ({
+                        path: w.path,
+                        address: w.address,
+                        addressNonBounceable: w.addressNonBounceable
+                    }))
+                });
+            }
+        }
+
+        // ✅ NO TARGET ADDRESS - RETURN ALL OPTIONS
+        console.log('🔍 No target address provided, returning all derived wallets');
+        return res.json({
+            success: true,
+            message: 'Multiple wallets found. Please select which one to import.',
+            wallets: derivedWallets.map(wallet => ({
+                path: wallet.path,
+                address: wallet.address,
+                addressNonBounceable: wallet.addressNonBounceable,
+                description: getPathDescription(wallet.path)
+            }))
         });
 
-        if (response.data && response.data.result) {
-            const balance = response.data.result.balance;
-
-            let tonBalance;
-            if (typeof balance === 'object' && balance.toString) {
-                tonBalance = TonWeb.utils.fromNano(balance.toString());
-            } else if (typeof balance === 'string') {
-                tonBalance = TonWeb.utils.fromNano(balance);
-            } else {
-                tonBalance = TonWeb.utils.fromNano(balance.toString());
-            }
-
-            console.log('✅ TON Balance fetched:', tonBalance);
-
-            return {
-                success: true,
-                balance: parseFloat(tonBalance).toFixed(4),
-                address: address,
-                rawBalance: balance.toString()
-            };
-        } else {
-            return {
-                success: true,
-                balance: "0",
-                address: address,
-                rawBalance: "0"
-            };
-        }
-
     } catch (error) {
-        console.error('❌ TON balance fetch failed:', error.message);
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            rawBalance: "0",
-            error: error.message
-        };
+        console.error('Wallet import error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to import wallet: ' + error.message 
+        });
     }
-}
-
-// ✅ FIXED NMX BALANCE FUNCTION
-async function getNMXBalance(address) {
-    try {
-        console.log('🔄 Fetching NMX balance for:', address);
-        
-        // Convert address to non-bounceable format (like Tonkeeper uses)
-        const nonBounceableAddress = address.replace(/^EQ/, 'UQ');
-        console.log('🔍 Also checking non-bounceable:', nonBounceableAddress);
-        
-        const NMX_CONTRACTS = [
-            "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-            "EQDcBvcg2WBPb8vQkArfS2fIZrzi2pFjnfJfZbsKp4rWVfQH"
-        ];
-
-        console.log('🔍 Using NMX Contracts:', NMX_CONTRACTS);
-
-        // ✅ METHOD 1: Try both address formats
-        const addressesToCheck = [address, nonBounceableAddress];
-        
-        for (const checkAddress of addressesToCheck) {
-            console.log('🔄 Checking address format:', checkAddress);
-            
-            try {
-                const tonapiResponse = await axios.get(`https://tonapi.io/v2/accounts/${checkAddress}/jettons`, {
-                    timeout: 15000
-                });
-
-                console.log('🔍 TonAPI Response for', checkAddress, ':', tonapiResponse.status);
-                
-                if (tonapiResponse.data && tonapiResponse.data.balances) {
-                    console.log('🔍 Found', tonapiResponse.data.balances.length, 'jettons');
-                    
-                    // Log ALL jettons found for debugging
-                    tonapiResponse.data.balances.forEach((jetton, index) => {
-                        console.log(`🔍 Jetton ${index + 1}:`, {
-                            symbol: jetton.jetton?.symbol,
-                            name: jetton.jetton?.name,
-                            address: jetton.jetton?.address,
-                            balance: TonWeb.utils.fromNano(jetton.balance)
-                        });
-                    });
-
-                    // Check all possible NMX contracts
-                    for (const contract of NMX_CONTRACTS) {
-                        const nmxJetton = tonapiResponse.data.balances.find(j => {
-                            const jettonAddress = j.jetton?.address;
-                            return jettonAddress === contract;
-                        });
-                        
-                        if (nmxJetton) {
-                            const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-                            console.log('✅ NMX Balance found:', nmxBalance, 'NMX from contract:', contract);
-                            
-                            return {
-                                success: true,
-                                balance: parseFloat(nmxBalance).toFixed(2),
-                                address: address,
-                                rawBalance: nmxJetton.balance,
-                                source: 'tonapi_direct'
-                            };
-                        }
-                    }
-                }
-            } catch (tonapiError) {
-                console.log('TonAPI failed for', checkAddress, ':', tonapiError.message);
-            }
-        }
-
-        // ✅ METHOD 2: Try direct contract call with your specific wallet
-        console.log('🔄 Trying direct contract call for your specific NMX tokens...');
-        try {
-            // Since we know you have NMX tokens, let's try a different approach
-            const directResponse = await axios.get(`https://tonapi.io/v1/jetton/getBalances`, {
-                params: { account: address },
-                timeout: 10000
-            });
-
-            if (directResponse.data && directResponse.data.balances) {
-                console.log('🔍 Direct API found', directResponse.data.balances.length, 'tokens');
-                
-                directResponse.data.balances.forEach((token, index) => {
-                    console.log(`🔍 Token ${index + 1}:`, {
-                        symbol: token.jetton?.symbol,
-                        name: token.jetton?.name,
-                        address: token.jetton?.address,
-                        balance: TonWeb.utils.fromNano(token.balance)
-                    });
-                });
-
-                for (const contract of NMX_CONTRACTS) {
-                    const nmxJetton = directResponse.data.balances.find(j => {
-                        return j.jetton?.address === contract;
-                    });
-                    
-                    if (nmxJetton) {
-                        const nmxBalance = TonWeb.utils.fromNano(nmxJetton.balance);
-                        console.log('✅ NMX Balance found via direct API:', nmxBalance, 'NMX');
-                        
-                        return {
-                            success: true,
-                            balance: parseFloat(nmxBalance).toFixed(2),
-                            address: address,
-                            rawBalance: nmxJetton.balance,
-                            source: 'direct_api'
-                        };
-                    }
-                }
-            }
-        } catch (directError) {
-            console.log('Direct API failed:', directError.message);
-        }
-
-        // ✅ METHOD 3: Manual check based on what we know exists
-        console.log('🔄 Manual check - we know tokens exist at:', nonBounceableAddress);
-        
-        // Since we verified the tokens exist, return a manual result
-        return {
-            success: true,
-            balance: "74995350000.00", // Your actual NMX balance
-            address: address,
-            rawBalance: "74995350000000000000", // In nano units
-            source: 'manual_verified'
-        };
-
-    } catch (error) {
-        console.error('❌ All NMX balance methods failed:', error.message);
-        
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            rawBalance: "0",
-            error: error.message
-        };
-    }
-}
-
-// =============================================
-// API ROUTES - FIXED ALL ROUTES
-// =============================================
-
-router.get('/test', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Wallet API is working!',
-        timestamp: new Date().toISOString(),
-        routes: [
-            'POST /generate-wallet',
-            'POST /import-wallet', 
-            'GET /real-balance/:address',
-            'GET /nmx-balance/:address', // ✅ FIXED: removed space
-            'GET /all-balances/:address',
-            'GET /token-prices',
-            'GET /validate-address/:address',
-            'GET /supported-tokens'
-        ]
-    });
 });
+
+// ✅ NEW ENDPOINT: SELECT SPECIFIC WALLET TO IMPORT
+router.post('/import-wallet-select', async function(req, res) {
+    try {
+        const { userId, mnemonic, selectedPath } = req.body;
+        
+        if (!userId || !mnemonic || !selectedPath) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID, mnemonic, and selected path are required'
+            });
+        }
+
+        const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
+        const wordCount = cleanedMnemonic.split(' ').length;
+
+        // Derive the specific selected wallet
+        const wallet = await deriveWalletFromPath(cleanedMnemonic, selectedPath);
+        
+        if (!wallet) {
+            return res.status(400).json({
+                success: false,
+                error: 'Could not derive wallet from selected path: ' + selectedPath
+            });
+        }
+
+        return await saveAndReturnWallet(wallet, userId, cleanedMnemonic, wordCount, res);
+
+    } catch (error) {
+        console.error('Wallet selection error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to import selected wallet: ' + error.message 
+        });
+    }
+});
+
+// ✅ HELPER FUNCTION TO SAVE WALLET
+async function saveAndReturnWallet(wallet, userId, mnemonic, wordCount, res) {
+    try {
+        const encryptedMnemonic = encrypt(mnemonic);
+
+        // Save to database
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .insert([{
+                user_id: userId,
+                address: wallet.address,
+                encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+                public_key: wallet.publicKey,
+                wallet_type: 'TON',
+                source: 'imported',
+                word_count: wordCount,
+                derivation_path: wallet.path,
+                created_at: new Date().toISOString()
+            }]);
+
+        if (error) {
+            console.warn('⚠️ Supabase insert failed:', error.message);
+        } else {
+            console.log('✅ Wallet saved to database');
+        }
+
+        console.log('✅ Wallet imported successfully:', wallet.address);
+        console.log('✅ Derivation path:', wallet.path);
+
+        return res.json({
+            success: true,
+            wallet: { 
+                userId: userId,
+                address: wallet.address,
+                addressNonBounceable: wallet.addressNonBounceable,
+                type: 'TON',
+                source: 'imported',
+                wordCount: wordCount,
+                derivationPath: wallet.path
+            }
+        });
+
+    } catch (error) {
+        console.error('Save wallet error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Failed to save wallet: ' + error.message 
+        });
+    }
+}
+
+// ✅ HELPER: GET PATH DESCRIPTION
+function getPathDescription(path) {
+    const descriptions = {
+        "m/44'/607'/0'/0/0": "Primary BIP-44 (Most compatible)",
+        "m/44'/607'/0'": "Short variant (Common)",
+        "m/44'/607'/0'/0/0/0": "Ledger variant",
+        "m/44'/607'/0'/0/0": "Account 0",
+        "m/44'/607'/1'/0/0": "Account 1", 
+        "m/44'/607'/2'/0/0": "Account 2",
+        "m/44'/607'/3'/0/0": "Account 3",
+        "m/44'/607'/4'/0/0": "Account 4",
+        "m/44'/607'/0'/0": "Minimal path",
+        "m/44'/607'/0'/0'": "Hardened variant"
+    };
+    
+    return descriptions[path] || path;
+}
+
+// =============================================
+// UPDATE WALLET GENERATION TO USE PRIMARY PATH
+// =============================================
 
 router.post('/generate-wallet', async function(req, res) {
     try {
         const { userId, wordCount = 12 } = req.body;
-        console.log('🔄 Generating TON wallet for user:', userId, 'with', wordCount, 'words');
+        console.log('🔄 Generating TON wallet with primary derivation path...');
 
         if (!userId) {
             return res.status(400).json({
@@ -488,20 +830,34 @@ router.post('/generate-wallet', async function(req, res) {
             });
         }
 
-        const walletData = await generateRealTONWallet(wordCount);
-        const encryptedMnemonic = encrypt(walletData.mnemonic);
+        const strength = wordCount === 12 ? 128 : 256;
+        const mnemonic = bip39.generateMnemonic(strength);
+
+        if (!bip39.validateMnemonic(mnemonic)) {
+            throw new Error('Generated mnemonic validation failed');
+        }
+
+        // Use primary derivation path for new wallets
+        const wallet = await deriveWalletFromPath(mnemonic, "m/44'/607'/0'/0/0");
+        
+        if (!wallet) {
+            throw new Error('Failed to derive wallet from generated mnemonic');
+        }
+
+        const encryptedMnemonic = encrypt(mnemonic);
 
         try {
             const { data, error } = await supabase
                 .from('user_wallets')
                 .insert([{
                     user_id: userId,
-                    address: walletData.address,
+                    address: wallet.address,
                     encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
-                    public_key: walletData.publicKey,
+                    public_key: wallet.publicKey,
                     wallet_type: 'TON',
                     source: 'generated',
                     word_count: wordCount,
+                    derivation_path: wallet.path,
                     created_at: new Date().toISOString()
                 }]);
 
@@ -514,17 +870,19 @@ router.post('/generate-wallet', async function(req, res) {
             console.warn('⚠️ Database error:', dbError.message);
         }
 
-        console.log('✅ Wallet generated:', walletData.address);
+        console.log('✅ Wallet generated:', wallet.address);
+        console.log('✅ Derivation path:', wallet.path);
 
         res.json({
             success: true,
             wallet: {
                 userId: userId,
-                address: walletData.address,
-                mnemonic: walletData.mnemonic,
-                wordCount: walletData.wordCount,
+                address: wallet.address,
+                mnemonic: mnemonic,
+                wordCount: wordCount,
                 type: 'TON',
-                source: 'generated'
+                source: 'generated',
+                derivationPath: wallet.path
             }
         });
 
@@ -534,149 +892,30 @@ router.post('/generate-wallet', async function(req, res) {
     }
 });
 
-router.post('/import-wallet', async function(req, res) {
-    try {
-        const { userId, mnemonic } = req.body;
-        console.log('🔄 Importing TON wallet for user:', userId);
+// =============================================
+// API ROUTES - FIXED ALL ROUTES
+// =============================================
 
-        if (!req.body) {
-            return res.status(400).json({
-                success: false,
-                error: 'Request body is missing or invalid'
-            });
-        }
-
-        if (!userId) {
-            return res.status(400).json({
-                success: false,
-                error: 'User ID is required'
-            });
-        }
-
-        if (!mnemonic) {
-            return res.status(400).json({
-                success: false,
-                error: 'Mnemonic phrase is required'
-            });
-        }
-
-        const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
-        const wordCount = cleanedMnemonic.split(' ').length;
-
-        console.log('🔍 Import Debug - Word count:', wordCount);
-        console.log('🔍 Import Debug - First 3 words:', cleanedMnemonic.split(' ').slice(0, 3));
-
-        if (wordCount !== 12 && wordCount !== 24) {
-            return res.status(400).json({
-                success: false,
-                error: 'Mnemonic must be 12 or 24 words. Found: ' + wordCount + ' words'
-            });
-        }
-
-        // ✅ ENHANCED VALIDATION
-        let isValidMnemonic = false;
-        let validationError = '';
-
-        try {
-            isValidMnemonic = bip39.validateMnemonic(cleanedMnemonic);
-            if (!isValidMnemonic) {
-                validationError = 'Standard BIP39 validation failed';
-
-                const words = cleanedMnemonic.split(' ');
-                const englishWordlist = bip39.wordlists.english;
-                const allWordsValid = words.every(word => englishWordlist.includes(word));
-
-                if (allWordsValid) {
-                    console.log('⚠️ All words are valid English BIP39 words, but mnemonic fails validation');
-                    isValidMnemonic = true;
-                }
-            }
-        } catch (validationErr) {
-            validationError = validationErr.message;
-        }
-
-        if (!isValidMnemonic) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid mnemonic phrase. ' + validationError + '. Please check your words.'
-            });
-        }
-
-        let walletAddress = null;
-        let importError = null;
-
-        try {
-            const keyPair = await mnemonicToWalletKey(cleanedMnemonic.split(' '));
-            const WalletClass = tonweb.wallet.all.v4R2;
-            const wallet = new WalletClass(tonweb.provider, {
-                publicKey: keyPair.publicKey,
-                wc: 0
-            });
-
-            walletAddress = await wallet.getAddress();
-            const address = walletAddress.toString(true, true, true);
-            const encryptedMnemonic = encrypt(cleanedMnemonic);
-
-            try {
-                const { data, error } = await supabase
-                    .from('user_wallets')
-                    .insert([{
-                        user_id: userId,
-                        address: address,
-                        encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
-                        public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
-                        wallet_type: 'TON',
-                        source: 'imported',
-                        word_count: wordCount,
-                        created_at: new Date().toISOString()
-                    }]);
-
-                if (error) {
-                    console.warn('⚠️ Supabase insert failed:', error.message);
-                } else {
-                    console.log('✅ Wallet saved to database (imported)');
-                }
-            } catch (dbError) {
-                console.warn('⚠️ Database error:', dbError.message);
-            }
-
-            console.log('✅ Wallet imported:', address);
-
-            res.json({
-                success: true,
-                wallet: { 
-                    userId: userId,
-                    address: address, 
-                    type: 'TON',
-                    source: 'imported',
-                    wordCount: wordCount
-                }
-            });
-
-        } catch (error) {
-            console.error('❌ Wallet import failed:', error.message);
-            importError = error.message;
-
-            if (importError.includes('invalid mnemonic') || importError.includes('validation')) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Unable to import this wallet. This may be due to compatibility issues with the source wallet. Please ensure you are using a standard TON wallet mnemonic.'
-                });
-            }
-
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Failed to import wallet: ' + importError 
-            });
-        }
-
-    } catch (error) {
-        console.error('Wallet import error:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Failed to import wallet: ' + error.message 
-        });
-    }
+router.get('/test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Wallet API is working!',
+        timestamp: new Date().toISOString(),
+        routes: [
+            'POST /generate-wallet',
+            'POST /import-wallet', 
+            'POST /import-wallet-select',
+            'GET /real-balance/:address',
+            'GET /nmx-balance/:address',
+            'GET /all-balances/:address',
+            'GET /token-prices',
+            'GET /validate-address/:address',
+            'GET /supported-tokens',
+            'GET /user-wallets/:userId',
+            'POST /set-active-wallet',
+            'GET /active-wallet/:userId'
+        ]
+    });
 });
 
 // =============================================
@@ -708,7 +947,6 @@ router.get('/real-balance/:address', async function(req, res) {
     }
 });
 
-// ✅ FIXED NMX BALANCE ROUTE
 router.get('/nmx-balance/:address', async function(req, res) {
     try {
         const { address } = req.params;
@@ -799,6 +1037,7 @@ router.get('/user-wallets/:userId', async function(req, res) {
                 type: wallet.wallet_type,
                 source: wallet.source,
                 wordCount: wallet.word_count,
+                derivationPath: wallet.derivation_path,
                 createdAt: wallet.created_at
             }))
         });
