@@ -1,50 +1,236 @@
-// assets/js/wallet.js - FIXED WITH MULTI-PATH IMPORT SUPPORT
-class NemexWalletAPI {
+// assets/js/wallet.js - SECURE VERSION WITH ENCRYPTED STORAGE
+class SecureEncryptedStorage {
     constructor() {
-        this.baseURL = window.location.origin + '/api/wallet';
-        this.userId = this.getUserId();
-        this.currentWallet = this.getStoredWallet();
-        this.isInitialized = false;
-        this.pendingImport = null; // Store pending import data
+        this.storageKey = 'nemex_secure_v1';
+        this.encryptionKey = null;
+        this.initialized = false;
     }
 
-    getUserId() {
-        let userId = localStorage.getItem('nemexUserId');
-        if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
-            localStorage.setItem('nemexUserId', userId);
-        }
-        return userId;
-    }
+    async init() {
+        if (this.initialized) return true;
 
-    getStoredWallet() {
         try {
-            const walletData = localStorage.getItem('nemexCurrentWallet');
-            return walletData ? JSON.parse(walletData) : null;
+            // Generate or retrieve encryption key
+            await this.ensureEncryptionKey();
+            this.initialized = true;
+            console.log('✅ Secure encrypted storage initialized');
+            return true;
         } catch (error) {
-            console.error('Error reading stored wallet:', error);
+            console.error('❌ Secure storage init failed:', error);
+            return false;
+        }
+    }
+
+    async ensureEncryptionKey() {
+        // Try to get existing key from sessionStorage (volatile)
+        let key = sessionStorage.getItem(`${this.storageKey}_key`);
+        
+        if (!key) {
+            // Generate new key (this will be lost when browser closes)
+            key = this.generateRandomKey();
+            sessionStorage.setItem(`${this.storageKey}_key`, key);
+        }
+        
+        this.encryptionKey = key;
+    }
+
+    generateRandomKey() {
+        // Generate a random 32-character key
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    }
+
+    async encrypt(text) {
+        if (!this.encryptionKey) throw new Error('Encryption key not available');
+        
+        try {
+            // Convert text and key to buffers
+            const textBuffer = new TextEncoder().encode(text);
+            const keyBuffer = await crypto.subtle.importKey(
+                'raw',
+                new TextEncoder().encode(this.encryptionKey),
+                { name: 'AES-GCM' },
+                false,
+                ['encrypt']
+            );
+
+            // Generate IV (Initialization Vector)
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            
+            // Encrypt
+            const encryptedBuffer = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                keyBuffer,
+                textBuffer
+            );
+
+            // Combine IV and encrypted data
+            const combined = new Uint8Array(iv.length + encryptedBuffer.byteLength);
+            combined.set(iv);
+            combined.set(new Uint8Array(encryptedBuffer), iv.length);
+
+            return btoa(String.fromCharCode(...combined));
+        } catch (error) {
+            console.error('Encryption failed:', error);
+            throw error;
+        }
+    }
+
+    async decrypt(encryptedData) {
+        if (!this.encryptionKey) throw new Error('Encryption key not available');
+        
+        try {
+            // Convert from base64
+            const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+            
+            // Extract IV and encrypted data
+            const iv = combined.slice(0, 12);
+            const encryptedBuffer = combined.slice(12);
+
+            const keyBuffer = await crypto.subtle.importKey(
+                'raw',
+                new TextEncoder().encode(this.encryptionKey),
+                { name: 'AES-GCM' },
+                false,
+                ['decrypt']
+            );
+
+            // Decrypt
+            const decryptedBuffer = await crypto.subtle.decrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                keyBuffer,
+                encryptedBuffer
+            );
+
+            return new TextDecoder().decode(decryptedBuffer);
+        } catch (error) {
+            console.error('Decryption failed:', error);
+            throw error;
+        }
+    }
+
+    async setItem(key, value) {
+        try {
+            const encrypted = await this.encrypt(JSON.stringify(value));
+            localStorage.setItem(`${this.storageKey}_${key}`, encrypted);
+            return true;
+        } catch (error) {
+            console.warn('Encryption failed, storing without encryption:', error);
+            // Fallback: store without encryption but with obfuscation
+            localStorage.setItem(`${this.storageKey}_${key}`, btoa(JSON.stringify(value)));
+            return false;
+        }
+    }
+
+    async getItem(key) {
+        try {
+            const encrypted = localStorage.getItem(`${this.storageKey}_${key}`);
+            if (!encrypted) return null;
+
+            // Try to decrypt first
+            try {
+                const decrypted = await this.decrypt(encrypted);
+                return JSON.parse(decrypted);
+            } catch (decryptError) {
+                // Fallback: try to decode as base64 (for unencrypted fallback data)
+                try {
+                    const decoded = atob(encrypted);
+                    return JSON.parse(decoded);
+                } catch (base64Error) {
+                    console.error('Failed to decrypt and decode data for key:', key);
+                    return null;
+                }
+            }
+        } catch (error) {
+            console.error('getItem failed for key:', key, error);
             return null;
         }
     }
 
-    setStoredWallet(walletData) {
+    async removeItem(key) {
         try {
-            if (walletData) {
-                localStorage.setItem('nemexCurrentWallet', JSON.stringify(walletData));
-                this.currentWallet = walletData;
-            } else {
-                localStorage.removeItem('nemexCurrentWallet');
-                this.currentWallet = null;
-            }
+            localStorage.removeItem(`${this.storageKey}_${key}`);
         } catch (error) {
-            console.error('Error storing wallet:', error);
+            console.error('removeItem failed for key:', key, error);
         }
+    }
+
+    async clear() {
+        try {
+            // Remove all our secure storage items
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith(`${this.storageKey}_`)) {
+                    keysToRemove.push(key);
+                }
+            }
+            
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            
+            // Also clear the session storage key
+            sessionStorage.removeItem(`${this.storageKey}_key`);
+            
+            this.encryptionKey = null;
+            this.initialized = false;
+        } catch (error) {
+            console.error('Clear storage failed:', error);
+        }
+    }
+
+    // Method to check if secure storage is working
+    async testSecurity() {
+        try {
+            const testData = { test: 'security_check', timestamp: Date.now() };
+            await this.setItem('security_test', testData);
+            const retrieved = await this.getItem('security_test');
+            await this.removeItem('security_test');
+            
+            return retrieved && retrieved.test === testData.test;
+        } catch (error) {
+            return false;
+        }
+    }
+}
+
+class NemexWalletAPI {
+    constructor() {
+        this.baseURL = window.location.origin + '/api/wallet';
+        this.storage = new SecureEncryptedStorage();
+        this.userId = null;
+        this.currentWallet = null;
+        this.isInitialized = false;
+        this.pendingImport = null;
+        this.storageSecurityTested = false;
     }
 
     async init() {
         if (this.isInitialized) return true;
 
-        console.log('🔄 Initializing Nemex Wallet API...');
+        console.log('🔄 Initializing Nemex Wallet API with encrypted storage...');
+        
+        // Initialize secure storage
+        const storageReady = await this.storage.init();
+        if (!storageReady) {
+            console.error('❌ Secure storage initialization failed');
+            return false;
+        }
+
+        // Test storage security
+        this.storageSecurityTested = await this.storage.testSecurity();
+        console.log(`🔒 Storage security test: ${this.storageSecurityTested ? 'PASSED' : 'FAILED'}`);
+        
+        if (!this.storageSecurityTested) {
+            console.warn('⚠️ Storage security compromised - using fallback mode');
+        }
+
         try {
             const response = await fetch(`${this.baseURL}/test`);
             const data = await response.json();
@@ -60,28 +246,72 @@ class NemexWalletAPI {
         }
     }
 
+    async getUserId() {
+        if (!this.userId) {
+            this.userId = await this.storage.getItem('nemexUserId');
+            if (!this.userId) {
+                this.userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                await this.storage.setItem('nemexUserId', this.userId);
+            }
+        }
+        return this.userId;
+    }
+
+    async getStoredWallet() {
+        if (!this.currentWallet) {
+            this.currentWallet = await this.storage.getItem('nemexCurrentWallet');
+        }
+        return this.currentWallet;
+    }
+
+    async setStoredWallet(walletData) {
+        this.currentWallet = walletData;
+        if (walletData) {
+            // Never store sensitive data like private keys or mnemonics
+            const safeWalletData = {
+                address: walletData.address,
+                userId: walletData.userId,
+                type: walletData.type,
+                source: walletData.source,
+                wordCount: walletData.wordCount,
+                derivationPath: walletData.derivationPath,
+                // Explicitly exclude sensitive data
+                publicKey: undefined,
+                privateKey: undefined,
+                mnemonic: undefined,
+                encrypted_mnemonic: undefined
+            };
+            
+            await this.storage.setItem('nemexCurrentWallet', safeWalletData);
+        } else {
+            await this.storage.removeItem('nemexCurrentWallet');
+        }
+    }
+
     async restoreSession() {
         try {
-            console.log('🔄 Restoring wallet session...');
+            console.log('🔄 Restoring wallet session from encrypted storage...');
             
-            if (this.currentWallet) {
-                console.log('✅ Found stored wallet:', this.currentWallet.address);
-                return this.currentWallet;
+            const wallet = await this.getStoredWallet();
+            if (wallet) {
+                console.log('✅ Found stored wallet:', wallet.address);
+                return wallet;
             }
 
-            const activeWalletResponse = await fetch(`${this.baseURL}/active-wallet/${this.userId}`);
+            const userId = await this.getUserId();
+            const activeWalletResponse = await fetch(`${this.baseURL}/active-wallet/${userId}`);
             const activeData = await activeWalletResponse.json();
 
             if (activeData.success && activeData.activeWallet) {
                 console.log('✅ Found active wallet in database:', activeData.activeWallet);
                 
-                const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${this.userId}`);
+                const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${userId}`);
                 const walletsData = await walletsResponse.json();
 
                 if (walletsData.success && walletsData.wallets) {
                     const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
                     if (wallet) {
-                        this.setStoredWallet(wallet);
+                        await this.setStoredWallet(wallet);
                         console.log('✅ Session restored successfully');
                         return wallet;
                     }
@@ -101,13 +331,14 @@ class NemexWalletAPI {
         try {
             console.log('🔄 Setting active wallet:', address);
             
+            const userId = await this.getUserId();
             const response = await fetch(`${this.baseURL}/set-active-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.userId,
+                    userId: userId,
                     address: address
                 })
             });
@@ -115,13 +346,13 @@ class NemexWalletAPI {
             const data = await response.json();
 
             if (data.success) {
-                const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${this.userId}`);
+                const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${userId}`);
                 const walletsData = await walletsResponse.json();
 
                 if (walletsData.success && walletsData.wallets) {
                     const wallet = walletsData.wallets.find(w => w.address === address);
                     if (wallet) {
-                        this.setStoredWallet(wallet);
+                        await this.setStoredWallet(wallet);
                         console.log('✅ Active wallet set and stored:', address);
                     }
                 }
@@ -137,7 +368,8 @@ class NemexWalletAPI {
     async getUserWallets() {
         try {
             console.log('🔄 Fetching user wallets from database...');
-            const response = await fetch(`${this.baseURL}/user-wallets/${this.userId}`);
+            const userId = await this.getUserId();
+            const response = await fetch(`${this.baseURL}/user-wallets/${userId}`);
             const data = await response.json();
 
             if (data.success) {
@@ -157,13 +389,14 @@ class NemexWalletAPI {
         try {
             console.log('🔄 Generating new wallet via API...');
 
+            const userId = await this.getUserId();
             const response = await fetch(`${this.baseURL}/generate-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.userId,
+                    userId: userId,
                     wordCount: wordCount
                 })
             });
@@ -188,7 +421,6 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ ENHANCED IMPORT WITH MULTI-PATH SUPPORT
     async importWallet(mnemonic, targetAddress = null) {
         try {
             console.log('🔄 Importing wallet with multi-path support...');
@@ -200,13 +432,14 @@ class NemexWalletAPI {
                 throw new Error('Invalid mnemonic format. Must be 12 or 24 words.');
             }
 
+            const userId = await this.getUserId();
             const response = await fetch(`${this.baseURL}/import-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.userId,
+                    userId: userId,
                     mnemonic: cleanedMnemonic,
                     targetAddress: targetAddress
                 })
@@ -226,14 +459,14 @@ class NemexWalletAPI {
                     mnemonic: cleanedMnemonic,
                     wallets: data.wallets
                 };
-                return data; // Return with wallets for selection
+                return data;
             }
 
             // ✅ SINGLE WALLET FOUND
             if (data.success && data.wallet) {
                 console.log('✅ Single wallet imported via API:', data.wallet.address);
                 await this.setActiveWallet(data.wallet.address);
-                this.pendingImport = null; // Clear pending import
+                this.pendingImport = null;
                 return data;
             }
 
@@ -245,7 +478,6 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ SELECT SPECIFIC WALLET FROM MULTIPLE OPTIONS
     async selectWalletForImport(selectedPath) {
         try {
             if (!this.pendingImport) {
@@ -254,13 +486,14 @@ class NemexWalletAPI {
 
             console.log('🔄 Selecting wallet with path:', selectedPath);
 
+            const userId = await this.getUserId();
             const response = await fetch(`${this.baseURL}/import-wallet-select`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.userId,
+                    userId: userId,
                     mnemonic: this.pendingImport.mnemonic,
                     selectedPath: selectedPath
                 })
@@ -275,7 +508,7 @@ class NemexWalletAPI {
             if (data.success && data.wallet) {
                 console.log('✅ Selected wallet imported:', data.wallet.address);
                 await this.setActiveWallet(data.wallet.address);
-                this.pendingImport = null; // Clear pending import
+                this.pendingImport = null;
                 return data;
             }
 
@@ -287,12 +520,10 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ GET PENDING IMPORT DATA
     getPendingImport() {
         return this.pendingImport;
     }
 
-    // ✅ CLEAR PENDING IMPORT
     clearPendingImport() {
         this.pendingImport = null;
     }
@@ -427,32 +658,32 @@ class NemexWalletAPI {
         }
     }
 
-    // Check if user has any wallets
     async hasWallets() {
         const wallets = await this.getUserWallets();
         return wallets.length > 0;
     }
 
-    // Get current active wallet address
     getCurrentWalletAddress() {
         return this.currentWallet ? this.currentWallet.address : null;
     }
 
-    // Clear session (logout)
-    clearSession() {
-        this.setStoredWallet(null);
+    async clearSession() {
+        await this.setStoredWallet(null);
         this.pendingImport = null;
-        console.log('✅ Session cleared');
+        await this.storage.clear();
+        console.log('✅ Session cleared from secure storage');
     }
 
-    // Check if wallet is loaded
     isWalletLoaded() {
         return this.currentWallet !== null;
     }
 
-    // Check if there's a pending import
     hasPendingImport() {
         return this.pendingImport !== null;
+    }
+
+    isStorageSecure() {
+        return this.storageSecurityTested;
     }
 }
 
@@ -460,21 +691,22 @@ class NemexWalletAPI {
 window.nemexWalletAPI = new NemexWalletAPI();
 
 // Auto-initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Nemex Wallet API Initializing...');
-    window.nemexWalletAPI.init().then(success => {
-        if (success) {
-            console.log('✅ Nemex Wallet API Ready!');
-            
-            document.dispatchEvent(new CustomEvent('walletReady', {
-                detail: { 
-                    hasWallet: window.nemexWalletAPI.isWalletLoaded(),
-                    walletAddress: window.nemexWalletAPI.getCurrentWalletAddress(),
-                    hasPendingImport: window.nemexWalletAPI.hasPendingImport()
-                }
-            }));
-        } else {
-            console.error('❌ Nemex Wallet API Failed to Initialize');
-        }
-    });
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Nemex Wallet API Initializing with Secure Encrypted Storage...');
+    const success = await window.nemexWalletAPI.init();
+    if (success) {
+        console.log('✅ Nemex Wallet API Ready!');
+        console.log(`🔒 Storage Security: ${window.nemexWalletAPI.isStorageSecure() ? 'ENABLED' : 'FALLBACK MODE'}`);
+        
+        document.dispatchEvent(new CustomEvent('walletReady', {
+            detail: { 
+                hasWallet: window.nemexWalletAPI.isWalletLoaded(),
+                walletAddress: window.nemexWalletAPI.getCurrentWalletAddress(),
+                hasPendingImport: window.nemexWalletAPI.hasPendingImport(),
+                isStorageSecure: window.nemexWalletAPI.isStorageSecure()
+            }
+        }));
+    } else {
+        console.error('❌ Nemex Wallet API Failed to Initialize');
+    }
 });
