@@ -5,7 +5,151 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nemex Wallet - Secure TON Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="assets/js/wallet.js"defer></script>
+    <!-- ✅ COMBINED FIX: Wallet.js with Error Handling + Manual Initialization -->
+<script src="assets/js/wallet.js" onerror="handleWalletScriptError()"></script>
+
+<script>
+// Error handler for failed wallet.js loading
+function handleWalletScriptError() {
+    console.error('❌ CRITICAL: Failed to load wallet.js from: assets/js/wallet.js');
+    showStatusMessage('❌ Wallet system failed to load. Please check file path and refresh.', 'error');
+    
+    // Show detailed error in console
+    setTimeout(() => {
+        console.log('🔍 Troubleshooting:');
+        console.log('1. Check if file exists: assets/js/wallet.js');
+        console.log('2. Check browser Network tab for 404 errors');
+        console.log('3. Verify file permissions');
+    }, 100);
+}
+
+// ✅ MANUAL API INITIALIZATION - Backup system
+window.addEventListener('load', function() {
+    console.log('🎯 Page fully loaded, checking wallet system...');
+    
+    // Check if wallet.js loaded successfully
+    if (typeof NemexWalletAPI === 'undefined') {
+        console.error('❌ NemexWalletAPI class not found - wallet.js failed to load');
+        showStatusMessage('❌ Critical: Wallet system not loaded. File may be missing.', 'error');
+        
+        // Try to diagnose the issue
+        diagnoseLoadingIssue();
+        return;
+    }
+    
+    console.log('✅ wallet.js loaded successfully, initializing API...');
+    
+    // Initialize the API
+    if (!window.nemexWalletAPI) {
+        window.nemexWalletAPI = new NemexWalletAPI();
+    }
+    
+    // Start initialization
+    window.nemexWalletAPI.init().then(success => {
+        if (success) {
+            console.log('✅ Wallet API manually initialized!');
+            showStatusMessage('✅ Wallet system ready!', 'success');
+            
+            // Enable all wallet buttons
+            enableWalletButtons();
+        } else {
+            console.error('❌ Manual initialization failed');
+            showStatusMessage('❌ Wallet system initialization failed', 'error');
+        }
+    }).catch(error => {
+        console.error('❌ Initialization error:', error);
+        showStatusMessage('❌ Wallet system error: ' + error.message, 'error');
+    });
+});
+
+// ✅ Enable wallet buttons once system is ready
+function enableWalletButtons() {
+    const walletButtons = document.querySelectorAll(`
+        button[onclick*="generateNewWallet"], 
+        button[onclick*="importWallet"],
+        button[onclick*="showCreateWalletModal"],
+        button[onclick*="showImportWalletModal"]
+    `);
+    
+    walletButtons.forEach(btn => {
+        btn.disabled = false;
+        if (btn.innerHTML.includes('Loading...')) {
+            if (btn.id === 'generateWalletBtn') {
+                btn.innerHTML = 'Generate New Wallet';
+            } else if (btn.id === 'importWalletBtn') {
+                btn.innerHTML = 'Import Wallet';
+            }
+        }
+    });
+    console.log(`✅ Enabled ${walletButtons.length} wallet buttons`);
+}
+
+// ✅ Diagnose loading issues
+function diagnoseLoadingIssue() {
+    console.log('🔍 Diagnosing wallet.js loading issue:');
+    
+    // Test if the file exists by trying to fetch it
+    fetch('assets/js/wallet.js')
+        .then(response => {
+            if (!response.ok) {
+                console.error(`❌ File not found: ${response.status} ${response.statusText}`);
+                showStatusMessage(`❌ Wallet file not found (${response.status})`, 'error');
+            } else {
+                console.log('✅ File exists but failed to load as script');
+                showStatusMessage('❌ Wallet file exists but failed to execute', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('❌ Cannot access wallet.js:', error);
+            showStatusMessage('❌ Cannot access wallet system files', 'error');
+        });
+}
+
+// ✅ GLOBAL FUNCTIONS - Fallback implementations
+window.generateNewWallet = async function() {
+    if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+        showStatusMessage('⚠️ Wallet system initializing... Please wait and try again.', 'error');
+        return;
+    }
+    
+    try {
+        console.log('🔄 GLOBAL: Starting wallet generation...');
+        const result = await window.nemexWalletAPI.generateNewWallet(12);
+        
+        if (result.success) {
+            // Store the mnemonic for backup modal
+            window.currentMnemonic = result.wallet.mnemonic;
+
+            // Update wallet state
+            window.walletState = {
+                isInitialized: true,
+                walletType: 'new',
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {}
+            };
+
+            console.log('✅ Wallet generated:', result.wallet.address);
+            showStatusMessage('✅ Wallet created successfully!', 'success');
+            
+            // Close modal and show backup
+            setTimeout(() => {
+                closeModal();
+                showBackupModal(window.currentMnemonic);
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('Wallet generation failed:', error);
+        showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error');
+    }
+};
+
+// Show immediate feedback when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM ready, waiting for wallet system...');
+    showStatusMessage('🔄 Loading wallet system...', 'loading');
+});
+</script>
 
     <style>
         :root {
