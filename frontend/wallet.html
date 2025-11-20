@@ -328,6 +328,52 @@ function showMainWalletInterface() {
     }
 }
 
+// ✅ ADD THIS TO YOUR FRONTEND
+async function refreshWalletData() {
+    try {
+        console.log('🔄 Refreshing wallet data...');
+        
+        if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+            console.log('❌ Wallet API not ready');
+            return;
+        }
+
+        const currentWallet = await window.nemexWalletAPI.getStoredWallet();
+        console.log('🔍 Stored wallet:', currentWallet);
+
+        if (currentWallet && currentWallet.address) {
+            // Update wallet state
+            window.walletState = {
+                isInitialized: true,
+                walletType: currentWallet.source || 'imported',
+                userId: currentWallet.userId,
+                address: currentWallet.address,
+                balances: {}
+            };
+
+            console.log('✅ Wallet state updated:', window.walletState);
+
+            // Refresh balances
+            const balanceData = await window.nemexWalletAPI.getAllRealData(currentWallet.address);
+            console.log('💰 Balance data:', balanceData);
+
+            if (balanceData.success) {
+                window.walletState.balances = balanceData.balances;
+                // Update UI
+                updateBalanceDisplay(balanceData.balances);
+            }
+
+            // Update address display
+            updateAddressDisplay(currentWallet.address);
+        }
+    } catch (error) {
+        console.error('❌ Refresh failed:', error);
+    }
+}
+
+// Call this after import/generate
+refreshWalletData();
+
 // ✅ Auto-check wallet status on load
 document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM ready, checking wallet status...');
