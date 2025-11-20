@@ -152,6 +152,243 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('📄 DOM ready, waiting for wallet system...');
     showStatusMessage('🔄 Loading wallet system...', 'loading');
 });
+
+// ✅ MISSING FUNCTION: checkAndGenerateWallet
+window.checkAndGenerateWallet = async function() {
+    console.log('🔄 checkAndGenerateWallet called...');
+    
+    if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+        showStatusMessage('⚠️ Wallet system still initializing...', 'error');
+        return;
+    }
+
+    try {
+        // Check if user already has wallets
+        const hasWallets = await window.nemexWalletAPI.hasWallets();
+        
+        if (hasWallets) {
+            console.log('ℹ️ User already has wallets, showing wallet interface');
+            showStatusMessage('✅ Wallet found! Loading your wallet...', 'success');
+            
+            // Refresh wallet display
+            if (typeof refreshWalletDisplay === 'function') {
+                refreshWalletDisplay();
+            }
+            
+            // Show main wallet interface
+            showMainWalletInterface();
+        } else {
+            console.log('🆕 No wallets found, showing create wallet modal');
+            showCreateWalletModal();
+        }
+    } catch (error) {
+        console.error('❌ checkAndGenerateWallet failed:', error);
+        showStatusMessage('❌ Error checking wallet status', 'error');
+    }
+};
+
+// ✅ Add other commonly missing UI functions
+window.showCreateWalletModal = function() {
+    console.log('📱 Showing create wallet modal');
+    // Your modal show logic here
+    const modal = document.getElementById('createWalletModal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.warn('Create wallet modal not found');
+        // Fallback: directly generate wallet
+        generateNewWallet();
+    }
+};
+
+window.showImportWalletModal = function() {
+    console.log('📱 Showing import wallet modal');
+    // Your modal show logic here
+    const modal = document.getElementById('importWalletModal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.warn('Import wallet modal not found');
+    }
+};
+
+// ✅ Enhanced generateNewWallet with better UI feedback
+window.generateNewWallet = async function() {
+    console.log('🔄 generateNewWallet called...');
+    
+    if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+        showStatusMessage('⚠️ Wallet system not ready. Please wait...', 'error');
+        return;
+    }
+
+    try {
+        // Show loading state
+        const generateBtn = document.getElementById('generateWalletBtn');
+        if (generateBtn) {
+            generateBtn.innerHTML = '🔄 Generating...';
+            generateBtn.disabled = true;
+        }
+
+        showStatusMessage('🔄 Creating your secure wallet...', 'loading');
+        
+        console.log('🎯 Starting wallet generation...');
+        const result = await window.nemexWalletAPI.generateNewWallet(12);
+        
+        if (result.success) {
+            // Store the mnemonic for backup modal
+            window.currentMnemonic = result.wallet.mnemonic;
+
+            // Update wallet state
+            window.walletState = {
+                isInitialized: true,
+                walletType: 'new',
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {}
+            };
+
+            console.log('✅ Wallet generated:', result.wallet.address);
+            showStatusMessage('✅ Wallet created successfully!', 'success');
+            
+            // Close modal and show backup
+            setTimeout(() => {
+                closeModal();
+                showBackupModal(window.currentMnemonic);
+            }, 1000);
+        } else {
+            throw new Error(result.error || 'Unknown error');
+        }
+    } catch (error) {
+        console.error('❌ Wallet generation failed:', error);
+        showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error');
+        
+        // Reset button state
+        const generateBtn = document.getElementById('generateWalletBtn');
+        if (generateBtn) {
+            generateBtn.innerHTML = 'Generate New Wallet';
+            generateBtn.disabled = false;
+        }
+    }
+};
+
+// ✅ Enhanced import wallet function
+window.importWallet = async function() {
+    console.log('🔄 importWallet called...');
+    
+    if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+        showStatusMessage('⚠️ Wallet system not ready. Please wait...', 'error');
+        return;
+    }
+
+    try {
+        const mnemonicInput = document.getElementById('importMnemonicInput');
+        if (!mnemonicInput) {
+            throw new Error('Mnemonic input field not found');
+        }
+
+        const mnemonic = mnemonicInput.value.trim();
+        if (!mnemonic) {
+            showStatusMessage('❌ Please enter your recovery phrase', 'error');
+            return;
+        }
+
+        // Show loading state
+        const importBtn = document.getElementById('importWalletBtn');
+        if (importBtn) {
+            importBtn.innerHTML = '🔄 Importing...';
+            importBtn.disabled = true;
+        }
+
+        showStatusMessage('🔄 Importing your wallet...', 'loading');
+        
+        console.log('🎯 Starting wallet import...');
+        const result = await window.nemexWalletAPI.importWallet(mnemonic);
+        
+        if (result.success) {
+            console.log('✅ Wallet imported:', result.wallet.address);
+            showStatusMessage('✅ Wallet imported successfully!', 'success');
+            
+            // Close modal and show main interface
+            setTimeout(() => {
+                closeModal();
+                showMainWalletInterface();
+            }, 1000);
+        } else {
+            throw new Error(result.error || 'Import failed');
+        }
+    } catch (error) {
+        console.error('❌ Wallet import failed:', error);
+        showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error');
+        
+        // Reset button state
+        const importBtn = document.getElementById('importWalletBtn');
+        if (importBtn) {
+            importBtn.innerHTML = 'Import Wallet';
+            importBtn.disabled = false;
+        }
+    }
+};
+
+// ✅ Utility functions
+function closeModal() {
+    // Close any open modals
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.style.display = 'none';
+    });
+}
+
+function showBackupModal(mnemonic) {
+    console.log('📱 Showing backup modal with mnemonic');
+    const modal = document.getElementById('backupModal');
+    if (modal) {
+        const mnemonicElement = document.getElementById('backupMnemonic');
+        if (mnemonicElement) {
+            mnemonicElement.textContent = mnemonic;
+        }
+        modal.style.display = 'block';
+    } else {
+        console.warn('Backup modal not found, showing mnemonic in alert');
+        alert('🔐 YOUR RECOVERY PHRASE (SAVE THIS SECURELY):\n\n' + mnemonic + '\n\n⚠️ Keep this phrase safe and secret! It can be used to access your funds.');
+    }
+}
+
+function showMainWalletInterface() {
+    console.log('📱 Showing main wallet interface');
+    // Show main wallet sections, hide onboarding
+    const onboarding = document.getElementById('onboardingSection');
+    const walletInterface = document.getElementById('walletInterface');
+    
+    if (onboarding) onboarding.style.display = 'none';
+    if (walletInterface) walletInterface.style.display = 'block';
+    
+    // Refresh wallet data
+    if (typeof refreshWalletDisplay === 'function') {
+        refreshWalletDisplay();
+    }
+}
+
+// ✅ Auto-check wallet status on load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM ready, checking wallet status...');
+    
+    // Check for existing wallets after a short delay
+    setTimeout(async () => {
+        if (window.nemexWalletAPI && window.nemexWalletAPI.isInitialized) {
+            try {
+                const hasWallets = await window.nemexWalletAPI.hasWallets();
+                if (hasWallets) {
+                    console.log('✅ Found existing wallets, showing main interface');
+                    showMainWalletInterface();
+                } else {
+                    console.log('🆕 No wallets found, ready for creation');
+                }
+            } catch (error) {
+                console.error('Error checking wallet status:', error);
+            }
+        }
+    }, 1000);
+});
 </script>
     <style>
         :root {
