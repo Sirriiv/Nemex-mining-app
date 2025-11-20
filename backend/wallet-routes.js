@@ -63,9 +63,11 @@ function getPathDescription(path) {
 
 async function deriveWalletFromPath(mnemonic, path) {
     try {
-        console.log(`🔄 Deriving wallet with path: ${path}`);
-
+        console.log(`🔄 DEBUG Deriving: Path=${path}`);
+        console.log(`🔑 DEBUG Mnemonic: ${mnemonic.substring(0, 30)}...`);
+        
         const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+        console.log(`🔑 DEBUG Public Key: ${TonWeb.utils.bytesToHex(keyPair.publicKey).substring(0, 20)}...`);
 
         const WalletClass = tonweb.wallet.all.v4R2;
         const wallet = new WalletClass(tonweb.provider, {
@@ -77,6 +79,9 @@ async function deriveWalletFromPath(mnemonic, path) {
         const address = walletAddress.toString(true, true, true);
         const addressNonBounceable = walletAddress.toString(true, true, false);
 
+        console.log(`📍 DEBUG Address: ${address}`);
+        console.log(`📍 DEBUG Non-bounceable: ${addressNonBounceable}`);
+
         return {
             path: path,
             address: address,
@@ -86,7 +91,7 @@ async function deriveWalletFromPath(mnemonic, path) {
         };
 
     } catch (error) {
-        console.log(`❌ Derivation failed for path ${path}:`, error.message);
+        console.log(`❌ DEBUG Derivation failed for path ${path}:`, error.message);
         return null;
     }
 }
