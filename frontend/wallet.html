@@ -108,52 +108,7 @@ function diagnoseLoadingIssue() {
         });
 }
 
-// ✅ GLOBAL FUNCTIONS - Fallback implementations
-window.generateNewWallet = async function() {
-    if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
-        showStatusMessage('⚠️ Wallet system initializing... Please wait and try again.', 'error');
-        return;
-    }
-    
-    try {
-        console.log('🔄 GLOBAL: Starting wallet generation...');
-        const result = await window.nemexWalletAPI.generateNewWallet(12);
-        
-        if (result.success) {
-            // Store the mnemonic for backup modal
-            window.currentMnemonic = result.wallet.mnemonic;
-
-            // Update wallet state
-            window.walletState = {
-                isInitialized: true,
-                walletType: 'new',
-                userId: result.wallet.userId,
-                address: result.wallet.address,
-                balances: {}
-            };
-
-            console.log('✅ Wallet generated:', result.wallet.address);
-            showStatusMessage('✅ Wallet created successfully!', 'success');
-            
-            // Close modal and show backup
-            setTimeout(() => {
-                closeModal();
-                showBackupModal(window.currentMnemonic);
-            }, 1000);
-        }
-    } catch (error) {
-        console.error('Wallet generation failed:', error);
-        showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error');
-    }
-};
-
-// Show immediate feedback when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM ready, waiting for wallet system...');
-    showStatusMessage('🔄 Loading wallet system...', 'loading');
-});
-
-// ✅ MISSING FUNCTION: checkAndGenerateWallet
+// ✅ SMART BEHAVIOR: checkAndGenerateWallet - Enhanced version
 window.checkAndGenerateWallet = async function() {
     console.log('🔄 checkAndGenerateWallet called...');
     
@@ -178,37 +133,15 @@ window.checkAndGenerateWallet = async function() {
             // Show main wallet interface
             showMainWalletInterface();
         } else {
-            console.log('🆕 No wallets found, showing create wallet modal');
-            showCreateWalletModal();
+            console.log('🆕 No wallets found, generating new wallet directly');
+            showStatusMessage('🔄 Creating your first wallet...', 'loading');
+            
+            // SMART BEHAVIOR: Directly generate instead of showing modal
+            await generateNewWallet();
         }
     } catch (error) {
         console.error('❌ checkAndGenerateWallet failed:', error);
         showStatusMessage('❌ Error checking wallet status', 'error');
-    }
-};
-
-// ✅ Add other commonly missing UI functions
-window.showCreateWalletModal = function() {
-    console.log('📱 Showing create wallet modal');
-    // Your modal show logic here
-    const modal = document.getElementById('createWalletModal');
-    if (modal) {
-        modal.style.display = 'block';
-    } else {
-        console.warn('Create wallet modal not found');
-        // Fallback: directly generate wallet
-        generateNewWallet();
-    }
-};
-
-window.showImportWalletModal = function() {
-    console.log('📱 Showing import wallet modal');
-    // Your modal show logic here
-    const modal = document.getElementById('importWalletModal');
-    if (modal) {
-        modal.style.display = 'block';
-    } else {
-        console.warn('Import wallet modal not found');
     }
 };
 
@@ -329,6 +262,31 @@ window.importWallet = async function() {
     }
 };
 
+// ✅ Add other commonly missing UI functions
+window.showCreateWalletModal = function() {
+    console.log('📱 Showing create wallet modal');
+    // Your modal show logic here
+    const modal = document.getElementById('createWalletModal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.warn('Create wallet modal not found');
+        // Fallback: directly generate wallet
+        generateNewWallet();
+    }
+};
+
+window.showImportWalletModal = function() {
+    console.log('📱 Showing import wallet modal');
+    // Your modal show logic here
+    const modal = document.getElementById('importWalletModal');
+    if (modal) {
+        modal.style.display = 'block';
+    } else {
+        console.warn('Import wallet modal not found');
+    }
+};
+
 // ✅ Utility functions
 function closeModal() {
     // Close any open modals
@@ -388,6 +346,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }, 1000);
+});
+
+// Show immediate feedback when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM ready, waiting for wallet system...');
+    showStatusMessage('🔄 Loading wallet system...', 'loading');
 });
 </script>
     <style>
