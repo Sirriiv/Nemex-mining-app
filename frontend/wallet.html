@@ -2923,15 +2923,30 @@ button:hover {
     }
 
     function showReceiveModal() {
-        if (!walletState.isInitialized) {
-            alert('Please create or import a wallet first');
-            return;
-        }
-        const walletAddressDisplay = document.getElementById('walletAddressDisplay');
-        if (walletAddressDisplay) walletAddressDisplay.textContent = walletState.address;
-        const receiveModal = document.getElementById('receiveModal');
-        if (receiveModal) receiveModal.style.display = 'flex';
+    if (!walletState.isInitialized) {
+        alert('Please create or import a wallet first');
+        return;
     }
+
+    // Close any other open modals first
+    closeModal();
+    
+    // Initialize wallet card with current address
+    const currentAddress = walletState.address;
+    if (currentAddress) {
+        const formattedAddress = formatAddressForDisplay(currentAddress);
+        const addressMain = document.getElementById('addressMain');
+        if (addressMain) {
+            addressMain.textContent = formattedAddress;
+        }
+        window.currentWalletAddress = currentAddress;
+    }
+    
+    const receiveModal = document.getElementById('receiveModal');
+    if (receiveModal) {
+        receiveModal.style.display = 'flex';
+    }
+}
 
     function showSwapModal() {
         closeModal();
@@ -2956,18 +2971,9 @@ button:hover {
     function closeModal() {
         document.querySelectorAll('.modal').forEach(modal => {
             modal.style.display = 'none';
-        });
-    }
+      });
 
-    function copyAddress() {
-        if (!walletState.address) return;
-
-        navigator.clipboard.writeText(walletState.address).then(() => {
-            alert('Address copied to clipboard!');
-        }).catch(err => {
-            console.error('Failed to copy address:', err);
-        });
-    }
+     }
 
     // =============================================
     // PROFESSIONAL SEND MODAL WITH DROPDOWN
@@ -3398,6 +3404,97 @@ button:hover {
         }
     }
 
+// ===== WALLET CARD FUNCTIONS =====
+
+// Format address for beautiful display
+function formatAddressForDisplay(address) {
+    if (!address || address.length < 12) return address;
+    
+    // For EQ addresses, show first 8 and last 8 characters
+    if (address.startsWith('EQ') && address.length > 16) {
+        return address.substring(2, 10) + '...' + address.substring(address.length - 8);
+    }
+    
+    // For other addresses, show first 6 and last 6
+    return address.substring(0, 6) + '...' + address.substring(address.length - 6);
+}
+
+// Copy wallet address to clipboard
+function copyWalletAddress() {
+    const address = window.currentWalletAddress || walletState.address;
+    if (!address) {
+        showStatusMessage('No wallet address available', 'error');
+        return;
+    }
+
+    navigator.clipboard.writeText(address).then(() => {
+        showStatusMessage('✅ Address copied to clipboard!', 'success');
+        
+        // Add visual feedback on card
+        const card = document.getElementById('walletCard');
+        if (card) {
+            card.style.animation = 'none';
+            setTimeout(() => {
+                card.style.animation = 'pulseGlow 0.5s ease-in-out';
+            }, 10);
+        }
+    }).catch(err => {
+        console.error('Failed to copy address:', err);
+        showStatusMessage('❌ Failed to copy address', 'error');
+    });
+}
+
+// Share wallet card (basic implementation)
+function shareWalletCard() {
+    const address = window.currentWalletAddress || walletState.address;
+    if (!address) {
+        showStatusMessage('No wallet address available', 'error');
+        return;
+    }
+
+    // Create share text
+    const shareText = `My Nemex Wallet Address: ${address}\n\nSend me TON or NMX tokens! 🦅`;
+    
+    // Try Web Share API first
+    if (navigator.share) {
+        navigator.share({
+            title: 'My Nemex Wallet',
+            text: shareText,
+            url: window.location.href
+        }).catch(err => {
+            console.log('Web Share cancelled or failed:', err);
+            // Fallback to clipboard
+            navigator.clipboard.writeText(shareText).then(() => {
+                showStatusMessage('✅ Share text copied to clipboard!', 'success');
+            });
+        });
+    } else {
+        // Fallback to clipboard
+        navigator.clipboard.writeText(shareText).then(() => {
+            showStatusMessage('✅ Share text copied to clipboard!', 'success');
+        });
+    }
+}
+
+// Show address details (full address view)
+function showAddressDetails() {
+    const address = window.currentWalletAddress || walletState.address;
+    if (!address) {
+        showStatusMessage('No wallet address available', 'error');
+        return;
+    }
+
+    // Show full address in alert (you can replace this with a prettier modal)
+    alert(`Full Wallet Address:\n\n${address}\n\nThis is your complete TON wallet address.`);
+}
+
+// Make card clickable to copy address
+document.addEventListener('DOMContentLoaded', function() {
+    const walletCard = document.getElementById('walletCard');
+    if (walletCard) {
+        walletCard.addEventListener('click', copyWalletAddress);
+    }
+});
     </script>
 </body>
 </html>
