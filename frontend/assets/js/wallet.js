@@ -820,6 +820,84 @@ class NemexWalletAPI {
         return words.length === 12 || words.length === 24;
     }
 
+// ✅ ADD THIS RIGHT AFTER THE NemexWalletAPI CLASS ENDS:
+
+// Global function wrappers for HTML event handlers
+window.generateNewWallet = async function() {
+    try {
+        const result = await window.nemexWalletAPI.generateNewWallet(12);
+        
+        if (result.success) {
+            // Store the mnemonic for backup modal
+            window.currentMnemonic = result.wallet.mnemonic;
+            
+            // Update wallet state
+            window.walletState = {
+                isInitialized: true,
+                walletType: 'new',
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {}
+            };
+
+            console.log('✅ Wallet generated:', result.wallet.address);
+            
+            // Close modal and show backup
+            closeModal();
+            showBackupModal(window.currentMnemonic);
+            
+        } else {
+            throw new Error(result.error || 'Wallet generation failed');
+        }
+    } catch (error) {
+        console.error('Wallet generation failed:', error);
+        showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error');
+    }
+};
+
+window.importWalletFromModal = async function() {
+    try {
+        const mnemonicInput = document.getElementById('importMnemonic');
+        const targetAddressInput = document.getElementById('targetAddress');
+        
+        const mnemonic = mnemonicInput.value.trim();
+        const targetAddress = targetAddressInput.value.trim();
+
+        if (!mnemonic) {
+            showStatusMessage('Please enter your recovery phrase', 'error');
+            return;
+        }
+
+        const result = await window.nemexWalletAPI.importWallet(mnemonic, targetAddress);
+        
+        if (result.success && result.wallets) {
+            // Multiple wallets found
+            window.currentMnemonic = mnemonic;
+            closeModal();
+            showWalletSelectionModal(result.wallets);
+        } else if (result.success && result.wallet) {
+            // Single wallet imported
+            window.walletState = {
+                isInitialized: true,
+                walletType: 'imported',
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {}
+            };
+            
+            closeModal();
+            updateWalletDisplay();
+            updateRealBalances();
+            loadUserWallets();
+            
+            showStatusMessage('✅ Wallet imported successfully!', 'success');
+        }
+    } catch (error) {
+        console.error('Wallet import failed:', error);
+        showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error');
+    }
+};
+
     // =============================================
     // PRODUCTION TRANSACTION ENGINE - FRONTEND API
     // =============================================
@@ -1715,6 +1793,36 @@ document.addEventListener('DOMContentLoaded', async function() {
                 walletAddress: window.nemexWalletAPI.getCurrentWalletAddress(),
                 isSecure: true,
                 hasRealTON: true
+            }
+        }));
+    } else {
+        console.error('❌ Nemex Wallet API Failed to Initialize');
+    }
+// ✅ Ensure API is ready before allowing wallet operations
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('🚀 Nemex Wallet API Initializing...');
+    const success = await window.nemexWalletAPI.init();
+    
+    if (success) {
+        console.log('✅ Nemex Wallet API Ready!');
+        
+        // Make functions globally available
+        window.generateNewWallet = async function() {
+            try {
+                const result = await window.nemexWalletAPI.generateNewWallet(12);
+                // ... rest of the function from above
+            } catch (error) {
+                console.error('Wallet generation failed:', error);
+                showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error');
+            }
+        };
+        
+        // Dispatch ready event
+        document.dispatchEvent(new CustomEvent('walletReady', {
+            detail: { 
+                hasWallet: window.nemexWalletAPI.isWalletLoaded(),
+                walletAddress: window.nemexWalletAPI.getCurrentWalletAddress(),
+                isSecure: true
             }
         }));
     } else {
