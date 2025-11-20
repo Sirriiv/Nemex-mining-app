@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nemex Wallet - Secure TON Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- ✅ COMBINED FIX: Wallet.js with Error Handling + Manual Initialization -->
+    <!-- ✅ ENHANCED: Wallet.js with Error Handling + Manual Initialization -->
 <script src="assets/js/wallet.js" onerror="handleWalletScriptError()"></script>
 
 <script>
@@ -37,29 +37,32 @@ window.addEventListener('load', function() {
         return;
     }
     
-    console.log('✅ wallet.js loaded successfully, initializing API...');
+    console.log('✅ wallet.js loaded successfully, checking API initialization...');
     
-    // Initialize the API
-    if (!window.nemexWalletAPI) {
+    // Initialize the API if not already done
+    if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+        console.log('🔄 Manually initializing wallet API...');
         window.nemexWalletAPI = new NemexWalletAPI();
+        
+        window.nemexWalletAPI.init().then(success => {
+            if (success) {
+                console.log('✅ Wallet API manually initialized!');
+                showStatusMessage('✅ Wallet system ready!', 'success');
+                
+                // Enable all wallet buttons
+                enableWalletButtons();
+            } else {
+                console.error('❌ Manual initialization failed');
+                showStatusMessage('❌ Wallet system initialization failed', 'error');
+            }
+        }).catch(error => {
+            console.error('❌ Initialization error:', error);
+            showStatusMessage('❌ Wallet system error: ' + error.message, 'error');
+        });
+    } else {
+        console.log('✅ Wallet API already initialized');
+        enableWalletButtons();
     }
-    
-    // Start initialization
-    window.nemexWalletAPI.init().then(success => {
-        if (success) {
-            console.log('✅ Wallet API manually initialized!');
-            showStatusMessage('✅ Wallet system ready!', 'success');
-            
-            // Enable all wallet buttons
-            enableWalletButtons();
-        } else {
-            console.error('❌ Manual initialization failed');
-            showStatusMessage('❌ Wallet system initialization failed', 'error');
-        }
-    }).catch(error => {
-        console.error('❌ Initialization error:', error);
-        showStatusMessage('❌ Wallet system error: ' + error.message, 'error');
-    });
 });
 
 // ✅ Enable wallet buttons once system is ready
@@ -150,7 +153,6 @@ document.addEventListener('DOMContentLoaded', function() {
     showStatusMessage('🔄 Loading wallet system...', 'loading');
 });
 </script>
-
     <style>
         :root {
             --dark-bg: #0A0A0A;
