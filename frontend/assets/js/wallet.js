@@ -822,6 +822,33 @@ class NemexWalletAPI {
 
 // ✅ ADD THIS RIGHT AFTER THE NemexWalletAPI CLASS ENDS:
 
+// Auto-initialize the API immediately when loaded
+window.nemexWalletAPI = new NemexWalletAPI();
+
+// Start initialization immediately (don't wait for DOMContentLoaded)
+window.nemexWalletAPI.init().then(success => {
+    if (success) {
+        console.log('✅ Wallet API Ready Immediately!');
+        // Dispatch ready event for wallet.html
+        if (typeof document !== 'undefined') {
+            document.dispatchEvent(new CustomEvent('walletReady', {
+                detail: { 
+                    hasWallet: window.nemexWalletAPI.isWalletLoaded(),
+                    walletAddress: window.nemexWalletAPI.getCurrentWalletAddress(),
+                    isSecure: true
+                }
+            }));
+        }
+    } else {
+        console.error('❌ Wallet API Failed to Initialize');
+    }
+});
+
+// Make API available globally immediately
+console.log('🚀 Wallet API Loaded and Initializing...');
+
+// ✅ ADD THIS RIGHT AFTER THE NemexWalletAPI CLASS ENDS:
+
 // Global function wrappers for HTML event handlers
 window.generateNewWallet = async function() {
     try {
@@ -897,6 +924,8 @@ window.importWalletFromModal = async function() {
         showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error');
     }
 };
+
+
 
     // =============================================
     // PRODUCTION TRANSACTION ENGINE - FRONTEND API
