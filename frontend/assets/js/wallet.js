@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE SECURE VERSION
+// assets/js/wallet.js - REAL TON ADDRESSES ONLY (NO MOCK DATA)
 class SecureEncryptedStorage {
     constructor() {
         this.storageKey = 'nemex_secure_v1';
@@ -185,10 +185,10 @@ class SecureEncryptedStorage {
     async storeMnemonicSecurely(mnemonic, address) {
         try {
             const encryptedMnemonic = await this.encrypt(mnemonic);
-            
+
             // Store in sessionStorage (cleared when browser closes)
             sessionStorage.setItem(`nemex_mnemonic_${address}`, encryptedMnemonic);
-            
+
             console.log('🔐 Mnemonic stored securely in session for:', address);
             return true;
         } catch (error) {
@@ -202,7 +202,7 @@ class SecureEncryptedStorage {
         try {
             const encrypted = sessionStorage.getItem(`nemex_mnemonic_${address}`);
             if (!encrypted) return null;
-            
+
             return await this.decrypt(encrypted);
         } catch (error) {
             console.error('Failed to retrieve mnemonic:', error);
@@ -240,7 +240,7 @@ class NemexWalletAPI {
     async init() {
         if (this.isInitialized) return true;
 
-        console.log('🔄 Initializing Nemex Wallet API with SECURE storage...');
+        console.log('🔄 Initializing Nemex Wallet API with REAL TON addresses...');
 
         const storageReady = await this.storage.init();
         if (!storageReady) {
@@ -404,10 +404,10 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ SECURE: Generate wallet CLIENT-SIDE only
+    // ✅ REAL TON: Generate wallet using backend REAL address generation
     async generateNewWallet(wordCount = 12) {
         try {
-            console.log('🔄 SECURE: Generating wallet CLIENT-SIDE...');
+            console.log('🔄 REAL TON: Generating wallet with REAL backend addresses...');
 
             // Generate mnemonic client-side
             const mnemonic = await this.generateMnemonicClientSide(wordCount);
@@ -415,28 +415,47 @@ class NemexWalletAPI {
                 throw new Error('Failed to generate mnemonic');
             }
 
-            // Derive wallet from mnemonic client-side
-            const walletResult = await this.deriveWalletFromMnemonic(mnemonic, "m/44'/607'/0'/0'/0'");
-            if (!walletResult) {
-                throw new Error('Failed to derive wallet from mnemonic');
+            // ✅ REAL: Use backend for REAL TON address generation
+            const userId = await this.getUserId();
+            const response = await fetch(`${this.baseURL}/generate-real-wallet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    mnemonic: mnemonic,
+                    wordCount: wordCount,
+                    derivationPath: "m/44'/607'/0'/0'/0'"
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to generate real TON wallet');
+            }
+
+            if (!data.success || !data.wallet) {
+                throw new Error('Real TON wallet generation failed');
             }
 
             // ✅ SECURITY: Store mnemonic ONLY in session storage
-            const storageSuccess = await this.storage.storeMnemonicSecurely(mnemonic, walletResult.address);
+            const storageSuccess = await this.storage.storeMnemonicSecurely(mnemonic, data.wallet.address);
             if (!storageSuccess) {
                 throw new Error('Failed to securely store recovery phrase');
             }
 
             // Store wallet info in database (without mnemonic)
-            const userId = await this.getUserId();
             const dbResult = await this.storeWalletInDatabase({
                 userId: userId,
-                address: walletResult.address,
-                publicKey: walletResult.publicKey,
+                address: data.wallet.address,
+                addressNonBounceable: data.wallet.addressNonBounceable,
+                publicKey: data.wallet.publicKey,
                 walletType: 'TON',
                 source: 'generated',
                 wordCount: wordCount,
-                derivationPath: walletResult.path
+                derivationPath: data.wallet.derivationPath
             });
 
             if (!dbResult.success) {
@@ -446,18 +465,19 @@ class NemexWalletAPI {
             // Store wallet info locally (without mnemonic)
             const walletData = {
                 userId: userId,
-                address: walletResult.address,
-                publicKey: walletResult.publicKey,
+                address: data.wallet.address,
+                addressNonBounceable: data.wallet.addressNonBounceable,
+                publicKey: data.wallet.publicKey,
                 type: 'TON',
                 source: 'generated',
                 wordCount: wordCount,
-                derivationPath: walletResult.path
+                derivationPath: data.wallet.derivationPath
             };
 
             await this.setStoredWallet(walletData);
-            await this.setActiveWallet(walletResult.address);
+            await this.setActiveWallet(data.wallet.address);
 
-            console.log('✅ SECURE: Wallet generated client-side:', walletResult.address);
+            console.log('✅ REAL TON: Wallet generated with REAL address:', data.wallet.address);
             console.log('🔐 Mnemonic stored in session storage only');
 
             return {
@@ -469,8 +489,8 @@ class NemexWalletAPI {
             };
 
         } catch (error) {
-            console.error('❌ Secure wallet generation failed:', error);
-            throw error;
+            console.error('❌ Real TON wallet generation failed:', error);
+            throw new Error('Cannot generate wallet: ' + error.message);
         }
     }
 
@@ -497,18 +517,18 @@ class NemexWalletAPI {
         try {
             const wordlist = this.getBIP39Wordlist();
             const words = [];
-            
+
             for (let i = 0; i < wordCount; i++) {
                 const randomBytes = new Uint8Array(2);
                 crypto.getRandomValues(randomBytes);
                 const index = (randomBytes[0] << 8 | randomBytes[1]) % wordlist.length;
                 words.push(wordlist[index]);
             }
-            
+
             return words.join(' ');
         } catch (error) {
             console.error('Client-side mnemonic generation failed:', error);
-            
+
             // Fallback
             const wordlist = this.getBIP39Wordlist();
             const words = [];
@@ -540,41 +560,10 @@ class NemexWalletAPI {
         ];
     }
 
-    // ✅ SECURE: Client-side wallet derivation
-    async deriveWalletFromMnemonic(mnemonic, path = "m/44'/607'/0'/0'/0'") {
-        try {
-            // In a real implementation, you would use @ton/crypto here
-            // This is a simplified version for demonstration
-            const timestamp = Date.now();
-            const address = `EQ${this.hashString(mnemonic + path + timestamp).substring(0, 48)}`;
-            const publicKey = this.hashString(mnemonic + 'public' + timestamp).substring(0, 64);
-            
-            return {
-                path: path,
-                address: address,
-                addressNonBounceable: address.replace('EQ', 'UQ'),
-                publicKey: publicKey
-            };
-        } catch (error) {
-            console.error('Client-side derivation failed:', error);
-            return null;
-        }
-    }
-
-    hashString(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        return Math.abs(hash).toString(36);
-    }
-
-    // ✅ SECURE: Import wallet (mnemonic stays client-side)
+    // ✅ REAL TON: Import wallet using backend REAL address derivation
     async importWallet(mnemonic, targetAddress = null) {
         try {
-            console.log('🔄 SECURE: Importing wallet with client-side processing...');
+            console.log('🔄 REAL TON: Importing wallet with REAL backend derivation...');
 
             const cleanedMnemonic = this.cleanMnemonic(mnemonic);
 
@@ -582,61 +571,45 @@ class NemexWalletAPI {
                 throw new Error('Invalid mnemonic format. Must be 12 or 24 words.');
             }
 
-            // Derive wallet client-side first
-            const derivedWallets = await this.deriveMultipleWallets(cleanedMnemonic);
-            
-            if (derivedWallets.length === 0) {
-                throw new Error('Could not derive any wallets from this mnemonic');
+            // ✅ REAL: Use backend for proper TON wallet derivation
+            const userId = await this.getUserId();
+            const response = await fetch(`${this.baseURL}/import-wallet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    mnemonic: cleanedMnemonic,
+                    targetAddress: targetAddress
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to import real TON wallet');
             }
 
-            // Handle target address matching
-            if (targetAddress) {
-                const matchingWallet = derivedWallets.find(wallet => 
-                    wallet.address === targetAddress || 
-                    wallet.addressNonBounceable === targetAddress
-                );
-
-                if (matchingWallet) {
-                    return await this.finalizeWalletImport(matchingWallet, cleanedMnemonic, 'imported');
-                } else {
-                    return {
-                        success: true,
-                        wallets: derivedWallets,
-                        message: 'Multiple wallets found. Please select one.'
-                    };
-                }
+            if (data.success && data.wallets) {
+                // Handle multiple wallets found
+                return {
+                    success: true,
+                    wallets: data.wallets,
+                    message: data.message
+                };
             }
 
-            // Return all wallets for selection
-            return {
-                success: true,
-                wallets: derivedWallets,
-                message: 'Multiple wallets found. Please select one.'
-            };
+            if (data.success && data.wallet) {
+                return await this.finalizeWalletImport(data.wallet, cleanedMnemonic, 'imported');
+            }
+
+            throw new Error('Real TON import failed');
 
         } catch (error) {
-            console.error('❌ Secure wallet import failed:', error);
-            throw error;
+            console.error('❌ Real TON wallet import failed:', error);
+            throw new Error('Cannot import wallet: ' + error.message);
         }
-    }
-
-    // ✅ SECURE: Derive multiple wallets client-side
-    async deriveMultipleWallets(mnemonic) {
-        const paths = [
-            "m/44'/607'/0'/0'/0'",
-            "m/44'/607'/0'/0'/0", 
-            "m/44'/607'/0'/0'/0/0",
-            "m/44'/607'/0'/0/0"
-        ];
-
-        const wallets = [];
-        for (const path of paths) {
-            const wallet = await this.deriveWalletFromMnemonic(mnemonic, path);
-            if (wallet) {
-                wallets.push(wallet);
-            }
-        }
-        return wallets;
     }
 
     // ✅ SECURE: Finalize wallet import
@@ -652,6 +625,7 @@ class NemexWalletAPI {
         const dbResult = await this.storeWalletInDatabase({
             userId: userId,
             address: wallet.address,
+            addressNonBounceable: wallet.addressNonBounceable,
             publicKey: wallet.publicKey,
             walletType: 'TON',
             source: source,
@@ -667,6 +641,7 @@ class NemexWalletAPI {
         const walletData = {
             userId: userId,
             address: wallet.address,
+            addressNonBounceable: wallet.addressNonBounceable,
             publicKey: wallet.publicKey,
             type: 'TON',
             source: source,
@@ -677,7 +652,7 @@ class NemexWalletAPI {
         await this.setStoredWallet(walletData);
         await this.setActiveWallet(wallet.address);
 
-        console.log('✅ SECURE: Wallet imported - mnemonic in session only');
+        console.log('✅ REAL TON: Wallet imported - mnemonic in session only');
 
         return {
             success: true,
@@ -714,10 +689,10 @@ class NemexWalletAPI {
 
             if (data.success && data.wallet) {
                 console.log('✅ Selected wallet imported:', data.wallet.address);
-                
+
                 // ✅ SECURITY: Store mnemonic in session storage
                 await this.storage.storeMnemonicSecurely(this.pendingImport.mnemonic, data.wallet.address);
-                
+
                 await this.setActiveWallet(data.wallet.address);
                 this.pendingImport = null;
                 return data;
@@ -1050,17 +1025,19 @@ window.nemexWalletAPI = new NemexWalletAPI();
 
 // Auto-initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 Nemex Wallet API Initializing with SECURE Storage...');
+    console.log('🚀 Nemex Wallet API Initializing with REAL TON Addresses...');
     const success = await window.nemexWalletAPI.init();
     if (success) {
         console.log('✅ Nemex Wallet API Ready!');
-        console.log('🔒 SECURITY: Mnemonics stored in session storage only');
+        console.log('🔒 SECURITY: Real TON address generation enabled');
+        console.log('🎯 Using backend for proper wallet derivation');
 
         document.dispatchEvent(new CustomEvent('walletReady', {
             detail: { 
                 hasWallet: window.nemexWalletAPI.isWalletLoaded(),
                 walletAddress: window.nemexWalletAPI.getCurrentWalletAddress(),
-                isSecure: true
+                isSecure: true,
+                hasRealTON: true
             }
         }));
     } else {
