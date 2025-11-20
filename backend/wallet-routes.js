@@ -751,7 +751,7 @@ async function getRealTransactions(address) {
 router.post('/import-wallet', async function(req, res) {
     try {
         const { userId, mnemonic, targetAddress } = req.body;
-        console.log('🔄 ENHANCED wallet import with balance detection...');
+        console.log('🔄 SIMPLIFIED: Importing wallet with SINGLE derivation...');
 
         if (!userId || !mnemonic) {
             return res.status(400).json({
@@ -770,123 +770,36 @@ router.post('/import-wallet', async function(req, res) {
             });
         }
 
-        let isValidMnemonic = false;
-        try {
-            isValidMnemonic = bip39.validateMnemonic(cleanedMnemonic);
-            if (!isValidMnemonic) {
-                const words = cleanedMnemonic.split(' ');
-                const englishWordlist = bip39.wordlists.english;
-                const allWordsValid = words.every(word => englishWordlist.includes(word));
-                if (allWordsValid) {
-                    console.log('⚠️ Words are valid but mnemonic fails BIP39 validation - proceeding anyway');
-                    isValidMnemonic = true;
-                }
-            }
-        } catch (validationErr) {
+        // ✅ SIMPLIFIED: Use only ONE reliable derivation path
+        console.log('🔄 Using Tonkeeper-compatible derivation...');
+        const wallet = await deriveWalletFromPath(cleanedMnemonic, "m/44'/607'/0'/0'/0'");
+
+        if (!wallet) {
             return res.status(400).json({
                 success: false,
-                error: 'Mnemonic validation failed: ' + validationErr.message
+                error: 'Could not derive wallet from mnemonic'
             });
         }
 
-        if (!isValidMnemonic) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid mnemonic phrase. Please check your words.'
-            });
-        }
+        console.log('✅ Single wallet derived:', wallet.address);
 
-        console.log('🔄 Scanning for wallets with actual balances...');
-        const walletsWithBalances = await findWalletsWithBalances(cleanedMnemonic);
+        // ✅ Check if this wallet has funds (optional)
+        const balances = await getAllBalances(wallet.address);
+        const hasFunds = parseFloat(balances.balances.TON) > 0 || parseFloat(balances.balances.NMX) > 0;
+        
+        console.log(`💰 Wallet balance check - TON: ${balances.balances.TON}, NMX: ${balances.balances.NMX}, Has funds: ${hasFunds}`);
 
-        if (walletsWithBalances.length > 0) {
-            console.log(`✅ Found ${walletsWithBalances.length} wallets with funds`);
-
-            if (walletsWithBalances.length === 1) {
-                console.log('✅ Auto-selecting the only wallet with funds');
-                const selectedWallet = walletsWithBalances[0];
-                console.log(`💰 Selected: ${selectedWallet.address} with TON: ${selectedWallet.tonBalance}, NMX: ${selectedWallet.nmxBalance}`);
-                return await saveAndReturnWallet(selectedWallet, userId, cleanedMnemonic, wordCount, res);
-            }
-
-            return res.json({
-                success: true,
-                message: `Found ${walletsWithBalances.length} wallets with funds. Please select which one matches your Tonkeeper wallet.`,
-                wallets: walletsWithBalances.map(wallet => ({
-                    path: wallet.path,
-                    address: wallet.address,
-                    addressNonBounceable: wallet.addressNonBounceable,
-                    description: wallet.description,
-                    hasFunds: true,
-                    balances: {
-                        TON: wallet.tonBalance,
-                        NMX: wallet.nmxBalance
-                    }
-                }))
-            });
-        }
-
-        console.log('🔍 No wallets with funds found, using multi-path derivation...');
-        const derivedWallets = await deriveAllWalletAddresses(cleanedMnemonic);
-
-        if (derivedWallets.length === 0) {
-            console.log('❌ No wallets could be derived from mnemonic');
-            return res.status(400).json({
-                success: false,
-                error: 'Could not derive any wallets from this mnemonic. This may be due to library compatibility issues.',
-                suggestion: 'Try using the standard TON derivation without multi-path support.'
-            });
-        }
-
-        if (targetAddress) {
-            console.log('🔍 Looking for wallet matching:', targetAddress);
-
-            const matchingWallet = derivedWallets.find(wallet => 
-                wallet.address === targetAddress || 
-                wallet.addressNonBounceable === targetAddress ||
-                wallet.address.replace(/^EQ/, 'UQ') === targetAddress ||
-                wallet.addressNonBounceable.replace(/^UQ/, 'EQ') === targetAddress
-            );
-
-            if (matchingWallet) {
-                console.log('✅ Found matching wallet! Path:', matchingWallet.path);
-                return await saveAndReturnWallet(matchingWallet, userId, cleanedMnemonic, wordCount, res);
-            } else {
-                console.log('❌ No wallet matches the target address');
-                return res.status(400).json({
-                    success: false,
-                    error: 'No wallet derived from this mnemonic matches your target address. The mnemonic might be for a different wallet.',
-                    derivedAddresses: derivedWallets.map(w => ({
-                        path: w.path,
-                        address: w.address,
-                        addressNonBounceable: w.addressNonBounceable,
-                        description: getPathDescription(w.path)
-                    }))
-                });
-            }
-        }
-
-        console.log('🔍 No target address provided, returning all derived wallets');
-        return res.json({
-            success: true,
-            message: 'Multiple wallets found. Please select which one to import.',
-            wallets: derivedWallets.map(wallet => ({
-                path: wallet.path,
-                address: wallet.address,
-                addressNonBounceable: wallet.addressNonBounceable,
-                description: getPathDescription(wallet.path)
-            }))
-        });
+        // ✅ Save and return the single wallet
+        return await saveAndReturnWallet(wallet, userId, cleanedMnemonic, wordCount, res);
 
     } catch (error) {
-        console.error('Enhanced wallet import error:', error);
+        console.error('Simplified wallet import error:', error);
         return res.status(500).json({ 
             success: false, 
             error: 'Failed to import wallet: ' + error.message 
         });
     }
 });
-
 // =============================================
 // ENCRYPTION FUNCTIONS
 // =============================================
