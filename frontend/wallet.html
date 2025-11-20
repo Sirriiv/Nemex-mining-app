@@ -1018,7 +1018,260 @@ button:hover {
         .session-inactive {
             color: var(--warning);
         }
-    </style>
+
+   /* ===== WALLET CARD STYLES ===== */
+.wallet-card-modal {
+    max-width: 400px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    border: none;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.wallet-card-container {
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.wallet-card {
+    width: 320px;
+    height: 200px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wallet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+}
+
+.wallet-card:active {
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.wallet-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 18px;
+    color: white;
+}
+
+.nemex-logo {
+    font-size: 20px;
+}
+
+.nemex-text {
+    background: linear-gradient(45deg, #fff, #f0f0f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card-type {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Card Body */
+.card-body {
+    position: relative;
+    z-index: 2;
+}
+
+.wallet-address {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-bottom: 15px;
+}
+
+.address-prefix, .address-suffix {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+}
+
+.address-main {
+    color: white;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+}
+
+.card-chip {
+    position: absolute;
+    right: 20px;
+    bottom: 40px;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Card Glow Effect */
+.card-glow {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: pulseGlow 3s ease-in-out infinite;
+    z-index: 1;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+/* Card Footer */
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.network-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+}
+
+.network-icon {
+    font-size: 14px;
+}
+
+.copy-hint {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+/* Action Buttons */
+.card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+}
+
+.action-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.action-btn.tertiary {
+    grid-column: 1 / -1;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+}
+
+.action-btn:active {
+    transform: translateY(0);
+}
+
+.btn-icon {
+    font-size: 16px;
+}
+
+/* Security Notice */
+.security-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
+}
+
+.notice-icon {
+    font-size: 16px;
+    margin-top: 2px;
+}
+
+.notice-text {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.4;
+}
+
+.notice-text strong {
+    color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .wallet-card-modal {
+        margin: 10px;
+        max-width: calc(100vw - 20px);
+    }
+    
+    .wallet-card {
+        width: 280px;
+        height: 180px;
+        padding: 16px;
+    }
+    
+    .wallet-address {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+}
+ </style>
 </head>
 <body>
     <div class="container">
@@ -1668,20 +1921,76 @@ button:hover {
         </div>
     </div>
 </div>
-        <!-- Receive Modal -->
-        <div id="receiveModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Receive</div>
-                <div class="qr-code">
-                    QR CODE
+       <!-- Wallet Card Receive Modal -->
+<div id="receiveModal" class="modal">
+    <div class="modal-content wallet-card-modal">
+        <!-- Header -->
+        <div class="modal-header">
+            <h2>Your Wallet Card</h2>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+
+        <!-- Wallet Card -->
+        <div class="wallet-card-container">
+            <div class="wallet-card" id="walletCard">
+                <!-- Card Header -->
+                <div class="card-header">
+                    <div class="wallet-badge">
+                        <span class="nemex-logo">🦅</span>
+                        <span class="nemex-text">NEMEX</span>
+                    </div>
+                    <div class="card-type">Digital Wallet</div>
                 </div>
-                <div class="address-display" id="walletAddressDisplay">
-                    Loading address...
+                
+                <!-- Card Body -->
+                <div class="card-body">
+                    <div class="wallet-address" id="walletAddressDisplay">
+                        <span class="address-prefix">EQ</span>
+                        <span class="address-main" id="addressMain">ABC123DEF456</span>
+                        <span class="address-suffix">GHI789</span>
+                    </div>
+                    
+                    <div class="card-chip">⎔</div>
+                    <div class="card-glow"></div>
                 </div>
-                <button class="copy-button" onclick="copyAddress()">Copy Address</button>
-                <button class="close-modal" onclick="closeModal()">Close</button>
+                
+                <!-- Card Footer -->
+                <div class="card-footer">
+                    <div class="network-badge">
+                        <span class="network-icon">⚡</span>
+                        TON Network
+                    </div>
+                    <div class="copy-hint">Tap card to copy address</div>
+                </div>
             </div>
         </div>
+
+        <!-- Action Buttons -->
+        <div class="card-actions">
+            <button class="action-btn primary" onclick="copyWalletAddress()">
+                <span class="btn-icon">📋</span>
+                Copy Address
+            </button>
+            <button class="action-btn secondary" onclick="shareWalletCard()">
+                <span class="btn-icon">🔄</span>
+                Share Card
+            </button>
+            <button class="action-btn tertiary" onclick="showAddressDetails()">
+                <span class="btn-icon">🔍</span>
+                View Details
+            </button>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="security-notice">
+            <div class="notice-icon">🔒</div>
+            <div class="notice-text">
+                <strong>Security Tip:</strong> Only share with trusted sources. 
+                Verify the first and last 4 characters match.
+            </div>
+        </div>
+    </div>
+</div>
 
         <!-- Swap Modal -->
         <div id="swapModal" class="modal">
