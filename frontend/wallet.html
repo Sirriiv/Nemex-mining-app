@@ -2101,101 +2101,297 @@ button:hover {
 
     <!-- COMPLETE WALLET SCRIPT - FIXED VERSION -->
     <script>
-    // =============================================
-    // WALLET STATE MANAGEMENT
-    // =============================================
+   // =============================================
+// WALLET STATE MANAGEMENT
+// =============================================
 
-    let walletState = {
-        isInitialized: false,
-        walletType: null,
-        userId: null,
-        address: null,
-        balances: {},
-        lastUpdate: null
-    };
+let walletState = {
+    isInitialized: false,
+    walletType: null,
+    userId: null,
+    address: null,
+    balances: {},
+    lastUpdate: null
+};
 
-    let userWallets = [];
-    let customTokens = [];
-    let currentMnemonic = null;
+let userWallets = [];
+let customTokens = [];
+let currentMnemonic = null;
 
-    // Supported tokens - FIXED: Ensure NMX is properly initialized
-    let SUPPORTED_TOKENS = [
-        {
-            symbol: "TON",
-            name: "Toncoin",
-            balance: 0, // Will be updated from API
-            logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-            price: 0, // Will be updated from API
-            change24h: 0, // Will be updated from API
-            canSend: true,
-            isNative: true,
-            isFeatured: true
-        },
-        {
-            symbol: "NMX", 
-            name: "NemexCoin",
-            balance: 0, // Will be updated from API
-            logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-            price: 0.10, // Default price
-            change24h: 0,
-            canSend: true,
-            isNative: false,
-            isFeatured: true
+// Supported tokens - FIXED: Ensure NMX is properly initialized
+let SUPPORTED_TOKENS = [
+    {
+        symbol: "TON",
+        name: "Toncoin",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+        price: 0, // Will be updated from API
+        change24h: 0, // Will be updated from API
+        canSend: true,
+        isNative: true,
+        isFeatured: true
+    },
+    {
+        symbol: "NMX", 
+        name: "NemexCoin",
+        balance: 0, // Will be updated from API
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        price: 0.10, // Default price
+        change24h: 0,
+        canSend: true,
+        isNative: false,
+        isFeatured: true
+    }
+];
+
+// =============================================
+// GLOBAL FUNCTION WRAPPERS FOR HTML BUTTONS
+// =============================================
+
+// ✅ GLOBAL: Generate wallet function for HTML buttons
+window.generateNewWallet = async function() {
+    console.log('🔄 GLOBAL: Generating new wallet...');
+    
+    const generateBtn = document.getElementById('generateWalletBtn');
+    const statusDiv = document.getElementById('createWalletStatus');
+
+    try {
+        // Check if API is ready
+        if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+            throw new Error('Wallet API not ready. Please wait...');
         }
-    ];
 
-    // =============================================
-    // INITIALIZATION & SESSION MANAGEMENT
-    // =============================================
+        generateBtn.innerHTML = '<div class="loading"></div> Generating...';
+        generateBtn.disabled = true;
+        showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
 
-    async function initWallet() {
-        console.log('🔄 Initializing wallet with session management...');
+        console.log('🔄 Creating wallet via database...');
 
-        // Initialize API
-        const apiReady = await window.nemexWalletAPI.init();
-        if (!apiReady) {
-            showStatusMessage('❌ Cannot connect to wallet server', 'error');
+        const result = await window.nemexWalletAPI.generateNewWallet(12);
+
+        // Store the mnemonic for backup modal
+        currentMnemonic = result.wallet.mnemonic;
+
+        // Update wallet state from database response
+        walletState = {
+            isInitialized: true,
+            walletType: 'new',
+            userId: result.wallet.userId,
+            address: result.wallet.address,
+            balances: {}
+        };
+
+        console.log('✅ Wallet created in database:', walletState.address);
+        showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
+
+        // Show backup modal instead of going directly to wallet
+        setTimeout(() => {
+            closeModal();
+            showBackupModal(currentMnemonic);
+        }, 1000);
+
+    } catch (error) {
+        console.error('Wallet creation failed:', error);
+        showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error', statusDiv);
+    } finally {
+        generateBtn.innerHTML = 'Generate New Wallet';
+        generateBtn.disabled = false;
+    }
+};
+
+// ✅ GLOBAL: Import wallet function for HTML buttons
+window.importWalletFromModal = async function() {
+    const importBtn = document.getElementById('importWalletBtn');
+    const statusDiv = document.getElementById('importWalletStatus');
+    const mnemonicInput = document.getElementById('importMnemonic');
+    const targetAddressInput = document.getElementById('targetAddress');
+
+    const mnemonic = mnemonicInput.value.trim();
+    const targetAddress = targetAddressInput.value.trim();
+
+    if (!mnemonic) {
+        showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
+        return;
+    }
+
+    // Basic client-side validation
+    const wordCount = mnemonic.split(' ').length;
+    if (wordCount !== 12 && wordCount !== 24) {
+        showStatusMessage('Recovery phrase must be 12 or 24 words', 'error', statusDiv);
+        return;
+    }
+
+    try {
+        // Check if API is ready
+        if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+            throw new Error('Wallet API not ready. Please wait...');
+        }
+
+        importBtn.innerHTML = '<div class="loading"></div> Importing...';
+        importBtn.disabled = true;
+        showStatusMessage('Importing your wallet...', 'loading', statusDiv);
+
+        console.log('🔄 Importing wallet via database...');
+        console.log('🔍 Target address provided:', targetAddress || 'None');
+
+        const result = await window.nemexWalletAPI.importWallet(mnemonic, targetAddress);
+
+        // ✅ HANDLE MULTIPLE WALLETS FOUND
+        if (result.success && result.wallets) {
+            console.log('🔍 Multiple wallets found, showing selection modal');
+            showStatusMessage(`Found ${result.wallets.length} wallets. Please select one.`, 'success', statusDiv);
+
+            // Store the mnemonic for later use
+            currentMnemonic = mnemonic;
+
+            // Show wallet selection modal
+            setTimeout(() => {
+                closeModal();
+                showWalletSelectionModal(result.wallets);
+            }, 1000);
             return;
         }
 
-        // Check if we have an active session
-        const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
+        // ✅ SINGLE WALLET FOUND
+        if (result.success && result.wallet) {
+            console.log('✅ Single wallet imported via API:', result.wallet.address);
 
-        if (hasActiveSession) {
-            const currentWallet = window.nemexWalletAPI.getStoredWallet();
-            if (currentWallet) {
-                walletState = {
-                    isInitialized: true,
-                    walletType: currentWallet.source || 'imported',
-                    userId: currentWallet.userId,
-                    address: currentWallet.address,
-                    balances: {},
-                    lastUpdate: null
-                };
+            // Store mnemonic for imported wallet
+            currentMnemonic = mnemonic;
 
-                console.log('✅ Session restored:', walletState.address);
+            // Update wallet state from database response
+            walletState = {
+                isInitialized: true,
+                walletType: 'imported', 
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {}
+            };
+
+            showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+            setTimeout(() => {
+                closeModal();
                 updateWalletDisplay();
                 updateRealBalances();
-
-                // Load user wallets for management
-                await loadUserWallets();
-            }
+                loadUserWallets();
+            }, 2000);
         } else {
-            console.log('ℹ️ No active session found');
+            throw new Error(result.error || 'Failed to import wallet');
         }
 
-        console.log('🚀 Wallet initialization complete');
+    } catch (error) {
+        console.error('Wallet import failed:', error);
+        let errorMessage = error.message;
+
+        if (error.message.includes('400')) {
+            if (error.message.includes('No wallet matches')) {
+                errorMessage = 'No wallet derived from this phrase matches your target address. Try without target address to see all options.';
+            } else {
+                errorMessage = 'Invalid recovery phrase format. Please check your words.';
+            }
+        } else if (error.message.includes('Network')) {
+            errorMessage = 'Network error. Please check your connection.';
+        }
+
+        showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
+    } finally {
+        importBtn.innerHTML = 'Import Wallet';
+        importBtn.disabled = false;
+    }
+};
+
+// =============================================
+// INITIALIZATION & SESSION MANAGEMENT - FIXED
+// =============================================
+
+async function initWallet() {
+    console.log('🔄 Initializing wallet with session management...');
+
+    // Wait for the API to be available
+    if (!window.nemexWalletAPI) {
+        console.error('❌ Wallet API not available');
+        showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
+        return;
     }
 
-    async function loadUserWallets() {
-        try {
-            userWallets = await window.nemexWalletAPI.getUserWallets();
-            console.log(`✅ Loaded ${userWallets.length} user wallets`);
-            updateWalletList();
-        } catch (error) {
-            console.error('Failed to load user wallets:', error);
-        }
+    // Initialize API
+    const apiReady = await window.nemexWalletAPI.init();
+    if (!apiReady) {
+        showStatusMessage('❌ Cannot connect to wallet server', 'error');
+        return;
     }
+
+    // Check if we have an active session
+    const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
+
+    if (hasActiveSession) {
+        const currentWallet = window.nemexWalletAPI.getStoredWallet();
+        if (currentWallet) {
+            walletState = {
+                isInitialized: true,
+                walletType: currentWallet.source || 'imported',
+                userId: currentWallet.userId,
+                address: currentWallet.address,
+                balances: {},
+                lastUpdate: null
+            };
+
+            console.log('✅ Session restored:', walletState.address);
+            updateWalletDisplay();
+            updateRealBalances();
+
+            // Load user wallets for management
+            await loadUserWallets();
+        }
+    } else {
+        console.log('ℹ️ No active session found');
+    }
+
+    console.log('🚀 Wallet initialization complete');
+}
+
+async function loadUserWallets() {
+    try {
+        userWallets = await window.nemexWalletAPI.getUserWallets();
+        console.log(`✅ Loaded ${userWallets.length} user wallets`);
+        updateWalletList();
+    } catch (error) {
+        console.error('Failed to load user wallets:', error);
+    }
+}
+
+// =============================================
+// FIXED EVENT LISTENERS - PROPER INITIALIZATION
+// =============================================
+
+// Wait for both DOM AND wallet.js to be loaded
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM loaded, waiting for wallet API...');
+    
+    // Check if wallet API is available
+    if (window.nemexWalletAPI) {
+        console.log('✅ Wallet API found, initializing...');
+        initWallet();
+    } else {
+        console.log('⏳ Wallet API not loaded yet, waiting...');
+        // Retry after a short delay
+        setTimeout(() => {
+            if (window.nemexWalletAPI) {
+                initWallet();
+            } else {
+                console.error('❌ Wallet API never loaded');
+                showStatusMessage('❌ Wallet system failed to load. Please refresh.', 'error');
+            }
+        }, 1000);
+    }
+});
+
+// Also listen for the walletReady event from wallet.js
+document.addEventListener('walletReady', function(event) {
+    console.log('🎉 Wallet ready event received:', event.detail);
+    updateWalletDisplay();
+});
 
     // =============================================
     // WALLET CREATION & IMPORT - MULTI-PATH SUPPORT
