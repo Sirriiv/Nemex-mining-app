@@ -23,21 +23,29 @@ class SecureEncryptedStorage {
     }
 
     async ensureEncryptionKey() {
-        let key = sessionStorage.getItem(`${this.storageKey}_key`);
+    let key = sessionStorage.getItem(`${this.storageKey}_key`);
 
-        if (!key) {
-            key = this.generateRandomKey();
-            sessionStorage.setItem(`${this.storageKey}_key`, key);
-        }
-
-        this.encryptionKey = key;
+    if (!key) {
+        key = this.generateProperKey(); // Use new method
+        sessionStorage.setItem(`${this.storageKey}_key`, key);
     }
 
-    generateRandomKey() {
-        const array = new Uint8Array(32);
-        crypto.getRandomValues(array);
-        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-    }
+    this.encryptionKey = key;
+}
+
+generateProperKey() {
+    // Generate exactly 32 bytes (256 bits) for AES-256
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    
+    // Convert to hex string (64 characters)
+    const hexKey = Array.from(array, byte => 
+        byte.toString(16).padStart(2, '0')
+    ).join('');
+    
+    console.log('🔑 Generated proper AES-256 key:', hexKey.length, 'chars');
+    return hexKey;
+}
 
     // ✅ SIMPLIFIED ENCRYPTION - FIXED VERSION
     async encrypt(text) {
