@@ -1,6 +1,4 @@
 // assets/js/wallet.js - COMPLETE FIXED VERSION WITH REAL TON ADDRESSES
-// REPLACE THE SecureEncryptedStorage CLASS IN YOUR wallet.js WITH THIS FIXED VERSION:
-
 class SecureEncryptedStorage {
     constructor() {
         this.storageKey = 'nemex_secure_v1';
