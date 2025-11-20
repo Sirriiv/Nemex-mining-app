@@ -204,9 +204,9 @@ window.generateNewWallet = async function() {
     }
 };
 
-// ✅ Enhanced import wallet function
+// ✅ SIMPLIFIED IMPORT - Skip multi-wallet selection
 window.importWallet = async function() {
-    console.log('🔄 importWallet called...');
+    console.log('🔄 SIMPLIFIED: Importing wallet directly...');
     
     if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
         showStatusMessage('⚠️ Wallet system not ready. Please wait...', 'error');
@@ -224,6 +224,58 @@ window.importWallet = async function() {
             showStatusMessage('❌ Please enter your recovery phrase', 'error');
             return;
         }
+
+        // 🔍 DEBUG
+        console.log('🔍 IMPORTING MNEMONIC:', mnemonic);
+        console.log('🔍 WORD COUNT:', mnemonic.split(' ').length);
+
+        // Show loading state
+        const importBtn = document.getElementById('importWalletBtn');
+        if (importBtn) {
+            importBtn.innerHTML = '🔄 Importing...';
+            importBtn.disabled = true;
+        }
+
+        showStatusMessage('🔄 Importing your wallet...', 'loading');
+        
+        console.log('🎯 Starting DIRECT wallet import...');
+        
+        // Use the simple import approach
+        const result = await window.nemexWalletAPI.importWallet(mnemonic);
+        
+        if (result.success) {
+            if (result.wallets && result.wallets.length > 1) {
+                // Still got multiple wallets? Show selection but with debug info
+                console.log('🔍 STILL got multiple wallets:', result.wallets.length);
+                showWalletSelectionModal(result.wallets);
+            } else if (result.wallet) {
+                // Single wallet imported successfully
+                console.log('✅ Wallet imported:', result.wallet.address);
+                showStatusMessage('✅ Wallet imported successfully!', 'success');
+                
+                // Close modal and show main interface
+                setTimeout(() => {
+                    closeModal();
+                    showMainWalletInterface();
+                }, 1000);
+            } else {
+                throw new Error('No wallet data returned');
+            }
+        } else {
+            throw new Error(result.error || 'Import failed');
+        }
+    } catch (error) {
+        console.error('❌ Wallet import failed:', error);
+        showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error');
+        
+        // Reset button state
+        const importBtn = document.getElementById('importWalletBtn');
+        if (importBtn) {
+            importBtn.innerHTML = 'Import Wallet';
+            importBtn.disabled = false;
+        }
+    }
+};
 
         // Show loading state
         const importBtn = document.getElementById('importWalletBtn');
