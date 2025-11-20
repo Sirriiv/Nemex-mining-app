@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey, mnemonicToSeed } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ SECURE wallet-routes.js - NO MNEMONIC STORAGE IN DATABASE');
+console.log('✅ SECURE wallet-routes.js - REAL TON WALLETS');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
@@ -333,7 +333,6 @@ router.post('/store-wallet', async function(req, res) {
                 word_count: wordCount || 12,
                 derivation_path: derivationPath || "m/44'/607'/0'/0'/0'",
                 created_at: new Date().toISOString()
-                // ✅ SECURITY: No mnemonic stored in database
             }]);
 
         if (error) {
@@ -367,6 +366,93 @@ router.post('/store-wallet', async function(req, res) {
 });
 
 // =============================================
+// REAL TON WALLET GENERATION (FIXED)
+// =============================================
+
+router.post('/generate-wallet', async function(req, res) {
+    try {
+        const { userId, wordCount = 12 } = req.body;
+        console.log('🔄 REAL: Generating actual TON wallet...');
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID is required'
+            });
+        }
+
+        if (wordCount !== 12 && wordCount !== 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'Word count must be 12 or 24'
+            });
+        }
+
+        // ✅ REAL: Generate actual TON wallet
+        const mnemonic = bip39.generateMnemonic(wordCount === 12 ? 128 : 256);
+        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+
+        const WalletClass = tonweb.wallet.all.v4R2;
+        const wallet = new WalletClass(tonweb.provider, {
+            publicKey: keyPair.publicKey,
+            wc: 0
+        });
+
+        const walletAddress = await wallet.getAddress();
+        const address = walletAddress.toString(true, true, true);
+        const addressNonBounceable = walletAddress.toString(true, true, false);
+
+        console.log('✅ REAL TON Wallet generated:', address);
+
+        // Store wallet info (NO MNEMONIC)
+        try {
+            const { data, error } = await supabase
+                .from('user_wallets')
+                .insert([{
+                    user_id: userId,
+                    address: address,
+                    public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                    wallet_type: 'TON',
+                    source: 'generated',
+                    word_count: wordCount,
+                    derivation_path: "m/44'/607'/0'/0'/0'",
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (error) {
+                console.warn('⚠️ Supabase insert failed:', error.message);
+            } else {
+                console.log('✅ Real wallet saved to database');
+            }
+        } catch (dbError) {
+            console.warn('⚠️ Database error:', dbError.message);
+        }
+
+        res.json({
+            success: true,
+            wallet: {
+                userId: userId,
+                address: address,
+                addressNonBounceable: addressNonBounceable,
+                publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                wordCount: wordCount,
+                type: 'TON',
+                source: 'generated',
+                derivationPath: "m/44'/607'/0'/0'/0'"
+            },
+            message: 'Real TON wallet generated successfully'
+        });
+
+    } catch (error) {
+        console.error('Real wallet generation error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to generate wallet: ' + error.message 
+        });
+    }
+});
+
+// =============================================
 // PRODUCTION TRANSACTION ENGINE
 // =============================================
 
@@ -383,7 +469,6 @@ router.post('/send-ton', async function(req, res) {
             });
         }
 
-        // ✅ SECURITY: Client provides encrypted mnemonic for this transaction only
         const decryptedMnemonic = await decryptMnemonic(JSON.parse(encryptedMnemonic));
 
         const tonAmount = parseFloat(amount);
@@ -473,7 +558,6 @@ router.post('/send-nmx', async function(req, res) {
             });
         }
 
-        // ✅ SECURITY: Client provides encrypted mnemonic for this transaction only
         const decryptedMnemonic = await decryptMnemonic(JSON.parse(encryptedMnemonic));
 
         const nmxAmount = parseFloat(amount);
@@ -1079,82 +1163,6 @@ function getFallbackPrice() {
 }
 
 // =============================================
-// WALLET GENERATION (SECURE - NO MNEMONIC STORAGE)
-// =============================================
-
-router.post('/generate-wallet', async function(req, res) {
-    try {
-        const { userId, wordCount = 12 } = req.body;
-        console.log('🔄 SECURE: Generating wallet - NO MNEMONIC STORAGE');
-
-        if (!userId) {
-            return res.status(400).json({
-                success: false,
-                error: 'User ID is required'
-            });
-        }
-
-        if (wordCount !== 12 && wordCount !== 24) {
-            return res.status(400).json({
-                success: false,
-                error: 'Word count must be 12 or 24'
-            });
-        }
-
-        // ✅ SECURITY: Client generates the wallet and only sends public data
-        // The mnemonic should NEVER reach the server
-        
-        // For now, we'll simulate a wallet address since client handles generation
-        const timestamp = Date.now();
-        const simulatedAddress = `EQ${crypto.createHash('sha256').update(userId + timestamp).digest('hex').substring(0, 48)}`;
-
-        try {
-            const { data, error } = await supabase
-                .from('user_wallets')
-                .insert([{
-                    user_id: userId,
-                    address: simulatedAddress,
-                    public_key: '', // Client will provide this if needed
-                    wallet_type: 'TON',
-                    source: 'generated',
-                    word_count: wordCount,
-                    derivation_path: "m/44'/607'/0'/0'/0'",
-                    created_at: new Date().toISOString()
-                    // ✅ SECURITY: No mnemonic stored in database
-                }]);
-
-            if (error) {
-                console.warn('⚠️ Supabase insert failed:', error.message);
-            } else {
-                console.log('✅ Wallet saved to database (NO MNEMONIC)');
-            }
-        } catch (dbError) {
-            console.warn('⚠️ Database error:', dbError.message);
-        }
-
-        console.log('✅ SECURE: Wallet generated - no mnemonic stored');
-
-        res.json({
-            success: true,
-            wallet: {
-                userId: userId,
-                address: simulatedAddress,
-                wordCount: wordCount,
-                type: 'TON',
-                source: 'generated',
-                derivationPath: "m/44'/607'/0'/0'/0'",
-                // ✅ SECURITY: No mnemonic returned from server
-                message: 'Wallet generated securely - recovery phrase is client-side only'
-            }
-        });
-
-    } catch (error) {
-        console.error('Secure wallet generation error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// =============================================
 // SIMPLE IMPORT ENDPOINT
 // =============================================
 
@@ -1244,9 +1252,6 @@ router.post('/import-wallet-select', async function(req, res) {
 
 async function saveAndReturnWallet(wallet, userId, mnemonic, wordCount, res) {
     try {
-        // ✅ SECURITY: Do NOT store mnemonic in database
-        // Only store public wallet information
-
         const { data, error } = await supabase
             .from('user_wallets')
             .insert([{
@@ -1258,7 +1263,6 @@ async function saveAndReturnWallet(wallet, userId, mnemonic, wordCount, res) {
                 word_count: wordCount,
                 derivation_path: wallet.path,
                 created_at: new Date().toISOString()
-                // ✅ SECURITY: No mnemonic stored in database
             }]);
 
         if (error) {
@@ -1304,7 +1308,7 @@ router.get('/test', (req, res) => {
         timestamp: new Date().toISOString(),
         security: 'Mnemonic storage disabled - client-side only',
         routes: [
-            'POST /generate-wallet (SECURE)',
+            'POST /generate-wallet (REAL TON)',
             'POST /store-wallet (SECURE)',
             'POST /import-wallet', 
             'POST /import-wallet-simple',
