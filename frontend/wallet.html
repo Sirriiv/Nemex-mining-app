@@ -3571,39 +3571,98 @@ button:hover {
         }
     }
 
-// ===== WALLET CARD FUNCTIONS =====
+// ===== PRODUCTION WALLET CARD FUNCTIONS =====
 
-// Format address for beautiful display
-function formatAddressForDisplay(address) {
-    if (!address || address.length < 12) return address;
-    
-    // For EQ addresses, show first 8 and last 8 characters
-    if (address.startsWith('EQ') && address.length > 16) {
-        return address.substring(2, 10) + '...' + address.substring(address.length - 8);
+let currentReceiveToken = 'TON';
+
+function showReceiveModal() {
+    if (!walletState.isInitialized || !walletState.address) {
+        showStatusMessage('Please create or import a wallet first', 'error');
+        return;
     }
+
+    closeModal();
     
-    // For other addresses, show first 6 and last 6
-    return address.substring(0, 6) + '...' + address.substring(address.length - 6);
+    // Initialize with real wallet data
+    initializeWalletCard();
+    
+    const receiveModal = document.getElementById('receiveModal');
+    if (receiveModal) {
+        receiveModal.style.display = 'flex';
+    }
 }
 
-// Copy wallet address to clipboard
+function initializeWalletCard() {
+    const address = walletState.address;
+    const userId = walletState.userId;
+    
+    if (!address) return;
+    
+    // Update address display
+    const addressFull = document.getElementById('addressFull');
+    if (addressFull) {
+        addressFull.textContent = address;
+    }
+    
+    // Generate unique wallet identifier
+    const walletIdentifier = document.getElementById('walletIdentifier');
+    if (walletIdentifier && userId) {
+        // Create short unique hash from userId
+        const shortHash = generateShortHash(userId);
+        walletIdentifier.textContent = `#${shortHash}`;
+    }
+    
+    // Set current token
+    selectReceiveToken('TON');
+    
+    console.log('✅ Wallet card initialized with real data:', address);
+}
+
+function selectReceiveToken(token) {
+    currentReceiveToken = token;
+    
+    // Update UI state
+    document.querySelectorAll('.token-option').forEach(option => {
+        option.classList.remove('active');
+    });
+    
+    const activeOption = document.querySelector(`[data-token="${token}"]`);
+    if (activeOption) {
+        activeOption.classList.add('active');
+    }
+    
+    // Update card display
+    const tokenIndicator = document.getElementById('activeTokenIndicator');
+    if (tokenIndicator) {
+        tokenIndicator.textContent = token;
+    }
+    
+    // Update network type if needed
+    const networkType = document.getElementById('cardNetworkType');
+    if (networkType) {
+        networkType.textContent = `${token} Wallet`;
+    }
+}
+
 function copyWalletAddress() {
-    const address = window.currentWalletAddress || walletState.address;
+    const address = walletState.address;
     if (!address) {
         showStatusMessage('No wallet address available', 'error');
         return;
     }
 
     navigator.clipboard.writeText(address).then(() => {
-        showStatusMessage('✅ Address copied to clipboard!', 'success');
+        showStatusMessage(`✅ ${currentReceiveToken} address copied!`, 'success');
         
-        // Add visual feedback on card
+        // Visual feedback
         const card = document.getElementById('walletCard');
         if (card) {
-            card.style.animation = 'none';
+            card.style.transform = 'scale(0.98)';
+            card.style.borderColor = 'var(--success)';
             setTimeout(() => {
-                card.style.animation = 'pulseGlow 0.5s ease-in-out';
-            }, 10);
+                card.style.transform = 'scale(1)';
+                card.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+            }, 300);
         }
     }).catch(err => {
         console.error('Failed to copy address:', err);
@@ -3611,51 +3670,76 @@ function copyWalletAddress() {
     });
 }
 
-// Share wallet card (basic implementation)
-function shareWalletCard() {
-    const address = window.currentWalletAddress || walletState.address;
+function shareWalletAddress() {
+    const address = walletState.address;
     if (!address) {
         showStatusMessage('No wallet address available', 'error');
         return;
     }
 
-    // Create share text
-    const shareText = `My Nemex Wallet Address: ${address}\n\nSend me TON or NMX tokens! 🦅`;
+    const shareText = `My Nemex Wallet Address: ${address}\n\nSend me ${currentReceiveToken} or any TON-based tokens! 🦅\n\nPowered by Nemex Wallet`;
     
-    // Try Web Share API first
     if (navigator.share) {
         navigator.share({
-            title: 'My Nemex Wallet',
-            text: shareText,
-            url: window.location.href
+            title: 'My Nemex Wallet Address',
+            text: shareText
         }).catch(err => {
-            console.log('Web Share cancelled or failed:', err);
             // Fallback to clipboard
             navigator.clipboard.writeText(shareText).then(() => {
                 showStatusMessage('✅ Share text copied to clipboard!', 'success');
             });
         });
     } else {
-        // Fallback to clipboard
         navigator.clipboard.writeText(shareText).then(() => {
             showStatusMessage('✅ Share text copied to clipboard!', 'success');
         });
     }
 }
 
-// Show address details (full address view)
 function showAddressDetails() {
-    const address = window.currentWalletAddress || walletState.address;
+    const address = walletState.address;
     if (!address) {
         showStatusMessage('No wallet address available', 'error');
         return;
     }
 
-    // Show full address in alert (you can replace this with a prettier modal)
-    alert(`Full Wallet Address:\n\n${address}\n\nThis is your complete TON wallet address.`);
+    const details = `
+🔐 **Wallet Address Details**
+
+📍 **Address:** ${address}
+
+🦅 **Network:** TON Mainnet
+💫 **Type:** Universal TON Address
+
+🎯 **Supported Tokens:**
+• TON (Toncoin)
+• NMX (NemexCoin) 
+• USDT (Tether)
+• Any TEP-64 tokens
+• All TON-based assets
+
+📱 **Wallet:** Nemex Wallet
+👤 **User ID:** ${walletState.userId || 'N/A'}
+
+🌐 **Universal Compatibility:**
+This single address can receive all supported TON blockchain tokens.
+    `.trim();
+    
+    alert(details);
 }
 
-// Make card clickable to copy address
+// Helper function to generate short unique hash
+function generateShortHash(input) {
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+        const char = input.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36).substring(0, 4).toUpperCase();
+}
+
+// Make card clickable
 document.addEventListener('DOMContentLoaded', function() {
     const walletCard = document.getElementById('walletCard');
     if (walletCard) {
