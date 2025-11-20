@@ -1526,7 +1526,7 @@ button:hover {
 
                     <!-- Copy Button -->
                     <button onclick="copySeedPhrase()" style="width: 100%; background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--dark-bg); border: none; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-bottom: 16px;">
-                        📋 Copy Recovery Phrase
+                         Copy Recovery Phrase
                     </button>
 
                     <!-- Close Button -->
@@ -1921,100 +1921,114 @@ button:hover {
         </div>
     </div>
 </div>
-       <!-- Wallet Card Receive Modal -->
+      <!-- Production Wallet Card Receive Modal -->
 <div id="receiveModal" class="modal">
     <div class="modal-content wallet-card-modal">
         <!-- Header -->
         <div class="modal-header">
-            <h2>Your Wallet Card</h2>
+            <div class="header-content">
+                <h2>Receive Assets</h2>
+                <div class="network-indicator">
+                    <span class="network-dot"></span>
+                    TON Network
+                </div>
+            </div>
             <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+
+        <!-- Token Selector -->
+        <div class="token-selector">
+            <div class="token-option active" data-token="TON" onclick="selectReceiveToken('TON')">
+                <div class="token-avatar">
+                    <img src="https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png" 
+                         alt="TON" onerror="handleTokenLogoError(this, 'TON')">
+                </div>
+                <span class="token-name">Toncoin</span>
+            </div>
+            <div class="token-option" data-token="NMX" onclick="selectReceiveToken('NMX')">
+                <div class="token-avatar">
+                    <img src="https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1" 
+                         alt="NMX" onerror="handleTokenLogoError(this, 'NMX')">
+                </div>
+                <span class="token-name">NemexCoin</span>
+            </div>
+            <div class="token-option" data-token="USDT" onclick="selectReceiveToken('USDT')">
+                <div class="token-avatar">
+                    <div class="token-fallback">💵</div>
+                </div>
+                <span class="token-name">USDT</span>
+            </div>
         </div>
 
         <!-- Wallet Card -->
         <div class="wallet-card-container">
-            <div class="wallet-card" id="walletCard">
+            <div class="wallet-card" id="walletCard" onclick="copyWalletAddress()">
                 <!-- Card Header -->
                 <div class="card-header">
-                    <div class="wallet-badge">
-                        <span class="nemex-logo">🦅</span>
-                        <span class="nemex-text">NEMEX</span>
+                    <div class="wallet-brand">
+                        <span class="brand-logo">🦅</span>
+                        <span class="brand-name">NEMEX</span>
                     </div>
-                    <div class="card-type">Digital Wallet</div>
+                    <div class="card-type" id="cardNetworkType">TON Wallet</div>
                 </div>
                 
                 <!-- Card Body -->
                 <div class="card-body">
                     <div class="wallet-address" id="walletAddressDisplay">
-                        <span class="address-prefix">EQ</span>
-                        <span class="address-main" id="addressMain">ABC123DEF456</span>
-                        <span class="address-suffix">GHI789</span>
+                        <span class="address-full" id="addressFull">Loading address...</span>
                     </div>
                     
-                    <div class="card-chip">⎔</div>
-                    <div class="card-glow"></div>
+                    <div class="active-token-indicator">
+                        <span class="token-indicator" id="activeTokenIndicator">TON</span>
+                        <span class="receive-status">Ready to Receive</span>
+                    </div>
+                    
+                    <div class="card-graphics">
+                        <div class="card-chip">⎔</div>
+                        <div class="card-hologram"></div>
+                    </div>
                 </div>
                 
                 <!-- Card Footer -->
                 <div class="card-footer">
-                    <div class="network-badge">
-                        <span class="network-icon">⚡</span>
-                        TON Network
+                    <div class="user-identifier">
+                        <span class="user-label">Wallet ID:</span>
+                        <span class="user-hash" id="walletIdentifier">#0000</span>
                     </div>
-                    <div class="copy-hint">Tap card to copy address</div>
+                    <div class="interaction-hint">
+                        <span class="hint-icon">👆</span>
+                        Tap to Copy
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="card-actions">
+        <!-- Quick Actions -->
+        <div class="quick-actions">
             <button class="action-btn primary" onclick="copyWalletAddress()">
                 <span class="btn-icon">📋</span>
                 Copy Address
             </button>
-            <button class="action-btn secondary" onclick="shareWalletCard()">
-                <span class="btn-icon">🔄</span>
-                Share Card
+            <button class="action-btn secondary" onclick="shareWalletAddress()">
+                <span class="btn-icon">📤</span>
+                Share
             </button>
             <button class="action-btn tertiary" onclick="showAddressDetails()">
                 <span class="btn-icon">🔍</span>
-                View Details
+                Details
             </button>
         </div>
 
-        <!-- Security Notice -->
-        <div class="security-notice">
-            <div class="notice-icon">🔒</div>
-            <div class="notice-text">
-                <strong>Security Tip:</strong> Only share with trusted sources. 
-                Verify the first and last 4 characters match.
+        <!-- Universal Address Notice -->
+        <div class="universal-notice">
+            <div class="notice-icon">🌐</div>
+            <div class="notice-content">
+                <strong>Universal TON Address</strong>
+                <span>This address can receive TON, NMX, USDT, and any TON-based tokens</span>
             </div>
         </div>
     </div>
 </div>
-
-        <!-- Swap Modal -->
-        <div id="swapModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Swap</div>
-                <div class="security-warning">
-                    Swap functionality coming soon!
-                </div>
-                <button class="close-modal" onclick="closeModal()">Close</button>
-            </div>
-        </div>
-
-        <!-- Buy Modal -->
-        <div id="buyModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Buy Crypto</div>
-                <div class="security-warning">
-                    Buy functionality coming soon!
-                </div>
-                <button class="close-modal" onclick="closeModal()">Close</button>
-            </div>
-        </div>
-
-    </div>
 
     <!-- COMPLETE WALLET SCRIPT - FIXED VERSION -->
     <script>
