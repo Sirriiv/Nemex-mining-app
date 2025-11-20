@@ -404,118 +404,105 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ FIXED: Generate wallet using EXISTING backend endpoint
-    async generateNewWallet(wordCount = 12) {
+    // ✅ UPDATED: More forgiving mnemonic storage
+async generateNewWallet(wordCount = 12) {
+    try {
+        console.log('🔄 REAL TON: Generating wallet via EXISTING backend endpoint...');
+
+        // Generate mnemonic client-side
+        const mnemonic = await this.generateMnemonicClientSide(wordCount);
+        if (!mnemonic) {
+            throw new Error('Failed to generate mnemonic');
+        }
+
+        // ✅ USE EXISTING endpoint that works
+        const userId = await this.getUserId();
+        const response = await fetch(`${this.baseURL}/generate-wallet`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                wordCount: wordCount
+            })
+        });
+
+        // ✅ FIX: Better error handling
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Backend error response:', errorText);
+            
+            // Check if it's HTML (404, etc.)
+            if (errorText.trim().startsWith('<!DOCTYPE') || errorText.trim().startsWith('<')) {
+                throw new Error('Backend endpoint not found or server error');
+            }
+            
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.wallet) {
+            throw new Error(data.error || 'Wallet generation failed');
+        }
+
+        // ✅ UPDATED: More forgiving mnemonic storage
         try {
-            console.log('🔄 REAL TON: Generating wallet via EXISTING backend endpoint...');
-
-            // Generate mnemonic client-side
-            const mnemonic = await this.generateMnemonicClientSide(wordCount);
-            if (!mnemonic) {
-                throw new Error('Failed to generate mnemonic');
-            }
-
-            // ✅ FIX: Use EXISTING endpoint that works
-            const userId = await this.getUserId();
-            const response = await fetch(`${this.baseURL}/generate-wallet`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    wordCount: wordCount
-                })
-            });
-
-            // ✅ FIX: Better error handling
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Backend error response:', errorText);
-                
-                // Check if it's HTML (404, etc.)
-                if (errorText.trim().startsWith('<!DOCTYPE') || errorText.trim().startsWith('<')) {
-                    throw new Error('Backend endpoint not found or server error');
-                }
-                
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.success || !data.wallet) {
-                throw new Error(data.error || 'Wallet generation failed');
-            }
-
-            // ✅ SECURITY: Store mnemonic ONLY in session storage
             const storageSuccess = await this.storage.storeMnemonicSecurely(mnemonic, data.wallet.address);
             if (!storageSuccess) {
-                throw new Error('Failed to securely store recovery phrase');
+                console.warn('⚠️ Secure mnemonic storage failed, but continuing with wallet creation');
+                // Don't throw error - just warn and continue
             }
+        } catch (storageError) {
+            console.warn('⚠️ Mnemonic storage error, but continuing:', storageError);
+            // Don't fail the entire wallet creation because of storage issues
+        }
 
-            // Store wallet info in database (without mnemonic)
-            const dbResult = await this.storeWalletInDatabase({
-                userId: userId,
-                address: data.wallet.address,
-                publicKey: data.wallet.publicKey || '',
-                walletType: 'TON',
-                source: 'generated',
-                wordCount: wordCount,
-                derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
-            });
+        // Store wallet info in database (without mnemonic)
+        const dbResult = await this.storeWalletInDatabase({
+            userId: userId,
+            address: data.wallet.address,
+            publicKey: data.wallet.publicKey || '',
+            walletType: 'TON',
+            source: 'generated',
+            wordCount: wordCount,
+            derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
+        });
 
-            if (!dbResult.success) {
-                console.warn('⚠️ Failed to store wallet in database, but continuing with local storage');
+        if (!dbResult.success) {
+            console.warn('⚠️ Failed to store wallet in database, but continuing with local storage');
+        }
+
+        // Store wallet info locally (without mnemonic)
+        const walletData = {
+            userId: userId,
+            address: data.wallet.address,
+            publicKey: data.wallet.publicKey || '',
+            type: 'TON',
+            source: 'generated',
+            wordCount: wordCount,
+            derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
+        };
+
+        await this.setStoredWallet(walletData);
+        await this.setActiveWallet(data.wallet.address);
+
+        console.log('✅ Wallet generated:', data.wallet.address);
+
+        return {
+            success: true,
+            wallet: {
+                ...walletData,
+                mnemonic: mnemonic // Only returned for immediate backup
             }
+        };
 
-            // Store wallet info locally (without mnemonic)
-            const walletData = {
-                userId: userId,
-                address: data.wallet.address,
-                publicKey: data.wallet.publicKey || '',
-                type: 'TON',
-                source: 'generated',
-                wordCount: wordCount,
-                derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
-            };
-
-            await this.setStoredWallet(walletData);
-            await this.setActiveWallet(data.wallet.address);
-
-            console.log('✅ Wallet generated:', data.wallet.address);
-            console.log('🔐 Mnemonic stored in session storage only');
-
-            return {
-                success: true,
-                wallet: {
-                    ...walletData,
-                    mnemonic: mnemonic // Only returned for immediate backup
-                }
-            };
-
-        } catch (error) {
-            console.error('❌ Wallet generation failed:', error);
-            throw new Error('Cannot generate wallet: ' + error.message);
-        }
+    } catch (error) {
+        console.error('❌ Wallet generation failed:', error);
+        throw new Error('Cannot generate wallet: ' + error.message);
     }
-
-    // ✅ SECURE: Store wallet in database (without mnemonic)
-    async storeWalletInDatabase(walletData) {
-        try {
-            const response = await fetch(`${this.baseURL}/store-wallet`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(walletData)
-            });
-
-            return await response.json();
-        } catch (error) {
-            console.error('Store wallet in database failed:', error);
-            return { success: false, error: error.message };
-        }
-    }
+}
 
     // ✅ SECURE: Client-side mnemonic generation
     async generateMnemonicClientSide(wordCount = 12) {
