@@ -63,11 +63,9 @@ function getPathDescription(path) {
 
 async function deriveWalletFromPath(mnemonic, path) {
     try {
-        console.log(`🔄 DEBUG Deriving: Path=${path}`);
-        console.log(`🔑 DEBUG Mnemonic: ${mnemonic.substring(0, 30)}...`);
-        
+        console.log(`🔄 Deriving wallet with path: ${path}`);
+
         const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
-        console.log(`🔑 DEBUG Public Key: ${TonWeb.utils.bytesToHex(keyPair.publicKey).substring(0, 20)}...`);
 
         const WalletClass = tonweb.wallet.all.v4R2;
         const wallet = new WalletClass(tonweb.provider, {
@@ -76,22 +74,24 @@ async function deriveWalletFromPath(mnemonic, path) {
         });
 
         const walletAddress = await wallet.getAddress();
-        const address = walletAddress.toString(true, true, true);
-        const addressNonBounceable = walletAddress.toString(true, true, false);
+        
+        // ✅ USE NON-BOUNCEABLE AS PRIMARY (UQ format)
+        const addressNonBounceable = walletAddress.toString(true, true, false); // UQ... format
+        const addressBounceable = walletAddress.toString(true, true, true);     // EQ... format
 
-        console.log(`📍 DEBUG Address: ${address}`);
-        console.log(`📍 DEBUG Non-bounceable: ${addressNonBounceable}`);
+        console.log(`📍 Primary Address (UQ): ${addressNonBounceable}`);
+        console.log(`📍 Bounceable Address (EQ): ${addressBounceable}`);
 
         return {
             path: path,
-            address: address,
-            addressNonBounceable: addressNonBounceable,
+            address: addressNonBounceable,      // UQ format as PRIMARY
+            addressBounceable: addressBounceable, // EQ format as secondary
             publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
             keyPair: keyPair
         };
 
     } catch (error) {
-        console.log(`❌ DEBUG Derivation failed for path ${path}:`, error.message);
+        console.log(`❌ Derivation failed for path ${path}:`, error.message);
         return null;
     }
 }
@@ -105,7 +105,8 @@ async function deriveAllWalletAddresses(mnemonic) {
         const result = await deriveWalletFromPath(mnemonic, path);
         if (result) {
             results.push(result);
-            console.log(`✅ ${getPathDescription(path)}: ${result.addressNonBounceable}`);
+            // ✅ UPDATE THIS LINE - use .address instead of .addressNonBounceable
+            console.log(`✅ ${getPathDescription(path)}: ${result.address}`);
         }
     }
 
