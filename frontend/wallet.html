@@ -1019,40 +1019,73 @@ button:hover {
             color: var(--warning);
         }
 
-   /* ===== PRODUCTION WALLET CARD STYLES ===== */
-.wallet-card-modal {
-    max-width: 420px;
-    background: var(--card-bg);
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+   /* ===== ENHANCED FULL SCREEN WALLET CARD STYLES ===== */
+
+/* Wallet Card Section */
+.wallet-card-section {
+    padding: 40px 24px 30px;
+    display: flex;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.03) 0%, transparent 50%);
 }
 
-.modal-header {
+.wallet-card-large {
+    width: 100%;
+    max-width: 400px;
+    height: 240px;
+    background: linear-gradient(135deg, 
+        rgba(212, 175, 55, 0.12) 0%, 
+        rgba(212, 175, 55, 0.06) 50%,
+        rgba(212, 175, 55, 0.02) 100%);
+    border: 2px solid rgba(212, 175, 55, 0.3);
+    border-radius: 20px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 15px 40px rgba(212, 175, 55, 0.15);
+}
+
+.wallet-card-large:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 50px rgba(212, 175, 55, 0.25);
+    border-color: var(--gold);
+}
+
+.wallet-card-large:active {
+    transform: translateY(-1px);
+}
+
+/* Card Header Large */
+.card-header-large {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 24px 16px;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+    margin-bottom: 30px;
 }
 
-.header-content h2 {
-    color: var(--gold);
+.wallet-title-gold .nemex-brand {
     font-size: 20px;
-    font-weight: 700;
-    margin: 0 0 4px 0;
+    font-weight: 800;
+    background: linear-gradient(45deg, var(--gold), var(--gold-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
 }
 
-.network-indicator {
+.network-badge-large {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 12px;
     color: var(--text-muted);
+    font-weight: 500;
 }
 
-.network-dot {
+.network-dot-large {
     width: 8px;
     height: 8px;
     background: var(--success);
@@ -1060,196 +1093,55 @@ button:hover {
     animation: pulseDot 2s infinite;
 }
 
-@keyframes pulseDot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.close {
-    color: var(--text-muted);
-    font-size: 24px;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-.close:hover {
-    color: var(--gold);
-}
-
-/* Token Selector */
-.token-selector {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding: 16px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.token-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 8px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.token-option.active {
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
-    border-color: var(--gold);
-    transform: translateY(-2px);
-}
-
-.token-option:hover {
-    background: rgba(212, 175, 55, 0.1);
-    border-color: rgba(212, 175, 55, 0.3);
-}
-
-.token-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.token-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.token-fallback {
-    font-size: 16px;
-}
-
-.token-name {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-/* Wallet Card */
-.wallet-card-container {
-    padding: 24px;
-    display: flex;
-    justify-content: center;
-}
-
-.wallet-card {
-    width: 100%;
-    max-width: 320px;
-    height: 180px;
-    background: linear-gradient(135deg, 
-        rgba(212, 175, 55, 0.1) 0%, 
-        rgba(212, 175, 55, 0.05) 50%,
-        rgba(212, 175, 55, 0.02) 100%);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 16px;
-    padding: 20px;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(10px);
-}
-
-.wallet-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
-    border-color: var(--gold);
-}
-
-.wallet-card:active {
-    transform: translateY(0);
-}
-
-/* Card Header */
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.wallet-brand {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 700;
-    color: var(--gold);
-}
-
-.brand-logo {
-    font-size: 18px;
-}
-
-.brand-name {
-    font-size: 16px;
-    background: linear-gradient(45deg, var(--gold), var(--gold-light));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-}
-
-.card-type {
-    font-size: 10px;
-    color: var(--text-muted);
-    font-weight: 500;
-}
-
-/* Card Body */
-.card-body {
+/* Card Body Large */
+.card-body-large {
     position: relative;
     z-index: 2;
 }
 
-.wallet-address {
-    background: rgba(0, 0, 0, 0.3);
+.address-display-large {
+    background: rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(212, 175, 55, 0.2);
-    border-radius: 8px;
-    padding: 12px;
-    margin-bottom: 12px;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(10px);
 }
 
-.address-full {
+.address-full-large {
     font-family: 'Courier New', monospace;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--text);
     word-break: break-all;
     text-align: center;
     display: block;
+    letter-spacing: 0.5px;
 }
 
-.active-token-indicator {
+.active-token-large {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 12px;
+    font-size: 14px;
 }
 
-.token-indicator {
+.token-badge-large {
     background: rgba(212, 175, 55, 0.2);
     color: var(--gold);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
 }
 
-.receive-status {
+.status-large {
     color: var(--text-muted);
+    font-weight: 500;
 }
 
-/* Card Graphics */
-.card-graphics {
+/* Card Graphics Large */
+.card-graphics-large {
     position: absolute;
     top: 0;
     right: 0;
@@ -1259,25 +1151,224 @@ button:hover {
     z-index: 1;
 }
 
-.card-chip {
+.card-chip-large {
     position: absolute;
-    top: 50px;
-    right: 20px;
-    font-size: 24px;
-    color: rgba(212, 175, 55, 0.5);
+    top: 80px;
+    right: 30px;
+    font-size: 32px;
+    color: rgba(212, 175, 55, 0.4);
 }
 
-.card-hologram {
+.card-hologram-large {
     position: absolute;
     top: -50%;
     left: -50%;
     width: 200%;
     height: 200%;
     background: radial-gradient(circle, 
-        rgba(212, 175, 55, 0.1) 0%, 
-        transparent 60%);
-    animation: rotateHologram 15s linear infinite;
+        rgba(212, 175, 55, 0.08) 0%, 
+        transparent 70%);
+    animation: rotateHologram 20s linear infinite;
     z-index: -1;
+}
+
+/* Card Footer Large */
+.card-footer-large {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    font-size: 12px;
+}
+
+.user-id-large {
+    color: var(--text-muted);
+}
+
+.id-label {
+    margin-right: 6px;
+}
+
+.id-hash {
+    color: var(--gold);
+    font-weight: 700;
+}
+
+.tap-hint-large {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.hint-icon-large {
+    font-size: 14px;
+}
+
+/* Token Selector Section */
+.token-selector-section {
+    padding: 0 24px 30px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.token-selector-large {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.token-option-large {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.token-option-large.active {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.08));
+    border-color: var(--gold);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.15);
+}
+
+.token-option-large:hover {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
+.token-avatar-large {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.token-avatar-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.token-name-large {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.token-symbol-large {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Icon Actions Section */
+.icon-actions-section {
+    padding: 30px 24px;
+}
+
+.icon-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.icon-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text);
+}
+
+.icon-btn:hover {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: rgba(212, 175, 55, 0.3);
+    transform: translateY(-2px);
+}
+
+.icon-btn:active {
+    transform: translateY(0);
+}
+
+.icon-svg {
+    width: 24px;
+    height: 24px;
+    color: var(--gold);
+}
+
+.icon-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+/* Universal Notice Large */
+.universal-notice-large {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 24px;
+    background: rgba(212, 175, 55, 0.05);
+    border-top: 1px solid rgba(212, 175, 55, 0.1);
+    margin-top: auto;
+}
+
+.notice-icon-large {
+    font-size: 20px;
+    margin-top: 2px;
+}
+
+.notice-content-large {
+    flex: 1;
+}
+
+.notice-content-large strong {
+    display: block;
+    color: var(--gold);
+    font-size: 16px;
+    margin-bottom: 6px;
+}
+
+.notice-content-large span {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+/* Animations */
+@keyframes pulseDot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 @keyframes rotateHologram {
@@ -1285,143 +1376,29 @@ button:hover {
     to { transform: rotate(360deg); }
 }
 
-/* Card Footer */
-.card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 8px;
-    font-size: 10px;
-}
-
-.user-identifier {
-    color: var(--text-muted);
-}
-
-.user-label {
-    margin-right: 4px;
-}
-
-.user-hash {
-    color: var(--gold);
-    font-weight: 600;
-}
-
-.interaction-hint {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: var(--text-muted);
-}
-
-.hint-icon {
-    font-size: 12px;
-}
-
-/* Quick Actions */
-.quick-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 20px 24px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 16px;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.action-btn.primary {
-    background: var(--gold);
-    color: var(--dark-bg);
-}
-
-.action-btn.secondary {
-    background: rgba(212, 175, 55, 0.1);
-    color: var(--gold);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-}
-
-.action-btn.tertiary {
-    grid-column: 1 / -1;
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.action-btn:hover {
-    transform: translateY(-2px);
-}
-
-.action-btn:active {
-    transform: translateY(0);
-}
-
-/* Universal Notice */
-.universal-notice {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px 24px;
-    background: rgba(212, 175, 55, 0.05);
-    border-top: 1px solid rgba(212, 175, 55, 0.1);
-}
-
-.notice-icon {
-    font-size: 16px;
-    margin-top: 2px;
-}
-
-.notice-content {
-    flex: 1;
-}
-
-.notice-content strong {
-    display: block;
-    color: var(--gold);
-    font-size: 14px;
-    margin-bottom: 4px;
-}
-
-.notice-content span {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.4;
-}
-
 /* Responsive */
 @media (max-width: 480px) {
-    .wallet-card-modal {
-        margin: 10px;
-        max-width: calc(100vw - 20px);
+    .wallet-card-section {
+        padding: 30px 20px 20px;
     }
     
-    .token-selector {
+    .wallet-card-large {
+        height: 220px;
+        padding: 20px;
+    }
+    
+    .address-full-large {
+        font-size: 14px;
+    }
+    
+    .token-selector-large {
+        grid-template-columns: 1fr;
+        max-width: 250px;
+    }
+    
+    .icon-actions {
         grid-template-columns: repeat(3, 1fr);
-        padding: 12px 16px;
-    }
-    
-    .wallet-card-container {
-        padding: 16px;
-    }
-    
-    .wallet-card {
-        height: 160px;
-        padding: 16px;
-    }
-    
-    .address-full {
-        font-size: 12px;
+        gap: 12px;
     }
 }
  </style>
