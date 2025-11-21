@@ -1122,3 +1122,306 @@ if (document.readyState === 'loading') {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = { NemexWalletAPI, SecureEncryptedStorage };
 }
+
+// =============================================
+// ENHANCED SESSION MANAGEMENT SYSTEM
+// =============================================
+
+// ✅ IMPROVED: Persistent wallet session restoration
+async restoreSession() {
+    try {
+        console.log('🔄 Restoring wallet session from secure storage...');
+
+        // First, try to get stored wallet from localStorage
+        const wallet = await this.getStoredWallet();
+        if (wallet && wallet.address) {
+            console.log('✅ Found stored wallet in localStorage:', wallet.address);
+            
+            // Verify the wallet still exists in database
+            try {
+                const userId = await this.getUserId();
+                const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${userId}`);
+                const walletsData = await walletsResponse.json();
+
+                if (walletsData.success && walletsData.wallets) {
+                    const dbWallet = walletsData.wallets.find(w => w.address === wallet.address);
+                    if (dbWallet) {
+                        console.log('✅ Wallet verified in database, restoring session');
+                        await this.setStoredWallet(dbWallet);
+                        return dbWallet;
+                    } else {
+                        console.warn('⚠️ Wallet not found in database, clearing local storage');
+                        await this.setStoredWallet(null);
+                    }
+                }
+            } catch (dbError) {
+                console.warn('⚠️ Database check failed, but keeping local session:', dbError.message);
+                // If database check fails, still use the local wallet
+                return wallet;
+            }
+        }
+
+        // If no local wallet, check database for active wallet
+        try {
+            const userId = await this.getUserId();
+            const activeWalletResponse = await fetch(`${this.baseURL}/active-wallet/${userId}`);
+            const activeData = await activeWalletResponse.json();
+
+            if (activeData.success && activeData.activeWallet) {
+                console.log('✅ Found active wallet in database:', activeData.activeWallet);
+
+                const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${userId}`);
+                const walletsData = await walletsResponse.json();
+
+                if (walletsData.success && walletsData.wallets) {
+                    const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
+                    if (wallet) {
+                        await this.setStoredWallet(wallet);
+                        console.log('✅ Session restored successfully from database');
+                        return wallet;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('⚠️ Database restoration failed:', error.message);
+        }
+
+        console.log('ℹ️ No active session found - user needs to create/import wallet');
+        return null;
+
+    } catch (error) {
+        console.error('❌ Session restoration failed:', error);
+        // Don't throw error, just return null so user can create new wallet
+        return null;
+    }
+}
+
+// ✅ IMPROVED: Get stored wallet with validation
+async getStoredWallet() {
+    if (!this.currentWallet) {
+        try {
+            this.currentWallet = await this.storage.getItem('nemexCurrentWallet');
+            // Validate the stored wallet has required fields
+            if (this.currentWallet && (!this.currentWallet.address || !this.currentWallet.userId)) {
+                console.warn('⚠️ Invalid wallet data in storage, clearing');
+                this.currentWallet = null;
+                await this.storage.removeItem('nemexCurrentWallet');
+            }
+        } catch (error) {
+            console.error('❌ Error reading stored wallet:', error);
+            this.currentWallet = null;
+        }
+    }
+    return this.currentWallet;
+}
+
+// ✅ IMPROVED: Set stored wallet with persistence
+async setStoredWallet(walletData) {
+    this.currentWallet = walletData;
+    try {
+        if (walletData) {
+            const safeWalletData = {
+                address: walletData.address,
+                userId: walletData.userId,
+                type: walletData.type || 'TON',
+                source: walletData.source,
+                wordCount: walletData.wordCount,
+                derivationPath: walletData.derivationPath,
+                // Add timestamp for validation
+                lastAccessed: Date.now()
+            };
+
+            await this.storage.setItem('nemexCurrentWallet', safeWalletData);
+            console.log('✅ Wallet stored in persistent storage:', walletData.address);
+        } else {
+            await this.storage.removeItem('nemexCurrentWallet');
+            console.log('✅ Wallet cleared from persistent storage');
+        }
+    } catch (error) {
+        console.error('❌ Error storing wallet:', error);
+    }
+}
+
+// ✅ IMPROVED: Generate wallet with duplicate prevention
+async generateNewWallet(wordCount = 12) {
+    try {
+        console.log('🔄 Generating new wallet with duplicate prevention...');
+
+        const userId = await this.getUserId();
+        
+        // Check if user already has wallets (for info, not blocking)
+        const existingWallets = await this.getUserWallets();
+        if (existingWallets.length > 0) {
+            console.log(`ℹ️ User already has ${existingWallets.length} wallets, adding new one`);
+        }
+
+        // Generate mnemonic client-side
+        const mnemonic = await this.generateMnemonicClientSide(wordCount);
+        if (!mnemonic) {
+            throw new Error('Failed to generate mnemonic');
+        }
+
+        // Use backend for wallet generation
+        const response = await fetch(`${this.baseURL}/generate-wallet`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                wordCount: wordCount
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.wallet) {
+            throw new Error(data.error || 'Wallet generation failed');
+        }
+
+        // Store mnemonic securely
+        await this.storage.storeMnemonicSecurely(mnemonic, data.wallet.address);
+
+        // Set as active wallet immediately
+        const walletInfo = {
+            userId: userId,
+            address: data.wallet.address,
+            addressBounceable: data.wallet.addressBounceable,
+            publicKey: data.wallet.publicKey,
+            type: 'TON',
+            source: 'generated',
+            wordCount: wordCount,
+            derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
+        };
+
+        await this.setStoredWallet(walletInfo);
+        await this.setActiveWallet(data.wallet.address);
+
+        console.log('✅ New wallet generated and set as active:', data.wallet.address);
+
+        return {
+            success: true,
+            wallet: walletInfo
+        };
+
+    } catch (error) {
+        console.error('❌ Wallet generation failed:', error);
+        throw new Error('Cannot generate wallet: ' + error.message);
+    }
+}
+
+// ✅ IMPROVED: Import wallet with duplicate prevention
+async importWallet(mnemonic, targetAddress = null) {
+    try {
+        console.log('🔄 Importing wallet with duplicate prevention...');
+
+        const cleanedMnemonic = this.cleanMnemonic(mnemonic);
+
+        if (!this.isValidMnemonic(cleanedMnemonic)) {
+            throw new Error('Invalid mnemonic format. Must be 12 or 24 words.');
+        }
+
+        const userId = await this.getUserId();
+        
+        // Check for existing wallets (for info only)
+        const existingWallets = await this.getUserWallets();
+
+        const response = await fetch(`${this.baseURL}/import-wallet`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                mnemonic: cleanedMnemonic,
+                targetAddress: targetAddress
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to import wallet');
+        }
+
+        if (data.success && data.wallet) {
+            // Set as active wallet immediately
+            await this.setStoredWallet(data.wallet);
+            await this.setActiveWallet(data.wallet.address);
+            
+            // Store mnemonic for the imported wallet
+            await this.storage.storeMnemonicSecurely(cleanedMnemonic, data.wallet.address);
+
+            console.log('✅ Wallet imported and set as active:', data.wallet.address);
+            
+            return {
+                success: true,
+                wallet: data.wallet
+            };
+        }
+
+        throw new Error('Import failed - no wallet data returned');
+
+    } catch (error) {
+        console.error('❌ Wallet import failed:', error);
+        throw new Error('Cannot import wallet: ' + error.message);
+    }
+}
+
+// =============================================
+// AUTO-INITIALIZATION - UPDATED TO USE NEW SESSION MANAGEMENT
+// =============================================
+
+console.log('🎯 NemexWalletAPI class loaded, setting up auto-initialization...');
+
+// Global API instance
+window.nemexWalletAPI = new NemexWalletAPI();
+
+// Auto-initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', async function() {
+        console.log('📄 DOM ready, auto-initializing wallet API...');
+        try {
+            const success = await window.nemexWalletAPI.init();
+            if (success) {
+                console.log('✅ NemexWalletAPI auto-initialized successfully!');
+                
+                // Check if we have an active wallet session
+                const hasWallet = window.nemexWalletAPI.isWalletLoaded();
+                console.log('🔍 Wallet session status:', hasWallet ? 'ACTIVE' : 'NO WALLET');
+
+                // Update global state based on session
+                if (typeof updateWalletState === 'function') {
+                    updateWalletState();
+                }
+
+                // Enable buttons
+                if (typeof enableWalletButtons === 'function') {
+                    enableWalletButtons();
+                }
+            } else {
+                console.error('❌ NemexWalletAPI auto-initialization failed');
+            }
+        } catch (error) {
+            console.error('❌ Auto-initialization error:', error);
+        }
+    });
+} else {
+    // DOM already loaded, initialize immediately
+    console.log('📄 DOM already ready, initializing wallet API now...');
+    window.nemexWalletAPI.init().then(success => {
+        console.log(success ? '✅ NemexWalletAPI initialized!' : '❌ NemexWalletAPI initialization failed');
+        
+        // Check session status
+        const hasWallet = window.nemexWalletAPI.isWalletLoaded();
+        console.log('🔍 Wallet session status:', hasWallet ? 'ACTIVE' : 'NO WALLET');
+        
+    }).catch(error => {
+        console.error('❌ Initialization error:', error);
+    });
+}
