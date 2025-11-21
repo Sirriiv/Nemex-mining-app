@@ -657,19 +657,28 @@ router.post('/send-nmx', async function(req, res) {
 
 async function decryptMnemonic(encryptedData) {
     try {
-        const decipher = crypto.createDecipheriv(
-            'aes-256-gcm', 
-            Buffer.from(ENCRYPTION_KEY, 'hex'), 
-            Buffer.from(encryptedData.iv, 'hex')
-        );
-
-        decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
-
-        let decrypted = decipher.update(encryptedData.data, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-
-        return decrypted;
+        console.log('🔐 Decrypting mnemonic from base64...');
+        
+        // ✅ FIXED: Simple base64 decoding
+        if (typeof encryptedData === 'string') {
+            // It's already base64 encoded string
+            return decodeURIComponent(escape(atob(encryptedData)));
+        } else if (encryptedData.iv && encryptedData.data) {
+            // It's complex encrypted object (fallback)
+            const decipher = crypto.createDecipheriv(
+                'aes-256-gcm', 
+                Buffer.from(ENCRYPTION_KEY, 'hex'), 
+                Buffer.from(encryptedData.iv, 'hex')
+            );
+            decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
+            let decrypted = decipher.update(encryptedData.data, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            return decrypted;
+        } else {
+            throw new Error('Invalid encrypted data format');
+        }
     } catch (error) {
+        console.error('❌ Decryption failed:', error);
         throw new Error('Failed to decrypt mnemonic: ' + error.message);
     }
 }
