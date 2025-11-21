@@ -595,50 +595,181 @@ router.get('/all-balances/:address', async function(req, res) {
 });
 
 // =============================================
-// PRICE ENDPOINT
+// REAL PRICE API FUNCTIONS - COMPLETE VERSION
+// =============================================
+
+async function getRealTokenPrices() {
+    console.log('🔄 Fetching REAL token prices from multiple sources...');
+
+    const priceSources = [
+        getBinancePrice,
+        getMEXCPrice,
+        getGateIOPrice,
+        getBybitPrice,
+        getCoinGeckoPrice,
+        getFallbackPrice
+    ];
+
+    for (const priceSource of priceSources) {
+        try {
+            const prices = await priceSource();
+            if (prices && prices.TON && prices.TON.price > 0) {
+                console.log(`✅ Prices from ${priceSource.name}: TON $${prices.TON.price}, Change: ${prices.TON.change24h}%`);
+                return {
+                    success: true,
+                    prices: prices,
+                    source: priceSource.name
+                };
+            }
+        } catch (error) {
+            console.log(`❌ ${priceSource.name} failed:`, error.message);
+            continue;
+        }
+    }
+
+    return getFallbackPrice();
+}
+
+async function getBinancePrice() {
+    try {
+        console.log('🔄 Trying Binance API...');
+        const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data.lastPrice) {
+            const tonPrice = parseFloat(response.data.lastPrice);
+            const priceChangePercent = parseFloat(response.data.priceChangePercent);
+            console.log('✅ Binance TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from Binance');
+    } catch (error) {
+        throw new Error(`Binance: ${error.message}`);
+    }
+}
+
+async function getMEXCPrice() {
+    try {
+        console.log('🔄 Trying MEXC API...');
+        const response = await axios.get('https://api.mexc.com/api/v3/ticker/24hr?symbol=TONUSDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data.lastPrice) {
+            const tonPrice = parseFloat(response.data.lastPrice);
+            const priceChangePercent = parseFloat(response.data.priceChangePercent);
+            console.log('✅ MEXC TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from MEXC');
+    } catch (error) {
+        throw new Error(`MEXC: ${error.message}`);
+    }
+}
+
+async function getGateIOPrice() {
+    try {
+        console.log('🔄 Trying Gate.io API...');
+        const response = await axios.get('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=TON_USDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data[0] && response.data[0].last) {
+            const tonPrice = parseFloat(response.data[0].last);
+            const changePercentage = parseFloat(response.data[0].change_percentage);
+            console.log('✅ Gate.io TON price:', tonPrice, 'Change:', changePercentage + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: changePercentage },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from Gate.io');
+    } catch (error) {
+        throw new Error(`Gate.io: ${error.message}`);
+    }
+}
+
+async function getBybitPrice() {
+    try {
+        console.log('🔄 Trying Bybit API...');
+        const response = await axios.get('https://api.bybit.com/v2/public/tickers?symbol=TONUSDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data.result && response.data.result[0]) {
+            const tonPrice = parseFloat(response.data.result[0].last_price);
+            const priceChangePercent = parseFloat(response.data.result[0].price_24h_pcnt) * 100;
+            console.log('✅ Bybit TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from Bybit');
+    } catch (error) {
+        throw new Error(`Bybit: ${error.message}`);
+    }
+}
+
+async function getCoinGeckoPrice() {
+    try {
+        console.log('🔄 Trying CoinGecko API...');
+        const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true', {
+            timeout: 10000
+        });
+
+        const tonData = response.data['the-open-network'];
+        if (tonData && tonData.usd) {
+            console.log('✅ CoinGecko TON price:', tonData.usd, 'Change:', tonData.usd_24h_change + '%');
+
+            return {
+                TON: { 
+                    price: tonData.usd, 
+                    change24h: tonData.usd_24h_change || 0 
+                },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from CoinGecko');
+    } catch (error) {
+        throw new Error(`CoinGecko: ${error.message}`);
+    }
+}
+
+function getFallbackPrice() {
+    console.log('⚠️ Using fallback prices (all APIs failed)');
+    return {
+        TON: { price: 2.5, change24h: 1.2 },
+        NMX: { price: 0.10, change24h: 0 }
+    };
+}
+
+// =============================================
+// UPDATED PRICE ENDPOINT WITH REAL APIS
 // =============================================
 
 router.get('/token-prices', async function(req, res) {
     try {
-        console.log('🔄 Fetching prices...');
-
-        // Try to get real price
-        try {
-            const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT', {
-                timeout: 5000
-            });
-
-            if (response.data && response.data.lastPrice) {
-                const tonPrice = parseFloat(response.data.lastPrice);
-                const change = parseFloat(response.data.priceChangePercent);
-
-                console.log('✅ Real TON price:', tonPrice);
-
-                return res.json({
-                    success: true,
-                    prices: {
-                        TON: { price: tonPrice, change24h: change },
-                        NMX: { price: 0.10, change24h: 0 }
-                    },
-                    source: 'binance'
-                });
-            }
-        } catch (priceError) {
-            console.log('❌ Price API failed, using fallback');
-        }
-
-        // Fallback prices
-        res.json({
-            success: true,
-            prices: {
-                TON: { price: 2.5, change24h: 1.2 },
-                NMX: { price: 0.10, change24h: 0 }
-            },
-            source: 'fallback'
-        });
+        console.log('🔄 Fetching REAL token prices from multiple exchanges...');
+        
+        const priceData = await getRealTokenPrices();
+        console.log(`🎯 Final price source: ${priceData.source}`);
+        
+        res.json(priceData);
 
     } catch (error) {
-        console.error('Price error:', error);
+        console.error('Token prices endpoint failed:', error);
         res.json({
             success: true,
             prices: {
