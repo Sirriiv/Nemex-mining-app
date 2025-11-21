@@ -479,297 +479,317 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ FIXED: Generate wallet using EXISTING backend endpoint
-    async generateNewWallet(wordCount = 12) {
-        try {
-            console.log('🔄 REAL TON: Generating wallet via EXISTING backend endpoint...');
+    // =============================================
+// IMPROVED WALLET GENERATION & IMPORT WITH SESSION MANAGEMENT
+// =============================================
 
-            // Generate mnemonic client-side
-            const mnemonic = await this.generateMnemonicClientSide(wordCount);
-            if (!mnemonic) {
-                throw new Error('Failed to generate mnemonic');
-            }
+// ✅ IMPROVED: Generate wallet with session persistence
+async generateNewWallet(wordCount = 12) {
+    try {
+        console.log('🔄 REAL TON: Generating wallet with session persistence...');
 
-            // ✅ FIX: Use EXISTING endpoint that works
-            const userId = await this.getUserId();
-            const response = await fetch(`${this.baseURL}/generate-wallet`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    wordCount: wordCount
-                })
-            });
-
-            // ✅ FIX: Better error handling
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Backend error response:', errorText);
-
-                // Check if it's HTML (404, etc.)
-                if (errorText.trim().startsWith('<!DOCTYPE') || errorText.trim().startsWith('<')) {
-                    throw new Error('Backend endpoint not found or server error');
-                }
-
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.success || !data.wallet) {
-                throw new Error(data.error || 'Wallet generation failed');
-            }
-
-            // ✅ UPDATED: More forgiving mnemonic storage
-            try {
-                const storageSuccess = await this.storage.storeMnemonicSecurely(mnemonic, data.wallet.address);
-                if (!storageSuccess) {
-                    console.warn('⚠️ Secure mnemonic storage failed, but continuing with wallet creation');
-                }
-            } catch (storageError) {
-                console.warn('⚠️ Mnemonic storage error, but continuing:', storageError);
-            }
-
-            // Store wallet info in database (without mnemonic)
-            const dbResult = await this.storeWalletInDatabase({
-                userId: userId,
-                address: data.wallet.address,
-                publicKey: data.wallet.publicKey || '',
-                walletType: 'TON',
-                source: 'generated',
-                wordCount: wordCount,
-                derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
-            });
-
-            if (!dbResult.success) {
-                console.warn('⚠️ Failed to store wallet in database, but continuing with local storage');
-            }
-
-            // Store wallet info locally (without mnemonic)
-            const walletData = {
-                userId: userId,
-                address: data.wallet.address,
-                publicKey: data.wallet.publicKey || '',
-                type: 'TON',
-                source: 'generated',
-                wordCount: wordCount,
-                derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
-            };
-
-            await this.setStoredWallet(walletData);
-            await this.setActiveWallet(data.wallet.address);
-
-            console.log('✅ Wallet generated:', data.wallet.address);
-
-            return {
-                success: true,
-                wallet: {
-                    ...walletData,
-                    mnemonic: mnemonic
-                }
-            };
-
-        } catch (error) {
-            console.error('❌ Wallet generation failed:', error);
-            throw new Error('Cannot generate wallet: ' + error.message);
-        }
-    }
-
-    // ✅ SECURE: Client-side mnemonic generation
-    async generateMnemonicClientSide(wordCount = 12) {
-        try {
-            const wordlist = this.getBIP39Wordlist();
-            const words = [];
-
-            for (let i = 0; i < wordCount; i++) {
-                const randomBytes = new Uint8Array(2);
-                crypto.getRandomValues(randomBytes);
-                const index = (randomBytes[0] << 8 | randomBytes[1]) % wordlist.length;
-                words.push(wordlist[index]);
-            }
-
-            return words.join(' ');
-        } catch (error) {
-            console.error('Client-side mnemonic generation failed:', error);
-
-            // Fallback
-            const wordlist = this.getBIP39Wordlist();
-            const words = [];
-            for (let i = 0; i < wordCount; i++) {
-                const timestamp = Date.now() + i;
-                const index = (timestamp * (i + 1)) % wordlist.length;
-                words.push(wordlist[index]);
-            }
-            return words.join(' ');
-        }
-    }
-
-    getBIP39Wordlist() {
-        return [
-            "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse",
-            "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act",
-            "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit",
-            "adult", "advance", "advice", "aerobic", "affair", "afford", "afraid", "again", "age", "agent",
-            "agree", "ahead", "aim", "air", "airport", "aisle", "alarm", "album", "alcohol", "alert",
-            "alien", "all", "alley", "allow", "almost", "alone", "alpha", "already", "also", "alter",
-            "always", "amateur", "amazing", "among", "amount", "amused", "analyst", "anchor", "ancient", "anger",
-            "angle", "angry", "animal", "anniversary", "announce", "annual", "another", "answer", "antenna", "antique",
-            "anxiety", "any", "apart", "apology", "appear", "apple", "approve", "april", "area", "arena",
-            "argue", "arm", "armed", "armor", "army", "around", "arrange", "arrest", "arrive", "arrow",
-            "art", "artefact", "artist", "artwork", "ask", "aspect", "assault", "asset", "assist", "assume",
-            "asthma", "athlete", "atom", "attack", "attend", "attitude", "attract", "auction", "audit", "august",
-            "aunt", "author", "auto", "autumn", "average", "avocado", "avoid", "awake", "aware", "away",
-            "awesome", "awful", "awkward", "axis", "baby", "bachelor", "bacon", "badge", "bag", "balance"
-        ];
-    }
-
-    // ✅ REAL TON: Import wallet using backend REAL address derivation
-    async importWallet(mnemonic, targetAddress = null) {
-        try {
-            console.log('🔄 REAL TON: Importing wallet with REAL backend derivation...');
-
-            const cleanedMnemonic = this.cleanMnemonic(mnemonic);
-
-            if (!this.isValidMnemonic(cleanedMnemonic)) {
-                throw new Error('Invalid mnemonic format. Must be 12 or 24 words.');
-            }
-
-            // ✅ REAL: Use backend for proper TON wallet derivation
-            const userId = await this.getUserId();
-            const response = await fetch(`${this.baseURL}/import-wallet`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    mnemonic: cleanedMnemonic,
-                    targetAddress: targetAddress
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to import real TON wallet');
-            }
-
-            if (data.success && data.wallets) {
-                // Handle multiple wallets found
-                return {
-                    success: true,
-                    wallets: data.wallets,
-                    message: data.message
-                };
-            }
-
-            if (data.success && data.wallet) {
-                return await this.finalizeWalletImport(data.wallet, cleanedMnemonic, 'imported');
-            }
-
-            throw new Error('Real TON import failed');
-
-        } catch (error) {
-            console.error('❌ Real TON wallet import failed:', error);
-            throw new Error('Cannot import wallet: ' + error.message);
-        }
-    }
-
-    // ✅ SECURE: Finalize wallet import
-    async finalizeWalletImport(wallet, mnemonic, source) {
-        // ✅ SECURITY: Store mnemonic ONLY in session storage
-        const storageSuccess = await this.storage.storeMnemonicSecurely(mnemonic, wallet.address);
-        if (!storageSuccess) {
-            throw new Error('Failed to securely store recovery phrase');
+        // Generate mnemonic client-side
+        const mnemonic = await this.generateMnemonicClientSide(wordCount);
+        if (!mnemonic) {
+            throw new Error('Failed to generate mnemonic');
         }
 
-        // Store wallet info in database (without mnemonic)
+        // Use backend for wallet generation
         const userId = await this.getUserId();
+        const response = await fetch(`${this.baseURL}/generate-wallet`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                wordCount: wordCount
+            })
+        });
+
+        // Better error handling
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Backend error response:', errorText);
+
+            // Check if it's HTML (404, etc.)
+            if (errorText.trim().startsWith('<!DOCTYPE') || errorText.trim().startsWith('<')) {
+                throw new Error('Backend endpoint not found or server error');
+            }
+
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success || !data.wallet) {
+            throw new Error(data.error || 'Wallet generation failed');
+        }
+
+        // ✅ FIX: Store mnemonic securely
+        await this.storage.storeMnemonicSecurely(mnemonic, data.wallet.address);
+
+        // ✅ FIX: Create wallet data with proper structure
+        const walletData = {
+            userId: userId,
+            address: data.wallet.address,
+            addressBounceable: data.wallet.addressBounceable,
+            publicKey: data.wallet.publicKey || '',
+            type: 'TON',
+            source: 'generated',
+            wordCount: wordCount,
+            derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
+        };
+
+        // ✅ FIX: Store wallet in database
         const dbResult = await this.storeWalletInDatabase({
             userId: userId,
-            address: wallet.address,
-            addressNonBounceable: wallet.addressNonBounceable,
-            publicKey: wallet.publicKey,
+            address: data.wallet.address,
+            publicKey: data.wallet.publicKey || '',
             walletType: 'TON',
-            source: source,
-            wordCount: mnemonic.split(' ').length,
-            derivationPath: wallet.path
+            source: 'generated',
+            wordCount: wordCount,
+            derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
         });
 
         if (!dbResult.success) {
             console.warn('⚠️ Failed to store wallet in database, but continuing with local storage');
         }
 
-        // Store wallet info locally (without mnemonic)
-        const walletData = {
-            userId: userId,
-            address: wallet.address,
-            addressNonBounceable: wallet.addressNonBounceable,
-            publicKey: wallet.publicKey,
-            type: 'TON',
-            source: source,
-            wordCount: mnemonic.split(' ').length,
-            derivationPath: wallet.path
-        };
-
+        // ✅ FIX: Set as active wallet immediately for session persistence
         await this.setStoredWallet(walletData);
-        await this.setActiveWallet(wallet.address);
+        await this.setActiveWallet(data.wallet.address);
 
-        console.log('✅ REAL TON: Wallet imported - mnemonic in session only');
+        console.log('✅ Wallet generated and session persisted:', data.wallet.address);
 
         return {
             success: true,
-            wallet: walletData
+            wallet: {
+                ...walletData,
+                mnemonic: mnemonic
+            }
         };
+
+    } catch (error) {
+        console.error('❌ Wallet generation failed:', error);
+        throw new Error('Cannot generate wallet: ' + error.message);
     }
+}
 
-    async selectWalletForImport(selectedPath) {
-        try {
-            if (!this.pendingImport) {
-                throw new Error('No pending import found');
-            }
+// ✅ SECURE: Client-side mnemonic generation
+async generateMnemonicClientSide(wordCount = 12) {
+    try {
+        const wordlist = this.getBIP39Wordlist();
+        const words = [];
 
-            console.log('🔄 Selecting wallet with path:', selectedPath);
-
-            const userId = await this.getUserId();
-            const response = await fetch(`${this.baseURL}/import-wallet-select`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    mnemonic: this.pendingImport.mnemonic,
-                    selectedPath: selectedPath
-                })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.error || `HTTP error! status: ${response.status}`);
-            }
-
-            if (data.success && data.wallet) {
-                console.log('✅ Selected wallet imported:', data.wallet.address);
-
-                // ✅ SECURITY: Store mnemonic in session storage
-                await this.storage.storeMnemonicSecurely(this.pendingImport.mnemonic, data.wallet.address);
-
-                await this.setActiveWallet(data.wallet.address);
-                this.pendingImport = null;
-                return data;
-            }
-
-            throw new Error(data.error || 'Failed to import selected wallet');
-
-        } catch (error) {
-            console.error('❌ Wallet selection failed:', error);
-            throw error;
+        for (let i = 0; i < wordCount; i++) {
+            const randomBytes = new Uint8Array(2);
+            crypto.getRandomValues(randomBytes);
+            const index = (randomBytes[0] << 8 | randomBytes[1]) % wordlist.length;
+            words.push(wordlist[index]);
         }
+
+        return words.join(' ');
+    } catch (error) {
+        console.error('Client-side mnemonic generation failed:', error);
+
+        // Fallback
+        const wordlist = this.getBIP39Wordlist();
+        const words = [];
+        for (let i = 0; i < wordCount; i++) {
+            const timestamp = Date.now() + i;
+            const index = (timestamp * (i + 1)) % wordlist.length;
+            words.push(wordlist[index]);
+        }
+        return words.join(' ');
     }
+}
+
+getBIP39Wordlist() {
+    return [
+        "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse",
+        "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act",
+        "action", "actor", "actress", "actual", "adapt", "add", "addict", "address", "adjust", "admit",
+        "adult", "advance", "advice", "aerobic", "affair", "afford", "afraid", "again", "age", "agent",
+        "agree", "ahead", "aim", "air", "airport", "aisle", "alarm", "album", "alcohol", "alert",
+        "alien", "all", "alley", "allow", "almost", "alone", "alpha", "already", "also", "alter",
+        "always", "amateur", "amazing", "among", "amount", "amused", "analyst", "anchor", "ancient", "anger",
+        "angle", "angry", "animal", "anniversary", "announce", "annual", "another", "answer", "antenna", "antique",
+        "anxiety", "any", "apart", "apology", "appear", "apple", "approve", "april", "area", "arena",
+        "argue", "arm", "armed", "armor", "army", "around", "arrange", "arrest", "arrive", "arrow",
+        "art", "artefact", "artist", "artwork", "ask", "aspect", "assault", "asset", "assist", "assume",
+        "asthma", "athlete", "atom", "attack", "attend", "attitude", "attract", "auction", "audit", "august",
+        "aunt", "author", "auto", "autumn", "average", "avocado", "avoid", "awake", "aware", "away",
+        "awesome", "awful", "awkward", "axis", "baby", "bachelor", "bacon", "badge", "bag", "balance"
+    ];
+}
+
+// ✅ IMPROVED: Import wallet with session persistence
+async importWallet(mnemonic, targetAddress = null) {
+    try {
+        console.log('🔄 REAL TON: Importing wallet with session persistence...');
+
+        const cleanedMnemonic = this.cleanMnemonic(mnemonic);
+
+        if (!this.isValidMnemonic(cleanedMnemonic)) {
+            throw new Error('Invalid mnemonic format. Must be 12 or 24 words.');
+        }
+
+        // Use backend for proper TON wallet derivation
+        const userId = await this.getUserId();
+        const response = await fetch(`${this.baseURL}/import-wallet`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                mnemonic: cleanedMnemonic,
+                targetAddress: targetAddress
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to import real TON wallet');
+        }
+
+        if (data.success && data.wallets) {
+            // Handle multiple wallets found
+            return {
+                success: true,
+                wallets: data.wallets,
+                message: data.message
+            };
+        }
+
+        if (data.success && data.wallet) {
+            // ✅ FIX: Use improved finalize function
+            return await this.finalizeWalletImportImproved(data.wallet, cleanedMnemonic, 'imported');
+        }
+
+        throw new Error('Real TON import failed');
+
+    } catch (error) {
+        console.error('❌ Real TON wallet import failed:', error);
+        throw new Error('Cannot import wallet: ' + error.message);
+    }
+}
+
+// ✅ IMPROVED: Finalize wallet import with session persistence
+async finalizeWalletImportImproved(wallet, mnemonic, source) {
+    // Store mnemonic securely
+    const storageSuccess = await this.storage.storeMnemonicSecurely(mnemonic, wallet.address);
+    if (!storageSuccess) {
+        throw new Error('Failed to securely store recovery phrase');
+    }
+
+    // Store wallet info in database (without mnemonic)
+    const userId = await this.getUserId();
+    const dbResult = await this.storeWalletInDatabase({
+        userId: userId,
+        address: wallet.address,
+        addressNonBounceable: wallet.addressNonBounceable,
+        publicKey: wallet.publicKey,
+        walletType: 'TON',
+        source: source,
+        wordCount: mnemonic.split(' ').length,
+        derivationPath: wallet.path
+    });
+
+    if (!dbResult.success) {
+        console.warn('⚠️ Failed to store wallet in database, but continuing with local storage');
+    }
+
+    // ✅ FIX: Create proper wallet data structure
+    const walletData = {
+        userId: userId,
+        address: wallet.address,
+        addressNonBounceable: wallet.addressNonBounceable,
+        publicKey: wallet.publicKey,
+        type: 'TON',
+        source: source,
+        wordCount: mnemonic.split(' ').length,
+        derivationPath: wallet.path
+    };
+
+    // ✅ FIX: Set as active wallet immediately for session persistence
+    await this.setStoredWallet(walletData);
+    await this.setActiveWallet(wallet.address);
+
+    console.log('✅ REAL TON: Wallet imported and session persisted');
+
+    return {
+        success: true,
+        wallet: walletData
+    };
+}
+
+// ✅ KEEP EXISTING: Wallet selection function (it's already good)
+async selectWalletForImport(selectedPath) {
+    try {
+        if (!this.pendingImport) {
+            throw new Error('No pending import found');
+        }
+
+        console.log('🔄 Selecting wallet with path:', selectedPath);
+
+        const userId = await this.getUserId();
+        const response = await fetch(`${this.baseURL}/import-wallet-select`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: userId,
+                mnemonic: this.pendingImport.mnemonic,
+                selectedPath: selectedPath
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+        }
+
+        if (data.success && data.wallet) {
+            console.log('✅ Selected wallet imported:', data.wallet.address);
+
+            // Store mnemonic in session storage
+            await this.storage.storeMnemonicSecurely(this.pendingImport.mnemonic, data.wallet.address);
+
+            // ✅ FIX: Set as active wallet for session persistence
+            await this.setStoredWallet(data.wallet);
+            await this.setActiveWallet(data.wallet.address);
+            
+            this.pendingImport = null;
+            return data;
+        }
+
+        throw new Error(data.error || 'Failed to import selected wallet');
+
+    } catch (error) {
+        console.error('❌ Wallet selection failed:', error);
+        throw error;
+    }
+}
+
+// ✅ ADD THIS: Clean mnemonic helper function (if not already exists)
+cleanMnemonic(mnemonic) {
+    return mnemonic
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .replace(/[^a-z\s]/g, '');
+}
+
+// ✅ ADD THIS: Validate mnemonic helper function (if not already exists)
+isValidMnemonic(mnemonic) {
+    const words = mnemonic.split(' ');
+    return words.length === 12 || words.length === 24;
+}
 
     // ✅ SECURE: Get mnemonic for viewing (requires security verification)
     async getMnemonicForAddress(address, securityToken) {
