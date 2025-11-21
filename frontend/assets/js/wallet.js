@@ -1,5 +1,5 @@
-// assets/js/wallet.js - COMPLETELY FIXED VERSION
-// ✅ ALL SYNTAX ERRORS RESOLVED
+// assets/js/wallet.js - COMPLETELY FIXED VERSION WITH SEND FUNCTIONALITY
+// ✅ ALL SYNTAX ERRORS RESOLVED + SEND TON/NMX IMPLEMENTED
 
 class SecureEncryptedStorage {
     constructor() {
@@ -23,29 +23,29 @@ class SecureEncryptedStorage {
     }
 
     async ensureEncryptionKey() {
-    let key = sessionStorage.getItem(`${this.storageKey}_key`);
+        let key = sessionStorage.getItem(`${this.storageKey}_key`);
 
-    if (!key) {
-        key = this.generateProperKey(); // Use new method
-        sessionStorage.setItem(`${this.storageKey}_key`, key);
+        if (!key) {
+            key = this.generateProperKey(); // Use new method
+            sessionStorage.setItem(`${this.storageKey}_key`, key);
+        }
+
+        this.encryptionKey = key;
     }
 
-    this.encryptionKey = key;
-}
+    generateProperKey() {
+        // Generate exactly 32 bytes (256 bits) for AES-256
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
 
-generateProperKey() {
-    // Generate exactly 32 bytes (256 bits) for AES-256
-    const array = new Uint8Array(32);
-    crypto.getRandomValues(array);
-    
-    // Convert to hex string (64 characters)
-    const hexKey = Array.from(array, byte => 
-        byte.toString(16).padStart(2, '0')
-    ).join('');
-    
-    console.log('🔑 Generated proper AES-256 key:', hexKey.length, 'chars');
-    return hexKey;
-}
+        // Convert to hex string (64 characters)
+        const hexKey = Array.from(array, byte => 
+            byte.toString(16).padStart(2, '0')
+        ).join('');
+
+        console.log('🔑 Generated proper AES-256 key:', hexKey.length, 'chars');
+        return hexKey;
+    }
 
     // ✅ SIMPLIFIED ENCRYPTION - FIXED VERSION
     async encrypt(text) {
@@ -57,7 +57,7 @@ generateProperKey() {
 
             const encoder = new TextEncoder();
             const data = encoder.encode(text);
-            
+
             const key = await crypto.subtle.importKey(
                 'raw',
                 encoder.encode(this.encryptionKey),
@@ -214,9 +214,9 @@ generateProperKey() {
     async storeMnemonicSecurely(mnemonic, address) {
         try {
             console.log('🔐 Attempting to store mnemonic for:', address);
-            
+
             const encryptedMnemonic = await this.encrypt(mnemonic);
-            
+
             if (!encryptedMnemonic) {
                 console.warn('⚠️ Encryption returned null, using base64');
                 // Fallback to base64 without encryption
@@ -229,7 +229,7 @@ generateProperKey() {
             return true;
         } catch (error) {
             console.error('❌ Failed to store mnemonic securely:', error);
-            
+
             // LAST RESORT: Store in plain text in session storage (less secure but functional)
             try {
                 sessionStorage.setItem(`nemex_mnemonic_${address}`, mnemonic);
@@ -467,7 +467,7 @@ class NemexWalletAPI {
     async storeWalletInDatabase(walletData) {
         try {
             console.log('🔄 Storing wallet in database:', walletData.address);
-            
+
             const response = await fetch(`${this.baseURL}/store-wallet`, {
                 method: 'POST',
                 headers: {
@@ -519,12 +519,12 @@ class NemexWalletAPI {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('❌ Backend error response:', errorText);
-                
+
                 // Check if it's HTML (404, etc.)
                 if (errorText.trim().startsWith('<!DOCTYPE') || errorText.trim().startsWith('<')) {
                     throw new Error('Backend endpoint not found or server error');
                 }
-                
+
                 throw new Error(`HTTP ${response.status}: ${errorText}`);
             }
 
@@ -829,19 +829,22 @@ class NemexWalletAPI {
     }
 
     // =============================================
-    // PRODUCTION TRANSACTION ENGINE - FRONTEND API
+    // PRODUCTION TRANSACTION ENGINE - FIXED VERSION
     // =============================================
 
     async sendTON(fromAddress, toAddress, amount, memo = '') {
         try {
             console.log('🔄 PRODUCTION: Sending TON via API...', { fromAddress, toAddress, amount });
 
-            // Get encrypted mnemonic from secure storage
-            const encryptedMnemonic = await this.getEncryptedMnemonic(fromAddress);
-
-            if (!encryptedMnemonic) {
+            // Get the actual mnemonic from secure storage
+            const mnemonic = await this.storage.retrieveMnemonicSecurely(fromAddress);
+            if (!mnemonic) {
                 throw new Error('Wallet credentials not available for transaction signing');
             }
+
+            // Encrypt it for backend
+            const encryptedData = await this.storage.encrypt(mnemonic);
+            const encryptedMnemonic = JSON.stringify(encryptedData);
 
             const response = await fetch(`${this.baseURL}/send-ton`, {
                 method: 'POST',
@@ -876,12 +879,15 @@ class NemexWalletAPI {
         try {
             console.log('🔄 PRODUCTION: Sending NMX via API...', { fromAddress, toAddress, amount });
 
-            // Get encrypted mnemonic from secure storage
-            const encryptedMnemonic = await this.getEncryptedMnemonic(fromAddress);
-
-            if (!encryptedMnemonic) {
+            // Get the actual mnemonic from secure storage
+            const mnemonic = await this.storage.retrieveMnemonicSecurely(fromAddress);
+            if (!mnemonic) {
                 throw new Error('Wallet credentials not available for transaction signing');
             }
+
+            // Encrypt it for backend
+            const encryptedData = await this.storage.encrypt(mnemonic);
+            const encryptedMnemonic = JSON.stringify(encryptedData);
 
             const response = await fetch(`${this.baseURL}/send-nmx`, {
                 method: 'POST',
@@ -909,20 +915,6 @@ class NemexWalletAPI {
         } catch (error) {
             console.error('PRODUCTION Send NMX API error:', error);
             throw error;
-        }
-    }
-
-    async getEncryptedMnemonic(address) {
-        try {
-            // In secure mode, we get from session storage
-            const mnemonic = await this.storage.retrieveMnemonicSecurely(address);
-            if (mnemonic) {
-                return await this.storage.encrypt(mnemonic);
-            }
-            return null;
-        } catch (error) {
-            console.error('Failed to get encrypted mnemonic:', error);
-            return null;
         }
     }
 
@@ -1103,12 +1095,12 @@ if (document.readyState === 'loading') {
             const success = await window.nemexWalletAPI.init();
             if (success) {
                 console.log('✅ NemexWalletAPI auto-initialized successfully!');
-                
+
                 // Update global state
                 if (typeof updateWalletState === 'function') {
                     updateWalletState();
                 }
-                
+
                 // Enable buttons
                 if (typeof enableWalletButtons === 'function') {
                     enableWalletButtons();
