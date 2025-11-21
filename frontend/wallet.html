@@ -2856,99 +2856,104 @@
         }
 
         // =============================================
-        // BALANCE & PRICE UPDATES - FIXED VERSION
-        // =============================================
+// BALANCE & PRICE UPDATES - FIXED VERSION
+// =============================================
 
-        async function updateRealBalances() {
-            if (!walletState.isInitialized || !walletState.address) {
-                return;
-            }
+async function updateRealBalances() {
+    if (!walletState.isInitialized || !walletState.address) {
+        return;
+    }
 
-            try {
-                console.log('🔄 Fetching REAL balances and prices...');
+    try {
+        console.log('🔄 Fetching REAL balances and prices...');
 
-                const [balanceResult, priceResult] = await Promise.all([
-                    window.nemexWalletAPI.getAllBalances(walletState.address),
-                    window.nemexWalletAPI.getTokenPrices()
-                ]);
+        const [balanceResult, priceResult] = await Promise.all([
+            window.nemexWalletAPI.getAllBalances(walletState.address),
+            window.nemexWalletAPI.getTokenPrices()
+        ]);
 
-                console.log('🔍 Balance result:', balanceResult);
-                console.log('🔍 Price result:', priceResult);
+        console.log('🔍 Balance result:', balanceResult);
+        console.log('🔍 Price result:', priceResult);
 
-                // ✅ FIX: Update TON balance PROPERLY
-                const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-                if (tonToken && balanceResult.balances) {
-                    // Handle both string and number balances
-                    const tonBalance = parseFloat(balanceResult.balances.TON || "0");
-                    tonToken.balance = tonBalance;
-                    console.log('✅ TON balance updated:', tonToken.balance);
+        // ✅ FIX: Handle both string and number responses
+        const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
+        if (tonToken && balanceResult.balances) {
+            // Handle both string and number balances
+            const tonBalance = typeof balanceResult.balances.TON === 'string' 
+                ? parseFloat(balanceResult.balances.TON) 
+                : balanceResult.balances.TON;
+            
+            tonToken.balance = tonBalance || 0;
+            console.log('✅ TON balance updated:', tonToken.balance);
 
-                    if (priceResult.prices && priceResult.prices.TON) {
-                        tonToken.price = priceResult.prices.TON.price || 0;
-                        tonToken.change24h = priceResult.prices.TON.change24h || 0;
-                    }
-                }
-
-                // ✅ FIX: Update NMX balance PROPERLY
-                let nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-
-                // Ensure NMX token exists in supported tokens
-                if (!nmxToken) {
-                    console.log('⚠️ NMX token not found in SUPPORTED_TOKENS, adding it...');
-                    nmxToken = {
-                        symbol: "NMX",
-                        name: "NemexCoin",
-                        balance: 0,
-                        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                        price: 0,
-                        change24h: 0,
-                        canSend: true,
-                        isNative: false,
-                        isFeatured: true
-                    };
-                    SUPPORTED_TOKENS.push(nmxToken);
-                }
-
-                if (nmxToken && balanceResult.balances) {
-                    // ✅ CRITICAL FIX: Properly parse NMX balance
-                    const nmxBalance = parseFloat(balanceResult.balances.NMX || "0");
-                    nmxToken.balance = nmxBalance;
-                    console.log('✅ NMX balance updated:', nmxToken.balance, 'NMX');
-
-                    if (priceResult.prices && priceResult.prices.NMX) {
-                        nmxToken.price = priceResult.prices.NMX.price || 0;
-                        nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
-                    } else {
-                        // Fallback NMX price if not available from API
-                        nmxToken.price = 0.10;
-                        nmxToken.change24h = 0;
-                    }
-                }
-
-                // ✅ DEBUG: Log all token balances
-                console.log('🔍 Final token balances:');
-                SUPPORTED_TOKENS.forEach(token => {
-                    console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
-                });
-
-                updatePortfolioValue();
-                loadTokens();
-
-                console.log('✅ Real blockchain balances & prices updated');
-
-            } catch (error) {
-                console.error('Failed to update real data:', error);
-                // Set fallback balances
-                SUPPORTED_TOKENS.forEach(token => {
-                    if (token.symbol === 'TON' || token.symbol === 'NMX') {
-                        token.balance = 0;
-                    }
-                });
-                updatePortfolioValue();
-                loadTokens();
+            if (priceResult.prices && priceResult.prices.TON) {
+                tonToken.price = priceResult.prices.TON.price || 0;
+                tonToken.change24h = priceResult.prices.TON.change24h || 0;
             }
         }
 
+        // ✅ FIX: Update NMX balance PROPERLY
+        let nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
+
+        // Ensure NMX token exists in supported tokens
+        if (!nmxToken) {
+            console.log('⚠️ NMX token not found in SUPPORTED_TOKENS, adding it...');
+            nmxToken = {
+                symbol: "NMX",
+                name: "NemexCoin",
+                balance: 0,
+                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                price: 0,
+                change24h: 0,
+                canSend: true,
+                isNative: false,
+                isFeatured: true
+            };
+            SUPPORTED_TOKENS.push(nmxToken);
+        }
+
+        if (nmxToken && balanceResult.balances) {
+            // ✅ CRITICAL FIX: Properly parse NMX balance
+            const nmxBalance = typeof balanceResult.balances.NMX === 'string'
+                ? parseFloat(balanceResult.balances.NMX)
+                : balanceResult.balances.NMX;
+            
+            nmxToken.balance = nmxBalance || 0;
+            console.log('✅ NMX balance updated:', nmxToken.balance, 'NMX');
+
+            if (priceResult.prices && priceResult.prices.NMX) {
+                nmxToken.price = priceResult.prices.NMX.price || 0;
+                nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
+            } else {
+                // Fallback NMX price if not available from API
+                nmxToken.price = 0.10;
+                nmxToken.change24h = 0;
+            }
+        }
+
+        // ✅ DEBUG: Log all token balances
+        console.log('🔍 Final token balances:');
+        SUPPORTED_TOKENS.forEach(token => {
+            console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
+        });
+
+        updatePortfolioValue();
+        loadTokens();
+
+        console.log('✅ Real blockchain balances & prices updated');
+
+    } catch (error) {
+        console.error('Failed to update real data:', error);
+        // Set fallback balances
+        SUPPORTED_TOKENS.forEach(token => {
+            if (token.symbol === 'TON' || token.symbol === 'NMX') {
+                token.balance = 0;
+            }
+        });
+        updatePortfolioValue();
+        loadTokens();
+    }
+}
         // =============================================
         // UI UPDATES - ENHANCED DEBUGGING
         // =============================================
