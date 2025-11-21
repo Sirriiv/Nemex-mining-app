@@ -3886,60 +3886,63 @@ document.addEventListener('walletReady', function(event) {
 
     // Enhanced transaction summary
     function updateSendSummary() {
-        const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
-        const toAddress = document.getElementById('sendToAddress').value.trim();
-        const memo = document.getElementById('sendMemo').value;
+    const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
+    const toAddress = document.getElementById('sendToAddress').value.trim();
+    const memo = document.getElementById('sendMemo').value;
 
-        const summaryElement = document.getElementById('sendSummary');
-        const detailsElement = document.getElementById('sendSummaryDetails');
+    const summaryElement = document.getElementById('sendSummary');
+    const detailsElement = document.getElementById('sendSummaryDetails');
 
-        updateUsdConversion();
+    updateUsdConversion();
 
-        if (amount > 0 && toAddress) {
-            const usdValue = (amount * currentTokenPrice).toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
+    if (amount > 0 && toAddress) {
+        // ✅ FIXED: Define isValid properly
+        const isValid = toAddress.startsWith('EQ') || toAddress.startsWith('UQ');
+        
+        const usdValue = (amount * currentTokenPrice).toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
 
-            let summaryText = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
-                    <div style="color: var(--text-muted);">Token:</div>
-                    <div style="text-align: right; font-weight: 600; color: var(--gold);">${currentSendToken}</div>
-                    
-                    <div style="color: var(--text-muted);">Amount:</div>
-                    <div style="text-align: right; font-weight: 600;">${amount} ${currentSendToken}</div>
-                    
-                    <div style="color: var(--text-muted);">Value:</div>
-                    <div style="text-align: right; font-weight: 600;">$${usdValue} USD</div>
-                    
-                    <div style="color: var(--text-muted);">Network Fee:</div>
-                    <div style="text-align: right; font-weight: 600;">${TRANSACTION_FEE} TON</div>
-                </div>
-            `;
+        let summaryText = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                <div style="color: var(--text-muted);">Token:</div>
+                <div style="text-align: right; font-weight: 600; color: var(--gold);">${currentSendToken}</div>
+                
+                <div style="color: var(--text-muted);">Amount:</div>
+                <div style="text-align: right; font-weight: 600;">${amount} ${currentSendToken}</div>
+                
+                <div style="color: var(--text-muted);">Value:</div>
+                <div style="text-align: right; font-weight: 600;">$${usdValue} USD</div>
+                
+                <div style="color: var(--text-muted);">Network Fee:</div>
+                <div style="text-align: right; font-weight: 600;">${TRANSACTION_FEE} TON</div>
+            </div>
+        `;
 
-            if (memo) {
-                summaryText += `
-                    <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(212, 175, 55, 0.2);">
-                        <div style="color: var(--text-muted); font-size: 13px;">Memo:</div>
-                        <div style="color: var(--text); font-weight: 600; font-size: 13px;">"${memo}"</div>
-                    </div>
-                `;
-            }
-
+        if (memo) {
             summaryText += `
-                <div style="margin-top: 16px; padding: 12px; background: ${isValid ? 'rgba(0, 200, 81, 0.1)' : 'rgba(255, 68, 68, 0.1)'}; border-radius: 8px; border: 1px solid ${isValid ? 'var(--success)' : 'var(--error)'};">
-                    <div style="color: ${isValid ? 'var(--success)' : 'var(--error)'}; font-weight: 600; font-size: 13px; text-align: center;">
-                        ${isValid ? '✓ Ready to send transaction' : '✗ Please check recipient address'}
-                    </div>
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(212, 175, 55, 0.2);">
+                    <div style="color: var(--text-muted); font-size: 13px;">Memo:</div>
+                    <div style="color: var(--text); font-weight: 600; font-size: 13px;">"${memo}"</div>
                 </div>
             `;
-
-            detailsElement.innerHTML = summaryText;
-            summaryElement.style.display = 'block';
-        } else {
-            summaryElement.style.display = 'none';
         }
+
+        summaryText += `
+            <div style="margin-top: 16px; padding: 12px; background: ${isValid ? 'rgba(0, 200, 81, 0.1)' : 'rgba(255, 68, 68, 0.1)'}; border-radius: 8px; border: 1px solid ${isValid ? 'var(--success)' : 'var(--error)'};">
+                <div style="color: ${isValid ? 'var(--success)' : 'var(--error)'}; font-weight: 600; font-size: 13px; text-align: center;">
+                    ${isValid ? '✓ Ready to send transaction' : '✗ Please check recipient address'}
+                </div>
+            </div>
+        `;
+
+        detailsElement.innerHTML = summaryText;
+        summaryElement.style.display = 'block';
+    } else {
+        summaryElement.style.display = 'none';
     }
+}
 
     // Enhanced transaction confirmation
     async function confirmSendTransaction() {
