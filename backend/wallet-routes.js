@@ -439,237 +439,168 @@ async function getTransactionHash(address, result) {
 }
 
 // =============================================
-// ENHANCED WALLET IMPORT WITH BALANCE DETECTION
+// REAL PRICE API FUNCTIONS - COMPLETE VERSION
 // =============================================
 
-router.post('/import-wallet', async function(req, res) {
-    try {
-        const { userId, mnemonic, targetAddress } = req.body;
-        console.log('🔄 SIMPLIFIED: Importing wallet with SINGLE derivation...');
+async function getRealTokenPrices() {
+    console.log('🔄 Fetching REAL token prices from multiple sources...');
 
-        if (!userId || !mnemonic) {
-            return res.status(400).json({
-                success: false,
-                error: 'User ID and mnemonic are required'
-            });
+    const priceSources = [
+        getBinancePrice,
+        getMEXCPrice,
+        getGateIOPrice,
+        getBybitPrice,
+        getCoinGeckoPrice,
+        getFallbackPrice
+    ];
+
+    for (const priceSource of priceSources) {
+        try {
+            const prices = await priceSource();
+            if (prices && prices.TON && prices.TON.price > 0) {
+                console.log(`✅ Prices from ${priceSource.name}: TON $${prices.TON.price}, Change: ${prices.TON.change24h}%`);
+                return {
+                    success: true,
+                    prices: prices,
+                    source: priceSource.name
+                };
+            }
+        } catch (error) {
+            console.log(`❌ ${priceSource.name} failed:`, error.message);
+            continue;
         }
-
-        const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
-        const wordCount = cleanedMnemonic.split(' ').length;
-
-        if (wordCount !== 12 && wordCount !== 24) {
-            return res.status(400).json({
-                success: false,
-                error: 'Mnemonic must be 12 or 24 words. Found: ' + wordCount + ' words'
-            });
-        }
-
-        // ✅ SIMPLIFIED: Use only ONE reliable derivation path
-        console.log('🔄 Using Tonkeeper-compatible derivation...');
-        const wallet = await deriveWalletFromPath(cleanedMnemonic, "m/44'/607'/0'/0'/0'");
-
-        if (!wallet) {
-            return res.status(400).json({
-                success: false,
-                error: 'Could not derive wallet from mnemonic'
-            });
-        }
-
-        console.log('✅ Single wallet derived:', wallet.address);
-
-        // ✅ Save and return the single wallet
-        return await saveAndReturnWallet(wallet, userId, cleanedMnemonic, wordCount, res);
-
-    } catch (error) {
-        console.error('Simplified wallet import error:', error);
-        return res.status(500).json({ 
-            success: false, 
-            error: 'Failed to import wallet: ' + error.message 
-        });
     }
-});
 
-// =============================================
-// ALL YOUR EXISTING BALANCE & PRICE FUNCTIONS
-// =============================================
+    return getFallbackPrice();
+}
 
-async function getRealBalance(address) {
+async function getBinancePrice() {
     try {
-        console.log('🔄 Fetching TON balance for:', address);
+        console.log('🔄 Trying Binance API...');
+        const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT', {
+            timeout: 5000
+        });
 
-        const response = await axios.get('https://toncenter.com/api/v2/getAddressInformation', {
-            params: { address: address },
-            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY },
+        if (response.data && response.data.lastPrice) {
+            const tonPrice = parseFloat(response.data.lastPrice);
+            const priceChangePercent = parseFloat(response.data.priceChangePercent);
+            console.log('✅ Binance TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from Binance');
+    } catch (error) {
+        throw new Error(`Binance: ${error.message}`);
+    }
+}
+
+async function getMEXCPrice() {
+    try {
+        console.log('🔄 Trying MEXC API...');
+        const response = await axios.get('https://api.mexc.com/api/v3/ticker/24hr?symbol=TONUSDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data.lastPrice) {
+            const tonPrice = parseFloat(response.data.lastPrice);
+            const priceChangePercent = parseFloat(response.data.priceChangePercent);
+            console.log('✅ MEXC TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from MEXC');
+    } catch (error) {
+        throw new Error(`MEXC: ${error.message}`);
+    }
+}
+
+async function getGateIOPrice() {
+    try {
+        console.log('🔄 Trying Gate.io API...');
+        const response = await axios.get('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=TON_USDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data[0] && response.data[0].last) {
+            const tonPrice = parseFloat(response.data[0].last);
+            const changePercentage = parseFloat(response.data[0].change_percentage);
+            console.log('✅ Gate.io TON price:', tonPrice, 'Change:', changePercentage + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: changePercentage },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from Gate.io');
+    } catch (error) {
+        throw new Error(`Gate.io: ${error.message}`);
+    }
+}
+
+async function getBybitPrice() {
+    try {
+        console.log('🔄 Trying Bybit API...');
+        const response = await axios.get('https://api.bybit.com/v2/public/tickers?symbol=TONUSDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data.result && response.data.result[0]) {
+            const tonPrice = parseFloat(response.data.result[0].last_price);
+            const priceChangePercent = parseFloat(response.data.result[0].price_24h_pcnt) * 100;
+            console.log('✅ Bybit TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from Bybit');
+    } catch (error) {
+        throw new Error(`Bybit: ${error.message}`);
+    }
+}
+
+async function getCoinGeckoPrice() {
+    try {
+        console.log('🔄 Trying CoinGecko API...');
+        const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true', {
             timeout: 10000
         });
 
-        if (response.data && response.data.result) {
-            const balance = response.data.result.balance;
-
-            let tonBalance;
-            if (typeof balance === 'object' && balance.toString) {
-                tonBalance = TonWeb.utils.fromNano(balance.toString());
-            } else if (typeof balance === 'string') {
-                tonBalance = TonWeb.utils.fromNano(balance);
-            } else {
-                tonBalance = TonWeb.utils.fromNano(balance.toString());
-            }
-
-            console.log('✅ TON Balance fetched:', tonBalance);
+        const tonData = response.data['the-open-network'];
+        if (tonData && tonData.usd) {
+            console.log('✅ CoinGecko TON price:', tonData.usd, 'Change:', tonData.usd_24h_change + '%');
 
             return {
-                success: true,
-                balance: parseFloat(tonBalance).toFixed(4),
-                address: address,
-                rawBalance: balance.toString()
-            };
-        } else {
-            return {
-                success: true,
-                balance: "0",
-                address: address,
-                rawBalance: "0"
+                TON: { 
+                    price: tonData.usd, 
+                    change24h: tonData.usd_24h_change || 0 
+                },
+                NMX: { price: 0.10, change24h: 0 }
             };
         }
-
+        throw new Error('No price data from CoinGecko');
     } catch (error) {
-        console.error('❌ TON balance fetch failed:', error.message);
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            rawBalance: "0",
-            error: error.message
-        };
+        throw new Error(`CoinGecko: ${error.message}`);
     }
 }
 
-async function getNMXBalance(address) {
-    try {
-        console.log('🔄 ENHANCED NMX balance check for:', address);
-
-        const NMX_CONTRACTS = [
-            "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f",
-            "EQDcBvcg2WBPb8vQkArfS2fIZrzi2pFjnfJfZbsKp4rWVfQH"
-        ];
-
-        // Try different methods to get NMX balance
-        for (const contract of NMX_CONTRACTS) {
-            try {
-                const directBalance = await getDirectJettonBalance(address, contract);
-                if (directBalance && parseFloat(directBalance) > 0) {
-                    console.log('✅ DIRECT CONTRACT - NMX Balance:', directBalance, 'from contract:', contract);
-                    return {
-                        success: true,
-                        balance: parseFloat(directBalance).toFixed(2),
-                        address: address,
-                        source: 'direct_contract'
-                    };
-                }
-            } catch (directError) {
-                continue;
-            }
-        }
-
-        console.log('ℹ️ NMX not found via any method');
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            source: 'not_found'
-        };
-
-    } catch (error) {
-        console.error('Enhanced NMX balance check failed:', error);
-        return {
-            success: true,
-            balance: "0",
-            address: address,
-            error: error.message
-        };
-    }
-}
-
-async function getDirectJettonBalance(walletAddress, jettonContract) {
-    try {
-        const rawAddress = walletAddress.startsWith('EQ') ? 
-            walletAddress.replace('EQ', '0:') : walletAddress;
-
-        const response = await axios.post('https://toncenter.com/api/v2/runGetMethod', {
-            address: jettonContract,
-            method: 'get_wallet_address',
-            stack: [
-                ['tvm.Slice', TonWeb.utils.bytesToBase64(TonWeb.Address.parse(rawAddress).hash)]
-            ]
-        }, {
-            headers: { 'X-API-Key': process.env.TONCENTER_API_KEY },
-            timeout: 10000
-        });
-
-        if (response.data && response.data.result) {
-            const jettonWalletAddress = response.data.result[0];
-
-            const balanceResponse = await axios.post('https://toncenter.com/api/v2/runGetMethod', {
-                address: jettonWalletAddress,
-                method: 'get_wallet_data',
-                stack: []
-            }, {
-                headers: { 'X-API-Key': process.env.TONCENTER_API_KEY },
-                timeout: 10000
-            });
-
-            if (balanceResponse.data && balanceResponse.data.result) {
-                const balance = balanceResponse.data.result[0];
-                return TonWeb.utils.fromNano(balance);
-            }
-        }
-        return "0";
-    } catch (error) {
-        console.log('Direct jetton method failed:', error.message);
-        throw error;
-    }
-}
-
-async function getAllBalances(address) {
-    try {
-        console.log('🔍 [ENHANCED] getAllBalances called with address:', address);
-
-        const [tonBalance, nmxBalance] = await Promise.all([
-            getRealBalance(address),
-            getNMXBalance(address)
-        ]);
-
-        console.log('✅ ENHANCED Balances fetched for:', address);
-        console.log('✅ TON:', tonBalance.balance, 'TON');
-        console.log('✅ NMX:', nmxBalance.balance, 'NMX');
-        console.log('✅ NMX Source:', nmxBalance.source);
-
-        return {
-            success: true,
-            balances: {
-                TON: tonBalance.balance,
-                NMX: nmxBalance.balance
-            },
-            address: address,
-            nmxSource: nmxBalance.source
-        };
-
-    } catch (error) {
-        console.error('❌ Enhanced balances fetch failed:', error);
-        return {
-            success: false,
-            balances: {
-                TON: "0",
-                NMX: "0"
-            },
-            address: address,
-            error: error.message
-        };
-    }
+function getFallbackPrice() {
+    console.log('⚠️ Using fallback prices (all APIs failed)');
+    return {
+        TON: { price: 2.5, change24h: 1.2 },
+        NMX: { price: 0.10, change24h: 0 }
+    };
 }
 
 // =============================================
-// ALL YOUR EXISTING API ROUTES
+// COMPLETE API ROUTES - ALL MISSING PARTS FILLED
 // =============================================
 
 router.get('/test', (req, res) => {
@@ -682,8 +613,6 @@ router.get('/test', (req, res) => {
             'POST /generate-wallet (REAL TON)',
             'POST /store-wallet (SECURE)',
             'POST /import-wallet', 
-            'POST /import-wallet-simple',
-            'POST /import-wallet-select',
             'GET /real-balance/:address',
             'GET /nmx-balance/:address',
             'GET /all-balances/:address',
@@ -701,136 +630,218 @@ router.get('/test', (req, res) => {
 });
 
 // =============================================
-// KEEP ALL YOUR OTHER EXISTING ROUTES
+// REAL WALLET GENERATION
 // =============================================
 
-// ... (Keep all your existing routes for wallet generation, storage, user management, etc.)
-
-router.post('/store-wallet', async function(req, res) {
+router.post('/generate-wallet', async function(req, res) {
     try {
-        const { userId, address, publicKey, walletType, source, wordCount, derivationPath } = req.body;
+        const { userId, wordCount = 12 } = req.body;
+        console.log('🔄 REAL: Generating actual TON wallet...');
 
-        console.log('🔄 SECURE: Storing wallet in database (NO MNEMONIC)...');
-
-        if (!userId || !address) {
+        if (!userId) {
             return res.status(400).json({
                 success: false,
-                error: 'User ID and address are required'
+                error: 'User ID is required'
             });
         }
 
-        const { data, error } = await supabase
-            .from('user_wallets')
-            .insert([{
-                user_id: userId,
-                address: address,
-                public_key: publicKey || '',
-                wallet_type: walletType || 'TON',
-                source: source || 'generated',
-                word_count: wordCount || 12,
-                derivation_path: derivationPath || "m/44'/607'/0'/0'/0'",
-                created_at: new Date().toISOString()
-            }]);
-
-        if (error) {
-            console.error('Database insert error:', error);
-            return res.status(500).json({
+        if (wordCount !== 12 && wordCount !== 24) {
+            return res.status(400).json({
                 success: false,
-                error: 'Failed to store wallet: ' + error.message
+                error: 'Word count must be 12 or 24'
             });
         }
 
-        console.log('✅ SECURE: Wallet stored in database (no mnemonic):', address);
+        // ✅ REAL: Generate actual TON wallet
+        const mnemonic = bip39.generateMnemonic(wordCount === 12 ? 128 : 256);
+        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+
+        const WalletClass = tonweb.wallet.all.v4R2;
+        const wallet = new WalletClass(tonweb.provider, {
+            publicKey: keyPair.publicKey,
+            wc: 0
+        });
+
+        const walletAddress = await wallet.getAddress();
+        const address = walletAddress.toString(true, true, true);
+        const addressNonBounceable = walletAddress.toString(true, true, false);
+
+        console.log('✅ REAL TON Wallet generated:', address);
+
+        // Store wallet info (NO MNEMONIC)
+        try {
+            const { data, error } = await supabase
+                .from('user_wallets')
+                .insert([{
+                    user_id: userId,
+                    address: address,
+                    public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                    wallet_type: 'TON',
+                    source: 'generated',
+                    word_count: wordCount,
+                    derivation_path: "m/44'/607'/0'/0'/0'",
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (error) {
+                console.warn('⚠️ Supabase insert failed:', error.message);
+            } else {
+                console.log('✅ Real wallet saved to database');
+            }
+        } catch (dbError) {
+            console.warn('⚠️ Database error:', dbError.message);
+        }
 
         res.json({
             success: true,
-            message: 'Wallet stored securely',
             wallet: {
                 userId: userId,
                 address: address,
-                type: walletType || 'TON',
-                source: source || 'generated'
-            }
+                addressNonBounceable: addressNonBounceable,
+                publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                wordCount: wordCount,
+                type: 'TON',
+                source: 'generated',
+                derivationPath: "m/44'/607'/0'/0'/0'"
+            },
+            message: 'Real TON wallet generated successfully'
         });
 
     } catch (error) {
-        console.error('Secure wallet storage error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to store wallet: ' + error.message
+        console.error('Real wallet generation error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to generate wallet: ' + error.message 
         });
     }
 });
 
 // =============================================
-// HELPER FUNCTION TO SAVE WALLET (NO MNEMONIC)
+// WALLET MANAGEMENT ROUTES
 // =============================================
 
-async function saveAndReturnWallet(wallet, userId, mnemonic, wordCount, res) {
+router.get('/user-wallets/:userId', async function(req, res) {
     try {
+        const { userId } = req.params;
+        console.log('🔄 Fetching all wallets for user:', userId);
+
         const { data, error } = await supabase
             .from('user_wallets')
-            .insert([{
-                user_id: userId,
-                address: wallet.address,
-                public_key: wallet.publicKey,
-                wallet_type: 'TON',
-                source: 'imported',
-                word_count: wordCount,
-                derivation_path: wallet.path,
-                created_at: new Date().toISOString()
-            }]);
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
 
         if (error) {
-            console.warn('⚠️ Supabase insert failed:', error.message);
-        } else {
-            console.log('✅ Wallet saved to database (NO MNEMONIC)');
+            console.error('Database error:', error);
+            return res.status(500).json({ success: false, error: error.message });
         }
 
-        console.log('✅ Wallet imported securely:', wallet.address);
-        console.log('✅ Derivation path:', wallet.path);
+        console.log(`✅ Found ${data.length} wallets for user ${userId}`);
 
-        return res.json({
+        res.json({
             success: true,
-            wallet: { 
-                userId: userId,
+            wallets: data.map(wallet => ({
+                id: wallet.id,
+                userId: wallet.user_id,
                 address: wallet.address,
-                addressNonBounceable: wallet.addressNonBounceable,
-                type: 'TON',
-                source: 'imported',
-                wordCount: wordCount,
-                derivationPath: wallet.path
-            },
-            message: 'Wallet imported securely - recovery phrase not stored in database'
+                walletType: wallet.source === 'generated' ? 'new' : 'imported',
+                type: wallet.wallet_type,
+                source: wallet.source,
+                wordCount: wallet.word_count,
+                derivationPath: wallet.derivation_path,
+                createdAt: wallet.created_at
+            }))
         });
 
     } catch (error) {
-        console.error('Save wallet error:', error);
-        return res.status(500).json({ 
-            success: false, 
-            error: 'Failed to save wallet: ' + error.message 
-        });
+        console.error('Get user wallets error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
-}
+});
+
+router.post('/set-active-wallet', async function(req, res) {
+    try {
+        const { userId, address } = req.body;
+        console.log('🔄 Setting active wallet for user:', userId, 'address:', address);
+
+        const { data, error } = await supabase
+            .from('user_sessions')
+            .upsert({
+                user_id: userId,
+                active_wallet_address: address,
+                last_active: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
+            });
+
+        if (error) {
+            console.error('Session update error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        console.log('✅ Active wallet set:', address);
+
+        res.json({
+            success: true,
+            message: 'Active wallet set successfully'
+        });
+
+    } catch (error) {
+        console.error('Set active wallet error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+router.get('/active-wallet/:userId', async function(req, res) {
+    try {
+        const { userId } = req.params;
+        console.log('🔄 Getting active wallet for user:', userId);
+
+        const { data, error } = await supabase
+            .from('user_sessions')
+            .select('active_wallet_address')
+            .eq('user_id', userId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('Session fetch error:', error);
+            return res.status(500).json({ success: false, error: error.message });
+        }
+
+        const activeWalletAddress = data?.active_wallet_address;
+
+        if (activeWalletAddress) {
+            console.log('✅ Active wallet found:', activeWalletAddress);
+            res.json({
+                success: true,
+                activeWallet: activeWalletAddress
+            });
+        } else {
+            console.log('ℹ️ No active wallet found for user');
+            res.json({
+                success: true,
+                activeWallet: null
+            });
+        }
+
+    } catch (error) {
+        console.error('Get active wallet error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
 
 // =============================================
-// KEEP ALL YOUR OTHER EXISTING ROUTES
+// PRICE AND BALANCE ROUTES
 // =============================================
-
-// ... (Keep all your existing routes for prices, user wallets, active wallet, etc.)
 
 router.get('/token-prices', async function(req, res) {
     try {
-        // Your existing price logic
-        res.json({
-            success: true,
-            prices: {
-                TON: { price: 2.5, change24h: 1.2 },
-                NMX: { price: 0.10, change24h: 0 }
-            },
-            source: 'fallback'
-        });
+        const priceData = await getRealTokenPrices();
+        console.log(`🎯 Final price source: ${priceData.source}`);
+        res.json(priceData);
     } catch (error) {
+        console.error('Token prices endpoint failed:', error);
         res.status(500).json({ 
             success: false, 
             error: 'Failed to fetch token prices' 
@@ -841,6 +852,7 @@ router.get('/token-prices', async function(req, res) {
 router.get('/real-balance/:address', async function(req, res) {
     try {
         const { address } = req.params;
+        console.log('🔍 /real-balance called with:', address);
         const result = await getRealBalance(address);
         res.json(result);
     } catch (error) {
@@ -851,6 +863,7 @@ router.get('/real-balance/:address', async function(req, res) {
 router.get('/nmx-balance/:address', async function(req, res) {
     try {
         const { address } = req.params;
+        console.log('🔍 /nmx-balance called with:', address);
         const result = await getNMXBalance(address);
         res.json(result);
     } catch (error) {
@@ -861,6 +874,7 @@ router.get('/nmx-balance/:address', async function(req, res) {
 router.get('/all-balances/:address', async function(req, res) {
     try {
         const { address } = req.params;
+        console.log('🔍 /all-balances called with:', address);
         const result = await getAllBalances(address);
         res.json(result);
     } catch (error) {
@@ -868,6 +882,93 @@ router.get('/all-balances/:address', async function(req, res) {
     }
 });
 
-// ... (Keep all your other existing routes)
+router.get('/validate-address/:address', async function(req, res) {
+    try {
+        const { address } = req.params;
+        const isValid = address.startsWith('EQ') || address.startsWith('UQ');
+        res.json({ success: true, isValid: isValid, address: address });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+router.get('/supported-tokens', async function(req, res) {
+    try {
+        const tokens = [
+            {
+                symbol: "TON", name: "Toncoin", isNative: true, isFeatured: true,
+                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png",
+                price: 0, canSend: true
+            },
+            {
+                symbol: "NMX", name: "NemexCoin", isNative: false, isFeatured: true,
+                contract: NMX_CONTRACT,
+                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                price: 0, canSend: true
+            }
+        ];
+        res.json({ 
+            success: true, 
+            tokens: tokens, 
+            primaryToken: "TON"
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// =============================================
+// TRANSACTION HISTORY
+// =============================================
+
+router.get('/transaction-history/:address', async function(req, res) {
+    try {
+        const { address } = req.params;
+
+        console.log('🔄 PRODUCTION: Fetching real transaction history for:', address);
+
+        const transactions = await getRealTransactions(address);
+
+        res.json({
+            success: true,
+            transactions: transactions,
+            address: address
+        });
+
+    } catch (error) {
+        console.error('PRODUCTION Transaction history error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch transaction history: ' + error.message
+        });
+    }
+});
+
+async function getRealTransactions(address) {
+    try {
+        const response = await axios.get(`https://tonapi.io/v2/blockchain/accounts/${address}/transactions`, {
+            timeout: 10000
+        });
+
+        if (response.data && response.data.transactions) {
+            return response.data.transactions.map(tx => ({
+                hash: tx.hash,
+                type: tx.in_msg.source ? 'received' : 'sent',
+                amount: tx.in_msg.value ? TonWeb.utils.fromNano(tx.in_msg.value) : '0',
+                currency: 'TON',
+                from: tx.in_msg.source || '',
+                to: tx.in_msg.destination || '',
+                timestamp: new Date(tx.now * 1000).toISOString(),
+                status: 'completed',
+                memo: tx.in_msg.message || ''
+            })).slice(0, 20);
+        }
+
+        return [];
+    } catch (error) {
+        console.log('TON API transaction fetch failed:', error.message);
+        return [];
+    }
+}
 
 module.exports = router;
