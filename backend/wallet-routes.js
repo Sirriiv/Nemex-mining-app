@@ -195,10 +195,34 @@ router.post('/send-ton', async function(req, res) {
             });
         }
 
-        // ✅ FIX: Get seqno using the correct method
-        const seqno = await wallet.methods.seqno().call();
+        // ✅ FIX: Get seqno with proper error handling
+        let seqno;
+        try {
+            const seqnoResult = await wallet.methods.seqno().call();
+            console.log(`🔄 Raw seqno result:`, seqnoResult);
+            
+            // Handle different response formats
+            if (seqnoResult !== undefined && seqnoResult !== null) {
+                seqno = parseInt(seqnoResult);
+                if (isNaN(seqno)) {
+                    console.log('⚠️ Seqno is NaN, setting to 0');
+                    seqno = 0;
+                }
+            } else {
+                console.log('⚠️ Seqno is undefined/null, setting to 0');
+                seqno = 0;
+            }
+        } catch (seqnoError) {
+            console.log('⚠️ Seqno call failed, setting to 0:', seqnoError.message);
+            seqno = 0;
+        }
 
-        console.log(`🔄 Seqno: ${seqno}, Balance: ${TonWeb.utils.fromNano(balance)} TON`);
+        console.log(`🔄 Final Seqno: ${seqno}, Balance: ${TonWeb.utils.fromNano(balance)} TON`);
+
+        // ✅ FIX: Ensure seqno is a valid number
+        if (seqno < 0 || isNaN(seqno)) {
+            seqno = 0;
+        }
 
         const transfer = {
             secretKey: keyPair.secretKey,
@@ -283,8 +307,32 @@ router.post('/send-nmx', async function(req, res) {
         const walletAddress = await wallet.getAddress();
         const address = walletAddress.toString(true, true, true);
 
-        // ✅ FIX: Get seqno using the correct method
-        const seqno = await wallet.methods.seqno().call();
+        // ✅ FIX: Get seqno with proper error handling
+        let seqno;
+        try {
+            const seqnoResult = await wallet.methods.seqno().call();
+            console.log(`🔄 Raw seqno result:`, seqnoResult);
+            
+            // Handle different response formats
+            if (seqnoResult !== undefined && seqnoResult !== null) {
+                seqno = parseInt(seqnoResult);
+                if (isNaN(seqno)) {
+                    console.log('⚠️ Seqno is NaN, setting to 0');
+                    seqno = 0;
+                }
+            } else {
+                console.log('⚠️ Seqno is undefined/null, setting to 0');
+                seqno = 0;
+            }
+        } catch (seqnoError) {
+            console.log('⚠️ Seqno call failed, setting to 0:', seqnoError.message);
+            seqno = 0;
+        }
+
+        // ✅ FIX: Ensure seqno is a valid number
+        if (seqno < 0 || isNaN(seqno)) {
+            seqno = 0;
+        }
 
         const nmxJetton = new TonWeb.token.jetton.JettonMinter(tonweb.provider, {
             address: NMX_CONTRACT
@@ -325,8 +373,15 @@ router.post('/send-nmx', async function(req, res) {
 
         console.log('🔄 Broadcasting NMX transaction to blockchain...');
         
-        // ✅ FIX: Use jetton wallet transfer method
-        const result = await jettonWallet.methods.transfer(transferBody).send();
+        // ✅ FIX: Use jetton wallet transfer method with proper seqno
+        const result = await wallet.methods.transfer({
+            secretKey: keyPair.secretKey,
+            toAddress: jettonWalletAddress,
+            amount: TonWeb.utils.toNano('0.1'), // Gas for jetton transfer
+            seqno: seqno,
+            payload: transferBody,
+            sendMode: 3
+        }).send();
 
         if (!result) {
             throw new Error('NMX transaction failed - no result from blockchain');
