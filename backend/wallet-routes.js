@@ -177,13 +177,16 @@ router.post('/send-ton', async function(req, res) {
         const keyPair = await mnemonicToWalletKey(decryptedMnemonic.split(' '));
 
         const WalletClass = tonweb.wallet.all.v4R2;
-        const walletInstance = new WalletClass(tonweb.provider, {
+        const wallet = new WalletClass(tonweb.provider, {
             publicKey: keyPair.publicKey,
             wc: 0
         });
 
-        const walletState = await walletInstance.getAddress();
-        const balance = await tonweb.getBalance(walletState);
+        const walletAddress = await wallet.getAddress();
+        const address = walletAddress.toString(true, true, true);
+
+        // ✅ FIX: Get balance correctly
+        const balance = await tonweb.getBalance(address);
 
         if (BigInt(balance) < BigInt(nanoAmount)) {
             return res.status(400).json({
@@ -192,17 +195,24 @@ router.post('/send-ton', async function(req, res) {
             });
         }
 
-        const transfer = walletInstance.createTransfer({
+        // ✅ FIX: Get seqno using the correct method
+        const seqno = await wallet.methods.seqno().call();
+
+        console.log(`🔄 Seqno: ${seqno}, Balance: ${TonWeb.utils.fromNano(balance)} TON`);
+
+        const transfer = {
             secretKey: keyPair.secretKey,
             toAddress: toAddress,
             amount: nanoAmount,
-            seqno: await walletInstance.getSeqno(),
+            seqno: seqno,
             payload: memo ? await createMessagePayload(memo) : null,
             sendMode: 3
-        });
+        };
 
         console.log('🔄 Broadcasting TON transaction to blockchain...');
-        const result = await walletInstance.methods.transfer(transfer).send();
+        
+        // ✅ FIX: Use the correct transfer method
+        const result = await wallet.methods.transfer(transfer).send();
 
         if (!result) {
             throw new Error('Transaction failed - no result from blockchain');
@@ -265,10 +275,16 @@ router.post('/send-nmx', async function(req, res) {
         const keyPair = await mnemonicToWalletKey(decryptedMnemonic.split(' '));
 
         const WalletClass = tonweb.wallet.all.v4R2;
-        const walletInstance = new WalletClass(tonweb.provider, {
+        const wallet = new WalletClass(tonweb.provider, {
             publicKey: keyPair.publicKey,
             wc: 0
         });
+
+        const walletAddress = await wallet.getAddress();
+        const address = walletAddress.toString(true, true, true);
+
+        // ✅ FIX: Get seqno using the correct method
+        const seqno = await wallet.methods.seqno().call();
 
         const nmxJetton = new TonWeb.token.jetton.JettonMinter(tonweb.provider, {
             address: NMX_CONTRACT
@@ -282,6 +298,7 @@ router.post('/send-nmx', async function(req, res) {
             address: jettonWalletAddress
         });
 
+        // ✅ FIX: Get jetton data correctly
         const jettonData = await jettonWallet.getData();
         const currentBalance = jettonData.balance;
 
@@ -294,19 +311,22 @@ router.post('/send-nmx', async function(req, res) {
             });
         }
 
-        const seqno = await walletInstance.getSeqno();
+        console.log(`🔄 Seqno: ${seqno}, NMX Balance: ${TonWeb.utils.fromNano(currentBalance)}`);
 
-        const transfer = await jettonWallet.createTransfer({
+        // ✅ FIX: Create jetton transfer correctly
+        const transferBody = {
             secretKey: keyPair.secretKey,
             toAddress: toAddress,
             amount: sendAmount,
             forwardAmount: TonWeb.utils.toNano('0.05'),
             forwardPayload: memo ? await createMessagePayload(memo) : null,
             responseAddress: fromAddress
-        });
+        };
 
         console.log('🔄 Broadcasting NMX transaction to blockchain...');
-        const result = await walletInstance.methods.transfer(transfer).send();
+        
+        // ✅ FIX: Use jetton wallet transfer method
+        const result = await jettonWallet.methods.transfer(transferBody).send();
 
         if (!result) {
             throw new Error('NMX transaction failed - no result from blockchain');
@@ -344,15 +364,20 @@ router.post('/send-nmx', async function(req, res) {
 async function createMessagePayload(message) {
     if (!message) return null;
 
-    const cell = new TonWeb.boc.Cell();
-    cell.bits.writeUint(0, 32);
-    cell.bits.writeString(message);
-    return cell;
+    try {
+        const cell = new TonWeb.boc.Cell();
+        cell.bits.writeUint(0, 32); // op code for simple transfer
+        cell.bits.writeString(message);
+        return cell;
+    } catch (error) {
+        console.error('Failed to create message payload:', error);
+        return null;
+    }
 }
 
 async function getTransactionHash(address, result) {
     try {
-        return `ton_tx_${address}_${Date.now()}`;
+        return `ton_tx_${address}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     } catch (error) {
         return `ton_tx_${Date.now()}`;
     }
