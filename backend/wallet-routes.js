@@ -657,14 +657,34 @@ router.post('/send-nmx', async function(req, res) {
 
 async function decryptMnemonic(encryptedData) {
     try {
-        console.log('🔐 Decrypting mnemonic from base64...');
-        
-        // ✅ FIXED: Simple base64 decoding
+        console.log('🔐 Decrypting mnemonic...');
+        console.log('🔍 Received encryptedData type:', typeof encryptedData);
+        console.log('🔍 Received encryptedData:', encryptedData);
+
+        // ✅ FIXED: Handle both JSON object and base64 string
         if (typeof encryptedData === 'string') {
-            // It's already base64 encoded string
-            return decodeURIComponent(escape(atob(encryptedData)));
+            try {
+                // Try to parse as JSON first
+                const parsed = JSON.parse(encryptedData);
+                if (parsed.iv && parsed.data) {
+                    // It's a JSON encrypted object
+                    const decipher = crypto.createDecipheriv(
+                        'aes-256-gcm', 
+                        Buffer.from(ENCRYPTION_KEY, 'hex'), 
+                        Buffer.from(parsed.iv, 'hex')
+                    );
+                    decipher.setAuthTag(Buffer.from(parsed.authTag, 'hex'));
+                    let decrypted = decipher.update(parsed.data, 'hex', 'utf8');
+                    decrypted += decipher.final('utf8');
+                    return decrypted;
+                }
+            } catch (jsonError) {
+                // If JSON parsing fails, treat it as base64 string
+                console.log('🔄 Treating as base64 string...');
+                return decodeURIComponent(escape(atob(encryptedData)));
+            }
         } else if (encryptedData.iv && encryptedData.data) {
-            // It's complex encrypted object (fallback)
+            // It's already a JSON object
             const decipher = crypto.createDecipheriv(
                 'aes-256-gcm', 
                 Buffer.from(ENCRYPTION_KEY, 'hex'), 
@@ -675,10 +695,12 @@ async function decryptMnemonic(encryptedData) {
             decrypted += decipher.final('utf8');
             return decrypted;
         } else {
-            throw new Error('Invalid encrypted data format');
+            // Last resort: try direct base64 decode
+            console.log('🔄 Last resort: direct base64 decode');
+            return decodeURIComponent(escape(atob(encryptedData)));
         }
     } catch (error) {
-        console.error('❌ Decryption failed:', error);
+        console.error('❌ All decryption methods failed:', error);
         throw new Error('Failed to decrypt mnemonic: ' + error.message);
     }
 }
