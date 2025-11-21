@@ -489,7 +489,7 @@ router.get('/active-wallet/:userId', async function(req, res) {
 });
 
 // =============================================
-// BALANCE ENDPOINTS
+// BALANCE ENDPOINTS - FIXED VERSION
 // =============================================
 
 router.get('/real-balance/:address', async function(req, res) {
@@ -509,13 +509,13 @@ router.get('/real-balance/:address', async function(req, res) {
 
             res.json({
                 success: true,
-                balance: parseFloat(tonBalance).toFixed(4),
+                balance: parseFloat(tonBalance), // ✅ FIX: Return number, not string
                 address: address
             });
         } else {
             res.json({
                 success: true,
-                balance: "0",
+                balance: 0, // ✅ FIX: Return number 0
                 address: address
             });
         }
@@ -524,7 +524,7 @@ router.get('/real-balance/:address', async function(req, res) {
         console.error('Balance error:', error.message);
         res.json({
             success: true,
-            balance: "0",
+            balance: 0, // ✅ FIX: Return number 0
             address: req.params.address,
             error: error.message
         });
@@ -539,7 +539,7 @@ router.get('/nmx-balance/:address', async function(req, res) {
         // For now, return 0 as we need proper jetton implementation
         res.json({
             success: true,
-            balance: "0",
+            balance: 0, // ✅ FIX: Return number 0
             address: address,
             source: 'not_implemented'
         });
@@ -548,7 +548,7 @@ router.get('/nmx-balance/:address', async function(req, res) {
         console.error('NMX balance error:', error);
         res.json({
             success: true,
-            balance: "0",
+            balance: 0, // ✅ FIX: Return number 0
             address: req.params.address,
             error: error.message
         });
@@ -566,17 +566,17 @@ router.get('/all-balances/:address', async function(req, res) {
             timeout: 10000
         });
 
-        let tonBalance = "0";
+        let tonBalance = 0; // ✅ FIX: Initialize as number
         if (tonResponse.data && tonResponse.data.result) {
             const balance = tonResponse.data.result.balance;
-            tonBalance = TonWeb.utils.fromNano(balance.toString());
+            tonBalance = parseFloat(TonWeb.utils.fromNano(balance.toString()));
         }
 
         res.json({
             success: true,
             balances: {
-                TON: parseFloat(tonBalance).toFixed(4),
-                NMX: "0"
+                TON: tonBalance, // ✅ FIX: Return number
+                NMX: 0 // ✅ FIX: Return number
             },
             address: address
         });
@@ -586,8 +586,8 @@ router.get('/all-balances/:address', async function(req, res) {
         res.json({
             success: true,
             balances: {
-                TON: "0",
-                NMX: "0"
+                TON: 0, // ✅ FIX: Return number
+                NMX: 0  // ✅ FIX: Return number
             },
             address: req.params.address
         });
