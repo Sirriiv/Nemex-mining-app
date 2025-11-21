@@ -3855,8 +3855,7 @@ document.addEventListener('walletReady', function(event) {
         if (isValid) {
             validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address format</span>';
             addressInput.style.borderColor = 'var(--success)';
-            updateSendSummary();
-        } else {
+         } else {
             validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid TON address format</span>';
             addressInput.style.borderColor = 'var(--error)';
         }
@@ -3897,7 +3896,6 @@ document.addEventListener('walletReady', function(event) {
         updateUsdConversion();
 
         if (amount > 0 && toAddress) {
-            const isValid = validateSendAddress();
             const usdValue = (amount * currentTokenPrice).toLocaleString('en-US', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
