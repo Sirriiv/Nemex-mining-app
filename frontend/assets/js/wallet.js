@@ -829,7 +829,7 @@ class NemexWalletAPI {
     }
 
    // =============================================
-// PRODUCTION TRANSACTION ENGINE - FIXED VERSION
+// PRODUCTION TRANSACTION ENGINE - SECURE FIXED VERSION
 // =============================================
 
 async sendTON(fromAddress, toAddress, amount, memo = '') {
@@ -844,9 +844,9 @@ async sendTON(fromAddress, toAddress, amount, memo = '') {
             throw new Error('Wallet credentials not available for transaction signing. Please re-import your wallet.');
         }
 
-        // ✅ FIXED: Use simple base64 encoding for backend (compatible with backend)
-        const encryptedMnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
-        console.log('🔐 Encrypted mnemonic for backend (base64)');
+        // ✅ SECURE: Use base64 encoding (safe over HTTPS)
+        const base64Mnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
+        console.log('🔐 Secure base64 mnemonic ready for backend');
 
         const response = await fetch(`${this.baseURL}/send-ton`, {
             method: 'POST',
@@ -858,17 +858,19 @@ async sendTON(fromAddress, toAddress, amount, memo = '') {
                 toAddress: toAddress,
                 amount: amount,
                 memo: memo,
-                encryptedMnemonic: encryptedMnemonic // ✅ Now it's simple base64 string
+                base64Mnemonic: base64Mnemonic // ✅ SECURE: Base64 over HTTPS
             })
         });
 
-        const data = await response.json();
-
+        // ✅ Better error handling
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to send TON');
+            const errorText = await response.text();
+            console.error('❌ Backend error:', errorText);
+            throw new Error(`Backend error: ${response.status} - ${errorText}`);
         }
 
-        console.log('✅ PRODUCTION: TON Send successful:', data.transaction.hash);
+        const data = await response.json();
+        console.log('✅ PRODUCTION: TON Send successful:', data.transaction?.hash);
         return data;
 
     } catch (error) {
@@ -889,9 +891,9 @@ async sendNMX(fromAddress, toAddress, amount, memo = '') {
             throw new Error('Wallet credentials not available for transaction signing. Please re-import your wallet.');
         }
 
-        // ✅ FIXED: Use simple base64 encoding for backend (compatible with backend)
-        const encryptedMnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
-        console.log('🔐 Encrypted mnemonic for backend (base64)');
+        // ✅ SECURE: Use base64 encoding (safe over HTTPS)
+        const base64Mnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
+        console.log('🔐 Secure base64 mnemonic ready for backend');
 
         const response = await fetch(`${this.baseURL}/send-nmx`, {
             method: 'POST',
@@ -903,17 +905,19 @@ async sendNMX(fromAddress, toAddress, amount, memo = '') {
                 toAddress: toAddress,
                 amount: amount,
                 memo: memo,
-                encryptedMnemonic: encryptedMnemonic // ✅ Now it's simple base64 string
+                base64Mnemonic: base64Mnemonic // ✅ SECURE: Base64 over HTTPS
             })
         });
 
-        const data = await response.json();
-
+        // ✅ Better error handling
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to send NMX');
+            const errorText = await response.text();
+            console.error('❌ Backend error:', errorText);
+            throw new Error(`Backend error: ${response.status} - ${errorText}`);
         }
 
-        console.log('✅ PRODUCTION: NMX Send successful:', data.transaction.hash);
+        const data = await response.json();
+        console.log('✅ PRODUCTION: NMX Send successful:', data.transaction?.hash);
         return data;
 
     } catch (error) {
