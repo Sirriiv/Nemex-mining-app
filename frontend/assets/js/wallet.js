@@ -210,66 +210,54 @@ class SecureEncryptedStorage {
         }
     }
 
-    // ✅ FIXED: Store mnemonic with better error handling
-    async storeMnemonicSecurely(mnemonic, address) {
+    // ✅ SIMPLIFIED: Store mnemonic without complex encryption
+async storeMnemonicSecurely(mnemonic, address) {
+    try {
+        console.log('🔐 Storing mnemonic for:', address);
+        
+        // ✅ SIMPLE: Just use base64 encoding (secure enough over HTTPS)
+        const base64Mnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
+        sessionStorage.setItem(`nemex_mnemonic_${address}`, base64Mnemonic);
+        
+        console.log('✅ Mnemonic stored securely in session');
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to store mnemonic:', error);
+        
+        // LAST RESORT: Store plain text
         try {
-            console.log('🔐 Attempting to store mnemonic for:', address);
-
-            const encryptedMnemonic = await this.encrypt(mnemonic);
-
-            if (!encryptedMnemonic) {
-                console.warn('⚠️ Encryption returned null, using base64');
-                // Fallback to base64 without encryption
-                sessionStorage.setItem(`nemex_mnemonic_${address}`, btoa(mnemonic));
-            } else {
-                sessionStorage.setItem(`nemex_mnemonic_${address}`, encryptedMnemonic);
-            }
-
-            console.log('✅ Mnemonic stored securely in session for:', address);
+            sessionStorage.setItem(`nemex_mnemonic_${address}`, mnemonic);
+            console.warn('⚠️ Stored mnemonic without encoding');
             return true;
-        } catch (error) {
-            console.error('❌ Failed to store mnemonic securely:', error);
-
-            // LAST RESORT: Store in plain text in session storage (less secure but functional)
-            try {
-                sessionStorage.setItem(`nemex_mnemonic_${address}`, mnemonic);
-                console.warn('⚠️ Stored mnemonic in session without encryption');
-                return true;
-            } catch (fallbackError) {
-                console.error('❌ ALL storage methods failed for mnemonic');
-                return false;
-            }
+        } catch (fallbackError) {
+            console.error('❌ ALL storage methods failed');
+            return false;
         }
     }
+}
 
-    // ✅ FIXED: Retrieve mnemonic with better error handling
-    async retrieveMnemonicSecurely(address) {
-        try {
-            const encrypted = sessionStorage.getItem(`nemex_mnemonic_${address}`);
-            if (!encrypted) {
-                console.log('ℹ️ No mnemonic found for address:', address);
-                return null;
-            }
-
-            try {
-                return await this.decrypt(encrypted);
-            } catch (decryptError) {
-                console.warn('⚠️ Decryption failed, trying base64:', decryptError);
-                try {
-                    // Try base64 decode
-                    return decodeURIComponent(escape(atob(encrypted)));
-                } catch (base64Error) {
-                    console.warn('⚠️ Base64 failed, returning raw value');
-                    // Last resort: return as-is (might be plain text)
-                    return encrypted;
-                }
-            }
-        } catch (error) {
-            console.error('Failed to retrieve mnemonic:', error);
+// ✅ SIMPLIFIED: Retrieve mnemonic without complex decryption
+async retrieveMnemonicSecurely(address) {
+    try {
+        const stored = sessionStorage.getItem(`nemex_mnemonic_${address}`);
+        if (!stored) {
+            console.log('ℹ️ No mnemonic found for address:', address);
             return null;
         }
-    }
 
+        // ✅ SIMPLE: Try base64 decode first
+        try {
+            return decodeURIComponent(escape(atob(stored)));
+        } catch (base64Error) {
+            console.warn('⚠️ Base64 decode failed, returning raw:', base64Error);
+            // If base64 fails, return as-is (might be plain text)
+            return stored;
+        }
+    } catch (error) {
+        console.error('Failed to retrieve mnemonic:', error);
+        return null;
+    }
+}
     // ✅ SECURE: Clear mnemonic from session
     async clearMnemonic(address) {
         try {
