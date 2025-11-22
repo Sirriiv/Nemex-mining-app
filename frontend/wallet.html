@@ -3032,64 +3032,93 @@ setTimeout(debugWalletConnection, 2000);
         }
 
         function updatePortfolioValue() {
-            // Wait a tiny bit to ensure token data is fully updated
-            setTimeout(() => {
-                const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-                
-                // Calculate total portfolio value
-                const totalUSD = allTokens.reduce((sum, token) => {
-                    const balance = parseFloat(token.balance) || 0;
-                    const price = parseFloat(token.price) || 0;
-                    const tokenValue = balance * price;
-                    
-                    return sum + tokenValue;
-                }, 0);
-
-                console.log('💰 Total portfolio value:', totalUSD);
-
-                const balanceAmount = document.getElementById('balanceAmount');
-                const balanceCrypto = document.getElementById('balanceCrypto');
-                const balanceLoading = document.getElementById('balanceLoading');
-
-                if (balanceAmount) {
-                    balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
-                }
-                if (balanceCrypto) {
-                    balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
-                }
-                if (balanceLoading) {
-                    balanceLoading.style.display = 'none';
-                }
-                if (balanceAmount) {
-                    balanceAmount.style.display = 'inline';
-                }
-                if (balanceCrypto) {
-                    balanceCrypto.style.display = 'inline';
-                }
-            }, 100);
-        }
-
-        function stabilizePortfolioDisplay() {
-            console.log('🔄 Stabilizing portfolio display...');
+    // Wait a tiny bit to ensure token data is fully updated
+    setTimeout(() => {
+        const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+        
+        // Calculate total portfolio value
+        const totalUSD = allTokens.reduce((sum, token) => {
+            const balance = parseFloat(token.balance) || 0;
+            const price = parseFloat(token.price) || 0;
+            const tokenValue = balance * price;
             
-            // Get current calculated value
-            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-            const totalUSD = allTokens.reduce((sum, token) => {
-                return sum + ((token.balance || 0) * (token.price || 0));
-            }, 0);
-            
-            const balanceAmount = document.getElementById('balanceAmount');
-            const balanceCrypto = document.getElementById('balanceCrypto');
-            
-            if (balanceAmount && balanceCrypto) {
-                // Set both elements to the same value
-                const displayValue = `$${totalUSD.toFixed(2)}`;
-                balanceAmount.textContent = displayValue;
-                balanceCrypto.textContent = displayValue;
-                
-                console.log('🔒 Portfolio stabilized at:', displayValue);
+            return sum + tokenValue;
+        }, 0);
+
+        console.log('💰 Total portfolio value:', totalUSD);
+
+        const balanceAmount = document.getElementById('balanceAmount');
+        const balanceCrypto = document.getElementById('balanceCrypto');
+        const balanceLoading = document.getElementById('balanceLoading');
+
+        if (balanceAmount) {
+            // ✅ FIXED: Better precision for small amounts
+            let displayValue;
+            if (totalUSD < 0.01) {
+                // Show more precision for very small amounts
+                displayValue = `$${totalUSD.toFixed(6)}`;
+            } else if (totalUSD < 1) {
+                // Show 4 decimal places for amounts under $1
+                displayValue = `$${totalUSD.toFixed(4)}`;
+            } else {
+                // Normal formatting for amounts $1 and above
+                displayValue = `$${totalUSD.toFixed(2)}`;
             }
+            balanceAmount.textContent = displayValue;
         }
+        if (balanceCrypto) {
+            // ✅ FIXED: Same precision logic
+            let displayValue;
+            if (totalUSD < 0.01) {
+                displayValue = `$${totalUSD.toFixed(6)}`;
+            } else if (totalUSD < 1) {
+                displayValue = `$${totalUSD.toFixed(4)}`;
+            } else {
+                displayValue = `$${totalUSD.toFixed(2)}`;
+            }
+            balanceCrypto.textContent = displayValue;
+        }
+        if (balanceLoading) {
+            balanceLoading.style.display = 'none';
+        }
+        if (balanceAmount) {
+            balanceAmount.style.display = 'inline';
+        }
+        if (balanceCrypto) {
+            balanceCrypto.style.display = 'inline';
+        }
+    }, 100);
+}
+
+function stabilizePortfolioDisplay() {
+    console.log('🔄 Stabilizing portfolio display...');
+    
+    // Get current calculated value
+    const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+    const totalUSD = allTokens.reduce((sum, token) => {
+        return sum + ((token.balance || 0) * (token.price || 0));
+    }, 0);
+    
+    const balanceAmount = document.getElementById('balanceAmount');
+    const balanceCrypto = document.getElementById('balanceCrypto');
+    
+    if (balanceAmount && balanceCrypto) {
+        // ✅ FIXED: Same precision logic as updatePortfolioValue
+        let displayValue;
+        if (totalUSD < 0.01) {
+            displayValue = `$${totalUSD.toFixed(6)}`;
+        } else if (totalUSD < 1) {
+            displayValue = `$${totalUSD.toFixed(4)}`;
+        } else {
+            displayValue = `$${totalUSD.toFixed(2)}`;
+        }
+        
+        balanceAmount.textContent = displayValue;
+        balanceCrypto.textContent = displayValue;
+        
+        console.log('🔒 Portfolio stabilized at:', displayValue);
+    }
+}
 
         function loadTokens() {
             const tokenList = document.getElementById('tokenList');
