@@ -3079,26 +3079,44 @@ async function updateRealBalances() {
         // =============================================
 
         function updateWalletDisplay() {
-            const welcomeScreen = document.getElementById('welcomeScreen');
-            const balanceSection = document.getElementById('balanceSection');
-            const actionButtons = document.getElementById('actionButtons');
-            const tokenSection = document.getElementById('tokenSection');
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const balanceSection = document.getElementById('balanceSection');
+    const actionButtons = document.getElementById('actionButtons');
+    const tokenSection = document.getElementById('tokenSection');
+    const container = document.querySelector('.container');
 
-            if (walletState.isInitialized) {
-                if (welcomeScreen) welcomeScreen.style.display = 'none';
-                if (balanceSection) balanceSection.style.display = 'block';
-                if (actionButtons) actionButtons.style.display = 'grid';
-                if (tokenSection) tokenSection.style.display = 'block';
-                updatePortfolioValue();
-            } else {
-                if (welcomeScreen) welcomeScreen.style.display = 'block';
-                if (balanceSection) balanceSection.style.display = 'none';
-                if (actionButtons) actionButtons.style.display = 'none';
-                if (tokenSection) tokenSection.style.display = 'none';
-            }
-
-            updateWalletList();
+    if (walletState.isInitialized) {
+        // Add wallet-loaded class to body for CSS targeting
+        document.body.classList.add('wallet-loaded');
+        if (container) container.classList.add('wallet-loaded');
+        
+        if (welcomeScreen) welcomeScreen.style.display = 'none';
+        if (balanceSection) balanceSection.style.display = 'block';
+        if (actionButtons) actionButtons.style.display = 'grid';
+        if (tokenSection) {
+            tokenSection.style.display = 'block';
+            tokenSection.style.opacity = '1';
+            tokenSection.style.visibility = 'visible';
         }
+        
+        updatePortfolioValue();
+        
+        // Force tokens to load
+        setTimeout(() => {
+            loadTokens();
+        }, 100);
+    } else {
+        document.body.classList.remove('wallet-loaded');
+        if (container) container.classList.remove('wallet-loaded');
+        
+        if (welcomeScreen) welcomeScreen.style.display = 'block';
+        if (balanceSection) balanceSection.style.display = 'none';
+        if (actionButtons) actionButtons.style.display = 'none';
+        if (tokenSection) tokenSection.style.display = 'none';
+    }
+
+    updateWalletList();
+}
 
         function updatePortfolioValue() {
             const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
