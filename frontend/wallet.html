@@ -2483,55 +2483,95 @@ setTimeout(debugWalletConnection, 2000);
         // =============================================
 
         async function initWallet() {
-            console.log('🔄 Initializing wallet with session management...');
+    console.log('🔄 Initializing wallet with session management...');
 
-            if (!window.nemexWalletAPI) {
-                console.error('❌ Wallet API not available');
-                showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
-                return;
-            }
+    // Wait for the API to be available
+    if (!window.nemexWalletAPI) {
+        console.error('❌ Wallet API not available');
+        showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
+        return;
+    }
 
-            const apiReady = await window.nemexWalletAPI.init();
-            if (!apiReady) {
-                showStatusMessage('❌ Cannot connect to wallet server', 'error');
-                return;
-            }
+    // Initialize API
+    const apiReady = await window.nemexWalletAPI.init();
+    if (!apiReady) {
+        showStatusMessage('❌ Cannot connect to wallet server', 'error');
+        return;
+    }
 
-            const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
+    console.log('✅ Wallet API initialized, checking for active session...');
 
-            if (hasActiveSession) {
-                const currentWallet = window.nemexWalletAPI.getStoredWallet();
-                if (currentWallet) {
-                    walletState = {
-                        isInitialized: true,
-                        walletType: currentWallet.source || 'imported',
-                        userId: currentWallet.userId,
-                        address: currentWallet.address,
-                        balances: {},
-                        lastUpdate: null
-                    };
+    // Check if we have an active session
+    const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
 
-                    console.log('✅ Session restored:', walletState.address);
-                    updateWalletDisplay();
-                    updateRealBalances();
-                    await loadUserWallets();
-                }
+    if (hasActiveSession) {
+        console.log('🎯 Active session found, restoring wallet...');
+        
+        try {
+            const currentWallet = window.nemexWalletAPI.getStoredWallet();
+            console.log('📋 Stored wallet data:', currentWallet);
+
+            if (currentWallet && currentWallet.address) {
+                walletState = {
+                    isInitialized: true,
+                    walletType: currentWallet.source || 'imported',
+                    userId: currentWallet.userId,
+                    address: currentWallet.address,
+                    balances: {},
+                    lastUpdate: null
+                };
+
+                console.log('✅ Session restored:', walletState.address);
+                
+                // Immediately update the UI
+                updateWalletDisplay();
+                
+                // Load balances and user wallets
+                await updateRealBalances();
+                await loadUserWallets();
+                
+                showStatusMessage('✅ Welcome back! Your wallet is ready.', 'success');
             } else {
-                console.log('ℹ️ No active session found');
+                console.log('❌ No valid wallet data in session');
+                showStatusMessage('⚠️ Please select or create a wallet', 'warning');
             }
-
-            console.log('🚀 Wallet initialization complete');
+        } catch (error) {
+            console.error('❌ Error restoring session:', error);
+            showStatusMessage('❌ Error restoring your session', 'error');
         }
+    } else {
+        console.log('ℹ️ No active session found, showing welcome screen');
+        // Don't show error - just show welcome screen naturally
+    }
 
-        async function loadUserWallets() {
-            try {
-                userWallets = await window.nemexWalletAPI.getUserWallets();
-                console.log(`✅ Loaded ${userWallets.length} user wallets`);
-                updateWalletList();
-            } catch (error) {
-                console.error('Failed to load user wallets:', error);
-            }
-        }
+    console.log('🚀 Wallet initialization complete');
+}
+
+async function loadUserWallets() {
+    try {
+        userWallets = await window.nemexWalletAPI.getUserWallets();
+        console.log(`✅ Loaded ${userWallets.length} user wallets`);
+        updateWalletList();
+    } catch (error) {
+        console.error('Failed to load user wallets:', error);
+    }
+}
+
+// Auto-refresh when page becomes visible again
+document.addEventListener('visibilitychange', function() {
+    if (!document.hidden && walletState.isInitialized) {
+        console.log('🔄 Page became visible, refreshing wallet data...');
+        updateRealBalances();
+    }
+});
+
+// Also refresh when the page gains focus
+window.addEventListener('focus', function() {
+    if (walletState.isInitialized) {
+        console.log('🔄 Page focused, refreshing wallet data...');
+        setTimeout(updateRealBalances, 1000);
+    }
+});
 
         // =============================================
         // WALLET SELECTION FOR MULTI-PATH IMPORT
