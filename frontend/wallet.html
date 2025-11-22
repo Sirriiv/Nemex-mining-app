@@ -2186,6 +2186,46 @@
             }
         ];
 
+// =============================================
+// DEBUG: Wallet Connection Issues
+// =============================================
+
+async function debugWalletConnection() {
+    console.log('🔍 DEBUG: Checking wallet connection...');
+    
+    // Check wallet state
+    console.log('📊 walletState:', walletState);
+    
+    // Check if API is available
+    console.log('🔌 window.nemexWalletAPI:', window.nemexWalletAPI);
+    console.log('🔌 API initialized:', window.nemexWalletAPI?.isInitialized);
+    
+    if (window.nemexWalletAPI && walletState.address) {
+        try {
+            // Test API connection
+            console.log('🧪 Testing API calls...');
+            
+            const balanceTest = await window.nemexWalletAPI.getAllBalances(walletState.address);
+            console.log('💰 Balance API response:', balanceTest);
+            
+            const priceTest = await window.nemexWalletAPI.getTokenPrices();
+            console.log('💵 Price API response:', priceTest);
+            
+            const storedWallet = await window.nemexWalletAPI.getStoredWallet();
+            console.log('👛 Stored wallet:', storedWallet);
+            
+        } catch (error) {
+            console.error('❌ API test failed:', error);
+        }
+    } else {
+        console.log('❌ Wallet API or address not available');
+    }
+}
+
+// Run debug after page loads
+setTimeout(debugWalletConnection, 2000);
+
+
         // =============================================
         // INITIALIZATION & ERROR HANDLING
         // =============================================
