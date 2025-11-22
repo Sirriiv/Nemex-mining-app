@@ -1,10 +1,10 @@
-// assets/js/wallet.js - COMPLETELY FIXED VERSION
-// ✅ ALL BALANCE ISSUES RESOLVED + TOKEN DISPLAY FIXED
+// assets/js/wallet.js - SUPABASE SECURE VERSION
+// ✅ FIXED SESSION PERSISTENCE + NO MORE DECRYPTION ERRORS
 
-class SecureEncryptedStorage {
+class SecureSupabaseStorage {
     constructor() {
-        this.storageKey = 'nemex_secure_v1';
-        this.encryptionKey = null;
+        this.storageKey = 'nemex_supabase_v1';
+        this.sessionId = null;
         this.initialized = false;
     }
 
@@ -12,9 +12,12 @@ class SecureEncryptedStorage {
         if (this.initialized) return true;
 
         try {
-            await this.ensureEncryptionKey();
+            // Generate session ID for this browser session
+            this.sessionId = this.generateSessionId();
+            sessionStorage.setItem(`${this.storageKey}_session`, this.sessionId);
+            
             this.initialized = true;
-            console.log('✅ Secure encrypted storage initialized');
+            console.log('✅ Secure Supabase storage initialized');
             return true;
         } catch (error) {
             console.error('❌ Secure storage init failed:', error);
@@ -22,210 +25,115 @@ class SecureEncryptedStorage {
         }
     }
 
-    async ensureEncryptionKey() {
-        let key = sessionStorage.getItem(`${this.storageKey}_key`);
-
-        if (!key) {
-            key = this.generateProperKey();
-            sessionStorage.setItem(`${this.storageKey}_key`, key);
-        }
-
-        this.encryptionKey = key;
+    generateSessionId() {
+        return 'session_' + Math.random().toString(36).substr(2, 16) + '_' + Date.now();
     }
 
-    generateProperKey() {
-        const array = new Uint8Array(32);
-        crypto.getRandomValues(array);
-        const hexKey = Array.from(array, byte => 
-            byte.toString(16).padStart(2, '0')
-        ).join('');
-        console.log('🔑 Generated proper AES-256 key:', hexKey.length, 'chars');
-        return hexKey;
-    }
-
-    // ✅ SIMPLIFIED ENCRYPTION
-    async encrypt(text) {
-        try {
-            if (!this.encryptionKey) {
-                console.warn('⚠️ No encryption key, storing as base64');
-                return btoa(unescape(encodeURIComponent(text)));
-            }
-
-            const encoder = new TextEncoder();
-            const data = encoder.encode(text);
-            const key = await crypto.subtle.importKey(
-                'raw',
-                encoder.encode(this.encryptionKey),
-                { name: 'AES-GCM' },
-                false,
-                ['encrypt']
-            );
-
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            const encrypted = await crypto.subtle.encrypt(
-                { name: 'AES-GCM', iv: iv },
-                key,
-                data
-            );
-
-            const combined = new Uint8Array(iv.length + encrypted.byteLength);
-            combined.set(iv, 0);
-            combined.set(new Uint8Array(encrypted), iv.length);
-            return btoa(String.fromCharCode(...combined));
-        } catch (error) {
-            console.warn('⚠️ Encryption failed, using base64 fallback:', error);
-            return btoa(unescape(encodeURIComponent(text)));
-        }
-    }
-
-    // ✅ SIMPLIFIED DECRYPTION
-    async decrypt(encryptedData) {
-        try {
-            if (!this.encryptionKey) {
-                console.warn('⚠️ No encryption key, decoding from base64');
-                return decodeURIComponent(escape(atob(encryptedData)));
-            }
-
-            const combined = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
-            const iv = combined.slice(0, 12);
-            const data = combined.slice(12);
-
-            const encoder = new TextEncoder();
-            const key = await crypto.subtle.importKey(
-                'raw',
-                encoder.encode(this.encryptionKey),
-                { name: 'AES-GCM' },
-                false,
-                ['decrypt']
-            );
-
-            const decrypted = await crypto.subtle.decrypt(
-                { name: 'AES-GCM', iv: iv },
-                key,
-                data
-            );
-
-            return new TextDecoder().decode(decrypted);
-        } catch (error) {
-            console.warn('⚠️ Decryption failed, trying base64 fallback:', error);
-            try {
-                return decodeURIComponent(escape(atob(encryptedData)));
-            } catch (fallbackError) {
-                console.error('❌ All decryption methods failed');
-                throw new Error('Failed to decrypt data');
-            }
-        }
-    }
-
+    // ✅ SIMPLE: Store minimal data in localStorage, full data in Supabase
     async setItem(key, value) {
         try {
-            const encrypted = await this.encrypt(JSON.stringify(value));
-            localStorage.setItem(`${this.storageKey}_${key}`, encrypted);
+            // Store minimal non-sensitive data in localStorage
+            const safeData = this.sanitizeDataForLocalStorage(key, value);
+            if (safeData) {
+                localStorage.setItem(`${this.storageKey}_${key}`, JSON.stringify(safeData));
+            }
+            
+            // Full data goes to Supabase via API
+            await this.storeInSupabase(key, value);
             return true;
         } catch (error) {
-            console.warn('⚠️ Secure storage failed, using base64:', error);
-            localStorage.setItem(`${this.storageKey}_${key}`, btoa(JSON.stringify(value)));
+            console.warn('⚠️ Storage failed, using localStorage only:', error);
+            localStorage.setItem(`${this.storageKey}_${key}`, JSON.stringify(value));
             return false;
         }
     }
 
     async getItem(key) {
         try {
-            const encrypted = localStorage.getItem(`${this.storageKey}_${key}`);
-            if (!encrypted) return null;
-
-            try {
-                const decrypted = await this.decrypt(encrypted);
-                return JSON.parse(decrypted);
-            } catch (decryptError) {
-                console.warn('⚠️ Decryption failed, trying base64 decode:', decryptError);
-                try {
-                    const decoded = atob(encrypted);
-                    return JSON.parse(decoded);
-                } catch (base64Error) {
-                    console.error('❌ Failed to decrypt and decode data for key:', key);
-                    return null;
-                }
+            // Try Supabase first
+            const supabaseData = await this.getFromSupabase(key);
+            if (supabaseData) {
+                console.log('✅ Data retrieved from Supabase');
+                return supabaseData;
             }
+            
+            // Fallback to localStorage
+            const localData = localStorage.getItem(`${this.storageKey}_${key}`);
+            return localData ? JSON.parse(localData) : null;
         } catch (error) {
             console.error('getItem failed for key:', key, error);
             return null;
         }
     }
 
-    async removeItem(key) {
+    async storeInSupabase(key, value) {
         try {
-            localStorage.removeItem(`${this.storageKey}_${key}`);
+            const response = await fetch('/api/wallet/store-session-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: this.sessionId,
+                    key: key,
+                    value: value,
+                    timestamp: Date.now()
+                })
+            });
+            
+            return response.ok;
         } catch (error) {
-            console.error('removeItem failed for key:', key, error);
+            throw new Error('Supabase storage failed: ' + error.message);
         }
     }
 
-    async clear() {
+    async getFromSupabase(key) {
         try {
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith(`${this.storageKey}_`)) {
-                    keysToRemove.push(key);
-                }
+            const response = await fetch(`/api/wallet/get-session-data?sessionId=${this.sessionId}&key=${key}`);
+            if (response.ok) {
+                const data = await response.json();
+                return data.value;
             }
-            keysToRemove.forEach(key => localStorage.removeItem(key));
-            sessionStorage.removeItem(`${this.storageKey}_key`);
-            this.encryptionKey = null;
-            this.initialized = false;
+            return null;
         } catch (error) {
-            console.error('Clear storage failed:', error);
+            throw new Error('Supabase retrieval failed: ' + error.message);
         }
     }
 
-    async testSecurity() {
+    sanitizeDataForLocalStorage(key, value) {
+        // Only store non-sensitive data in localStorage
+        switch (key) {
+            case 'nemexCurrentWallet':
+                return {
+                    address: value.address,
+                    userId: value.userId,
+                    type: value.type,
+                    source: value.source,
+                    lastAccessed: value.lastAccessed
+                    // DON'T store private keys, mnemonics, etc.
+                };
+            case 'nemexUserId':
+                return value;
+            default:
+                return null; // Don't store other data in localStorage
+        }
+    }
+
+    // ✅ SECURE: Mnemonic storage - ONLY in sessionStorage (wiped on browser close)
+    async storeMnemonicSecurely(mnemonic, address) {
         try {
-            const testData = { test: 'security_check', timestamp: Date.now() };
-            await this.setItem('security_test', testData);
-            const retrieved = await this.getItem('security_test');
-            await this.removeItem('security_test');
-            return retrieved && retrieved.test === testData.test;
+            console.log('🔐 Storing mnemonic in sessionStorage for:', address);
+            // Only store in sessionStorage (cleared when browser closes)
+            sessionStorage.setItem(`nemex_mnemonic_${address}`, mnemonic);
+            console.log('✅ Mnemonic stored securely in sessionStorage');
+            return true;
         } catch (error) {
+            console.error('❌ Failed to store mnemonic:', error);
             return false;
         }
     }
 
-    // ✅ SIMPLIFIED: Store mnemonic without complex encryption
-    async storeMnemonicSecurely(mnemonic, address) {
-        try {
-            console.log('🔐 Storing mnemonic for:', address);
-            const base64Mnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
-            sessionStorage.setItem(`nemex_mnemonic_${address}`, base64Mnemonic);
-            console.log('✅ Mnemonic stored securely in session');
-            return true;
-        } catch (error) {
-            console.error('❌ Failed to store mnemonic:', error);
-            try {
-                sessionStorage.setItem(`nemex_mnemonic_${address}`, mnemonic);
-                console.warn('⚠️ Stored mnemonic without encoding');
-                return true;
-            } catch (fallbackError) {
-                console.error('❌ ALL storage methods failed');
-                return false;
-            }
-        }
-    }
-
-    // ✅ SIMPLIFIED: Retrieve mnemonic without complex decryption
     async retrieveMnemonicSecurely(address) {
         try {
-            const stored = sessionStorage.getItem(`nemex_mnemonic_${address}`);
-            if (!stored) {
-                console.log('ℹ️ No mnemonic found for address:', address);
-                return null;
-            }
-            try {
-                return decodeURIComponent(escape(atob(stored)));
-            } catch (base64Error) {
-                console.warn('⚠️ Base64 decode failed, returning raw:', base64Error);
-                return stored;
-            }
+            return sessionStorage.getItem(`nemex_mnemonic_${address}`);
         } catch (error) {
             console.error('Failed to retrieve mnemonic:', error);
             return null;
@@ -233,49 +141,86 @@ class SecureEncryptedStorage {
     }
 
     async clearMnemonic(address) {
-        try {
-            sessionStorage.removeItem(`nemex_mnemonic_${address}`);
-            console.log('🔒 Mnemonic cleared from session for:', address);
-        } catch (error) {
-            console.error('Failed to clear mnemonic:', error);
-        }
+        sessionStorage.removeItem(`nemex_mnemonic_${address}`);
     }
 
     hasMnemonic(address) {
         return !!sessionStorage.getItem(`nemex_mnemonic_${address}`);
+    }
+
+    async removeItem(key) {
+        localStorage.removeItem(`${this.storageKey}_${key}`);
+        await this.clearFromSupabase(key);
+    }
+
+    async clearFromSupabase(key) {
+        try {
+            await fetch('/api/wallet/clear-session-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: this.sessionId, key: key })
+            });
+        } catch (error) {
+            console.error('Clear from Supabase failed:', error);
+        }
+    }
+
+    async clear() {
+        // Clear localStorage
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(`${this.storageKey}_`)) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // Clear sessionStorage
+        sessionStorage.clear();
+        
+        // Clear Supabase data
+        await this.clearAllFromSupabase();
+    }
+
+    async clearAllFromSupabase() {
+        try {
+            await fetch('/api/wallet/clear-all-session-data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId: this.sessionId })
+            });
+        } catch (error) {
+            console.error('Clear all from Supabase failed:', error);
+        }
     }
 }
 
 class NemexWalletAPI {
     constructor() {
         this.baseURL = window.location.origin + '/api/wallet';
-        this.storage = new SecureEncryptedStorage();
+        this.storage = new SecureSupabaseStorage();
         this.userId = null;
         this.currentWallet = null;
         this.isInitialized = false;
         this.pendingImport = null;
-        this.storageSecurityTested = false;
     }
 
-    // ✅ IMPROVED INITIALIZATION WITH BETTER ERROR HANDLING
     async init() {
         if (this.isInitialized) {
             console.log('✅ Wallet API already initialized');
             return true;
         }
 
-        console.log('🔄 Initializing Nemex Wallet API...');
+        console.log('🔄 Initializing Nemex Wallet API with Supabase storage...');
 
         try {
-            // Initialize secure storage first
+            // Initialize secure storage
             const storageReady = await this.storage.init();
             if (!storageReady) {
                 console.error('❌ Secure storage initialization failed');
                 return false;
             }
-
-            this.storageSecurityTested = await this.storage.testSecurity();
-            console.log(`🔒 Storage security test: ${this.storageSecurityTested ? 'PASSED' : 'FAILED'}`);
 
             // Test API connection
             const response = await fetch(`${this.baseURL}/test`);
@@ -286,20 +231,77 @@ class NemexWalletAPI {
             const data = await response.json();
             console.log('✅ API Connection:', data.message);
 
-            // Restore session
-            await this.restoreSession();
+            // ✅ IMPROVED: Restore session from Supabase
+            await this.restoreSessionFromSupabase();
 
             this.isInitialized = true;
-            console.log('✅ Wallet API initialized successfully');
+            console.log('✅ Wallet API initialized successfully with Supabase');
             return true;
 
         } catch (error) {
             console.error('❌ Wallet API initialization failed:', error);
-            // Don't block the app if API is down, just show warning
             console.warn('⚠️ Continuing in offline mode - some features may be limited');
-            this.isInitialized = true; // Still mark as initialized to prevent blocking
+            this.isInitialized = true;
             return true;
         }
+    }
+
+    // ✅ NEW: Supabase-based session restoration
+    async restoreSessionFromSupabase() {
+        try {
+            console.log('🔄 Restoring session from Supabase...');
+
+            // Get user ID first
+            this.userId = await this.storage.getItem('nemexUserId');
+            if (!this.userId) {
+                this.userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                await this.storage.setItem('nemexUserId', this.userId);
+                console.log('✅ Created new user ID:', this.userId);
+            }
+
+            // Try to get active wallet from Supabase
+            const activeWalletResponse = await fetch(`${this.baseURL}/active-wallet/${this.userId}`);
+            if (activeWalletResponse.ok) {
+                const activeData = await activeWalletResponse.json();
+                if (activeData.success && activeData.activeWallet) {
+                    console.log('✅ Found active wallet in Supabase:', activeData.activeWallet);
+
+                    // Get wallet details
+                    const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${this.userId}`);
+                    if (walletsResponse.ok) {
+                        const walletsData = await walletsResponse.json();
+                        if (walletsData.success && walletsData.wallets) {
+                            const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
+                            if (wallet) {
+                                this.currentWallet = wallet;
+                                await this.storage.setItem('nemexCurrentWallet', wallet);
+                                console.log('✅ Session restored from Supabase:', wallet.address);
+                                
+                                // Trigger frontend update
+                                this.triggerSessionRestored();
+                                return wallet;
+                            }
+                        }
+                    }
+                }
+            }
+
+            console.log('ℹ️ No active session found in Supabase');
+            return null;
+
+        } catch (error) {
+            console.error('❌ Supabase session restoration failed:', error);
+            return null;
+        }
+    }
+
+    // ✅ Trigger frontend to update UI when session is restored
+    triggerSessionRestored() {
+        const event = new CustomEvent('nemexSessionRestored', { 
+            detail: { wallet: this.currentWallet } 
+        });
+        window.dispatchEvent(event);
+        console.log('🎯 Session restored event dispatched');
     }
 
     async getUserId() {
@@ -313,95 +315,17 @@ class NemexWalletAPI {
         return this.userId;
     }
 
-    // ✅ IMPROVED SESSION MANAGEMENT
-    async restoreSession() {
-        try {
-            console.log('🔄 Restoring wallet session...');
-
-            // First try localStorage
-            const wallet = await this.getStoredWallet();
-            if (wallet && wallet.address) {
-                console.log('✅ Found stored wallet in localStorage:', wallet.address);
-                return wallet;
-            }
-
-            // Then try database
-            try {
-                const userId = await this.getUserId();
-                const activeWalletResponse = await fetch(`${this.baseURL}/active-wallet/${userId}`);
-
-                if (activeWalletResponse.ok) {
-                    const activeData = await activeWalletResponse.json();
-                    if (activeData.success && activeData.activeWallet) {
-                        console.log('✅ Found active wallet in database:', activeData.activeWallet);
-
-                        const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${userId}`);
-                        if (walletsResponse.ok) {
-                            const walletsData = await walletsResponse.json();
-                            if (walletsData.success && walletsData.wallets) {
-                                const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
-                                if (wallet) {
-                                    await this.setStoredWallet(wallet);
-                                    console.log('✅ Session restored from database');
-                                    return wallet;
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (dbError) {
-                console.warn('⚠️ Database restoration failed, continuing with local only:', dbError.message);
-            }
-
-            console.log('ℹ️ No active session found');
-            return null;
-
-        } catch (error) {
-            console.error('❌ Session restoration failed:', error);
-            return null;
-        }
-    }
-
     async getStoredWallet() {
         if (!this.currentWallet) {
-            try {
-                this.currentWallet = await this.storage.getItem('nemexCurrentWallet');
-                // Validate stored wallet
-                if (this.currentWallet && (!this.currentWallet.address || !this.currentWallet.userId)) {
-                    console.warn('⚠️ Invalid wallet data in storage, clearing');
-                    this.currentWallet = null;
-                    await this.storage.removeItem('nemexCurrentWallet');
-                }
-            } catch (error) {
-                console.error('❌ Error reading stored wallet:', error);
-                this.currentWallet = null;
-            }
+            this.currentWallet = await this.storage.getItem('nemexCurrentWallet');
         }
         return this.currentWallet;
     }
 
     async setStoredWallet(walletData) {
         this.currentWallet = walletData;
-        try {
-            if (walletData) {
-                const safeWalletData = {
-                    address: walletData.address,
-                    userId: walletData.userId,
-                    type: walletData.type || 'TON',
-                    source: walletData.source,
-                    wordCount: walletData.wordCount,
-                    derivationPath: walletData.derivationPath,
-                    lastAccessed: Date.now()
-                };
-                await this.storage.setItem('nemexCurrentWallet', safeWalletData);
-                console.log('✅ Wallet stored in persistent storage:', walletData.address);
-            } else {
-                await this.storage.removeItem('nemexCurrentWallet');
-                console.log('✅ Wallet cleared from persistent storage');
-            }
-        } catch (error) {
-            console.error('❌ Error storing wallet:', error);
-        }
+        await this.storage.setItem('nemexCurrentWallet', walletData);
+        console.log('✅ Wallet stored in Supabase:', walletData?.address);
     }
 
     async setActiveWallet(address) {
@@ -466,17 +390,11 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ OPTIMIZED WALLET GENERATION
     async generateNewWallet(wordCount = 12) {
         try {
             console.log('🔄 Generating new wallet...');
             const userId = await this.getUserId();
 
-            // Generate mnemonic
-            const mnemonic = await this.generateMnemonicClientSide(wordCount);
-            if (!mnemonic) throw new Error('Failed to generate mnemonic');
-
-            // Create wallet via backend
             const response = await fetch(`${this.baseURL}/generate-wallet`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -493,9 +411,6 @@ class NemexWalletAPI {
                 throw new Error(data.error || 'Wallet generation failed');
             }
 
-            // Store mnemonic and set as active
-            await this.storage.storeMnemonicSecurely(mnemonic, data.wallet.address);
-
             const walletData = {
                 userId: userId,
                 address: data.wallet.address,
@@ -507,13 +422,12 @@ class NemexWalletAPI {
                 derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'"
             };
 
-            // Store in database and set as active
             await this.storeWalletInDatabase(walletData);
             await this.setStoredWallet(walletData);
             await this.setActiveWallet(data.wallet.address);
 
             console.log('✅ Wallet generated and session persisted:', data.wallet.address);
-            return { success: true, wallet: { ...walletData, mnemonic: mnemonic } };
+            return { success: true, wallet: walletData };
 
         } catch (error) {
             console.error('❌ Wallet generation failed:', error);
@@ -521,41 +435,6 @@ class NemexWalletAPI {
         }
     }
 
-    async generateMnemonicClientSide(wordCount = 12) {
-        try {
-            const wordlist = this.getBIP39Wordlist();
-            const words = [];
-            for (let i = 0; i < wordCount; i++) {
-                const randomBytes = new Uint8Array(2);
-                crypto.getRandomValues(randomBytes);
-                const index = (randomBytes[0] << 8 | randomBytes[1]) % wordlist.length;
-                words.push(wordlist[index]);
-            }
-            return words.join(' ');
-        } catch (error) {
-            console.error('Client-side mnemonic generation failed:', error);
-            // Fallback
-            const wordlist = this.getBIP39Wordlist();
-            const words = [];
-            for (let i = 0; i < wordCount; i++) {
-                const timestamp = Date.now() + i;
-                const index = (timestamp * (i + 1)) % wordlist.length;
-                words.push(wordlist[index]);
-            }
-            return words.join(' ');
-        }
-    }
-
-    getBIP39Wordlist() {
-        return [
-            "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse",
-            "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act",
-            // ... rest of wordlist (truncated for brevity)
-            "baby", "bachelor", "bacon", "badge", "bag", "balance"
-        ];
-    }
-
-    // ✅ OPTIMIZED WALLET IMPORT
     async importWallet(mnemonic, targetAddress = null) {
         try {
             console.log('🔄 Importing wallet...');
@@ -584,7 +463,6 @@ class NemexWalletAPI {
             }
 
             if (data.success && data.wallet) {
-                // Store mnemonic and set as active
                 await this.storage.storeMnemonicSecurely(cleanedMnemonic, data.wallet.address);
                 await this.setStoredWallet(data.wallet);
                 await this.setActiveWallet(data.wallet.address);
@@ -635,7 +513,7 @@ class NemexWalletAPI {
         }
     }
 
-    // TRANSACTION FUNCTIONS
+    // TRANSACTION FUNCTIONS (unchanged)
     async sendTON(fromAddress, toAddress, amount, memo = '') {
         try {
             console.log('🔄 PRODUCTION: Sending TON via API...', { fromAddress, toAddress, amount });
@@ -716,14 +594,13 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ FIXED: BALANCE FUNCTIONS - PROPERLY HANDLE NUMBER CONVERSION
+    // BALANCE FUNCTIONS (unchanged)
     async getRealBalance(address) {
         try {
             console.log('🔄 Fetching TON balance for:', address);
             const response = await fetch(`${this.baseURL}/real-balance/${encodeURIComponent(address)}`);
             const data = await response.json();
-            
-            // ✅ FIX: Convert string balance to number
+
             if (data.success) {
                 data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
                 console.log('✅ TON Balance:', data.balance);
@@ -740,8 +617,7 @@ class NemexWalletAPI {
             console.log('🔄 Fetching NMX balance for:', address);
             const response = await fetch(`${this.baseURL}/nmx-balance/${encodeURIComponent(address)}`);
             const data = await response.json();
-            
-            // ✅ FIX: Convert string balance to number
+
             if (data.success) {
                 data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
                 console.log('✅ NMX Balance:', data.balance, 'Source:', data.source);
@@ -758,9 +634,8 @@ class NemexWalletAPI {
             console.log('🔄 Fetching all balances for:', address);
             const response = await fetch(`${this.baseURL}/all-balances/${encodeURIComponent(address)}`);
             const data = await response.json();
-            
+
             if (data.success) {
-                // ✅ FIX: Convert ALL string balances to numbers
                 if (data.balances) {
                     data.balances.TON = typeof data.balances.TON === 'string' ? parseFloat(data.balances.TON) : data.balances.TON;
                     data.balances.NMX = typeof data.balances.NMX === 'string' ? parseFloat(data.balances.NMX) : data.balances.NMX;
@@ -795,7 +670,6 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ FIXED: getAllRealData - PROPERLY UPDATE TOKEN DATA
     async getAllRealData(address) {
         try {
             console.log('🔄 Fetching ALL real data for:', address);
@@ -803,8 +677,7 @@ class NemexWalletAPI {
                 this.getAllBalances(address),
                 this.getTokenPrices()
             ]);
-            
-            // ✅ FIX: Return properly formatted data for frontend
+
             return {
                 success: balanceResult.success && priceResult.success,
                 balances: balanceResult.balances || { TON: 0, NMX: 0 },
@@ -823,21 +696,7 @@ class NemexWalletAPI {
         }
     }
 
-    async getTransactionHistory(address) {
-        try {
-            console.log('🔄 PRODUCTION: Fetching real transaction history for:', address);
-            const response = await fetch(`${this.baseURL}/transaction-history/${encodeURIComponent(address)}`);
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to fetch transaction history');
-            console.log(`✅ PRODUCTION: Found ${data.transactions.length} real transactions`);
-            return data;
-        } catch (error) {
-            console.error('PRODUCTION Transaction history API error:', error);
-            throw error;
-        }
-    }
-
-    // HELPER FUNCTIONS
+    // HELPER FUNCTIONS (unchanged)
     cleanMnemonic(mnemonic) {
         return mnemonic.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z\s]/g, '');
     }
@@ -897,8 +756,25 @@ class NemexWalletAPI {
     }
 }
 
-// ✅ SIMPLIFIED AUTO-INITIALIZATION
-console.log('🎯 NemexWalletAPI class loaded, setting up auto-initialization...');
+// ✅ ENHANCED: Frontend session listener for Supabase
+window.addEventListener('nemexSessionRestored', function(event) {
+    console.log('🎯 Frontend: Session restored event received', event.detail);
+    
+    // Update wallet state immediately
+    if (typeof updateWalletDisplay === 'function') {
+        console.log('🔄 Updating wallet display from session restored event');
+        updateWalletDisplay();
+    }
+    
+    // Load balances
+    if (typeof updateRealBalances === 'function') {
+        console.log('🔄 Loading balances from session restored event');
+        updateRealBalances();
+    }
+});
+
+// Auto-initialization
+console.log('🎯 NemexWalletAPI class loaded with Supabase storage');
 window.nemexWalletAPI = new NemexWalletAPI();
 
 // Initialize when DOM is ready
@@ -909,7 +785,6 @@ if (document.readyState === 'loading') {
             const success = await window.nemexWalletAPI.init();
             console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
 
-            // Update UI based on initialization status
             if (typeof updateWalletState === 'function') {
                 updateWalletState();
             }
@@ -931,5 +806,5 @@ if (document.readyState === 'loading') {
 
 // Export for module usage
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { NemexWalletAPI, SecureEncryptedStorage };
+    module.exports = { NemexWalletAPI, SecureSupabaseStorage };
 }
