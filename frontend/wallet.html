@@ -3274,13 +3274,51 @@ function stabilizePortfolioDisplay() {
         }
 
         function showSendModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                return;
-            }
-            const sendModal = document.getElementById('sendModal');
-            if (sendModal) sendModal.style.display = 'flex';
-        }
+    if (!walletState.isInitialized) {
+        showStatusMessage('Please create or import a wallet first', 'error');
+        return;
+    }
+
+    console.log('🔄 Opening send modal, wallet state:', walletState);
+
+    // Reset and initialize form
+    document.getElementById('sendToAddress').value = '';
+    document.getElementById('sendAmount').value = '';
+    document.getElementById('sendMemo').value = '';
+    document.getElementById('sendStatus').innerHTML = '';
+    document.getElementById('sendSummary').style.display = 'none';
+    document.getElementById('addressValidation').innerHTML = '';
+
+    // Ensure dropdown is closed
+    document.getElementById('tokenDropdown').style.display = 'none';
+    document.getElementById('dropdownArrow').style.transform = 'rotate(0deg)';
+
+    // ✅ CRITICAL: Force update balances BEFORE showing modal
+    updateSendBalances();
+    updateFeeDisplay();
+    updateDropdownBalances();
+
+    // ✅ Add debug logging
+    debugTokenBalances();
+
+    const sendModal = document.getElementById('sendModal');
+    if (sendModal) {
+        sendModal.style.display = 'flex';
+        sendModal.style.animation = 'slideInUp 0.3s ease-out';
+        console.log('✅ Send modal opened with balances updated');
+    }
+}
+
+// Debug function to check token balances
+function debugTokenBalances() {
+    console.log('🔍 DEBUG: Checking all token balances:');
+    SUPPORTED_TOKENS.forEach(token => {
+        console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
+    });
+    
+    const currentToken = SUPPORTED_TOKENS.find(t => t.symbol === currentSendToken);
+    console.log('🔍 Current send token:', currentToken);
+}
 
         function showReceiveModal() {
     if (!walletState.isInitialized || !walletState.address) {
@@ -3411,26 +3449,42 @@ function stabilizePortfolioDisplay() {
         }
 
         function updateSendBalances() {
-            const token = SUPPORTED_TOKENS.find(t => t.symbol === currentSendToken);
-            currentTokenBalance = token ? token.balance : 0;
-            currentTokenPrice = token ? token.price : 0;
+    console.log('🔄 updateSendBalances called for token:', currentSendToken);
+    
+    const token = SUPPORTED_TOKENS.find(t => t.symbol === currentSendToken);
+    currentTokenBalance = token ? token.balance : 0;
+    currentTokenPrice = token ? token.price : 0;
 
-            const balanceElement = document.getElementById('remainingBalance');
-            const tokenElement = document.getElementById('remainingToken');
+    console.log('📊 Token data:', {
+        symbol: currentSendToken,
+        balance: currentTokenBalance,
+        price: currentTokenPrice
+    });
 
-            if (balanceElement && tokenElement) {
-                balanceElement.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    balanceElement.style.transform = 'scale(1)';
-                }, 300);
+    const balanceElement = document.getElementById('remainingBalance');
+    const tokenElement = document.getElementById('remainingToken');
 
-                balanceElement.textContent = formatTokenBalance(currentTokenBalance);
-                tokenElement.textContent = currentSendToken;
-            }
+    if (balanceElement && tokenElement) {
+        // Animate balance change
+        balanceElement.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            balanceElement.style.transform = 'scale(1)';
+        }, 300);
 
-            updateDropdownBalances();
-            updateUsdConversion();
-        }
+        balanceElement.textContent = formatTokenBalance(currentTokenBalance);
+        tokenElement.textContent = currentSendToken;
+        
+        console.log('✅ Updated available balance:', currentTokenBalance, currentSendToken);
+    } else {
+        console.error('❌ Balance elements not found:', {
+            balanceElement: balanceElement,
+            tokenElement: tokenElement
+        });
+    }
+
+    updateDropdownBalances();
+    updateUsdConversion();
+}
 
         function updateUsdConversion() {
             const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
