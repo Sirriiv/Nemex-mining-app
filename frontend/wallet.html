@@ -1018,7 +1018,7 @@
             text-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
         }
 
-        /* Card Footer Final */
+        /* Card Footer Final - UPDATED: Only Copy Icon, No Chip */
         .card-footer-final {
             position: relative;
             z-index: 2;
@@ -1028,7 +1028,7 @@
             margin-top: 10px;
         }
 
-        /* Copy Indicator */
+        /* Copy Indicator - UPDATED: More Visible */
         .copy-indicator {
             display: flex;
             align-items: center;
@@ -1080,7 +1080,7 @@
             opacity: 0.4;
         }
 
-        /* Circular Actions Section */
+        /* Circular Actions Section - UPDATED: Closer to Card */
         .circular-actions-section {
             padding: 20px 24px 40px;
         }
@@ -1172,21 +1172,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* FIXED: Ensure proper display when wallet is loaded */
-        .wallet-loaded #welcomeScreen {
-            display: none !important;
-        }
-
-        .wallet-loaded #balanceSection,
-        .wallet-loaded #actionButtons,
-        .wallet-loaded #tokenSection {
-            display: block !important;
-        }
-
-        .wallet-loaded .action-buttons {
-            display: grid !important;
-        }
-
         /* Mobile & Laptop Compatibility */
         @media (max-width: 480px) {
             .wallet-card-center-section {
@@ -1276,13 +1261,132 @@
                 height: 16px;
             }
         }
+
+        /* ============================================= */
+        /* ENHANCED SEND MODAL DROPDOWN STYLES */
+        /* ============================================= */
+
+        /* Enhanced Dropdown Styles */
+        .custom-dropdown {
+            position: relative;
+            z-index: 1000;
+        }
+
+        .dropdown-selected:hover {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.1) 100%) !important;
+            border-color: rgba(212, 175, 55, 0.5) !important;
+        }
+
+        .token-option:hover {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%) !important;
+        }
+
+        /* Scrollbar styling for dropdown */
+        .dropdown-options::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 3px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-thumb:hover {
+            background: var(--gold-light);
+        }
+
+        /* Animation for dropdown */
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-options {
+            animation: slideInUp 0.2s ease-out;
+        }
+
+        /* Enhanced form input focus states */
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold) !important;
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1) !important;
+            transform: translateY(-1px);
+            transition: all 0.3s ease;
+        }
+
+        /* Enhanced button hover effects */
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
+            transition: all 0.3s ease;
+        }
+
+        /* Modal entrance animation */
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        /* ============================================= */
+        /* FIXED: Token Display Issues */
+        /* ============================================= */
+
+        #tokenSection {
+            display: block !important;
+        }
+
+        .token-list {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 8px !important;
+        }
+
+        .token-card {
+            display: flex !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Ensure wallet sections show properly when wallet is loaded */
+        .wallet-loaded #welcomeScreen {
+            display: none !important;
+        }
+
+        .wallet-loaded #balanceSection,
+        .wallet-loaded #actionButtons,
+        .wallet-loaded #tokenSection {
+            display: block !important;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header class="header">
-            <div class="wallet-name">Nemex Wallet</div>
+            <div class="wallet-name">
+                Nemex Wallet
+            </div>
         </header>
 
         <!-- Session Status (HIDDEN) -->
@@ -1392,7 +1496,9 @@
                 <div class="security-warning">
                     <strong>⚠️ IMPORTANT:</strong> You will generate a 12-word recovery phrase. Store it securely!
                 </div>
+
                 <div id="createWalletStatus"></div>
+
                 <button class="close-modal" onclick="checkAndGenerateWallet()" id="generateWalletBtn">
                     Generate New Wallet
                 </button>
@@ -1407,11 +1513,23 @@
                 <div class="security-warning">
                     <strong>🔑 Enter your 12 or 24-word recovery phrase:</strong>
                 </div>
+
                 <div class="form-group">
                     <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
                               class="form-textarea" rows="4"></textarea>
                 </div>
+
+                <div class="form-group">
+                    <label class="form-label">Target Wallet Address (Optional)</label>
+                    <input type="text" id="targetAddress" class="form-input" 
+                           placeholder="EQ... (if you know which address to import)">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        If you know your Tonkeeper address, enter it here for automatic detection
+                    </div>
+                </div>
+
                 <div id="importWalletStatus"></div>
+
                 <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
                     Import Wallet
                 </button>
@@ -1419,21 +1537,494 @@
             </div>
         </div>
 
-        <!-- Send Modal -->
-        <div id="sendModal" class="modal">
+        <!-- Wallet Selection Modal -->
+        <div id="walletSelectionModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Send Assets</div>
-                <div class="form-group">
-                    <label class="form-label">Recipient Address</label>
-                    <input type="text" id="sendToAddress" class="form-input" placeholder="EQ...">
+                <div class="modal-title">Multiple Wallets Found</div>
+                <div class="security-warning">
+                    <strong>🔍 We found multiple wallets from your recovery phrase.</strong><br>
+                    Please select the one that matches your Tonkeeper wallet:
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Amount</label>
-                    <input type="number" id="sendAmount" class="form-input" placeholder="0.00" step="0.000001">
+
+                <div class="wallet-selection-list" id="walletSelectionList">
+                    <!-- Wallet options will be populated here -->
                 </div>
-                <div id="sendStatus"></div>
-                <button class="close-modal" onclick="confirmSendTransaction()">Send</button>
+
+                <div id="walletSelectionStatus"></div>
+
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Backup Modal -->
+        <div id="backupModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">🔒 Backup Your Wallet</div>
+                <div class="security-warning">
+                    <strong>⚠️ CRITICAL:</strong> Write down these 12 words and store them securely. Never share them!
+                </div>
+
+                <div class="mnemonic-words" id="mnemonicWords"></div>
+
+                <div class="backup-confirmation">
+                    <div class="confirmation-checkbox">
+                        <input type="checkbox" id="backupConfirmed" onchange="toggleContinueButton()">
+                        <label for="backupConfirmed"> I have written down my recovery phrase and stored it securely</label>
+                    </div>
+                    <div class="security-warning">
+                        <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
+                        We don't store your recovery phrase and cannot recover it for you.
+                    </div>
+                </div>
+
+                <button class="close-modal" id="confirmBackupBtn" onclick="confirmBackupAndContinue()" disabled>
+                     Continue to Dashboard
+                </button>
+
+                <div class="security-warning" style="margin-top: 15px; text-align: center;">
+                    <strong>🔒 Your wallet is not active until you confirm backup</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced View Seed Phrase Modal - Fullscreen -->
+        <div id="viewSeedModal" class="modal fullscreen">
+            <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh;">
+                <!-- Premium Header -->
+                <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
+                    <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                            <button onclick="closeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                            <div>
+                                <div class="modal-title" style="color: var(--gold); font-size: 24px; font-weight: 700; margin: 0;">Recovery Phrase</div>
+                                <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Your wallet's secret backup phrase</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 32px 24px; max-width: 500px; margin: 0 auto; width: 100%;">
+                    <!-- Critical Security Warning -->
+                    <div class="security-warning" style="background: rgba(255, 68, 68, 0.1); border: 1px solid var(--error); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            <div style="width: 24px; height: 24px; background: var(--error); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <svg style="width: 14px; height: 14px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div style="font-size: 16px; color: var(--error); font-weight: 700; margin-bottom: 8px;">CRITICAL SECURITY WARNING</div>
+                                <div style="font-size: 14px; color: var(--text); line-height: 1.5;">
+                                    • <strong>Never share</strong> your recovery phrase with anyone<br>
+                                    • <strong>Never enter</strong> it on any website or app<br>
+                                    • <strong>Store securely</strong> offline - we cannot recover it for you<br>
+                                    • Anyone with these words can access your funds
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mnemonic Words Display -->
+                    <div class="mnemonic-words" id="viewSeedWords" style="grid-template-columns: 1fr 1fr 1fr; gap: 12px; background: rgba(212, 175, 55, 0.05); border: 2px solid rgba(212, 175, 55, 0.2); padding: 24px; border-radius: 16px; margin: 24px 0;"></div>
+
+                    <!-- Copy Button -->
+                    <button onclick="copySeedPhrase()" style="width: 100%; background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--dark-bg); border: none; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-bottom: 16px;">
+                         Copy Recovery Phrase
+                    </button>
+
+                    <!-- Close Button -->
+                    <button class="close-modal secondary" onclick="closeModal()" style="width: 100%; background: transparent; border: 2px solid rgba(212, 175, 55, 0.4); color: var(--gold); padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease;">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal - FULL SCREEN -->
+        <div id="settingsModal" class="modal fullscreen">
+            <div class="modal-content">
+                <div class="modal-title">Settings</div>
+
+                <!-- Wallet Management Section -->
+                <div class="wallet-management-section">
+                    <div class="wallet-management-header" onclick="toggleWalletManagement()">
+                        <div class="wallet-management-title">
+                            <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            Wallet Management
+                        </div>
+                        <div class="wallet-management-arrow">▼</div>
+                    </div>
+
+                    <div class="wallet-management-content" id="walletManagementContent">
+                        <div class="wallet-list" id="walletList">
+                            <!-- Wallets will be loaded from database -->
+                        </div>
+
+                        <div class="settings-option" onclick="showCreateWalletModal()">
+                            <div class="settings-option-content">
+                                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                <div>Create New Wallet</div>
+                            </div>
+                        </div>
+
+                        <div class="settings-option" onclick="showImportWalletModal()">
+                            <div class="settings-option-content">
+                                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                                </svg>
+                                <div>Import Wallet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Seed Phrase Option -->
+                <div class="settings-option" onclick="showViewSeedPhrase()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        <div>View Recovery Phrase</div>
+                    </div>
+                </div>
+
+                <!-- Logout Option -->
+                <div class="settings-option" onclick="logout()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        <div>Logout</div>
+                    </div>
+                </div>
+
+                <div class="security-warning">
+                    <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
+                </div>
+
+                <button class="close-modal" onclick="closeModal()">Close Settings</button>
+            </div>
+        </div>
+
+        <!-- Refined Send Modal with Tonkeeper-style Sizing -->
+        <div id="sendModal" class="modal fullscreen">
+            <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
+                <!-- Premium Header with Close Button -->
+                <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 16px 20px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
+                    <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                            <button onclick="closeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                            <div>
+                                <div class="modal-title" style="color: var(--gold); font-size: 20px; font-weight: 700; margin: 0;">Send Assets</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Securely transfer your tokens</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 24px 20px; max-width: 440px; margin: 0 auto; width: 100%;">
+                    <!-- Token Selector - Refined Size -->
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            SELECT TOKEN
+                        </label>
+
+                        <!-- Custom Dropdown Container -->
+                        <div class="custom-dropdown" style="position: relative;">
+                            <!-- Selected Token Display -->
+                            <div class="dropdown-selected" onclick="toggleTokenDropdown()" 
+                                 style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                        border: 2px solid rgba(212, 175, 55, 0.3); 
+                                        padding: 16px; 
+                                        border-radius: 12px;
+                                        cursor: pointer;
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 12px;
+                                        transition: all 0.3s ease;
+                                        min-height: 60px;">
+                                <img id="selectedTokenLogo" src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
+                                     style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;"
+                                     onerror="handleTokenLogoError(this, 'TON')">
+                                <div style="flex: 1;">
+                                    <div id="selectedTokenName" style="font-size: 16px; font-weight: 700; color: var(--text);">Toncoin</div>
+                                    <div id="selectedTokenSymbol" style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">TON</div>
+                                </div>
+                                <svg id="dropdownArrow" style="width: 20px; height: 20px; color: var(--gold); transition: transform 0.3s ease;" 
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </div>
+
+                            <!-- Dropdown Options -->
+                            <div id="tokenDropdown" class="dropdown-options" 
+                                 style="display: none; 
+                                        position: absolute; 
+                                        top: 100%; 
+                                        left: 0; 
+                                        right: 0; 
+                                        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+                                        border: 2px solid rgba(212, 175, 55, 0.3);
+                                        border-top: none;
+                                        border-radius: 0 0 12px 12px;
+                                        margin-top: -2px;
+                                        z-index: 1000;
+                                        max-height: 200px;
+                                        overflow-y: auto;
+                                        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);">
+
+                                <!-- TON Option -->
+                                <div class="token-option" onclick="selectToken('TON', 'Toncoin', 'https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png')"
+                                     style="padding: 16px; 
+                                            cursor: pointer; 
+                                            display: flex; 
+                                            align-items: center; 
+                                            gap: 12px;
+                                            transition: all 0.3s ease;
+                                            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                                            min-height: 60px;">
+                                    <img src="https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png" 
+                                         style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;"
+                                         onerror="handleTokenLogoError(this, 'TON')">
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 16px; font-weight: 700; color: var(--text);">Toncoin</div>
+                                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">TON</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 14px; font-weight: 700; color: var(--text);" id="tonBalanceDropdown">0.00</div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">Balance</div>
+                                    </div>
+                                </div>
+
+                                <!-- NMX Option -->
+                                <div class="token-option" onclick="selectToken('NMX', 'NemexCoin', 'https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1')"
+                                     style="padding: 16px; 
+                                            cursor: pointer; 
+                                            display: flex; 
+                                            align-items: center; 
+                                            gap: 12px;
+                                            transition: all 0.3s ease;
+                                            min-height: 60px;">
+                                    <img src="https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1" 
+                                         style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;"
+                                         onerror="handleTokenLogoError(this, 'NMX')">
+                                    <div style="flex: 1;">
+                                        <div style="font-size: 16px; font-weight: 700; color: var(--text);">NemexCoin</div>
+                                        <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">NMX</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 14px; font-weight: 700; color: var(--text);" id="nmxBalanceDropdown">0.00</div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">Balance</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Address Input - Refined Size -->
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                            </svg>
+                            RECIPIENT ADDRESS
+                        </label>
+                        <div style="display: flex; gap: 12px; align-items: flex-start;">
+                            <div style="flex: 1; position: relative;">
+                                <input type="text" id="sendToAddress" class="form-input" 
+                                       placeholder="Enter wallet address (EQ...)"
+                                       style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                              border: 2px solid rgba(212, 175, 55, 0.3); 
+                                              color: var(--text); 
+                                              padding: 14px 16px;
+                                              border-radius: 12px;
+                                              font-family: 'Courier New', monospace;
+                                              font-size: 14px;
+                                              transition: all 0.3s ease;
+                                              min-height: 48px;
+                                              width: 100%;">
+                            </div>
+                            <button type="button" onclick="pasteAddress()" 
+                                    style="background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); 
+                                           color: var(--dark-bg); 
+                                           border: none; 
+                                           padding: 14px 18px; 
+                                           border-radius: 12px; 
+                                           font-weight: 700; 
+                                           cursor: pointer; 
+                                           white-space: nowrap;
+                                           font-size: 14px;
+                                           transition: all 0.3s ease;
+                                           box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+                                           min-height: 48px;
+                                           min-width: 80px;">
+                                PASTE
+                            </button>
+                        </div>
+                        <div id="addressValidation" style="font-size: 13px; margin-top: 8px; min-height: 18px; padding: 0 4px;"></div>
+                    </div>
+
+                    <!-- Amount Input - Refined Size -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 12px;">
+                            <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                                AMOUNT
+                            </label>
+                            <button type="button" onclick="setMaxAmount()" 
+                                    style="background: rgba(212, 175, 55, 0.15); 
+                                           color: var(--gold); 
+                                           border: 1px solid rgba(212, 175, 55, 0.4); 
+                                           padding: 8px 16px; 
+                                           border-radius: 8px; 
+                                           font-size: 12px; 
+                                           font-weight: 700; 
+                                           cursor: pointer;
+                                           transition: all 0.3s ease;">
+                                MAX
+                            </button>
+                        </div>
+
+                        <div style="position: relative;">
+                            <input type="number" id="sendAmount" class="form-input" 
+                                   placeholder="0.00" step="0.000001" 
+                                   style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                          border: 2px solid rgba(212, 175, 55, 0.3); 
+                                          color: var(--text); 
+                                          font-size: 24px; 
+                                          font-weight: 700; 
+                                          padding: 18px 16px;
+                                          border-radius: 12px;
+                                          text-align: center;
+                                          transition: all 0.3s ease;
+                                          min-height: 60px;"
+                                   oninput="updateSendSummary()">
+                        </div>
+
+                        <!-- Balance and USD Conversion -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 0 8px;">
+                            <div>
+                                <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;">
+                                    ≈ $<span id="sendUsdValue">0.00</span> USD
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 13px; color: var(--gold); font-weight: 700;">
+                                    Available: <span id="remainingBalance">0.00</span> <span id="remainingToken">TON</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction Fee - Refined Card -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%); 
+                                    padding: 16px; 
+                                    border-radius: 12px; 
+                                    border: 1px solid rgba(212, 175, 55, 0.2);
+                                    backdrop-filter: blur(10px);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div style="width: 36px; height: 36px; background: rgba(212, 175, 55, 0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                                        <svg style="width: 18px; height: 18px; color: var(--gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 15px; color: var(--gold); font-weight: 700;">Network Fee</div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Transaction cost</div>
+                                    </div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 15px; color: var(--text); font-weight: 700;" id="transactionFee">0.001 TON</div>
+                                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">≈ $<span id="feeUsdValue">0.00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comment Input - Refined Size -->
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                            </svg>
+                            MEMO
+                        </label>
+                        <input type="text" id="sendMemo" class="form-input" 
+                               placeholder="Add a note about this transaction..."
+                               style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                      border: 2px solid rgba(212, 175, 55, 0.3); 
+                                      color: var(--text); 
+                                      padding: 14px 16px;
+                                      border-radius: 12px;
+                                      font-size: 14px;
+                                      transition: all 0.3s ease;
+                                      min-height: 48px;"
+                               oninput="updateSendSummary()">
+                    </div>
+
+                    <!-- Enhanced Transaction Summary - Refined Size -->
+                    <div id="sendSummary" style="display: none; 
+                                                background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
+                                                border: 1px solid rgba(212, 175, 55, 0.3);
+                                                border-radius: 12px;
+                                                padding: 20px;
+                                                margin-bottom: 20px;
+                                                backdrop-filter: blur(10px);">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                            <div style="width: 28px; height: 28px; background: var(--gold); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                <svg style="width: 16px; height: 16px; color: var(--dark-bg);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div style="font-size: 16px; color: var(--gold); font-weight: 700;">Transaction Ready</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Review details before sending</div>
+                            </div>
+                        </div>
+                        <div id="sendSummaryDetails" style="font-size: 14px; color: var(--text); line-height: 1.6; background: rgba(0, 0, 0, 0.2); padding: 16px; border-radius: 10px;"></div>
+                    </div>
+
+                    <!-- Status Messages -->
+                    <div id="sendStatus" style="margin: 20px 0;"></div>
+
+                    <!-- Single Confirm Button - Full Width -->
+                    <div style="margin-top: 20px; padding-bottom: 30px;">
+                        <button class="close-modal" onclick="confirmSendTransaction()" id="confirmSendBtn"
+                                style="width: 100%; 
+                                       background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); 
+                                       color: var(--dark-bg); 
+                                       border: none; 
+                                       padding: 16px;
+                                       border-radius: 12px;
+                                       font-weight: 700;
+                                       font-size: 16px;
+                                       cursor: pointer;
+                                       transition: all 0.3s ease;
+                                       box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+                                       min-height: 52px;">
+                            Confirm Send
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1451,6 +2042,7 @@
                             </button>
                             <div>
                                 <div class="modal-title" style="color: var(--gold); font-size: 24px; font-weight: 700; margin: 0;">Receive Assets</div>
+
                             </div>
                         </div>
                     </div>
@@ -1475,9 +2067,9 @@
                                 </div>
                             </div>
 
-                            <!-- Card Footer -->
+                            <!-- Card Footer - UPDATED: Only Copy Icon, No Chip -->
                             <div class="card-footer-final">
-                                <!-- Copy Icon -->
+                                <!-- Copy Icon - Full Visible -->
                                 <div class="copy-indicator" onclick="copyWalletAddress()" title="Copy Wallet Address">
                                     <svg class="copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -1491,7 +2083,7 @@
                         </div>
                     </div>
 
-                    <!-- Circular Icon Actions -->
+                    <!-- Circular Icon Actions - CLOSER BELOW CARD -->
                     <div class="circular-actions-section">
                         <div class="circular-actions">
                             <!-- TON Icon -->
@@ -1543,6 +2135,7 @@
         };
 
         let userWallets = [];
+        let customTokens = [];
         let currentMnemonic = null;
 
         // Supported tokens
@@ -1572,19 +2165,267 @@
         ];
 
         // =============================================
-        // CORE WALLET FUNCTIONS - FIXED
+        // INITIALIZATION & ERROR HANDLING
         // =============================================
 
         function handleWalletScriptError() {
-            console.error('❌ Failed to load wallet.js');
-            showStatusMessage('❌ Wallet system failed to load. Please refresh.', 'error');
+            console.error('❌ CRITICAL: Failed to load wallet.js from: assets/js/wallet.js');
+            showStatusMessage('❌ Wallet system failed to load. Please check file path and refresh.', 'error');
         }
 
+        window.checkAndGenerateWallet = async function() {
+            console.log('🔄 checkAndGenerateWallet called...');
+
+            if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+                showStatusMessage('⚠️ Wallet system still initializing...', 'error');
+                return;
+            }
+
+            try {
+                const hasWallets = await window.nemexWalletAPI.hasWallets();
+
+                if (hasWallets) {
+                    console.log('ℹ️ User already has wallets, showing wallet interface');
+                    showStatusMessage('✅ Wallet found! Loading your wallet...', 'success');
+                    showMainWalletInterface();
+                } else {
+                    console.log('🆕 No wallets found, generating new wallet directly');
+                    showStatusMessage('🔄 Creating your first wallet...', 'loading');
+                    await generateNewWallet();
+                }
+            } catch (error) {
+                console.error('❌ checkAndGenerateWallet failed:', error);
+                showStatusMessage('❌ Error checking wallet status', 'error');
+            }
+        };
+
+        function enableWalletButtons() {
+            const walletButtons = document.querySelectorAll(`
+                button[onclick*="generateNewWallet"], 
+                button[onclick*="importWallet"],
+                button[onclick*="showCreateWalletModal"],
+                button[onclick*="showImportWalletModal"]
+            `);
+
+            walletButtons.forEach(btn => {
+                btn.disabled = false;
+                if (btn.innerHTML.includes('Loading...')) {
+                    if (btn.id === 'generateWalletBtn') {
+                        btn.innerHTML = 'Generate New Wallet';
+                    } else if (btn.id === 'importWalletBtn') {
+                        btn.innerHTML = 'Import Wallet';
+                    }
+                }
+            });
+            console.log(`✅ Enabled ${walletButtons.length} wallet buttons`);
+        }
+
+        window.addEventListener('load', function() {
+            console.log('🎯 Page fully loaded, checking wallet system...');
+
+            if (typeof NemexWalletAPI === 'undefined') {
+                console.error('❌ NemexWalletAPI class not found - wallet.js failed to load');
+                showStatusMessage('❌ Critical: Wallet system not loaded. File may be missing.', 'error');
+                diagnoseLoadingIssue();
+                return;
+            }
+
+            console.log('✅ wallet.js loaded successfully, checking API initialization...');
+
+            if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+                console.log('🔄 Manually initializing wallet API...');
+                window.nemexWalletAPI = new NemexWalletAPI();
+
+                window.nemexWalletAPI.init().then(success => {
+                    if (success) {
+                        console.log('✅ Wallet API manually initialized!');
+                        showStatusMessage('✅ Wallet system ready!', 'success');
+                        enableWalletButtons();
+                    } else {
+                        console.error('❌ Manual initialization failed');
+                        showStatusMessage('❌ Wallet system initialization failed', 'error');
+                    }
+                }).catch(error => {
+                    console.error('❌ Initialization error:', error);
+                    showStatusMessage('❌ Wallet system error: ' + error.message, 'error');
+                });
+            } else {
+                console.log('✅ Wallet API already initialized');
+                enableWalletButtons();
+            }
+        });
+
+        function diagnoseLoadingIssue() {
+            console.log('🔍 Diagnosing wallet.js loading issue:');
+            fetch('assets/js/wallet.js')
+                .then(response => {
+                    if (!response.ok) {
+                        console.error(`❌ File not found: ${response.status} ${response.statusText}`);
+                        showStatusMessage(`❌ Wallet file not found (${response.status})`, 'error');
+                    } else {
+                        console.log('✅ File exists but failed to load as script');
+                        showStatusMessage('❌ Wallet file exists but failed to execute', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Cannot access wallet.js:', error);
+                    showStatusMessage('❌ Cannot access wallet system files', 'error');
+                });
+        }
+
+        // =============================================
+        // WALLET CREATION & IMPORT
+        // =============================================
+
+        window.generateNewWallet = async function() {
+            console.log('🔄 GLOBAL: Generating new wallet...');
+
+            const generateBtn = document.getElementById('generateWalletBtn');
+            const statusDiv = document.getElementById('createWalletStatus');
+
+            try {
+                if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+                    throw new Error('Wallet API not ready. Please wait...');
+                }
+
+                generateBtn.innerHTML = '<div class="loading"></div> Generating...';
+                generateBtn.disabled = true;
+                showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
+
+                console.log('🔄 Creating wallet via database...');
+
+                const result = await window.nemexWalletAPI.generateNewWallet(12);
+
+                currentMnemonic = result.wallet.mnemonic;
+
+                walletState = {
+                    isInitialized: true,
+                    walletType: 'new',
+                    userId: result.wallet.userId,
+                    address: result.wallet.address,
+                    balances: {}
+                };
+
+                console.log('✅ Wallet created in database:', walletState.address);
+                showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
+
+                setTimeout(() => {
+                    closeModal();
+                    showBackupModal(currentMnemonic);
+                }, 1000);
+
+            } catch (error) {
+                console.error('Wallet creation failed:', error);
+                showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error', statusDiv);
+            } finally {
+                generateBtn.innerHTML = 'Generate New Wallet';
+                generateBtn.disabled = false;
+            }
+        };
+
+        window.importWalletFromModal = async function() {
+            const importBtn = document.getElementById('importWalletBtn');
+            const statusDiv = document.getElementById('importWalletStatus');
+            const mnemonicInput = document.getElementById('importMnemonic');
+            const targetAddressInput = document.getElementById('targetAddress');
+
+            const mnemonic = mnemonicInput.value.trim();
+            const targetAddress = targetAddressInput.value.trim();
+
+            if (!mnemonic) {
+                showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
+                return;
+            }
+
+            const wordCount = mnemonic.split(' ').length;
+            if (wordCount !== 12 && wordCount !== 24) {
+                showStatusMessage('Recovery phrase must be 12 or 24 words', 'error', statusDiv);
+                return;
+            }
+
+            try {
+                if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+                    throw new Error('Wallet API not ready. Please wait...');
+                }
+
+                importBtn.innerHTML = '<div class="loading"></div> Importing...';
+                importBtn.disabled = true;
+                showStatusMessage('Importing your wallet...', 'loading', statusDiv);
+
+                console.log('🔄 Importing wallet via database...');
+                console.log('🔍 Target address provided:', targetAddress || 'None');
+
+                const result = await window.nemexWalletAPI.importWallet(mnemonic, targetAddress);
+
+                if (result.success && result.wallets) {
+                    console.log('🔍 Multiple wallets found, showing selection modal');
+                    showStatusMessage(`Found ${result.wallets.length} wallets. Please select one.`, 'success', statusDiv);
+
+                    currentMnemonic = mnemonic;
+
+                    setTimeout(() => {
+                        closeModal();
+                        showWalletSelectionModal(result.wallets);
+                    }, 1000);
+                    return;
+                }
+
+                if (result.success && result.wallet) {
+                    console.log('✅ Single wallet imported via API:', result.wallet.address);
+
+                    currentMnemonic = mnemonic;
+
+                    walletState = {
+                        isInitialized: true,
+                        walletType: 'imported', 
+                        userId: result.wallet.userId,
+                        address: result.wallet.address,
+                        balances: {}
+                    };
+
+                    showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+                    setTimeout(() => {
+                        closeModal();
+                        updateWalletDisplay();
+                        updateRealBalances();
+                        loadUserWallets();
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Failed to import wallet');
+                }
+
+            } catch (error) {
+                console.error('Wallet import failed:', error);
+                let errorMessage = error.message;
+
+                if (error.message.includes('400')) {
+                    if (error.message.includes('No wallet matches')) {
+                        errorMessage = 'No wallet derived from this phrase matches your target address. Try without target address to see all options.';
+                    } else {
+                        errorMessage = 'Invalid recovery phrase format. Please check your words.';
+                    }
+                } else if (error.message.includes('Network')) {
+                    errorMessage = 'Network error. Please check your connection.';
+                }
+
+                showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
+            } finally {
+                importBtn.innerHTML = 'Import Wallet';
+                importBtn.disabled = false;
+            }
+        };
+
+        // =============================================
+        // INITIALIZATION & SESSION MANAGEMENT
+        // =============================================
+
         async function initWallet() {
-            console.log('🔄 Initializing wallet...');
+            console.log('🔄 Initializing wallet with session management...');
 
             if (!window.nemexWalletAPI) {
                 console.error('❌ Wallet API not available');
+                showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
                 return;
             }
 
@@ -1594,30 +2435,27 @@
                 return;
             }
 
-            // Check for active session with proper error handling
-            try {
-                const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
-                if (hasActiveSession) {
-                    const currentWallet = await window.nemexWalletAPI.getStoredWallet();
-                    if (currentWallet && currentWallet.address) {
-                        walletState = {
-                            isInitialized: true,
-                            walletType: currentWallet.source || 'imported',
-                            userId: currentWallet.userId,
-                            address: currentWallet.address,
-                            balances: {},
-                            lastUpdate: null
-                        };
-                        console.log('✅ Session restored:', walletState.address);
-                        updateWalletDisplay();
-                        updateRealBalances();
-                        
-                        // Load user wallets for management
-                        await loadUserWallets();
-                    }
+            const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
+
+            if (hasActiveSession) {
+                const currentWallet = window.nemexWalletAPI.getStoredWallet();
+                if (currentWallet) {
+                    walletState = {
+                        isInitialized: true,
+                        walletType: currentWallet.source || 'imported',
+                        userId: currentWallet.userId,
+                        address: currentWallet.address,
+                        balances: {},
+                        lastUpdate: null
+                    };
+
+                    console.log('✅ Session restored:', walletState.address);
+                    updateWalletDisplay();
+                    updateRealBalances();
+                    await loadUserWallets();
                 }
-            } catch (error) {
-                console.error('Session restoration error:', error);
+            } else {
+                console.log('ℹ️ No active session found');
             }
 
             console.log('🚀 Wallet initialization complete');
@@ -1627,8 +2465,362 @@
             try {
                 userWallets = await window.nemexWalletAPI.getUserWallets();
                 console.log(`✅ Loaded ${userWallets.length} user wallets`);
+                updateWalletList();
             } catch (error) {
                 console.error('Failed to load user wallets:', error);
+            }
+        }
+
+        // =============================================
+        // WALLET SELECTION FOR MULTI-PATH IMPORT
+        // =============================================
+
+        function showWalletSelectionModal(wallets) {
+            const selectionList = document.getElementById('walletSelectionList');
+            const selectionModal = document.getElementById('walletSelectionModal');
+
+            if (!selectionList || !selectionModal) return;
+
+            selectionList.innerHTML = '';
+
+            wallets.forEach((wallet, index) => {
+                const walletOption = document.createElement('div');
+                walletOption.className = 'wallet-option';
+                walletOption.onclick = () => selectWalletForImport(wallet.path);
+
+                walletOption.innerHTML = `
+                    <div class="wallet-path">${wallet.description || wallet.path}</div>
+                    <div class="wallet-address-display">${wallet.address}</div>
+                    <div class="wallet-description">${getPathDescription(wallet.path)}</div>
+                `;
+
+                selectionList.appendChild(walletOption);
+            });
+
+            selectionModal.style.display = 'flex';
+        }
+
+        async function selectWalletForImport(selectedPath) {
+            const statusDiv = document.getElementById('walletSelectionStatus');
+
+            try {
+                showStatusMessage('Importing selected wallet...', 'loading', statusDiv);
+                console.log('🔄 Selecting wallet with path:', selectedPath);
+
+                const result = await window.nemexWalletAPI.selectWalletForImport(selectedPath);
+
+                if (result.success && result.wallet) {
+                    console.log('✅ Selected wallet imported:', result.wallet.address);
+
+                    walletState = {
+                        isInitialized: true,
+                        walletType: 'imported',
+                        userId: result.wallet.userId,
+                        address: result.wallet.address,
+                        balances: {}
+                    };
+
+                    showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+                    setTimeout(() => {
+                        closeModal();
+                        updateWalletDisplay();
+                        updateRealBalances();
+                        loadUserWallets();
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Failed to import selected wallet');
+                }
+
+            } catch (error) {
+                console.error('Wallet selection failed:', error);
+                showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error', statusDiv);
+            }
+        }
+
+        function getPathDescription(path) {
+            const descriptions = {
+                "m/44'/607'/0'/0/0": "Primary BIP-44 (Most compatible)",
+                "m/44'/607'/0'": "Short variant (Common)",
+                "m/44'/607'/0'/0/0/0": "Ledger variant",
+                "m/44'/607'/0'/0/0": "Account 0",
+                "m/44'/607'/1'/0/0": "Account 1", 
+                "m/44'/607'/2'/0/0": "Account 2",
+                "m/44'/607'/3'/0/0": "Account 3",
+                "m/44'/607'/4'/0/0": "Account 4",
+                "m/44'/607'/0'/0": "Minimal path",
+                "m/44'/607'/0'/0'": "Hardened variant"
+            };
+
+            return descriptions[path] || path;
+        }
+
+        // =============================================
+        // WALLET MANAGEMENT
+        // =============================================
+
+        function toggleWalletManagement() {
+            const content = document.getElementById('walletManagementContent');
+            const arrow = document.querySelector('.wallet-management-arrow');
+            const header = document.querySelector('.wallet-management-header');
+
+            if (content && arrow && header) {
+                content.classList.toggle('expanded');
+                arrow.classList.toggle('expanded');
+                header.classList.toggle('active');
+            }
+        }
+
+        function updateWalletList() {
+            const walletList = document.getElementById('walletList');
+            if (!walletList) return;
+
+            const uniqueWallets = userWallets.filter((wallet, index, self) => 
+                index === self.findIndex(w => w.address === wallet.address)
+            );
+
+            if (uniqueWallets.length > 0) {
+                walletList.innerHTML = uniqueWallets.map(wallet => `
+                    <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
+                        <div class="wallet-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="wallet-info">
+                            <div class="wallet-name-display">
+                                ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
+                                ${wallet.address === walletState.address ? '(Active)' : ''}
+                            </div>
+                            <div class="wallet-address">${wallet.address}</div>
+                            <div class="wallet-type">${wallet.source}</div>
+                        </div>
+                        <div class="wallet-actions">
+                            ${wallet.address !== walletState.address ? 
+                                `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')">Switch</button>` : 
+                                ''
+                            }
+                            <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')">View Seed</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else if (walletState.isInitialized) {
+                walletList.innerHTML = `
+                    <div class="wallet-item active">
+                        <div class="wallet-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <div class="wallet-info">
+                            <div class="wallet-name-display">
+                                ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} (Active)
+                            </div>
+                            <div class="wallet-address">${walletState.address}</div>
+                            <div class="wallet-type">${walletState.walletType || 'active'}</div>
+                        </div>
+                        <div class="wallet-actions">
+                            <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')">View Seed</button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                walletList.innerHTML = '<div class="security-warning">No active wallet. Create or import a wallet to get started.</div>';
+            }
+        }
+
+        async function switchToWallet(address) {
+            try {
+                console.log('🔄 Switching to wallet:', address);
+
+                const result = await window.nemexWalletAPI.setActiveWallet(address);
+
+                if (result.success) {
+                    const wallet = userWallets.find(w => w.address === address);
+                    if (wallet) {
+                        walletState = {
+                            isInitialized: true,
+                            walletType: wallet.source,
+                            userId: wallet.userId,
+                            address: wallet.address,
+                            balances: {}
+                        };
+
+                        console.log('✅ Switched to wallet:', address);
+                        updateWalletDisplay();
+                        updateRealBalances();
+                        updateWalletList();
+
+                        showStatusMessage(`✅ Switched to wallet: ${address.substring(0, 8)}...`, 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Wallet switch failed:', error);
+                showStatusMessage('❌ Failed to switch wallet: ' + error.message, 'error');
+            }
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout? Your wallet data will remain stored but you\'ll need to select a wallet again.')) {
+                window.nemexWalletAPI.clearSession();
+                walletState = {
+                    isInitialized: false,
+                    walletType: null,
+                    userId: null,
+                    address: null,
+                    balances: {},
+                    lastUpdate: null
+                };
+                currentMnemonic = null;
+
+                updateWalletDisplay();
+                updateWalletList();
+
+                showStatusMessage('✅ Logged out successfully', 'success');
+                closeModal();
+            }
+        }
+
+        // =============================================
+        // BACKUP & SEED PHRASE MANAGEMENT
+        // =============================================
+
+        function toggleContinueButton() {
+            const confirmationCheckbox = document.getElementById('backupConfirmed');
+            const continueButton = document.getElementById('confirmBackupBtn');
+
+            if (confirmationCheckbox && continueButton) {
+                continueButton.disabled = !confirmationCheckbox.checked;
+            }
+        }
+
+        function showBackupModal(mnemonic) {
+            const words = mnemonic.split(' ');
+            const mnemonicWords = document.getElementById('mnemonicWords');
+            if (!mnemonicWords) return;
+
+            mnemonicWords.innerHTML = '';
+
+            words.forEach((word, index) => {
+                const wordElement = document.createElement('div');
+                wordElement.className = 'mnemonic-word';
+                wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
+                mnemonicWords.appendChild(wordElement);
+            });
+
+            currentMnemonic = mnemonic;
+
+            const backupConfirmed = document.getElementById('backupConfirmed');
+            const confirmBackupBtn = document.getElementById('confirmBackupBtn');
+
+            if (backupConfirmed && confirmBackupBtn) {
+                backupConfirmed.checked = false;
+                confirmBackupBtn.disabled = true;
+            }
+
+            const backupModal = document.getElementById('backupModal');
+            if (backupModal) {
+                backupModal.style.display = 'flex';
+            }
+
+            console.log('📝 Backup modal shown for wallet:', walletState.address);
+        }
+
+        function confirmBackupAndContinue() {
+            const confirmationCheckbox = document.getElementById('backupConfirmed');
+
+            if (!confirmationCheckbox || !confirmationCheckbox.checked) {
+                alert('⚠️ You must confirm that you have saved your recovery phrase!');
+                return;
+            }
+
+            console.log('✅ User confirmed backup for wallet:', walletState.address);
+
+            closeModal();
+            updateWalletDisplay();
+            updateRealBalances();
+            loadUserWallets();
+
+            showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
+        }
+
+        async function showViewSeedPhrase(walletAddress = null) {
+            try {
+                let targetMnemonic = currentMnemonic;
+
+                if (walletAddress && walletAddress !== walletState.address) {
+                    const targetWallet = userWallets.find(w => w.address === walletAddress);
+                    if (targetWallet && targetWallet.mnemonic) {
+                        targetMnemonic = targetWallet.mnemonic;
+                    } else {
+                        alert('Seed phrase not available for this wallet. It may have been imported without storing the phrase locally for security.');
+                        return;
+                    }
+                }
+
+                if (!targetMnemonic) {
+                    alert('No seed phrase available for current wallet. This may be because the wallet was imported and the phrase is not stored locally for security.');
+                    return;
+                }
+
+                const words = targetMnemonic.split(' ');
+                const viewSeedWords = document.getElementById('viewSeedWords');
+                if (!viewSeedWords) return;
+
+                viewSeedWords.innerHTML = '';
+
+                words.forEach((word, index) => {
+                    const wordElement = document.createElement('div');
+                    wordElement.className = 'mnemonic-word';
+                    wordElement.style.padding = '12px 8px';
+                    wordElement.style.background = 'rgba(212, 175, 55, 0.1)';
+                    wordElement.style.borderRadius = '8px';
+                    wordElement.style.fontFamily = 'monospace';
+                    wordElement.style.display = 'flex';
+                    wordElement.style.alignItems = 'center';
+                    wordElement.style.justifyContent = 'center';
+                    wordElement.style.textAlign = 'center';
+                    wordElement.style.fontWeight = '600';
+                    wordElement.style.fontSize = '14px';
+                    wordElement.innerHTML = `<span class="word-index" style="color: var(--gold); font-weight: bold; margin-right: 8px; font-size: 12px;">${index + 1}.</span> ${word}`;
+                    viewSeedWords.appendChild(wordElement);
+                });
+
+                const viewSeedModal = document.getElementById('viewSeedModal');
+                if (viewSeedModal) {
+                    viewSeedModal.style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Error showing seed phrase:', error);
+                alert('Error accessing seed phrase: ' + error.message);
+            }
+        }
+
+        async function copySeedPhrase() {
+            try {
+                if (!currentMnemonic) {
+                    alert('No seed phrase available to copy');
+                    return;
+                }
+
+                await navigator.clipboard.writeText(currentMnemonic);
+
+                const tempDiv = document.createElement('div');
+                tempDiv.className = 'status-message status-success';
+                tempDiv.textContent = '✅ Recovery phrase copied to clipboard!';
+                tempDiv.style.position = 'fixed';
+                tempDiv.style.top = '100px';
+                tempDiv.style.left = '50%';
+                tempDiv.style.transform = 'translateX(-50%)';
+                tempDiv.style.zIndex = '3000';
+                tempDiv.style.maxWidth = '90%';
+                document.body.appendChild(tempDiv);
+
+                setTimeout(() => {
+                    if (document.body.contains(tempDiv)) {
+                        document.body.removeChild(tempDiv);
+                    }
+                }, 3000);
+
+            } catch (error) {
+                console.error('Failed to copy seed phrase:', error);
+                alert('Failed to copy recovery phrase to clipboard');
             }
         }
 
@@ -1652,10 +2844,9 @@
                 console.log('🔍 Balance result:', balanceResult);
                 console.log('🔍 Price result:', priceResult);
 
-                // ✅ FIX: Handle both string and number responses
+                // Update TON balance
                 const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
                 if (tonToken && balanceResult.balances) {
-                    // Handle both string and number balances
                     const tonBalance = typeof balanceResult.balances.TON === 'string' 
                         ? parseFloat(balanceResult.balances.TON) 
                         : balanceResult.balances.TON;
@@ -1669,10 +2860,9 @@
                     }
                 }
 
-                // ✅ FIX: Update NMX balance PROPERLY
+                // Update NMX balance
                 let nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
 
-                // Ensure NMX token exists in supported tokens
                 if (!nmxToken) {
                     console.log('⚠️ NMX token not found in SUPPORTED_TOKENS, adding it...');
                     nmxToken = {
@@ -1690,7 +2880,6 @@
                 }
 
                 if (nmxToken && balanceResult.balances) {
-                    // ✅ CRITICAL FIX: Properly parse NMX balance
                     const nmxBalance = typeof balanceResult.balances.NMX === 'string'
                         ? parseFloat(balanceResult.balances.NMX)
                         : balanceResult.balances.NMX;
@@ -1702,13 +2891,12 @@
                         nmxToken.price = priceResult.prices.NMX.price || 0;
                         nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
                     } else {
-                        // Fallback NMX price if not available from API
                         nmxToken.price = 0.10;
                         nmxToken.change24h = 0;
                     }
                 }
 
-                // ✅ DEBUG: Log all token balances
+                // Log all token balances
                 console.log('🔍 Final token balances:');
                 SUPPORTED_TOKENS.forEach(token => {
                     console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
@@ -1717,14 +2905,13 @@
                 updatePortfolioValue();
                 loadTokens();
 
-                // ✅ FIX: Stabilize portfolio display after updates
+                // Stabilize portfolio display after updates
                 setTimeout(stabilizePortfolioDisplay, 300);
 
                 console.log('✅ Real blockchain balances & prices updated');
 
             } catch (error) {
                 console.error('Failed to update real data:', error);
-                // Set fallback balances
                 SUPPORTED_TOKENS.forEach(token => {
                     if (token.symbol === 'TON' || token.symbol === 'NMX') {
                         token.balance = 0;
@@ -1733,13 +2920,13 @@
                 updatePortfolioValue();
                 loadTokens();
                 
-                // ✅ FIX: Stabilize portfolio display even on error
+                // Stabilize portfolio display even on error
                 setTimeout(stabilizePortfolioDisplay, 300);
             }
         }
 
         // =============================================
-        // UI UPDATES - FIXED
+        // UI UPDATES - FIXED VERSION
         // =============================================
 
         function updateWalletDisplay() {
@@ -1747,10 +2934,12 @@
             const balanceSection = document.getElementById('balanceSection');
             const actionButtons = document.getElementById('actionButtons');
             const tokenSection = document.getElementById('tokenSection');
+            const container = document.querySelector('.container');
 
             if (walletState.isInitialized) {
                 // Add wallet-loaded class to body for CSS targeting
                 document.body.classList.add('wallet-loaded');
+                if (container) container.classList.add('wallet-loaded');
                 
                 if (welcomeScreen) welcomeScreen.style.display = 'none';
                 if (balanceSection) balanceSection.style.display = 'block';
@@ -1769,33 +2958,27 @@
                 }, 100);
             } else {
                 document.body.classList.remove('wallet-loaded');
+                if (container) container.classList.remove('wallet-loaded');
                 
                 if (welcomeScreen) welcomeScreen.style.display = 'block';
                 if (balanceSection) balanceSection.style.display = 'none';
                 if (actionButtons) actionButtons.style.display = 'none';
                 if (tokenSection) tokenSection.style.display = 'none';
             }
+
+            updateWalletList();
         }
 
         function updatePortfolioValue() {
             // Wait a tiny bit to ensure token data is fully updated
             setTimeout(() => {
-                const allTokens = [...SUPPORTED_TOKENS];
+                const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
                 
-                // ✅ DEBUG: Check what tokens we're calculating
-                console.log('💰 Calculating portfolio from tokens:', allTokens.map(t => ({
-                    symbol: t.symbol,
-                    balance: t.balance,
-                    price: t.price,
-                    value: (t.balance || 0) * (t.price || 0)
-                })));
-                
+                // Calculate total portfolio value
                 const totalUSD = allTokens.reduce((sum, token) => {
                     const balance = parseFloat(token.balance) || 0;
                     const price = parseFloat(token.price) || 0;
                     const tokenValue = balance * price;
-                    
-                    console.log(`   ${token.symbol}: ${balance} × $${price} = $${tokenValue}`);
                     
                     return sum + tokenValue;
                 }, 0);
@@ -1808,11 +2991,9 @@
 
                 if (balanceAmount) {
                     balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
-                    console.log('✅ Set balanceAmount to:', balanceAmount.textContent);
                 }
                 if (balanceCrypto) {
                     balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
-                    console.log('✅ Set balanceCrypto to:', balanceCrypto.textContent);
                 }
                 if (balanceLoading) {
                     balanceLoading.style.display = 'none';
@@ -1823,14 +3004,14 @@
                 if (balanceCrypto) {
                     balanceCrypto.style.display = 'inline';
                 }
-            }, 100); // Small delay to ensure data is ready
+            }, 100);
         }
 
         function stabilizePortfolioDisplay() {
             console.log('🔄 Stabilizing portfolio display...');
             
             // Get current calculated value
-            const allTokens = [...SUPPORTED_TOKENS];
+            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
             const totalUSD = allTokens.reduce((sum, token) => {
                 return sum + ((token.balance || 0) * (token.price || 0));
             }, 0);
@@ -1839,7 +3020,7 @@
             const balanceCrypto = document.getElementById('balanceCrypto');
             
             if (balanceAmount && balanceCrypto) {
-                // Set both elements to the same value and lock them
+                // Set both elements to the same value
                 const displayValue = `$${totalUSD.toFixed(2)}`;
                 balanceAmount.textContent = displayValue;
                 balanceCrypto.textContent = displayValue;
@@ -1853,9 +3034,8 @@
             const tokensLoading = document.getElementById('tokensLoading');
             if (!tokenList) return;
 
-            const allTokens = [...SUPPORTED_TOKENS];
+            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
 
-            // ✅ DEBUG: Log what tokens are being rendered
             console.log('🔄 Rendering tokens:', allTokens.map(t => ({
                 symbol: t.symbol,
                 balance: t.balance,
@@ -1868,7 +3048,7 @@
             if (allTokens.length === 0) {
                 tokenList.innerHTML = '<div class="security-warning">No tokens found</div>';
                 return;
-            }
+            } 
 
             allTokens.forEach(token => {
                 const tokenValue = (token.balance || 0) * (token.price || 0);
@@ -1878,7 +3058,6 @@
                 const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
                 const featuredClass = token.isFeatured ? 'featured' : '';
 
-                // ✅ DEBUG: Log each token being created
                 console.log(`🎨 Creating token card: ${token.symbol} - Balance: ${token.balance} - Value: $${tokenValue}`);
 
                 const tokenCard = document.createElement('div');
@@ -1907,7 +3086,6 @@
 
             if (tokensLoading) tokensLoading.style.display = 'none';
 
-            // ✅ DEBUG: Confirm rendering completed
             console.log(`✅ Rendered ${allTokens.length} tokens in UI`);
         }
 
@@ -1945,7 +3123,6 @@
 
         function showStatusMessage(message, type, container) {
             if (!container) {
-                // Create a temporary status message
                 const tempDiv = document.createElement('div');
                 tempDiv.className = `status-message status-${type}`;
                 tempDiv.textContent = message;
@@ -1992,13 +3169,17 @@
             if (importWalletStatus) importWalletStatus.innerHTML = '';
             const importMnemonic = document.getElementById('importMnemonic');
             if (importMnemonic) importMnemonic.value = '';
+            const targetAddress = document.getElementById('targetAddress');
+            if (targetAddress) targetAddress.value = '';
             const importWalletModal = document.getElementById('importWalletModal');
             if (importWalletModal) importWalletModal.style.display = 'flex';
         }
 
         function showSettingsModal() {
             closeModal();
-            alert('Settings coming soon!');
+            updateWalletList();
+            const settingsModal = document.getElementById('settingsModal');
+            if (settingsModal) settingsModal.style.display = 'flex';
         }
 
         function showSendModal() {
@@ -2016,17 +3197,16 @@
                 return;
             }
 
-            // Close any other open modals first
             closeModal();
 
-            // Initialize wallet card with current address
             const currentAddress = walletState.address;
             if (currentAddress) {
                 const formattedAddress = formatAddressForDisplay(currentAddress);
-                const addressFull = document.getElementById('addressFull');
-                if (addressFull) {
-                    addressFull.textContent = formattedAddress;
+                const addressMain = document.getElementById('addressMain');
+                if (addressMain) {
+                    addressMain.textContent = formattedAddress;
                 }
+                window.currentWalletAddress = currentAddress;
             }
 
             const receiveModal = document.getElementById('receiveModal');
@@ -2037,12 +3217,14 @@
 
         function showSwapModal() {
             closeModal();
-            alert('Swap functionality coming soon!');
+            const swapModal = document.getElementById('swapModal');
+            if (swapModal) swapModal.style.display = 'flex';
         }
 
         function showBuyModal() {
             closeModal();
-            alert('Buy functionality coming soon!');
+            const buyModal = document.getElementById('buyModal');
+            if (buyModal) buyModal.style.display = 'flex';
         }
 
         function showWalletView() {
@@ -2059,16 +3241,416 @@
             });
         }
 
+        function showMainWalletInterface() {
+            console.log('📱 Showing main wallet interface');
+            const onboarding = document.getElementById('onboardingSection');
+            const walletInterface = document.getElementById('walletInterface');
+
+            if (onboarding) onboarding.style.display = 'none';
+            if (walletInterface) walletInterface.style.display = 'block';
+
+            if (typeof refreshWalletDisplay === 'function') {
+                refreshWalletDisplay();
+            }
+        }
+
         // =============================================
-        // WALLET CARD FUNCTIONS
+        // SEND MODAL FUNCTIONALITY
+        // =============================================
+
+        let currentSendToken = 'TON';
+        let currentTokenBalance = 0;
+        let currentTokenPrice = 0;
+        const TRANSACTION_FEE = 0.001;
+
+        function toggleTokenDropdown() {
+            const dropdown = document.getElementById('tokenDropdown');
+            const arrow = document.getElementById('dropdownArrow');
+
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            } else {
+                dropdown.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+                updateDropdownBalances();
+            }
+        }
+
+        function selectToken(symbol, name, logoUrl) {
+            currentSendToken = symbol;
+
+            const selectedLogo = document.getElementById('selectedTokenLogo');
+            const selectedTokenName = document.getElementById('selectedTokenName');
+            const selectedTokenSymbol = document.getElementById('selectedTokenSymbol');
+
+            selectedLogo.src = logoUrl;
+            selectedLogo.alt = name;
+            selectedLogo.onerror = function() { handleTokenLogoError(this, symbol); };
+
+            if (selectedTokenName) selectedTokenName.textContent = name;
+            if (selectedTokenSymbol) selectedTokenSymbol.textContent = symbol;
+
+            toggleTokenDropdown();
+
+            updateSendBalances();
+            updateFeeDisplay();
+            updateSendSummary();
+
+            const selectedToken = document.querySelector('.dropdown-selected');
+            selectedToken.style.borderColor = 'var(--gold)';
+            selectedToken.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.1) 100%)';
+            setTimeout(() => {
+                selectedToken.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                selectedToken.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%)';
+            }, 500);
+        }
+
+        function updateDropdownBalances() {
+            const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+            const tonBalanceElement = document.getElementById('tonBalanceDropdown');
+            if (tonBalanceElement && tonToken) {
+                tonBalanceElement.textContent = formatTokenBalance(tonToken.balance);
+            }
+
+            const nmxToken = SUPPORTED_TOKENS.find(t => t.symbol === 'NMX');
+            const nmxBalanceElement = document.getElementById('nmxBalanceDropdown');
+            if (nmxBalanceElement && nmxToken) {
+                nmxBalanceElement.textContent = formatTokenBalance(nmxToken.balance);
+            }
+        }
+
+        function updateSendBalances() {
+            const token = SUPPORTED_TOKENS.find(t => t.symbol === currentSendToken);
+            currentTokenBalance = token ? token.balance : 0;
+            currentTokenPrice = token ? token.price : 0;
+
+            const balanceElement = document.getElementById('remainingBalance');
+            const tokenElement = document.getElementById('remainingToken');
+
+            if (balanceElement && tokenElement) {
+                balanceElement.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    balanceElement.style.transform = 'scale(1)';
+                }, 300);
+
+                balanceElement.textContent = formatTokenBalance(currentTokenBalance);
+                tokenElement.textContent = currentSendToken;
+            }
+
+            updateDropdownBalances();
+            updateUsdConversion();
+        }
+
+        function updateUsdConversion() {
+            const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
+            const usdValue = amount * currentTokenPrice;
+
+            const usdElement = document.getElementById('sendUsdValue');
+            if (usdElement) {
+                usdElement.textContent = usdValue.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            const feeUsdElement = document.getElementById('feeUsdValue');
+            if (feeUsdElement) {
+                const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+                const tonPrice = tonToken ? tonToken.price : 0;
+                const feeUsd = TRANSACTION_FEE * tonPrice;
+                feeUsdElement.textContent = feeUsd.toFixed(4);
+            }
+        }
+
+        function updateFeeDisplay() {
+            const feeElement = document.getElementById('transactionFee');
+            if (feeElement) {
+                if (currentSendToken === 'TON') {
+                    feeElement.textContent = `${TRANSACTION_FEE} TON`;
+                } else {
+                    feeElement.textContent = `${TRANSACTION_FEE} TON (gas fee)`;
+                }
+            }
+            updateUsdConversion();
+        }
+
+        async function pasteAddress() {
+            try {
+                const text = await navigator.clipboard.readText();
+                const addressInput = document.getElementById('sendToAddress');
+                addressInput.value = text;
+
+                addressInput.style.borderColor = 'var(--success)';
+                setTimeout(() => {
+                    addressInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                }, 1000);
+
+                validateSendAddress();
+                updateSendSummary();
+
+                showStatusMessage('Address pasted successfully!', 'success', document.getElementById('sendStatus'));
+            } catch (error) {
+                console.error('Failed to paste address:', error);
+                showStatusMessage('Failed to paste from clipboard', 'error', document.getElementById('sendStatus'));
+            }
+        }
+
+        function validateSendAddress() {
+            const addressInput = document.getElementById('sendToAddress');
+            const validationElement = document.getElementById('addressValidation');
+            const address = addressInput.value.trim();
+
+            if (!address) {
+                validationElement.innerHTML = '';
+                addressInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                return false;
+            }
+
+            const isValid = address.startsWith('EQ') || address.startsWith('UQ');
+
+            if (isValid) {
+                validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address format</span>';
+                addressInput.style.borderColor = 'var(--success)';
+            } else {
+                validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid TON address format</span>';
+                addressInput.style.borderColor = 'var(--error)';
+            }
+
+            return isValid;
+        }
+
+        function setMaxAmount() {
+            const amountInput = document.getElementById('sendAmount');
+
+            if (currentSendToken === 'TON') {
+                const maxAmount = Math.max(0, currentTokenBalance - TRANSACTION_FEE);
+                amountInput.value = maxAmount.toFixed(6);
+            } else {
+                amountInput.value = currentTokenBalance;
+            }
+
+            amountInput.style.borderColor = 'var(--gold)';
+            setTimeout(() => {
+                amountInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+            }, 500);
+
+            updateUsdConversion();
+            updateSendSummary();
+        }
+
+        function updateSendSummary() {
+            const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
+            const toAddress = document.getElementById('sendToAddress').value.trim();
+            const memo = document.getElementById('sendMemo').value;
+
+            const summaryElement = document.getElementById('sendSummary');
+            const detailsElement = document.getElementById('sendSummaryDetails');
+
+            updateUsdConversion();
+
+            if (amount > 0 && toAddress) {
+                const isValid = toAddress.startsWith('EQ') || toAddress.startsWith('UQ');
+
+                const usdValue = (amount * currentTokenPrice).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+
+                let summaryText = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
+                        <div style="color: var(--text-muted);">Token:</div>
+                        <div style="text-align: right; font-weight: 600; color: var(--gold);">${currentSendToken}</div>
+                        
+                        <div style="color: var(--text-muted);">Amount:</div>
+                        <div style="text-align: right; font-weight: 600;">${amount} ${currentSendToken}</div>
+                        
+                        <div style="color: var(--text-muted);">Value:</div>
+                        <div style="text-align: right; font-weight: 600;">$${usdValue} USD</div>
+                        
+                        <div style="color: var(--text-muted);">Network Fee:</div>
+                        <div style="text-align: right; font-weight: 600;">${TRANSACTION_FEE} TON</div>
+                    </div>
+                `;
+
+                if (memo) {
+                    summaryText += `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(212, 175, 55, 0.2);">
+                            <div style="color: var(--text-muted); font-size: 13px;">Memo:</div>
+                            <div style="color: var(--text); font-weight: 600; font-size: 13px;">"${memo}"</div>
+                        </div>
+                    `;
+                }
+
+                summaryText += `
+                    <div style="margin-top: 16px; padding: 12px; background: ${isValid ? 'rgba(0, 200, 81, 0.1)' : 'rgba(255, 68, 68, 0.1)'}; border-radius: 8px; border: 1px solid ${isValid ? 'var(--success)' : 'var(--error)'};">
+                        <div style="color: ${isValid ? 'var(--success)' : 'var(--error)'}; font-weight: 600; font-size: 13px; text-align: center;">
+                            ${isValid ? '✓ Ready to send transaction' : '✗ Please check recipient address'}
+                        </div>
+                    </div>
+                `;
+
+                detailsElement.innerHTML = summaryText;
+                summaryElement.style.display = 'block';
+            } else {
+                summaryElement.style.display = 'none';
+            }
+        }
+
+        async function confirmSendTransaction() {
+            const toAddress = document.getElementById('sendToAddress').value.trim();
+            const amount = parseFloat(document.getElementById('sendAmount').value);
+            const memo = document.getElementById('sendMemo').value;
+            const statusElement = document.getElementById('sendStatus');
+            const confirmBtn = document.getElementById('confirmSendBtn');
+
+            if (!toAddress) {
+                showStatusMessage('Please enter recipient address', 'error', statusElement);
+                document.getElementById('sendToAddress').focus();
+                return;
+            }
+
+            if (!amount || amount <= 0) {
+                showStatusMessage('Please enter valid amount', 'error', statusElement);
+                document.getElementById('sendAmount').focus();
+                return;
+            }
+
+            if (!validateSendAddress()) {
+                showStatusMessage('Please enter valid TON address', 'error', statusElement);
+                return;
+            }
+
+            if (currentSendToken === 'TON') {
+                const totalCost = amount + TRANSACTION_FEE;
+                if (totalCost > currentTokenBalance) {
+                    showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(6)} TON (including fee)`, 'error', statusElement);
+                    return;
+                }
+            } else {
+                const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+                if (amount > currentTokenBalance) {
+                    showStatusMessage(`Insufficient ${currentSendToken} balance`, 'error', statusElement);
+                    return;
+                }
+                if (!tonToken || tonToken.balance < TRANSACTION_FEE) {
+                    showStatusMessage(`Insufficient TON for gas fee (need ${TRANSACTION_FEE} TON)`, 'error', statusElement);
+                    return;
+                }
+            }
+
+            try {
+                confirmBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Processing Transaction...';
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.7';
+
+                showStatusMessage('🔐 Processing transaction on TON blockchain...', 'loading', statusElement);
+
+                let result;
+
+                if (currentSendToken === 'TON') {
+                    result = await window.nemexWalletAPI.sendTON(
+                        walletState.address,
+                        toAddress,
+                        amount,
+                        memo
+                    );
+                } else if (currentSendToken === 'NMX') {
+                    result = await window.nemexWalletAPI.sendNMX(
+                        walletState.address,
+                        toAddress,
+                        amount,
+                        memo
+                    );
+                }
+
+                if (result.success) {
+                    showStatusMessage(`✅ ${result.message}`, 'success', statusElement);
+                    confirmBtn.innerHTML = '✅ Transaction Sent!';
+
+                    setTimeout(() => {
+                        updateRealBalances();
+                    }, 2000);
+
+                    setTimeout(() => {
+                        closeModal();
+                        setTimeout(() => {
+                            confirmBtn.innerHTML = 'Confirm Send';
+                            confirmBtn.disabled = false;
+                            confirmBtn.style.opacity = '1';
+                        }, 1000);
+                    }, 3000);
+                }
+
+            } catch (error) {
+                console.error('Send transaction failed:', error);
+                showStatusMessage(`❌ Transaction failed: ${error.message}`, 'error', statusElement);
+                confirmBtn.innerHTML = 'Confirm Send';
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('tokenDropdown');
+            const selector = document.querySelector('.custom-dropdown');
+
+            if (dropdown && selector && !selector.contains(event.target)) {
+                dropdown.style.display = 'none';
+                document.getElementById('dropdownArrow').style.transform = 'rotate(0deg)';
+            }
+        });
+
+        // =============================================
+        // RECEIVE MODAL FUNCTIONALITY
         // =============================================
 
         let currentReceiveToken = 'TON';
 
+        function initializeWalletCard() {
+            const address = walletState.address;
+            const userId = walletState.userId;
+
+            if (!address) return;
+
+            const addressFull = document.getElementById('addressFull');
+            if (addressFull) {
+                addressFull.textContent = address;
+            }
+
+            const walletIdentifier = document.getElementById('walletIdentifier');
+            if (walletIdentifier && userId) {
+                const shortHash = generateShortHash(userId);
+                walletIdentifier.textContent = `#${shortHash}`;
+            }
+
+            selectReceiveToken('TON');
+
+            console.log('✅ Wallet card initialized with real data:', address);
+        }
+
         function selectReceiveToken(token) {
             currentReceiveToken = token;
-            // Update UI state if needed
-            console.log('Selected receive token:', token);
+
+            document.querySelectorAll('.token-option').forEach(option => {
+                option.classList.remove('active');
+            });
+
+            const activeOption = document.querySelector(`[data-token="${token}"]`);
+            if (activeOption) {
+                activeOption.classList.add('active');
+            }
+
+            const tokenIndicator = document.getElementById('activeTokenIndicator');
+            if (tokenIndicator) {
+                tokenIndicator.textContent = token;
+            }
+
+            const networkType = document.getElementById('cardNetworkType');
+            if (networkType) {
+                networkType.textContent = `${token} Wallet`;
+            }
         }
 
         function copyWalletAddress() {
@@ -2081,7 +3663,6 @@
             navigator.clipboard.writeText(address).then(() => {
                 showStatusMessage(`✅ ${currentReceiveToken} address copied!`, 'success');
 
-                // Visual feedback
                 const card = document.getElementById('walletCard');
                 if (card) {
                     card.style.transform = 'scale(0.98)';
@@ -2129,160 +3710,42 @@
             alert(details);
         }
 
+        function generateShortHash(input) {
+            let hash = 0;
+            for (let i = 0; i < input.length; i++) {
+                const char = input.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+            return Math.abs(hash).toString(36).substring(0, 4).toUpperCase();
+        }
+
         function formatAddressForDisplay(address) {
             if (!address) return 'Loading...';
             if (address.length <= 20) return address;
             return address.substring(0, 10) + '...' + address.substring(address.length - 10);
         }
 
-        // =============================================
-        // WALLET OPERATIONS
-        // =============================================
-
-        window.checkAndGenerateWallet = async function() {
-            if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
-                showStatusMessage('⚠️ Wallet system still initializing...', 'error');
-                return;
+        // Make card clickable
+        document.addEventListener('DOMContentLoaded', function() {
+            const walletCard = document.getElementById('walletCard');
+            if (walletCard) {
+                walletCard.addEventListener('click', copyWalletAddress);
             }
-
-            try {
-                const generateBtn = document.getElementById('generateWalletBtn');
-                const statusDiv = document.getElementById('createWalletStatus');
-                
-                generateBtn.innerHTML = '<div class="loading"></div> Generating...';
-                generateBtn.disabled = true;
-                showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
-
-                const result = await window.nemexWalletAPI.generateNewWallet(12);
-
-                walletState = {
-                    isInitialized: true,
-                    walletType: 'new',
-                    userId: result.wallet.userId,
-                    address: result.wallet.address,
-                    balances: {}
-                };
-
-                showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
-
-                setTimeout(() => {
-                    closeModal();
-                    updateWalletDisplay();
-                    updateRealBalances();
-                }, 1000);
-
-            } catch (error) {
-                console.error('Wallet creation failed:', error);
-                showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error');
-            } finally {
-                const generateBtn = document.getElementById('generateWalletBtn');
-                if (generateBtn) {
-                    generateBtn.innerHTML = 'Generate New Wallet';
-                    generateBtn.disabled = false;
-                }
-            }
-        };
-
-        window.importWalletFromModal = async function() {
-            const importBtn = document.getElementById('importWalletBtn');
-            const statusDiv = document.getElementById('importWalletStatus');
-            const mnemonicInput = document.getElementById('importMnemonic');
-            const mnemonic = mnemonicInput.value.trim();
-
-            if (!mnemonic) {
-                showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
-                return;
-            }
-
-            try {
-                if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
-                    throw new Error('Wallet API not ready. Please wait...');
-                }
-
-                importBtn.innerHTML = '<div class="loading"></div> Importing...';
-                importBtn.disabled = true;
-                showStatusMessage('Importing your wallet...', 'loading', statusDiv);
-
-                const result = await window.nemexWalletAPI.importWallet(mnemonic);
-
-                if (result.success && result.wallet) {
-                    walletState = {
-                        isInitialized: true,
-                        walletType: 'imported',
-                        userId: result.wallet.userId,
-                        address: result.wallet.address,
-                        balances: {}
-                    };
-
-                    showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
-
-                    setTimeout(() => {
-                        closeModal();
-                        updateWalletDisplay();
-                        updateRealBalances();
-                    }, 2000);
-                } else {
-                    throw new Error(result.error || 'Failed to import wallet');
-                }
-
-            } catch (error) {
-                console.error('Wallet import failed:', error);
-                showStatusMessage('❌ ' + error.message, 'error', statusDiv);
-            } finally {
-                importBtn.innerHTML = 'Import Wallet';
-                importBtn.disabled = false;
-            }
-        };
+        });
 
         // =============================================
-        // TRANSACTION FUNCTIONS
-        // =============================================
-
-        async function confirmSendTransaction() {
-            const toAddress = document.getElementById('sendToAddress').value.trim();
-            const amount = parseFloat(document.getElementById('sendAmount').value);
-            const statusElement = document.getElementById('sendStatus');
-
-            if (!toAddress || !amount || amount <= 0) {
-                showStatusMessage('Please enter valid address and amount', 'error', statusElement);
-                return;
-            }
-
-            try {
-                showStatusMessage('🔐 Processing transaction...', 'loading', statusElement);
-
-                const result = await window.nemexWalletAPI.sendTON(
-                    walletState.address,
-                    toAddress,
-                    amount,
-                    ''
-                );
-
-                if (result.success) {
-                    showStatusMessage(`✅ ${result.message}`, 'success', statusElement);
-                    setTimeout(() => {
-                        closeModal();
-                        updateRealBalances();
-                    }, 2000);
-                }
-
-            } catch (error) {
-                console.error('Send transaction failed:', error);
-                showStatusMessage(`❌ Transaction failed: ${error.message}`, 'error', statusElement);
-            }
-        }
-
-        // =============================================
-        // INITIALIZATION
+        // EVENT LISTENERS
         // =============================================
 
         window.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 DOM loaded, initializing wallet...');
-            showStatusMessage('🔄 Loading wallet system...', 'loading');
-            
+            console.log('📄 DOM loaded, waiting for wallet API...');
+
             if (window.nemexWalletAPI) {
+                console.log('✅ Wallet API found, initializing...');
                 initWallet();
             } else {
+                console.log('⏳ Wallet API not loaded yet, waiting...');
                 setTimeout(() => {
                     if (window.nemexWalletAPI) {
                         initWallet();
@@ -2294,11 +3757,82 @@
             }
         });
 
+        document.addEventListener('walletReady', function(event) {
+            console.log('🎉 Wallet ready event received:', event.detail);
+            updateWalletDisplay();
+        });
+
         window.onclick = function(event) {
             if (event.target.classList.contains('modal')) {
                 closeModal();
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM ready, checking wallet status...');
+
+            setTimeout(async () => {
+                if (window.nemexWalletAPI && window.nemexWalletAPI.isInitialized) {
+                    try {
+                        const hasWallets = await window.nemexWalletAPI.hasWallets();
+                        if (hasWallets) {
+                            console.log('✅ Found existing wallets, showing main interface');
+                            showMainWalletInterface();
+                        } else {
+                            console.log('🆕 No wallets found, ready for creation');
+                        }
+                    } catch (error) {
+                        console.error('Error checking wallet status:', error);
+                    }
+                }
+            }, 1000);
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM ready, waiting for wallet system...');
+            showStatusMessage('🔄 Loading wallet system...', 'loading');
+        });
+
+        async function refreshWalletData() {
+            try {
+                console.log('🔄 Refreshing wallet data...');
+
+                if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+                    console.log('❌ Wallet API not ready');
+                    return;
+                }
+
+                const currentWallet = await window.nemexWalletAPI.getStoredWallet();
+                console.log('🔍 Stored wallet:', currentWallet);
+
+                if (currentWallet && currentWallet.address) {
+                    walletState = {
+                        isInitialized: true,
+                        walletType: currentWallet.source || 'imported',
+                        userId: currentWallet.userId,
+                        address: currentWallet.address,
+                        balances: {}
+                    };
+
+                    console.log('✅ Wallet state updated:', walletState);
+
+                    const balanceData = await window.nemexWalletAPI.getAllRealData(currentWallet.address);
+                    console.log('💰 Balance data:', balanceData);
+
+                    if (balanceData.success) {
+                        walletState.balances = balanceData.balances;
+                        updateBalanceDisplay(balanceData.balances);
+                    }
+
+                    updateAddressDisplay(currentWallet.address);
+                }
+            } catch (error) {
+                console.error('❌ Refresh failed:', error);
+            }
+        }
+
+        // Call this after import/generate
+        refreshWalletData();
     </script>
 </body>
 </html>
