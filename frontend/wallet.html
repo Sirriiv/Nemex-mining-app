@@ -2336,147 +2336,275 @@ setTimeout(debugWalletConnection, 2000);
         }
 
         // =============================================
-        // WALLET CREATION & IMPORT
-        // =============================================
+// WALLET CREATION & IMPORT - SUPABASE VERSION
+// =============================================
 
-        window.generateNewWallet = async function() {
-            console.log('🔄 GLOBAL: Generating new wallet...');
+window.generateNewWallet = async function() {
+    console.log('🔄 GLOBAL: Generating new wallet with Supabase...');
 
-            const generateBtn = document.getElementById('generateWalletBtn');
-            const statusDiv = document.getElementById('createWalletStatus');
+    const generateBtn = document.getElementById('generateWalletBtn');
+    const statusDiv = document.getElementById('createWalletStatus');
 
-            try {
-                if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
-                    throw new Error('Wallet API not ready. Please wait...');
-                }
+    try {
+        if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+            throw new Error('Wallet API not ready. Please wait...');
+        }
 
-                generateBtn.innerHTML = '<div class="loading"></div> Generating...';
-                generateBtn.disabled = true;
-                showStatusMessage('Generating your secure wallet...', 'loading', statusDiv);
+        generateBtn.innerHTML = '<div class="loading"></div> Generating...';
+        generateBtn.disabled = true;
+        showStatusMessage('🔄 Generating your secure wallet...', 'loading', statusDiv);
 
-                console.log('🔄 Creating wallet via database...');
+        console.log('🔄 Creating wallet via Supabase...');
 
-                const result = await window.nemexWalletAPI.generateNewWallet(12);
+        // Generate wallet via Supabase backend
+        const result = await window.nemexWalletAPI.generateNewWallet(12);
 
+        if (result.success && result.wallet) {
+            console.log('✅ Wallet created in Supabase:', result.wallet.address);
+            
+            // Store the mnemonic securely in sessionStorage
+            if (result.wallet.mnemonic) {
                 currentMnemonic = result.wallet.mnemonic;
+                console.log('🔐 Seed phrase available for backup');
+            } else {
+                console.log('ℹ️ No seed phrase in response, checking storage...');
+                // Try to retrieve from secure storage
+                const storedMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(result.wallet.address);
+                if (storedMnemonic) {
+                    currentMnemonic = storedMnemonic;
+                    console.log('✅ Seed phrase retrieved from storage');
+                }
+            }
 
-                walletState = {
-                    isInitialized: true,
-                    walletType: 'new',
-                    userId: result.wallet.userId,
-                    address: result.wallet.address,
-                    balances: {}
-                };
+            // Update wallet state
+            walletState = {
+                isInitialized: true,
+                walletType: 'new',
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {},
+                lastUpdate: null
+            };
 
-                console.log('✅ Wallet created in database:', walletState.address);
-                showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
+            showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
 
-                setTimeout(() => {
-                    closeModal();
+            // Show backup modal with seed phrase
+            setTimeout(() => {
+                closeModal();
+                if (currentMnemonic) {
                     showBackupModal(currentMnemonic);
-                }, 1000);
-
-            } catch (error) {
-                console.error('Wallet creation failed:', error);
-                showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error', statusDiv);
-            } finally {
-                generateBtn.innerHTML = 'Generate New Wallet';
-                generateBtn.disabled = false;
-            }
-        };
-
-        window.importWalletFromModal = async function() {
-            const importBtn = document.getElementById('importWalletBtn');
-            const statusDiv = document.getElementById('importWalletStatus');
-            const mnemonicInput = document.getElementById('importMnemonic');
-            const targetAddressInput = document.getElementById('targetAddress');
-
-            const mnemonic = mnemonicInput.value.trim();
-            const targetAddress = targetAddressInput.value.trim();
-
-            if (!mnemonic) {
-                showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
-                return;
-            }
-
-            const wordCount = mnemonic.split(' ').length;
-            if (wordCount !== 12 && wordCount !== 24) {
-                showStatusMessage('Recovery phrase must be 12 or 24 words', 'error', statusDiv);
-                return;
-            }
-
-            try {
-                if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
-                    throw new Error('Wallet API not ready. Please wait...');
-                }
-
-                importBtn.innerHTML = '<div class="loading"></div> Importing...';
-                importBtn.disabled = true;
-                showStatusMessage('Importing your wallet...', 'loading', statusDiv);
-
-                console.log('🔄 Importing wallet via database...');
-                console.log('🔍 Target address provided:', targetAddress || 'None');
-
-                const result = await window.nemexWalletAPI.importWallet(mnemonic, targetAddress);
-
-                if (result.success && result.wallets) {
-                    console.log('🔍 Multiple wallets found, showing selection modal');
-                    showStatusMessage(`Found ${result.wallets.length} wallets. Please select one.`, 'success', statusDiv);
-
-                    currentMnemonic = mnemonic;
-
-                    setTimeout(() => {
-                        closeModal();
-                        showWalletSelectionModal(result.wallets);
-                    }, 1000);
-                    return;
-                }
-
-                if (result.success && result.wallet) {
-                    console.log('✅ Single wallet imported via API:', result.wallet.address);
-
-                    currentMnemonic = mnemonic;
-
-                    walletState = {
-                        isInitialized: true,
-                        walletType: 'imported', 
-                        userId: result.wallet.userId,
-                        address: result.wallet.address,
-                        balances: {}
-                    };
-
-                    showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
-
-                    setTimeout(() => {
-                        closeModal();
-                        updateWalletDisplay();
-                        updateRealBalances();
-                        loadUserWallets();
-                    }, 2000);
                 } else {
-                    throw new Error(result.error || 'Failed to import wallet');
+                    console.warn('⚠️ No seed phrase available for backup');
+                    // Still update UI even without seed phrase
+                    updateWalletDisplay();
+                    updateRealBalances();
+                    loadUserWallets();
+                    showStatusMessage('✅ Wallet ready!', 'success');
                 }
+            }, 1000);
 
-            } catch (error) {
-                console.error('Wallet import failed:', error);
-                let errorMessage = error.message;
+        } else {
+            throw new Error(result.error || 'Wallet creation failed - no wallet data returned');
+        }
 
-                if (error.message.includes('400')) {
-                    if (error.message.includes('No wallet matches')) {
-                        errorMessage = 'No wallet derived from this phrase matches your target address. Try without target address to see all options.';
-                    } else {
-                        errorMessage = 'Invalid recovery phrase format. Please check your words.';
-                    }
-                } else if (error.message.includes('Network')) {
-                    errorMessage = 'Network error. Please check your connection.';
-                }
+    } catch (error) {
+        console.error('❌ Wallet creation failed:', error);
+        
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to generate wallet')) {
+            errorMessage = 'Wallet generation service unavailable. Please try again.';
+        } else if (error.message.includes('Network')) {
+            errorMessage = 'Network error. Please check your connection.';
+        }
 
-                showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
-            } finally {
-                importBtn.innerHTML = 'Import Wallet';
-                importBtn.disabled = false;
+        showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
+    } finally {
+        generateBtn.innerHTML = 'Generate New Wallet';
+        generateBtn.disabled = false;
+    }
+};
+
+window.importWalletFromModal = async function() {
+    const importBtn = document.getElementById('importWalletBtn');
+    const statusDiv = document.getElementById('importWalletStatus');
+    const mnemonicInput = document.getElementById('importMnemonic');
+    const targetAddressInput = document.getElementById('targetAddress');
+
+    const mnemonic = mnemonicInput.value.trim();
+    const targetAddress = targetAddressInput.value.trim();
+
+    if (!mnemonic) {
+        showStatusMessage('Please enter your recovery phrase', 'error', statusDiv);
+        return;
+    }
+
+    const wordCount = mnemonic.split(' ').length;
+    if (wordCount !== 12 && wordCount !== 24) {
+        showStatusMessage('Recovery phrase must be 12 or 24 words', 'error', statusDiv);
+        return;
+    }
+
+    try {
+        if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+            throw new Error('Wallet API not ready. Please wait...');
+        }
+
+        importBtn.innerHTML = '<div class="loading"></div> Importing...';
+        importBtn.disabled = true;
+        showStatusMessage('🔄 Importing your wallet via Supabase...', 'loading', statusDiv);
+
+        console.log('🔄 Importing wallet via Supabase...');
+        console.log('🔍 Target address provided:', targetAddress || 'None');
+
+        // Import wallet via Supabase backend
+        const result = await window.nemexWalletAPI.importWallet(mnemonic, targetAddress);
+
+        if (result.success && result.wallets) {
+            console.log('🔍 Multiple wallets found, showing selection modal');
+            showStatusMessage(`Found ${result.wallets.length} wallets. Please select one.`, 'success', statusDiv);
+
+            currentMnemonic = mnemonic;
+
+            setTimeout(() => {
+                closeModal();
+                showWalletSelectionModal(result.wallets);
+            }, 1000);
+            return;
+        }
+
+        if (result.success && result.wallet) {
+            console.log('✅ Single wallet imported via Supabase:', result.wallet.address);
+
+            currentMnemonic = mnemonic;
+
+            // Update wallet state
+            walletState = {
+                isInitialized: true,
+                walletType: 'imported', 
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {},
+                lastUpdate: null
+            };
+
+            showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+
+            setTimeout(() => {
+                closeModal();
+                updateWalletDisplay();
+                updateRealBalances();
+                loadUserWallets();
+                
+                // Show success message
+                showStatusMessage('✅ Wallet imported and ready!', 'success');
+            }, 1500);
+        } else {
+            throw new Error(result.error || 'Failed to import wallet - no wallet data returned');
+        }
+
+    } catch (error) {
+        console.error('❌ Wallet import failed:', error);
+        
+        let errorMessage = error.message;
+        if (error.message.includes('400')) {
+            if (error.message.includes('No wallet matches')) {
+                errorMessage = 'No wallet derived from this phrase matches your target address. Try without target address to see all options.';
+            } else if (error.message.includes('Invalid mnemonic')) {
+                errorMessage = 'Invalid recovery phrase. Please check your words and try again.';
+            } else {
+                errorMessage = 'Invalid recovery phrase format. Please check your words.';
             }
-        };
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+            errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.message.includes('Cannot import wallet')) {
+            // Extract the actual error message
+            const actualError = error.message.replace('Cannot import wallet: ', '');
+            errorMessage = actualError;
+        }
+
+        showStatusMessage('❌ ' + errorMessage, 'error', statusDiv);
+    } finally {
+        importBtn.innerHTML = 'Import Wallet';
+        importBtn.disabled = false;
+    }
+};
+
+// Enhanced wallet selection function
+window.selectWalletForImport = async function(selectedPath) {
+    console.log('🔄 Selecting wallet with path:', selectedPath);
+
+    try {
+        if (!window.nemexWalletAPI || !currentMnemonic) {
+            throw new Error('No pending import found');
+        }
+
+        showStatusMessage('🔄 Importing selected wallet...', 'loading');
+
+        const result = await window.nemexWalletAPI.selectWalletForImport(selectedPath);
+
+        if (result.success && result.wallet) {
+            console.log('✅ Selected wallet imported:', result.wallet.address);
+
+            // Update wallet state
+            walletState = {
+                isInitialized: true,
+                walletType: 'imported',
+                userId: result.wallet.userId,
+                address: result.wallet.address,
+                balances: {},
+                lastUpdate: null
+            };
+
+            // Close selection modal
+            closeModal();
+
+            // Update UI
+            updateWalletDisplay();
+            updateRealBalances();
+            loadUserWallets();
+            
+            showStatusMessage('✅ Wallet imported successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Failed to import selected wallet');
+        }
+
+    } catch (error) {
+        console.error('❌ Wallet selection failed:', error);
+        showStatusMessage('❌ Failed to import wallet: ' + error.message, 'error');
+    }
+};
+
+// Quick debug function to test wallet creation
+window.debugWalletFlow = async function() {
+    console.log('🔍 DEBUG: Testing wallet creation flow...');
+    
+    if (!window.nemexWalletAPI) {
+        console.error('❌ Wallet API not available');
+        return;
+    }
+    
+    try {
+        console.log('🔄 Testing API connection...');
+        const apiReady = await window.nemexWalletAPI.init();
+        console.log('✅ API ready:', apiReady);
+        
+        console.log('🔄 Testing wallet generation...');
+        const result = await window.nemexWalletAPI.generateNewWallet(12);
+        console.log('✅ Generation result:', result);
+        
+        if (result.success) {
+            console.log('🎯 Wallet created!');
+            console.log('📋 Address:', result.wallet.address);
+            console.log('🔐 Has mnemonic:', !!result.wallet.mnemonic);
+            
+            // Check storage
+            const storedMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(result.wallet.address);
+            console.log('💾 Stored mnemonic:', !!storedMnemonic);
+        }
+    } catch (error) {
+        console.error('❌ Debug failed:', error);
+    }
+};
 
         // =============================================
 // SUPABASE SESSION MANAGEMENT - FIXED VERSION
@@ -2795,273 +2923,600 @@ setTimeout(async () => {
         }
 
         // =============================================
-        // WALLET MANAGEMENT
-        // =============================================
+// WALLET MANAGEMENT - SUPABASE VERSION
+// =============================================
 
-        function toggleWalletManagement() {
-            const content = document.getElementById('walletManagementContent');
-            const arrow = document.querySelector('.wallet-management-arrow');
-            const header = document.querySelector('.wallet-management-header');
+function toggleWalletManagement() {
+    const content = document.getElementById('walletManagementContent');
+    const arrow = document.querySelector('.wallet-management-arrow');
+    const header = document.querySelector('.wallet-management-header');
 
-            if (content && arrow && header) {
-                content.classList.toggle('expanded');
-                arrow.classList.toggle('expanded');
-                header.classList.toggle('active');
-            }
-        }
+    if (content && arrow && header) {
+        content.classList.toggle('expanded');
+        arrow.classList.toggle('expanded');
+        header.classList.toggle('active');
+    }
+}
 
-        function updateWalletList() {
-            const walletList = document.getElementById('walletList');
-            if (!walletList) return;
+function updateWalletList() {
+    const walletList = document.getElementById('walletList');
+    if (!walletList) return;
 
-            const uniqueWallets = userWallets.filter((wallet, index, self) => 
-                index === self.findIndex(w => w.address === wallet.address)
-            );
+    // Filter out duplicate wallets by address
+    const uniqueWallets = userWallets.filter((wallet, index, self) => 
+        index === self.findIndex(w => w.address === wallet.address)
+    );
 
-            if (uniqueWallets.length > 0) {
-                walletList.innerHTML = uniqueWallets.map(wallet => `
-                    <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
-                        <div class="wallet-icon">
-                            <i class="fas fa-wallet"></i>
-                        </div>
-                        <div class="wallet-info">
-                            <div class="wallet-name-display">
-                                ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
-                                ${wallet.address === walletState.address ? '(Active)' : ''}
-                            </div>
-                            <div class="wallet-address">${wallet.address}</div>
-                            <div class="wallet-type">${wallet.source}</div>
-                        </div>
-                        <div class="wallet-actions">
-                            ${wallet.address !== walletState.address ? 
-                                `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')">Switch</button>` : 
-                                ''
-                            }
-                            <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')">View Seed</button>
-                        </div>
+    console.log(`🔄 Updating wallet list: ${uniqueWallets.length} unique wallets found`);
+
+    if (uniqueWallets.length > 0) {
+        walletList.innerHTML = uniqueWallets.map(wallet => `
+            <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
+                        ${wallet.address === walletState.address ? 
+                            '<span class="active-badge">(Active)</span>' : 
+                            '<span class="inactive-badge">(Inactive)</span>'
+                        }
                     </div>
-                `).join('');
-            } else if (walletState.isInitialized) {
-                walletList.innerHTML = `
-                    <div class="wallet-item active">
-                        <div class="wallet-icon">
-                            <i class="fas fa-wallet"></i>
-                        </div>
-                        <div class="wallet-info">
-                            <div class="wallet-name-display">
-                                ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} (Active)
-                            </div>
-                            <div class="wallet-address">${walletState.address}</div>
-                            <div class="wallet-type">${walletState.walletType || 'active'}</div>
-                        </div>
-                        <div class="wallet-actions">
-                            <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')">View Seed</button>
-                        </div>
+                    <div class="wallet-address">${formatAddress(wallet.address)}</div>
+                    <div class="wallet-meta">
+                        <span class="wallet-type ${wallet.source}">${wallet.source}</span>
+                        ${wallet.wordCount ? `<span class="wallet-words">${wallet.wordCount} words</span>` : ''}
                     </div>
-                `;
-            } else {
-                walletList.innerHTML = '<div class="security-warning">No active wallet. Create or import a wallet to get started.</div>';
-            }
-        }
-
-        async function switchToWallet(address) {
-            try {
-                console.log('🔄 Switching to wallet:', address);
-
-                const result = await window.nemexWalletAPI.setActiveWallet(address);
-
-                if (result.success) {
-                    const wallet = userWallets.find(w => w.address === address);
-                    if (wallet) {
-                        walletState = {
-                            isInitialized: true,
-                            walletType: wallet.source,
-                            userId: wallet.userId,
-                            address: wallet.address,
-                            balances: {}
-                        };
-
-                        console.log('✅ Switched to wallet:', address);
-                        updateWalletDisplay();
-                        updateRealBalances();
-                        updateWalletList();
-
-                        showStatusMessage(`✅ Switched to wallet: ${address.substring(0, 8)}...`, 'success');
+                </div>
+                <div class="wallet-actions">
+                    ${wallet.address !== walletState.address ? 
+                        `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')" title="Switch to this wallet">
+                            <i class="fas fa-exchange-alt"></i> Switch
+                        </button>` : 
+                        '<button class="wallet-action-btn active" disabled><i class="fas fa-check"></i> Active</button>'
                     }
+                    ${window.nemexWalletAPI.canShowSeedPhrase(wallet.address) ?
+                        `<button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')" title="View seed phrase">
+                            <i class="fas fa-seedling"></i> Seed
+                        </button>` :
+                        `<button class="wallet-action-btn view-seed disabled" disabled title="Seed phrase not available">
+                            <i class="fas fa-seedling"></i> Seed
+                        </button>`
+                    }
+                </div>
+            </div>
+        `).join('');
+    } else if (walletState.isInitialized && walletState.address) {
+        // Fallback: Show current wallet even if not in userWallets array
+        walletList.innerHTML = `
+            <div class="wallet-item active">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} 
+                        <span class="active-badge">(Active)</span>
+                    </div>
+                    <div class="wallet-address">${formatAddress(walletState.address)}</div>
+                    <div class="wallet-meta">
+                        <span class="wallet-type ${walletState.walletType}">${walletState.walletType || 'active'}</span>
+                    </div>
+                </div>
+                <div class="wallet-actions">
+                    <button class="wallet-action-btn active" disabled>
+                        <i class="fas fa-check"></i> Active
+                    </button>
+                    ${window.nemexWalletAPI.canShowSeedPhrase(walletState.address) ?
+                        `<button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')" title="View seed phrase">
+                            <i class="fas fa-seedling"></i> Seed
+                        </button>` :
+                        `<button class="wallet-action-btn view-seed disabled" disabled title="Seed phrase not available">
+                            <i class="fas fa-seedling"></i> Seed
+                        </button>`
+                    }
+                </div>
+            </div>
+            <div class="wallet-sync-notice">
+                <i class="fas fa-sync-alt"></i> Syncing with Supabase...
+            </div>
+        `;
+    } else {
+        walletList.innerHTML = `
+            <div class="no-wallets-message">
+                <div class="no-wallets-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="no-wallets-text">
+                    <h4>No Wallets Found</h4>
+                    <p>Create or import a wallet to get started with Nemex Wallet.</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+async function switchToWallet(address) {
+    try {
+        console.log('🔄 Switching to wallet:', address);
+        showStatusMessage('🔄 Switching wallet...', 'loading');
+
+        // Find the wallet in userWallets
+        const wallet = userWallets.find(w => w.address === address);
+        if (!wallet) {
+            throw new Error('Wallet not found in your wallet list');
+        }
+
+        // Set as active wallet in Supabase
+        const result = await window.nemexWalletAPI.setActiveWallet(address);
+
+        if (result.success) {
+            // Update stored wallet in Supabase session
+            await window.nemexWalletAPI.setStoredWallet(wallet);
+
+            // Update wallet state
+            walletState = {
+                isInitialized: true,
+                walletType: wallet.source || 'imported',
+                userId: wallet.userId,
+                address: wallet.address,
+                balances: walletState.balances || {}, // Keep existing balances
+                lastUpdate: walletState.lastUpdate
+            };
+
+            console.log('✅ Switched to wallet:', address);
+            
+            // Update UI
+            updateWalletDisplay();
+            await updateRealBalances();
+            updateWalletList();
+
+            showStatusMessage(`✅ Switched to wallet: ${formatAddress(address)}`, 'success');
+        } else {
+            throw new Error(result.error || 'Failed to set active wallet');
+        }
+
+    } catch (error) {
+        console.error('❌ Wallet switch failed:', error);
+        
+        let errorMessage = error.message;
+        if (error.message.includes('Network') || error.message.includes('fetch')) {
+            errorMessage = 'Network error. Please check your connection.';
+        } else if (error.message.includes('Wallet not found')) {
+            errorMessage = 'Wallet not found in your account. Please refresh and try again.';
+        }
+
+        showStatusMessage('❌ ' + errorMessage, 'error');
+    }
+}
+
+async function logout() {
+    if (confirm('Are you sure you want to logout? Your wallet data is safely stored in Supabase and you can switch back anytime.')) {
+        try {
+            console.log('🔄 Logging out...');
+            showStatusMessage('🔄 Logging out...', 'loading');
+
+            // Clear session data from Supabase and local storage
+            await window.nemexWalletAPI.clearSession();
+            
+            // Reset wallet state
+            walletState = {
+                isInitialized: false,
+                walletType: null,
+                userId: null,
+                address: null,
+                balances: {},
+                lastUpdate: null
+            };
+            
+            currentMnemonic = null;
+            userWallets = [];
+
+            // Update UI
+            updateWalletDisplay();
+            updateWalletList();
+
+            console.log('✅ Logged out successfully');
+            showStatusMessage('✅ Logged out successfully', 'success');
+            closeModal();
+
+        } catch (error) {
+            console.error('❌ Logout failed:', error);
+            showStatusMessage('❌ Logout failed: ' + error.message, 'error');
+        }
+    }
+}
+
+// Helper function to format address for display
+function formatAddress(address, startChars = 6, endChars = 4) {
+    if (!address) return 'No Address';
+    if (address.length <= startChars + endChars) return address;
+    return `${address.substring(0, startChars)}...${address.substring(address.length - endChars)}`;
+}
+
+// Refresh wallet list from Supabase
+async function refreshWalletList() {
+    try {
+        console.log('🔄 Refreshing wallet list from Supabase...');
+        await loadUserWallets();
+        updateWalletList();
+        showStatusMessage('✅ Wallet list updated', 'success');
+    } catch (error) {
+        console.error('❌ Failed to refresh wallet list:', error);
+        showStatusMessage('❌ Failed to update wallet list', 'error');
+    }
+}
+
+// Add refresh button to wallet management header if not exists
+function enhanceWalletManagementUI() {
+    const walletManagementHeader = document.querySelector('.wallet-management-header');
+    if (walletManagementHeader && !document.getElementById('refreshWalletsBtn')) {
+        const refreshBtn = document.createElement('button');
+        refreshBtn.id = 'refreshWalletsBtn';
+        refreshBtn.className = 'refresh-wallets-btn';
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        refreshBtn.title = 'Refresh wallet list';
+        refreshBtn.onclick = refreshWalletList;
+        
+        walletManagementHeader.appendChild(refreshBtn);
+    }
+}
+
+// Initialize enhanced UI when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(enhanceWalletManagementUI, 1000);
+});
+
+        // =============================================
+// BACKUP & SEED PHRASE MANAGEMENT - SUPABASE VERSION
+// =============================================
+
+function toggleContinueButton() {
+    const confirmationCheckbox = document.getElementById('backupConfirmed');
+    const continueButton = document.getElementById('confirmBackupBtn');
+
+    if (confirmationCheckbox && continueButton) {
+        continueButton.disabled = !confirmationCheckbox.checked;
+        if (!confirmationCheckbox.checked) {
+            continueButton.style.opacity = '0.6';
+            continueButton.style.cursor = 'not-allowed';
+        } else {
+            continueButton.style.opacity = '1';
+            continueButton.style.cursor = 'pointer';
+        }
+    }
+}
+
+function showBackupModal(mnemonic) {
+    console.log('🔐 Showing backup modal with seed phrase...');
+    
+    const words = mnemonic.split(' ');
+    const mnemonicWords = document.getElementById('mnemonicWords');
+    if (!mnemonicWords) {
+        console.error('❌ Backup modal elements not found');
+        return;
+    }
+
+    mnemonicWords.innerHTML = '';
+
+    words.forEach((word, index) => {
+        const wordElement = document.createElement('div');
+        wordElement.className = 'mnemonic-word';
+        wordElement.innerHTML = `
+            <span class="word-index">${index + 1}.</span> 
+            <span class="word-text">${word}</span>
+        `;
+        mnemonicWords.appendChild(wordElement);
+    });
+
+    currentMnemonic = mnemonic;
+
+    // Reset confirmation state
+    const backupConfirmed = document.getElementById('backupConfirmed');
+    const confirmBackupBtn = document.getElementById('confirmBackupBtn');
+
+    if (backupConfirmed && confirmBackupBtn) {
+        backupConfirmed.checked = false;
+        confirmBackupBtn.disabled = true;
+        confirmBackupBtn.style.opacity = '0.6';
+        confirmBackupBtn.style.cursor = 'not-allowed';
+    }
+
+    // Show security warning
+    showSecurityWarning();
+
+    const backupModal = document.getElementById('backupModal');
+    if (backupModal) {
+        backupModal.style.display = 'flex';
+        console.log('✅ Backup modal displayed for wallet creation');
+    }
+
+    console.log('📝 Backup modal shown for new wallet');
+}
+
+function showSecurityWarning() {
+    const warningContainer = document.getElementById('securityWarningContainer');
+    if (warningContainer && !warningContainer.querySelector('.security-warning-enhanced')) {
+        const warningHTML = `
+            <div class="security-warning-enhanced">
+                <div class="warning-header">
+                    <i class="fas fa-shield-alt"></i>
+                    <h4>Security Alert: Protect Your Seed Phrase</h4>
+                </div>
+                <div class="warning-content">
+                    <div class="warning-item danger">
+                        <i class="fas fa-ban"></i>
+                        <span>Never share your seed phrase with anyone</span>
+                    </div>
+                    <div class="warning-item danger">
+                        <i class="fas fa-laptop"></i>
+                        <span>Never enter it on any website</span>
+                    </div>
+                    <div class="warning-item safe">
+                        <i class="fas fa-print"></i>
+                        <span>Write it down on paper and store securely</span>
+                    </div>
+                    <div class="warning-item safe">
+                        <i class="fas fa-lock"></i>
+                        <span>Store in a safe place only you can access</span>
+                    </div>
+                </div>
+                <div class="warning-footer">
+                    <small>Your seed phrase is the only way to recover your wallet if you lose access.</small>
+                </div>
+            </div>
+        `;
+        warningContainer.innerHTML = warningHTML;
+    }
+}
+
+async function confirmBackupAndContinue() {
+    const confirmationCheckbox = document.getElementById('backupConfirmed');
+
+    if (!confirmationCheckbox || !confirmationCheckbox.checked) {
+        showTemporaryMessage('⚠️ You must confirm that you have saved your recovery phrase!', 'warning');
+        return;
+    }
+
+    console.log('✅ User confirmed backup for wallet:', walletState.address);
+
+    try {
+        // Verify the seed phrase is stored securely
+        if (currentMnemonic && walletState.address) {
+            const isStored = await window.nemexWalletAPI.storage.storeMnemonicSecurely(currentMnemonic, walletState.address);
+            console.log('🔐 Seed phrase storage result:', isStored ? 'SUCCESS' : 'FAILED');
+        }
+
+        closeModal();
+        
+        // Update UI with the new wallet
+        updateWalletDisplay();
+        await updateRealBalances();
+        await loadUserWallets();
+
+        console.log('✅ Wallet setup completed successfully');
+        showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
+
+        // Show welcome message for new wallet
+        setTimeout(() => {
+            showTemporaryMessage('🎉 Welcome to your new Nemex Wallet!', 'success');
+        }, 1000);
+
+    } catch (error) {
+        console.error('❌ Error during backup confirmation:', error);
+        showStatusMessage('❌ Error completing wallet setup', 'error');
+    }
+}
+
+async function showViewSeedPhrase(walletAddress = null) {
+    try {
+        console.log('🔐 Attempting to view seed phrase for:', walletAddress || 'current wallet');
+        
+        let targetMnemonic = null;
+        const targetAddress = walletAddress || walletState.address;
+
+        if (!targetAddress) {
+            throw new Error('No wallet address specified');
+        }
+
+        // Try to get seed phrase from secure storage first
+        targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
+        
+        if (!targetMnemonic) {
+            // Fallback to currentMnemonic if available and matches the target address
+            if (currentMnemonic && (!walletAddress || walletAddress === walletState.address)) {
+                targetMnemonic = currentMnemonic;
+                console.log('✅ Using current mnemonic for seed phrase view');
+            } else {
+                // Check if we can retrieve from API (requires security verification)
+                const canShow = window.nemexWalletAPI.canShowSeedPhrase(targetAddress);
+                if (!canShow) {
+                    throw new Error('Seed phrase not available for this wallet. It may have been imported without storing the phrase locally, or the phrase is no longer accessible.');
                 }
-            } catch (error) {
-                console.error('Wallet switch failed:', error);
-                showStatusMessage('❌ Failed to switch wallet: ' + error.message, 'error');
-            }
-        }
-
-        function logout() {
-            if (confirm('Are you sure you want to logout? Your wallet data will remain stored but you\'ll need to select a wallet again.')) {
-                window.nemexWalletAPI.clearSession();
-                walletState = {
-                    isInitialized: false,
-                    walletType: null,
-                    userId: null,
-                    address: null,
-                    balances: {},
-                    lastUpdate: null
-                };
-                currentMnemonic = null;
-
-                updateWalletDisplay();
-                updateWalletList();
-
-                showStatusMessage('✅ Logged out successfully', 'success');
-                closeModal();
-            }
-        }
-
-        // =============================================
-        // BACKUP & SEED PHRASE MANAGEMENT
-        // =============================================
-
-        function toggleContinueButton() {
-            const confirmationCheckbox = document.getElementById('backupConfirmed');
-            const continueButton = document.getElementById('confirmBackupBtn');
-
-            if (confirmationCheckbox && continueButton) {
-                continueButton.disabled = !confirmationCheckbox.checked;
-            }
-        }
-
-        function showBackupModal(mnemonic) {
-            const words = mnemonic.split(' ');
-            const mnemonicWords = document.getElementById('mnemonicWords');
-            if (!mnemonicWords) return;
-
-            mnemonicWords.innerHTML = '';
-
-            words.forEach((word, index) => {
-                const wordElement = document.createElement('div');
-                wordElement.className = 'mnemonic-word';
-                wordElement.innerHTML = `<span class="word-index">${index + 1}.</span> ${word}`;
-                mnemonicWords.appendChild(wordElement);
-            });
-
-            currentMnemonic = mnemonic;
-
-            const backupConfirmed = document.getElementById('backupConfirmed');
-            const confirmBackupBtn = document.getElementById('confirmBackupBtn');
-
-            if (backupConfirmed && confirmBackupBtn) {
-                backupConfirmed.checked = false;
-                confirmBackupBtn.disabled = true;
-            }
-
-            const backupModal = document.getElementById('backupModal');
-            if (backupModal) {
-                backupModal.style.display = 'flex';
-            }
-
-            console.log('📝 Backup modal shown for wallet:', walletState.address);
-        }
-
-        function confirmBackupAndContinue() {
-            const confirmationCheckbox = document.getElementById('backupConfirmed');
-
-            if (!confirmationCheckbox || !confirmationCheckbox.checked) {
-                alert('⚠️ You must confirm that you have saved your recovery phrase!');
+                
+                // For security, we might need additional verification here
+                console.log('🔒 Seed phrase requires additional security verification');
+                showSecurityVerificationModal(targetAddress);
                 return;
             }
-
-            console.log('✅ User confirmed backup for wallet:', walletState.address);
-
-            closeModal();
-            updateWalletDisplay();
-            updateRealBalances();
-            loadUserWallets();
-
-            showStatusMessage('✅ Wallet activated successfully! Your funds are now secure.', 'success');
         }
 
-        async function showViewSeedPhrase(walletAddress = null) {
-            try {
-                let targetMnemonic = currentMnemonic;
+        if (!targetMnemonic) {
+            throw new Error('No seed phrase available for this wallet');
+        }
 
-                if (walletAddress && walletAddress !== walletState.address) {
-                    const targetWallet = userWallets.find(w => w.address === walletAddress);
-                    if (targetWallet && targetWallet.mnemonic) {
-                        targetMnemonic = targetWallet.mnemonic;
-                    } else {
-                        alert('Seed phrase not available for this wallet. It may have been imported without storing the phrase locally for security.');
-                        return;
-                    }
-                }
+        // Display the seed phrase in modal
+        displaySeedPhraseInModal(targetMnemonic, targetAddress);
 
-                if (!targetMnemonic) {
-                    alert('No seed phrase available for current wallet. This may be because the wallet was imported and the phrase is not stored locally for security.');
-                    return;
-                }
+    } catch (error) {
+        console.error('❌ Error showing seed phrase:', error);
+        showTemporaryMessage('❌ ' + error.message, 'error');
+    }
+}
 
-                const words = targetMnemonic.split(' ');
-                const viewSeedWords = document.getElementById('viewSeedWords');
-                if (!viewSeedWords) return;
+function displaySeedPhraseInModal(mnemonic, walletAddress) {
+    const words = mnemonic.split(' ');
+    const viewSeedWords = document.getElementById('viewSeedWords');
+    if (!viewSeedWords) {
+        console.error('❌ View seed modal elements not found');
+        return;
+    }
 
-                viewSeedWords.innerHTML = '';
+    viewSeedWords.innerHTML = '';
 
-                words.forEach((word, index) => {
-                    const wordElement = document.createElement('div');
-                    wordElement.className = 'mnemonic-word';
-                    wordElement.style.padding = '12px 8px';
-                    wordElement.style.background = 'rgba(212, 175, 55, 0.1)';
-                    wordElement.style.borderRadius = '8px';
-                    wordElement.style.fontFamily = 'monospace';
-                    wordElement.style.display = 'flex';
-                    wordElement.style.alignItems = 'center';
-                    wordElement.style.justifyContent = 'center';
-                    wordElement.style.textAlign = 'center';
-                    wordElement.style.fontWeight = '600';
-                    wordElement.style.fontSize = '14px';
-                    wordElement.innerHTML = `<span class="word-index" style="color: var(--gold); font-weight: bold; margin-right: 8px; font-size: 12px;">${index + 1}.</span> ${word}`;
-                    viewSeedWords.appendChild(wordElement);
-                });
+    words.forEach((word, index) => {
+        const wordElement = document.createElement('div');
+        wordElement.className = 'mnemonic-word secure-view';
+        wordElement.innerHTML = `
+            <span class="word-index">${index + 1}.</span> 
+            <span class="word-text">${word}</span>
+        `;
+        viewSeedWords.appendChild(wordElement);
+    });
 
-                const viewSeedModal = document.getElementById('viewSeedModal');
-                if (viewSeedModal) {
-                    viewSeedModal.style.display = 'flex';
-                }
-            } catch (error) {
-                console.error('Error showing seed phrase:', error);
-                alert('Error accessing seed phrase: ' + error.message);
+    // Update modal title with wallet info
+    const modalTitle = document.querySelector('#viewSeedModal .modal-title');
+    if (modalTitle) {
+        modalTitle.innerHTML = `
+            <i class="fas fa-seedling"></i>
+            Recovery Phrase
+            <small>for ${formatAddress(walletAddress)}</small>
+        `;
+    }
+
+    const viewSeedModal = document.getElementById('viewSeedModal');
+    if (viewSeedModal) {
+        viewSeedModal.style.display = 'flex';
+        console.log('✅ Seed phrase modal displayed for:', formatAddress(walletAddress));
+    }
+
+    // Add security notice
+    showViewSeedSecurityWarning();
+}
+
+function showViewSeedSecurityWarning() {
+    const warningContainer = document.getElementById('viewSeedSecurityWarning');
+    if (warningContainer && !warningContainer.querySelector('.security-warning-enhanced')) {
+        const warningHTML = `
+            <div class="security-warning-enhanced view-mode">
+                <div class="warning-header">
+                    <i class="fas fa-eye-slash"></i>
+                    <h4>Security Notice: Viewing Sensitive Information</h4>
+                </div>
+                <div class="warning-content">
+                    <div class="warning-item danger">
+                        <i class="fas fa-user-secret"></i>
+                        <span>Ensure no one can see your screen</span>
+                    </div>
+                    <div class="warning-item danger">
+                        <i class="fas fa-camera"></i>
+                        <span>Avoid taking screenshots or photos</span>
+                    </div>
+                    <div class="warning-item safe">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Close this window when finished</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        warningContainer.innerHTML = warningHTML;
+    }
+}
+
+async function copySeedPhrase() {
+    try {
+        let mnemonicToCopy = currentMnemonic;
+
+        // If we're in view seed modal, get the displayed seed phrase
+        const viewSeedModal = document.getElementById('viewSeedModal');
+        if (viewSeedModal && viewSeedModal.style.display === 'flex') {
+            const wordElements = document.querySelectorAll('#viewSeedWords .word-text');
+            if (wordElements.length > 0) {
+                mnemonicToCopy = Array.from(wordElements).map(el => el.textContent.trim()).join(' ');
             }
         }
 
-        async function copySeedPhrase() {
-            try {
-                if (!currentMnemonic) {
-                    alert('No seed phrase available to copy');
-                    return;
-                }
-
-                await navigator.clipboard.writeText(currentMnemonic);
-
-                const tempDiv = document.createElement('div');
-                tempDiv.className = 'status-message status-success';
-                tempDiv.textContent = '✅ Recovery phrase copied to clipboard!';
-                tempDiv.style.position = 'fixed';
-                tempDiv.style.top = '100px';
-                tempDiv.style.left = '50%';
-                tempDiv.style.transform = 'translateX(-50%)';
-                tempDiv.style.zIndex = '3000';
-                tempDiv.style.maxWidth = '90%';
-                document.body.appendChild(tempDiv);
-
-                setTimeout(() => {
-                    if (document.body.contains(tempDiv)) {
-                        document.body.removeChild(tempDiv);
-                    }
-                }, 3000);
-
-            } catch (error) {
-                console.error('Failed to copy seed phrase:', error);
-                alert('Failed to copy recovery phrase to clipboard');
-            }
+        if (!mnemonicToCopy) {
+            throw new Error('No seed phrase available to copy');
         }
+
+        await navigator.clipboard.writeText(mnemonicToCopy);
+        console.log('✅ Seed phrase copied to clipboard');
+
+        showTemporaryMessage('✅ Recovery phrase copied to clipboard! Keep it secure!', 'success');
+
+    } catch (error) {
+        console.error('❌ Failed to copy seed phrase:', error);
+        showTemporaryMessage('❌ Failed to copy recovery phrase', 'error');
+    }
+}
+
+function showSecurityVerificationModal(walletAddress) {
+    // This would be a more secure verification flow
+    console.log('🔒 Security verification required for:', walletAddress);
+    
+    // For now, show a message that seed phrase isn't accessible
+    showTemporaryMessage('🔒 Seed phrase access requires additional security verification for this wallet.', 'warning');
+}
+
+function showTemporaryMessage(message, type = 'info') {
+    const tempDiv = document.createElement('div');
+    tempDiv.className = `status-message status-${type} temporary-message`;
+    tempDiv.textContent = message;
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.top = '100px';
+    tempDiv.style.left = '50%';
+    tempDiv.style.transform = 'translateX(-50%)';
+    tempDiv.style.zIndex = '3000';
+    tempDiv.style.maxWidth = '90%';
+    tempDiv.style.textAlign = 'center';
+    
+    document.body.appendChild(tempDiv);
+
+    setTimeout(() => {
+        if (document.body.contains(tempDiv)) {
+            tempDiv.style.opacity = '0';
+            tempDiv.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => {
+                if (document.body.contains(tempDiv)) {
+                    document.body.removeChild(tempDiv);
+                }
+            }, 300);
+        }
+    }, 4000);
+}
+
+// Enhanced security function to clear sensitive data
+function clearSensitiveData() {
+    console.log('🧹 Clearing sensitive data from memory...');
+    currentMnemonic = null;
+    
+    // Clear any temporary variables that might hold seed phrases
+    if (window.tempSeedPhrase) {
+        window.tempSeedPhrase = null;
+    }
+}
+
+// Auto-clear sensitive data when modals close
+function setupSecurityAutoClear() {
+    const modals = ['backupModal', 'viewSeedModal'];
+    modals.forEach(modalId => {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    setTimeout(clearSensitiveData, 1000);
+                }
+            });
+        }
+    });
+}
+
+// Initialize security features when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setupSecurityAutoClear();
+});
 
         // =============================================
         // BALANCE & PRICE UPDATES - FIXED VERSION
