@@ -1350,6 +1350,36 @@
             animation: modalSlideIn 0.3s ease-out;
         }
 
+/* ============================================= */
+/* FIXED: Token Display Issues */
+/* ============================================= */
+
+#tokenSection {
+    display: block !important;
+}
+
+.token-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+}
+
+.token-card {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Ensure wallet sections show properly when wallet is loaded */
+.wallet-loaded #welcomeScreen {
+    display: none !important;
+}
+
+.wallet-loaded #balanceSection,
+.wallet-loaded #actionButtons,
+.wallet-loaded #tokenSection {
+    display: block !important;
+}
   </style>
 </head>
 <body>
