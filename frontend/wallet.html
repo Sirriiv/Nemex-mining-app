@@ -3118,46 +3118,78 @@ async function updateRealBalances() {
     updateWalletList();
 }
 
-        function updatePortfolioValue() {
-            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-            const totalUSD = allTokens.reduce((sum, token) => {
-                return sum + ((token.balance || 0) * (token.price || 0));
-            }, 0);
+  function updatePortfolioValue() {
+    // Wait a tiny bit to ensure token data is fully updated
+    setTimeout(() => {
+        const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+        
+        // ✅ DEBUG: Check what tokens we're calculating
+        console.log('💰 Calculating portfolio from tokens:', allTokens.map(t => ({
+            symbol: t.symbol,
+            balance: t.balance,
+            price: t.price,
+            value: (t.balance || 0) * (t.price || 0)
+        })));
+        
+        const totalUSD = allTokens.reduce((sum, token) => {
+            const balance = parseFloat(token.balance) || 0;
+            const price = parseFloat(token.price) || 0;
+            const tokenValue = balance * price;
+            
+            console.log(`   ${token.symbol}: ${balance} × $${price} = $${tokenValue}`);
+            
+            return sum + tokenValue;
+        }, 0);
 
-            const balanceAmount = document.getElementById('balanceAmount');
-            const balanceCrypto = document.getElementById('balanceCrypto');
-            const balanceLoading = document.getElementById('balanceLoading');
+        console.log('💰 Total portfolio value:', totalUSD);
 
-            if (balanceAmount) balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
-            if (balanceCrypto) balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
-            if (balanceLoading) balanceLoading.style.display = 'none';
-            if (balanceAmount) balanceAmount.style.display = 'inline';
-            if (balanceCrypto) balanceCrypto.style.display = 'inline';
+        const balanceAmount = document.getElementById('balanceAmount');
+        const balanceCrypto = document.getElementById('balanceCrypto');
+        const balanceLoading = document.getElementById('balanceLoading');
+
+        if (balanceAmount) {
+            balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
+            console.log('✅ Set balanceAmount to:', balanceAmount.textContent);
         }
+        if (balanceCrypto) {
+            balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
+            console.log('✅ Set balanceCrypto to:', balanceCrypto.textContent);
+        }
+        if (balanceLoading) {
+            balanceLoading.style.display = 'none';
+        }
+        if (balanceAmount) {
+            balanceAmount.style.display = 'inline';
+        }
+        if (balanceCrypto) {
+            balanceCrypto.style.display = 'inline';
+        }
+    }, 100); // Small delay to ensure data is ready
+}
+   
+function stabilizePortfolioDisplay() {
+    console.log('🔄 Stabilizing portfolio display...');
+    
+    // Get current calculated value
+    const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
+    const totalUSD = allTokens.reduce((sum, token) => {
+        return sum + ((token.balance || 0) * (token.price || 0));
+    }, 0);
+    
+    const balanceAmount = document.getElementById('balanceAmount');
+    const balanceCrypto = document.getElementById('balanceCrypto');
+    
+    if (balanceAmount && balanceCrypto) {
+        // Set both elements to the same value and lock them
+        const displayValue = `$${totalUSD.toFixed(2)}`;
+        balanceAmount.textContent = displayValue;
+        balanceCrypto.textContent = displayValue;
+        
+        console.log('🔒 Portfolio stabilized at:', displayValue);
+    }
+}
 
-        function loadTokens() {
-            const tokenList = document.getElementById('tokenList');
-            const tokensLoading = document.getElementById('tokensLoading');
-            if (!tokenList) return;
-
-            const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
-
-            // ✅ DEBUG: Log what tokens are being rendered
-            console.log('🔄 Rendering tokens:', allTokens.map(t => ({
-                symbol: t.symbol,
-                balance: t.balance,
-                price: t.price,
-                value: (t.balance || 0) * (t.price || 0)
-            })));
-
-            tokenList.innerHTML = '';
-
-            if (allTokens.length === 0) {
-                tokenList.innerHTML = '<div class="security-warning">No tokens found</div>';
-                return;
-            }
-
-            allTokens.forEach(token => {
+         allTokens.forEach(token => {
                 const tokenValue = (token.balance || 0) * (token.price || 0);
                 const change24h = token.change24h || 0;
                 const changeClass = change24h >= 0 ? 'change-positive' : 'change-negative';
