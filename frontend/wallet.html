@@ -3060,6 +3060,9 @@ async function updateRealBalances() {
         updatePortfolioValue();
         loadTokens();
 
+        // ✅ ADDED: Stabilize portfolio display after updates
+        setTimeout(stabilizePortfolioDisplay, 300);
+
         console.log('✅ Real blockchain balances & prices updated');
 
     } catch (error) {
@@ -3072,6 +3075,9 @@ async function updateRealBalances() {
         });
         updatePortfolioValue();
         loadTokens();
+        
+        // ✅ ADDED: Stabilize portfolio display even on error
+        setTimeout(stabilizePortfolioDisplay, 300);
     }
 }
         // =============================================
