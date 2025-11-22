@@ -2479,11 +2479,11 @@ setTimeout(debugWalletConnection, 2000);
         };
 
         // =============================================
-        // INITIALIZATION & SESSION MANAGEMENT
-        // =============================================
+// SUPABASE SESSION MANAGEMENT - FIXED VERSION
+// =============================================
 
-        async function initWallet() {
-    console.log('🔄 Initializing wallet with session management...');
+async function initWallet() {
+    console.log('🔄 Initializing wallet with Supabase session management...');
 
     // Wait for the API to be available
     if (!window.nemexWalletAPI) {
@@ -2499,17 +2499,17 @@ setTimeout(debugWalletConnection, 2000);
         return;
     }
 
-    console.log('✅ Wallet API initialized, checking for active session...');
+    console.log('✅ Wallet API initialized, checking for Supabase session...');
 
     // Check if we have an active session
     const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
 
     if (hasActiveSession) {
-        console.log('🎯 Active session found, restoring wallet...');
+        console.log('🎯 Active session found in Supabase, restoring wallet...');
         
         try {
-            const currentWallet = window.nemexWalletAPI.getStoredWallet();
-            console.log('📋 Stored wallet data:', currentWallet);
+            const currentWallet = await window.nemexWalletAPI.getStoredWallet();
+            console.log('📋 Supabase wallet data:', currentWallet);
 
             if (currentWallet && currentWallet.address) {
                 walletState = {
@@ -2521,7 +2521,7 @@ setTimeout(debugWalletConnection, 2000);
                     lastUpdate: null
                 };
 
-                console.log('✅ Session restored:', walletState.address);
+                console.log('✅ Session restored from Supabase:', walletState.address);
                 
                 // Immediately update the UI
                 updateWalletDisplay();
@@ -2532,35 +2532,108 @@ setTimeout(debugWalletConnection, 2000);
                 
                 showStatusMessage('✅ Welcome back! Your wallet is ready.', 'success');
             } else {
-                console.log('❌ No valid wallet data in session');
+                console.log('❌ No valid wallet data in Supabase session');
                 showStatusMessage('⚠️ Please select or create a wallet', 'warning');
             }
         } catch (error) {
-            console.error('❌ Error restoring session:', error);
+            console.error('❌ Error restoring Supabase session:', error);
             showStatusMessage('❌ Error restoring your session', 'error');
         }
     } else {
-        console.log('ℹ️ No active session found, showing welcome screen');
+        console.log('ℹ️ No active session found in Supabase, showing welcome screen');
         // Don't show error - just show welcome screen naturally
     }
 
-    console.log('🚀 Wallet initialization complete');
+    console.log('🚀 Wallet initialization complete with Supabase');
 }
 
 async function loadUserWallets() {
     try {
         userWallets = await window.nemexWalletAPI.getUserWallets();
-        console.log(`✅ Loaded ${userWallets.length} user wallets`);
+        console.log(`✅ Loaded ${userWallets.length} user wallets from Supabase`);
         updateWalletList();
     } catch (error) {
         console.error('Failed to load user wallets:', error);
     }
 }
 
+// Enhanced page load event listener for Supabase
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM loaded, initializing Supabase wallet system...');
+    showStatusMessage('🔄 Loading wallet system...', 'loading');
+
+    // Check if wallet API is available
+    if (typeof NemexWalletAPI === 'undefined') {
+        console.error('❌ NemexWalletAPI class not found - wallet.js failed to load');
+        showStatusMessage('❌ Critical: Wallet system not loaded. File may be missing.', 'error');
+        diagnoseLoadingIssue();
+        return;
+    }
+
+    console.log('✅ wallet.js loaded successfully, initializing Supabase API...');
+
+    // Initialize the API if not already done
+    if (!window.nemexWalletAPI || !window.nemexWalletAPI.isInitialized) {
+        console.log('🔄 Creating new Supabase wallet API instance...');
+        window.nemexWalletAPI = new NemexWalletAPI();
+
+        window.nemexWalletAPI.init().then(success => {
+            if (success) {
+                console.log('✅ Supabase Wallet API initialized!');
+                showStatusMessage('✅ Wallet system ready!', 'success');
+                
+                // Now initialize the wallet (this will check for Supabase session)
+                initWallet();
+                
+                // Enable all wallet buttons
+                enableWalletButtons();
+            } else {
+                console.error('❌ Supabase API initialization failed');
+                showStatusMessage('❌ Wallet system initialization failed', 'error');
+            }
+        }).catch(error => {
+            console.error('❌ Supabase initialization error:', error);
+            showStatusMessage('❌ Wallet system error: ' + error.message, 'error');
+        });
+    } else {
+        console.log('✅ Supabase Wallet API already initialized, checking session...');
+        // API is already initialized, just check for session
+        initWallet();
+        enableWalletButtons();
+    }
+});
+
+// Listen for session restoration events from Supabase
+window.addEventListener('nemexSessionRestored', function(event) {
+    console.log('🎯 Supabase session restored event received:', event.detail);
+    
+    if (event.detail.wallet) {
+        console.log('🔄 Updating UI from Supabase session event');
+        
+        // Update wallet state from Supabase data
+        walletState = {
+            isInitialized: true,
+            walletType: event.detail.wallet.source || 'imported',
+            userId: event.detail.wallet.userId,
+            address: event.detail.wallet.address,
+            balances: {},
+            lastUpdate: null
+        };
+        
+        // Update UI immediately
+        updateWalletDisplay();
+        
+        // Load fresh data
+        updateRealBalances();
+        
+        showStatusMessage('✅ Session restored from Supabase!', 'success');
+    }
+});
+
 // Auto-refresh when page becomes visible again
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden && walletState.isInitialized) {
-        console.log('🔄 Page became visible, refreshing wallet data...');
+        console.log('🔄 Page became visible, refreshing wallet data from Supabase...');
         updateRealBalances();
     }
 });
@@ -2568,10 +2641,74 @@ document.addEventListener('visibilitychange', function() {
 // Also refresh when the page gains focus
 window.addEventListener('focus', function() {
     if (walletState.isInitialized) {
-        console.log('🔄 Page focused, refreshing wallet data...');
+        console.log('🔄 Page focused, refreshing wallet data from Supabase...');
         setTimeout(updateRealBalances, 1000);
     }
 });
+
+// Emergency session restoration function for Supabase
+async function forceSupabaseSessionRestoration() {
+    console.log('🚨 Attempting forced Supabase session restoration...');
+    
+    if (!window.nemexWalletAPI) {
+        console.error('❌ Wallet API not available');
+        return false;
+    }
+
+    try {
+        const userId = await window.nemexWalletAPI.getUserId();
+        console.log('🔍 Checking Supabase for user:', userId);
+        
+        // Try to get active wallet directly from Supabase
+        const activeWalletResponse = await fetch(`/api/wallet/active-wallet/${userId}`);
+        if (activeWalletResponse.ok) {
+            const activeData = await activeWalletResponse.json();
+            if (activeData.success && activeData.activeWallet) {
+                console.log('🎯 Found active wallet in Supabase:', activeData.activeWallet);
+                
+                // Get wallet details
+                const walletsResponse = await fetch(`/api/wallet/user-wallets/${userId}`);
+                if (walletsResponse.ok) {
+                    const walletsData = await walletsResponse.json();
+                    if (walletsData.success && walletsData.wallets) {
+                        const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
+                        if (wallet) {
+                            console.log('✅ Using Supabase wallet data:', wallet);
+                            
+                            walletState = {
+                                isInitialized: true,
+                                walletType: wallet.source || 'imported',
+                                userId: wallet.userId,
+                                address: wallet.address,
+                                balances: {},
+                                lastUpdate: null
+                            };
+
+                            updateWalletDisplay();
+                            await updateRealBalances();
+                            
+                            showStatusMessage('✅ Session restored from Supabase backup!', 'success');
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('❌ Forced Supabase restoration failed:', error);
+        return false;
+    }
+}
+
+// Call this as a fallback after a short delay
+setTimeout(async () => {
+    if (!walletState.isInitialized && window.nemexWalletAPI) {
+        console.log('🔄 Checking if we can force Supabase session restoration...');
+        await forceSupabaseSessionRestoration();
+    }
+}, 2000);
 
         // =============================================
         // WALLET SELECTION FOR MULTI-PATH IMPORT
