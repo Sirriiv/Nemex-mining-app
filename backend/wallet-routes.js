@@ -505,7 +505,7 @@ router.get('/real-balance/:address', async function(req, res) {
 
         if (response.data && response.data.result) {
             const balance = response.data.result.balance;
-            const tonBalance = TonWeb.utils.fromNano(balance.toString());
+            const tonBalance = TonWeb.utils.fromNano(balance.toNumber());
 
             res.json({
                 success: true,
