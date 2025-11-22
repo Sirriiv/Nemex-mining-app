@@ -1540,11 +1540,11 @@
                 <div class="backup-confirmation">
                     <div class="confirmation-checkbox">
                         <input type="checkbox" id="backupConfirmed" onchange="toggleContinueButton()">
-                        <label for="backupConfirmed">✅ I have written down my recovery phrase and stored it securely</label>
+                        <label for="backupConfirmed"> I have written down my recovery phrase and stored it securely</label>
                     </div>
                     <div class="security-warning">
                         <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
-                        We don't store your recovery phrase in plain text and cannot recover it for you.
+                        We don't store your recovery phrase and cannot recover it for you.
                     </div>
                 </div>
 
@@ -2111,32 +2111,121 @@
         let currentMnemonic = null;
 
         // Supported tokens - FIXED: Ensure NMX is properly initialized
-        let SUPPORTED_TOKENS = [
-            {
-                symbol: "TON",
-                name: "Toncoin",
-                balance: 0, // Will be updated from API
-                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-                price: 0, // Will be updated from API
-                change24h: 0, // Will be updated from API
-                canSend: true,
-                isNative: true,
-                isFeatured: true
-            },
-            {
-                symbol: "NMX", 
-                name: "NemexCoin",
-                balance: 0, // Will be updated from API
-                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                price: 0.10, // Default price
-                change24h: 0,
-                canSend: true,
-                isNative: false,
-                isFeatured: true
-            }
-        ];
+let SUPPORTED_TOKENS = [
+    {
+        symbol: "TON",
+        name: "Toncoin",
+        balance: 0, // Will be updated from API
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+        price: 0, // Will be updated from API
+        change24h: 0, // Will be updated from API
+        canSend: true,
+        isNative: true,
+        isFeatured: true
+    },
+    {
+        symbol: "NMX", 
+        name: "NemexCoin",
+        balance: 0, // Will be updated from API
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        price: 0.10, // Default price
+        change24h: 0,
+        canSend: true,
+        isNative: false,
+        isFeatured: true
+    }
+];
 
-        // =============================================
+// =============================================
+// 🔍 COMPREHENSIVE DEBUG FUNCTION - ADD THIS RIGHT HERE
+// =============================================
+
+async function debugTokenDisplay() {
+    console.log('🔍 DEBUG: Starting comprehensive token display diagnosis...');
+    
+    if (!window.nemexWalletAPI || !walletState.address) {
+        console.log('❌ Wallet API or address not ready');
+        return;
+    }
+    
+    try {
+        // Step 1: Check if we have a wallet
+        console.log('🧪 Step 1: Wallet State');
+        console.log('📊 walletState:', walletState);
+        
+        // Step 2: Test API calls directly
+        console.log('🧪 Step 2: Testing API calls...');
+        const balanceResult = await window.nemexWalletAPI.getAllBalances(walletState.address);
+        console.log('📊 Balance API Response:', balanceResult);
+        
+        const priceResult = await window.nemexWalletAPI.getTokenPrices();
+        console.log('📊 Price API Response:', priceResult);
+        
+        // Step 3: Check SUPPORTED_TOKENS structure
+        console.log('🧪 Step 3: SUPPORTED_TOKENS structure');
+        console.log('📊 SUPPORTED_TOKENS:', JSON.stringify(SUPPORTED_TOKENS, null, 2));
+        
+        // Step 4: Test manual data injection
+        console.log('🧪 Step 4: Testing with manual data...');
+        SUPPORTED_TOKENS[0].balance = 0.0014;
+        SUPPORTED_TOKENS[0].price = 1.5;
+        SUPPORTED_TOKENS[1].balance = 100;
+        SUPPORTED_TOKENS[1].price = 0.10;
+        
+        console.log('📊 After manual data:', JSON.stringify(SUPPORTED_TOKENS, null, 2));
+        
+        // Step 5: Test UI rendering
+        console.log('🧪 Step 5: Testing UI rendering...');
+        loadTokens();
+        updatePortfolioValue();
+        
+        // Step 6: Check DOM elements
+        console.log('🧪 Step 6: Checking DOM elements...');
+        const tokenList = document.getElementById('tokenList');
+        console.log('📊 tokenList element:', tokenList);
+        console.log('📊 tokenList innerHTML:', tokenList?.innerHTML);
+        
+        console.log('✅ Debug completed');
+        
+    } catch (error) {
+        console.error('❌ Debug failed:', error);
+    }
+}
+
+// =============================================
+// 🎯 TEMPORARY: Force token display for testing
+// =============================================
+
+function forceTokenDisplay() {
+    console.log('🔄 TEMPORARY: Forcing token display...');
+    
+    // Ensure SUPPORTED_TOKENS exists and has proper structure
+    if (!SUPPORTED_TOKENS || SUPPORTED_TOKENS.length === 0) {
+        console.log('❌ SUPPORTED_TOKENS not properly initialized');
+        return;
+    }
+    
+    // Set some test data
+    SUPPORTED_TOKENS[0].balance = 0.0014;
+    SUPPORTED_TOKENS[0].price = 1.5;
+    SUPPORTED_TOKENS[1].balance = 100;
+    SUPPORTED_TOKENS[1].price = 0.10;
+    
+    console.log('📊 Test data set:', SUPPORTED_TOKENS);
+    
+    // Force UI update
+    loadTokens();
+    updatePortfolioValue();
+    
+    console.log('✅ Forced display completed');
+}
+
+// Run debug after 3 seconds and force display after 2 seconds
+setTimeout(forceTokenDisplay, 2000);
+setTimeout(debugTokenDisplay, 300=
+     
+
+   // =============================================
         // INITIALIZATION & ERROR HANDLING
         // =============================================
 
