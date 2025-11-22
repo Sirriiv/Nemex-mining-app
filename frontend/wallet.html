@@ -1349,7 +1349,33 @@
         .modal-content {
             animation: modalSlideIn 0.3s ease-out;
         }
-    </style>
+
+/* TEMPORARY: Force show all wallet elements */
+#tokenSection, 
+#balanceSection, 
+#actionButtons,
+.token-list,
+.token-card,
+.token-card * {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    position: relative !important;
+    height: auto !important;
+    width: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+}
+
+/* Force show specific sections that might be hidden */
+#walletSection {
+    display: block !important;
+}
+
+#welcomeSection {
+    display: none !important;
+}
+  </style>
 </head>
 <body>
     <div class="container">
