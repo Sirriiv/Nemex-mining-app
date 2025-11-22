@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ COMPLETE Wallet Routes - ALL ENDPOINTS RESTORED');
+console.log('✅ COMPLETE Wallet Routes - ALL ENDPOINTS RESTORED + SUPABASE SESSIONS');
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -22,16 +22,176 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
 
 // =============================================
-// DERIVATION PATHS
+// SUPABASE SESSION MANAGEMENT - NEW ENDPOINTS
 // =============================================
 
-const DERIVATION_PATHS = [
-    "m/44'/607'/0'/0'/0'",      // Tonkeeper Primary
-    "m/44'/607'/0'/0'/0",       // Tonkeeper Variant 1
-    "m/44'/607'/0'/0'/0/0",     // Tonkeeper Variant 2
-    "m/44'/607'/0'/0/0",        // Primary BIP-44
-    "m/44'/607'/0'",            // Common shorter variant
-];
+// Store session data in Supabase
+router.post('/store-session-data', async function(req, res) {
+    try {
+        const { sessionId, key, value, timestamp } = req.body;
+        console.log('🔄 Storing session data in Supabase:', { sessionId, key });
+
+        if (!sessionId || !key) {
+            return res.status(400).json({
+                success: false,
+                error: 'Session ID and key are required'
+            });
+        }
+
+        // Store in Supabase sessions table
+        const { data, error } = await supabase
+            .from('user_sessions')
+            .upsert({
+                session_id: sessionId,
+                key: key,
+                value: value,
+                last_active: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'session_id,key'
+            });
+
+        if (error) {
+            console.error('❌ Supabase session store error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to store session data: ' + error.message
+            });
+        }
+
+        console.log('✅ Session data stored in Supabase');
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('❌ Store session data error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to store session data: ' + error.message
+        });
+    }
+});
+
+// Get session data from Supabase
+router.get('/get-session-data', async function(req, res) {
+    try {
+        const { sessionId, key } = req.query;
+        console.log('🔄 Retrieving session data from Supabase:', { sessionId, key });
+
+        if (!sessionId || !key) {
+            return res.status(400).json({
+                success: false,
+                error: 'Session ID and key are required'
+            });
+        }
+
+        const { data, error } = await supabase
+            .from('user_sessions')
+            .select('value')
+            .eq('session_id', sessionId)
+            .eq('key', key)
+            .single();
+
+        if (error) {
+            if (error.code === 'PGRST116') {
+                // No data found - this is normal for new sessions
+                console.log('ℹ️ No session data found for:', key);
+                return res.json({ success: true, value: null });
+            }
+            console.error('❌ Supabase session retrieval error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to retrieve session data: ' + error.message
+            });
+        }
+
+        console.log('✅ Session data retrieved from Supabase');
+        res.json({ success: true, value: data?.value });
+
+    } catch (error) {
+        console.error('❌ Get session data error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to retrieve session data: ' + error.message
+        });
+    }
+});
+
+// Clear specific session data
+router.post('/clear-session-data', async function(req, res) {
+    try {
+        const { sessionId, key } = req.body;
+        console.log('🔄 Clearing session data from Supabase:', { sessionId, key });
+
+        if (!sessionId || !key) {
+            return res.status(400).json({
+                success: false,
+                error: 'Session ID and key are required'
+            });
+        }
+
+        const { error } = await supabase
+            .from('user_sessions')
+            .delete()
+            .eq('session_id', sessionId)
+            .eq('key', key);
+
+        if (error) {
+            console.error('❌ Supabase session clear error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to clear session data: ' + error.message
+            });
+        }
+
+        console.log('✅ Session data cleared from Supabase');
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('❌ Clear session data error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to clear session data: ' + error.message
+        });
+    }
+});
+
+// Clear all session data for a session
+router.post('/clear-all-session-data', async function(req, res) {
+    try {
+        const { sessionId } = req.body;
+        console.log('🔄 Clearing ALL session data for:', sessionId);
+
+        if (!sessionId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Session ID is required'
+            });
+        }
+
+        const { error } = await supabase
+            .from('user_sessions')
+            .delete()
+            .eq('session_id', sessionId);
+
+        if (error) {
+            console.error('❌ Supabase clear all sessions error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to clear session data: ' + error.message
+            });
+        }
+
+        console.log('✅ All session data cleared from Supabase');
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('❌ Clear all session data error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to clear session data: ' + error.message
+        });
+    }
+});
 
 // =============================================
 // TEST ENDPOINT
@@ -199,7 +359,7 @@ router.post('/store-wallet', async function(req, res) {
 router.post('/import-wallet', async function(req, res) {
     try {
         console.log('🔄 Import wallet called');
-        
+
         const { userId, mnemonic, targetAddress } = req.body;
 
         // Basic validation
@@ -762,10 +922,10 @@ function getFallbackPrice() {
 router.get('/token-prices', async function(req, res) {
     try {
         console.log('🔄 Fetching REAL token prices from multiple exchanges...');
-        
+
         const priceData = await getRealTokenPrices();
         console.log(`🎯 Final price source: ${priceData.source}`);
-        
+
         res.json(priceData);
 
     } catch (error) {
@@ -807,11 +967,11 @@ router.post('/send-ton', async function(req, res) {
         try {
             console.log('🔐 Decoding base64 mnemonic...');
             decryptedMnemonic = Buffer.from(base64Mnemonic, 'base64').toString('utf8');
-            
+
             if (!decryptedMnemonic || decryptedMnemonic.trim().length === 0) {
                 throw new Error('Empty mnemonic after decoding');
             }
-            
+
             console.log('✅ Base64 mnemonic decoded successfully');
             console.log('🔍 Mnemonic length:', decryptedMnemonic.length, 'characters');
         } catch (decodeError) {
@@ -841,7 +1001,7 @@ router.post('/send-ton', async function(req, res) {
             console.log('🔑 Generating key pair from mnemonic...');
             const mnemonicWords = decryptedMnemonic.split(' ');
             console.log('🔍 Mnemonic word count:', mnemonicWords.length);
-            
+
             keyPair = await mnemonicToWalletKey(mnemonicWords);
             console.log('✅ Key pair generated successfully');
         } catch (keyError) {
@@ -866,7 +1026,7 @@ router.post('/send-ton', async function(req, res) {
             walletAddress = await wallet.getAddress();
             const derivedAddress = walletAddress.toString(true, true, false);
             console.log('✅ Wallet address derived:', derivedAddress);
-            
+
             // Verify the derived address matches the fromAddress
             if (derivedAddress !== fromAddress) {
                 console.warn('⚠️ Derived address mismatch:', {
@@ -889,7 +1049,7 @@ router.post('/send-ton', async function(req, res) {
             balance = await tonweb.getBalance(walletAddress);
             const balanceTON = TonWeb.utils.fromNano(balance);
             console.log('💰 Current balance:', balanceTON, 'TON');
-            
+
             if (BigInt(balance) < BigInt(nanoAmount)) {
                 console.error('❌ Insufficient balance:', {
                     available: balanceTON,
@@ -914,7 +1074,7 @@ router.post('/send-ton', async function(req, res) {
             console.log('🔢 Getting seqno from blockchain...');
             const seqnoResult = await wallet.methods.seqno().call();
             console.log('🔍 Raw seqno result:', seqnoResult);
-            
+
             if (seqnoResult !== undefined && seqnoResult !== null) {
                 seqno = parseInt(seqnoResult);
                 if (isNaN(seqno)) {
@@ -963,7 +1123,7 @@ router.post('/send-ton', async function(req, res) {
             amount: nanoAmount.toString(),
             seqno: seqno
         });
-        
+
         // ✅ FIX: Send transaction with timeout
         let result;
         try {
@@ -1050,6 +1210,7 @@ router.post('/send-nmx', async function(req, res) {
         });
     }
 });
+
 // =============================================
 // TRANSACTION HISTORY - MISSING ENDPOINT RESTORED
 // =============================================
