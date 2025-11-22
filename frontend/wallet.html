@@ -3283,28 +3283,27 @@ function stabilizePortfolioDisplay() {
         }
 
         function showReceiveModal() {
-            if (!walletState.isInitialized) {
-                alert('Please create or import a wallet first');
-                return;
-            }
+    if (!walletState.isInitialized || !walletState.address) {
+        showStatusMessage('Please create or import a wallet first', 'error');
+        return;
+    }
 
-            closeModal();
+    console.log('🔄 Opening receive modal for address:', walletState.address);
 
-            const currentAddress = walletState.address;
-            if (currentAddress) {
-                const formattedAddress = formatAddressForDisplay(currentAddress);
-                const addressMain = document.getElementById('addressMain');
-                if (addressMain) {
-                    addressMain.textContent = formattedAddress;
-                }
-                window.currentWalletAddress = currentAddress;
-            }
+    // Close any other open modals first
+    closeModal();
 
-            const receiveModal = document.getElementById('receiveModal');
-            if (receiveModal) {
-                receiveModal.style.display = 'flex';
-            }
-        }
+    // Initialize wallet card with current address - DO THIS BEFORE showing modal
+    initializeWalletCard();
+
+    const receiveModal = document.getElementById('receiveModal');
+    if (receiveModal) {
+        receiveModal.style.display = 'flex';
+        console.log('✅ Receive modal opened');
+    } else {
+        console.error('❌ Receive modal element not found');
+    }
+}
 
         function showSwapModal() {
             closeModal();
@@ -3635,7 +3634,7 @@ function stabilizePortfolioDisplay() {
                 confirmBtn.disabled = true;
                 confirmBtn.style.opacity = '0.7';
 
-                showStatusMessage('🔐 Processing transaction on TON blockchain...', 'loading', statusElement);
+                showStatusMessage(' Processing transaction. . .', 'loading', statusElement);
 
                 let result;
 
@@ -3657,7 +3656,7 @@ function stabilizePortfolioDisplay() {
 
                 if (result.success) {
                     showStatusMessage(`✅ ${result.message}`, 'success', statusElement);
-                    confirmBtn.innerHTML = '✅ Transaction Sent!';
+                    confirmBtn.innerHTML = 'Transaction Sent!';
 
                     setTimeout(() => {
                         updateRealBalances();
@@ -3700,26 +3699,53 @@ function stabilizePortfolioDisplay() {
         let currentReceiveToken = 'TON';
 
         function initializeWalletCard() {
-            const address = walletState.address;
-            const userId = walletState.userId;
+    const address = walletState.address;
+    const userId = walletState.userId;
 
-            if (!address) return;
+    console.log('🔄 Initializing wallet card with address:', address);
 
-            const addressFull = document.getElementById('addressFull');
-            if (addressFull) {
-                addressFull.textContent = address;
-            }
-
-            const walletIdentifier = document.getElementById('walletIdentifier');
-            if (walletIdentifier && userId) {
-                const shortHash = generateShortHash(userId);
-                walletIdentifier.textContent = `#${shortHash}`;
-            }
-
-            selectReceiveToken('TON');
-
-            console.log('✅ Wallet card initialized with real data:', address);
+    if (!address) {
+        console.log('❌ No wallet address available for receive modal');
+        
+        // Update the UI to show error state
+        const addressFull = document.getElementById('addressFull');
+        if (addressFull) {
+            addressFull.textContent = 'No wallet address available';
+            addressFull.style.color = 'var(--error)';
         }
+        return;
+    }
+
+    // Update address display in receive modal
+    const addressFull = document.getElementById('addressFull');
+    if (addressFull) {
+        addressFull.textContent = address;
+        addressFull.style.color = 'var(--gold)'; // Reset to normal color
+        console.log('✅ Receive modal address set:', address);
+    } else {
+        console.log('❌ addressFull element not found in receive modal');
+        
+        // Try to find it again after a short delay (in case DOM isn't ready)
+        setTimeout(() => {
+            const retryAddressFull = document.getElementById('addressFull');
+            if (retryAddressFull && address) {
+                retryAddressFull.textContent = address;
+                console.log('✅ Receive modal address set on retry:', address);
+            }
+        }, 100);
+    }
+
+    // Generate unique wallet identifier
+    const walletIdentifier = document.getElementById('walletIdentifier');
+    if (walletIdentifier && userId) {
+        const shortHash = generateShortHash(userId);
+        walletIdentifier.textContent = `#${shortHash}`;
+    }
+
+    selectReceiveToken('TON');
+
+    console.log('✅ Wallet card initialized with real data:', address);
+}
 
         function selectReceiveToken(token) {
             currentReceiveToken = token;
@@ -3924,6 +3950,38 @@ function stabilizePortfolioDisplay() {
 
         // Call this after import/generate
         refreshWalletData();
+// Emergency fallback for receive modal
+function emergencyAddressFix() {
+    console.log('🚨 Emergency address fix triggered');
+    
+    if (walletState.address) {
+        const addressFull = document.getElementById('addressFull');
+        if (addressFull && addressFull.textContent.includes('Loading')) {
+            addressFull.textContent = walletState.address;
+            console.log('✅ Emergency fix applied:', walletState.address);
+        }
+    }
+}
+
+// Call this when receive modal is shown
+document.addEventListener('DOMContentLoaded', function() {
+    const receiveModal = document.getElementById('receiveModal');
+    if (receiveModal) {
+        // Use MutationObserver to detect when modal becomes visible
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    if (receiveModal.style.display === 'flex') {
+                        console.log('🎯 Receive modal became visible, ensuring address is set');
+                        setTimeout(emergencyAddressFix, 100);
+                    }
+                }
+            });
+        });
+        
+        observer.observe(receiveModal, { attributes: true });
+    }
+});
     </script>
 </body>
 </html>
