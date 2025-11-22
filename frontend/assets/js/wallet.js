@@ -1,5 +1,5 @@
-// assets/js/wallet.js - OPTIMIZED VERSION WITH SESSION PERSISTENCE
-// ✅ ALL DUPLICATES REMOVED + SESSION MANAGEMENT FIXED
+// assets/js/wallet.js - COMPLETELY FIXED VERSION
+// ✅ ALL BALANCE ISSUES RESOLVED + TOKEN DISPLAY FIXED
 
 class SecureEncryptedStorage {
     constructor() {
@@ -282,7 +282,7 @@ class NemexWalletAPI {
             if (!response.ok) {
                 throw new Error(`API test failed: ${response.status}`);
             }
-            
+
             const data = await response.json();
             console.log('✅ API Connection:', data.message);
 
@@ -329,12 +329,12 @@ class NemexWalletAPI {
             try {
                 const userId = await this.getUserId();
                 const activeWalletResponse = await fetch(`${this.baseURL}/active-wallet/${userId}`);
-                
+
                 if (activeWalletResponse.ok) {
                     const activeData = await activeWalletResponse.json();
                     if (activeData.success && activeData.activeWallet) {
                         console.log('✅ Found active wallet in database:', activeData.activeWallet);
-                        
+
                         const walletsResponse = await fetch(`${this.baseURL}/user-wallets/${userId}`);
                         if (walletsResponse.ok) {
                             const walletsData = await walletsResponse.json();
@@ -408,7 +408,7 @@ class NemexWalletAPI {
         try {
             console.log('🔄 Setting active wallet:', address);
             const userId = await this.getUserId();
-            
+
             const response = await fetch(`${this.baseURL}/set-active-wallet`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -471,7 +471,7 @@ class NemexWalletAPI {
         try {
             console.log('🔄 Generating new wallet...');
             const userId = await this.getUserId();
-            
+
             // Generate mnemonic
             const mnemonic = await this.generateMnemonicClientSide(wordCount);
             if (!mnemonic) throw new Error('Failed to generate mnemonic');
@@ -495,7 +495,7 @@ class NemexWalletAPI {
 
             // Store mnemonic and set as active
             await this.storage.storeMnemonicSecurely(mnemonic, data.wallet.address);
-            
+
             const walletData = {
                 userId: userId,
                 address: data.wallet.address,
@@ -635,7 +635,7 @@ class NemexWalletAPI {
         }
     }
 
-    // TRANSACTION FUNCTIONS (keep your existing working ones)
+    // TRANSACTION FUNCTIONS
     async sendTON(fromAddress, toAddress, amount, memo = '') {
         try {
             console.log('🔄 PRODUCTION: Sending TON via API...', { fromAddress, toAddress, amount });
@@ -716,17 +716,22 @@ class NemexWalletAPI {
         }
     }
 
-    // BALANCE & PRICE FUNCTIONS (keep your existing working ones)
+    // ✅ FIXED: BALANCE FUNCTIONS - PROPERLY HANDLE NUMBER CONVERSION
     async getRealBalance(address) {
         try {
             console.log('🔄 Fetching TON balance for:', address);
             const response = await fetch(`${this.baseURL}/real-balance/${encodeURIComponent(address)}`);
             const data = await response.json();
-            if (data.success) console.log('✅ TON Balance:', data.balance);
+            
+            // ✅ FIX: Convert string balance to number
+            if (data.success) {
+                data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
+                console.log('✅ TON Balance:', data.balance);
+            }
             return data;
         } catch (error) {
             console.error('TON balance fetch failed:', error);
-            return { success: false, balance: "0", error: error.message };
+            return { success: false, balance: 0, error: error.message };
         }
     }
 
@@ -735,11 +740,16 @@ class NemexWalletAPI {
             console.log('🔄 Fetching NMX balance for:', address);
             const response = await fetch(`${this.baseURL}/nmx-balance/${encodeURIComponent(address)}`);
             const data = await response.json();
-            if (data.success) console.log('✅ NMX Balance:', data.balance, 'Source:', data.source);
+            
+            // ✅ FIX: Convert string balance to number
+            if (data.success) {
+                data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
+                console.log('✅ NMX Balance:', data.balance, 'Source:', data.source);
+            }
             return data;
         } catch (error) {
             console.error('NMX balance fetch failed:', error);
-            return { success: false, balance: "0", error: error.message };
+            return { success: false, balance: 0, error: error.message };
         }
     }
 
@@ -748,11 +758,19 @@ class NemexWalletAPI {
             console.log('🔄 Fetching all balances for:', address);
             const response = await fetch(`${this.baseURL}/all-balances/${encodeURIComponent(address)}`);
             const data = await response.json();
-            if (data.success) console.log('✅ All balances fetched - TON:', data.balances.TON, 'NMX:', data.balances.NMX);
+            
+            if (data.success) {
+                // ✅ FIX: Convert ALL string balances to numbers
+                if (data.balances) {
+                    data.balances.TON = typeof data.balances.TON === 'string' ? parseFloat(data.balances.TON) : data.balances.TON;
+                    data.balances.NMX = typeof data.balances.NMX === 'string' ? parseFloat(data.balances.NMX) : data.balances.NMX;
+                }
+                console.log('✅ All balances fetched - TON:', data.balances.TON, 'NMX:', data.balances.NMX);
+            }
             return data;
         } catch (error) {
             console.error('All balances fetch failed:', error);
-            return { success: false, balances: { TON: "0", NMX: "0" }, error: error.message };
+            return { success: false, balances: { TON: 0, NMX: 0 }, error: error.message };
         }
     }
 
@@ -777,6 +795,34 @@ class NemexWalletAPI {
         }
     }
 
+    // ✅ FIXED: getAllRealData - PROPERLY UPDATE TOKEN DATA
+    async getAllRealData(address) {
+        try {
+            console.log('🔄 Fetching ALL real data for:', address);
+            const [balanceResult, priceResult] = await Promise.all([
+                this.getAllBalances(address),
+                this.getTokenPrices()
+            ]);
+            
+            // ✅ FIX: Return properly formatted data for frontend
+            return {
+                success: balanceResult.success && priceResult.success,
+                balances: balanceResult.balances || { TON: 0, NMX: 0 },
+                prices: priceResult.prices || { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
+                address: address,
+                source: priceResult.source || 'unknown'
+            };
+        } catch (error) {
+            console.error('❌ All real data fetch failed:', error);
+            return {
+                success: false,
+                balances: { TON: 0, NMX: 0 },
+                prices: { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
+                error: error.message
+            };
+        }
+    }
+
     async getTransactionHistory(address) {
         try {
             console.log('🔄 PRODUCTION: Fetching real transaction history for:', address);
@@ -788,31 +834,6 @@ class NemexWalletAPI {
         } catch (error) {
             console.error('PRODUCTION Transaction history API error:', error);
             throw error;
-        }
-    }
-
-    async getAllRealData(address) {
-        try {
-            console.log('🔄 Fetching ALL real data for:', address);
-            const [balanceResult, priceResult] = await Promise.all([
-                this.getAllBalances(address),
-                this.getTokenPrices()
-            ]);
-            return {
-                success: balanceResult.success && priceResult.success,
-                balances: balanceResult.balances,
-                prices: priceResult.prices,
-                address: address,
-                source: priceResult.source
-            };
-        } catch (error) {
-            console.error('❌ All real data fetch failed:', error);
-            return {
-                success: false,
-                balances: { TON: "0", NMX: "0" },
-                prices: { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
-                error: error.message
-            };
         }
     }
 
@@ -887,7 +908,7 @@ if (document.readyState === 'loading') {
         try {
             const success = await window.nemexWalletAPI.init();
             console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
-            
+
             // Update UI based on initialization status
             if (typeof updateWalletState === 'function') {
                 updateWalletState();
