@@ -65,6 +65,27 @@
             color: var(--gold);
         }
 
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
         /* Balance Section */
         .balance-section {
             padding: 30px 20px;
@@ -73,7 +94,6 @@
             margin: 10px 20px;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
-            display: none;
         }
 
         .balance-amount {
@@ -91,7 +111,7 @@
 
         /* Action Buttons */
         .action-buttons {
-            display: none;
+            display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             padding: 20px;
@@ -116,6 +136,16 @@
             transform: translateY(-2px);
         }
 
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn:disabled:hover {
+            background: var(--card-bg);
+            transform: none;
+        }
+
         .action-icon {
             width: 24px;
             height: 24px;
@@ -131,7 +161,6 @@
         .token-section {
             padding: 0 20px;
             margin-top: 10px;
-            display: none;
         }
 
         .section-title {
@@ -198,6 +227,10 @@
             object-fit: cover;
             border-radius: 50%;
         }
+
+        .ton-icon { background: linear-gradient(135deg, #0088CC, #006699); }
+        .nmx-icon { background: linear-gradient(135deg, var(--gold), #B8941F); }
+        .usdt-icon { background: linear-gradient(135deg, #26A17B, #1E8C6E); }
 
         .featured-star {
             position: absolute;
@@ -346,6 +379,7 @@
             box-shadow: var(--shadow);
         }
 
+        /* FULL SCREEN SETTINGS MODAL */
         .modal.fullscreen {
             align-items: flex-start;
             overflow-y: auto;
@@ -443,6 +477,48 @@
             background: rgba(212, 175, 55, 0.05);
         }
 
+        /* Wallet Selection Styles */
+        .wallet-selection-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 16px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+        }
+
+        .wallet-option {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-option:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .wallet-option:last-child {
+            border-bottom: none;
+        }
+
+        .wallet-path {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .wallet-address-display {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+        }
+
+        .wallet-description {
+            font-size: 11px;
+            color: var(--gold);
+            margin-top: 4px;
+        }
+
         /* Welcome Screen */
         .welcome-screen {
             padding: 40px 20px;
@@ -503,6 +579,192 @@
             transform: translateY(-2px);
         }
 
+        /* Settings */
+        .settings-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-option:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .settings-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+        }
+
+        .settings-option-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        /* Wallet Management Styles */
+        .wallet-management-section {
+            margin: 20px 0;
+        }
+
+        .wallet-management-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .wallet-management-header:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .wallet-management-header.active {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
+        .wallet-management-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .wallet-management-arrow {
+            transition: transform 0.3s ease;
+        }
+
+        .wallet-management-arrow.expanded {
+            transform: rotate(180deg);
+        }
+
+        .wallet-management-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .wallet-management-content.expanded {
+            max-height: 1000px;
+        }
+
+        .wallet-list {
+            margin: 10px 0;
+        }
+
+        .wallet-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .wallet-item.active {
+            border: 2px solid var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .wallet-item:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .wallet-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(212, 175, 55, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            color: var(--gold);
+        }
+
+        .wallet-info {
+            flex: 1;
+        }
+
+        .wallet-name-display {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .wallet-address {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .wallet-type {
+            font-size: 10px;
+            padding: 2px 8px;
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--gold);
+            border-radius: 10px;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .wallet-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .wallet-action-btn {
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-action-btn.view-seed {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .wallet-action-btn.delete {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .wallet-action-btn.switch {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .wallet-action-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
+        .wallet-action-btn.delete:hover {
+            background: rgba(255, 68, 68, 0.2);
+            border-color: var(--error);
+        }
+
         /* Security Warning */
         .security-warning {
             background: rgba(255, 187, 51, 0.1);
@@ -540,6 +802,32 @@
             font-weight: bold;
             margin-right: 8px;
             font-size: 12px;
+        }
+
+        /* Backup Confirmation */
+        .backup-confirmation {
+            margin: 20px 0;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .confirmation-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .confirmation-checkbox input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .confirmation-checkbox label {
+            font-size: 14px;
+            color: var(--text);
         }
 
         /* Loading Animation */
@@ -584,7 +872,307 @@
             border: 1px solid var(--gold);
         }
 
-        /* FIXED: Token Display Issues */
+        /* Receive Modal */
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            background: white;
+            margin: 20px auto;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark-bg);
+            font-weight: bold;
+        }
+
+        .address-display {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .copy-button {
+            background: var(--gold);
+            color: var(--dark-bg);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* Session Status */
+        .session-status {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .session-active {
+            color: var(--success);
+        }
+
+        .session-inactive {
+            color: var(--warning);
+        }
+
+        /* ===== UPDATED CARD WALLET STYLES ===== */
+
+        /* Wallet Card Center Section */
+        .wallet-card-center-section {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 24px 20px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.02) 0%, transparent 50%);
+        }
+
+        .wallet-card-final {
+            width: 320px;
+            height: 200px;
+            background: linear-gradient(135deg, 
+                #0A0A0A 0%,
+                #1a1a1a 50%,
+                #0A0A0A 100%);
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            cursor: default;
+            transition: all 0.3s ease;
+            box-shadow: 0 15px 40px rgba(212, 175, 55, 0.25);
+        }
+
+        .wallet-card-final:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 25px 80px rgba(212, 175, 55, 0.3);
+        }
+
+        .wallet-card-final:active {
+            transform: translateY(-1px);
+        }
+
+        /* Card Pattern */
+        .card-pattern {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(212, 175, 55, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(212, 175, 55, 0.05) 0%, transparent 50%),
+                linear-gradient(45deg, transparent 49%, rgba(212, 175, 55, 0.03) 50%, transparent 51%),
+                linear-gradient(-45deg, transparent 49%, rgba(212, 175, 55, 0.03) 50%, transparent 51%);
+            background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
+            opacity: 0.6;
+            z-index: 1;
+        }
+
+        /* Card Header Final */
+        .card-header-final {
+            position: relative;
+            z-index: 2;
+            margin-bottom: 15px;
+        }
+
+        .cardholder-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 0.3px;
+        }
+
+        /* Card Body Final - Center Address */
+        .card-body-final {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 80px;
+            margin-bottom: 10px;
+        }
+
+        .address-center {
+            text-align: center;
+        }
+
+        .address-center-text {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gold);
+            word-break: break-all;
+            line-height: 1.3;
+            letter-spacing: 0.3px;
+            text-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Card Footer Final */
+        .card-footer-final {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        /* Copy Indicator */
+        .copy-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+
+        .copy-indicator:hover {
+            background: rgba(212, 175, 55, 0.25);
+            border-color: var(--gold);
+            transform: scale(1.05);
+        }
+
+        .copy-indicator:active {
+            transform: scale(0.98);
+        }
+
+        .copy-icon {
+            width: 14px;
+            height: 14px;
+            color: var(--gold);
+        }
+
+        .copy-text {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        /* Hologram Effect */
+        .card-hologram-final {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle, rgba(212, 175, 55, 0.08) 0%, transparent 60%),
+                conic-gradient(from 0deg, transparent, rgba(212, 175, 55, 0.03), transparent);
+            animation: rotateHologram 15s linear infinite;
+            z-index: 1;
+            opacity: 0.4;
+        }
+
+        /* Circular Actions Section */
+        .circular-actions-section {
+            padding: 20px 24px 40px;
+        }
+
+        .circular-actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            max-width: 350px;
+            margin: 0 auto;
+        }
+
+        .circular-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--gold);
+        }
+
+        .circular-btn:hover {
+            transform: translateY(-3px);
+        }
+
+        .circular-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .circular-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .circular-btn:hover .circular-icon {
+            background: rgba(212, 175, 55, 0.2);
+            border-color: var(--gold);
+            transform: scale(1.08);
+        }
+
+        .circular-icon img {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .details-svg {
+            width: 22px;
+            height: 22px;
+            color: var(--gold);
+        }
+
+        .circular-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gold);
+            text-align: center;
+        }
+
+        /* Token Specific Styles */
+        .ton-icon {
+            background: linear-gradient(135deg, rgba(0, 136, 204, 0.1), rgba(0, 102, 153, 0.05));
+            border-color: rgba(0, 136, 204, 0.3);
+        }
+
+        .nmx-icon {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(184, 148, 31, 0.05));
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .details-icon {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+        }
+
+        /* Animations */
+        @keyframes rotateHologram {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* FIXED: Ensure proper display when wallet is loaded */
         .wallet-loaded #welcomeScreen {
             display: none !important;
         }
@@ -598,6 +1186,96 @@
         .wallet-loaded .action-buttons {
             display: grid !important;
         }
+
+        /* Mobile & Laptop Compatibility */
+        @media (max-width: 480px) {
+            .wallet-card-center-section {
+                padding: 30px 20px 15px;
+            }
+
+            .wallet-card-final {
+                width: 280px;
+                height: 175px;
+                padding: 16px;
+            }
+
+            .cardholder-name {
+                font-size: 13px;
+            }
+
+            .card-body-final {
+                height: 70px;
+                margin-bottom: 8px;
+            }
+
+            .address-center-text {
+                font-size: 12px;
+                line-height: 1.2;
+            }
+
+            .copy-indicator {
+                padding: 8px 12px;
+                font-size: 11px;
+            }
+
+            .copy-icon {
+                width: 12px;
+                height: 12px;
+            }
+
+            .circular-actions-section {
+                padding: 15px 20px 30px;
+            }
+
+            .circular-actions {
+                gap: 20px;
+                max-width: 300px;
+            }
+
+            .circular-icon {
+                width: 50px;
+                height: 50px;
+            }
+
+            .circular-icon img {
+                width: 22px;
+                height: 22px;
+            }
+
+            .details-svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            .circular-label {
+                font-size: 12px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .wallet-card-final {
+                width: 340px;
+                height: 212px;
+            }
+
+            .cardholder-name {
+                font-size: 15px;
+            }
+
+            .address-center-text {
+                font-size: 14px;
+            }
+
+            .copy-indicator {
+                font-size: 13px;
+                padding: 12px 18px;
+            }
+
+            .copy-icon {
+                width: 16px;
+                height: 16px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -606,6 +1284,11 @@
         <header class="header">
             <div class="wallet-name">Nemex Wallet</div>
         </header>
+
+        <!-- Session Status (HIDDEN) -->
+        <div class="session-status" id="sessionStatus" style="display: none;">
+            <span class="loading"></span> Checking wallet session...
+        </div>
 
         <!-- Welcome Screen for New Users -->
         <div id="welcomeScreen" class="welcome-screen">
@@ -625,7 +1308,7 @@
         </div>
 
         <!-- Balance Section -->
-        <section class="balance-section" id="balanceSection">
+        <section class="balance-section" id="balanceSection" style="display: none;">
             <div class="balance-amount" id="totalBalance">
                 <span class="loading" id="balanceLoading"></span>
                 <span id="balanceAmount" style="display: none;">$0.00</span>
@@ -637,7 +1320,7 @@
         </section>
 
         <!-- Action Buttons -->
-        <div class="action-buttons" id="actionButtons">
+        <div class="action-buttons" id="actionButtons" style="display: none;">
             <div class="action-btn" onclick="showSendModal()" id="sendButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
@@ -665,7 +1348,7 @@
         </div>
 
         <!-- Token List -->
-        <section class="token-section" id="tokenSection">
+        <section class="token-section" id="tokenSection" style="display: none;">
             <div class="section-title">
                 <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -754,13 +1437,93 @@
             </div>
         </div>
 
-        <!-- Receive Modal -->
-        <div id="receiveModal" class="modal">
+        <!-- Final Wallet Card Receive Modal -->
+        <div id="receiveModal" class="modal fullscreen">
             <div class="modal-content">
-                <div class="modal-title">Receive Assets</div>
-                <div class="address-display" id="receiveAddress">Loading address...</div>
-                <button class="close-modal" onclick="copyWalletAddress()">Copy Address</button>
-                <button class="close-modal secondary" onclick="closeModal()">Close</button>
+                <!-- Header -->
+                <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3);">
+                    <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                            <button onclick="closeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                            <div>
+                                <div class="modal-title" style="color: var(--gold); font-size: 24px; font-weight: 700; margin: 0;">Receive Assets</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 0; max-width: 100%; height: calc(100vh - 80px); display: flex; flex-direction: column;">
+                    <!-- Wallet Card - CENTERED -->
+                    <div class="wallet-card-center-section">
+                        <div class="wallet-card-final" id="walletCard">
+                            <!-- Geometric Pattern Background -->
+                            <div class="card-pattern"></div>
+
+                            <!-- Card Header -->
+                            <div class="card-header-final">
+                                <span class="cardholder-name">Nemex Wallet Address</span>
+                            </div>
+
+                            <!-- Card Body - Address in Center -->
+                            <div class="card-body-final">
+                                <div class="address-center" id="walletAddressDisplay">
+                                    <span class="address-center-text" id="addressFull">Loading address...</span>
+                                </div>
+                            </div>
+
+                            <!-- Card Footer -->
+                            <div class="card-footer-final">
+                                <!-- Copy Icon -->
+                                <div class="copy-indicator" onclick="copyWalletAddress()" title="Copy Wallet Address">
+                                    <svg class="copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    <span class="copy-text">Copy Address</span>
+                                </div>
+                            </div>
+
+                            <!-- Hologram Effect -->
+                            <div class="card-hologram-final"></div>
+                        </div>
+                    </div>
+
+                    <!-- Circular Icon Actions -->
+                    <div class="circular-actions-section">
+                        <div class="circular-actions">
+                            <!-- TON Icon -->
+                            <button class="circular-btn" onclick="selectReceiveToken('TON')" title="Receive TON">
+                                <div class="circular-icon ton-icon">
+                                    <img src="https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png" 
+                                         alt="TON" onerror="handleTokenLogoError(this, 'TON')">
+                                </div>
+                                <span class="circular-label">TON</span>
+                            </button>
+
+                            <!-- NMX Icon -->
+                            <button class="circular-btn" onclick="selectReceiveToken('NMX')" title="Receive NMX">
+                                <div class="circular-icon nmx-icon">
+                                    <img src="https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1" 
+                                         alt="NMX" onerror="handleTokenLogoError(this, 'NMX')">
+                                </div>
+                                <span class="circular-label">NMX</span>
+                            </button>
+
+                            <!-- Details Icon -->
+                            <button class="circular-btn" onclick="showAddressDetails()" title="View Details">
+                                <div class="circular-icon details-icon">
+                                    <svg class="details-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                <span class="circular-label">Details</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -779,6 +1542,10 @@
             lastUpdate: null
         };
 
+        let userWallets = [];
+        let currentMnemonic = null;
+
+        // Supported tokens
         let SUPPORTED_TOKENS = [
             {
                 symbol: "TON",
@@ -805,7 +1572,7 @@
         ];
 
         // =============================================
-        // CORE WALLET FUNCTIONS
+        // CORE WALLET FUNCTIONS - FIXED
         // =============================================
 
         function handleWalletScriptError() {
@@ -827,32 +1594,52 @@
                 return;
             }
 
-            const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
-            if (hasActiveSession) {
-                const currentWallet = window.nemexWalletAPI.getStoredWallet();
-                if (currentWallet) {
-                    walletState = {
-                        isInitialized: true,
-                        walletType: currentWallet.source || 'imported',
-                        userId: currentWallet.userId,
-                        address: currentWallet.address,
-                        balances: {},
-                        lastUpdate: null
-                    };
-                    console.log('✅ Session restored:', walletState.address);
-                    updateWalletDisplay();
-                    updateRealBalances();
+            // Check for active session with proper error handling
+            try {
+                const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
+                if (hasActiveSession) {
+                    const currentWallet = await window.nemexWalletAPI.getStoredWallet();
+                    if (currentWallet && currentWallet.address) {
+                        walletState = {
+                            isInitialized: true,
+                            walletType: currentWallet.source || 'imported',
+                            userId: currentWallet.userId,
+                            address: currentWallet.address,
+                            balances: {},
+                            lastUpdate: null
+                        };
+                        console.log('✅ Session restored:', walletState.address);
+                        updateWalletDisplay();
+                        updateRealBalances();
+                        
+                        // Load user wallets for management
+                        await loadUserWallets();
+                    }
                 }
+            } catch (error) {
+                console.error('Session restoration error:', error);
             }
+
             console.log('🚀 Wallet initialization complete');
         }
 
+        async function loadUserWallets() {
+            try {
+                userWallets = await window.nemexWalletAPI.getUserWallets();
+                console.log(`✅ Loaded ${userWallets.length} user wallets`);
+            } catch (error) {
+                console.error('Failed to load user wallets:', error);
+            }
+        }
+
         // =============================================
-        // BALANCE & PRICE UPDATES - FIXED
+        // BALANCE & PRICE UPDATES - FIXED VERSION
         // =============================================
 
         async function updateRealBalances() {
-            if (!walletState.isInitialized || !walletState.address) return;
+            if (!walletState.isInitialized || !walletState.address) {
+                return;
+            }
 
             try {
                 console.log('🔄 Fetching REAL balances and prices...');
@@ -862,13 +1649,19 @@
                     window.nemexWalletAPI.getTokenPrices()
                 ]);
 
-                // Update TON balance
+                console.log('🔍 Balance result:', balanceResult);
+                console.log('🔍 Price result:', priceResult);
+
+                // ✅ FIX: Handle both string and number responses
                 const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
                 if (tonToken && balanceResult.balances) {
+                    // Handle both string and number balances
                     const tonBalance = typeof balanceResult.balances.TON === 'string' 
                         ? parseFloat(balanceResult.balances.TON) 
                         : balanceResult.balances.TON;
+                    
                     tonToken.balance = tonBalance || 0;
+                    console.log('✅ TON balance updated:', tonToken.balance);
 
                     if (priceResult.prices && priceResult.prices.TON) {
                         tonToken.price = priceResult.prices.TON.price || 0;
@@ -876,15 +1669,18 @@
                     }
                 }
 
-                // Update NMX balance
+                // ✅ FIX: Update NMX balance PROPERLY
                 let nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
+
+                // Ensure NMX token exists in supported tokens
                 if (!nmxToken) {
+                    console.log('⚠️ NMX token not found in SUPPORTED_TOKENS, adding it...');
                     nmxToken = {
                         symbol: "NMX",
                         name: "NemexCoin",
                         balance: 0,
                         logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                        price: 0.10,
+                        price: 0,
                         change24h: 0,
                         canSend: true,
                         isNative: false,
@@ -894,17 +1690,25 @@
                 }
 
                 if (nmxToken && balanceResult.balances) {
+                    // ✅ CRITICAL FIX: Properly parse NMX balance
                     const nmxBalance = typeof balanceResult.balances.NMX === 'string'
                         ? parseFloat(balanceResult.balances.NMX)
                         : balanceResult.balances.NMX;
+                    
                     nmxToken.balance = nmxBalance || 0;
+                    console.log('✅ NMX balance updated:', nmxToken.balance, 'NMX');
 
                     if (priceResult.prices && priceResult.prices.NMX) {
                         nmxToken.price = priceResult.prices.NMX.price || 0;
                         nmxToken.change24h = priceResult.prices.NMX.change24h || 0;
+                    } else {
+                        // Fallback NMX price if not available from API
+                        nmxToken.price = 0.10;
+                        nmxToken.change24h = 0;
                     }
                 }
 
+                // ✅ DEBUG: Log all token balances
                 console.log('🔍 Final token balances:');
                 SUPPORTED_TOKENS.forEach(token => {
                     console.log(`   ${token.symbol}: ${token.balance} (Price: $${token.price})`);
@@ -913,13 +1717,14 @@
                 updatePortfolioValue();
                 loadTokens();
 
-                // ✅ FIX: Stabilize portfolio display
+                // ✅ FIX: Stabilize portfolio display after updates
                 setTimeout(stabilizePortfolioDisplay, 300);
 
                 console.log('✅ Real blockchain balances & prices updated');
 
             } catch (error) {
                 console.error('Failed to update real data:', error);
+                // Set fallback balances
                 SUPPORTED_TOKENS.forEach(token => {
                     if (token.symbol === 'TON' || token.symbol === 'NMX') {
                         token.balance = 0;
@@ -927,6 +1732,8 @@
                 });
                 updatePortfolioValue();
                 loadTokens();
+                
+                // ✅ FIX: Stabilize portfolio display even on error
                 setTimeout(stabilizePortfolioDisplay, 300);
             }
         }
@@ -942,11 +1749,18 @@
             const tokenSection = document.getElementById('tokenSection');
 
             if (walletState.isInitialized) {
+                // Add wallet-loaded class to body for CSS targeting
                 document.body.classList.add('wallet-loaded');
+                
                 if (welcomeScreen) welcomeScreen.style.display = 'none';
                 if (balanceSection) balanceSection.style.display = 'block';
                 if (actionButtons) actionButtons.style.display = 'grid';
-                if (tokenSection) tokenSection.style.display = 'block';
+                if (tokenSection) {
+                    tokenSection.style.display = 'block';
+                    tokenSection.style.opacity = '1';
+                    tokenSection.style.visibility = 'visible';
+                }
+                
                 updatePortfolioValue();
                 
                 // Force tokens to load
@@ -955,6 +1769,7 @@
                 }, 100);
             } else {
                 document.body.classList.remove('wallet-loaded');
+                
                 if (welcomeScreen) welcomeScreen.style.display = 'block';
                 if (balanceSection) balanceSection.style.display = 'none';
                 if (actionButtons) actionButtons.style.display = 'none';
@@ -963,12 +1778,26 @@
         }
 
         function updatePortfolioValue() {
+            // Wait a tiny bit to ensure token data is fully updated
             setTimeout(() => {
                 const allTokens = [...SUPPORTED_TOKENS];
+                
+                // ✅ DEBUG: Check what tokens we're calculating
+                console.log('💰 Calculating portfolio from tokens:', allTokens.map(t => ({
+                    symbol: t.symbol,
+                    balance: t.balance,
+                    price: t.price,
+                    value: (t.balance || 0) * (t.price || 0)
+                })));
+                
                 const totalUSD = allTokens.reduce((sum, token) => {
                     const balance = parseFloat(token.balance) || 0;
                     const price = parseFloat(token.price) || 0;
-                    return sum + (balance * price);
+                    const tokenValue = balance * price;
+                    
+                    console.log(`   ${token.symbol}: ${balance} × $${price} = $${tokenValue}`);
+                    
+                    return sum + tokenValue;
                 }, 0);
 
                 console.log('💰 Total portfolio value:', totalUSD);
@@ -977,15 +1806,30 @@
                 const balanceCrypto = document.getElementById('balanceCrypto');
                 const balanceLoading = document.getElementById('balanceLoading');
 
-                if (balanceAmount) balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
-                if (balanceCrypto) balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
-                if (balanceLoading) balanceLoading.style.display = 'none';
-                if (balanceAmount) balanceAmount.style.display = 'inline';
-                if (balanceCrypto) balanceCrypto.style.display = 'inline';
-            }, 100);
+                if (balanceAmount) {
+                    balanceAmount.textContent = `$${totalUSD.toFixed(2)}`;
+                    console.log('✅ Set balanceAmount to:', balanceAmount.textContent);
+                }
+                if (balanceCrypto) {
+                    balanceCrypto.textContent = `$${totalUSD.toFixed(2)}`;
+                    console.log('✅ Set balanceCrypto to:', balanceCrypto.textContent);
+                }
+                if (balanceLoading) {
+                    balanceLoading.style.display = 'none';
+                }
+                if (balanceAmount) {
+                    balanceAmount.style.display = 'inline';
+                }
+                if (balanceCrypto) {
+                    balanceCrypto.style.display = 'inline';
+                }
+            }, 100); // Small delay to ensure data is ready
         }
 
         function stabilizePortfolioDisplay() {
+            console.log('🔄 Stabilizing portfolio display...');
+            
+            // Get current calculated value
             const allTokens = [...SUPPORTED_TOKENS];
             const totalUSD = allTokens.reduce((sum, token) => {
                 return sum + ((token.balance || 0) * (token.price || 0));
@@ -995,9 +1839,11 @@
             const balanceCrypto = document.getElementById('balanceCrypto');
             
             if (balanceAmount && balanceCrypto) {
+                // Set both elements to the same value and lock them
                 const displayValue = `$${totalUSD.toFixed(2)}`;
                 balanceAmount.textContent = displayValue;
                 balanceCrypto.textContent = displayValue;
+                
                 console.log('🔒 Portfolio stabilized at:', displayValue);
             }
         }
@@ -1008,7 +1854,14 @@
             if (!tokenList) return;
 
             const allTokens = [...SUPPORTED_TOKENS];
-            console.log('🔄 Rendering tokens:', allTokens);
+
+            // ✅ DEBUG: Log what tokens are being rendered
+            console.log('🔄 Rendering tokens:', allTokens.map(t => ({
+                symbol: t.symbol,
+                balance: t.balance,
+                price: t.price,
+                value: (t.balance || 0) * (t.price || 0)
+            })));
 
             tokenList.innerHTML = '';
 
@@ -1025,12 +1878,13 @@
                 const formattedChange = changeSymbol + change24h.toFixed(2) + '%';
                 const featuredClass = token.isFeatured ? 'featured' : '';
 
+                // ✅ DEBUG: Log each token being created
                 console.log(`🎨 Creating token card: ${token.symbol} - Balance: ${token.balance} - Value: $${tokenValue}`);
 
                 const tokenCard = document.createElement('div');
                 tokenCard.className = `token-card ${featuredClass}`;
                 tokenCard.innerHTML = `
-                    <div class="token-icon">
+                    <div class="token-icon ${token.symbol.toLowerCase()}-icon">
                         <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
                              onerror="handleTokenLogoError(this, '${token.symbol}')">
                         ${token.isFeatured ? '<div class="featured-star">⭐</div>' : ''}
@@ -1052,6 +1906,8 @@
             });
 
             if (tokensLoading) tokensLoading.style.display = 'none';
+
+            // ✅ DEBUG: Confirm rendering completed
             console.log(`✅ Rendered ${allTokens.length} tokens in UI`);
         }
 
@@ -1082,10 +1938,14 @@
             container.style.background = 'rgba(255, 255, 255, 0.1)';
             container.style.color = 'white';
             container.style.fontWeight = 'bold';
+            container.style.display = 'flex';
+            container.style.alignItems = 'center';
+            container.style.justifyContent = 'center';
         }
 
         function showStatusMessage(message, type, container) {
             if (!container) {
+                // Create a temporary status message
                 const tempDiv = document.createElement('div');
                 tempDiv.className = `status-message status-${type}`;
                 tempDiv.textContent = message;
@@ -1106,6 +1966,7 @@
             }
 
             container.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+
             if (type === 'success') {
                 setTimeout(() => {
                     container.innerHTML = '';
@@ -1135,6 +1996,11 @@
             if (importWalletModal) importWalletModal.style.display = 'flex';
         }
 
+        function showSettingsModal() {
+            closeModal();
+            alert('Settings coming soon!');
+        }
+
         function showSendModal() {
             if (!walletState.isInitialized) {
                 alert('Please create or import a wallet first');
@@ -1149,25 +2015,34 @@
                 alert('Please create or import a wallet first');
                 return;
             }
+
+            // Close any other open modals first
+            closeModal();
+
+            // Initialize wallet card with current address
+            const currentAddress = walletState.address;
+            if (currentAddress) {
+                const formattedAddress = formatAddressForDisplay(currentAddress);
+                const addressFull = document.getElementById('addressFull');
+                if (addressFull) {
+                    addressFull.textContent = formattedAddress;
+                }
+            }
+
             const receiveModal = document.getElementById('receiveModal');
             if (receiveModal) {
-                const receiveAddress = document.getElementById('receiveAddress');
-                if (receiveAddress) receiveAddress.textContent = walletState.address;
                 receiveModal.style.display = 'flex';
             }
         }
 
         function showSwapModal() {
+            closeModal();
             alert('Swap functionality coming soon!');
         }
 
         function showBuyModal() {
-            alert('Buy functionality coming soon!');
-        }
-
-        function showSettingsModal() {
             closeModal();
-            alert('Settings coming soon!');
+            alert('Buy functionality coming soon!');
         }
 
         function showWalletView() {
@@ -1184,17 +2059,80 @@
             });
         }
 
+        // =============================================
+        // WALLET CARD FUNCTIONS
+        // =============================================
+
+        let currentReceiveToken = 'TON';
+
+        function selectReceiveToken(token) {
+            currentReceiveToken = token;
+            // Update UI state if needed
+            console.log('Selected receive token:', token);
+        }
+
         function copyWalletAddress() {
-            if (!walletState.address) {
+            const address = walletState.address;
+            if (!address) {
                 showStatusMessage('No wallet address available', 'error');
                 return;
             }
-            navigator.clipboard.writeText(walletState.address).then(() => {
-                showStatusMessage('✅ Address copied to clipboard!', 'success');
+
+            navigator.clipboard.writeText(address).then(() => {
+                showStatusMessage(`✅ ${currentReceiveToken} address copied!`, 'success');
+
+                // Visual feedback
+                const card = document.getElementById('walletCard');
+                if (card) {
+                    card.style.transform = 'scale(0.98)';
+                    card.style.borderColor = 'var(--success)';
+                    setTimeout(() => {
+                        card.style.transform = 'scale(1)';
+                        card.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+                    }, 300);
+                }
             }).catch(err => {
                 console.error('Failed to copy address:', err);
                 showStatusMessage('❌ Failed to copy address', 'error');
             });
+        }
+
+        function showAddressDetails() {
+            const address = walletState.address;
+            if (!address) {
+                showStatusMessage('No wallet address available', 'error');
+                return;
+            }
+
+            const details = `
+        🔐 **Wallet Address Details**
+
+        📍 **Address:** ${address}
+
+        🦅 **Network:** TON Mainnet
+        💫 **Type:** Universal TON Address
+
+        🎯 **Supported Tokens:**
+        • TON (Toncoin)
+        • NMX (NemexCoin) 
+        • USDT (Tether)
+        • Any TEP-64 tokens
+        • All TON-based assets
+
+        📱 **Wallet:** Nemex Wallet
+        👤 **User ID:** ${walletState.userId || 'N/A'}
+
+        🌐 **Universal Compatibility:**
+        This single address can receive all supported TON blockchain tokens.
+            `.trim();
+
+            alert(details);
+        }
+
+        function formatAddressForDisplay(address) {
+            if (!address) return 'Loading...';
+            if (address.length <= 20) return address;
+            return address.substring(0, 10) + '...' + address.substring(address.length - 10);
         }
 
         // =============================================
@@ -1236,6 +2174,12 @@
             } catch (error) {
                 console.error('Wallet creation failed:', error);
                 showStatusMessage('❌ Failed to create wallet: ' + error.message, 'error');
+            } finally {
+                const generateBtn = document.getElementById('generateWalletBtn');
+                if (generateBtn) {
+                    generateBtn.innerHTML = 'Generate New Wallet';
+                    generateBtn.disabled = false;
+                }
             }
         };
 
