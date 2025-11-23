@@ -2986,7 +2986,7 @@ setTimeout(debugWalletConnection, 2000);
         });
 
         // =============================================
-// SEED PHRASE MANAGEMENT - FIXED WITH ENHANCED DEBUGGING
+// SEED PHRASE MANAGEMENT - FIXED WITH PASSWORD VERIFICATION
 // =============================================
 
 async function showViewSeedPhrase(walletAddress = null) {
@@ -3001,6 +3001,42 @@ async function showViewSeedPhrase(walletAddress = null) {
         }
 
         console.log('🔍 Target address:', targetAddress);
+
+        // ✅ ADDED: Password verification before showing seed phrase
+        const password = prompt('🔐 Verify your password to view recovery phrase:');
+        if (!password) {
+            console.log('❌ User cancelled password input');
+            return; // User cancelled
+        }
+
+        console.log('🔄 Verifying password...');
+
+        // ✅ ADDED: Verify password with backend
+        try {
+            const userId = await window.nemexWalletAPI.getUserId();
+            const response = await fetch('/api/wallet/get-seed-phrase', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    address: targetAddress,
+                    userPassword: password
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.error || 'Password verification failed');
+            }
+
+            console.log('✅ Password verified successfully');
+
+        } catch (verificationError) {
+            console.error('❌ Password verification failed:', verificationError);
+            alert('❌ Invalid password! Please try again.');
+            return;
+        }
 
         // Try to get seed phrase from secure storage first
         targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
@@ -3129,6 +3165,10 @@ function showViewSeedSecurityWarning() {
                     <div class="warning-item safe">
                         <i class="fas fa-shield-alt"></i>
                         <span>Close this window when finished</span>
+                    </div>
+                    <div class="warning-item verified">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Password verified - authorized access only</span>
                     </div>
                 </div>
             </div>
