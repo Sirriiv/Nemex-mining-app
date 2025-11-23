@@ -2985,121 +2985,242 @@ setTimeout(debugWalletConnection, 2000);
         });
 
         // =============================================
-        // SEED PHRASE MANAGEMENT - FIXED
-        // =============================================
+// SEED PHRASE MANAGEMENT - FIXED WITH ENHANCED DEBUGGING
+// =============================================
 
-        async function showViewSeedPhrase(walletAddress = null) {
-            try {
-                console.log('🔐 Attempting to view seed phrase for:', walletAddress || 'current wallet');
-                
-                let targetMnemonic = null;
-                const targetAddress = walletAddress || walletState.address;
+async function showViewSeedPhrase(walletAddress = null) {
+    try {
+        console.log('🔐 Attempting to view seed phrase for:', walletAddress || 'current wallet');
+        
+        let targetMnemonic = null;
+        const targetAddress = walletAddress || walletState.address;
 
-                if (!targetAddress) {
-                    throw new Error('No wallet address specified');
-                }
+        if (!targetAddress) {
+            throw new Error('No wallet address specified');
+        }
 
-                // Try to get seed phrase from secure storage first
-                targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
-                
-                if (!targetMnemonic) {
-                    // Fallback to currentMnemonic if available and matches the target address
-                    if (currentMnemonic && (!walletAddress || walletAddress === walletState.address)) {
-                        targetMnemonic = currentMnemonic;
-                        console.log('✅ Using current mnemonic for seed phrase view');
-                    } else {
-                        // Try to get from the specific wallet data
-                        const targetWallet = userWallets.find(w => w.address === targetAddress);
-                        if (targetWallet && targetWallet.mnemonic) {
-                            targetMnemonic = targetWallet.mnemonic;
-                            console.log('✅ Found seed phrase in wallet data');
-                        } else {
-                            throw new Error('Seed phrase not available for this wallet. It may have been imported without storing the phrase locally for security.');
-                        }
+        console.log('🔍 Target address:', targetAddress);
+
+        // Try to get seed phrase from secure storage first
+        targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
+        console.log('🔍 Retrieved from secure storage:', targetMnemonic ? 'YES' : 'NO');
+        
+        if (!targetMnemonic) {
+            // Fallback to currentMnemonic if available and matches the target address
+            if (currentMnemonic && (!walletAddress || walletAddress === walletState.address)) {
+                targetMnemonic = currentMnemonic;
+                console.log('✅ Using current mnemonic for seed phrase view');
+            } else {
+                // Try to get from the wallet data in userWallets
+                const targetWallet = userWallets.find(w => w.address === targetAddress);
+                if (targetWallet) {
+                    console.log('🔍 Found wallet in userWallets:', targetWallet);
+                    
+                    // If this is a generated wallet, try to get from sessionStorage again
+                    if (targetWallet.source === 'generated') {
+                        targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
+                        console.log('🔍 Retried secure storage for generated wallet:', targetMnemonic ? 'YES' : 'NO');
+                    }
+                    
+                    // If we have the mnemonic in wallet data (from generation), use it
+                    if (!targetMnemonic && targetWallet.mnemonic) {
+                        targetMnemonic = targetWallet.mnemonic;
+                        console.log('✅ Found seed phrase in wallet data');
                     }
                 }
-
+                
                 if (!targetMnemonic) {
-                    throw new Error('No seed phrase available for this wallet');
+                    // Enhanced error message with troubleshooting
+                    let errorMessage = 'Seed phrase not available for this wallet. ';
+                    
+                    // Check if it's an imported wallet
+                    const wallet = userWallets.find(w => w.address === targetAddress);
+                    if (wallet && wallet.source === 'imported') {
+                        errorMessage += 'Imported wallets store seed phrases securely in session storage. ';
+                        errorMessage += 'If you cleared your browser data or opened a new private window, the seed phrase may no longer be accessible.';
+                    } else {
+                        errorMessage += 'It may have been imported without storing the phrase locally for security, or the session was cleared.';
+                    }
+                    
+                    throw new Error(errorMessage);
                 }
-
-                // Display the seed phrase in modal
-                displaySeedPhraseInModal(targetMnemonic, targetAddress);
-
-            } catch (error) {
-                console.error('❌ Error showing seed phrase:', error);
-                showTemporaryMessage('❌ ' + error.message, 'error');
             }
         }
 
-        function displaySeedPhraseInModal(mnemonic, walletAddress) {
-            const words = mnemonic.split(' ');
-            const viewSeedWords = document.getElementById('viewSeedWords');
-            if (!viewSeedWords) {
-                console.error('❌ View seed modal elements not found');
-                return;
-            }
-
-            viewSeedWords.innerHTML = '';
-
-            words.forEach((word, index) => {
-                const wordElement = document.createElement('div');
-                wordElement.className = 'mnemonic-word secure-view';
-                wordElement.innerHTML = `
-                    <span class="word-index">${index + 1}.</span> 
-                    <span class="word-text">${word}</span>
-                `;
-                viewSeedWords.appendChild(wordElement);
-            });
-
-            // Update modal title with wallet info
-            const modalTitle = document.querySelector('#viewSeedModal .modal-title');
-            if (modalTitle) {
-                modalTitle.innerHTML = `
-                    <i class="fas fa-seedling"></i>
-                    Recovery Phrase
-                    <small>for ${formatAddress(walletAddress)}</small>
-                `;
-            }
-
-            const viewSeedModal = document.getElementById('viewSeedModal');
-            if (viewSeedModal) {
-                viewSeedModal.style.display = 'flex';
-                console.log('✅ Seed phrase modal displayed for:', formatAddress(walletAddress));
-            }
-
-            // Add security notice
-            showViewSeedSecurityWarning();
+        if (!targetMnemonic) {
+            throw new Error('No seed phrase available for this wallet');
         }
 
-        function showViewSeedSecurityWarning() {
-            const warningContainer = document.getElementById('viewSeedSecurityWarning');
-            if (warningContainer && !warningContainer.querySelector('.security-warning-enhanced')) {
-                const warningHTML = `
-                    <div class="security-warning-enhanced view-mode">
-                        <div class="warning-header">
-                            <i class="fas fa-eye-slash"></i>
-                            <h4>Security Notice: Viewing Sensitive Information</h4>
-                        </div>
-                        <div class="warning-content">
-                            <div class="warning-item danger">
-                                <i class="fas fa-user-secret"></i>
-                                <span>Ensure no one can see your screen</span>
-                            </div>
-                            <div class="warning-item danger">
-                                <i class="fas fa-camera"></i>
-                                <span>Avoid taking screenshots or photos</span>
-                            </div>
-                            <div class="warning-item safe">
-                                <i class="fas fa-shield-alt"></i>
-                                <span>Close this window when finished</span>
-                            </div>
-                        </div>
+        // Display the seed phrase in modal
+        displaySeedPhraseInModal(targetMnemonic, targetAddress);
+
+    } catch (error) {
+        console.error('❌ Error showing seed phrase:', error);
+        
+        // Show more detailed error message
+        let userMessage = error.message;
+        if (error.message.includes('session was cleared') || error.message.includes('browser data')) {
+            userMessage += '\n\n💡 Tip: Seed phrases for imported wallets are stored in session storage and cleared when you close the browser. For permanent access, write down your seed phrase when you first import the wallet.';
+        }
+        
+        showTemporaryMessage('❌ ' + userMessage, 'error');
+    }
+}
+
+function displaySeedPhraseInModal(mnemonic, walletAddress) {
+    const words = mnemonic.split(' ');
+    const viewSeedWords = document.getElementById('viewSeedWords');
+    if (!viewSeedWords) {
+        console.error('❌ View seed modal elements not found');
+        return;
+    }
+
+    viewSeedWords.innerHTML = '';
+
+    words.forEach((word, index) => {
+        const wordElement = document.createElement('div');
+        wordElement.className = 'mnemonic-word secure-view';
+        wordElement.innerHTML = `
+            <span class="word-index">${index + 1}.</span> 
+            <span class="word-text">${word}</span>
+        `;
+        viewSeedWords.appendChild(wordElement);
+    });
+
+    // Update modal title with wallet info
+    const modalTitle = document.querySelector('#viewSeedModal .modal-title');
+    if (modalTitle) {
+        modalTitle.innerHTML = `
+            <i class="fas fa-seedling"></i>
+            Recovery Phrase
+            <small>for ${formatAddress(walletAddress)}</small>
+        `;
+    }
+
+    const viewSeedModal = document.getElementById('viewSeedModal');
+    if (viewSeedModal) {
+        viewSeedModal.style.display = 'flex';
+        console.log('✅ Seed phrase modal displayed for:', formatAddress(walletAddress));
+    }
+
+    // Add security notice
+    showViewSeedSecurityWarning();
+}
+
+function showViewSeedSecurityWarning() {
+    const warningContainer = document.getElementById('viewSeedSecurityWarning');
+    if (warningContainer && !warningContainer.querySelector('.security-warning-enhanced')) {
+        const warningHTML = `
+            <div class="security-warning-enhanced view-mode">
+                <div class="warning-header">
+                    <i class="fas fa-eye-slash"></i>
+                    <h4>Security Notice: Viewing Sensitive Information</h4>
+                </div>
+                <div class="warning-content">
+                    <div class="warning-item danger">
+                        <i class="fas fa-user-secret"></i>
+                        <span>Ensure no one can see your screen</span>
                     </div>
-                `;
-                warningContainer.innerHTML = warningHTML;
+                    <div class="warning-item danger">
+                        <i class="fas fa-camera"></i>
+                        <span>Avoid taking screenshots or photos</span>
+                    </div>
+                    <div class="warning-item safe">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Close this window when finished</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        warningContainer.innerHTML = warningHTML;
+    }
+}
+
+// Debug function to check seed phrase storage
+window.debugSeedPhraseStorage = async function(address = null) {
+    const targetAddress = address || walletState.address;
+    console.log('🔍 DEBUG: Checking seed phrase storage for:', targetAddress);
+    
+    if (!targetAddress) {
+        console.log('❌ No address specified');
+        showTemporaryMessage('❌ No wallet address found', 'error');
+        return;
+    }
+    
+    // Check sessionStorage directly
+    const sessionKey = `nemex_mnemonic_${targetAddress}`;
+    const fromSession = sessionStorage.getItem(sessionKey);
+    console.log('📋 SessionStorage key:', sessionKey);
+    console.log('📋 SessionStorage value:', fromSession ? 'PRESENT' : 'MISSING');
+    
+    // Check via API
+    const viaAPI = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
+    console.log('🔌 API retrieval:', viaAPI ? 'PRESENT' : 'MISSING');
+    
+    // Check currentMnemonic
+    console.log('💾 currentMnemonic:', currentMnemonic ? 'PRESENT' : 'MISSING');
+    
+    // Check wallet in userWallets
+    const wallet = userWallets.find(w => w.address === targetAddress);
+    console.log('👛 Wallet found:', wallet);
+    
+    // Check all sessionStorage keys for debugging
+    console.log('🗝️ All sessionStorage keys:');
+    for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && key.includes('nemex')) {
+            console.log(`   ${key}: ${sessionStorage.getItem(key) ? 'HAS VALUE' : 'EMPTY'}`);
+        }
+    }
+    
+    if (fromSession) {
+        console.log('✅ Seed phrase IS stored in sessionStorage');
+        showTemporaryMessage('✅ Seed phrase is stored and available in session storage', 'success');
+        
+        // Auto-trigger the view if debug was called
+        setTimeout(() => {
+            showViewSeedPhrase(targetAddress);
+        }, 1000);
+    } else {
+        console.log('❌ Seed phrase NOT stored in sessionStorage');
+        
+        let debugMessage = '❌ Seed phrase not found in storage. ';
+        
+        if (wallet) {
+            debugMessage += `Wallet type: ${wallet.source}. `;
+            if (wallet.source === 'imported') {
+                debugMessage += 'Imported wallets need to store seed phrase in session storage. ';
             }
         }
+        
+        debugMessage += 'Try re-importing the wallet.';
+        
+        showTemporaryMessage(debugMessage, 'error');
+    }
+};
+
+// Function to manually store seed phrase (for testing)
+window.manualStoreSeedPhrase = async function(mnemonic, address = null) {
+    const targetAddress = address || walletState.address;
+    if (!targetAddress) {
+        showTemporaryMessage('❌ No wallet address found', 'error');
+        return;
+    }
+    
+    if (!mnemonic) {
+        showTemporaryMessage('❌ No seed phrase provided', 'error');
+        return;
+    }
+    
+    try {
+        await window.nemexWalletAPI.storage.storeMnemonicSecurely(mnemonic, targetAddress);
+        console.log('✅ Manually stored seed phrase for:', targetAddress);
+        showTemporaryMessage('✅ Seed phrase stored successfully!', 'success');
+    } catch (error) {
+        console.error('❌ Failed to store seed phrase:', error);
+        showTemporaryMessage('❌ Failed to store seed phrase: ' + error.message, 'error');
+    }
+};
 
         // =============================================
         // BACKUP MODAL FUNCTIONS - FIXED
