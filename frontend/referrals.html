@@ -834,7 +834,7 @@
         }
 
         // 🆕 ENHANCED: Build multi-level referral network
-        async function buildReferralNetwork(newUserId, referrerId, currentLevel = 1, maxLevel = 3) {
+        async function buildReferralNetwork(newUserId, referrerId, currentLevel = 1, maxLevel = 10) {
             try {
                 if (currentLevel > maxLevel) return;
 
@@ -940,17 +940,27 @@
             const totalSlots = data.referral_slots || 10;
             const availableSlots = Math.max(0, totalSlots - usedSlots);
 
-            // Update UI elements
-            document.getElementById('totalReferrals').textContent = usedSlots;
-            document.getElementById('availableSlots').textContent = availableSlots;
-            document.getElementById('earnedBonus').textContent = data.total_earned_from_refs || 0;
-            
-            if (data.username) {
-                document.getElementById('usernameDisplay').textContent = data.username;
-            }
+            // 🆕 UPDATED: Update UI with fresh data
+function updateReferralUI(data) {
+    if (!data) return;
 
-            console.log('✅ UI updated with fresh data');
-        }
+    // Calculate stats using the data from database
+    const usedSlots = data.used_slots || 0;
+    const totalSlots = data.referral_slots || 10;
+    const availableSlots = Math.max(0, totalSlots - usedSlots);
+    const earnedBonus = data.total_earned_from_refs || 0;
+
+    // Update UI elements
+    document.getElementById('totalReferrals').textContent = usedSlots;
+    document.getElementById('availableSlots').textContent = availableSlots;
+    document.getElementById('earnedBonus').textContent = earnedBonus;
+    
+    if (data.username) {
+        document.getElementById('usernameDisplay').textContent = data.username;
+    }
+
+    console.log('✅ UI updated with fresh data:', { usedSlots, availableSlots, earnedBonus });
+}
 
         // FIXED: Enhanced authentication check using Supabase Auth
         async function checkAuth() {
@@ -981,56 +991,114 @@
             }
         }
 
-        // FIXED: Enhanced referral data loading with proper error handling
-        async function loadReferralData() {
-            try {
-                // Show loading screen
-                document.getElementById('loadingOverlay').style.display = 'flex';
+        // FIXED: Enhanced referral data loading with proper error handling and SYNC
+async function loadReferralData() {
+    try {
+        // Show loading screen
+        document.getElementById('loadingOverlay').style.display = 'flex';
 
-                // Check authentication
-                currentUser = await checkAuth();
-                if (!currentUser) return;
+        // Check authentication
+        currentUser = await checkAuth();
+        if (!currentUser) return;
 
-                console.log('🔄 Loading referral data...');
+        console.log('🔄 Loading FRESH referral data...');
 
-                // Get user profile
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
+        // 🆕 FIRST: Count ACTUAL referrals from database
+        const { data: actualReferrals, error: countError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('referred_by', currentUser.id);
 
-                if (profileError) {
-                    console.error('Profile error:', profileError);
-                    showToast('Error loading profile data', 'error');
-                    return;
-                }
+        if (countError) {
+            console.error('Error counting referrals:', countError);
+        }
 
-                if (!profile) {
-                    showToast('User profile not found', 'error');
-                    return;
-                }
+        const actualReferralCount = actualReferrals ? actualReferrals.length : 0;
+        console.log('📊 ACTUAL referral count from database:', actualReferralCount);
 
-                currentProfile = profile;
+        // Get user profile
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
 
-                // Update UI with fresh data
-                updateReferralUI(profile);
+        if (profileError) {
+            console.error('Profile error:', profileError);
+            showToast('Error loading profile data', 'error');
+            return;
+        }
 
-                // Generate referral link
-                const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
-                document.getElementById('referralLink').value = referralLink;
+        if (!profile) {
+            showToast('User profile not found', 'error');
+            return;
+        }
 
-                await loadReferralsList();
+        currentProfile = profile;
 
-                // Hide loading screen
-                document.getElementById('loadingOverlay').style.display = 'none';
+        // 🆕 CRITICAL FIX: Sync used_slots with actual count if they don't match
+        if ((profile.used_slots || 0) !== actualReferralCount) {
+            console.log('🔄 Syncing used_slots with actual count...');
+            console.log('Database used_slots:', profile.used_slots, 'Actual count:', actualReferralCount);
+            
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    used_slots: actualReferralCount,
+                    total_earned_from_refs: (actualReferralCount * 30)
+                })
+                .eq('id', currentUser.id);
 
-            } catch (error) {
-                console.error('❌ Error loading referral data:', error);
-                showToast('Error loading referral data', 'error');
-                document.getElementById('loadingOverlay').style.display = 'none';
+            if (updateError) {
+                console.error('Error syncing slots:', updateError);
+            } else {
+                console.log('✅ Successfully synced used_slots to:', actualReferralCount);
+                // Update local profile with new values
+                profile.used_slots = actualReferralCount;
+                profile.total_earned_from_refs = actualReferralCount * 30;
             }
         }
+
+        // Calculate stats - use SYNCED values
+        const usedSlots = profile.used_slots || 0;
+        const totalSlots = profile.referral_slots || 10;
+        const availableSlots = Math.max(0, totalSlots - usedSlots);
+        const earnedBonus = profile.total_earned_from_refs || 0;
+
+        console.log('📈 Final Stats:', {
+            usedSlots,
+            totalSlots, 
+            availableSlots,
+            earnedBonus,
+            actualReferralCount
+        });
+
+        // Update UI with SYNCED data
+        document.getElementById('totalReferrals').textContent = usedSlots;
+        document.getElementById('availableSlots').textContent = availableSlots;
+        document.getElementById('earnedBonus').textContent = earnedBonus;
+        document.getElementById('usernameDisplay').textContent = profile.username || 'user_' + currentUser.id.substring(0, 8);
+
+        // Generate referral link
+        const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
+        document.getElementById('referralLink').value = referralLink;
+
+        await loadReferralsList();
+
+        // Hide loading screen
+        document.getElementById('loadingOverlay').style.display = 'none';
+
+        // 🆕 Show success message if data was synced
+        if ((currentProfile.used_slots || 0) !== actualReferralCount) {
+            showToast('Referral data synced successfully!', 'success');
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading referral data:', error);
+        showToast('Error loading referral data', 'error');
+        document.getElementById('loadingOverlay').style.display = 'none';
+    }
+}
 
         // FIXED: Enhanced referrals list loading - now includes network data
         async function loadReferralsList() {
