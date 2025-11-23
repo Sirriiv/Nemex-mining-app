@@ -592,10 +592,41 @@
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-            
+
             setTimeout(() => {
                 window.location.href = targetPage;
             }, 2000); // 2 second loading screen
+        }
+
+        // 🆕 NEW: Wallet Integration - Store password for wallet operations
+        async function handleWalletLoginIntegration(user, password) {
+            try {
+                console.log('🔐 Setting up wallet session for user:', user.email);
+                
+                // Store user session with password for wallet operations
+                window.currentUser = {
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    password: password // Store temporarily for wallet encryption
+                };
+                
+                // Also store basic session data (without password) for security
+                sessionStorage.setItem('nemex_user_session', JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    wallet_initialized: false,
+                    logged_in_at: new Date().toISOString()
+                }));
+                
+                console.log('✅ Wallet session initialized for user:', user.email);
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Wallet session setup failed:', error);
+                return false;
+            }
         }
 
         // Supabase configuration
@@ -688,7 +719,73 @@
             document.getElementById('recoveryNotice').style.display = 'block';
         }
 
-        // UPDATED: Login with proper Supabase Auth integration
+        // 🆕 UPDATED: Complete login with wallet integration
+        async function completeLoginWithWallet(user, session, password, isRecovery = false) {
+            try {
+                console.log('✅ Completing login with wallet integration for user:', user.email);
+                
+                // Set up wallet session with password
+                const walletReady = await handleWalletLoginIntegration(user, password);
+                if (!walletReady) {
+                    console.warn('⚠️ Wallet session setup failed, but continuing with login');
+                }
+                
+                // Update last login in profiles table
+                const { error: updateError } = await supabase
+                    .from('profiles')
+                    .update({ 
+                        last_login: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', user.id);
+
+                if (updateError) {
+                    console.error('❌ Error updating last login:', updateError);
+                }
+
+                // Store session data for backward compatibility
+                const userSession = {
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    full_name: user.full_name,
+                    balance: user.balance || 0,
+                    two_factor_enabled: user.two_factor_enabled || false,
+                    loggedIn: true
+                };
+
+                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+                console.log('✅ Session stored, redirecting to dashboard...');
+
+                // Close any open modals
+                document.getElementById('twoFactorModal').style.display = 'none';
+                document.getElementById('backupCodeModal').style.display = 'none';
+                document.getElementById('passwordResetModal').style.display = 'none';
+
+                if (isRecovery) {
+                    // Show success message for recovery
+                    const successMessage = document.getElementById('successMessage');
+                    successMessage.textContent = '✅ Password reset successful! You have been logged in.';
+                    successMessage.style.display = 'block';
+
+                    // Small delay to show success message then show loading screen
+                    setTimeout(() => {
+                        showLoadingScreen('dashboard.html', 'Welcome Back!');
+                    }, 1500);
+                } else {
+                    // Normal login redirect with loading screen
+                    showLoadingScreen('dashboard.html', 'Welcome Back!');
+                }
+
+            } catch (error) {
+                console.error('❌ Login completion error:', error);
+                document.getElementById('errorMessage').textContent = 'Login failed. Please try again.';
+                document.getElementById('errorMessage').style.display = 'block';
+                resetLoginForm();
+            }
+        }
+
+        // UPDATED: Login with proper Supabase Auth integration AND WALLET SUPPORT
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -757,7 +854,8 @@
                     return;
                 } else {
                     console.log('🔓 2FA not enabled, proceeding with normal login');
-                    await completeLogin(user, authData.session);
+                    // 🆕 UPDATED: Use wallet-integrated login function
+                    await completeLoginWithWallet(user, authData.session, password);
                 }
 
             } catch (error) {
@@ -793,7 +891,7 @@
             }
         }
 
-        // ENHANCED: 2FA verification with improved recovery flow
+        // ENHANCED: 2FA verification with improved recovery flow AND WALLET SUPPORT
         async function verify2FACode() {
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
@@ -821,7 +919,10 @@
                     // Normal login flow - get fresh session
                     const { data: { session }, error } = await supabase.auth.getSession();
                     if (error) throw error;
-                    await completeLogin(currentUser, session);
+                    
+                    // 🆕 UPDATED: Use wallet-integrated login with original password
+                    const originalPassword = document.getElementById('password').value;
+                    await completeLoginWithWallet(currentUser, session, originalPassword);
                 }
             } catch (error) {
                 console.error('❌ 2FA verification error:', error);
@@ -849,7 +950,7 @@
             resetLoginForm();
         }
 
-        // NEW: Set new password after recovery
+        // NEW: Set new password after recovery WITH WALLET SUPPORT
         async function setNewPassword() {
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
@@ -910,7 +1011,9 @@
                 }
 
                 console.log('✅ Successfully signed in with new password');
-                await completeLogin(currentUser, signInData.session, true);
+                
+                // 🆕 UPDATED: Use wallet-integrated login with new password
+                await completeLoginWithWallet(currentUser, signInData.session, newPassword, true);
 
             } catch (error) {
                 console.error('❌ Password set error:', error);
@@ -955,7 +1058,7 @@
             }
         }
 
-        // FIXED: Backup code system
+        // FIXED: Backup code system WITH WALLET SUPPORT
         function useBackupCode() {
             document.getElementById('twoFactorModal').style.display = 'none';
             document.getElementById('backupCodeModal').style.display = 'flex';
@@ -970,7 +1073,7 @@
             verifyBtn.disabled = !/^[A-Z0-9]{10}$/i.test(code);
         }
 
-        // FIXED: Backup code verification - allows reuse
+        // FIXED: Backup code verification - allows reuse WITH WALLET SUPPORT
         async function verifyBackupCode() {
             const code = document.getElementById('backupCode').value.toUpperCase();
             const verifyBtn = document.getElementById('verifyBackupBtn');
@@ -1007,7 +1110,10 @@
                 } else {
                     const { data: { session }, error } = await supabase.auth.getSession();
                     if (error) throw error;
-                    await completeLogin(currentUser, session);
+                    
+                    // 🆕 UPDATED: Use wallet-integrated login with original password
+                    const originalPassword = document.getElementById('password').value;
+                    await completeLoginWithWallet(currentUser, session, originalPassword);
                 }
             } catch (error) {
                 console.error('❌ Backup code verification error:', error);
@@ -1043,67 +1149,6 @@
             recoveryTemporaryPassword = null;
         }
 
-        // ENHANCED: Complete login with recovery mode support
-        async function completeLogin(user, session, isRecovery = false) {
-            try {
-                console.log('✅ Completing login for user:', user.email);
-                console.log('🔄 Recovery Mode:', isRecovery);
-
-                // Update last login in profiles table
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        last_login: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('❌ Error updating last login:', updateError);
-                }
-
-                // Store session data for backward compatibility
-                const userSession = {
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    full_name: user.full_name,
-                    balance: user.balance || 0,
-                    two_factor_enabled: user.two_factor_enabled || false,
-                    loggedIn: true
-                };
-
-                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
-                console.log('✅ Session stored, redirecting to dashboard...');
-
-                // Close any open modals
-                document.getElementById('twoFactorModal').style.display = 'none';
-                document.getElementById('backupCodeModal').style.display = 'none';
-                document.getElementById('passwordResetModal').style.display = 'none';
-
-                if (isRecovery) {
-                    // Show success message for recovery
-                    const successMessage = document.getElementById('successMessage');
-                    successMessage.textContent = '✅ Password reset successful! You have been logged in.';
-                    successMessage.style.display = 'block';
-
-                    // Small delay to show success message then show loading screen
-                    setTimeout(() => {
-                        showLoadingScreen('dashboard.html', 'Welcome Back!');
-                    }, 1500);
-                } else {
-                    // Normal login redirect with loading screen
-                    showLoadingScreen('dashboard.html', 'Welcome Back!');
-                }
-
-            } catch (error) {
-                console.error('❌ Login completion error:', error);
-                document.getElementById('errorMessage').textContent = 'Login failed. Please try again.';
-                document.getElementById('errorMessage').style.display = 'block';
-                resetLoginForm();
-            }
-        }
-
         // Handle Enter key press
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
@@ -1123,6 +1168,26 @@
             }
         });
 
+        // 🆕 NEW: Handle page refresh - restore wallet session if available
+        window.addEventListener('load', function() {
+            const walletSession = sessionStorage.getItem('nemex_user_session');
+            if (walletSession) {
+                console.log('🔐 Existing wallet session found');
+                const sessionData = JSON.parse(walletSession);
+                
+                // If we have a session but no currentUser, try to restore it
+                if (!window.currentUser && sessionData.id) {
+                    console.log('🔄 Restoring wallet session for user:', sessionData.email);
+                    window.currentUser = {
+                        id: sessionData.id,
+                        email: sessionData.email,
+                        username: sessionData.username
+                        // Password not stored in sessionStorage for security
+                    };
+                }
+            }
+        });
+
         // Check for existing session on page load
         document.addEventListener('DOMContentLoaded', async function() {
             const hasSession = await checkExistingSession();
@@ -1133,7 +1198,7 @@
             }
         });
 
-        console.log('🔧 Login page loaded - Enhanced 2FA Recovery with Password Reset ready');
+        console.log('🔧 Login page loaded - Enhanced 2FA Recovery with Password Reset AND WALLET INTEGRATION ready');
     </script>
 </body>
 </html>
