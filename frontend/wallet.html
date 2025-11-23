@@ -2986,14 +2986,13 @@ setTimeout(debugWalletConnection, 2000);
         });
 
         // =============================================
-// SEED PHRASE MANAGEMENT - FIXED WITH PASSWORD VERIFICATION
+// SEED PHRASE MANAGEMENT - FIXED WITH PROPER PASSWORD VERIFICATION
 // =============================================
 
 async function showViewSeedPhrase(walletAddress = null) {
     try {
         console.log('🔐 Attempting to view seed phrase for:', walletAddress || 'current wallet');
         
-        let targetMnemonic = null;
         const targetAddress = walletAddress || walletState.address;
 
         if (!targetAddress) {
@@ -3002,85 +3001,53 @@ async function showViewSeedPhrase(walletAddress = null) {
 
         console.log('🔍 Target address:', targetAddress);
 
-        // ✅ ADDED: Password verification before showing seed phrase
+        // ✅ FIXED: Password verification BEFORE anything else
         const password = prompt('🔐 Verify your password to view recovery phrase:');
         if (!password) {
             console.log('❌ User cancelled password input');
-            return; // User cancelled
-        }
-
-        console.log('🔄 Verifying password...');
-
-        // ✅ ADDED: Verify password with backend
-        try {
-            const userId = await window.nemexWalletAPI.getUserId();
-            const response = await fetch('/api/wallet/get-seed-phrase', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: userId,
-                    address: targetAddress,
-                    userPassword: password
-                })
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                throw new Error(data.error || 'Password verification failed');
-            }
-
-            console.log('✅ Password verified successfully');
-
-        } catch (verificationError) {
-            console.error('❌ Password verification failed:', verificationError);
-            alert('❌ Invalid password! Please try again.');
             return;
         }
 
-        // Try to get seed phrase from secure storage first
-        targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
-        console.log('🔍 Retrieved from secure storage:', targetMnemonic ? 'YES' : 'NO');
+        console.log('🔄 Verifying password with backend...');
+
+        // ✅ FIXED: Proper password verification with error handling
+        const userId = await window.nemexWalletAPI.getUserId();
+        const response = await fetch('/api/wallet/get-seed-phrase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                address: targetAddress,
+                userPassword: password
+            })
+        });
+
+        // ✅ FIXED: Check HTTP status code first
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP ${response.status}: Password verification failed`);
+        }
+
+        const data = await response.json();
+
+        // ✅ FIXED: Check if backend actually returned success=false
+        if (!data.success) {
+            throw new Error(data.error || 'Password verification failed');
+        }
+
+        console.log('✅ Password verified successfully by backend');
+
+        // ✅ ONLY AFTER PASSWORD VERIFICATION: Get seed phrase from storage
+        let targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
+        console.log('🔍 Retrieved from secure storage after password verification:', targetMnemonic ? 'YES' : 'NO');
         
         if (!targetMnemonic) {
-            // Fallback to currentMnemonic if available and matches the target address
+            // Simple fallback - no complex logic that might bypass security
             if (currentMnemonic && (!walletAddress || walletAddress === walletState.address)) {
                 targetMnemonic = currentMnemonic;
-                console.log('✅ Using current mnemonic for seed phrase view');
+                console.log('✅ Using current mnemonic');
             } else {
-                // Try to get from the wallet data in userWallets
-                const targetWallet = userWallets.find(w => w.address === targetAddress);
-                if (targetWallet) {
-                    console.log('🔍 Found wallet in userWallets:', targetWallet);
-                    
-                    // If this is a generated wallet, try to get from sessionStorage again
-                    if (targetWallet.source === 'generated') {
-                        targetMnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
-                        console.log('🔍 Retried secure storage for generated wallet:', targetMnemonic ? 'YES' : 'NO');
-                    }
-                    
-                    // If we have the mnemonic in wallet data (from generation), use it
-                    if (!targetMnemonic && targetWallet.mnemonic) {
-                        targetMnemonic = targetWallet.mnemonic;
-                        console.log('✅ Found seed phrase in wallet data');
-                    }
-                }
-                
-                if (!targetMnemonic) {
-                    // Enhanced error message with troubleshooting
-                    let errorMessage = 'Seed phrase not available for this wallet. ';
-                    
-                    // Check if it's an imported wallet
-                    const wallet = userWallets.find(w => w.address === targetAddress);
-                    if (wallet && wallet.source === 'imported') {
-                        errorMessage += 'Imported wallets store seed phrases securely in session storage. ';
-                        errorMessage += 'If you cleared your browser data or opened a new private window, the seed phrase may no longer be accessible.';
-                    } else {
-                        errorMessage += 'It may have been imported without storing the phrase locally for security, or the session was cleared.';
-                    }
-                    
-                    throw new Error(errorMessage);
-                }
+                throw new Error('Seed phrase not available in session storage. It may have been cleared.');
             }
         }
 
@@ -3088,19 +3055,18 @@ async function showViewSeedPhrase(walletAddress = null) {
             throw new Error('No seed phrase available for this wallet');
         }
 
-        // Display the seed phrase in modal
+        // ✅ ONLY SHOW IF PASSWORD WAS VERIFIED
         displaySeedPhraseInModal(targetMnemonic, targetAddress);
 
     } catch (error) {
         console.error('❌ Error showing seed phrase:', error);
         
-        // Show more detailed error message
-        let userMessage = error.message;
-        if (error.message.includes('session was cleared') || error.message.includes('browser data')) {
-            userMessage += '\n\n💡 Tip: Seed phrases for imported wallets are stored in session storage and cleared when you close the browser. For permanent access, write down your seed phrase when you first import the wallet.';
+        // ✅ FIXED: Show proper error messages
+        if (error.message.includes('Invalid password') || error.message.includes('Password verification failed')) {
+            alert('❌ Invalid password! Please try again.');
+        } else {
+            alert('❌ ' + error.message);
         }
-        
-        showTemporaryMessage('❌ ' + userMessage, 'error');
     }
 }
 
@@ -3178,65 +3144,41 @@ function showViewSeedSecurityWarning() {
 }
 
 // Debug function to check seed phrase storage
-window.debugSeedPhraseStorage = async function(address = null) {
-    const targetAddress = address || walletState.address;
-    console.log('🔍 DEBUG: Checking seed phrase storage for:', targetAddress);
-    
-    if (!targetAddress) {
-        console.log('❌ No address specified');
-        showTemporaryMessage('❌ No wallet address found', 'error');
-        return;
-    }
-    
-    // Check sessionStorage directly
-    const sessionKey = `nemex_mnemonic_${targetAddress}`;
-    const fromSession = sessionStorage.getItem(sessionKey);
-    console.log('📋 SessionStorage key:', sessionKey);
-    console.log('📋 SessionStorage value:', fromSession ? 'PRESENT' : 'MISSING');
-    
-    // Check via API
-    const viaAPI = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(targetAddress);
-    console.log('🔌 API retrieval:', viaAPI ? 'PRESENT' : 'MISSING');
-    
-    // Check currentMnemonic
-    console.log('💾 currentMnemonic:', currentMnemonic ? 'PRESENT' : 'MISSING');
-    
-    // Check wallet in userWallets
-    const wallet = userWallets.find(w => w.address === targetAddress);
-    console.log('👛 Wallet found:', wallet);
-    
-    // Check all sessionStorage keys for debugging
-    console.log('🗝️ All sessionStorage keys:');
-    for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key && key.includes('nemex')) {
-            console.log(`   ${key}: ${sessionStorage.getItem(key) ? 'HAS VALUE' : 'EMPTY'}`);
+window.debugSeedPhraseFlow = async function() {
+    try {
+        const currentWallet = await window.nemexWalletAPI.getStoredWallet();
+        if (!currentWallet) {
+            alert('No wallet loaded');
+            return;
         }
-    }
-    
-    if (fromSession) {
-        console.log('✅ Seed phrase IS stored in sessionStorage');
-        showTemporaryMessage('✅ Seed phrase is stored and available in session storage', 'success');
+
+        console.log('🔍 DEBUG: Current wallet:', currentWallet);
         
-        // Auto-trigger the view if debug was called
-        setTimeout(() => {
-            showViewSeedPhrase(targetAddress);
-        }, 1000);
-    } else {
-        console.log('❌ Seed phrase NOT stored in sessionStorage');
-        
-        let debugMessage = '❌ Seed phrase not found in storage. ';
-        
-        if (wallet) {
-            debugMessage += `Wallet type: ${wallet.source}. `;
-            if (wallet.source === 'imported') {
-                debugMessage += 'Imported wallets need to store seed phrase in session storage. ';
-            }
+        // Test with wrong password first
+        console.log('🧪 Testing with WRONG password...');
+        const wrongResponse = await fetch('/api/wallet/get-seed-phrase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: await window.nemexWalletAPI.getUserId(),
+                address: currentWallet.address,
+                userPassword: 'WRONG_PASSWORD_123'
+            })
+        });
+
+        const wrongResult = await wrongResponse.json();
+        console.log('❌ Wrong password response:', wrongResult);
+
+        if (wrongResult.success) {
+            alert('🚨 SECURITY ISSUE: Backend accepts wrong passwords!');
+            return;
         }
-        
-        debugMessage += 'Try re-importing the wallet.';
-        
-        showTemporaryMessage(debugMessage, 'error');
+
+        alert('✅ Backend correctly rejects wrong passwords!');
+
+    } catch (error) {
+        console.error('Debug error:', error);
+        alert('Debug failed: ' + error.message);
     }
 };
 
