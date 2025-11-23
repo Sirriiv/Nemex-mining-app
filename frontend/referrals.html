@@ -785,6 +785,81 @@
             }, 1500);
         }
 
+        // 🆕 ENHANCED: Create referral network records for multi-level system
+        async function createReferralNetworkRecord(referrerId, referredId, level = 1) {
+            try {
+                console.log(`📝 Creating referral network record - Level ${level}:`, { referrerId, referredId });
+
+                // Get referrer's username for full path
+                const { data: referrerData } = await supabase
+                    .from('profiles')
+                    .select('username')
+                    .eq('id', referrerId)
+                    .single();
+
+                // Get referred user's username
+                const { data: referredData } = await supabase
+                    .from('profiles')
+                    .select('username')
+                    .eq('id', referredId)
+                    .single();
+
+                const fullPath = referrerData?.username ? `${referrerData.username} → ${referredData?.username || 'new_user'}` : 'direct';
+
+                // Create the referral network record
+                const { data, error } = await supabase
+                    .from('referral_network')
+                    .insert({
+                        referrer_id: referrerId,
+                        referred_id: referredId,
+                        user_id: referrerId, // The user who owns this referral chain
+                        referred_user_id: referredId, // The user who was referred
+                        level: level,
+                        full_path: fullPath,
+                        created_at: new Date().toISOString()
+                    });
+
+                if (error) {
+                    console.error('❌ Error creating referral network record:', error);
+                    return false;
+                }
+
+                console.log('✅ Referral network record created successfully');
+                return true;
+
+            } catch (error) {
+                console.error('❌ Error in createReferralNetworkRecord:', error);
+                return false;
+            }
+        }
+
+        // 🆕 ENHANCED: Build multi-level referral network
+        async function buildReferralNetwork(newUserId, referrerId, currentLevel = 1, maxLevel = 3) {
+            try {
+                if (currentLevel > maxLevel) return;
+
+                console.log(`🏗️ Building referral network - Level ${currentLevel} for user:`, newUserId);
+
+                // Create record for current level
+                await createReferralNetworkRecord(referrerId, newUserId, currentLevel);
+
+                // If referrer has their own referrer, continue up the chain
+                const { data: referrerProfile } = await supabase
+                    .from('profiles')
+                    .select('referred_by')
+                    .eq('id', referrerId)
+                    .single();
+
+                if (referrerProfile && referrerProfile.referred_by) {
+                    // Recursively build network for next level
+                    await buildReferralNetwork(newUserId, referrerProfile.referred_by, currentLevel + 1, maxLevel);
+                }
+
+            } catch (error) {
+                console.error('❌ Error building referral network:', error);
+            }
+        }
+
         // ENHANCED: Create referral notification
         async function createReferralNotification(userId, type, userName, action) {
             try {
@@ -825,6 +900,56 @@
                 console.error(`❌ Error creating ${type} notification:`, error);
                 return false;
             }
+        }
+
+        // 🆕 ADD: Force sync referral data function
+        async function syncReferralData() {
+            try {
+                console.log('🔄 Syncing referral data...');
+                
+                if (!currentUser) return;
+
+                // Force refresh from database
+                const { data: freshData, error } = await supabase
+                    .from('profiles')
+                    .select('referral_slots, used_slots, total_earned_from_refs, username')
+                    .eq('id', currentUser.id)
+                    .single();
+
+                if (error) {
+                    console.error('❌ Error syncing referral data:', error);
+                    return;
+                }
+
+                console.log('✅ Fresh referral data:', freshData);
+
+                // Update UI with fresh data
+                updateReferralUI(freshData);
+
+            } catch (error) {
+                console.error('❌ Sync failed:', error);
+            }
+        }
+
+        // 🆕 ADD: Update UI with fresh data
+        function updateReferralUI(data) {
+            if (!data) return;
+
+            // Calculate stats
+            const usedSlots = data.used_slots || 0;
+            const totalSlots = data.referral_slots || 10;
+            const availableSlots = Math.max(0, totalSlots - usedSlots);
+
+            // Update UI elements
+            document.getElementById('totalReferrals').textContent = usedSlots;
+            document.getElementById('availableSlots').textContent = availableSlots;
+            document.getElementById('earnedBonus').textContent = data.total_earned_from_refs || 0;
+            
+            if (data.username) {
+                document.getElementById('usernameDisplay').textContent = data.username;
+            }
+
+            console.log('✅ UI updated with fresh data');
         }
 
         // FIXED: Enhanced authentication check using Supabase Auth
@@ -888,16 +1013,8 @@
 
                 currentProfile = profile;
 
-                // Calculate stats
-                const usedSlots = profile.used_slots || 0;
-                const totalSlots = profile.referral_slots || 10;
-                const availableSlots = Math.max(0, totalSlots - usedSlots);
-
-                // Update UI
-                document.getElementById('totalReferrals').textContent = usedSlots;
-                document.getElementById('availableSlots').textContent = availableSlots;
-                document.getElementById('earnedBonus').textContent = profile.total_earned_from_refs || 0;
-                document.getElementById('usernameDisplay').textContent = profile.username || 'user_' + currentUser.id.substring(0, 8);
+                // Update UI with fresh data
+                updateReferralUI(profile);
 
                 // Generate referral link
                 const referralLink = `${window.location.origin}/register.html?ref=${profile.username}`;
@@ -915,14 +1032,14 @@
             }
         }
 
-        // FIXED: Enhanced referrals list loading
+        // FIXED: Enhanced referrals list loading - now includes network data
         async function loadReferralsList() {
             if (!currentUser) return;
 
             try {
                 console.log('👥 Loading referrals list...');
 
-                // Get users who have this user as referrer
+                // Get users who have this user as referrer (direct referrals)
                 const { data: directReferrals, error: directError } = await supabase
                     .from('profiles')
                     .select('id, username, email, created_at, full_name, balance')
@@ -936,6 +1053,32 @@
                 }
 
                 referrals = directReferrals || [];
+                
+                // 🆕 ALSO load from referral_network to ensure we have all data
+                const { data: networkReferrals, error: networkError } = await supabase
+                    .from('referral_network')
+                    .select(`
+                        referred_user_id,
+                        level,
+                        profiles!referral_network_referred_user_id_fkey (
+                            id, username, email, created_at, full_name, balance
+                        )
+                    `)
+                    .eq('user_id', currentUser.id)
+                    .eq('level', 1) // Only show direct referrals in the list
+                    .order('created_at', { ascending: false });
+
+                if (!networkError && networkReferrals) {
+                    // Merge both data sources to ensure completeness
+                    const networkReferralIds = new Set(referrals.map(r => r.id));
+                    
+                    networkReferrals.forEach(networkRef => {
+                        if (networkRef.profiles && !networkReferralIds.has(networkRef.profiles.id)) {
+                            referrals.push(networkRef.profiles);
+                        }
+                    });
+                }
+
                 displayReferralsList(referrals);
 
             } catch (error) {
@@ -953,7 +1096,7 @@
                 referralsList.innerHTML = `
                     <div class="empty-state">
                         <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 01112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/>
                         </svg>
                         <div>No referrals yet</div>
                         <div style="font-size: 12px; margin-top: 8px;">Share your referral link to invite friends</div>
@@ -966,7 +1109,7 @@
             referralsData.forEach(referral => {
                 const referralDate = new Date(referral.created_at).toLocaleDateString();
                 const displayName = referral.full_name || referral.username || referral.email || 'Unknown User';
-                
+
                 html += `
                     <div class="referral-item">
                         <div class="referral-info">
@@ -984,15 +1127,7 @@
             referralsList.innerHTML = html;
         }
 
-        // Show remove confirmation modal
-        function showRemoveModal(userId, userName) {
-            userToRemove = { id: userId, name: userName };
-            document.getElementById('removeModalText').textContent = 
-                `Are you sure you want to remove ${userName} from your referrals? This action will deduct 30 NMXp from both accounts and free up one referral slot.`;
-            document.getElementById('removeModal').style.display = 'flex';
-        }
-
-        // Remove referral function
+        // 🆕 ENHANCED: Remove referral with network cleanup
         async function removeReferral() {
             if (!userToRemove || !currentUser) return;
 
@@ -1003,8 +1138,9 @@
                 const { data: currentProfileData, error: currentError } = await supabase
                     .from('profiles')
                     .update({
-                        used_slots: (currentProfile.used_slots || 0) - 1,
-                        balance: (currentProfile.balance || 0) - 30
+                        used_slots: Math.max(0, (currentProfile.used_slots || 0) - 1),
+                        balance: Math.max(0, (currentProfile.balance || 0) - 30),
+                        total_earned_from_refs: Math.max(0, (currentProfile.total_earned_from_refs || 0) - 30)
                     })
                     .eq('id', currentUser.id);
 
@@ -1018,8 +1154,7 @@
                 const { data: referralProfile, error: referralError } = await supabase
                     .from('profiles')
                     .update({
-                        referred_by: null,
-                        balance: (referrals.find(r => r.id === userToRemove.id)?.balance || 0) - 30
+                        referred_by: null
                     })
                     .eq('id', userToRemove.id);
 
@@ -1029,15 +1164,28 @@
                     return;
                 }
 
+                // 🆕 Remove from referral_network table
+                const { error: networkError } = await supabase
+                    .from('referral_network')
+                    .delete()
+                    .eq('referred_id', userToRemove.id)
+                    .eq('referrer_id', currentUser.id);
+
+                if (networkError) {
+                    console.error('Error removing from referral network:', networkError);
+                    // Continue anyway - we don't want to block the removal
+                }
+
                 // Create notification for removal
                 await createReferralNotification(currentUser.id, 'referral_removed', userToRemove.name, 'removed');
 
-                // Refresh data
-                await loadReferralData();
-                
+                // 🆕 Force sync data to ensure UI is updated
+                await syncReferralData();
+                await loadReferralsList();
+
                 // Close modal
                 document.getElementById('removeModal').style.display = 'none';
-                
+
                 // Show success message
                 showToast(`${userToRemove.name} removed from referrals`, 'success');
 
@@ -1050,14 +1198,22 @@
             }
         }
 
+        // Show remove confirmation modal
+        function showRemoveModal(userId, userName) {
+            userToRemove = { id: userId, name: userName };
+            document.getElementById('removeModalText').textContent = 
+                `Are you sure you want to remove ${userName} from your referrals? This action will deduct 30 NMXp from both accounts and free up one referral slot.`;
+            document.getElementById('removeModal').style.display = 'flex';
+        }
+
         // Ping referral function
         async function pingReferral(userId, userName) {
             try {
                 console.log(`📬 Pinging referral: ${userName}`);
-                
+
                 // Create notification for ping
                 await createReferralNotification(currentUser.id, 'referral_ping', userName, 'pinged');
-                
+
                 showToast(`Ping sent to ${userName}`, 'info');
             } catch (error) {
                 console.error('Error pinging referral:', error);
@@ -1112,15 +1268,15 @@
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = 'toast';
-            
+
             if (type === 'error') {
                 toast.classList.add('error');
             } else if (type === 'info') {
                 toast.classList.add('info');
             }
-            
+
             toast.style.display = 'block';
-            
+
             setTimeout(() => {
                 toast.style.display = 'none';
             }, 3000);
@@ -1138,6 +1294,13 @@
 
             // Load referral data
             loadReferralData();
+
+            // 🆕 Add periodic sync to keep data fresh
+            setInterval(() => {
+                if (currentUser) {
+                    syncReferralData();
+                }
+            }, 30000); // Sync every 30 seconds
         });
     </script>
 </body>
