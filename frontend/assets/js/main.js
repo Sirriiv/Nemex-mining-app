@@ -1323,3 +1323,83 @@ function initializeMiningDashboard() {
     // Test database connection immediately
     testDatabaseConnection();
 }
+
+// Add this function to handle user login with password storage
+async function handleUserLogin(userData, password) {
+    try {
+        console.log('🔐 Setting up user session for wallet operations...');
+        
+        // Store user session for wallet operations
+        window.currentUser = {
+            id: userData.id,
+            email: userData.email,
+            username: userData.username,
+            password: password // Store temporarily for wallet encryption
+        };
+        
+        // Also store in sessionStorage (more secure than localStorage)
+        sessionStorage.setItem('nemex_user_session', JSON.stringify({
+            id: userData.id,
+            email: userData.email,
+            username: userData.username
+            // Don't store password in storage for security
+        }));
+        
+        console.log('✅ User session set for wallet operations');
+        
+        // Initialize wallet API if on wallet page
+        if (window.location.pathname.includes('wallet.html') && window.nemexWalletAPI) {
+            await window.nemexWalletAPI.init();
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Failed to set user session:', error);
+        return false;
+    }
+}
+
+// Add this function to get user password for wallet operations
+function getUserPasswordForWallet() {
+    try {
+        // Get password from current session (memory only - most secure)
+        if (window.currentUser && window.currentUser.password) {
+            console.log('✅ Using password from current user session');
+            return window.currentUser.password;
+        }
+        
+        // If no session, prompt user to re-enter password
+        console.log('🔄 No session password found, prompting user...');
+        const password = prompt('🔐 Please enter your account password to continue wallet operations:');
+        if (password && password.trim()) {
+            // Store in current session for future use
+            if (window.currentUser) {
+                window.currentUser.password = password.trim();
+            }
+            return password.trim();
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error getting user password:', error);
+        return null;
+    }
+}
+
+// Update your existing getCurrentUser function to handle password
+async function getCurrentUserWithPassword() {
+    try {
+        const user = await getCurrentUser();
+        if (!user) return null;
+        
+        // Ensure we have the password in session
+        if (!window.currentUser?.password) {
+            console.log('🔄 Password not in session, will prompt when needed');
+        }
+        
+        return user;
+    } catch (error) {
+        console.error('Error getting current user with password:', error);
+        return null;
+    }
+}
