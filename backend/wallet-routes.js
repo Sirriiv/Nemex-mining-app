@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ COMPLETE Wallet Routes - FIXED WITH ALL PRICE APIS');
+console.log('✅ COMPLETE Wallet Routes - PRODUCTION GRADE FIX');
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -20,6 +20,398 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 }));
 
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
+
+// =============================================
+// CRYPTO UTILS FOR BACKEND
+// =============================================
+
+class BackendCryptoUtils {
+    // Encrypt private key with user password
+    static encryptPrivateKey(privateKey, password, salt = null) {
+        try {
+            salt = salt || crypto.randomBytes(16);
+            const key = crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
+            const iv = crypto.randomBytes(16);
+            const cipher = crypto.createCipher('aes-256-gcm', key);
+            
+            let encrypted = cipher.update(privateKey, 'hex', 'base64');
+            encrypted += cipher.final('base64');
+            
+            const authTag = cipher.getAuthTag();
+            
+            return {
+                encrypted: encrypted,
+                iv: iv.toString('base64'),
+                salt: salt.toString('base64'),
+                authTag: authTag.toString('base64')
+            };
+        } catch (error) {
+            throw new Error('Encryption failed: ' + error.message);
+        }
+    }
+
+    // Decrypt private key with user password
+    static decryptPrivateKey(encryptedData, password) {
+        try {
+            const key = crypto.pbkdf2Sync(
+                password, 
+                Buffer.from(encryptedData.salt, 'base64'), 
+                100000, 32, 'sha256'
+            );
+            
+            const decipher = crypto.createDecipher(
+                'aes-256-gcm', 
+                key
+            );
+            
+            decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'base64'));
+            decipher.setAutoPadding(true);
+            
+            let decrypted = decipher.update(encryptedData.encrypted, 'base64', 'hex');
+            decrypted += decipher.final('hex');
+            
+            return decrypted;
+        } catch (error) {
+            throw new Error('Decryption failed: ' + error.message);
+        }
+    }
+
+    // Hash password for verification
+    static hashPassword(password, salt = null) {
+        salt = salt || crypto.randomBytes(16);
+        const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512');
+        return {
+            hash: hash.toString('base64'),
+            salt: salt.toString('base64')
+        };
+    }
+
+    // Verify password
+    static verifyPassword(password, hash, salt) {
+        const newHash = crypto.pbkdf2Sync(
+            password, 
+            Buffer.from(salt, 'base64'), 
+            100000, 64, 'sha512'
+        );
+        return newHash.toString('base64') === hash;
+    }
+}
+
+// =============================================
+// NEW ENDPOINTS FOR PRODUCTION GRADE WALLET
+// =============================================
+
+// Store encrypted private key
+router.post('/store-private-key', async function(req, res) {
+    try {
+        const { userId, address, encryptedPrivateKey, passwordHash } = req.body;
+        
+        console.log('🔐 Storing encrypted private key for:', address);
+
+        if (!userId || !address || !encryptedPrivateKey) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID, address, and encrypted private key are required'
+            });
+        }
+
+        // Store encrypted private key in database
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .update({
+                encrypted_private_key: JSON.stringify(encryptedPrivateKey),
+                password_hash: passwordHash,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId)
+            .eq('address', address);
+
+        if (error) {
+            console.error('Private key storage error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to store private key: ' + error.message
+            });
+        }
+
+        console.log('✅ Encrypted private key stored for:', address);
+        res.json({
+            success: true,
+            message: 'Private key stored securely'
+        });
+
+    } catch (error) {
+        console.error('Store private key error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to store private key: ' + error.message
+        });
+    }
+});
+
+// Regenerate seed phrase from private key
+router.post('/regenerate-seed-phrase', async function(req, res) {
+    try {
+        const { userId, address, password } = req.body;
+        
+        console.log('🔄 Regenerating seed phrase for:', address);
+
+        if (!userId || !address || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID, address, and password are required'
+            });
+        }
+
+        // Get wallet with encrypted private key
+        const { data: wallet, error } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('address', address)
+            .single();
+
+        if (error || !wallet) {
+            return res.status(404).json({
+                success: false,
+                error: 'Wallet not found'
+            });
+        }
+
+        if (!wallet.encrypted_private_key) {
+            return res.status(400).json({
+                success: false,
+                error: 'No encrypted private key found for this wallet'
+            });
+        }
+
+        // Verify password
+        const encryptedData = JSON.parse(wallet.encrypted_private_key);
+        if (!BackendCryptoUtils.verifyPassword(password, wallet.password_hash, encryptedData.salt)) {
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid password'
+            });
+        }
+
+        // Decrypt private key
+        const privateKeyHex = BackendCryptoUtils.decryptPrivateKey(encryptedData, password);
+        
+        // In a real implementation, you would regenerate the seed phrase from the private key
+        // For TON, we need to store the mnemonic during wallet creation to regenerate it
+        // Since TON doesn't have direct privateKey->mnemonic conversion, we'll return a message
+        
+        console.log('✅ Private key decrypted successfully, but TON requires mnemonic storage for regeneration');
+        
+        // For now, we can't regenerate the mnemonic from private key in TON
+        // So we need to store the mnemonic encrypted during wallet creation
+        res.json({
+            success: false,
+            error: 'Seed phrase regeneration requires mnemonic storage during wallet creation. This feature needs additional implementation.'
+        });
+
+    } catch (error) {
+        console.error('Seed phrase regeneration error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to regenerate seed phrase: ' + error.message
+        });
+    }
+});
+
+// =============================================
+// ENHANCED WALLET GENERATION WITH PRIVATE KEY STORAGE
+// =============================================
+
+router.post('/generate-wallet', async function(req, res) {
+    try {
+        const { userId, wordCount = 12 } = req.body;
+        console.log('🔄 Generating wallet with private key storage...');
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID is required'
+            });
+        }
+
+        if (wordCount !== 12 && wordCount !== 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'Word count must be 12 or 24'
+            });
+        }
+
+        // Generate mnemonic
+        const mnemonic = bip39.generateMnemonic(wordCount === 12 ? 128 : 256);
+        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
+
+        const WalletClass = tonweb.wallet.all.v4R2;
+        const wallet = new WalletClass(tonweb.provider, {
+            publicKey: keyPair.publicKey,
+            wc: 0
+        });
+
+        const walletAddress = await wallet.getAddress();
+        const address = walletAddress.toString(true, true, false); // UQ format
+        const addressBounceable = walletAddress.toString(true, true, true); // EQ format
+
+        console.log('✅ Wallet generated:', address);
+
+        // Save to database
+        try {
+            const { data, error } = await supabase
+                .from('user_wallets')
+                .insert([{
+                    user_id: userId,
+                    address: address,
+                    public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                    private_key: TonWeb.utils.bytesToHex(keyPair.secretKey), // Store private key temporarily
+                    wallet_type: 'TON',
+                    source: 'generated',
+                    word_count: wordCount,
+                    derivation_path: "m/44'/607'/0'/0'/0'",
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (error) {
+                console.warn('⚠️ Database warning:', error.message);
+            } else {
+                console.log('✅ Wallet saved to database');
+            }
+        } catch (dbError) {
+            console.warn('⚠️ Database error:', dbError.message);
+        }
+
+        // ✅ RETURN PRIVATE KEY FOR FRONTEND ENCRYPTION
+        res.json({
+            success: true,
+            wallet: {
+                userId: userId,
+                address: address,
+                addressBounceable: addressBounceable,
+                publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                privateKey: TonWeb.utils.bytesToHex(keyPair.secretKey), // Return private key for encryption
+                wordCount: wordCount,
+                type: 'TON',
+                source: 'generated',
+                derivationPath: "m/44'/607'/0'/0'/0'",
+                mnemonic: mnemonic
+            },
+            message: 'Wallet generated successfully'
+        });
+
+    } catch (error) {
+        console.error('Wallet generation error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to generate wallet: ' + error.message 
+        });
+    }
+});
+
+// =============================================
+// ENHANCED WALLET IMPORT WITH PRIVATE KEY STORAGE
+// =============================================
+
+router.post('/import-wallet', async function(req, res) {
+    try {
+        console.log('🔄 Import wallet with private key storage');
+
+        const { userId, mnemonic, targetAddress } = req.body;
+
+        // Basic validation
+        if (!userId || !mnemonic) {
+            console.log('❌ Missing userId or mnemonic');
+            return res.status(400).json({
+                success: false,
+                error: 'User ID and mnemonic are required'
+            });
+        }
+
+        console.log('🔍 User ID:', userId);
+
+        // Clean mnemonic
+        const cleanedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
+        const wordCount = cleanedMnemonic.split(' ').length;
+
+        console.log('🔍 Cleaned mnemonic words:', wordCount);
+
+        if (wordCount !== 12 && wordCount !== 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'Mnemonic must be 12 or 24 words. Found: ' + wordCount + ' words'
+            });
+        }
+
+        // Derive wallet
+        console.log('🔄 Deriving wallet...');
+        const keyPair = await mnemonicToWalletKey(cleanedMnemonic.split(' '));
+
+        const WalletClass = tonweb.wallet.all.v4R2;
+        const wallet = new WalletClass(tonweb.provider, {
+            publicKey: keyPair.publicKey,
+            wc: 0
+        });
+
+        const walletAddress = await wallet.getAddress();
+        const address = walletAddress.toString(true, true, false); // UQ format
+        const addressBounceable = walletAddress.toString(true, true, true); // EQ format
+
+        console.log('✅ Wallet derived:', address);
+
+        // Save to database
+        try {
+            const { data, error } = await supabase
+                .from('user_wallets')
+                .insert([{
+                    user_id: userId,
+                    address: address,
+                    public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                    private_key: TonWeb.utils.bytesToHex(keyPair.secretKey), // Store private key temporarily
+                    wallet_type: 'TON',
+                    source: 'imported',
+                    word_count: wordCount,
+                    derivation_path: "m/44'/607'/0'/0'/0'",
+                    created_at: new Date().toISOString()
+                }]);
+
+            if (error) {
+                console.warn('⚠️ Database warning:', error.message);
+            } else {
+                console.log('✅ Wallet saved to database');
+            }
+        } catch (dbError) {
+            console.warn('⚠️ Database error:', dbError.message);
+        }
+
+        // Return success with private key
+        console.log('✅ Import successful');
+        res.json({
+            success: true,
+            wallet: {
+                userId: userId,
+                address: address,
+                addressBounceable: addressBounceable,
+                publicKey: TonWeb.utils.bytesToHex(keyPair.publicKey),
+                privateKey: TonWeb.utils.bytesToHex(keyPair.secretKey), // Return private key for encryption
+                type: 'TON',
+                source: 'imported',
+                wordCount: wordCount,
+                derivationPath: "m/44'/607'/0'/0'/0'"
+            },
+            message: 'Wallet imported successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Import error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Failed to import wallet: ' + error.message 
+        });
+    }
+});
+
 
 // =============================================
 // SUPABASE SESSION MANAGEMENT - FIXED FOR YOUR TABLE
