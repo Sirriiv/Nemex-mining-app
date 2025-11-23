@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ COMPLETE Wallet Routes - FIXED FOR YOUR TABLE STRUCTURE');
+console.log('✅ COMPLETE Wallet Routes - FIXED WITH ALL PRICE APIS');
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -814,7 +814,7 @@ router.get('/all-balances/:address', async function(req, res) {
 });
 
 // =============================================
-// REAL PRICE API FUNCTIONS - COMPLETE VERSION
+// REAL PRICE API FUNCTIONS - ALL EXCHANGES ADDED BACK
 // =============================================
 
 async function getRealTokenPrices() {
@@ -822,10 +822,11 @@ async function getRealTokenPrices() {
 
     const priceSources = [
         getBinancePrice,
-        getMEXCPrice,
-        getGateIOPrice,
         getBybitPrice,
+        getBitgetPrice,
+        getMEXCPrice,
         getCoinGeckoPrice,
+        getCoinMarketCapPrice,
         getFallbackPrice
     ];
 
@@ -871,52 +872,7 @@ async function getBinancePrice() {
         throw new Error(`Binance: ${error.message}`);
     }
 }
-
-async function getMEXCPrice() {
-    try {
-        console.log('🔄 Trying MEXC API...');
-        const response = await axios.get('https://api.mexc.com/api/v3/ticker/24hr?symbol=TONUSDT', {
-            timeout: 5000
-        });
-
-        if (response.data && response.data.lastPrice) {
-            const tonPrice = parseFloat(response.data.lastPrice);
-            const priceChangePercent = parseFloat(response.data.priceChangePercent);
-            console.log('✅ MEXC TON price:', tonPrice, 'Change:', priceChangePercent + '%');
-
-            return {
-                TON: { price: tonPrice, change24h: priceChangePercent },
-                NMX: { price: 0.10, change24h: 0 }
-            };
-        }
-        throw new Error('No price data from MEXC');
-    } catch (error) {
-        throw new Error(`MEXC: ${error.message}`);
-    }
-}
-
-async function getGateIOPrice() {
-    try {
-        console.log('🔄 Trying Gate.io API...');
-        const response = await axios.get('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=TON_USDT', {
-            timeout: 5000
-        });
-
-        if (response.data && response.data[0] && response.data[0].last) {
-            const tonPrice = parseFloat(response.data[0].last);
-            const changePercentage = parseFloat(response.data[0].change_percentage);
-            console.log('✅ Gate.io TON price:', tonPrice, 'Change:', changePercentage + '%');
-
-            return {
-                TON: { price: tonPrice, change24h: changePercentage },
-                NMX: { price: 0.10, change24h: 0 }
-            };
-        }
-        throw new Error('No price data from Gate.io');
-    } catch (error) {
-        throw new Error(`Gate.io: ${error.message}`);
-    }
-}
+getBinancePrice.name = 'Binance';
 
 async function getBybitPrice() {
     try {
@@ -940,6 +896,55 @@ async function getBybitPrice() {
         throw new Error(`Bybit: ${error.message}`);
     }
 }
+getBybitPrice.name = 'Bybit';
+
+async function getBitgetPrice() {
+    try {
+        console.log('🔄 Trying Bitget API...');
+        const response = await axios.get('https://api.bitget.com/api/spot/v1/market/ticker?symbol=TONUSDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data.data && response.data.data.close) {
+            const tonPrice = parseFloat(response.data.data.close);
+            const priceChangePercent = parseFloat(response.data.data.usdtVol);
+            console.log('✅ Bitget TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from Bitget');
+    } catch (error) {
+        throw new Error(`Bitget: ${error.message}`);
+    }
+}
+getBitgetPrice.name = 'Bitget';
+
+async function getMEXCPrice() {
+    try {
+        console.log('🔄 Trying MEXC API...');
+        const response = await axios.get('https://api.mexc.com/api/v3/ticker/24hr?symbol=TONUSDT', {
+            timeout: 5000
+        });
+
+        if (response.data && response.data.lastPrice) {
+            const tonPrice = parseFloat(response.data.lastPrice);
+            const priceChangePercent = parseFloat(response.data.priceChangePercent);
+            console.log('✅ MEXC TON price:', tonPrice, 'Change:', priceChangePercent + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: priceChangePercent },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from MEXC');
+    } catch (error) {
+        throw new Error(`MEXC: ${error.message}`);
+    }
+}
+getMEXCPrice.name = 'MEXC';
 
 async function getCoinGeckoPrice() {
     try {
@@ -965,6 +970,36 @@ async function getCoinGeckoPrice() {
         throw new Error(`CoinGecko: ${error.message}`);
     }
 }
+getCoinGeckoPrice.name = 'CoinGecko';
+
+async function getCoinMarketCapPrice() {
+    try {
+        console.log('🔄 Trying CoinMarketCap API...');
+        // Note: This requires a CoinMarketCap API key
+        const response = await axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=TON', {
+            headers: {
+                'X-CMC_PRO_API_KEY': process.env.COINMARKETCAP_API_KEY || ''
+            },
+            timeout: 10000
+        });
+
+        if (response.data && response.data.data && response.data.data.TON) {
+            const tonData = response.data.data.TON;
+            const tonPrice = tonData.quote.USD.price;
+            const change24h = tonData.quote.USD.percent_change_24h;
+            console.log('✅ CoinMarketCap TON price:', tonPrice, 'Change:', change24h + '%');
+
+            return {
+                TON: { price: tonPrice, change24h: change24h },
+                NMX: { price: 0.10, change24h: 0 }
+            };
+        }
+        throw new Error('No price data from CoinMarketCap');
+    } catch (error) {
+        throw new Error(`CoinMarketCap: ${error.message}`);
+    }
+}
+getCoinMarketCapPrice.name = 'CoinMarketCap';
 
 function getFallbackPrice() {
     console.log('⚠️ Using fallback prices (all APIs failed)');
@@ -973,9 +1008,10 @@ function getFallbackPrice() {
         NMX: { price: 0.10, change24h: 0 }
     };
 }
+getFallbackPrice.name = 'Fallback';
 
 // =============================================
-// UPDATED PRICE ENDPOINT WITH REAL APIS
+// UPDATED PRICE ENDPOINT WITH ALL APIS
 // =============================================
 
 router.get('/token-prices', async function(req, res) {
@@ -1271,7 +1307,7 @@ router.post('/send-nmx', async function(req, res) {
 });
 
 // =============================================
-// TRANSACTION HISTORY - MISSING ENDPOINT RESTORED
+// TRANSACTION HISTORY
 // =============================================
 
 router.get('/transaction-history/:address', async function(req, res) {
@@ -1296,7 +1332,7 @@ router.get('/transaction-history/:address', async function(req, res) {
 });
 
 // =============================================
-// SUPPORTED TOKENS - MISSING ENDPOINT RESTORED
+// SUPPORTED TOKENS
 // =============================================
 
 router.get('/supported-tokens', async function(req, res) {
@@ -1320,7 +1356,7 @@ router.get('/supported-tokens', async function(req, res) {
 });
 
 // =============================================
-// VALIDATE ADDRESS - MISSING ENDPOINT RESTORED
+// VALIDATE ADDRESS
 // =============================================
 
 router.get('/validate-address/:address', async function(req, res) {
