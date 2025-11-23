@@ -1,4 +1,4 @@
-// assets/js/wallet.js - FIXED FOR YOUR SUPABASE TABLE STRUCTURE
+// assets/js/wallet.js - FIXED WITH ALL BALANCE FUNCTIONS
 
 class SecureSupabaseStorage {
     constructor() {
@@ -508,7 +508,198 @@ class NemexWalletAPI {
         }
     }
 
-    // ... REST OF YOUR METHODS REMAIN THE SAME (sendTON, sendNMX, balance functions, etc.)
+    // =============================================
+    // BALANCE FUNCTIONS - ADDED BACK
+    // =============================================
+
+    async getRealBalance(address) {
+        try {
+            console.log('🔄 Fetching TON balance for:', address);
+            const response = await fetch(`${this.baseURL}/real-balance/${encodeURIComponent(address)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
+                console.log('✅ TON Balance:', data.balance);
+            }
+            return data;
+        } catch (error) {
+            console.error('TON balance fetch failed:', error);
+            return { success: false, balance: 0, error: error.message };
+        }
+    }
+
+    async getNMXBalance(address) {
+        try {
+            console.log('🔄 Fetching NMX balance for:', address);
+            const response = await fetch(`${this.baseURL}/nmx-balance/${encodeURIComponent(address)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
+                console.log('✅ NMX Balance:', data.balance, 'Source:', data.source);
+            }
+            return data;
+        } catch (error) {
+            console.error('NMX balance fetch failed:', error);
+            return { success: false, balance: 0, error: error.message };
+        }
+    }
+
+    async getAllBalances(address) {
+        try {
+            console.log('🔄 Fetching all balances for:', address);
+            const response = await fetch(`${this.baseURL}/all-balances/${encodeURIComponent(address)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.balances) {
+                    data.balances.TON = typeof data.balances.TON === 'string' ? parseFloat(data.balances.TON) : data.balances.TON;
+                    data.balances.NMX = typeof data.balances.NMX === 'string' ? parseFloat(data.balances.NMX) : data.balances.NMX;
+                }
+                console.log('✅ All balances fetched - TON:', data.balances.TON, 'NMX:', data.balances.NMX);
+            }
+            return data;
+        } catch (error) {
+            console.error('All balances fetch failed:', error);
+            return { success: false, balances: { TON: 0, NMX: 0 }, error: error.message };
+        }
+    }
+
+    async getTokenPrices() {
+        try {
+            console.log('🔄 Fetching real token prices...');
+            const response = await fetch(`${this.baseURL}/token-prices`);
+            const data = await response.json();
+            if (data.success) {
+                console.log('✅ Real prices fetched from:', data.source, '- TON:', data.prices.TON.price);
+                return data;
+            } else {
+                throw new Error(data.error || 'Failed to fetch prices');
+            }
+        } catch (error) {
+            console.error('❌ Price fetch failed:', error);
+            return {
+                success: false,
+                prices: { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
+                source: 'fallback'
+            };
+        }
+    }
+
+    async getAllRealData(address) {
+        try {
+            console.log('🔄 Fetching ALL real data for:', address);
+            const [balanceResult, priceResult] = await Promise.all([
+                this.getAllBalances(address),
+                this.getTokenPrices()
+            ]);
+
+            return {
+                success: balanceResult.success && priceResult.success,
+                balances: balanceResult.balances || { TON: 0, NMX: 0 },
+                prices: priceResult.prices || { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
+                address: address,
+                source: priceResult.source || 'unknown'
+            };
+        } catch (error) {
+            console.error('❌ All real data fetch failed:', error);
+            return {
+                success: false,
+                balances: { TON: 0, NMX: 0 },
+                prices: { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
+                error: error.message
+            };
+        }
+    }
+
+    // =============================================
+    // TRANSACTION FUNCTIONS
+    // =============================================
+
+    async sendTON(fromAddress, toAddress, amount, memo = '') {
+        try {
+            console.log('🔄 PRODUCTION: Sending TON via API...', { fromAddress, toAddress, amount });
+            const mnemonic = await this.storage.retrieveMnemonicSecurely(fromAddress);
+            console.log('🔍 Retrieved mnemonic:', mnemonic ? 'YES' : 'NO');
+
+            if (!mnemonic) {
+                throw new Error('Wallet credentials not available for transaction signing. Please re-import your wallet.');
+            }
+
+            const base64Mnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
+            console.log('🔐 Secure base64 mnemonic ready for backend');
+
+            const response = await fetch(`${this.baseURL}/send-ton`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fromAddress: fromAddress,
+                    toAddress: toAddress,
+                    amount: amount,
+                    memo: memo,
+                    base64Mnemonic: base64Mnemonic
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Backend error:', errorText);
+                throw new Error(`Backend error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ PRODUCTION: TON Send successful:', data.transaction?.hash);
+            return data;
+        } catch (error) {
+            console.error('PRODUCTION Send TON API error:', error);
+            throw error;
+        }
+    }
+
+    async sendNMX(fromAddress, toAddress, amount, memo = '') {
+        try {
+            console.log('🔄 PRODUCTION: Sending NMX via API...', { fromAddress, toAddress, amount });
+            const mnemonic = await this.storage.retrieveMnemonicSecurely(fromAddress);
+            console.log('🔍 Retrieved mnemonic:', mnemonic ? 'YES' : 'NO');
+
+            if (!mnemonic) {
+                throw new Error('Wallet credentials not available for transaction signing. Please re-import your wallet.');
+            }
+
+            const base64Mnemonic = btoa(unescape(encodeURIComponent(mnemonic)));
+            console.log('🔐 Secure base64 mnemonic ready for backend');
+
+            const response = await fetch(`${this.baseURL}/send-nmx`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fromAddress: fromAddress,
+                    toAddress: toAddress,
+                    amount: amount,
+                    memo: memo,
+                    base64Mnemonic: base64Mnemonic
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Backend error:', errorText);
+                throw new Error(`Backend error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            console.log('✅ PRODUCTION: NMX Send successful:', data.transaction?.hash);
+            return data;
+        } catch (error) {
+            console.error('PRODUCTION Send NMX API error:', error);
+            throw error;
+        }
+    }
+
+    // =============================================
+    // HELPER FUNCTIONS
+    // =============================================
 
     cleanMnemonic(mnemonic) {
         return mnemonic.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z\s]/g, '');
