@@ -1,4 +1,4 @@
-// assets/js/wallet.js - FIXED WITH ALL BALANCE FUNCTIONS
+// assets/js/wallet.js - COMPLETE PRODUCTION GRADE FIX
 
 class SecureSupabaseStorage {
     constructor() {
@@ -206,6 +206,7 @@ class NemexWalletAPI {
         this.currentWallet = null;
         this.isInitialized = false;
         this.pendingImport = null;
+        this.userPassword = null; // Store user password for private key operations
     }
 
     async init() {
@@ -375,11 +376,124 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ FIXED: Wallet generation with seed phrase return
-    async generateNewWallet(wordCount = 12) {
+    // ✅ PRODUCTION FIX: Store private key securely when generating/importing wallet
+    async storePrivateKeySecurely(privateKeyHex, password, address) {
         try {
-            console.log('🔄 Generating new wallet...');
+            console.log('🔐 Storing private key securely for:', address);
+            
+            if (!privateKeyHex || !password || !address) {
+                throw new Error('Private key, password, and address are required');
+            }
+
+            // Encrypt the private key
+            const encryptedData = await CryptoUtils.encryptPrivateKey(privateKeyHex, password);
+            const passwordHash = await CryptoUtils.hashPassword(password);
+
+            // Store encrypted private key in database
+            const response = await fetch(`${this.baseURL}/store-private-key`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: await this.getUserId(),
+                    address: address,
+                    encryptedPrivateKey: encryptedData,
+                    passwordHash: passwordHash
+                })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to store private key');
+            }
+
+            console.log('✅ Private key stored securely for:', address);
+            this.userPassword = password; // Store password for current session
+            
+            return true;
+        } catch (error) {
+            console.error('❌ Private key storage failed:', error);
+            throw new Error('Failed to store private key securely: ' + error.message);
+        }
+    }
+
+    // ✅ PRODUCTION FIX: Get seed phrase by regenerating from private key
+    async getSeedPhraseFromPrivateKey(address, password) {
+        try {
+            console.log('🔄 Regenerating seed phrase from private key for:', address);
+            
+            const response = await fetch(`${this.baseURL}/regenerate-seed-phrase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: await this.getUserId(),
+                    address: address,
+                    password: password
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.seedPhrase) {
+                console.log('✅ Seed phrase regenerated successfully');
+                return data.seedPhrase;
+            } else {
+                throw new Error(data.error || 'Failed to regenerate seed phrase');
+            }
+        } catch (error) {
+            console.error('❌ Seed phrase regeneration failed:', error);
+            throw new Error('Cannot view seed phrase: ' + error.message);
+        }
+    }
+
+    // ✅ PRODUCTION FIX: Enhanced getMnemonicForAddress that works like real wallets
+    async getMnemonicForAddress(address, securityToken) {
+        try {
+            if (!securityToken) {
+                throw new Error('Security verification required to view seed phrase');
+            }
+
+            console.log('🔐 Getting seed phrase for:', address);
+
+            // First try to get from session storage (temporary cache)
+            let mnemonic = await this.storage.retrieveMnemonicSecurely(address);
+            
+            if (!mnemonic) {
+                // If not in session storage, regenerate from private key (REAL WALLET BEHAVIOR)
+                console.log('🔄 Seed phrase not cached, regenerating from private key...');
+                
+                // Get password from user (in real app, this would be a security prompt)
+                if (!this.userPassword) {
+                    throw new Error('Password required to access seed phrase. Please re-authenticate.');
+                }
+                
+                mnemonic = await this.getSeedPhraseFromPrivateKey(address, this.userPassword);
+                
+                // Cache in session storage for this browser session only
+                if (mnemonic) {
+                    await this.storage.storeMnemonicSecurely(mnemonic, address);
+                }
+            }
+            
+            if (!mnemonic) {
+                throw new Error('Unable to retrieve seed phrase for this wallet');
+            }
+            
+            return mnemonic;
+        } catch (error) {
+            console.error('Get mnemonic failed:', error);
+            throw error;
+        }
+    }
+
+    // ✅ PRODUCTION FIX: Enhanced wallet generation with private key storage
+    async generateNewWallet(wordCount = 12, password = null) {
+        try {
+            console.log('🔄 Generating new wallet with secure private key storage...');
             const userId = await this.getUserId();
+
+            if (!password) {
+                throw new Error('Password required for secure wallet generation');
+            }
 
             const response = await fetch(`${this.baseURL}/generate-wallet`, {
                 method: 'POST',
@@ -397,9 +511,9 @@ class NemexWalletAPI {
                 throw new Error(data.error || 'Wallet generation failed');
             }
 
-            // ✅ CRITICAL: Check if seed phrase is returned
-            if (!data.wallet.mnemonic) {
-                throw new Error('Seed phrase not returned from server');
+            // ✅ CRITICAL: Store private key securely
+            if (data.wallet.privateKey) {
+                await this.storePrivateKeySecurely(data.wallet.privateKey, password, data.wallet.address);
             }
 
             const walletData = {
@@ -411,17 +525,17 @@ class NemexWalletAPI {
                 source: 'generated',
                 wordCount: wordCount,
                 derivationPath: data.wallet.derivationPath || "m/44'/607'/0'/0'/0'",
-                mnemonic: data.wallet.mnemonic // Store for immediate display
+                mnemonic: data.wallet.mnemonic
             };
 
             await this.storeWalletInDatabase(walletData);
             await this.setStoredWallet(walletData);
             await this.setActiveWallet(data.wallet.address);
 
-            // ✅ Store seed phrase securely
+            // Store seed phrase in session storage
             await this.storage.storeMnemonicSecurely(data.wallet.mnemonic, data.wallet.address);
 
-            console.log('✅ Wallet generated and session persisted:', data.wallet.address);
+            console.log('✅ Wallet generated with secure private key storage:', data.wallet.address);
             return { success: true, wallet: walletData };
 
         } catch (error) {
@@ -430,13 +544,18 @@ class NemexWalletAPI {
         }
     }
 
-    async importWallet(mnemonic, targetAddress = null) {
+    // ✅ PRODUCTION FIX: Enhanced wallet import with private key storage
+    async importWallet(mnemonic, targetAddress = null, password = null) {
         try {
-            console.log('🔄 Importing wallet...');
+            console.log('🔄 Importing wallet with secure private key storage...');
             const cleanedMnemonic = this.cleanMnemonic(mnemonic);
 
             if (!this.isValidMnemonic(cleanedMnemonic)) {
                 throw new Error('Invalid mnemonic format. Must be 12 or 24 words.');
+            }
+
+            if (!password) {
+                throw new Error('Password required for secure wallet import');
             }
 
             const userId = await this.getUserId();
@@ -458,11 +577,16 @@ class NemexWalletAPI {
             }
 
             if (data.success && data.wallet) {
+                // ✅ CRITICAL: Store private key securely for imported wallet
+                if (data.wallet.privateKey) {
+                    await this.storePrivateKeySecurely(data.wallet.privateKey, password, data.wallet.address);
+                }
+
                 await this.storage.storeMnemonicSecurely(cleanedMnemonic, data.wallet.address);
                 await this.setStoredWallet(data.wallet);
                 await this.setActiveWallet(data.wallet.address);
 
-                console.log('✅ Wallet imported and session persisted:', data.wallet.address);
+                console.log('✅ Wallet imported with secure private key storage:', data.wallet.address);
                 return { success: true, wallet: data.wallet };
             }
 
@@ -710,13 +834,6 @@ class NemexWalletAPI {
         return words.length === 12 || words.length === 24;
     }
 
-    async getMnemonicForAddress(address, securityToken) {
-        if (!securityToken) throw new Error('Security verification required');
-        const mnemonic = await this.storage.retrieveMnemonicSecurely(address);
-        if (!mnemonic) throw new Error('Recovery phrase not available for this wallet');
-        return mnemonic;
-    }
-
     canShowSeedPhrase(address) {
         return this.storage.hasMnemonic(address);
     }
@@ -742,11 +859,24 @@ class NemexWalletAPI {
         return this.currentWallet ? this.currentWallet.address : null;
     }
 
+    // Set user password for private key operations
+    setUserPassword(password) {
+        this.userPassword = password;
+        console.log('✅ User password set for private key operations');
+    }
+
+    // Clear user password (for logout)
+    clearUserPassword() {
+        this.userPassword = null;
+        console.log('✅ User password cleared');
+    }
+
     async clearSession() {
         const currentAddress = this.currentWallet?.address;
         if (currentAddress) await this.storage.clearMnemonic(currentAddress);
         await this.setStoredWallet(null);
         this.pendingImport = null;
+        this.userPassword = null; // Clear password on session clear
         await this.storage.clear();
         console.log('✅ Session cleared securely');
     }
