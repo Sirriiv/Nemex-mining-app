@@ -233,7 +233,7 @@ class NemexWalletAPI {
             const data = await response.json();
             console.log('✅ API Connection:', data.message);
 
-            // ✅ FIXED: Simple session restoration
+            // ✅ ENHANCED: Session restoration with website integration
             await this.restoreSession();
 
             this.isInitialized = true;
@@ -248,19 +248,25 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ FIXED: Simple session restoration
+    // ✅ ENHANCED: Session restoration with website integration
     async restoreSession() {
         try {
-            console.log('🔄 Restoring session...');
+            console.log('🔄 Restoring session with website integration...');
 
-            // Get user ID from localStorage
-            this.userId = await this.storage.getItem('nemexUserId');
-            if (!this.userId) {
-                console.log('ℹ️ No existing session found');
-                return null;
+            // Method 1: Check website user session first
+            if (window.currentUser && window.currentUser.id) {
+                console.log('✅ Using website user session:', window.currentUser.email);
+                this.userId = window.currentUser.id;
+                await this.storage.setItem('nemexUserId', this.userId);
+            } else {
+                // Method 2: Get user ID from localStorage
+                this.userId = await this.storage.getItem('nemexUserId');
+                if (!this.userId) {
+                    console.log('ℹ️ No existing session found');
+                    return null;
+                }
+                console.log('🔍 Found user ID from localStorage:', this.userId);
             }
-
-            console.log('🔍 Found user ID:', this.userId);
 
             // Get current wallet from localStorage
             this.currentWallet = await this.storage.getItem('nemexCurrentWallet');
@@ -290,11 +296,19 @@ class NemexWalletAPI {
 
     async getUserId() {
         if (!this.userId) {
-            this.userId = await this.storage.getItem('nemexUserId');
-            if (!this.userId) {
-                this.userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+            // Check website session first
+            if (window.currentUser && window.currentUser.id) {
+                this.userId = window.currentUser.id;
                 await this.storage.setItem('nemexUserId', this.userId);
-                console.log('✅ Created new user ID:', this.userId);
+                console.log('✅ Using website user ID:', this.userId);
+            } else {
+                // Fallback to localStorage
+                this.userId = await this.storage.getItem('nemexUserId');
+                if (!this.userId) {
+                    this.userId = 'user_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+                    await this.storage.setItem('nemexUserId', this.userId);
+                    console.log('✅ Created new user ID:', this.userId);
+                }
             }
         }
         return this.userId;
@@ -375,15 +389,15 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ INTEGRATED: Generate wallet using existing user session
+    // ✅ ENHANCED: Generate wallet using website user session
     async generateNewWallet(wordCount = 12) {
         try {
-            console.log('🔄 Generating new wallet using existing user session...');
+            console.log('🔄 Generating new wallet using website user session...');
             const userId = await this.getUserId();
 
-            // Get user password from current session
+            // 🆕 ENHANCED: Get user password from website session
             const userPassword = await this.getUserPasswordFromSession();
-            
+
             if (!userPassword) {
                 throw new Error('User session not available. Please log in again.');
             }
@@ -436,10 +450,10 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ INTEGRATED: Import wallet using existing session
+    // ✅ ENHANCED: Import wallet using website session
     async importWallet(mnemonic, targetAddress = null) {
         try {
-            console.log('🔄 Importing wallet using existing user session...');
+            console.log('🔄 Importing wallet using website user session...');
             const cleanedMnemonic = this.cleanMnemonic(mnemonic);
 
             if (!this.isValidMnemonic(cleanedMnemonic)) {
@@ -447,10 +461,10 @@ class NemexWalletAPI {
             }
 
             const userId = await this.getUserId();
-            
-            // Get user password from current session
+
+            // 🆕 ENHANCED: Get user password from website session
             const userPassword = await this.getUserPasswordFromSession();
-            
+
             if (!userPassword) {
                 throw new Error('User session not available. Please log in again.');
             }
@@ -524,57 +538,83 @@ class NemexWalletAPI {
         }
     }
 
-    // ✅ INTEGRATED: Get user password from current session
+    // 🆕 ENHANCED: Get user password from website session with multiple fallbacks
     async getUserPasswordFromSession() {
         try {
-            // Method 1: Check if we have the password in current session
+            console.log('🔐 Getting user password for wallet operations...');
+
+            // Method 1: Check if we have the password in current website session
             if (window.currentUser && window.currentUser.password) {
-                console.log('✅ Using password from current user session');
+                console.log('✅ Using password from current website session');
                 return window.currentUser.password;
             }
-            
-            // Method 2: Check localStorage for stored session
-            const userSession = localStorage.getItem('nemex_user_session');
+
+            // Method 2: Check sessionStorage for wallet session
+            const walletSession = sessionStorage.getItem('nemex_user_session');
+            if (walletSession) {
+                try {
+                    const sessionData = JSON.parse(walletSession);
+                    console.log('✅ Found wallet session for:', sessionData.email);
+                    // Note: Password not stored in sessionStorage for security
+                } catch (e) {
+                    console.warn('Failed to parse wallet session');
+                }
+            }
+
+            // Method 3: Check if user is logged in via main.js system
+            if (typeof getCurrentUser === 'function') {
+                try {
+                    const mainUser = await getCurrentUser();
+                    if (mainUser) {
+                        console.log('✅ User found via main.js system:', mainUser.email);
+                    }
+                } catch (error) {
+                    console.warn('⚠️ getCurrentUser function failed:', error);
+                }
+            }
+
+            // Method 4: Check localStorage for stored session
+            const userSession = localStorage.getItem('nemexcoin_user');
             if (userSession) {
                 try {
                     const sessionData = JSON.parse(userSession);
-                    if (sessionData.password) {
-                        console.log('✅ Using password from stored session');
-                        return sessionData.password;
-                    }
+                    console.log('✅ Found nemexcoin user session:', sessionData.email);
                 } catch (e) {
-                    console.warn('Failed to parse user session');
+                    console.warn('Failed to parse nemexcoin user session');
                 }
             }
-            
-            // Method 3: Prompt user for password (fallback)
+
+            // Method 5: Prompt user for password (final fallback)
             console.log('🔄 No session password found, prompting user...');
             return await this.promptForPassword();
-            
+
         } catch (error) {
             console.error('Failed to get user password from session:', error);
-            return null;
+            return await this.promptForPassword(); // Fallback to prompt
         }
     }
 
-    // ✅ NEW: Prompt user for password (fallback)
+    // ✅ ENHANCED: Prompt user for password with better UX
     async promptForPassword() {
         return new Promise((resolve) => {
-            // Create a simple password prompt
-            const password = prompt('🔐 Please enter your account password to continue wallet operations:');
+            // Create a styled password prompt
+            const password = prompt('🔐 Wallet Security Required\n\nPlease enter your account password to continue wallet operations:\n\nThis password encrypts your wallet keys and is required for security.');
+            
             if (password && password.trim()) {
-                // Store in session for future use
+                // Store in website session for future use
                 if (window.currentUser) {
                     window.currentUser.password = password.trim();
+                    console.log('✅ Password stored in website session');
                 }
                 resolve(password.trim());
             } else {
+                console.warn('❌ User cancelled password prompt');
                 resolve(null);
             }
         });
     }
 
-    // ✅ INTEGRATED: Get seed phrase - uses session automatically
+    // ✅ ENHANCED: Get seed phrase - uses website session automatically
     async getMnemonicForAddress(address, securityToken) {
         try {
             if (!securityToken) {
@@ -585,18 +625,20 @@ class NemexWalletAPI {
 
             // First try to get from session storage (temporary cache)
             let mnemonic = await this.storage.retrieveMnemonicSecurely(address);
-            
+
             if (!mnemonic) {
-                // If not in session storage, get from backend using user session
+                // If not in session storage, get from backend using website session
                 console.log('🔄 Seed phrase not cached, retrieving from backend...');
-                
+
                 const userId = await this.getUserId();
-                const userPassword = await this.getUserPasswordFromSession();
                 
+                // 🆕 ENHANCED: Use website session password
+                const userPassword = await this.getUserPasswordFromSession();
+
                 if (!userPassword) {
                     throw new Error('Please log in again to view your seed phrase.');
                 }
-                
+
                 const response = await fetch(`${this.baseURL}/get-seed-phrase`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -608,7 +650,7 @@ class NemexWalletAPI {
                 });
 
                 const data = await response.json();
-                
+
                 if (data.success && data.seedPhrase) {
                     mnemonic = data.seedPhrase;
                     // Cache in session storage
@@ -617,11 +659,11 @@ class NemexWalletAPI {
                     throw new Error(data.error || 'Failed to retrieve seed phrase');
                 }
             }
-            
+
             if (!mnemonic) {
                 throw new Error('Unable to retrieve seed phrase for this wallet');
             }
-            
+
             return mnemonic;
         } catch (error) {
             console.error('Get mnemonic failed:', error);
@@ -874,7 +916,7 @@ class NemexWalletAPI {
     }
 }
 
-// ✅ ENHANCED: Frontend session listener
+// ✅ ENHANCED: Frontend session listener with website integration
 window.addEventListener('nemexSessionRestored', function(event) {
     console.log('🎯 Frontend: Session restored event received', event.detail);
 
@@ -891,17 +933,33 @@ window.addEventListener('nemexSessionRestored', function(event) {
     }
 });
 
+// 🆕 NEW: Website session integration listener
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('🔗 Setting up website session integration...');
+    
+    // Listen for website login events
+    if (window.currentUser) {
+        console.log('✅ Website user session detected:', window.currentUser.email);
+        
+        // Initialize wallet with website session
+        if (window.nemexWalletAPI && !window.nemexWalletAPI.isInitialized) {
+            console.log('🔄 Initializing wallet with website session...');
+            window.nemexWalletAPI.init();
+        }
+    }
+});
+
 // Auto-initialization
-console.log('🎯 NemexWalletAPI class loaded');
+console.log('🎯 NemexWalletAPI class loaded with website session integration');
 window.nemexWalletAPI = new NemexWalletAPI();
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', async function() {
-        console.log('📄 DOM ready, initializing wallet API...');
+        console.log('📄 DOM ready, initializing wallet API with website integration...');
         try {
             const success = await window.nemexWalletAPI.init();
-            console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
+            console.log(success ? '✅ Wallet API initialized with website integration!' : '❌ Wallet API initialization failed');
 
             if (typeof updateWalletState === 'function') {
                 updateWalletState();
@@ -914,9 +972,9 @@ if (document.readyState === 'loading') {
         }
     });
 } else {
-    console.log('📄 DOM already ready, initializing wallet API now...');
+    console.log('📄 DOM already ready, initializing wallet API with website integration now...');
     window.nemexWalletAPI.init().then(success => {
-        console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
+        console.log(success ? '✅ Wallet API initialized with website integration!' : '❌ Wallet API initialization failed');
     }).catch(error => {
         console.error('❌ Initialization error:', error);
     });
