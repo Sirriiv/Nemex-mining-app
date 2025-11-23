@@ -614,62 +614,71 @@ class NemexWalletAPI {
         });
     }
 
-    // ✅ ENHANCED: Get seed phrase - uses website session automatically
-    async getMnemonicForAddress(address, securityToken) {
-        try {
-            if (!securityToken) {
-                throw new Error('Security verification required to view seed phrase');
+    // ✅ ENHANCED: Get seed phrase with password parameter for verification
+async getMnemonicForAddress(address, securityToken, userPassword = null) {
+    try {
+        if (!securityToken) {
+            throw new Error('Security verification required to view seed phrase');
+        }
+
+        console.log('🔐 Getting seed phrase for:', address);
+
+        // First try to get from session storage (temporary cache)
+        let mnemonic = await this.storage.retrieveMnemonicSecurely(address);
+
+        if (!mnemonic) {
+            // If not in session storage, get from backend using password verification
+            console.log('🔄 Seed phrase not cached, retrieving from backend...');
+
+            const userId = await this.getUserId();
+            
+            // 🆕 ENHANCED: Use provided password or get from session
+            const password = userPassword || await this.getUserPasswordFromSession();
+
+            if (!password) {
+                throw new Error('Please enter your password to view the seed phrase.');
             }
 
-            console.log('🔐 Getting seed phrase for:', address);
+            const response = await fetch(`${this.baseURL}/get-seed-phrase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    address: address,
+                    userPassword: password
+                })
+            });
 
-            // First try to get from session storage (temporary cache)
-            let mnemonic = await this.storage.retrieveMnemonicSecurely(address);
+            const data = await response.json();
 
-            if (!mnemonic) {
-                // If not in session storage, get from backend using website session
-                console.log('🔄 Seed phrase not cached, retrieving from backend...');
-
-                const userId = await this.getUserId();
-                
-                // 🆕 ENHANCED: Use website session password
-                const userPassword = await this.getUserPasswordFromSession();
-
-                if (!userPassword) {
-                    throw new Error('Please log in again to view your seed phrase.');
-                }
-
-                const response = await fetch(`${this.baseURL}/get-seed-phrase`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: userId,
-                        address: address,
-                        userPassword: userPassword
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.seedPhrase) {
+            if (data.success) {
+                if (data.seedPhrase === 'password_verified') {
+                    // Password is correct, but we need to get mnemonic from frontend storage
+                    // This should only happen if mnemonic is not in sessionStorage
+                    mnemonic = await this.storage.retrieveMnemonicSecurely(address);
+                    if (!mnemonic) {
+                        throw new Error('Seed phrase not available. Please re-import your wallet.');
+                    }
+                } else {
                     mnemonic = data.seedPhrase;
                     // Cache in session storage
                     await this.storage.storeMnemonicSecurely(mnemonic, address);
-                } else {
-                    throw new Error(data.error || 'Failed to retrieve seed phrase');
                 }
+            } else {
+                throw new Error(data.error || 'Failed to retrieve seed phrase');
             }
-
-            if (!mnemonic) {
-                throw new Error('Unable to retrieve seed phrase for this wallet');
-            }
-
-            return mnemonic;
-        } catch (error) {
-            console.error('Get mnemonic failed:', error);
-            throw error;
         }
+
+        if (!mnemonic) {
+            throw new Error('Unable to retrieve seed phrase for this wallet');
+        }
+
+        return mnemonic;
+    } catch (error) {
+        console.error('Get mnemonic failed:', error);
+        throw error;
     }
+}
 
     // =============================================
     // BALANCE FUNCTIONS
