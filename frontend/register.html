@@ -351,7 +351,7 @@
             <div class="form-group">
                 <label class="form-label">Password</label>
                 <input type="password" class="form-input" id="password" required minlength="6">
-                <div class="password-hint">Must be at least 6 characters</div>
+                <div class="password-hint">Must be at least 6 characters - This will also secure your wallet</div>
                 <div class="error-message" id="passwordError"></div>
             </div>
 
@@ -369,10 +369,41 @@
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-            
+
             setTimeout(() => {
                 window.location.href = targetPage;
             }, 2000); // 2 second loading screen
+        }
+
+        // 🆕 NEW: Wallet Integration - Store password for wallet operations
+        async function handleWalletRegistrationIntegration(user, password) {
+            try {
+                console.log('🔐 Setting up wallet session for new user:', user.email);
+                
+                // Store user session with password for wallet operations
+                window.currentUser = {
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    password: password // Store temporarily for wallet encryption
+                };
+                
+                // Also store basic session data (without password) for security
+                sessionStorage.setItem('nemex_user_session', JSON.stringify({
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    wallet_initialized: false,
+                    registered_at: new Date().toISOString()
+                }));
+                
+                console.log('✅ Wallet session initialized for new user:', user.email);
+                return true;
+                
+            } catch (error) {
+                console.error('❌ Wallet session setup failed:', error);
+                return false;
+            }
         }
 
         // Check if user is already logged in
@@ -481,7 +512,68 @@
             }
         }
 
-        // UPDATED: Registration with Supabase Auth and Loading Screen
+        // 🆕 UPDATED: Complete registration with wallet integration
+        async function completeRegistrationWithWallet(user, profile, password, isReferral = false, hasBonus = false) {
+            try {
+                console.log('✅ Completing registration with wallet integration for user:', user.email);
+                
+                // Set up wallet session with password
+                const walletReady = await handleWalletRegistrationIntegration(profile, password);
+                if (!walletReady) {
+                    console.warn('⚠️ Wallet session setup failed, but continuing with registration');
+                }
+                
+                // Store session data for backward compatibility
+                const userSession = {
+                    id: user.id,
+                    email: user.email,
+                    username: profile.username,
+                    full_name: profile.full_name,
+                    balance: profile.balance || 0,
+                    loggedIn: true
+                };
+
+                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
+
+                // 🆕 NEW: Create welcome notification for new user
+                try {
+                    const welcomeNotification = {
+                        user_id: user.id,
+                        type: 'system',
+                        title: 'Welcome to NemexCoin! 🎉',
+                        message: `Welcome ${profile.full_name}! You've successfully joined NemexCoin. Start mining and earning NMXp today!`,
+                        is_read: false,
+                        created_at: new Date().toISOString()
+                    };
+
+                    await supabase
+                        .from('notifications')
+                        .insert([welcomeNotification]);
+
+                    console.log('✅ Welcome notification created');
+                } catch (notificationError) {
+                    console.error('❌ Error creating welcome notification:', notificationError);
+                }
+
+                // 🆕 NEW: Show success message with loading screen
+                let successMessage = 'Account created successfully!';
+                if (isReferral && hasBonus) {
+                    successMessage = '🎉 Account created successfully! You received 30 NMXp bonus!';
+                } else if (isReferral && !hasBonus) {
+                    successMessage = 'Account created successfully! (Referral link was exhausted - no bonus given)';
+                }
+
+                console.log('✅ Registration completed successfully');
+
+                return true;
+
+            } catch (error) {
+                console.error('❌ Registration completion error:', error);
+                throw error;
+            }
+        }
+
+        // UPDATED: Registration with Supabase Auth, Loading Screen, and Wallet Integration
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -498,7 +590,7 @@
             clearErrors();
 
             try {
-                console.log('🔄 Starting registration with Supabase Auth...');
+                console.log('🔄 Starting registration with Supabase Auth and Wallet Integration...');
 
                 // Basic validation
                 if (username.length < 3) {
@@ -560,7 +652,8 @@
 
                 // Determine initial balance based on referral status
                 let initialBalance = 0;
-                if (referrerId && !isReferrerExhausted) {
+                const hasReferralBonus = (referrerId && !isReferrerExhausted);
+                if (hasReferralBonus) {
                     initialBalance = 30; // Bonus only if referrer has slots
                 }
 
@@ -569,6 +662,7 @@
                 console.log('Email:', email);
                 console.log('Initial Balance:', initialBalance);
                 console.log('Referrer Exhausted:', isReferrerExhausted);
+                console.log('Has Referral Bonus:', hasReferralBonus);
 
                 // Profile data - NO PASSWORD COLUMN (handled by Supabase Auth)
                 const profileData = {
@@ -606,54 +700,30 @@
 
                 console.log('✅ Profile created successfully');
 
-                // STEP 3: Process referral (ALWAYS record in network, but only give bonus if slots available)
+                // STEP 3: Process referral (ALWAYS records in network, but only gives bonus if slots available)
                 if (referrerId) {
-                    await processReferral(userId, referrerId, !isReferrerExhausted);
+                    await processReferral(userId, referrerId, hasReferralBonus);
                 }
 
-                // Store minimal session data for backward compatibility
-                const userSession = {
-                    id: userId,
-                    email: email,
-                    username: username,
-                    full_name: fullName,
-                    balance: initialBalance,
-                    loggedIn: true
-                };
-
-                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
-
-                // 🆕 NEW: Create welcome notification for new user
-                try {
-                    const welcomeNotification = {
-                        user_id: userId,
-                        type: 'system',
-                        title: 'Welcome to NemexCoin! 🎉',
-                        message: `Welcome ${fullName}! You've successfully joined NemexCoin. Start mining and earning NMXp today!`,
-                        is_read: false,
-                        created_at: new Date().toISOString()
-                    };
-
-                    await supabase
-                        .from('notifications')
-                        .insert([welcomeNotification]);
-
-                    console.log('✅ Welcome notification created');
-                } catch (notificationError) {
-                    console.error('❌ Error creating welcome notification:', notificationError);
-                }
+                // 🆕 STEP 4: Complete registration with wallet integration
+                await completeRegistrationWithWallet(authData.user, profileData, password, !!referrerId, hasReferralBonus);
 
                 // 🆕 NEW: Show success message with loading screen
                 let successMessage = 'Account created successfully!';
-                if (referrerId && !isReferrerExhausted) {
+                if (referrerId && hasReferralBonus) {
                     successMessage = '🎉 Account created successfully! You received 30 NMXp bonus!';
-                } else if (referrerId && isReferrerExhausted) {
+                    registerBtn.innerHTML = '✅ ' + successMessage;
+                } else if (referrerId && !hasReferralBonus) {
                     successMessage = 'Account created successfully! (Referral link was exhausted - no bonus given)';
+                    registerBtn.innerHTML = '✅ ' + successMessage;
+                } else {
+                    registerBtn.innerHTML = '✅ ' + successMessage;
                 }
 
-                // Show success message briefly then loading screen
-                registerBtn.textContent = '✅ ' + successMessage;
-                
+                // Show wallet setup reminder
+                console.log('🔐 Wallet session is ready - user can create wallets without password prompts');
+
+                // Redirect to dashboard after brief success display
                 setTimeout(() => {
                     showLoadingScreen('dashboard.html', 'Welcome to NemexCoin!');
                 }, 2000);
@@ -733,6 +803,26 @@
             element.textContent = message;
             element.style.display = 'block';
         }
+
+        // 🆕 NEW: Handle page refresh - restore wallet session if available
+        window.addEventListener('load', function() {
+            const walletSession = sessionStorage.getItem('nemex_user_session');
+            if (walletSession) {
+                console.log('🔐 Existing wallet session found');
+                const sessionData = JSON.parse(walletSession);
+                
+                // If we have a session but no currentUser, try to restore it
+                if (!window.currentUser && sessionData.id) {
+                    console.log('🔄 Restoring wallet session for user:', sessionData.email);
+                    window.currentUser = {
+                        id: sessionData.id,
+                        email: sessionData.email,
+                        username: sessionData.username
+                        // Password not stored in sessionStorage for security
+                    };
+                }
+            }
+        });
     </script>
 </body>
 </html>
