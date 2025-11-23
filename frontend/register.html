@@ -573,7 +573,7 @@
             }
         }
 
-        // UPDATED: Registration with Supabase Auth, Loading Screen, and Wallet Integration
+        // ✅ FIXED: Registration with CORRECT database structure
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -647,7 +647,7 @@
 
                 console.log('✅ Supabase Auth user created:', authData.user.id);
 
-                // STEP 2: Create profile in profiles table
+                // STEP 2: Create profile in profiles table - FIXED VERSION
                 const userId = authData.user.id;
 
                 // Determine initial balance based on referral status
@@ -657,48 +657,70 @@
                     initialBalance = 30; // Bonus only if referrer has slots
                 }
 
-                console.log('📝 Creating user profile...');
-                console.log('User ID:', userId);
-                console.log('Email:', email);
-                console.log('Initial Balance:', initialBalance);
-                console.log('Referrer Exhausted:', isReferrerExhausted);
-                console.log('Has Referral Bonus:', hasReferralBonus);
+                console.log('📝 Creating user profile with CORRECT structure...');
 
-                // Profile data - NO PASSWORD COLUMN (handled by Supabase Auth)
+                // ✅ FIXED: Profile data that matches your EXACT table structure
                 const profileData = {
                     id: userId,
                     email: email,
                     full_name: fullName,
                     username: username,
-                    balance: initialBalance,
-                    referral_slots: 10,
-                    used_slots: 0,
-                    total_earned_from_refs: 0,
+                    balance: initialBalance, // numeric(10,2)
+                    referral_slots: 10, // integer
+                    used_slots: 0, // integer
+                    total_earned_from_refs: 0, // numeric
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString(),
-                    is_active: true,
-                    last_login: new Date().toISOString()
+                    last_login: new Date().toISOString(),
+                    is_active: true, // boolean
+                    created_via: 'website', // character varying(50)
+                    nmxp_balance: 0, // integer
+                    is_vip: false, // boolean
+                    admin_level: 0, // integer
+                    daily_checkins: 0, // integer
+                    last_active: new Date().toISOString()
                 };
 
-                // Add referral if exists (ALWAYS record the referral relationship)
+                // Add referral if exists - use the CORRECT column name
                 if (referrerId) {
-                    profileData.referred_by = referrerId;
+                    profileData.referred_by = referrerId; // ✅ CORRECT: referred_by (not referrer_id)
                 }
 
-                // Create profile
+                console.log('🔄 Profile data to insert:', profileData);
+
+                // ✅ FIXED: Use upsert to handle existing users gracefully
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .insert([profileData]);
+                    .upsert([profileData], { 
+                        onConflict: 'id'  // Handle case where profile already exists
+                    });
 
                 if (profileError) {
                     console.error('❌ Profile creation error:', profileError);
-
-                    // If profile creation fails, we should clean up the auth user
-                    // But for now, just show the error
-                    throw new Error(`Profile creation failed: ${profileError.message}`);
+                    
+                    // If it's a duplicate key error, try update instead
+                    if (profileError.code === '23505') {
+                        console.log('🔄 Profile already exists, updating instead...');
+                        
+                        // Remove id from update data to avoid conflict
+                        const updateData = { ...profileData };
+                        delete updateData.id;
+                        
+                        const { error: updateError } = await supabase
+                            .from('profiles')
+                            .update(updateData)
+                            .eq('id', userId);
+                            
+                        if (updateError) {
+                            throw new Error(`Profile update failed: ${updateError.message}`);
+                        }
+                        console.log('✅ Profile updated successfully');
+                    } else {
+                        throw new Error(`Profile creation failed: ${profileError.message}`);
+                    }
+                } else {
+                    console.log('✅ Profile created successfully');
                 }
-
-                console.log('✅ Profile created successfully');
 
                 // STEP 3: Process referral (ALWAYS records in network, but only gives bonus if slots available)
                 if (referrerId) {
