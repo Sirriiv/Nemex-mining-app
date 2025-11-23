@@ -23,19 +23,21 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
 
 // =============================================
-// CRYPTO UTILS FOR BACKEND - INTEGRATED SESSIONS
+// FIXED CRYPTO UTILS FOR MODERN NODE.JS
 // =============================================
 
 class BackendCryptoUtils {
-    // Encrypt private key with user password
+    // ✅ FIXED: Encrypt private key with user password
     static encryptPrivateKey(privateKey, password, salt = null) {
         try {
             salt = salt || crypto.randomBytes(16);
             const key = crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
             const iv = crypto.randomBytes(16);
-            const cipher = crypto.createCipher('aes-256-gcm', key);
             
-            let encrypted = cipher.update(privateKey, 'hex', 'base64');
+            // ✅ FIXED: Use createCipheriv instead of createCipher
+            const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+            
+            let encrypted = cipher.update(privateKey, 'utf8', 'base64');
             encrypted += cipher.final('base64');
             
             const authTag = cipher.getAuthTag();
@@ -47,11 +49,12 @@ class BackendCryptoUtils {
                 authTag: authTag.toString('base64')
             };
         } catch (error) {
+            console.error('❌ Encryption error:', error);
             throw new Error('Encryption failed: ' + error.message);
         }
     }
 
-    // Decrypt private key with user password
+    // ✅ FIXED: Decrypt private key with user password
     static decryptPrivateKey(encryptedData, password) {
         try {
             const key = crypto.pbkdf2Sync(
@@ -60,19 +63,21 @@ class BackendCryptoUtils {
                 100000, 32, 'sha256'
             );
             
-            const decipher = crypto.createDecipher(
+            // ✅ FIXED: Use createDecipheriv instead of createDecipher
+            const decipher = crypto.createDecipheriv(
                 'aes-256-gcm', 
-                key
+                key, 
+                Buffer.from(encryptedData.iv, 'base64')
             );
             
             decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'base64'));
-            decipher.setAutoPadding(true);
             
-            let decrypted = decipher.update(encryptedData.encrypted, 'base64', 'hex');
-            decrypted += decipher.final('hex');
+            let decrypted = decipher.update(encryptedData.encrypted, 'base64', 'utf8');
+            decrypted += decipher.final('utf8');
             
             return decrypted;
         } catch (error) {
+            console.error('❌ Decryption error:', error);
             throw new Error('Decryption failed: ' + error.message);
         }
     }
@@ -97,6 +102,7 @@ class BackendCryptoUtils {
         return newHash.toString('base64') === hash;
     }
 }
+
 
 // =============================================
 // SUPABASE SESSION MANAGEMENT - FIXED FOR YOUR TABLE
