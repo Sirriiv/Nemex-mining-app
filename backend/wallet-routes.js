@@ -22,10 +22,10 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
 
 // =============================================
-// SUPABASE SESSION MANAGEMENT - NEW ENDPOINTS
+// SUPABASE SESSION MANAGEMENT - MATCHING YOUR TABLE STRUCTURE
 // =============================================
 
-// Store session data in Supabase
+// Store session data in Supabase - FIXED FOR YOUR TABLE
 router.post('/store-session-data', async function(req, res) {
     try {
         const { sessionId, key, value, timestamp } = req.body;
@@ -38,17 +38,21 @@ router.post('/store-session-data', async function(req, res) {
             });
         }
 
-        // Store in Supabase sessions table
+        // ✅ FIXED: Use your actual table structure
+        // Since your table doesn't have session_id or key columns,
+        // we'll use user_id as the session identifier and store all data in active_wallet_address
         const { data, error } = await supabase
             .from('user_sessions')
             .upsert({
-                session_id: sessionId,
-                key: key,
-                value: value,
+                user_id: sessionId, // Using sessionId as user_id since that's your primary identifier
+                active_wallet_address: JSON.stringify({ // Store all session data in this column
+                    [key]: value,
+                    last_updated: timestamp
+                }),
                 last_active: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }, {
-                onConflict: 'session_id,key'
+                onConflict: 'user_id' // Conflict on user_id since that's your identifier
             });
 
         if (error) {
@@ -71,7 +75,7 @@ router.post('/store-session-data', async function(req, res) {
     }
 });
 
-// Get session data from Supabase
+// Get session data from Supabase - FIXED FOR YOUR TABLE
 router.get('/get-session-data', async function(req, res) {
     try {
         const { sessionId, key } = req.query;
@@ -84,17 +88,17 @@ router.get('/get-session-data', async function(req, res) {
             });
         }
 
+        // ✅ FIXED: Query using your actual table structure
         const { data, error } = await supabase
             .from('user_sessions')
-            .select('value')
-            .eq('session_id', sessionId)
-            .eq('key', key)
+            .select('active_wallet_address')
+            .eq('user_id', sessionId) // Use user_id as the session identifier
             .single();
 
         if (error) {
             if (error.code === 'PGRST116') {
                 // No data found - this is normal for new sessions
-                console.log('ℹ️ No session data found for:', key);
+                console.log('ℹ️ No session data found for user:', sessionId);
                 return res.json({ success: true, value: null });
             }
             console.error('❌ Supabase session retrieval error:', error);
@@ -104,8 +108,21 @@ router.get('/get-session-data', async function(req, res) {
             });
         }
 
-        console.log('✅ Session data retrieved from Supabase');
-        res.json({ success: true, value: data?.value });
+        // ✅ FIXED: Extract the specific key from the stored JSON
+        if (data && data.active_wallet_address) {
+            try {
+                const sessionData = JSON.parse(data.active_wallet_address);
+                const value = sessionData[key];
+                console.log('✅ Session data retrieved from Supabase for key:', key);
+                return res.json({ success: true, value: value });
+            } catch (parseError) {
+                console.error('❌ Failed to parse session data:', parseError);
+                return res.json({ success: true, value: null });
+            }
+        }
+
+        console.log('ℹ️ No session data found');
+        return res.json({ success: true, value: null });
 
     } catch (error) {
         console.error('❌ Get session data error:', error);
@@ -116,7 +133,7 @@ router.get('/get-session-data', async function(req, res) {
     }
 });
 
-// Clear specific session data
+// Clear session data - FIXED FOR YOUR TABLE
 router.post('/clear-session-data', async function(req, res) {
     try {
         const { sessionId, key } = req.body;
@@ -129,18 +146,36 @@ router.post('/clear-session-data', async function(req, res) {
             });
         }
 
-        const { error } = await supabase
+        // ✅ FIXED: Get current data, remove the key, and update
+        const { data: currentData, error: fetchError } = await supabase
             .from('user_sessions')
-            .delete()
-            .eq('session_id', sessionId)
-            .eq('key', key);
+            .select('active_wallet_address')
+            .eq('user_id', sessionId)
+            .single();
 
-        if (error) {
-            console.error('❌ Supabase session clear error:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Failed to clear session data: ' + error.message
-            });
+        if (fetchError && fetchError.code !== 'PGRST116') {
+            console.error('❌ Failed to fetch current session data:', fetchError);
+        }
+
+        if (currentData && currentData.active_wallet_address) {
+            try {
+                const sessionData = JSON.parse(currentData.active_wallet_address);
+                delete sessionData[key]; // Remove the specific key
+                
+                const { error: updateError } = await supabase
+                    .from('user_sessions')
+                    .update({
+                        active_wallet_address: JSON.stringify(sessionData),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('user_id', sessionId);
+
+                if (updateError) {
+                    throw updateError;
+                }
+            } catch (parseError) {
+                console.error('❌ Failed to parse session data for clearing:', parseError);
+            }
         }
 
         console.log('✅ Session data cleared from Supabase');
@@ -155,7 +190,7 @@ router.post('/clear-session-data', async function(req, res) {
     }
 });
 
-// Clear all session data for a session
+// Clear all session data - FIXED FOR YOUR TABLE
 router.post('/clear-all-session-data', async function(req, res) {
     try {
         const { sessionId } = req.body;
@@ -168,10 +203,14 @@ router.post('/clear-all-session-data', async function(req, res) {
             });
         }
 
+        // ✅ FIXED: Clear by setting active_wallet_address to empty object
         const { error } = await supabase
             .from('user_sessions')
-            .delete()
-            .eq('session_id', sessionId);
+            .update({
+                active_wallet_address: JSON.stringify({}),
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', sessionId);
 
         if (error) {
             console.error('❌ Supabase clear all sessions error:', error);
