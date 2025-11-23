@@ -7,7 +7,7 @@ const bip39 = require('bip39');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const TonWeb = require('tonweb');
 
-console.log('✅ COMPLETE Wallet Routes - ALL ENDPOINTS RESTORED + SUPABASE SESSIONS');
+console.log('✅ COMPLETE Wallet Routes - FIXED FOR YOUR TABLE STRUCTURE');
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -22,10 +22,10 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
 
 // =============================================
-// SUPABASE SESSION MANAGEMENT - MATCHING YOUR TABLE STRUCTURE
+// SUPABASE SESSION MANAGEMENT - FIXED FOR YOUR TABLE
 // =============================================
 
-// Store session data in Supabase - FIXED FOR YOUR TABLE
+// Store session data in Supabase - FIXED
 router.post('/store-session-data', async function(req, res) {
     try {
         const { sessionId, key, value, timestamp } = req.body;
@@ -38,21 +38,19 @@ router.post('/store-session-data', async function(req, res) {
             });
         }
 
-        // ✅ FIXED: Use your actual table structure
-        // Since your table doesn't have session_id or key columns,
-        // we'll use user_id as the session identifier and store all data in active_wallet_address
+        // ✅ FIXED: Use your exact table structure
         const { data, error } = await supabase
             .from('user_sessions')
             .upsert({
-                user_id: sessionId, // Using sessionId as user_id since that's your primary identifier
-                active_wallet_address: JSON.stringify({ // Store all session data in this column
+                user_id: sessionId, // Use sessionId as user_id
+                active_wallet_address: JSON.stringify({
                     [key]: value,
-                    last_updated: timestamp
+                    timestamp: timestamp
                 }),
                 last_active: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }, {
-                onConflict: 'user_id' // Conflict on user_id since that's your identifier
+                onConflict: 'user_id'
             });
 
         if (error) {
@@ -75,7 +73,7 @@ router.post('/store-session-data', async function(req, res) {
     }
 });
 
-// Get session data from Supabase - FIXED FOR YOUR TABLE
+// Get session data from Supabase - FIXED
 router.get('/get-session-data', async function(req, res) {
     try {
         const { sessionId, key } = req.query;
@@ -88,11 +86,11 @@ router.get('/get-session-data', async function(req, res) {
             });
         }
 
-        // ✅ FIXED: Query using your actual table structure
+        // ✅ FIXED: Query using your exact table structure
         const { data, error } = await supabase
             .from('user_sessions')
             .select('active_wallet_address')
-            .eq('user_id', sessionId) // Use user_id as the session identifier
+            .eq('user_id', sessionId)
             .single();
 
         if (error) {
@@ -108,7 +106,7 @@ router.get('/get-session-data', async function(req, res) {
             });
         }
 
-        // ✅ FIXED: Extract the specific key from the stored JSON
+        // ✅ FIXED: Extract data from your table structure
         if (data && data.active_wallet_address) {
             try {
                 const sessionData = JSON.parse(data.active_wallet_address);
@@ -133,7 +131,7 @@ router.get('/get-session-data', async function(req, res) {
     }
 });
 
-// Clear session data - FIXED FOR YOUR TABLE
+// Clear session data - FIXED
 router.post('/clear-session-data', async function(req, res) {
     try {
         const { sessionId, key } = req.body;
@@ -146,7 +144,7 @@ router.post('/clear-session-data', async function(req, res) {
             });
         }
 
-        // ✅ FIXED: Get current data, remove the key, and update
+        // ✅ FIXED: Get current data and remove specific key
         const { data: currentData, error: fetchError } = await supabase
             .from('user_sessions')
             .select('active_wallet_address')
@@ -157,25 +155,27 @@ router.post('/clear-session-data', async function(req, res) {
             console.error('❌ Failed to fetch current session data:', fetchError);
         }
 
+        let newSessionData = {};
         if (currentData && currentData.active_wallet_address) {
             try {
                 const sessionData = JSON.parse(currentData.active_wallet_address);
                 delete sessionData[key]; // Remove the specific key
-                
-                const { error: updateError } = await supabase
-                    .from('user_sessions')
-                    .update({
-                        active_wallet_address: JSON.stringify(sessionData),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('user_id', sessionId);
-
-                if (updateError) {
-                    throw updateError;
-                }
+                newSessionData = sessionData;
             } catch (parseError) {
                 console.error('❌ Failed to parse session data for clearing:', parseError);
             }
+        }
+
+        const { error: updateError } = await supabase
+            .from('user_sessions')
+            .update({
+                active_wallet_address: JSON.stringify(newSessionData),
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', sessionId);
+
+        if (updateError) {
+            throw updateError;
         }
 
         console.log('✅ Session data cleared from Supabase');
@@ -190,7 +190,7 @@ router.post('/clear-session-data', async function(req, res) {
     }
 });
 
-// Clear all session data - FIXED FOR YOUR TABLE
+// Clear all session data - FIXED
 router.post('/clear-all-session-data', async function(req, res) {
     try {
         const { sessionId } = req.body;
@@ -203,7 +203,7 @@ router.post('/clear-all-session-data', async function(req, res) {
             });
         }
 
-        // ✅ FIXED: Clear by setting active_wallet_address to empty object
+        // ✅ FIXED: Clear by setting to empty object
         const { error } = await supabase
             .from('user_sessions')
             .update({
@@ -245,7 +245,7 @@ router.get('/test', (req, res) => {
 });
 
 // =============================================
-// WALLET GENERATION - MISSING ENDPOINT RESTORED
+// WALLET GENERATION - FIXED TO RETURN SEED PHRASE
 // =============================================
 
 router.post('/generate-wallet', async function(req, res) {
@@ -307,6 +307,7 @@ router.post('/generate-wallet', async function(req, res) {
             console.warn('⚠️ Database error:', dbError.message);
         }
 
+        // ✅ CRITICAL: Return the mnemonic to frontend
         res.json({
             success: true,
             wallet: {
@@ -317,7 +318,8 @@ router.post('/generate-wallet', async function(req, res) {
                 wordCount: wordCount,
                 type: 'TON',
                 source: 'generated',
-                derivationPath: "m/44'/607'/0'/0'/0'"
+                derivationPath: "m/44'/607'/0'/0'/0'",
+                mnemonic: mnemonic // ✅ THIS IS CRITICAL - return seed phrase
             },
             message: 'Wallet generated successfully'
         });
@@ -332,7 +334,7 @@ router.post('/generate-wallet', async function(req, res) {
 });
 
 // =============================================
-// WALLET STORAGE - MISSING ENDPOINT RESTORED
+// WALLET STORAGE
 // =============================================
 
 router.post('/store-wallet', async function(req, res) {
@@ -392,7 +394,7 @@ router.post('/store-wallet', async function(req, res) {
 });
 
 // =============================================
-// WALLET IMPORT - FIXED VERSION
+// WALLET IMPORT
 // =============================================
 
 router.post('/import-wallet', async function(req, res) {
@@ -491,7 +493,7 @@ router.post('/import-wallet', async function(req, res) {
 });
 
 // =============================================
-// WALLET SELECTION - MISSING ENDPOINT RESTORED
+// WALLET SELECTION
 // =============================================
 
 router.post('/import-wallet-select', async function(req, res) {
@@ -612,7 +614,7 @@ router.get('/user-wallets/:userId', async function(req, res) {
 });
 
 // =============================================
-// ACTIVE WALLET MANAGEMENT
+// ACTIVE WALLET MANAGEMENT - FIXED
 // =============================================
 
 router.post('/set-active-wallet', async function(req, res) {
@@ -624,7 +626,7 @@ router.post('/set-active-wallet', async function(req, res) {
             .from('user_sessions')
             .upsert({
                 user_id: userId,
-                active_wallet_address: address,
+                active_wallet_address: address, // Store just the address string
                 last_active: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             }, {
@@ -637,7 +639,6 @@ router.post('/set-active-wallet', async function(req, res) {
         }
 
         console.log('✅ Active wallet set:', address);
-
         res.json({
             success: true,
             message: 'Active wallet set successfully'
@@ -668,18 +669,37 @@ router.get('/active-wallet/:userId', async function(req, res) {
         const activeWalletAddress = data?.active_wallet_address;
 
         if (activeWalletAddress) {
-            console.log('✅ Active wallet found:', activeWalletAddress);
-            res.json({
-                success: true,
-                activeWallet: activeWalletAddress
-            });
-        } else {
-            console.log('ℹ️ No active wallet found for user');
-            res.json({
-                success: true,
-                activeWallet: null
-            });
+            // Check if it's a JSON string or plain address
+            try {
+                const parsed = JSON.parse(activeWalletAddress);
+                // If it's JSON, look for a wallet address in the values
+                if (parsed && typeof parsed === 'object') {
+                    const walletEntry = Object.values(parsed).find(val => 
+                        val && val.address && (val.address.startsWith('EQ') || val.address.startsWith('UQ'))
+                    );
+                    if (walletEntry) {
+                        console.log('✅ Active wallet found in session data:', walletEntry.address);
+                        return res.json({
+                            success: true,
+                            activeWallet: walletEntry.address
+                        });
+                    }
+                }
+            } catch (e) {
+                // If parsing fails, it's probably a plain address string
+                console.log('✅ Active wallet found (plain address):', activeWalletAddress);
+                return res.json({
+                    success: true,
+                    activeWallet: activeWalletAddress
+                });
+            }
         }
+
+        console.log('ℹ️ No active wallet found for user');
+        res.json({
+            success: true,
+            activeWallet: null
+        });
 
     } catch (error) {
         console.error('Get active wallet error:', error);
