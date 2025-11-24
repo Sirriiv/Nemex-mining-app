@@ -4216,10 +4216,15 @@ function debugTokenBalances() {
 }
 
         function showSwapModal() {
-            closeModal();
-            const swapModal = document.getElementById('swapModal');
-            if (swapModal) swapModal.style.display = 'flex';
-        }
+    closeModal();
+    const swapModal = document.getElementById('productionSwapModal');
+    if (swapModal) {
+        swapModal.style.display = 'flex';
+        console.log('✅ Production swap modal opened');
+    } else {
+        console.error('❌ Production swap modal not found');
+    }
+}
 
         function showBuyModal() {
             closeModal();
