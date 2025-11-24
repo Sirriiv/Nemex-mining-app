@@ -1401,6 +1401,109 @@
         .wallet-loaded #actionButtons {
             display: grid !important;
         }
+
+/* Production Swap Modal Styles */
+.real-balances {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.balance-card {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.balance-label {
+    font-size: 12px;
+    color: var(--muted);
+    display: block;
+}
+
+.balance-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gold);
+}
+
+.conversion-interface {
+    background: var(--dark-bg);
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+}
+
+.input-with-max {
+    display: flex;
+    gap: 10px;
+}
+
+.max-btn {
+    background: var(--info);
+    color: white;
+    border: none;
+    padding: 0 15px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.production-details {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.wallet-address {
+    font-family: monospace;
+}
+
+.wallet-address.set {
+    color: var(--success);
+}
+
+.wallet-address.not-set {
+    color: var(--error);
+}
+
+.production-convert-btn {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+.production-convert-btn.active {
+    background: var(--gold);
+    color: var(--darker-bg);
+}
+
+.production-convert-btn.disabled {
+    background: var(--muted);
+    color: var(--text);
+    cursor: not-allowed;
+}
+
+.production-note {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 12px;
+    color: var(--muted);
+}
     </style>
 </head>
 <body>
