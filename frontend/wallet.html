@@ -23,6 +23,11 @@
             --border-radius: 16px;
             --border-radius-sm: 12px;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            /* 🆕 ADD THESE MISSING VARIABLES */
+            --bg-secondary: #1a1a1a;
+            --border-color: rgba(212, 175, 55, 0.3);
+            --muted: #888888;
+            --info: #0099CC;
         }
 
         * {
@@ -1600,32 +1605,32 @@
         </section>
 
         <!-- Action Buttons -->
-<div class="action-buttons" id="actionButtons" style="display: none;">
-    <div class="action-btn" onclick="showSendModal()" id="sendButton">
-        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-        </svg>
-        <div class="action-label">Send</div>
-    </div>
-    <div class="action-btn" onclick="showReceiveModal()" id="receiveButton">
-        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-        </svg>
-        <div class="action-label">Receive</div>
-    </div>
-    <div class="action-btn" onclick="showSwapModal()" id="swapButton">
-    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-    </svg>
-    <div class="action-label"Swap</div>
-</div>
-    <div class="action-btn" onclick="showBuyModal()" id="buyButton">
-        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-        </svg>
-        <div class="action-label">Buy</div>
-    </div>
-</div>
+        <div class="action-buttons" id="actionButtons" style="display: none;">
+            <div class="action-btn" onclick="showSendModal()" id="sendButton">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+                <div class="action-label">Send</div>
+            </div>
+            <div class="action-btn" onclick="showReceiveModal()" id="receiveButton">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                <div class="action-label">Receive</div>
+            </div>
+            <div class="action-btn" onclick="showSwapModal()" id="swapButton">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                <div class="action-label">Convert NMXp</div>
+            </div>
+            <div class="action-btn" onclick="showBuyModal()" id="buyButton">
+                <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                </svg>
+                <div class="action-label">Buy</div>
+            </div>
+        </div>
 
         <!-- Token List -->
         <section class="token-section" id="tokenSection" style="display: none;">
@@ -2293,6 +2298,8 @@
                     </div>
                 </div>
             </div>
+        </div>
+
 <!-- Production Swap Modal -->
 <div class="modal" id="productionSwapModal">
     <div class="modal-content">
@@ -2388,78 +2395,78 @@
 
     <script>
         // =============================================
-// WALLET STATE MANAGEMENT
-// =============================================
+        // WALLET STATE MANAGEMENT
+        // =============================================
 
-let walletState = {
-    isInitialized: false,
-    walletType: null,
-    userId: null,
-    address: null,
-    balances: {},
-    lastUpdate: null
-};
-
-let userWallets = [];
-let customTokens = [];
-let currentMnemonic = null;
-
-// =============================================
-// SUPABASE USER MANAGEMENT
-// =============================================
-
-let currentUser = null;
-
-// Initialize user from wallet state
-function initializeCurrentUser() {
-    if (walletState.isInitialized && walletState.userId) {
-        currentUser = {
-            id: walletState.userId,
-            email: null
+        let walletState = {
+            isInitialized: false,
+            walletType: null,
+            userId: null,
+            address: null,
+            balances: {},
+            lastUpdate: null
         };
-        console.log('✅ currentUser initialized:', currentUser);
-    }
-}
 
-// Update user when wallet state changes
-function updateCurrentUser() {
-    if (walletState.isInitialized && walletState.userId) {
-        currentUser = {
-            id: walletState.userId,
-            email: null
-        };
-        console.log('✅ currentUser updated:', currentUser);
-    } else {
-        currentUser = null;
-        console.log('🔄 currentUser cleared');
-    }
-}
+        let userWallets = [];
+        let customTokens = [];
+        let currentMnemonic = null;
 
-// Supported tokens
-let SUPPORTED_TOKENS = [
-    {
-        symbol: "TON",
-        name: "Toncoin",
-        balance: 0,
-        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-        price: 0,
-        change24h: 0,
-        canSend: true,
-        isNative: true,
-        isFeatured: true
-    },
-    {
-        symbol: "NMX", 
-        name: "NemexCoin",
-        balance: 0,
-        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        price: 0.10,
-        change24h: 0,
-        canSend: true,
-        isNative: false,
-        isFeatured: true
-    }
-];
+        // =============================================
+        // SUPABASE USER MANAGEMENT
+        // =============================================
+
+        let currentUser = null;
+
+        // Initialize user from wallet state
+        function initializeCurrentUser() {
+            if (walletState.isInitialized && walletState.userId) {
+                currentUser = {
+                    id: walletState.userId,
+                    email: null
+                };
+                console.log('✅ currentUser initialized:', currentUser);
+            }
+        }
+
+        // Update user when wallet state changes
+        function updateCurrentUser() {
+            if (walletState.isInitialized && walletState.userId) {
+                currentUser = {
+                    id: walletState.userId,
+                    email: null
+                };
+                console.log('✅ currentUser updated:', currentUser);
+            } else {
+                currentUser = null;
+                console.log('🔄 currentUser cleared');
+            }
+        }
+
+        // Supported tokens
+        let SUPPORTED_TOKENS = [
+            {
+                symbol: "TON",
+                name: "Toncoin",
+                balance: 0,
+                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+                price: 0,
+                change24h: 0,
+                canSend: true,
+                isNative: true,
+                isFeatured: true
+            },
+            {
+                symbol: "NMX", 
+                name: "NemexCoin",
+                balance: 0,
+                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+                price: 0.10,
+                change24h: 0,
+                canSend: true,
+                isNative: false,
+                isFeatured: true
+            }
+        ];
 
 // =============================================
 // DEBUG: Wallet Connection Issues
@@ -2499,6 +2506,7 @@ async function debugWalletConnection() {
 
 // Run debug after page loads
 setTimeout(debugWalletConnection, 2000);
+
 
         // =============================================
         // INITIALIZATION & ERROR HANDLING
@@ -2597,6 +2605,8 @@ setTimeout(debugWalletConnection, 2000);
                             lastUpdate: null
                         };
 
+                        updateCurrentUser(); // 🆕 ADDED
+
                         console.log('✅ Session restored from Supabase:', walletState.address);
                         
                         // Immediately update the UI
@@ -2661,18 +2671,18 @@ setTimeout(debugWalletConnection, 2000);
                                     await window.nemexWalletAPI.setStoredWallet(wallet);
                                     
                                     walletState = {
-    isInitialized: true,
-    walletType: wallet.source || 'imported',
-    userId: wallet.userId,
-    address: wallet.address,
-    balances: {},
-    lastUpdate: null
-};
+                                        isInitialized: true,
+                                        walletType: wallet.source || 'imported',
+                                        userId: wallet.userId,
+                                        address: wallet.address,
+                                        balances: {},
+                                        lastUpdate: null
+                                    };
 
-updateCurrentUser(); // 🆕 ADD THIS LINE
-updateWalletDisplay();
-await updateRealBalances();
-await loadUserWallets();
+                                    updateCurrentUser(); // 🆕 ADDED
+                                    updateWalletDisplay();
+                                    await updateRealBalances();
+                                    await loadUserWallets();
                                     
                                     showStatusMessage('✅ Session restored from Supabase!', 'success');
                                     return true;
@@ -2733,18 +2743,18 @@ await loadUserWallets();
                     }
 
                     // Update wallet state
-walletState = {
-    isInitialized: true,
-    walletType: 'new',
-    userId: result.wallet.userId,
-    address: result.wallet.address,
-    balances: {},
-    lastUpdate: null
-};
+                    walletState = {
+                        isInitialized: true,
+                        walletType: 'new',
+                        userId: result.wallet.userId,
+                        address: result.wallet.address,
+                        balances: {},
+                        lastUpdate: null
+                    };
 
-updateCurrentUser(); // 🆕 ADD THIS LINE
+                    updateCurrentUser(); // 🆕 ADDED
 
-showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
+                    showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
 
                     // Show backup modal with seed phrase
                     setTimeout(() => {
@@ -2836,18 +2846,18 @@ showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
                     currentMnemonic = mnemonic;
 
                     // Update wallet state
-walletState = {
-    isInitialized: true,
-    walletType: 'imported', 
-    userId: result.wallet.userId,
-    address: result.wallet.address,
-    balances: {},
-    lastUpdate: null
-};
+                    walletState = {
+                        isInitialized: true,
+                        walletType: 'imported', 
+                        userId: result.wallet.userId,
+                        address: result.wallet.address,
+                        balances: {},
+                        lastUpdate: null
+                    };
 
-updateCurrentUser(); // 🆕 ADD THIS LINE
+                    updateCurrentUser(); // 🆕 ADDED
 
-showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+                    showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
 
                     setTimeout(() => {
                         closeModal();
@@ -2914,6 +2924,8 @@ showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
                         balances: {},
                         lastUpdate: null
                     };
+
+                    updateCurrentUser(); // 🆕 ADDED
 
                     // Close selection modal
                     closeModal();
@@ -3022,6 +3034,7 @@ showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
                         lastUpdate: null
                     };
 
+                    updateCurrentUser(); // 🆕 ADDED
                     updateWalletDisplay();
                     await updateRealBalances();
                     
@@ -3151,18 +3164,18 @@ showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
                     await window.nemexWalletAPI.setStoredWallet(wallet);
 
                     // Update wallet state
-walletState = {
-    isInitialized: true,
-    walletType: wallet.source || 'imported',
-    userId: wallet.userId,
-    address: wallet.address,
-    balances: walletState.balances || {}, // Keep existing balances
-    lastUpdate: walletState.lastUpdate
-};
+                    walletState = {
+                        isInitialized: true,
+                        walletType: wallet.source || 'imported',
+                        userId: wallet.userId,
+                        address: wallet.address,
+                        balances: walletState.balances || {}, // Keep existing balances
+                        lastUpdate: walletState.lastUpdate
+                    };
 
-updateCurrentUser(); // 🆕 ADD THIS LINE
+                    updateCurrentUser(); // 🆕 ADDED
 
-console.log('✅ Switched to wallet:', address);
+                    console.log('✅ Switched to wallet:', address);
                     
                     // Update UI
                     updateWalletDisplay();
@@ -3207,6 +3220,7 @@ console.log('✅ Switched to wallet:', address);
                         lastUpdate: null
                     };
                     
+                    currentUser = null; // 🆕 ADDED
                     currentMnemonic = null;
                     userWallets = [];
 
@@ -4216,15 +4230,15 @@ function debugTokenBalances() {
 }
 
         function showSwapModal() {
-    closeModal();
-    const swapModal = document.getElementById('productionSwapModal');
-    if (swapModal) {
-        swapModal.style.display = 'flex';
-        console.log('✅ Production swap modal opened');
-    } else {
-        console.error('❌ Production swap modal not found');
-    }
-}
+            closeModal();
+            const swapModal = document.getElementById('productionSwapModal');
+            if (swapModal) {
+                swapModal.style.display = 'flex';
+                console.log('✅ Production swap modal opened');
+            } else {
+                console.error('❌ Production swap modal not found');
+            }
+        }
 
         function showBuyModal() {
             closeModal();
@@ -4795,7 +4809,21 @@ const PRODUCTION_CONFIG = {
 
 // Load real data for swap modal
 async function loadProductionSwapData() {
-    if (!currentUser) return;
+    console.log('🔄 Loading production swap data...');
+    console.log('🔍 currentUser:', currentUser);
+    console.log('🔍 walletState:', walletState);
+    
+    // Check if we have the necessary user data
+    if (!currentUser && walletState.userId) {
+        console.log('🔄 currentUser not set but walletState has userId, updating...');
+        updateCurrentUser();
+    }
+    
+    if (!currentUser) {
+        console.error('❌ currentUser not available for swap modal');
+        showToast('Please wait for wallet to load completely', 'error');
+        return;
+    }
     
     try {
         const { data: profile, error } = await supabase
@@ -5040,6 +5068,35 @@ async function saveWalletAddress() {
         showToast('Failed to save wallet address', 'error');
     }
 }
+
+// =============================================
+// PRODUCTION SWAP EVENT LISTENERS
+// =============================================
+
+// Production Swap Modal Events
+document.getElementById('productionConvertAmount')?.addEventListener('input', calculateProductionConversion);
+
+// Wallet Setup Events  
+document.getElementById('userWalletAddress')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') saveWalletAddress();
+});
+
+// Close modals when clicking outside
+window.addEventListener('click', function(e) {
+    if (e.target.id === 'productionSwapModal') closeProductionSwapModal();
+    if (e.target.id === 'walletSetupModal') closeWalletSetup();
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeProductionSwapModal();
+        closeWalletSetup();
+    }
+});
+
+console.log('✅ Production swap system loaded');
+
         // =============================================
         // ENHANCED PAGE LOAD EVENT LISTENER - FIXED
         // =============================================
@@ -5362,33 +5419,33 @@ function closeSeedPhraseModal() {
     }
 }
 
-// =============================================
-// PRODUCTION SWAP EVENT LISTENERS
-// =============================================
-
-// Production Swap Modal Events
-document.getElementById('productionConvertAmount')?.addEventListener('input', calculateProductionConversion);
-
-// Wallet Setup Events  
-document.getElementById('userWalletAddress')?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') saveWalletAddress();
-});
-
-// Close modals when clicking outside
-window.addEventListener('click', function(e) {
-    if (e.target.id === 'productionSwapModal') closeProductionSwapModal();
-    if (e.target.id === 'walletSetupModal') closeWalletSetup();
-});
-
-// Close modals with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeProductionSwapModal();
-        closeWalletSetup();
+// Debug function to check user state
+function debugUserState() {
+    console.log('🔍 DEBUG User State:');
+    console.log('currentUser:', currentUser);
+    console.log('walletState:', walletState);
+    console.log('walletState.userId:', walletState.userId);
+    console.log('walletState.isInitialized:', walletState.isInitialized);
+    
+    if (currentUser) {
+        alert('✅ currentUser is set: ' + currentUser.id);
+    } else if (walletState.userId) {
+        alert('🔄 currentUser not set but walletState.userId exists: ' + walletState.userId);
+        updateCurrentUser();
+        alert('✅ currentUser should be set now. Try swap modal again.');
+    } else {
+        alert('❌ No user data available. Wallet not properly loaded.');
     }
-});
+}
 
-console.log('✅ Production swap system loaded');
+// Add temporary debug button
+document.addEventListener('DOMContentLoaded', function() {
+    const debugButton = document.createElement('button');
+    debugButton.textContent = '🐛 Debug User State';
+    debugButton.style.cssText = 'position: fixed; top: 10px; right: 10px; background: var(--gold); color: black; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; z-index: 10000;';
+    debugButton.onclick = debugUserState;
+    document.body.appendChild(debugButton);
+});
 
 </script>
 </body>
