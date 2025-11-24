@@ -2388,47 +2388,78 @@
 
     <script>
         // =============================================
-        // WALLET STATE MANAGEMENT
-        // =============================================
+// WALLET STATE MANAGEMENT
+// =============================================
 
-        let walletState = {
-            isInitialized: false,
-            walletType: null,
-            userId: null,
-            address: null,
-            balances: {},
-            lastUpdate: null
+let walletState = {
+    isInitialized: false,
+    walletType: null,
+    userId: null,
+    address: null,
+    balances: {},
+    lastUpdate: null
+};
+
+let userWallets = [];
+let customTokens = [];
+let currentMnemonic = null;
+
+// =============================================
+// SUPABASE USER MANAGEMENT
+// =============================================
+
+let currentUser = null;
+
+// Initialize user from wallet state
+function initializeCurrentUser() {
+    if (walletState.isInitialized && walletState.userId) {
+        currentUser = {
+            id: walletState.userId,
+            email: null
         };
+        console.log('✅ currentUser initialized:', currentUser);
+    }
+}
 
-        let userWallets = [];
-        let customTokens = [];
-        let currentMnemonic = null;
+// Update user when wallet state changes
+function updateCurrentUser() {
+    if (walletState.isInitialized && walletState.userId) {
+        currentUser = {
+            id: walletState.userId,
+            email: null
+        };
+        console.log('✅ currentUser updated:', currentUser);
+    } else {
+        currentUser = null;
+        console.log('🔄 currentUser cleared');
+    }
+}
 
-        // Supported tokens
-        let SUPPORTED_TOKENS = [
-            {
-                symbol: "TON",
-                name: "Toncoin",
-                balance: 0,
-                logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-                price: 0,
-                change24h: 0,
-                canSend: true,
-                isNative: true,
-                isFeatured: true
-            },
-            {
-                symbol: "NMX", 
-                name: "NemexCoin",
-                balance: 0,
-                logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-                price: 0.10,
-                change24h: 0,
-                canSend: true,
-                isNative: false,
-                isFeatured: true
-            }
-        ];
+// Supported tokens
+let SUPPORTED_TOKENS = [
+    {
+        symbol: "TON",
+        name: "Toncoin",
+        balance: 0,
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+        price: 0,
+        change24h: 0,
+        canSend: true,
+        isNative: true,
+        isFeatured: true
+    },
+    {
+        symbol: "NMX", 
+        name: "NemexCoin",
+        balance: 0,
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        price: 0.10,
+        change24h: 0,
+        canSend: true,
+        isNative: false,
+        isFeatured: true
+    }
+];
 
 // =============================================
 // DEBUG: Wallet Connection Issues
@@ -2468,7 +2499,6 @@ async function debugWalletConnection() {
 
 // Run debug after page loads
 setTimeout(debugWalletConnection, 2000);
-
 
         // =============================================
         // INITIALIZATION & ERROR HANDLING
@@ -2631,17 +2661,18 @@ setTimeout(debugWalletConnection, 2000);
                                     await window.nemexWalletAPI.setStoredWallet(wallet);
                                     
                                     walletState = {
-                                        isInitialized: true,
-                                        walletType: wallet.source || 'imported',
-                                        userId: wallet.userId,
-                                        address: wallet.address,
-                                        balances: {},
-                                        lastUpdate: null
-                                    };
+    isInitialized: true,
+    walletType: wallet.source || 'imported',
+    userId: wallet.userId,
+    address: wallet.address,
+    balances: {},
+    lastUpdate: null
+};
 
-                                    updateWalletDisplay();
-                                    await updateRealBalances();
-                                    await loadUserWallets();
+updateCurrentUser(); // 🆕 ADD THIS LINE
+updateWalletDisplay();
+await updateRealBalances();
+await loadUserWallets();
                                     
                                     showStatusMessage('✅ Session restored from Supabase!', 'success');
                                     return true;
@@ -2702,16 +2733,18 @@ setTimeout(debugWalletConnection, 2000);
                     }
 
                     // Update wallet state
-                    walletState = {
-                        isInitialized: true,
-                        walletType: 'new',
-                        userId: result.wallet.userId,
-                        address: result.wallet.address,
-                        balances: {},
-                        lastUpdate: null
-                    };
+walletState = {
+    isInitialized: true,
+    walletType: 'new',
+    userId: result.wallet.userId,
+    address: result.wallet.address,
+    balances: {},
+    lastUpdate: null
+};
 
-                    showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
+updateCurrentUser(); // 🆕 ADD THIS LINE
+
+showStatusMessage('✅ Wallet created successfully!', 'success', statusDiv);
 
                     // Show backup modal with seed phrase
                     setTimeout(() => {
@@ -2803,16 +2836,18 @@ setTimeout(debugWalletConnection, 2000);
                     currentMnemonic = mnemonic;
 
                     // Update wallet state
-                    walletState = {
-                        isInitialized: true,
-                        walletType: 'imported', 
-                        userId: result.wallet.userId,
-                        address: result.wallet.address,
-                        balances: {},
-                        lastUpdate: null
-                    };
+walletState = {
+    isInitialized: true,
+    walletType: 'imported', 
+    userId: result.wallet.userId,
+    address: result.wallet.address,
+    balances: {},
+    lastUpdate: null
+};
 
-                    showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
+updateCurrentUser(); // 🆕 ADD THIS LINE
+
+showStatusMessage('✅ Wallet imported successfully!', 'success', statusDiv);
 
                     setTimeout(() => {
                         closeModal();
@@ -3116,16 +3151,18 @@ setTimeout(debugWalletConnection, 2000);
                     await window.nemexWalletAPI.setStoredWallet(wallet);
 
                     // Update wallet state
-                    walletState = {
-                        isInitialized: true,
-                        walletType: wallet.source || 'imported',
-                        userId: wallet.userId,
-                        address: wallet.address,
-                        balances: walletState.balances || {}, // Keep existing balances
-                        lastUpdate: walletState.lastUpdate
-                    };
+walletState = {
+    isInitialized: true,
+    walletType: wallet.source || 'imported',
+    userId: wallet.userId,
+    address: wallet.address,
+    balances: walletState.balances || {}, // Keep existing balances
+    lastUpdate: walletState.lastUpdate
+};
 
-                    console.log('✅ Switched to wallet:', address);
+updateCurrentUser(); // 🆕 ADD THIS LINE
+
+console.log('✅ Switched to wallet:', address);
                     
                     // Update UI
                     updateWalletDisplay();
