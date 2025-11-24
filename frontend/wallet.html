@@ -2143,6 +2143,78 @@
         </div>
     </div>
 
+<!-- Production Swap Modal -->
+<div class="modal" id="productionSwapModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Convert NMXp to NMX Tokens</h3>
+            <span class="close" onclick="closeProductionSwapModal()">&times;</span>
+        </div>
+        
+        <!-- Real Balance Display -->
+        <div class="real-balances">
+            <div class="balance-card">
+                <span class="balance-label">Your NMXp Balance:</span>
+                <span class="balance-value" id="realNmxpBalance">0</span>
+            </div>
+            <div class="balance-card">
+                <span class="balance-label">Your Wallet:</span>
+                <span class="balance-value" id="userWalletDisplay">
+                    Not set - <a href="#" onclick="showWalletSetup()">Setup Wallet</a>
+                </span>
+            </div>
+        </div>
+        
+        <!-- Conversion Interface -->
+        <div class="conversion-interface">
+            <div class="from-section">
+                <label>Convert From NMXp</label>
+                <div class="input-with-max">
+                    <input type="number" id="productionConvertAmount" placeholder="0.0" 
+                           oninput="calculateProductionConversion()">
+                    <button class="max-btn" onclick="setMaxConversion()">MAX</button>
+                </div>
+                <div class="balance-hint">Available: <span id="availableNmxpBalance">0</span> NMXp</div>
+            </div>
+            
+            <div class="conversion-arrow">↓</div>
+            
+            <div class="to-section">
+                <label>You Will Receive</label>
+                <div class="output-display">
+                    <input type="text" id="productionReceiveAmount" placeholder="0.0" readonly>
+                    <span class="token-symbol">NMX</span>
+                </div>
+                <div class="receive-hint">Tokens will be sent to your wallet</div>
+            </div>
+        </div>
+        
+        <!-- Conversion Details -->
+        <div class="production-details">
+            <div class="detail-row">
+                <span>Conversion Rate:</span>
+                <span>30 NMXp = 1 NMX</span>
+            </div>
+            <div class="detail-row">
+                <span>Your Wallet Address:</span>
+                <span id="conversionWalletAddress" class="wallet-address">Not set</span>
+            </div>
+            <div class="detail-row">
+                <span>You'll Receive:</span>
+                <span id="productionFinalAmount">0 NMX</span>
+            </div>
+        </div>
+        
+        <button class="production-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
+            Convert to NMX Tokens
+        </button>
+        
+        <div class="production-note">
+            <small>🔒 Conversion will be recorded and processed manually. You'll see status updates in your conversion history.</small>
+        </div>
+    </div>
+</div>
+
     <script>
         // =============================================
         // WALLET STATE MANAGEMENT
@@ -4497,6 +4569,269 @@ function debugTokenBalances() {
             }
         });
 
+// =============================================
+// PRODUCTION SWAP SYSTEM - ADD THIS SECTION
+// =============================================
+
+// Production configuration
+const PRODUCTION_CONFIG = {
+    CONVERSION_RATE: 1/30, // 30 NMXp = 1 NMX
+    MIN_CONVERSION: 30,    // Minimum 30 NMXp
+    MAX_CONVERSION: 1000000 // Safety limit
+};
+
+// Load real data for swap modal
+async function loadProductionSwapData() {
+    if (!currentUser) return;
+    
+    try {
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('nmxp_balance, wallet_address')
+            .eq('id', currentUser.id)
+            .single();
+            
+        if (error) throw error;
+        
+        // Update all displays with REAL data
+        const nmxpBalance = profile.nmxp_balance || 0;
+        document.getElementById('realNmxpBalance').textContent = nmxpBalance;
+        document.getElementById('availableNmxpBalance').textContent = nmxpBalance;
+        
+        // Update wallet display
+        const walletDisplay = document.getElementById('userWalletDisplay');
+        const conversionWallet = document.getElementById('conversionWalletAddress');
+        
+        if (profile.wallet_address) {
+            const shortAddress = profile.wallet_address.substring(0, 8) + '...' + profile.wallet_address.substring(profile.wallet_address.length - 8);
+            walletDisplay.innerHTML = `<span class="wallet-set">${shortAddress}</span>`;
+            conversionWallet.textContent = shortAddress;
+            conversionWallet.className = 'wallet-address set';
+        } else {
+            walletDisplay.innerHTML = 'Not set - <a href="#" onclick="showWalletSetup()">Setup Wallet</a>';
+            conversionWallet.textContent = 'Not set - Setup required';
+            conversionWallet.className = 'wallet-address not-set';
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading production swap data:', error);
+        showToast('Error loading your data', 'error');
+    }
+}
+
+// Calculate production conversion
+function calculateProductionConversion() {
+    const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value) || 0;
+    const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
+    
+    // Update displays
+    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
+    document.getElementById('productionFinalAmount').textContent = nmxAmount.toFixed(6) + ' NMX';
+    
+    // Validate conversion
+    validateProductionConversion(nmxpAmount, nmxAmount);
+}
+
+// Validate against real constraints
+async function validateProductionConversion(nmxpAmount, nmxAmount) {
+    const convertBtn = document.getElementById('productionConvertBtn');
+    
+    try {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('nmxp_balance, wallet_address')
+            .eq('id', currentUser.id)
+            .single();
+        
+        const hasWallet = !!profile.wallet_address;
+        const hasEnoughNMXp = (profile.nmxp_balance || 0) >= nmxpAmount;
+        const meetsMinimum = nmxpAmount >= PRODUCTION_CONFIG.MIN_CONVERSION;
+        const withinMax = nmxpAmount <= PRODUCTION_CONFIG.MAX_CONVERSION;
+        const validAmount = nmxpAmount > 0;
+        
+        if (hasWallet && hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
+            convertBtn.disabled = false;
+            convertBtn.textContent = `Convert ${nmxpAmount} NMXp to ${nmxAmount.toFixed(6)} NMX`;
+            convertBtn.className = 'production-convert-btn active';
+        } else {
+            convertBtn.disabled = true;
+            convertBtn.className = 'production-convert-btn disabled';
+            
+            if (!hasWallet) {
+                convertBtn.textContent = 'Setup wallet address first';
+            } else if (!meetsMinimum) {
+                convertBtn.textContent = `Minimum ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp required`;
+            } else if (!hasEnoughNMXp) {
+                convertBtn.textContent = 'Insufficient NMXp balance';
+            } else if (!withinMax) {
+                convertBtn.textContent = `Maximum ${PRODUCTION_CONFIG.MAX_CONVERSION} NMXp per conversion`;
+            } else {
+                convertBtn.textContent = 'Enter amount to convert';
+            }
+        }
+        
+    } catch (error) {
+        convertBtn.disabled = true;
+        convertBtn.textContent = 'Error validating conversion';
+    }
+}
+
+// Set maximum conversion amount
+async function setMaxConversion() {
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('nmxp_balance')
+        .eq('id', currentUser.id)
+        .single();
+    
+    const maxAmount = Math.min(profile.nmxp_balance || 0, PRODUCTION_CONFIG.MAX_CONVERSION);
+    document.getElementById('productionConvertAmount').value = maxAmount;
+    calculateProductionConversion();
+}
+
+// EXECUTE PRODUCTION CONVERSION
+async function executeProductionConversion() {
+    const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
+    
+    if (!currentUser) {
+        showToast('Please log in to convert', 'error');
+        return;
+    }
+    
+    try {
+        showToast('Recording your conversion...', 'info');
+        
+        // Get fresh user data
+        const { data: profile, error: fetchError } = await supabase
+            .from('profiles')
+            .select('nmxp_balance, wallet_address, nmx_balance')
+            .eq('id', currentUser.id)
+            .single();
+            
+        if (fetchError) throw fetchError;
+        
+        // Final validation
+        const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
+        
+        if (!profile.wallet_address) {
+            throw new Error('Wallet address not set');
+        }
+        
+        if ((profile.nmxp_balance || 0) < nmxpAmount) {
+            throw new Error('Insufficient NMXp balance');
+        }
+        
+        if (nmxpAmount < PRODUCTION_CONFIG.MIN_CONVERSION) {
+            throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
+        }
+        
+        // START PRODUCTION TRANSACTION
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+                nmxp_balance: (profile.nmxp_balance || 0) - nmxpAmount,
+                nmx_balance: (profile.nmx_balance || 0) + nmxAmount,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUser.id);
+            
+        if (updateError) throw updateError;
+        
+        // RECORD CONVERSION FOR MANUAL PROCESSING
+        const { error: recordError } = await supabase
+            .from('conversions')
+            .insert([{
+                user_id: currentUser.id,
+                nmxp_amount: nmxpAmount,
+                nmx_amount: nmxAmount,
+                wallet_address: profile.wallet_address,
+                status: 'pending',
+                created_at: new Date().toISOString()
+            }]);
+            
+        if (recordError) throw recordError;
+        
+        // SUCCESS
+        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent to your wallet.`, 'success');
+        
+        // Refresh displays
+        await loadProductionSwapData();
+        closeProductionSwapModal();
+        
+        // Update user dashboard
+        if (typeof loadUserDashboard === 'function') {
+            loadUserDashboard();
+        }
+        
+    } catch (error) {
+        console.error('❌ Production conversion failed:', error);
+        showToast('Conversion failed: ' + error.message, 'error');
+    }
+}
+
+// Open production swap modal
+function openProductionSwapModal() {
+    loadProductionSwapData();
+    document.getElementById('productionSwapModal').style.display = 'flex';
+    calculateProductionConversion();
+}
+
+// Close production swap modal
+function closeProductionSwapModal() {
+    document.getElementById('productionSwapModal').style.display = 'none';
+}
+
+// Wallet Setup Functions
+function showWalletSetup() {
+    document.getElementById('walletSetupModal').style.display = 'flex';
+    closeProductionSwapModal();
+}
+
+function closeWalletSetup() {
+    document.getElementById('walletSetupModal').style.display = 'none';
+}
+
+// Validate TON wallet address
+function validateTONAddress(address) {
+    if (!address) return false;
+    // Basic TON address validation
+    return (address.length >= 48 && address.startsWith('EQ')) || address.startsWith('UQ');
+}
+
+// Save wallet address
+async function saveWalletAddress() {
+    const walletAddress = document.getElementById('userWalletAddress').value.trim();
+    
+    if (!validateTONAddress(walletAddress)) {
+        showToast('Please enter a valid TON wallet address', 'error');
+        return;
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ 
+                wallet_address: walletAddress,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', currentUser.id);
+            
+        if (error) throw error;
+        
+        showToast('Wallet address saved successfully!', 'success');
+        closeWalletSetup();
+        
+        // Refresh swap modal if open
+        if (document.getElementById('productionSwapModal').style.display === 'flex') {
+            loadProductionSwapData();
+        }
+        
+    } catch (error) {
+        console.error('Error saving wallet address:', error);
+        showToast('Failed to save wallet address', 'error');
+    }
+}
+
         // =============================================
         // ENHANCED PAGE LOAD EVENT LISTENER - FIXED
         // =============================================
@@ -4818,6 +5153,35 @@ function closeSeedPhraseModal() {
         modal.remove();
     }
 }
-    </script>
+
+// =============================================
+// ✅ PRODUCTION SWAP EVENT LISTENERS
+// =============================================
+
+// Production Swap Modal Events
+document.getElementById('productionConvertAmount')?.addEventListener('input', calculateProductionConversion);
+
+// Wallet Setup Events  
+document.getElementById('userWalletAddress')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') saveWalletAddress();
+});
+
+// Close modals when clicking outside
+window.addEventListener('click', function(e) {
+    if (e.target.id === 'productionSwapModal') closeProductionSwapModal();
+    if (e.target.id === 'walletSetupModal') closeWalletSetup();
+});
+
+// Close modals with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeProductionSwapModal();
+        closeWalletSetup();
+    }
+});
+
+console.log('✅ Production swap event listeners loaded');
+
+</script>
 </body>
 </html>
