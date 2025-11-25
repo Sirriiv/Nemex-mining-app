@@ -2591,7 +2591,7 @@ body.modal-open {
 <!-- Production Swap Modal - FULLSCREEN VERSION -->
 <div class="modal fullscreen-modal" id="productionSwapModal">
     <div class="modal-content compact-modal">
-        <!-- Compact Header with Back Button & Wallet Settings -->
+        <!-- Compact Header with Back Button ONLY -->
         <div class="modal-header compact-header">
             <div class="header-main">
                 <button class="back-button" onclick="closeProductionSwapModal()">
@@ -2604,7 +2604,6 @@ body.modal-open {
                 <button class="wallet-settings-btn" onclick="showWalletSetup()">
                     <i class="fas fa-cog"></i> Wallet
                 </button>
-                <span class="close" onclick="closeProductionSwapModal()">&times;</span>
             </div>
         </div>
 
@@ -2629,10 +2628,9 @@ body.modal-open {
                 </div>
             </div>
 
-            <!-- Conversion Rate -->
-            <div class="conversion-info">
-                <span class="rate">1 NMX = 30 NMXp</span>
-                <span class="fee">Fee: 0.005 TON</span>
+            <!-- Arrow between sections -->
+            <div class="conversion-arrow">
+                <i class="fas fa-arrow-down"></i>
             </div>
 
             <!-- To Section -->
@@ -2642,6 +2640,11 @@ body.modal-open {
                     <input type="text" id="productionReceiveAmount" placeholder="0.0" readonly>
                     <div class="token-badge">NMX</div>
                 </div>
+            </div>
+
+            <!-- Fee at the bottom of swap panels -->
+            <div class="conversion-fee">
+                <span class="fee-text">Fee: 0.005 TON</span>
             </div>
         </div>
 
@@ -2667,7 +2670,7 @@ body.modal-open {
                 Back
             </button>
             <h3><i class="fas fa-wallet"></i> Setup Wallet</h3>
-            <span class="close" onclick="closeWalletSetup()">&times;</span>
+            <!-- Removed X button from wallet modal too -->
         </div>
 
         <div class="modal-body">
