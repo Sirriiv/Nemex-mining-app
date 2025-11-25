@@ -5418,7 +5418,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - FIXED INTEGRATION
+// PRODUCTION SWAP SYSTEM - FIXED TIMING ISSUE
 // =============================================
 
 // Production configuration
@@ -5437,10 +5437,9 @@ function removeDebugButtons() {
     debugButtons.forEach(button => button.remove());
 }
 
-// ✅ FIXED: Enhanced auth check with better error handling
+// ✅ FIXED: Enhanced auth check
 async function checkAuth() {
     try {
-        // Check if supabaseClient is available
         if (typeof supabaseClient === 'undefined') {
             console.error('❌ supabaseClient is not defined');
             return null;
@@ -5467,7 +5466,7 @@ async function checkAuth() {
     }
 }
 
-// ✅ FIXED: Get user NMXp balance with fallback
+// ✅ FIXED: Get user NMXp balance
 async function getUserNMXpBalance(userId) {
     try {
         console.log('💰 Fetching NMXp balance for user:', userId);
@@ -5480,7 +5479,6 @@ async function getUserNMXpBalance(userId) {
             
         if (error) {
             console.error('❌ Error fetching NMXp balance:', error);
-            // Return default values instead of throwing
             return {
                 balance: 0,
                 wallet_address: null
@@ -5512,7 +5510,7 @@ async function getUserNMXpBalance(userId) {
     }
 }
 
-// ✅ FIXED: Load production swap data with better error handling
+// ✅ FIXED: Load production swap data with timing fix
 async function loadProductionSwapData() {
     console.log('🔄 Loading production swap data...');
     
@@ -5521,7 +5519,7 @@ async function loadProductionSwapData() {
         const userSession = await checkAuth();
         if (!userSession) {
             console.error('❌ User not authenticated');
-            document.getElementById('realNmxpBalance').textContent = '0';
+            setBalanceDisplay(0);
             showToast('Please log in to access swap features', 'error');
             return;
         }
@@ -5532,14 +5530,37 @@ async function loadProductionSwapData() {
         
         console.log('💰 User NMXp Balance:', nmxpBalance);
         
-        // Update displays
-        document.getElementById('realNmxpBalance').textContent = formatNumber(nmxpBalance);
+        // ✅ FIXED: Use helper function to update display
+        setBalanceDisplay(nmxpBalance);
+        
+        // Update wallet display
         updateWalletAddressDisplay(userData.wallet_address);
         
     } catch (error) {
         console.error('❌ Error loading production swap data:', error);
-        document.getElementById('realNmxpBalance').textContent = '0';
+        setBalanceDisplay(0);
         showToast('Error loading balance data', 'error');
+    }
+}
+
+// ✅ NEW: Helper function to safely update balance display
+function setBalanceDisplay(balance) {
+    const balanceElement = document.getElementById('realNmxpBalance');
+    if (balanceElement) {
+        balanceElement.textContent = formatNumber(balance);
+        console.log('✅ Balance display updated to:', balance);
+    } else {
+        console.error('❌ Balance element not found, retrying...');
+        // Retry after a short delay
+        setTimeout(() => {
+            const retryElement = document.getElementById('realNmxpBalance');
+            if (retryElement) {
+                retryElement.textContent = formatNumber(balance);
+                console.log('✅ Balance display updated on retry:', balance);
+            } else {
+                console.error('❌ Balance element still not found after retry');
+            }
+        }, 100);
     }
 }
 
@@ -5552,7 +5573,7 @@ function calculateProductionConversion() {
     validateProductionConversion(nmxpAmount, nmxAmount);
 }
 
-// ✅ FIXED: Validate conversion with better error handling
+// Validate conversion
 async function validateProductionConversion(nmxpAmount, nmxAmount) {
     const convertBtn = document.getElementById('productionConvertBtn');
     
@@ -5602,7 +5623,7 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
     }
 }
 
-// ✅ FIXED: Set max conversion with error handling
+// Set max conversion
 async function setMaxConversion() {
     try {
         const userSession = await checkAuth();
@@ -5745,14 +5766,20 @@ function updateWalletAddressDisplay(walletAddress) {
     }
 }
 
-// Modal functions
+// ✅ FIXED: Open modal with proper timing
 function openProductionSwapModal() {
     console.log('🚀 Opening production swap modal...');
     removeDebugButtons();
-    loadProductionSwapData();
+    
+    // Show modal first
     document.getElementById('productionSwapModal').style.display = 'block';
     document.body.classList.add('modal-open');
-    calculateProductionConversion();
+    
+    // ✅ FIXED: Wait for modal to be fully rendered, then load data
+    setTimeout(() => {
+        loadProductionSwapData();
+        calculateProductionConversion();
+    }, 50); // Short delay to ensure DOM is ready
 }
 
 function closeProductionSwapModal() {
