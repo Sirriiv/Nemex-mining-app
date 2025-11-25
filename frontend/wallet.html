@@ -2468,7 +2468,7 @@
             <span class="close" onclick="closeProductionSwapModal()">&times;</span>
         </div>
 
-        <!-- Single Balance Display (Removed Second Card) -->
+        <!-- Single Balance Display -->
         <div class="compact-balance">
             <div class="balance-item">
                 <span class="balance-label">Available Balance:</span>
@@ -2483,13 +2483,13 @@
             <div class="conversion-row from-row">
                 <div class="row-label">You pay</div>
                 <div class="input-container">
-                    <input type="number" id="productionConvertAmount" placeholder="0.0">
+                    <input type="number" id="productionConvertAmount" placeholder="0.0" oninput="calculateProductionConversion()">
                     <div class="token-badge">NMXp</div>
                     <button class="max-btn" onclick="setMaxConversion()">MAX</button>
                 </div>
             </div>
 
-            <!-- Conversion Rate (No Panel) -->
+            <!-- Conversion Rate -->
             <div class="conversion-info">
                 <span class="rate">1 NMX = 30 NMXp</span>
                 <span class="fee">Fee: 0.005 TON</span>
@@ -2505,7 +2505,7 @@
             </div>
         </div>
 
-        <!-- Convert Button (Moved Up) -->
+        <!-- Convert Button -->
         <button class="compact-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
             Convert to NMX Tokens
         </button>
