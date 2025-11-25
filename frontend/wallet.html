@@ -5411,7 +5411,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - FULLSCREEN VERSION
+// PRODUCTION SWAP SYSTEM - CONNECTED TO DASHBOARD
 // =============================================
 
 // Production configuration
@@ -5447,83 +5447,99 @@ function removeDebugButtons() {
     });
 }
 
-// Update wallet display for new compact layout
-function updateWalletAddressDisplay(walletAddress) {
-    const walletBtn = document.querySelector('.wallet-settings-btn');
-    
-    if (walletAddress) {
-        const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
-        walletBtn.innerHTML = `<i class="fas fa-wallet"></i> ${shortAddress}`;
-        walletBtn.title = `Wallet: ${walletAddress}`;
-        walletBtn.classList.add('connected');
-    } else {
-        walletBtn.innerHTML = '<i class="fas fa-cog"></i> Wallet';
-        walletBtn.title = 'Setup wallet address';
-        walletBtn.classList.remove('connected');
+// ✅ UPDATED: Get user NMXp balance from profiles table (SAME AS DASHBOARD)
+async function getUserNMXpBalance(userId) {
+    try {
+        console.log('💰 Fetching NMXp balance for user:', userId);
+        
+        const { data: profile, error } = await supabaseClient
+            .from('profiles')
+            .select('balance, wallet_address')
+            .eq('id', userId)
+            .single();
+            
+        if (error) {
+            console.error('❌ Error fetching NMXp balance:', error);
+            throw error;
+        }
+        
+        const balance = parseInt(profile.balance) || 0;
+        console.log('✅ NMXp balance fetched:', balance);
+        
+        return {
+            balance: balance,
+            wallet_address: profile.wallet_address
+        };
+        
+    } catch (error) {
+        console.error('❌ Error in getUserNMXpBalance:', error);
+        return {
+            balance: 0,
+            wallet_address: null
+        };
     }
 }
 
-// Load real data for swap modal
+// ✅ UPDATED: Load real data for swap modal - CONNECTED TO DASHBOARD
 async function loadProductionSwapData() {
     console.log('🔄 Loading production swap data...');
     
-    if (!currentUser) {
-        console.error('❌ currentUser not available for swap modal');
-        showToast('Please wait for wallet to load completely', 'error');
+    // Check authentication first (same as dashboard)
+    const userSession = await checkAuth();
+    if (!userSession) {
+        console.error('❌ User not authenticated for swap modal');
+        showToast('Please log in to access swap', 'error');
         return;
     }
     
     try {
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('nmxp_balance, wallet_address, nmx_balance')
-            .eq('id', currentUser.id)
-            .single();
-            
-        if (error) throw error;
+        // ✅ USE THE SAME BALANCE FETCHING AS DASHBOARD
+        const userData = await getUserNMXpBalance(userSession.id);
+        const nmxpBalance = userData.balance;
         
-        // Handle integer nmxp_balance
-        const nmxpBalance = parseInt(profile.nmxp_balance) || 0;
-        
-        console.log('💰 User NMXp Balance:', nmxpBalance);
+        console.log('💰 User NMXp Balance from dashboard:', nmxpBalance);
         
         // Update NMXp balance display
-        document.getElementById('realNmxpBalance').textContent = nmxpBalance.toLocaleString('en-US');
+        document.getElementById('realNmxpBalance').textContent = formatNumber(nmxpBalance);
         
         // Update wallet display
-        updateWalletAddressDisplay(profile.wallet_address);
+        updateWalletAddressDisplay(userData.wallet_address);
         
     } catch (error) {
         console.error('❌ Error loading production swap data:', error);
-        showToast('Error loading your data', 'error');
+        showToast('Error loading your balance data', 'error');
     }
 }
 
-// Calculate production conversion
+// ✅ UPDATED: Calculate production conversion with real balance
 function calculateProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value) || 0;
     const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
     
     // Update displays
-    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(4);
+    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
     
     // Validate conversion
     validateProductionConversion(nmxpAmount, nmxAmount);
 }
 
-// Validate against real constraints
+// ✅ UPDATED: Validate against real user balance from dashboard
 async function validateProductionConversion(nmxpAmount, nmxAmount) {
     const convertBtn = document.getElementById('productionConvertBtn');
     
     try {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('nmxp_balance, wallet_address')
-            .eq('id', currentUser.id)
-            .single();
+        // Get fresh user data from database
+        const userSession = await checkAuth();
+        if (!userSession) {
+            convertBtn.disabled = true;
+            convertBtn.textContent = 'Please log in first';
+            convertBtn.className = 'compact-convert-btn disabled';
+            return;
+        }
         
-        const userNmxpBalance = parseInt(profile.nmxp_balance) || 0;
-        const hasWallet = !!profile.wallet_address;
+        const userData = await getUserNMXpBalance(userSession.id);
+        const userNmxpBalance = userData.balance;
+        const hasWallet = !!userData.wallet_address;
         const hasEnoughNMXp = userNmxpBalance >= nmxpAmount;
         const meetsMinimum = nmxpAmount >= PRODUCTION_CONFIG.MIN_CONVERSION;
         const withinMax = nmxpAmount <= PRODUCTION_CONFIG.MAX_CONVERSION;
@@ -5531,7 +5547,7 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
         
         if (hasWallet && hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
             convertBtn.disabled = false;
-            convertBtn.textContent = `Convert ${nmxpAmount.toLocaleString()} NMXp to ${nmxAmount.toFixed(4)} NMX`;
+            convertBtn.textContent = `Convert ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX`;
             convertBtn.className = 'compact-convert-btn active';
         } else {
             convertBtn.disabled = true;
@@ -5557,48 +5573,54 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
     }
 }
 
-// Set maximum conversion amount
+// ✅ UPDATED: Set maximum conversion amount using real balance
 async function setMaxConversion() {
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('nmxp_balance')
-        .eq('id', currentUser.id)
-        .single();
-    
-    const maxAmount = Math.min(parseInt(profile.nmxp_balance) || 0, PRODUCTION_CONFIG.MAX_CONVERSION);
-    document.getElementById('productionConvertAmount').value = maxAmount;
-    calculateProductionConversion();
+    try {
+        const userSession = await checkAuth();
+        if (!userSession) {
+            showToast('Please log in first', 'error');
+            return;
+        }
+        
+        const userData = await getUserNMXpBalance(userSession.id);
+        const maxAmount = Math.min(userData.balance, PRODUCTION_CONFIG.MAX_CONVERSION);
+        
+        document.getElementById('productionConvertAmount').value = maxAmount;
+        calculateProductionConversion();
+        
+    } catch (error) {
+        console.error('Error setting max conversion:', error);
+        showToast('Error loading your balance', 'error');
+    }
 }
 
-// Execute production conversion
+// ✅ UPDATED: Execute production conversion with proper balance updates
 async function executeProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
     
-    if (!currentUser) {
-        showToast('Please log in to convert', 'error');
+    if (!nmxpAmount || nmxpAmount <= 0) {
+        showToast('Please enter a valid amount', 'error');
         return;
     }
     
     try {
-        showToast('Recording your conversion...', 'info');
+        showToast('Processing your conversion...', 'info');
         
         // Get fresh user data
-        const { data: profile, error: fetchError } = await supabase
-            .from('profiles')
-            .select('nmxp_balance, wallet_address, nmx_balance')
-            .eq('id', currentUser.id)
-            .single();
-            
-        if (fetchError) throw fetchError;
+        const userSession = await checkAuth();
+        if (!userSession) {
+            throw new Error('Please log in to convert');
+        }
         
-        // Final validation
+        const userData = await getUserNMXpBalance(userSession.id);
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
         
-        if (!profile.wallet_address) {
+        // Final validation
+        if (!userData.wallet_address) {
             throw new Error('Wallet address not set');
         }
         
-        if ((parseInt(profile.nmxp_balance) || 0) < nmxpAmount) {
+        if (userData.balance < nmxpAmount) {
             throw new Error('Insufficient NMXp balance');
         }
         
@@ -5606,34 +5628,38 @@ async function executeProductionConversion() {
             throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
         }
         
-        // START PRODUCTION TRANSACTION
-        const { error: updateError } = await supabase
+        // ✅ START PRODUCTION TRANSACTION - UPDATE BALANCE IN PROFILES TABLE
+        const newNmxpBalance = userData.balance - nmxpAmount;
+        
+        const { error: updateError } = await supabaseClient
             .from('profiles')
             .update({
-                nmxp_balance: (parseInt(profile.nmxp_balance) || 0) - nmxpAmount,
-                nmx_balance: (parseFloat(profile.nmx_balance) || 0) + nmxAmount,
+                balance: newNmxpBalance,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', currentUser.id);
+            .eq('id', userSession.id);
             
         if (updateError) throw updateError;
         
-        // RECORD CONVERSION FOR MANUAL PROCESSING
-        const { error: recordError } = await supabase
+        // ✅ RECORD CONVERSION FOR MANUAL PROCESSING
+        const { error: recordError } = await supabaseClient
             .from('conversions')
             .insert([{
-                user_id: currentUser.id,
+                user_id: userSession.id,
                 nmxp_amount: nmxpAmount,
                 nmx_amount: nmxAmount,
-                wallet_address: profile.wallet_address,
+                wallet_address: userData.wallet_address,
                 status: 'pending',
                 created_at: new Date().toISOString()
             }]);
             
         if (recordError) throw recordError;
         
-        // SUCCESS
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(4)} NMX will be sent to your wallet.`, 'success');
+        // ✅ SUCCESS - CREATE NOTIFICATION
+        await createConversionNotification(userSession.id, nmxpAmount, nmxAmount);
+        
+        // ✅ SUCCESS MESSAGE
+        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent to your wallet.`, 'success');
         
         // Refresh displays
         await loadProductionSwapData();
@@ -5646,6 +5672,46 @@ async function executeProductionConversion() {
     } catch (error) {
         console.error('❌ Production conversion failed:', error);
         showToast('Conversion failed: ' + error.message, 'error');
+    }
+}
+
+// ✅ NEW: Create conversion notification
+async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
+    try {
+        const notificationData = {
+            user_id: userId,
+            type: 'conversion',
+            title: 'Conversion Submitted!',
+            message: `You converted ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX. Tokens will be sent to your wallet.`,
+            is_read: false,
+            created_at: new Date().toISOString()
+        };
+
+        const { data, error } = await supabaseClient
+            .from('notifications')
+            .insert([notificationData]);
+
+        if (!error) {
+            console.log('✅ Conversion notification created');
+        }
+    } catch (error) {
+        console.error('❌ Error creating conversion notification:', error);
+    }
+}
+
+// Update wallet display for new compact layout
+function updateWalletAddressDisplay(walletAddress) {
+    const walletBtn = document.querySelector('.wallet-settings-btn');
+    
+    if (walletAddress) {
+        const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
+        walletBtn.innerHTML = `<i class="fas fa-wallet"></i> ${shortAddress}`;
+        walletBtn.title = `Wallet: ${walletAddress}`;
+        walletBtn.classList.add('connected');
+    } else {
+        walletBtn.innerHTML = '<i class="fas fa-cog"></i> Wallet';
+        walletBtn.title = 'Setup wallet address';
+        walletBtn.classList.remove('connected');
     }
 }
 
@@ -5683,7 +5749,7 @@ function validateTONAddress(address) {
     return (address.length >= 48 && (address.startsWith('EQ') || address.startsWith('UQ')));
 }
 
-// Save wallet address
+// ✅ UPDATED: Save wallet address to profiles table
 async function saveWalletAddress() {
     const walletAddress = document.getElementById('userWalletAddress').value.trim();
     
@@ -5693,13 +5759,18 @@ async function saveWalletAddress() {
     }
     
     try {
-        const { error } = await supabase
+        const userSession = await checkAuth();
+        if (!userSession) {
+            throw new Error('Please log in to save wallet');
+        }
+        
+        const { error } = await supabaseClient
             .from('profiles')
             .update({ 
                 wallet_address: walletAddress,
                 updated_at: new Date().toISOString()
             })
-            .eq('id', currentUser.id);
+            .eq('id', userSession.id);
             
         if (error) throw error;
         
@@ -5715,6 +5786,77 @@ async function saveWalletAddress() {
         console.error('Error saving wallet address:', error);
         showToast('Failed to save wallet address', 'error');
     }
+}
+
+// ✅ ADDED: Format number function (same as dashboard)
+function formatNumber(number) {            
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// ✅ ADDED: Check auth function (same as dashboard)
+async function checkAuth() {
+    try {
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+        if (error) {
+            console.error('Session error:', error);
+            throw error;
+        }
+
+        if (!session) {
+            console.log('❌ No Supabase session found');
+            return null;
+        }
+
+        console.log('✅ Supabase session found for user:', session.user.id);
+        return session.user;
+
+    } catch (error) {
+        console.error('❌ Auth check error:', error);
+        return null;
+    }
+}
+
+// ✅ ADDED: Show toast function (if not exists)
+function showToast(message, type = 'info') {
+    // Create toast element if it doesn't exist
+    let toast = document.getElementById('globalToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'globalToast';
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            transition: all 0.3s ease;
+            max-width: 90%;
+            text-align: center;
+        `;
+        document.body.appendChild(toast);
+    }
+    
+    // Set styles based on type
+    const styles = {
+        success: 'background: var(--success);',
+        error: 'background: var(--error);',
+        info: 'background: var(--gold);',
+        warning: 'background: var(--warning); color: #000;'
+    };
+    
+    toast.style.cssText += styles[type] || styles.info;
+    toast.textContent = message;
+    toast.style.display = 'block';
+    
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
 }
 
 // Initialize - remove debug buttons when page loads
