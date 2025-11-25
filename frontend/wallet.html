@@ -1407,211 +1407,308 @@
             display: grid !important;
         }
 
-/* Production Swap Modal Styles */
-.real-balances {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
+/* Compact Production Swap Modal */
+.compact-modal {
+    max-width: 420px;
+    max-height: 85vh;
+    overflow-y: auto;
 }
 
-.balance-card {
-    background: var(--card-bg);
-    padding: 15px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
-}
-
-.balance-label {
-    font-size: 12px;
-    color: var(--text-muted);
-    display: block;
-    margin-bottom: 5px;
-}
-
-.balance-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--gold);
-    text-shadow: 0 2px 4px rgba(212, 175, 55, 0.3);
-}
-
-.conversion-interface {
-    background: var(--dark-bg);
-    padding: 20px;
-    border-radius: 12px;
-    margin: 20px 0;
-    border: 1px solid var(--border-color);
-}
-
-.input-with-max {
+/* Compact Header */
+.compact-header {
     display: flex;
-    gap: 10px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 2px solid var(--gold);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
 }
 
-.max-btn {
-    background: var(--gold);
-    color: var(--dark-bg);
-    border: none;
-    padding: 0 15px;
+.header-main {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.compact-header h3 {
+    color: var(--gold);
+    margin: 0;
+    font-size: 18px;
+}
+
+.wallet-settings-btn {
+    background: rgba(212, 175, 55, 0.15);
+    color: var(--gold);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 6px 12px;
     border-radius: 6px;
     font-size: 12px;
-    font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
-.max-btn:hover {
-    background: var(--gold-light);
+.wallet-settings-btn:hover {
+    background: rgba(212, 175, 55, 0.25);
     transform: translateY(-1px);
 }
 
-.production-details {
-    background: var(--card-bg);
-    padding: 15px;
-    border-radius: 12px;
-    margin: 15px 0;
-    border: 1px solid var(--border-color);
+/* Compact Balance */
+.compact-balance {
+    padding: 15px 20px;
+    background: rgba(212, 175, 55, 0.05);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
 }
 
-.detail-row {
+.balance-item {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: var(--text);
+    align-items: center;
+    gap: 8px;
 }
 
-.detail-row span:first-child {
+.balance-label {
     color: var(--text-muted);
+    font-size: 13px;
 }
 
-.detail-row span:last-child {
+.balance-value {
     color: var(--gold);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.balance-currency {
+    color: var(--text-muted);
+    font-size: 13px;
     font-weight: 600;
 }
 
-.wallet-address {
-    font-family: monospace;
-    font-size: 12px;
+/* Compact Conversion */
+.compact-conversion {
+    padding: 20px;
 }
 
-.wallet-address.set {
-    color: var(--success);
+.conversion-row {
+    margin-bottom: 15px;
 }
 
-.wallet-address.not-set {
-    color: var(--error);
+.row-label {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: block;
 }
 
-.production-convert-btn {
-    width: 100%;
-    padding: 15px;
+.input-container, .output-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--darker-bg);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 10px;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.input-container:focus-within {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
+}
+
+.input-container input, .output-container input {
+    flex: 1;
+    background: transparent;
     border: none;
-    border-radius: 12px;
+    color: var(--gold);
+    font-size: 18px;
+    font-weight: 600;
+    outline: none;
+}
+
+.output-container input {
+    color: var(--gold);
+    opacity: 0.8;
+}
+
+.token-badge {
+    background: rgba(212, 175, 55, 0.2);
+    color: var(--gold);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 12px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    min-width: 50px;
+    text-align: center;
+}
+
+.max-btn {
+    background: rgba(212, 175, 55, 0.3);
+    color: var(--gold);
+    border: 1px solid rgba(212, 175, 55, 0.5);
+    padding: 6px 12px;
+    border-radius: 6px;
     font-weight: 700;
     cursor: pointer;
-    margin-top: 15px;
     transition: all 0.3s ease;
-    font-size: 16px;
+    font-size: 11px;
+}
+
+.max-btn:hover {
+    background: rgba(212, 175, 55, 0.5);
+}
+
+/* Conversion Info - No Panel */
+.conversion-info {
+    text-align: center;
+    margin: 10px 0 15px 0;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.rate, .fee {
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(212, 175, 55, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* Compact Convert Button */
+.compact-convert-btn {
+    width: calc(100% - 40px);
+    margin: 10px 20px;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
-.production-convert-btn.active {
+.compact-convert-btn.active {
     background: linear-gradient(135deg, var(--gold), var(--gold-light));
     color: var(--dark-bg);
     box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
 }
 
-.production-convert-btn.active:hover {
+.compact-convert-btn.active:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
 }
 
-.production-convert-btn.disabled {
+.compact-convert-btn.disabled {
     background: var(--muted);
     color: var(--text);
     cursor: not-allowed;
     opacity: 0.6;
 }
 
-.production-note {
-    text-align: center;
-    margin-top: 15px;
-    font-size: 12px;
+/* Compact Note */
+.compact-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     color: var(--text-muted);
-    padding: 10px;
-    background: rgba(212, 175, 55, 0.1);
-    border-radius: 8px;
-    border: 1px solid rgba(212, 175, 55, 0.2);
+    font-size: 12px;
+    padding: 15px 20px;
+    background: rgba(212, 175, 55, 0.05);
+    border-top: 1px solid rgba(212, 175, 55, 0.1);
 }
 
-.conversion-arrow {
+.compact-note i {
+    color: var(--gold);
+}
+
+/* Mini Wallet Modal */
+.mini-modal {
+    max-width: 380px;
+}
+
+.mini-modal .modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.mini-modal .modal-header h3 {
+    color: var(--gold);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body p {
+    color: var(--text-muted);
+    margin-bottom: 15px;
     text-align: center;
-    font-size: 24px;
-    color: var(--gold);
-    margin: 10px 0;
-    text-shadow: 0 2px 4px rgba(212, 175, 55, 0.3);
-}
-
-.from-section, .to-section {
-    margin: 15px 0;
-}
-
-.from-section label, .to-section label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    color: var(--gold);
     font-size: 14px;
 }
 
-.input-with-max input {
-    flex: 1;
+.wallet-input {
+    width: 100%;
     background: var(--darker-bg);
-    border: 1px solid var(--border-color);
+    border: 2px solid rgba(212, 175, 55, 0.3);
     border-radius: 8px;
-    padding: 12px;
+    padding: 12px 15px;
     color: var(--gold);
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 15px;
     transition: all 0.3s ease;
 }
 
-.input-with-max input:focus {
+.wallet-input:focus {
     outline: none;
     border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
 }
 
-.output-display {
+.modal-actions {
     display: flex;
-    background: var(--darker-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 12px;
+    gap: 10px;
+    justify-content: flex-end;
 }
 
-.output-display input {
-    flex: 1;
-    background: none;
+.btn {
+    padding: 10px 20px;
     border: none;
-    color: var(--gold);
-    font-size: 16px;
+    border-radius: 8px;
     font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
 }
 
-.token-symbol {
-    color: var(--text-muted);
-    font-weight: 600;
+.btn.primary {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--dark-bg);
 }
 
-.balance-hint, .receive-hint {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 5px;
+.btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
+}
+
+.btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text);
+}
+
+.btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
     </style>
