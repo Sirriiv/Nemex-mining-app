@@ -6,7 +6,14 @@
     <title>Nemex Wallet - Secure TON Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="assets/js/wallet.js" onerror="handleWalletScriptError()"></script>
-<script sec="assets/js/crypto-utils.js"></script>
+<script src="assets/js/crypto-utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // Initialize Supabase in wallet.html
+    const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+</script>
 
     <style>
         :root {
@@ -5411,7 +5418,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - CONNECTED TO DASHBOARD
+// PRODUCTION SWAP SYSTEM - FIXED INTEGRATION
 // =============================================
 
 // Production configuration
@@ -5423,31 +5430,44 @@ const PRODUCTION_CONFIG = {
 
 // Remove debug buttons completely
 function removeDebugButtons() {
-    // Remove by ID
     const debugButton = document.getElementById('debugUserState');
-    if (debugButton) {
-        debugButton.remove();
-        console.log('🗑️ Removed debug user state button');
-    }
+    if (debugButton) debugButton.remove();
     
-    // Remove by class
     const debugButtons = document.querySelectorAll('.debug-btn, .debug-button');
-    debugButtons.forEach(button => {
-        button.remove();
-        console.log('🗑️ Removed debug button');
-    });
-    
-    // Remove any other debug elements
-    const debugElements = document.querySelectorAll('[class*="debug"], [id*="debug"]');
-    debugElements.forEach(element => {
-        if (element.textContent.includes('Debug') || element.textContent.includes('debug')) {
-            element.remove();
-            console.log('🗑️ Removed debug element');
-        }
-    });
+    debugButtons.forEach(button => button.remove());
 }
 
-// ✅ UPDATED: Get user NMXp balance from profiles table (SAME AS DASHBOARD)
+// ✅ FIXED: Enhanced auth check with better error handling
+async function checkAuth() {
+    try {
+        // Check if supabaseClient is available
+        if (typeof supabaseClient === 'undefined') {
+            console.error('❌ supabaseClient is not defined');
+            return null;
+        }
+
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+        if (error) {
+            console.error('Session error:', error);
+            return null;
+        }
+
+        if (!session) {
+            console.log('❌ No active session found');
+            return null;
+        }
+
+        console.log('✅ User authenticated:', session.user.id);
+        return session.user;
+
+    } catch (error) {
+        console.error('❌ Auth check error:', error);
+        return null;
+    }
+}
+
+// ✅ FIXED: Get user NMXp balance with fallback
 async function getUserNMXpBalance(userId) {
     try {
         console.log('💰 Fetching NMXp balance for user:', userId);
@@ -5460,7 +5480,19 @@ async function getUserNMXpBalance(userId) {
             
         if (error) {
             console.error('❌ Error fetching NMXp balance:', error);
-            throw error;
+            // Return default values instead of throwing
+            return {
+                balance: 0,
+                wallet_address: null
+            };
+        }
+        
+        if (!profile) {
+            console.log('❌ No profile found for user');
+            return {
+                balance: 0,
+                wallet_address: null
+            };
         }
         
         const balance = parseInt(profile.balance) || 0;
@@ -5480,55 +5512,51 @@ async function getUserNMXpBalance(userId) {
     }
 }
 
-// ✅ UPDATED: Load real data for swap modal - CONNECTED TO DASHBOARD
+// ✅ FIXED: Load production swap data with better error handling
 async function loadProductionSwapData() {
     console.log('🔄 Loading production swap data...');
     
-    // Check authentication first (same as dashboard)
-    const userSession = await checkAuth();
-    if (!userSession) {
-        console.error('❌ User not authenticated for swap modal');
-        showToast('Please log in to access swap', 'error');
-        return;
-    }
-    
     try {
-        // ✅ USE THE SAME BALANCE FETCHING AS DASHBOARD
+        // Check authentication first
+        const userSession = await checkAuth();
+        if (!userSession) {
+            console.error('❌ User not authenticated');
+            document.getElementById('realNmxpBalance').textContent = '0';
+            showToast('Please log in to access swap features', 'error');
+            return;
+        }
+        
+        // Get user data
         const userData = await getUserNMXpBalance(userSession.id);
         const nmxpBalance = userData.balance;
         
-        console.log('💰 User NMXp Balance from dashboard:', nmxpBalance);
+        console.log('💰 User NMXp Balance:', nmxpBalance);
         
-        // Update NMXp balance display
+        // Update displays
         document.getElementById('realNmxpBalance').textContent = formatNumber(nmxpBalance);
-        
-        // Update wallet display
         updateWalletAddressDisplay(userData.wallet_address);
         
     } catch (error) {
         console.error('❌ Error loading production swap data:', error);
-        showToast('Error loading your balance data', 'error');
+        document.getElementById('realNmxpBalance').textContent = '0';
+        showToast('Error loading balance data', 'error');
     }
 }
 
-// ✅ UPDATED: Calculate production conversion with real balance
+// Calculate production conversion
 function calculateProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value) || 0;
     const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
     
-    // Update displays
     document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
-    
-    // Validate conversion
     validateProductionConversion(nmxpAmount, nmxAmount);
 }
 
-// ✅ UPDATED: Validate against real user balance from dashboard
+// ✅ FIXED: Validate conversion with better error handling
 async function validateProductionConversion(nmxpAmount, nmxAmount) {
     const convertBtn = document.getElementById('productionConvertBtn');
     
     try {
-        // Get fresh user data from database
         const userSession = await checkAuth();
         if (!userSession) {
             convertBtn.disabled = true;
@@ -5560,20 +5588,21 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
             } else if (!hasEnoughNMXp) {
                 convertBtn.textContent = 'Insufficient NMXp balance';
             } else if (!withinMax) {
-                convertBtn.textContent = `Maximum ${PRODUCTION_CONFIG.MAX_CONVERSION.toLocaleString()} NMXp per conversion`;
+                convertBtn.textContent = `Maximum ${PRODUCTION_CONFIG.MAX_CONVERSION.toLocaleString()} NMXp`;
             } else {
                 convertBtn.textContent = 'Enter amount to convert';
             }
         }
         
     } catch (error) {
+        console.error('Validation error:', error);
         convertBtn.disabled = true;
-        convertBtn.textContent = 'Error validating conversion';
+        convertBtn.textContent = 'Error validating';
         convertBtn.className = 'compact-convert-btn disabled';
     }
 }
 
-// ✅ UPDATED: Set maximum conversion amount using real balance
+// ✅ FIXED: Set max conversion with error handling
 async function setMaxConversion() {
     try {
         const userSession = await checkAuth();
@@ -5585,16 +5614,21 @@ async function setMaxConversion() {
         const userData = await getUserNMXpBalance(userSession.id);
         const maxAmount = Math.min(userData.balance, PRODUCTION_CONFIG.MAX_CONVERSION);
         
+        if (maxAmount <= 0) {
+            showToast('Insufficient balance for conversion', 'error');
+            return;
+        }
+        
         document.getElementById('productionConvertAmount').value = maxAmount;
         calculateProductionConversion();
         
     } catch (error) {
         console.error('Error setting max conversion:', error);
-        showToast('Error loading your balance', 'error');
+        showToast('Error loading balance', 'error');
     }
 }
 
-// ✅ UPDATED: Execute production conversion with proper balance updates
+// Execute production conversion
 async function executeProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
     
@@ -5606,7 +5640,6 @@ async function executeProductionConversion() {
     try {
         showToast('Processing your conversion...', 'info');
         
-        // Get fresh user data
         const userSession = await checkAuth();
         if (!userSession) {
             throw new Error('Please log in to convert');
@@ -5628,7 +5661,7 @@ async function executeProductionConversion() {
             throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
         }
         
-        // ✅ START PRODUCTION TRANSACTION - UPDATE BALANCE IN PROFILES TABLE
+        // Update balance
         const newNmxpBalance = userData.balance - nmxpAmount;
         
         const { error: updateError } = await supabaseClient
@@ -5641,7 +5674,7 @@ async function executeProductionConversion() {
             
         if (updateError) throw updateError;
         
-        // ✅ RECORD CONVERSION FOR MANUAL PROCESSING
+        // Record conversion
         const { error: recordError } = await supabaseClient
             .from('conversions')
             .insert([{
@@ -5655,51 +5688,48 @@ async function executeProductionConversion() {
             
         if (recordError) throw recordError;
         
-        // ✅ SUCCESS - CREATE NOTIFICATION
+        // Create notification
         await createConversionNotification(userSession.id, nmxpAmount, nmxAmount);
         
-        // ✅ SUCCESS MESSAGE
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent to your wallet.`, 'success');
+        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent.`, 'success');
         
-        // Refresh displays
+        // Refresh and close
         await loadProductionSwapData();
         closeProductionSwapModal();
         
-        // Reset input
+        // Reset inputs
         document.getElementById('productionConvertAmount').value = '';
         document.getElementById('productionReceiveAmount').value = '';
         
     } catch (error) {
-        console.error('❌ Production conversion failed:', error);
+        console.error('❌ Conversion failed:', error);
         showToast('Conversion failed: ' + error.message, 'error');
     }
 }
 
-// ✅ NEW: Create conversion notification
+// Create conversion notification
 async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
     try {
         const notificationData = {
             user_id: userId,
             type: 'conversion',
             title: 'Conversion Submitted!',
-            message: `You converted ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX. Tokens will be sent to your wallet.`,
+            message: `You converted ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX.`,
             is_read: false,
             created_at: new Date().toISOString()
         };
 
-        const { data, error } = await supabaseClient
+        await supabaseClient
             .from('notifications')
             .insert([notificationData]);
 
-        if (!error) {
-            console.log('✅ Conversion notification created');
-        }
+        console.log('✅ Conversion notification created');
     } catch (error) {
-        console.error('❌ Error creating conversion notification:', error);
+        console.error('❌ Error creating notification:', error);
     }
 }
 
-// Update wallet display for new compact layout
+// Update wallet display
 function updateWalletAddressDisplay(walletAddress) {
     const walletBtn = document.querySelector('.wallet-settings-btn');
     
@@ -5715,23 +5745,21 @@ function updateWalletAddressDisplay(walletAddress) {
     }
 }
 
-// Open production swap modal - FULLSCREEN
+// Modal functions
 function openProductionSwapModal() {
     console.log('🚀 Opening production swap modal...');
-    removeDebugButtons(); // Remove any debug buttons
+    removeDebugButtons();
     loadProductionSwapData();
     document.getElementById('productionSwapModal').style.display = 'block';
     document.body.classList.add('modal-open');
     calculateProductionConversion();
 }
 
-// Close production swap modal
 function closeProductionSwapModal() {
     document.getElementById('productionSwapModal').style.display = 'none';
     document.body.classList.remove('modal-open');
 }
 
-// Wallet Setup Functions - FULLSCREEN
 function showWalletSetup() {
     document.getElementById('walletSetupModal').style.display = 'block';
     document.body.classList.add('modal-open');
@@ -5749,7 +5777,7 @@ function validateTONAddress(address) {
     return (address.length >= 48 && (address.startsWith('EQ') || address.startsWith('UQ')));
 }
 
-// ✅ UPDATED: Save wallet address to profiles table
+// Save wallet address
 async function saveWalletAddress() {
     const walletAddress = document.getElementById('userWalletAddress').value.trim();
     
@@ -5777,7 +5805,7 @@ async function saveWalletAddress() {
         showToast('Wallet address saved successfully!', 'success');
         closeWalletSetup();
         
-        // Refresh swap modal if open
+        // Refresh swap modal
         if (document.getElementById('productionSwapModal').style.display === 'block') {
             loadProductionSwapData();
         }
@@ -5788,38 +5816,13 @@ async function saveWalletAddress() {
     }
 }
 
-// ✅ ADDED: Format number function (same as dashboard)
+// Format number function
 function formatNumber(number) {            
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
 
-// ✅ ADDED: Check auth function (same as dashboard)
-async function checkAuth() {
-    try {
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
-
-        if (error) {
-            console.error('Session error:', error);
-            throw error;
-        }
-
-        if (!session) {
-            console.log('❌ No Supabase session found');
-            return null;
-        }
-
-        console.log('✅ Supabase session found for user:', session.user.id);
-        return session.user;
-
-    } catch (error) {
-        console.error('❌ Auth check error:', error);
-        return null;
-    }
-}
-
-// ✅ ADDED: Show toast function (if not exists)
+// Show toast function
 function showToast(message, type = 'info') {
-    // Create toast element if it doesn't exist
     let toast = document.getElementById('globalToast');
     if (!toast) {
         toast = document.createElement('div');
@@ -5841,7 +5844,6 @@ function showToast(message, type = 'info') {
         document.body.appendChild(toast);
     }
     
-    // Set styles based on type
     const styles = {
         success: 'background: var(--success);',
         error: 'background: var(--error);',
@@ -5853,15 +5855,15 @@ function showToast(message, type = 'info') {
     toast.textContent = message;
     toast.style.display = 'block';
     
-    // Auto hide after 3 seconds
     setTimeout(() => {
         toast.style.display = 'none';
     }, 3000);
 }
 
-// Initialize - remove debug buttons when page loads
+// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     removeDebugButtons();
+    console.log('✅ Production swap system initialized');
 });
 
 // =============================================
