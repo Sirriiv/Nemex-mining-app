@@ -1407,7 +1407,7 @@
             display: grid !important;
         }
 
-/* Refined Production Swap Modal */
+/* Refined Production Swap Modal - New Layout */
 #productionSwapModal {
     position: fixed;
     top: 0;
@@ -1424,7 +1424,7 @@
     background: var(--dark-bg);
     border-radius: 0;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
     max-width: 100%;
     margin: 0;
 }
@@ -1434,229 +1434,240 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 0;
+    padding: 16px 20px;
+    background: var(--darker-bg);
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 20px;
 }
 
 .swap-header h2 {
-    color: var(--gold);
-    font-size: 24px;
-    font-weight: 700;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 600;
     margin: 0;
+    flex: 1;
+    text-align: center;
 }
 
-.close-btn {
+.back-btn, .settings-btn {
     background: none;
     border: none;
-    color: var(--gold);
+    color: var(--text);
     font-size: 20px;
     cursor: pointer;
     padding: 8px;
     border-radius: 50%;
     transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-    background: rgba(212, 175, 55, 0.1);
-}
-
-/* Wallet Settings Bar */
-.wallet-settings-bar {
+    width: 40px;
+    height: 40px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
-    padding: 15px;
-    background: rgba(212, 175, 55, 0.05);
-    border-radius: 12px;
-    border: 1px solid rgba(212, 175, 55, 0.2);
+    justify-content: center;
 }
 
-.wallet-settings-btn {
-    background: linear-gradient(135deg, var(--gold), var(--gold-light));
-    color: var(--dark-bg);
-    border: none;
-    padding: 10px 16px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
+.back-btn:hover, .settings-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
-.wallet-settings-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
-}
-
-.wallet-status {
-    font-size: 13px;
-    font-weight: 500;
-}
-
-.wallet-status.configured {
-    color: var(--success);
-}
-
-.wallet-status.not-configured {
-    color: var(--error);
-}
-
-/* Balance Panel */
-.balance-panel {
-    background: linear-gradient(135deg, var(--card-bg), var(--darker-bg));
+/* Swap Sections */
+.swap-section {
     padding: 20px;
-    border-radius: 12px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 25px;
-    text-align: center;
-}
-
-.balance-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.balance-label {
-    color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.balance-value {
-    color: var(--gold);
-    font-size: 20px;
-    font-weight: 700;
-}
-
-/* Conversion Sections */
-.conversion-sections {
-    margin-bottom: 30px;
-}
-
-.conversion-section {
-    margin-bottom: 25px;
-}
-
-.section-label {
-    display: block;
-    color: var(--gold);
-    font-weight: 600;
-    margin-bottom: 12px;
-    font-size: 16px;
-}
-
-.input-container, .output-container {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.input-container input, .output-container input {
-    flex: 1;
-    background: var(--darker-bg);
-    border: 2px solid var(--border-color);
-    border-radius: 12px;
-    padding: 16px;
-    color: var(--gold);
-    font-size: 18px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-.input-container input:focus {
-    outline: none;
-    border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
-}
-
-.output-container input {
-    background: rgba(212, 175, 55, 0.1);
-    border-color: rgba(212, 175, 55, 0.3);
-}
-
-.max-btn {
-    background: rgba(212, 175, 55, 0.2);
-    color: var(--gold);
-    border: 1px solid var(--gold);
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-}
-
-.max-btn:hover {
-    background: rgba(212, 175, 55, 0.3);
-}
-
-.token-symbol {
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 16px;
-    min-width: 50px;
-}
-
-.balance-hint, .receive-amount {
-    color: var(--text-muted);
-    font-size: 13px;
-    text-align: right;
-}
-
-.receive-amount {
-    color: var(--gold);
-    font-weight: 600;
-    font-size: 14px;
-}
-
-/* Conversion Info */
-.conversion-info {
-    background: rgba(212, 175, 55, 0.05);
-    padding: 15px;
-    border-radius: 10px;
-    margin: 20px 0;
-    border: 1px solid rgba(212, 175, 55, 0.1);
-}
-
-.info-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.info-item:last-child {
     margin-bottom: 0;
 }
 
-.info-label {
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.section-title {
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.balance-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     color: var(--text-muted);
     font-size: 13px;
 }
 
-.info-value {
+.balance-display i {
+    font-size: 12px;
+}
+
+/* Token Cards */
+.token-card {
+    background: var(--darker-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.from-card {
+    border-color: rgba(212, 175, 55, 0.3);
+}
+
+.to-card {
+    border-color: rgba(212, 175, 55, 0.2);
+    background: rgba(212, 175, 55, 0.05);
+}
+
+.token-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.token-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.nmxp-icon {
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.4));
+    color: var(--gold);
+    border: 2px solid var(--gold);
+}
+
+.nmx-icon {
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    color: var(--dark-bg);
+}
+
+.token-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.token-name {
+    color: var(--text);
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.token-network {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.token-amount-section {
+    text-align: right;
+}
+
+.amount-input {
+    background: none;
+    border: none;
+    color: var(--gold);
+    font-size: 24px;
+    font-weight: 700;
+    text-align: right;
+    width: 120px;
+    outline: none;
+}
+
+.amount-input::placeholder {
+    color: rgba(212, 175, 55, 0.3);
+}
+
+.amount-input.readonly {
+    color: var(--gold);
+    cursor: default;
+}
+
+.amount-usd {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 4px;
+}
+
+/* Swap Icon */
+.swap-icon-container {
+    display: flex;
+    justify-content: center;
+    margin: -12px 0;
+    position: relative;
+    z-index: 10;
+}
+
+.swap-icon {
+    width: 40px;
+    height: 40px;
+    background: var(--darker-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold);
+    font-size: 16px;
+}
+
+/* Conversion Details */
+.conversion-details {
+    padding: 20px;
+    background: rgba(212, 175, 55, 0.05);
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.detail-row:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.detail-value {
     color: var(--gold);
     font-weight: 600;
     font-size: 13px;
+}
+
+.detail-value.clickable {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.detail-value.clickable:hover {
+    color: var(--gold-light);
 }
 
 /* Convert Button */
 .convert-btn {
-    width: 100%;
+    width: calc(100% - 40px);
     padding: 18px;
     border: none;
-    border-radius: 12px;
+    border-radius: 16px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 16px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 20px;
+    margin: 20px;
+    position: relative;
 }
 
 .convert-btn.active {
@@ -1671,60 +1682,125 @@
 }
 
 .convert-btn.disabled {
-    background: var(--muted);
-    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
     cursor: not-allowed;
-    opacity: 0.6;
 }
 
 /* Mini Wallet Modal */
+#walletSetupModal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 11000;
+    align-items: center;
+    justify-content: center;
+}
+
 .mini-modal {
     max-width: 400px;
-    margin: 50px auto;
+    width: 90%;
+    background: var(--dark-bg);
     border-radius: 16px;
     border: 2px solid var(--gold);
+    padding: 0;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    color: var(--gold);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-body p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-bottom: 15px;
 }
 
 .wallet-input {
     width: 100%;
     background: var(--darker-bg);
     border: 2px solid var(--border-color);
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 12px;
+    padding: 14px;
     color: var(--gold);
     font-size: 14px;
-    margin: 15px 0;
+    margin-bottom: 20px;
+    box-sizing: border-box;
 }
 
 .wallet-input:focus {
     outline: none;
     border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
 }
 
 .modal-actions {
     display: flex;
     gap: 12px;
     justify-content: flex-end;
-    margin-top: 20px;
 }
 
 .btn {
-    padding: 10px 20px;
+    padding: 12px 24px;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    font-size: 14px;
 }
 
 .btn.primary {
-    background: var(--gold);
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
     color: var(--dark-bg);
 }
 
+.btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
+}
+
 .btn.secondary {
-    background: var(--muted);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--text);
+}
+
+.btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 /* Responsive */
@@ -1732,10 +1808,16 @@
     #productionSwapModal .modal-content {
         max-width: 500px;
         margin: 40px auto;
-        border-radius: 20px;
+        border-radius: 24px;
         min-height: auto;
+        border: 1px solid var(--border-color);
+    }
+    
+    .swap-header {
+        border-radius: 24px 24px 0 0;
     }
 }
+
     </style>
 </head>
 <body>
@@ -5207,7 +5289,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - REFINED & SIMPLIFIED
+// PRODUCTION SWAP SYSTEM - REFINED LAYOUT
 // =============================================
 
 // Production configuration
@@ -5237,15 +5319,12 @@ async function loadProductionSwapData() {
             
         if (error) throw error;
         
-        // ✅ FIXED: Handle integer nmxp_balance
         const nmxpBalance = parseInt(profile.nmxp_balance) || 0;
         
         console.log('💰 User NMXp Balance:', nmxpBalance);
         
         // Update NMXp balance display
-        document.getElementById('realNmxpBalance').textContent = nmxpBalance.toLocaleString('en-US');
         document.getElementById('availableNmxpBalance').textContent = nmxpBalance.toLocaleString('en-US');
-        document.getElementById('currentNmxpBalance').textContent = nmxpBalance.toLocaleString('en-US');
         
         // Update wallet address display
         updateWalletAddressDisplay(profile.wallet_address);
@@ -5256,22 +5335,20 @@ async function loadProductionSwapData() {
     }
 }
 
-// Update wallet address display with clean icon approach
+// Update wallet address display
 function updateWalletAddressDisplay(walletAddress) {
-    const walletBtn = document.getElementById('walletSettingsBtn');
-    const walletStatus = document.getElementById('walletStatus');
+    const walletAddressText = document.getElementById('walletAddressText');
     
     if (walletAddress) {
         const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
-        walletBtn.innerHTML = `<i class="fas fa-wallet"></i> ${shortAddress}`;
-        walletBtn.title = `Wallet: ${walletAddress}`;
-        walletStatus.textContent = 'Wallet: Configured';
-        walletStatus.className = 'wallet-status configured';
+        walletAddressText.textContent = shortAddress;
+        walletAddressText.onclick = () => showWalletSetup();
+        walletAddressText.style.cursor = 'pointer';
     } else {
-        walletBtn.innerHTML = '<i class="fas fa-cog"></i> Setup Wallet';
-        walletBtn.title = 'Setup wallet address';
-        walletStatus.textContent = 'Wallet: Not configured';
-        walletStatus.className = 'wallet-status not-configured';
+        walletAddressText.textContent = 'Not set';
+        walletAddressText.onclick = () => showWalletSetup();
+        walletAddressText.style.cursor = 'pointer';
+        walletAddressText.style.color = 'var(--error)';
     }
 }
 
@@ -5281,8 +5358,7 @@ function calculateProductionConversion() {
     const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
     
     // Update displays
-    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(3);
-    document.getElementById('productionFinalAmount').textContent = nmxAmount.toFixed(3) + ' NMX';
+    document.getElementById('productionReceiveAmount').textContent = nmxAmount.toFixed(3);
     
     // Validate conversion
     validateProductionConversion(nmxpAmount, nmxAmount);
@@ -5299,7 +5375,6 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
             .eq('id', currentUser.id)
             .single();
         
-        // ✅ FIXED: Handle integer balance
         const userNmxpBalance = parseInt(profile.nmxp_balance) || 0;
         const hasWallet = !!profile.wallet_address;
         const hasEnoughNMXp = userNmxpBalance >= nmxpAmount;
@@ -5307,11 +5382,9 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
         const withinMax = nmxpAmount <= PRODUCTION_CONFIG.MAX_CONVERSION;
         const validAmount = nmxpAmount > 0;
         
-        // System will internally check TON balance for fee
-        
         if (hasWallet && hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
             convertBtn.disabled = false;
-            convertBtn.textContent = `Convert ${nmxpAmount.toLocaleString()} NMXp`;
+            convertBtn.textContent = 'Continue';
             convertBtn.className = 'convert-btn active';
         } else {
             convertBtn.disabled = true;
@@ -5326,7 +5399,7 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
             } else if (!withinMax) {
                 convertBtn.textContent = 'Amount exceeds maximum limit';
             } else {
-                convertBtn.textContent = 'Enter amount to convert';
+                convertBtn.textContent = 'Continue';
             }
         }
         
@@ -5345,7 +5418,6 @@ async function setMaxConversion() {
             .eq('id', currentUser.id)
             .single();
         
-        // ✅ FIXED: Handle integer balance
         const userNmxpBalance = parseInt(profile.nmxp_balance) || 0;
         const maxAmount = Math.min(userNmxpBalance, PRODUCTION_CONFIG.MAX_CONVERSION);
         
@@ -5358,7 +5430,7 @@ async function setMaxConversion() {
     }
 }
 
-// Execute conversion with fee validation
+// Execute conversion
 async function executeProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
     
@@ -5370,7 +5442,6 @@ async function executeProductionConversion() {
     try {
         showToast('Processing conversion...', 'info');
         
-        // Get fresh user data
         const { data: profile, error: fetchError } = await supabase
             .from('profiles')
             .select('nmxp_balance, wallet_address, nmx_balance')
@@ -5379,14 +5450,12 @@ async function executeProductionConversion() {
             
         if (fetchError) throw fetchError;
         
-        // Final validation
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
         
         if (!profile.wallet_address) {
             throw new Error('Wallet address not set');
         }
         
-        // ✅ FIXED: Handle integer balance
         const currentNmxpBalance = parseInt(profile.nmxp_balance) || 0;
         if (currentNmxpBalance < nmxpAmount) {
             throw new Error(`Insufficient NMXp balance`);
@@ -5396,14 +5465,10 @@ async function executeProductionConversion() {
             throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
         }
         
-        // System will internally validate TON balance for fee
-        
-        // Calculate new balances
         const newNmxpBalance = currentNmxpBalance - nmxpAmount;
         const currentNmxBalance = parseFloat(profile.nmx_balance) || 0;
         const newNmxBalance = currentNmxBalance + nmxAmount;
         
-        // Execute conversion
         const { error: updateError } = await supabase
             .from('profiles')
             .update({
@@ -5415,7 +5480,6 @@ async function executeProductionConversion() {
             
         if (updateError) throw updateError;
         
-        // Record conversion
         const { error: recordError } = await supabase
             .from('conversions')
             .insert([{
@@ -5430,10 +5494,8 @@ async function executeProductionConversion() {
             
         if (recordError) throw recordError;
         
-        // SUCCESS
         showToast(`✅ Conversion successful! ${nmxAmount.toFixed(3)} NMX will be sent to your wallet.`, 'success');
         
-        // Refresh displays
         await loadProductionSwapData();
         closeProductionSwapModal();
         
@@ -5443,7 +5505,7 @@ async function executeProductionConversion() {
     }
 }
 
-// Open production swap modal with refined interface
+// Open production swap modal with new layout
 function openProductionSwapModal() {
     console.log('🚀 Opening refined swap modal...');
     
@@ -5454,84 +5516,99 @@ function openProductionSwapModal() {
             <div class="modal-content">
                 <!-- Header -->
                 <div class="swap-header">
-                    <h2>Convert Tokens</h2>
-                    <button class="close-btn" onclick="closeProductionSwapModal()">
-                        <i class="fas fa-times"></i>
+                    <button class="back-btn" onclick="closeProductionSwapModal()">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2>Convert</h2>
+                    <button class="settings-btn" onclick="showWalletSetup()">
+                        <i class="fas fa-cog"></i>
                     </button>
                 </div>
                 
-                <!-- Wallet Settings Button -->
-                <div class="wallet-settings-bar">
-                    <button id="walletSettingsBtn" class="wallet-settings-btn" onclick="showWalletSetup()">
-                        <i class="fas fa-cog"></i> Setup Wallet
-                    </button>
-                    <div id="walletStatus" class="wallet-status not-configured">Wallet: Not configured</div>
-                </div>
-                
-                <!-- Balance Display -->
-                <div class="balance-panel">
-                    <div class="balance-item">
-                        <span class="balance-label">Your NMXp Balance</span>
-                        <span class="balance-value" id="realNmxpBalance">0</span>
+                <!-- From Section -->
+                <div class="swap-section">
+                    <div class="section-header">
+                        <span class="section-title">From</span>
+                        <div class="balance-display">
+                            <i class="fas fa-wallet"></i>
+                            <span id="availableNmxpBalance">0</span>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Conversion Sections -->
-                <div class="conversion-sections">
-                    <!-- Convert From -->
-                    <div class="conversion-section from-section">
-                        <label class="section-label">Convert NMXp</label>
-                        <div class="input-container">
+                    <div class="token-card from-card">
+                        <div class="token-info">
+                            <div class="token-icon nmxp-icon">
+                                <span>NMXp</span>
+                            </div>
+                            <div class="token-details">
+                                <div class="token-name">NMXp</div>
+                                <div class="token-network">Nemex Points</div>
+                            </div>
+                        </div>
+                        <div class="token-amount-section">
                             <input 
                                 type="number" 
                                 id="productionConvertAmount" 
-                                placeholder="0.00"
+                                placeholder="0"
+                                class="amount-input"
                                 oninput="calculateProductionConversion()"
-                                onkeyup="calculateProductionConversion()"
                             >
-                            <button class="max-btn" onclick="setMaxConversion()">MAX</button>
+                            <div class="amount-usd">$0</div>
                         </div>
-                        <div class="balance-hint">
-                            Available: <span id="currentNmxpBalance">0</span> NMXp
-                        </div>
-                    </div>
-                    
-                    <!-- Conversion Info -->
-                    <div class="conversion-info">
-                        <div class="info-item">
-                            <span class="info-label">Conversion Rate</span>
-                            <span class="info-value">30 NMXp = 1 NMX</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Network Fee</span>
-                            <span class="info-value">${PRODUCTION_CONFIG.NETWORK_FEE} TON</span>
-                        </div>
-                    </div>
-                    
-                    <!-- You Will Receive -->
-                    <div class="conversion-section to-section">
-                        <label class="section-label">You will receive</label>
-                        <div class="output-container">
-                            <input 
-                                type="text" 
-                                id="productionReceiveAmount" 
-                                readonly 
-                                placeholder="0.000"
-                            >
-                            <span class="token-symbol">NMX</span>
-                        </div>
-                        <div class="receive-amount" id="productionFinalAmount">0 NMX</div>
                     </div>
                 </div>
-                
-                <!-- Convert Button -->
+
+                <!-- Swap Icon -->
+                <div class="swap-icon-container">
+                    <div class="swap-icon">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                </div>
+
+                <!-- To Section -->
+                <div class="swap-section">
+                    <div class="section-header">
+                        <span class="section-title">To</span>
+                        <div class="balance-display">
+                            <i class="fas fa-wallet"></i>
+                            <span>0</span>
+                        </div>
+                    </div>
+                    <div class="token-card to-card">
+                        <div class="token-info">
+                            <div class="token-icon nmx-icon">
+                                <span>NMX</span>
+                            </div>
+                            <div class="token-details">
+                                <div class="token-name">NMX</div>
+                                <div class="token-network">TON Network</div>
+                            </div>
+                        </div>
+                        <div class="token-amount-section">
+                            <div class="amount-input readonly" id="productionReceiveAmount">0.000</div>
+                            <div class="amount-usd">$0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversion Details -->
+                <div class="conversion-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Conversion Rate:</span>
+                        <span class="detail-value">30 NMXp = 1 NMX</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Your Wallet Address:</span>
+                        <span class="detail-value clickable" id="walletAddressText">Not set</span>
+                    </div>
+                </div>
+
+                <!-- Continue Button -->
                 <button id="productionConvertBtn" class="convert-btn disabled" onclick="executeProductionConversion()">
-                    Enter amount to convert
+                    Continue
                 </button>
             </div>
         `;
         
-        // Load data
         loadProductionSwapData();
         calculateProductionConversion();
     }
@@ -5577,13 +5654,11 @@ function closeWalletSetup() {
     document.getElementById('walletSetupModal').style.display = 'none';
 }
 
-// Validate TON wallet address
 function validateTONAddress(address) {
     if (!address) return false;
     return (address.length >= 48 && (address.startsWith('EQ') || address.startsWith('UQ')));
 }
 
-// Save wallet address
 async function saveWalletAddress() {
     const walletAddress = document.getElementById('userWalletAddress').value.trim();
     
@@ -5606,7 +5681,6 @@ async function saveWalletAddress() {
         showToast('Wallet address saved successfully!', 'success');
         closeWalletSetup();
         
-        // Refresh swap modal
         if (document.getElementById('productionSwapModal').style.display === 'block') {
             await loadProductionSwapData();
         }
