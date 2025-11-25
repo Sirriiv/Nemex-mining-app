@@ -2355,99 +2355,91 @@
             </div>
         </div>
 
-<!-- Production Swap Modal -->
+<!-- Production Swap Modal - COMPACT VERSION -->
 <div class="modal" id="productionSwapModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Convert NMXp to NMX Tokens</h3>
+    <div class="modal-content compact-modal">
+        <!-- Compact Header with Wallet Settings -->
+        <div class="modal-header compact-header">
+            <div class="header-main">
+                <h3>Convert Tokens</h3>
+                <div class="wallet-status">
+                    <button class="wallet-settings-btn" onclick="showWalletSetup()">
+                        <i class="fas fa-cog"></i> Wallet
+                    </button>
+                </div>
+            </div>
             <span class="close" onclick="closeProductionSwapModal()">&times;</span>
         </div>
-        
-        <!-- Real Balance Display -->
-        <div class="real-balances">
-            <div class="balance-card">
-                <span class="balance-label">Your NMXp Balance:</span>
+
+        <!-- Single Balance Display (Removed Second Card) -->
+        <div class="compact-balance">
+            <div class="balance-item">
+                <span class="balance-label">Available Balance:</span>
                 <span class="balance-value" id="realNmxpBalance">0</span>
-            </div>
-            <div class="balance-card">
-                <span class="balance-label">Your Wallet:</span>
-                <span class="balance-value" id="userWalletDisplay">
-                    Not set - <a href="#" onclick="showWalletSetup()">Setup Wallet</a>
-                </span>
+                <span class="balance-currency">NMXp</span>
             </div>
         </div>
-        
-        <!-- Conversion Interface -->
-        <div class="conversion-interface">
-            <div class="from-section">
-                <label>Convert From NMXp</label>
-                <div class="input-with-max">
+
+        <!-- Compact Conversion Interface -->
+        <div class="compact-conversion">
+            <!-- From Section -->
+            <div class="conversion-row from-row">
+                <div class="row-label">You pay</div>
+                <div class="input-container">
                     <input type="number" id="productionConvertAmount" placeholder="0.0">
+                    <div class="token-badge">NMXp</div>
                     <button class="max-btn" onclick="setMaxConversion()">MAX</button>
                 </div>
-                <div class="balance-hint">Available: <span id="availableNmxpBalance">0</span> NMXp</div>
             </div>
-            
-            <div class="conversion-arrow">↓</div>
-            
-            <div class="to-section">
-                <label>You Will Receive</label>
-                <div class="output-display">
+
+            <!-- Conversion Rate (No Panel) -->
+            <div class="conversion-info">
+                <span class="rate">1 NMX = 30 NMXp</span>
+                <span class="fee">Fee: 0.005 TON</span>
+            </div>
+
+            <!-- To Section -->
+            <div class="conversion-row to-row">
+                <div class="row-label">You receive</div>
+                <div class="output-container">
                     <input type="text" id="productionReceiveAmount" placeholder="0.0" readonly>
-                    <span class="token-symbol">NMX</span>
+                    <div class="token-badge">NMX</div>
                 </div>
-                <div class="receive-hint">Tokens will be sent to your wallet</div>
             </div>
         </div>
-        
-        <!-- Conversion Details -->
-        <div class="production-details">
-            <div class="detail-row">
-                <span>Conversion Rate:</span>
-                <span>30 NMXp = 1 NMX</span>
-            </div>
-            <div class="detail-row">
-                <span>Your Wallet Address:</span>
-                <span id="conversionWalletAddress" class="wallet-address">Not set</span>
-            </div>
-            <div class="detail-row">
-                <span>You'll Receive:</span>
-                <span id="productionFinalAmount">0 NMX</span>
-            </div>
-        </div>
-        
-        <button class="production-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
+
+        <!-- Convert Button (Moved Up) -->
+        <button class="compact-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
             Convert to NMX Tokens
         </button>
-        
-        <div class="production-note">
-            <small>🔒 Conversion will be recorded and processed manually. You'll see status updates in your conversion history.</small>
+
+        <!-- Minimal Note -->
+        <div class="compact-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>NMX tokens will be sent to your wallet address</span>
         </div>
     </div>
 </div>
 
-<!-- Wallet Setup Modal -->
+<!-- Wallet Setup Modal - MINI VERSION -->
 <div class="modal" id="walletSetupModal">
-    <div class="modal-content">
+    <div class="modal-content mini-modal">
         <div class="modal-header">
-            <h3>Setup Your Nemex Wallet</h3>
+            <h3><i class="fas fa-wallet"></i> Setup Wallet</h3>
             <span class="close" onclick="closeWalletSetup()">&times;</span>
         </div>
-        
-        <div class="input-group">
-            <label>Your TON Wallet Address:</label>
-            <input type="text" id="userWalletAddress" placeholder="EQABCD1234...">
-            <small>This is where your NMX tokens will be sent</small>
+
+        <div class="modal-body">
+            <p>Enter your TON wallet address to receive NMX tokens:</p>
+            <input type="text" id="userWalletAddress" placeholder="EQABCD1234..." class="wallet-input">
+            
+            <div class="modal-actions">
+                <button class="btn secondary" onclick="closeWalletSetup()">Cancel</button>
+                <button class="btn primary" onclick="saveWalletAddress()">Save Address</button>
+            </div>
         </div>
-        
-        <div class="wallet-example">
-            <strong>Example:</strong> EQABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890abcdef
-        </div>
-        
-        <button class="confirm-btn" onclick="saveWalletAddress()">Save Wallet Address</button>
     </div>
 </div>
-
     <script>
         // =============================================
 // WALLET STATE MANAGEMENT
