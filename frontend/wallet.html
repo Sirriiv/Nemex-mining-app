@@ -2649,23 +2649,27 @@
             </div>
         </div>
 
-<!-- Production Swap Modal - COMPACT VERSION -->
-<div class="modal" id="productionSwapModal">
+<!-- Production Swap Modal - FULLSCREEN VERSION -->
+<div class="modal fullscreen-modal" id="productionSwapModal">
     <div class="modal-content compact-modal">
-        <!-- Compact Header with Wallet Settings -->
+        <!-- Compact Header with Back Button & Wallet Settings -->
         <div class="modal-header compact-header">
             <div class="header-main">
+                <button class="back-button" onclick="closeProductionSwapModal()">
+                    <i class="fas fa-arrow-left"></i>
+                    Back
+                </button>
                 <h3>Convert Tokens</h3>
-                <div class="wallet-status">
-                    <button class="wallet-settings-btn" onclick="showWalletSetup()">
-                        <i class="fas fa-cog"></i> Wallet
-                    </button>
-                </div>
             </div>
-            <span class="close" onclick="closeProductionSwapModal()">&times;</span>
+            <div class="header-actions">
+                <button class="wallet-settings-btn" onclick="showWalletSetup()">
+                    <i class="fas fa-cog"></i> Wallet
+                </button>
+                <span class="close" onclick="closeProductionSwapModal()">&times;</span>
+            </div>
         </div>
 
-        <!-- Single Balance Display -->
+        <!-- Rest of your modal content remains the same -->
         <div class="compact-balance">
             <div class="balance-item">
                 <span class="balance-label">Available Balance:</span>
@@ -2674,9 +2678,7 @@
             </div>
         </div>
 
-        <!-- Compact Conversion Interface -->
         <div class="compact-conversion">
-            <!-- From Section -->
             <div class="conversion-row from-row">
                 <div class="row-label">You pay</div>
                 <div class="input-container">
@@ -2686,13 +2688,11 @@
                 </div>
             </div>
 
-            <!-- Conversion Rate -->
             <div class="conversion-info">
                 <span class="rate">1 NMX = 30 NMXp</span>
                 <span class="fee">Fee: 0.005 TON</span>
             </div>
 
-            <!-- To Section -->
             <div class="conversion-row to-row">
                 <div class="row-label">You receive</div>
                 <div class="output-container">
@@ -2702,12 +2702,10 @@
             </div>
         </div>
 
-        <!-- Convert Button -->
         <button class="compact-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
             Convert to NMX Tokens
         </button>
 
-        <!-- Minimal Note -->
         <div class="compact-note">
             <i class="fas fa-shield-alt"></i>
             <span>NMX tokens will be sent to your wallet address</span>
@@ -2715,10 +2713,14 @@
     </div>
 </div>
 
-<!-- Wallet Setup Modal - MINI VERSION -->
-<div class="modal" id="walletSetupModal">
+<!-- Wallet Setup Modal - FULLSCREEN VERSION -->
+<div class="modal fullscreen-modal" id="walletSetupModal">
     <div class="modal-content mini-modal">
         <div class="modal-header">
+            <button class="back-button" onclick="closeWalletSetup()">
+                <i class="fas fa-arrow-left"></i>
+                Back
+            </button>
             <h3><i class="fas fa-wallet"></i> Setup Wallet</h3>
             <span class="close" onclick="closeWalletSetup()">&times;</span>
         </div>
@@ -2728,8 +2730,7 @@
             <input type="text" id="userWalletAddress" placeholder="EQABCD1234..." class="wallet-input">
             
             <div class="modal-actions">
-                <button class="btn secondary" onclick="closeWalletSetup()">Cancel</button>
-                <button class="btn primary" onclick="saveWalletAddress()">Save Address</button>
+                <button class="btn primary" onclick="saveWalletAddress()">Save Wallet Address</button>
             </div>
         </div>
     </div>
