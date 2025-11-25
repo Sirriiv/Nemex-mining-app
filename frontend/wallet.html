@@ -2571,6 +2571,7 @@ function handleWalletScriptError() {
     showStatusMessage('❌ Wallet system failed to load. Please check file path and refresh.', 'error');
 }
 
+// Make sure this is the ONLY async function definition
 window.checkAndGenerateWallet = async function() {
     console.log('🔄 checkAndGenerateWallet called...');
 
@@ -2585,7 +2586,7 @@ window.checkAndGenerateWallet = async function() {
         if (hasWallets) {
             console.log('ℹ️ User already has wallets, showing wallet interface');
             showStatusMessage('✅ Wallet found! Loading your wallet...', 'success');
-            await showMainWalletInterface(); // Added await
+            showMainWalletInterface(); // REMOVED await - this function shouldn't be async
         } else {
             console.log('🆕 No wallets found, generating new wallet directly');
             showStatusMessage('🔄 Creating your first wallet...', 'loading');
@@ -2634,7 +2635,7 @@ async function generateNewWallet() {
             showStatusMessage('✅ Wallet created successfully!', 'success');
             
             // Show main wallet interface
-            await showMainWalletInterface();
+            showMainWalletInterface(); // REMOVED await
             
             return newWallet;
         } else {
@@ -2643,11 +2644,12 @@ async function generateNewWallet() {
     } catch (error) {
         console.error('❌ Wallet generation failed:', error);
         showStatusMessage('❌ Failed to generate wallet: ' + error.message, 'error');
-        throw error; // Re-throw for caller to handle
+        throw error;
     }
 }
 
-async function showMainWalletInterface() {
+// CHANGED: Removed async from this function since it doesn't use await
+function showMainWalletInterface() {
     console.log('🔄 Showing main wallet interface...');
     
     try {
@@ -2658,13 +2660,15 @@ async function showMainWalletInterface() {
         if (welcomeScreen) welcomeScreen.style.display = 'none';
         if (walletInterface) walletInterface.style.display = 'block';
         
-        // Load wallet data
-        await loadWalletData();
+        // Load wallet data - use .then() instead of await
+        loadWalletData().then(() => {
+            console.log('✅ Main wallet interface loaded');
+        }).catch(error => {
+            console.error('❌ Error loading wallet data:', error);
+        });
         
-        console.log('✅ Main wallet interface loaded');
     } catch (error) {
         console.error('❌ Error showing main wallet interface:', error);
-        throw error;
     }
 }
 
@@ -2683,9 +2687,11 @@ async function loadWalletData() {
         updateWalletDisplay(walletData);
         
         console.log('✅ Wallet data loaded successfully');
+        return walletData;
     } catch (error) {
         console.error('❌ Error loading wallet data:', error);
         showStatusMessage('❌ Error loading wallet data', 'error');
+        throw error;
     }
 }
 
@@ -2704,7 +2710,7 @@ function updateWalletDisplay(walletData) {
         if (walletData.address) {
             const shortAddress = walletData.address.substring(0, 8) + '...' + walletData.address.substring(walletData.address.length - 4);
             element.textContent = shortAddress;
-            element.title = walletData.address; // Full address on hover
+            element.title = walletData.address;
         }
     });
 }
@@ -2725,7 +2731,6 @@ function showImportWalletModal() {
         return;
     }
     
-    // If modal doesn't exist, create it
     const modalHTML = `
         <div id="importWalletModal" class="modal">
             <div class="modal-content">
@@ -2775,7 +2780,7 @@ async function importWallet() {
             closeImportWalletModal();
             
             // Show main wallet interface
-            await showMainWalletInterface();
+            showMainWalletInterface(); // REMOVED await
         } else {
             throw new Error('Invalid wallet data returned');
         }
@@ -2790,14 +2795,12 @@ async function importWallet() {
 function showStatusMessage(message, type = 'info') {
     console.log(`📢 Status (${type}): ${message}`);
     
-    // You can implement a status message display system here
     const statusElement = document.getElementById('statusMessage') || createStatusElement();
     
     statusElement.textContent = message;
     statusElement.className = `status-message ${type}`;
     statusElement.style.display = 'block';
     
-    // Auto-hide success messages after 3 seconds
     if (type === 'success') {
         setTimeout(() => {
             statusElement.style.display = 'none';
@@ -2826,9 +2829,7 @@ function createStatusElement() {
 }
 
 function showToast(message, type = 'info') {
-    // Your existing toast function implementation
     console.log(`🍞 Toast (${type}): ${message}`);
-    // Implement or keep your existing toast functionality
 }
 
         // =============================================
