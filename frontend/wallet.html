@@ -1408,21 +1408,54 @@
         }
 
 /* ============================================= */
-/* PRODUCTION SWAP MODAL - COMPACT VERSION */
+/* FULLSCREEN MODAL STYLES */
 /* ============================================= */
 
-/* Compact Production Swap Modal */
-.compact-modal {
-    max-width: 420px;
-    max-height: 85vh;
-    overflow-y: auto;
+.fullscreen-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: var(--dark-bg);
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(212, 175, 55, 0.3);
+    z-index: 1000;
+    overflow-y: auto;
 }
 
-/* Compact Header */
+.fullscreen-modal .modal-content {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+}
+
+/* Back Button Styles */
+.back-button {
+    background: rgba(212, 175, 55, 0.1);
+    color: var(--gold);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.back-button:hover {
+    background: rgba(212, 175, 55, 0.2);
+    transform: translateX(-2px);
+}
+
+/* Update Header Layout for Back Button */
 .compact-header {
     display: flex;
     justify-content: space-between;
@@ -1441,43 +1474,37 @@
     gap: 15px;
 }
 
-.compact-header h3 {
-    color: var(--gold);
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.wallet-settings-btn {
-    background: rgba(212, 175, 55, 0.15);
-    color: var(--gold);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.header-actions {
     display: flex;
     align-items: center;
-    gap: 5px;
-    font-weight: 600;
+    gap: 10px;
 }
 
-.wallet-settings-btn:hover {
-    background: rgba(212, 175, 55, 0.25);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+/* Compact Modal Content */
+.compact-modal {
+    background: var(--dark-bg);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-/* Wallet connected state */
-.wallet-settings-btn.connected {
-    background: rgba(0, 200, 81, 0.15);
-    border-color: rgba(0, 200, 81, 0.3);
-    color: var(--success);
+.mini-modal {
+    background: var(--dark-bg);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
-.wallet-settings-btn.connected:hover {
-    background: rgba(0, 200, 81, 0.25);
+/* Content area should grow to fill space */
+.compact-conversion {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 400px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 20px;
 }
 
 /* Compact Balance */
@@ -1515,11 +1542,7 @@
     border-radius: 4px;
 }
 
-/* Compact Conversion */
-.compact-conversion {
-    padding: 20px;
-}
-
+/* Conversion Rows */
 .conversion-row {
     margin-bottom: 15px;
 }
@@ -1648,11 +1671,6 @@
     box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
 }
 
-.compact-convert-btn.active:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 10px rgba(212, 175, 55, 0.4);
-}
-
 .compact-convert-btn.disabled {
     background: var(--muted);
     color: var(--text);
@@ -1682,37 +1700,44 @@
     flex-shrink: 0;
 }
 
-/* ============================================= */
-/* WALLET SETUP MODAL - MINI VERSION */
-/* ============================================= */
-
-/* Mini Wallet Modal */
-.mini-modal {
-    max-width: 380px;
-    background: var(--dark-bg);
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-}
-
-.mini-modal .modal-header {
-    padding: 15px 20px;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
-}
-
-.mini-modal .modal-header h3 {
+/* Wallet Settings Button */
+.wallet-settings-btn {
+    background: rgba(212, 175, 55, 0.15);
     color: var(--gold);
-    font-size: 16px;
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-weight: 700;
+    gap: 5px;
+    font-weight: 600;
 }
 
+.wallet-settings-btn:hover {
+    background: rgba(212, 175, 55, 0.25);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+.wallet-settings-btn.connected {
+    background: rgba(0, 200, 81, 0.15);
+    border-color: rgba(0, 200, 81, 0.3);
+    color: var(--success);
+}
+
+/* Mini Modal Body */
 .modal-body {
     padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 400px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .modal-body p {
@@ -1742,25 +1767,21 @@
     box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
 }
 
-.wallet-input::placeholder {
-    color: rgba(212, 175, 55, 0.5);
-}
-
 .modal-actions {
     display: flex;
     gap: 10px;
-    justify-content: flex-end;
+    justify-content: center;
 }
 
 .btn {
-    padding: 10px 20px;
+    padding: 12px 24px;
     border: none;
     border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    font-size: 13px;
-    min-width: 80px;
+    font-size: 14px;
+    min-width: 120px;
 }
 
 .btn.primary {
@@ -1773,35 +1794,32 @@
     box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
 }
 
-.btn.primary:active {
-    transform: translateY(0);
+/* Close Button */
+.close {
+    color: var(--gold);
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
 }
 
-.btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+.close:hover {
+    background: rgba(212, 175, 55, 0.1);
 }
 
-.btn.secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
+/* Body scroll lock */
+body.modal-open {
+    overflow: hidden;
 }
 
-/* ============================================= */
-/* RESPONSIVE DESIGN */
-/* ============================================= */
-
+/* Responsive Design */
 @media (max-width: 480px) {
-    .compact-modal {
-        max-width: 95vw;
-        margin: 10px;
-    }
-    
-    .mini-modal {
-        max-width: 95vw;
-        margin: 10px;
-    }
-    
     .compact-header {
         padding: 12px 15px;
     }
@@ -1810,8 +1828,9 @@
         gap: 10px;
     }
     
-    .compact-header h3 {
-        font-size: 16px;
+    .back-button {
+        padding: 6px 10px;
+        font-size: 13px;
     }
     
     .compact-conversion {
@@ -1822,90 +1841,10 @@
         padding: 10px 12px;
     }
     
-    .input-container input, .output-container input {
-        font-size: 16px;
-    }
-    
     .conversion-info {
         gap: 10px;
         flex-direction: column;
     }
-    
-    .compact-convert-btn {
-        margin: 10px 15px;
-        padding: 12px;
-        font-size: 13px;
-    }
-    
-    .modal-actions {
-        flex-direction: column;
-    }
-    
-    .btn {
-        width: 100%;
-    }
-}
-
-/* ============================================= */
-/* ACCESSIBILITY & ANIMATIONS */
-/* ============================================= */
-
-/* Focus styles for accessibility */
-.wallet-settings-btn:focus,
-.max-btn:focus,
-.compact-convert-btn:focus,
-.btn:focus,
-.wallet-input:focus {
-    outline: 2px solid var(--gold);
-    outline-offset: 2px;
-}
-
-/* Smooth transitions for all interactive elements */
-.wallet-settings-btn,
-.max-btn,
-.compact-convert-btn,
-.btn,
-.input-container,
-.output-container,
-.wallet-input {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Loading state for convert button */
-.compact-convert-btn.loading {
-    position: relative;
-    color: transparent;
-}
-
-.compact-convert-btn.loading::after {
-    content: '';
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    top: 50%;
-    left: 50%;
-    margin: -10px 0 0 -10px;
-    border: 2px solid transparent;
-    border-top: 2px solid var(--dark-bg);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Error state for wallet input */
-.wallet-input.error {
-    border-color: var(--error);
-    box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.1);
-}
-
-/* Success state for wallet input */
-.wallet-input.success {
-    border-color: var(--success);
-    box-shadow: 0 0 0 2px rgba(0, 200, 81, 0.1);
 }
 
     </style>
@@ -2669,7 +2608,7 @@
             </div>
         </div>
 
-        <!-- Rest of your modal content remains the same -->
+        <!-- Single Balance Display -->
         <div class="compact-balance">
             <div class="balance-item">
                 <span class="balance-label">Available Balance:</span>
@@ -2678,7 +2617,9 @@
             </div>
         </div>
 
+        <!-- Compact Conversion Interface -->
         <div class="compact-conversion">
+            <!-- From Section -->
             <div class="conversion-row from-row">
                 <div class="row-label">You pay</div>
                 <div class="input-container">
@@ -2688,11 +2629,13 @@
                 </div>
             </div>
 
+            <!-- Conversion Rate -->
             <div class="conversion-info">
                 <span class="rate">1 NMX = 30 NMXp</span>
                 <span class="fee">Fee: 0.005 TON</span>
             </div>
 
+            <!-- To Section -->
             <div class="conversion-row to-row">
                 <div class="row-label">You receive</div>
                 <div class="output-container">
@@ -2702,10 +2645,12 @@
             </div>
         </div>
 
+        <!-- Convert Button -->
         <button class="compact-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
             Convert to NMX Tokens
         </button>
 
+        <!-- Minimal Note -->
         <div class="compact-note">
             <i class="fas fa-shield-alt"></i>
             <span>NMX tokens will be sent to your wallet address</span>
@@ -5332,8 +5277,7 @@ function showAddressDetails() {
 
 🎯 **Supported Tokens:**
 • TON (Toncoin)
-• NMX (NemexCoin) 
-• USDT (Tether)
+• NMX (NemexCoin)
 • Any TEP-64 tokens
 • All TON-based assets
 
@@ -5372,7 +5316,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - COMPACT VERSION
+// PRODUCTION SWAP SYSTEM - FULLSCREEN VERSION
 // =============================================
 
 // Production configuration
@@ -5382,6 +5326,32 @@ const PRODUCTION_CONFIG = {
     MAX_CONVERSION: 1000000 // Safety limit
 };
 
+// Remove debug buttons completely
+function removeDebugButtons() {
+    // Remove by ID
+    const debugButton = document.getElementById('debugUserState');
+    if (debugButton) {
+        debugButton.remove();
+        console.log('🗑️ Removed debug user state button');
+    }
+    
+    // Remove by class
+    const debugButtons = document.querySelectorAll('.debug-btn, .debug-button');
+    debugButtons.forEach(button => {
+        button.remove();
+        console.log('🗑️ Removed debug button');
+    });
+    
+    // Remove any other debug elements
+    const debugElements = document.querySelectorAll('[class*="debug"], [id*="debug"]');
+    debugElements.forEach(element => {
+        if (element.textContent.includes('Debug') || element.textContent.includes('debug')) {
+            element.remove();
+            console.log('🗑️ Removed debug element');
+        }
+    });
+}
+
 // Update wallet display for new compact layout
 function updateWalletAddressDisplay(walletAddress) {
     const walletBtn = document.querySelector('.wallet-settings-btn');
@@ -5390,15 +5360,11 @@ function updateWalletAddressDisplay(walletAddress) {
         const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
         walletBtn.innerHTML = `<i class="fas fa-wallet"></i> ${shortAddress}`;
         walletBtn.title = `Wallet: ${walletAddress}`;
-        walletBtn.style.background = 'rgba(0, 200, 81, 0.15)';
-        walletBtn.style.borderColor = 'rgba(0, 200, 81, 0.3)';
-        walletBtn.style.color = 'var(--success)';
+        walletBtn.classList.add('connected');
     } else {
         walletBtn.innerHTML = '<i class="fas fa-cog"></i> Wallet';
         walletBtn.title = 'Setup wallet address';
-        walletBtn.style.background = 'rgba(212, 175, 55, 0.15)';
-        walletBtn.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-        walletBtn.style.color = 'var(--gold)';
+        walletBtn.classList.remove('connected');
     }
 }
 
@@ -5588,27 +5554,32 @@ async function executeProductionConversion() {
     }
 }
 
-// Open production swap modal
+// Open production swap modal - FULLSCREEN
 function openProductionSwapModal() {
     console.log('🚀 Opening production swap modal...');
+    removeDebugButtons(); // Remove any debug buttons
     loadProductionSwapData();
-    document.getElementById('productionSwapModal').style.display = 'flex';
+    document.getElementById('productionSwapModal').style.display = 'block';
+    document.body.classList.add('modal-open');
     calculateProductionConversion();
 }
 
 // Close production swap modal
 function closeProductionSwapModal() {
     document.getElementById('productionSwapModal').style.display = 'none';
+    document.body.classList.remove('modal-open');
 }
 
-// Wallet Setup Functions
+// Wallet Setup Functions - FULLSCREEN
 function showWalletSetup() {
-    document.getElementById('walletSetupModal').style.display = 'flex';
+    document.getElementById('walletSetupModal').style.display = 'block';
+    document.body.classList.add('modal-open');
     closeProductionSwapModal();
 }
 
 function closeWalletSetup() {
     document.getElementById('walletSetupModal').style.display = 'none';
+    document.body.classList.remove('modal-open');
 }
 
 // Validate TON wallet address
@@ -5641,7 +5612,7 @@ async function saveWalletAddress() {
         closeWalletSetup();
         
         // Refresh swap modal if open
-        if (document.getElementById('productionSwapModal').style.display === 'flex') {
+        if (document.getElementById('productionSwapModal').style.display === 'block') {
             loadProductionSwapData();
         }
         
@@ -5650,6 +5621,11 @@ async function saveWalletAddress() {
         showToast('Failed to save wallet address', 'error');
     }
 }
+
+// Initialize - remove debug buttons when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    removeDebugButtons();
+});
 
 // =============================================
 // INITIALIZE APP
