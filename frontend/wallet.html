@@ -4627,7 +4627,7 @@ if (balanceAmount && balanceCrypto) {
     // ✅ FIXED: Same precision logic as updatePortfolioValue
     let displayValue;
     if (totalUSD < 0.01) {
-        displayValue = `$${totalUSD.toFixed(6)}`;
+        displayValue = `$${totalUSD.toFixed(4)}`;
     } else if (totalUSD < 1) {
         displayValue = `$${totalUSD.toFixed(4)}`;
     } else {
@@ -4716,7 +4716,7 @@ function formatTokenBalance(balance) {
 function formatTokenPrice(price) {
     if (!price && price !== 0) return '0.00';
     if (price === 0) return '0.00';
-    if (price < 0.01) return price.toFixed(6);
+    if (price < 0.01) return price.toFixed(4);
     if (price < 1) return price.toFixed(4);
     return price.toFixed(2);
 }
@@ -5505,7 +5505,7 @@ function calculateProductionConversion() {
     const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
     
     // Update displays
-    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
+    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(4);
     
     // Validate conversion
     validateProductionConversion(nmxpAmount, nmxAmount);
@@ -5531,7 +5531,7 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
         
         if (hasWallet && hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
             convertBtn.disabled = false;
-            convertBtn.textContent = `Convert ${nmxpAmount.toLocaleString()} NMXp to ${nmxAmount.toFixed(6)} NMX`;
+            convertBtn.textContent = `Convert ${nmxpAmount.toLocaleString()} NMXp to ${nmxAmount.toFixed(4)} NMX`;
             convertBtn.className = 'compact-convert-btn active';
         } else {
             convertBtn.disabled = true;
@@ -5633,7 +5633,7 @@ async function executeProductionConversion() {
         if (recordError) throw recordError;
         
         // SUCCESS
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent to your wallet.`, 'success');
+        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(4)} NMX will be sent to your wallet.`, 'success');
         
         // Refresh displays
         await loadProductionSwapData();
@@ -6099,16 +6099,6 @@ function debugUserState() {
         alert('❌ No user data available. Wallet not properly loaded.');
     }
 }
-
-// Add temporary debug button
-document.addEventListener('DOMContentLoaded', function() {
-    const debugButton = document.createElement('button');
-    debugButton.textContent = '🐛 Debug User State';
-    debugButton.style.cssText = 'position: fixed; top: 10px; right: 10px; background: var(--gold); color: black; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; z-index: 10000;';
-    debugButton.onclick = debugUserState;
-    document.body.appendChild(debugButton);
-});
-
 </script>
 </body>
 </html>
