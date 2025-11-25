@@ -1414,19 +1414,20 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: var(--darker-bg);
+    background: #000000;
     z-index: 10000;
     display: none;
     overflow-y: auto;
 }
 
 #productionSwapModal .modal-content {
-    background: var(--dark-bg);
+    background: #000000;
     border-radius: 0;
     min-height: 100vh;
     padding: 0;
     max-width: 100%;
     margin: 0;
+    border: 3px solid #D4AF37;
 }
 
 /* Header */
@@ -1435,14 +1436,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 16px 20px;
-    background: var(--darker-bg);
-    border-bottom: 1px solid var(--border-color);
+    background: #000000;
+    border-bottom: 2px solid #D4AF37;
 }
 
 .swap-header h2 {
-    color: var(--text);
+    color: #D4AF37;
     font-size: 20px;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0;
     flex: 1;
     text-align: center;
@@ -1451,7 +1452,7 @@
 .back-btn, .settings-btn {
     background: none;
     border: none;
-    color: var(--text);
+    color: #D4AF37;
     font-size: 20px;
     cursor: pointer;
     padding: 8px;
@@ -1465,7 +1466,7 @@
 }
 
 .back-btn:hover, .settings-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(212, 175, 55, 0.2);
 }
 
 /* Swap Sections */
@@ -1482,7 +1483,7 @@
 }
 
 .section-title {
-    color: var(--text-muted);
+    color: #999999;
     font-size: 14px;
     font-weight: 500;
 }
@@ -1491,8 +1492,9 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--text-muted);
+    color: #D4AF37;
     font-size: 13px;
+    font-weight: 600;
 }
 
 .balance-display i {
@@ -1501,8 +1503,8 @@
 
 /* Token Cards */
 .token-card {
-    background: var(--darker-bg);
-    border: 2px solid var(--border-color);
+    background: #1a1a1a;
+    border: 2px solid #D4AF37;
     border-radius: 16px;
     padding: 16px;
     display: flex;
@@ -1512,12 +1514,13 @@
 }
 
 .from-card {
-    border-color: rgba(212, 175, 55, 0.3);
+    border-color: #D4AF37;
+    background: #1a1a1a;
 }
 
 .to-card {
-    border-color: rgba(212, 175, 55, 0.2);
-    background: rgba(212, 175, 55, 0.05);
+    border-color: #D4AF37;
+    background: rgba(212, 175, 55, 0.1);
 }
 
 .token-info {
@@ -1555,13 +1558,13 @@
 }
 
 .token-name {
-    color: var(--text);
+    color: #FFFFFF;
     font-weight: 600;
     font-size: 16px;
 }
 
 .token-network {
-    color: var(--text-muted);
+    color: #999999;
     font-size: 12px;
 }
 
@@ -1590,7 +1593,7 @@
 }
 
 .amount-usd {
-    color: var(--text-muted);
+    color: #999999;
     font-size: 13px;
     margin-top: 4px;
 }
@@ -1607,22 +1610,22 @@
 .swap-icon {
     width: 40px;
     height: 40px;
-    background: var(--darker-bg);
-    border: 2px solid var(--border-color);
+    background: #000000;
+    border: 2px solid #D4AF37;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--gold);
+    color: #D4AF37;
     font-size: 16px;
 }
 
 /* Conversion Details */
 .conversion-details {
     padding: 20px;
-    background: rgba(212, 175, 55, 0.05);
-    border-top: 1px solid var(--border-color);
-    border-bottom: 1px solid var(--border-color);
+    background: rgba(212, 175, 55, 0.1);
+    border-top: 2px solid #D4AF37;
+    border-bottom: 2px solid #D4AF37;
 }
 
 .detail-row {
@@ -1637,12 +1640,12 @@
 }
 
 .detail-label {
-    color: var(--text-muted);
+    color: #CCCCCC;
     font-size: 13px;
 }
 
 .detail-value {
-    color: var(--gold);
+    color: #D4AF37;
     font-weight: 600;
     font-size: 13px;
 }
@@ -1653,7 +1656,7 @@
 }
 
 .detail-value.clickable:hover {
-    color: var(--gold-light);
+    color: #F4CF5B;
 }
 
 /* Convert Button */
@@ -1671,8 +1674,8 @@
 }
 
 .convert-btn.active {
-    background: linear-gradient(135deg, var(--gold), var(--gold-light));
-    color: var(--dark-bg);
+    background: linear-gradient(135deg, #D4AF37, #F4CF5B);
+    color: #000000;
     box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
 }
 
@@ -1682,8 +1685,8 @@
 }
 
 .convert-btn.disabled {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text-muted);
+    background: #333333;
+    color: #999999;
     cursor: not-allowed;
 }
 
@@ -1704,22 +1707,22 @@
 .mini-modal {
     max-width: 400px;
     width: 90%;
-    background: var(--dark-bg);
+    background: #000000;
     border-radius: 16px;
-    border: 2px solid var(--gold);
+    border: 2px solid #D4AF37;
     padding: 0;
 }
 
 .modal-header {
     padding: 20px;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 2px solid #D4AF37;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 .modal-header h3 {
-    color: var(--gold);
+    color: #D4AF37;
     font-size: 18px;
     font-weight: 600;
     margin: 0;
@@ -1728,7 +1731,7 @@
 .close-btn {
     background: none;
     border: none;
-    color: var(--text);
+    color: #D4AF37;
     font-size: 20px;
     cursor: pointer;
     padding: 8px;
@@ -1737,7 +1740,7 @@
 }
 
 .close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(212, 175, 55, 0.2);
 }
 
 .modal-body {
@@ -1745,18 +1748,18 @@
 }
 
 .modal-body p {
-    color: var(--text-muted);
+    color: #CCCCCC;
     font-size: 14px;
     margin-bottom: 15px;
 }
 
 .wallet-input {
     width: 100%;
-    background: var(--darker-bg);
-    border: 2px solid var(--border-color);
+    background: #1a1a1a;
+    border: 2px solid #D4AF37;
     border-radius: 12px;
     padding: 14px;
-    color: var(--gold);
+    color: #D4AF37;
     font-size: 14px;
     margin-bottom: 20px;
     box-sizing: border-box;
@@ -1764,8 +1767,8 @@
 
 .wallet-input:focus {
     outline: none;
-    border-color: var(--gold);
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    border-color: #F4CF5B;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
 }
 
 .modal-actions {
@@ -1785,8 +1788,8 @@
 }
 
 .btn.primary {
-    background: linear-gradient(135deg, var(--gold), var(--gold-light));
-    color: var(--dark-bg);
+    background: linear-gradient(135deg, #D4AF37, #F4CF5B);
+    color: #000000;
 }
 
 .btn.primary:hover {
@@ -1795,12 +1798,12 @@
 }
 
 .btn.secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--text);
+    background: #333333;
+    color: #FFFFFF;
 }
 
 .btn.secondary:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: #444444;
 }
 
 /* Responsive */
@@ -1810,7 +1813,7 @@
         margin: 40px auto;
         border-radius: 24px;
         min-height: auto;
-        border: 1px solid var(--border-color);
+        border: 3px solid #D4AF37;
     }
     
     .swap-header {
