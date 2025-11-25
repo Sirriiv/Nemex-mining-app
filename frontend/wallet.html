@@ -3942,7 +3942,7 @@ window.manualStoreSeedPhrase = async function(mnemonic, address = null) {
             let displayValue;
             if (totalUSD < 0.01) {
                 // Show more precision for very small amounts
-                displayValue = `$${totalUSD.toFixed(6)}`;
+                displayValue = `$${totalUSD.toFixed(4)}`;
             } else if (totalUSD < 1) {
                 // Show 4 decimal places for amounts under $1
                 displayValue = `$${totalUSD.toFixed(4)}`;
@@ -3956,7 +3956,7 @@ window.manualStoreSeedPhrase = async function(mnemonic, address = null) {
             // ✅ FIXED: Same precision logic
             let displayValue;
             if (totalUSD < 0.01) {
-                displayValue = `$${totalUSD.toFixed(6)}`;
+                displayValue = `$${totalUSD.toFixed(4)}`;
             } else if (totalUSD < 1) {
                 displayValue = `$${totalUSD.toFixed(4)}`;
             } else {
@@ -4828,16 +4828,22 @@ async function loadProductionSwapData() {
     try {
         const { data: profile, error } = await supabase
             .from('profiles')
-            .select('nmxp_balance, wallet_address')
+            .select('nmxp_balance, wallet_address, nmx_balance')
             .eq('id', currentUser.id)
             .single();
             
         if (error) throw error;
         
-        // Update all displays with REAL data
+        // Update all displays with REAL data from user's dashboard
         const nmxpBalance = profile.nmxp_balance || 0;
-        document.getElementById('realNmxpBalance').textContent = nmxpBalance;
-        document.getElementById('availableNmxpBalance').textContent = nmxpBalance;
+        const nmxBalance = profile.nmx_balance || 0;
+        
+        console.log('💰 User NMXp Balance:', nmxpBalance);
+        console.log('💰 User NMX Balance:', nmxBalance);
+        
+        // Update NMXp balance display
+        document.getElementById('realNmxpBalance').textContent = nmxpBalance.toLocaleString();
+        document.getElementById('availableNmxpBalance').textContent = nmxpBalance.toLocaleString();
         
         // Update wallet display
         const walletDisplay = document.getElementById('userWalletDisplay');
@@ -4866,8 +4872,8 @@ function calculateProductionConversion() {
     const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
     
     // Update displays
-    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
-    document.getElementById('productionFinalAmount').textContent = nmxAmount.toFixed(6) + ' NMX';
+    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(3);
+    document.getElementById('productionFinalAmount').textContent = nmxAmount.toFixed(3) + ' NMX';
     
     // Validate conversion
     validateProductionConversion(nmxpAmount, nmxAmount);
@@ -4930,8 +4936,8 @@ async function setMaxConversion() {
     calculateProductionConversion();
 }
 
-// EXECUTE PRODUCTION CONVERSION
-async function executeProductionConversion() {
+// Update the executeProductionConversion function to show proper formatting
+function executeProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
     
     if (!currentUser) {
@@ -4992,8 +4998,8 @@ async function executeProductionConversion() {
             
         if (recordError) throw recordError;
         
-        // SUCCESS
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent to your wallet.`, 'success');
+        // SUCCESS - Show formatted amounts
+        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(3)} NMX will be sent to your wallet.`, 'success');
         
         // Refresh displays
         await loadProductionSwapData();
