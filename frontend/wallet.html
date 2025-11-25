@@ -1407,11 +1407,19 @@
             display: grid !important;
         }
 
+/* ============================================= */
+/* PRODUCTION SWAP MODAL - COMPACT VERSION */
+/* ============================================= */
+
 /* Compact Production Swap Modal */
 .compact-modal {
     max-width: 420px;
     max-height: 85vh;
     overflow-y: auto;
+    background: var(--dark-bg);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
 /* Compact Header */
@@ -1422,6 +1430,9 @@
     padding: 15px 20px;
     border-bottom: 2px solid var(--gold);
     background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .header-main {
@@ -1434,6 +1445,7 @@
     color: var(--gold);
     margin: 0;
     font-size: 18px;
+    font-weight: 700;
 }
 
 .wallet-settings-btn {
@@ -1448,11 +1460,24 @@
     display: flex;
     align-items: center;
     gap: 5px;
+    font-weight: 600;
 }
 
 .wallet-settings-btn:hover {
     background: rgba(212, 175, 55, 0.25);
     transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+/* Wallet connected state */
+.wallet-settings-btn.connected {
+    background: rgba(0, 200, 81, 0.15);
+    border-color: rgba(0, 200, 81, 0.3);
+    color: var(--success);
+}
+
+.wallet-settings-btn.connected:hover {
+    background: rgba(0, 200, 81, 0.25);
 }
 
 /* Compact Balance */
@@ -1466,11 +1491,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .balance-label {
     color: var(--text-muted);
     font-size: 13px;
+    font-weight: 600;
 }
 
 .balance-value {
@@ -1483,6 +1510,9 @@
     color: var(--text-muted);
     font-size: 13px;
     font-weight: 600;
+    background: rgba(212, 175, 55, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
 }
 
 /* Compact Conversion */
@@ -1511,6 +1541,7 @@
     border-radius: 10px;
     padding: 12px 15px;
     transition: all 0.3s ease;
+    position: relative;
 }
 
 .input-container:focus-within {
@@ -1526,11 +1557,16 @@
     font-size: 18px;
     font-weight: 600;
     outline: none;
+    min-width: 0;
+}
+
+.input-container input::placeholder {
+    color: rgba(212, 175, 55, 0.5);
 }
 
 .output-container input {
     color: var(--gold);
-    opacity: 0.8;
+    opacity: 0.9;
 }
 
 .token-badge {
@@ -1543,6 +1579,7 @@
     border: 1px solid rgba(212, 175, 55, 0.3);
     min-width: 50px;
     text-align: center;
+    white-space: nowrap;
 }
 
 .max-btn {
@@ -1555,19 +1592,22 @@
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 11px;
+    white-space: nowrap;
 }
 
 .max-btn:hover {
     background: rgba(212, 175, 55, 0.5);
+    transform: translateY(-1px);
 }
 
-/* Conversion Info - No Panel */
+/* Conversion Info */
 .conversion-info {
     text-align: center;
     margin: 10px 0 15px 0;
     display: flex;
     justify-content: center;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .rate, .fee {
@@ -1577,6 +1617,7 @@
     background: rgba(212, 175, 55, 0.1);
     padding: 4px 8px;
     border-radius: 6px;
+    border: 1px solid rgba(212, 175, 55, 0.2);
 }
 
 /* Compact Convert Button */
@@ -1592,6 +1633,8 @@
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: relative;
+    overflow: hidden;
 }
 
 .compact-convert-btn.active {
@@ -1605,11 +1648,18 @@
     box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
 }
 
+.compact-convert-btn.active:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(212, 175, 55, 0.4);
+}
+
 .compact-convert-btn.disabled {
     background: var(--muted);
     color: var(--text);
     cursor: not-allowed;
     opacity: 0.6;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 /* Compact Note */
@@ -1623,20 +1673,32 @@
     padding: 15px 20px;
     background: rgba(212, 175, 55, 0.05);
     border-top: 1px solid rgba(212, 175, 55, 0.1);
+    text-align: center;
+    line-height: 1.4;
 }
 
 .compact-note i {
     color: var(--gold);
+    flex-shrink: 0;
 }
+
+/* ============================================= */
+/* WALLET SETUP MODAL - MINI VERSION */
+/* ============================================= */
 
 /* Mini Wallet Modal */
 .mini-modal {
     max-width: 380px;
+    background: var(--dark-bg);
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
 .mini-modal .modal-header {
     padding: 15px 20px;
     border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, transparent 100%);
 }
 
 .mini-modal .modal-header h3 {
@@ -1645,6 +1707,8 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    margin: 0;
+    font-weight: 700;
 }
 
 .modal-body {
@@ -1656,6 +1720,7 @@
     margin-bottom: 15px;
     text-align: center;
     font-size: 14px;
+    line-height: 1.5;
 }
 
 .wallet-input {
@@ -1668,12 +1733,17 @@
     font-size: 14px;
     margin-bottom: 15px;
     transition: all 0.3s ease;
+    font-family: monospace;
 }
 
 .wallet-input:focus {
     outline: none;
     border-color: var(--gold);
     box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
+}
+
+.wallet-input::placeholder {
+    color: rgba(212, 175, 55, 0.5);
 }
 
 .modal-actions {
@@ -1690,6 +1760,7 @@
     cursor: pointer;
     transition: all 0.3s ease;
     font-size: 13px;
+    min-width: 80px;
 }
 
 .btn.primary {
@@ -1702,13 +1773,139 @@
     box-shadow: 0 2px 8px rgba(212, 175, 55, 0.4);
 }
 
+.btn.primary:active {
+    transform: translateY(0);
+}
+
 .btn.secondary {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .btn.secondary:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+/* ============================================= */
+/* RESPONSIVE DESIGN */
+/* ============================================= */
+
+@media (max-width: 480px) {
+    .compact-modal {
+        max-width: 95vw;
+        margin: 10px;
+    }
+    
+    .mini-modal {
+        max-width: 95vw;
+        margin: 10px;
+    }
+    
+    .compact-header {
+        padding: 12px 15px;
+    }
+    
+    .header-main {
+        gap: 10px;
+    }
+    
+    .compact-header h3 {
+        font-size: 16px;
+    }
+    
+    .compact-conversion {
+        padding: 15px;
+    }
+    
+    .input-container, .output-container {
+        padding: 10px 12px;
+    }
+    
+    .input-container input, .output-container input {
+        font-size: 16px;
+    }
+    
+    .conversion-info {
+        gap: 10px;
+        flex-direction: column;
+    }
+    
+    .compact-convert-btn {
+        margin: 10px 15px;
+        padding: 12px;
+        font-size: 13px;
+    }
+    
+    .modal-actions {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
+
+/* ============================================= */
+/* ACCESSIBILITY & ANIMATIONS */
+/* ============================================= */
+
+/* Focus styles for accessibility */
+.wallet-settings-btn:focus,
+.max-btn:focus,
+.compact-convert-btn:focus,
+.btn:focus,
+.wallet-input:focus {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
+/* Smooth transitions for all interactive elements */
+.wallet-settings-btn,
+.max-btn,
+.compact-convert-btn,
+.btn,
+.input-container,
+.output-container,
+.wallet-input {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading state for convert button */
+.compact-convert-btn.loading {
+    position: relative;
+    color: transparent;
+}
+
+.compact-convert-btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: 50%;
+    left: 50%;
+    margin: -10px 0 0 -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid var(--dark-bg);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Error state for wallet input */
+.wallet-input.error {
+    border-color: var(--error);
+    box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.1);
+}
+
+/* Success state for wallet input */
+.wallet-input.success {
+    border-color: var(--success);
+    box-shadow: 0 0 0 2px rgba(0, 200, 81, 0.1);
 }
 
     </style>
