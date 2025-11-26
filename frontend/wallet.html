@@ -6270,6 +6270,31 @@ function debugUserState() {
         alert('❌ No user data available. Wallet not properly loaded.');
     }
 }
+
+// ✅ DEBUG: Check the DOM state
+function debugDOM() {
+    console.log('🔍 === DEBUG DOM CHECK ===');
+    
+    // Check if modal is visible
+    const modal = document.getElementById('productionSwapModal');
+    console.log('🔍 Modal element:', modal);
+    console.log('🔍 Modal display style:', modal ? modal.style.display : 'NOT FOUND');
+    
+    // Check balance element
+    const balanceElement = document.getElementById('realNmxpBalance');
+    console.log('🔍 Balance element:', balanceElement);
+    console.log('🔍 Balance parent:', balanceElement ? balanceElement.parentElement : 'NOT FOUND');
+    console.log('🔍 Balance textContent:', balanceElement ? balanceElement.textContent : 'NOT FOUND');
+    console.log('🔍 Balance innerHTML:', balanceElement ? balanceElement.innerHTML : 'NOT FOUND');
+    
+    // Check if element is in visible DOM
+    if (balanceElement) {
+        console.log('🔍 Is element in document?', document.contains(balanceElement));
+        console.log('🔍 Element computed style:', window.getComputedStyle(balanceElement));
+    }
+    
+    console.log('🔍 === END DEBUG ===');
+}
 </script>
 </body>
 </html>
