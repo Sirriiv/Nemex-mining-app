@@ -5531,7 +5531,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - FIXED BALANCE DISPLAY
+// PRODUCTION SWAP SYSTEM - DEBUG VERSION
 // =============================================
 
 // Production configuration
@@ -5623,7 +5623,7 @@ async function getUserNMXpBalance(userId) {
     }
 }
 
-// ✅ FIXED: Load production swap data
+// ✅ DEBUG VERSION: Load production swap data
 async function loadProductionSwapData() {
     console.log('🔄 Loading production swap data...');
 
@@ -5642,9 +5642,11 @@ async function loadProductionSwapData() {
         const nmxpBalance = userData.balance;
 
         console.log('💰 User NMXp Balance:', nmxpBalance);
+        console.log('🎯 DEBUG: About to call setBalanceDisplay with:', nmxpBalance);
 
-        // ✅ FIXED: Update balance display
+        // ✅ DEBUG: Force call setBalanceDisplay
         setBalanceDisplay(nmxpBalance);
+        console.log('🎯 DEBUG: setBalanceDisplay called successfully');
 
         // Update wallet display
         updateWalletAddressDisplay(userData.wallet_address);
@@ -5656,44 +5658,65 @@ async function loadProductionSwapData() {
     }
 }
 
-// ✅ DIAGNOSTIC: Balance display update with timing tests
+// ✅ DEBUG VERSION: Balance display update with forced logging
 function setBalanceDisplay(balance) {
-    console.log('🔄 setBalanceDisplay called with:', balance);
+    console.log('🔄 setBalanceDisplay CALLED with balance:', balance);
+    console.trace('🔍 Stack trace for setBalanceDisplay');
 
-    // Test 1: Check if element exists immediately
-    const balanceElement1 = document.getElementById('realNmxpBalance');
-    console.log('🔍 Immediate balance element:', balanceElement1);
+    // Multiple attempts with increasing delays
+    const attempts = [
+        { delay: 0, name: 'IMMEDIATE' },
+        { delay: 100, name: 'FAST' },
+        { delay: 300, name: 'MEDIUM' },
+        { delay: 500, name: 'SLOW' },
+        { delay: 1000, name: 'VERY SLOW' }
+    ];
 
-    // Test 2: Check after a longer delay
-    setTimeout(() => {
-        const balanceElement2 = document.getElementById('realNmxpBalance');
-        console.log('🔍 Delayed balance element (500ms):', balanceElement2);
-
-        if (balanceElement2) {
-            console.log('🔍 Before update:', balanceElement2.textContent);
-            balanceElement2.textContent = formatNumber(balance);
-            console.log('🔍 After update:', balanceElement2.textContent);
-
-            // Test 3: Verify the update stuck
-            setTimeout(() => {
-                console.log('🔍 Final check (1000ms):', balanceElement2.textContent);
-            }, 500);
-        } else {
-            console.error('❌ Balance element not found after 500ms delay');
-
-            // Try alternative search methods
-            console.log('🔍 Searching for balance element in modal...');
-            const modal = document.getElementById('productionSwapModal');
-            if (modal) {
-                const modalBalance = modal.querySelector('#realNmxpBalance');
-                console.log('🔍 Balance element via modal query:', modalBalance);
-                if (modalBalance) {
-                    modalBalance.textContent = formatNumber(balance);
-                    console.log('✅ Updated via modal query');
-                }
+    attempts.forEach(attempt => {
+        setTimeout(() => {
+            console.log(`🔍 ${attempt.name} ATTEMPT (${attempt.delay}ms): Looking for #realNmxpBalance`);
+            
+            const balanceElement = document.getElementById('realNmxpBalance');
+            console.log(`🔍 ${attempt.name} ELEMENT FOUND:`, balanceElement);
+            
+            if (balanceElement) {
+                console.log(`🔍 ${attempt.name} BEFORE UPDATE:`, balanceElement.textContent);
+                console.log(`🔍 ${attempt.name} UPDATING TO:`, formatNumber(balance));
+                
+                balanceElement.textContent = formatNumber(balance);
+                
+                console.log(`🔍 ${attempt.name} AFTER UPDATE:`, balanceElement.textContent);
+                
+                // Force style updates
+                balanceElement.style.display = 'inline';
+                balanceElement.style.visibility = 'visible';
+                balanceElement.style.opacity = '1';
+                
+                console.log(`✅ ${attempt.name} UPDATE COMPLETE`);
+            } else {
+                console.error(`❌ ${attempt.name} ELEMENT NOT FOUND`);
+                
+                // Try alternative selectors
+                console.log('🔍 Trying alternative selectors...');
+                const alternatives = [
+                    '#realNmxpBalance',
+                    '.realNmxpBalance',
+                    '[id*="NmxpBalance"]',
+                    '[id*="nmxpBalance"]',
+                    '[id*="balance"]'
+                ];
+                
+                alternatives.forEach(selector => {
+                    const altElement = document.querySelector(selector);
+                    if (altElement) {
+                        console.log(`🔍 Found element with selector "${selector}":`, altElement);
+                        altElement.textContent = formatNumber(balance);
+                        console.log(`✅ Updated via alternative selector: ${selector}`);
+                    }
+                });
             }
-        }
-    }, 500);
+        }, attempt.delay);
+    });
 }
 
 // Calculate production conversion
@@ -5898,9 +5921,9 @@ function updateWalletAddressDisplay(walletAddress) {
     }
 }
 
-// ✅ CRITICAL FIX: Open modal with proper DOM timing
+// ✅ DEBUG VERSION: Open modal with forced logging
 function openProductionSwapModal() {
-    console.log('🚀 Opening production swap modal...');
+    console.log('🚀 DEBUG: Opening production swap modal...');
     removeDebugButtons();
 
     // Show modal first
@@ -5908,15 +5931,20 @@ function openProductionSwapModal() {
     modal.style.display = 'block';
     document.body.classList.add('modal-open');
 
-    // ✅ FIXED: Wait for modal to be fully rendered in DOM
-    setTimeout(() => {
-        // Force DOM reflow to ensure rendering is complete
-        modal.offsetHeight;
+    console.log('🔍 DEBUG: Modal displayed, waiting for DOM...');
 
-        console.log('🔍 Modal should be visible now, loading data...');
+    // ✅ DEBUG: Multiple timing attempts
+    setTimeout(() => {
+        console.log('🔍 DEBUG: 150ms delay - Loading data now...');
         loadProductionSwapData();
         calculateProductionConversion();
-    }, 150); // Increased delay to ensure DOM is fully ready
+    }, 150);
+
+    // Additional attempt
+    setTimeout(() => {
+        console.log('🔍 DEBUG: 500ms delay - Force refresh data...');
+        loadProductionSwapData();
+    }, 500);
 }
 
 function closeProductionSwapModal() {
@@ -6040,32 +6068,160 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP EVENT LISTENERS
+// PRODUCTION SWAP EVENT LISTENERS - ENHANCED
 // =============================================
 
-// Production Swap Modal Events
-document.getElementById('productionConvertAmount')?.addEventListener('input', calculateProductionConversion);
-
-// Wallet Setup Events  
-document.getElementById('userWalletAddress')?.addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') saveWalletAddress();
-});
-
-// Close modals when clicking outside
-window.addEventListener('click', function(e) {
-    if (e.target.id === 'productionSwapModal') closeProductionSwapModal();
-    if (e.target.id === 'walletSetupModal') closeWalletSetup();
-});
-
-// Close modals with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeProductionSwapModal();
-        closeWalletSetup();
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Initializing production swap event listeners...');
+    
+    // Production Swap Modal Events
+    const convertAmountInput = document.getElementById('productionConvertAmount');
+    if (convertAmountInput) {
+        convertAmountInput.addEventListener('input', function(e) {
+            console.log('🔢 Convert amount input changed:', e.target.value);
+            calculateProductionConversion();
+        });
+        console.log('✅ Convert amount listener attached');
+    } else {
+        console.error('❌ productionConvertAmount element not found');
     }
+
+    // MAX Button Event
+    const maxButton = document.querySelector('.max-btn, [onclick*="setMaxConversion"]');
+    if (maxButton) {
+        maxButton.addEventListener('click', function() {
+            console.log('📈 MAX button clicked');
+            setMaxConversion();
+        });
+        console.log('✅ MAX button listener attached');
+    }
+
+    // Convert Button Event
+    const convertButton = document.getElementById('productionConvertBtn');
+    if (convertButton) {
+        convertButton.addEventListener('click', function() {
+            console.log('🔄 Convert button clicked');
+            executeProductionConversion();
+        });
+        console.log('✅ Convert button listener attached');
+    }
+
+    // Wallet Setup Events  
+    const walletAddressInput = document.getElementById('userWalletAddress');
+    if (walletAddressInput) {
+        walletAddressInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                console.log('↵ Enter pressed in wallet address input');
+                saveWalletAddress();
+            }
+        });
+        console.log('✅ Wallet address input listener attached');
+    }
+
+    // Save Wallet Button
+    const saveWalletButton = document.querySelector('[onclick*="saveWalletAddress"]');
+    if (saveWalletButton) {
+        saveWalletButton.addEventListener('click', function() {
+            console.log('💾 Save wallet button clicked');
+            saveWalletAddress();
+        });
+        console.log('✅ Save wallet button listener attached');
+    }
+
+    // Wallet Setup Button in Modal
+    const walletSetupButton = document.querySelector('[onclick*="showWalletSetup"]');
+    if (walletSetupButton) {
+        walletSetupButton.addEventListener('click', function() {
+            console.log('⚙️ Wallet setup button clicked');
+            showWalletSetup();
+        });
+        console.log('✅ Wallet setup button listener attached');
+    }
+
+    // Close modals when clicking outside
+    window.addEventListener('click', function(e) {
+        if (e.target.id === 'productionSwapModal') {
+            console.log('❌ Closing production swap modal (outside click)');
+            closeProductionSwapModal();
+        }
+        if (e.target.id === 'walletSetupModal') {
+            console.log('❌ Closing wallet setup modal (outside click)');
+            closeWalletSetup();
+        }
+    });
+
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            console.log('❌ Closing modals (Escape key)');
+            closeProductionSwapModal();
+            closeWalletSetup();
+        }
+    });
+
+    // Debug: Check if modal openers exist
+    const swapButtons = document.querySelectorAll('[onclick*="openProductionSwapModal"], .swap-btn, .convert-btn');
+    console.log(`🔍 Found ${swapButtons.length} swap modal opener buttons:`, swapButtons);
+
+    swapButtons.forEach((button, index) => {
+        button.addEventListener('click', function() {
+            console.log(`🚀 Swap button ${index + 1} clicked - opening modal`);
+            openProductionSwapModal();
+        });
+    });
+
+    console.log('✅ All production swap event listeners initialized successfully');
 });
 
-console.log('✅ Production swap system loaded');
+// Additional safety: Re-initialize listeners if modal is dynamically added later
+function initializeModalListeners() {
+    console.log('🔄 Re-initializing modal listeners...');
+    
+    // Re-attach input listeners for dynamically created modals
+    const dynamicConvertInput = document.getElementById('productionConvertAmount');
+    if (dynamicConvertInput && !dynamicConvertInput.hasListener) {
+        dynamicConvertInput.addEventListener('input', calculateProductionConversion);
+        dynamicConvertInput.hasListener = true;
+        console.log('✅ Dynamic convert input listener attached');
+    }
+}
+
+// Call this whenever you dynamically show the modal
+function openProductionSwapModal() {
+    console.log('🚀 Opening production swap modal...');
+    removeDebugButtons();
+
+    // Show modal first
+    const modal = document.getElementById('productionSwapModal');
+    if (!modal) {
+        console.error('❌ productionSwapModal element not found!');
+        return;
+    }
+    
+    modal.style.display = 'block';
+    document.body.classList.add('modal-open');
+
+    // Initialize listeners for dynamically created content
+    initializeModalListeners();
+
+    console.log('🔍 Modal displayed, waiting for DOM...');
+
+    // Load data with multiple timing attempts
+    setTimeout(() => {
+        console.log('🔍 150ms delay - Loading data now...');
+        loadProductionSwapData();
+        calculateProductionConversion();
+    }, 150);
+
+    // Additional attempt
+    setTimeout(() => {
+        console.log('🔍 500ms delay - Force refresh data...');
+        loadProductionSwapData();
+    }, 500);
+}
+
+console.log('✅ Production swap event system loaded');
 
         // =============================================
         // ENHANCED PAGE LOAD EVENT LISTENER - FIXED
