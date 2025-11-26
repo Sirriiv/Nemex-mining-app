@@ -5543,14 +5543,49 @@ async function loadProductionSwapData() {
     }
 }
 
-// ✅ NEW: Helper function to safely update balance display
+// ✅ ENHANCED: Helper function to safely update balance display
 function setBalanceDisplay(balance) {
+    console.log('🔄 setBalanceDisplay called with:', balance);
+    
     const balanceElement = document.getElementById('realNmxpBalance');
+    console.log('🔍 Balance element found:', balanceElement);
+    
     if (balanceElement) {
+        console.log('🔍 Before update - textContent:', balanceElement.textContent);
+        console.log('🔍 Before update - innerHTML:', balanceElement.innerHTML);
+        
         balanceElement.textContent = formatNumber(balance);
+        
+        console.log('🔍 After update - textContent:', balanceElement.textContent);
+        console.log('🔍 After update - innerHTML:', balanceElement.innerHTML);
         console.log('✅ Balance display updated to:', balance);
+        
+        // Force a DOM reflow to ensure rendering
+        balanceElement.offsetHeight;
+        
     } else {
         console.error('❌ Balance element not found, retrying...');
+        
+        // Try alternative selectors
+        const alternativeSelectors = [
+            '#realNmxpBalance',
+            '[id="realNmxpBalance"]',
+            '.balance-value',
+            '.compact-balance .balance-value'
+        ];
+        
+        for (const selector of alternativeSelectors) {
+            const element = document.querySelector(selector);
+            if (element) {
+                console.log(`✅ Found element with selector: ${selector}`);
+                element.textContent = formatNumber(balance);
+                console.log('✅ Balance display updated via alternative selector:', balance);
+                return;
+            }
+        }
+        
+        console.error('❌ Balance element not found with any selector');
+        
         // Retry after a short delay
         setTimeout(() => {
             const retryElement = document.getElementById('realNmxpBalance');
@@ -5559,6 +5594,17 @@ function setBalanceDisplay(balance) {
                 console.log('✅ Balance display updated on retry:', balance);
             } else {
                 console.error('❌ Balance element still not found after retry');
+                
+                // Last resort: search entire DOM
+                const allElements = document.getElementsByTagName('*');
+                for (let el of allElements) {
+                    if (el.id === 'realNmxpBalance') {
+                        el.textContent = formatNumber(balance);
+                        console.log('✅ Balance found and updated via DOM search');
+                        return;
+                    }
+                }
+                console.error('❌ Balance element not found in entire DOM');
             }
         }, 100);
     }
