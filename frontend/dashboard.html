@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NemexCoin - Mining Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         /* YOUR EXACT ORIGINAL CSS - NO CHANGES */
         :root { 
@@ -647,6 +648,468 @@
                 transform: translateX(100%);
             }
         }
+
+        /* NEW: NMX Admin Overlay Styles */
+        .nmx-admin-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 15, 0.95);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .nmx-admin-container {
+            background: var(--darker-bg);
+            border: 2px solid var(--gold);
+            border-radius: 15px;
+            width: 100%;
+            max-width: 1200px;
+            max-height: 90vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .nmx-admin-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(220, 53, 69, 0.8);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 10001;
+        }
+
+        .nmx-admin-close:hover {
+            background: #dc3545;
+            transform: scale(1.1);
+        }
+
+        .nmx-admin-content {
+            height: 100%;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Admin Panel Styles */
+        .admin-header {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--bg-secondary) 100%);
+            border-bottom: 2px solid var(--gold);
+            padding: 20px;
+            color: var(--text);
+            border-radius: 10px 10px 0 0;
+        }
+
+        .admin-title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .admin-title-section h2 {
+            color: var(--gold);
+            margin: 0;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-icon.pending { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .stat-icon.accepted { background: rgba(40, 167, 69, 0.2); color: #28a745; }
+        .stat-icon.rejected { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+        .stat-icon.converted { background: rgba(0, 123, 255, 0.2); color: #007bff; }
+        .stat-icon.nmx { background: rgba(212, 175, 55, 0.2); color: var(--gold); }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 18px;
+            color: var(--text);
+            margin-top: 5px;
+        }
+
+        /* Tab Styles */
+        .admin-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            color: var(--muted);
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .tab-button.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .tab-badge {
+            background: #ffc107;
+            color: #000;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .tab-badge.accepted-badge { background: #28a745; color: white; }
+        .tab-badge.rejected-badge { background: #dc3545; color: white; }
+
+        /* Tab Content */
+        .admin-tab-content {
+            padding: 20px;
+            background: var(--dark-bg);
+            min-height: 400px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Overview Grid */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .overview-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .overview-card h3 {
+            color: var(--gold);
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Chart Styles */
+        .chart-bar {
+            margin-bottom: 15px;
+        }
+
+        .chart-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .chart-value {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-fill {
+            height: 20px;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            min-width: 20px;
+        }
+
+        .chart-fill.pending-fill { background: #ffc107; }
+        .chart-fill.accepted-fill { background: #28a745; }
+        .chart-fill.rejected-fill { background: #dc3545; }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .action-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
+        /* System Info */
+        .system-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Tab Headers */
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .tab-header h3 {
+            color: var(--gold);
+            margin: 0;
+        }
+
+        /* Conversions List */
+        .conversions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .conversion-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .conversion-info {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .conversion-user {
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .conversion-details {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .conversion-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Admin Buttons */
+        .admin-btn {
+            background: linear-gradient(135deg, var(--gold) 0%, #b8941f 100%);
+            border: none;
+            color: var(--dark-bg);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .admin-btn.refresh-btn { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; }
+        .admin-btn.export-btn { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white; }
+        .admin-btn.logout-btn { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; }
+        .admin-btn.process-all-btn { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #000; }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filters select, .filters input {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .filters select:focus, .filters input:focus {
+            border-color: var(--gold);
+            outline: none;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .status-pending { color: #ffc107; }
+        .status-accepted { color: #28a745; }
+        .status-rejected { color: #dc3545; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .nmx-admin-overlay {
+                padding: 10px;
+            }
+            
+            .admin-title-section {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .admin-actions {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .admin-stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-tabs {
+                flex-direction: column;
+            }
+            
+            .tab-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .conversion-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .conversion-actions {
+                width: 100%;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -674,6 +1137,20 @@
             <button class="claim-btn" onclick="checkMaintenanceStatus()" style="margin: 10px 0;">
                 Check Status
             </button>
+        </div>
+    </div>
+
+    <!-- NMX Admin Panel Overlay -->
+    <div class="nmx-admin-overlay" id="nmxAdminOverlay">
+        <div class="nmx-admin-container">
+            <button class="nmx-admin-close" onclick="closeNmxAdmin()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+            <div class="nmx-admin-content">
+                <!-- Admin Panel Content will be loaded here -->
+            </div>
         </div>
     </div>
 
@@ -769,13 +1246,13 @@
                 </div>
                 <div class="settings-list">
                     <!-- ADDED: NMX Distribution Admin Link -->
-                    <a href="NMX-admin.html" class="settings-item" id="nmxDistributionAdminSettings" style="display: none;">
+                    <div class="settings-item" id="nmxDistributionAdminSettings" style="display: none;" onclick="openNmxAdmin()">
                         <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
                         </svg>
                         <span class="settings-text">NMX Distribution Admin</span>
                         <span class="admin-badge">ADMIN</span>
-                    </a>
+                    </div>
 
                     <!-- ADDED: Main Admin Panel Link -->
                     <a href="admin.html" class="settings-item" id="mainAdminSettings" style="display: none;">
@@ -884,14 +1361,644 @@
 
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-        // Loading Screen Function
-        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
-            // Don't show loading screen for admin panels - direct navigation
-            if (targetPage.includes('admin') || targetPage === 'NMX-admin.html') {
-                window.location.href = targetPage;
+        // NMX Admin Panel Functions
+        let currentAdminTab = 'overview';
+        let allConversions = [];
+
+        // Open NMX Admin Panel
+        function openNmxAdmin() {
+            console.log('🚀 Opening NMX Distribution Admin...');
+            document.getElementById('nmxAdminOverlay').style.display = 'flex';
+            loadAdminPanelContent();
+            loadPendingConversions();
+        }
+
+        // Close NMX Admin Panel
+        function closeNmxAdmin() {
+            document.getElementById('nmxAdminOverlay').style.display = 'none';
+        }
+
+        // Load admin panel content
+        function loadAdminPanelContent() {
+            const adminContent = `
+                <div class="admin-header">
+                    <div class="admin-title-section">
+                        <h2><i class="fas fa-crown"></i> NMX Distribution Panel</h2>
+                        <div class="admin-actions">
+                            <button onclick="loadPendingConversions()" class="admin-btn refresh-btn">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button onclick="exportConversionsCSV()" class="admin-btn export-btn">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                            <button onclick="closeNmxAdmin()" class="admin-btn logout-btn">
+                                <i class="fas fa-times"></i> Close
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Overview -->
+                    <div class="admin-stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon pending">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Pending Review</span>
+                                <strong class="stat-value" id="pendingCount">0</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon accepted">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Accepted</span>
+                                <strong class="stat-value" id="totalAccepted">0</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon rejected">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Rejected</span>
+                                <strong class="stat-value" id="totalRejected">0</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon converted">
+                                <i class="fas fa-exchange-alt"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total NMXp Converted</span>
+                                <strong class="stat-value" id="totalNmxpConverted">0</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon nmx">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total NMX to Send</span>
+                                <strong class="stat-value" id="totalNMXSend">0 NMX</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <div class="admin-tabs">
+                    <button class="tab-button active" onclick="switchAdminTab('overview')">
+                        <i class="fas fa-chart-bar"></i> Overview
+                    </button>
+                    <button class="tab-button" onclick="switchAdminTab('pending')">
+                        <i class="fas fa-clock"></i> Pending Review
+                        <span class="tab-badge" id="pendingBadge">0</span>
+                    </button>
+                    <button class="tab-button" onclick="switchAdminTab('accepted')">
+                        <i class="fas fa-check-circle"></i> Accepted
+                        <span class="tab-badge accepted-badge" id="acceptedBadge">0</span>
+                    </button>
+                    <button class="tab-button" onclick="switchAdminTab('rejected')">
+                        <i class="fas fa-times-circle"></i> Rejected
+                        <span class="tab-badge rejected-badge" id="rejectedBadge">0</span>
+                    </button>
+                    <button class="tab-button" onclick="switchAdminTab('all')">
+                        <i class="fas fa-list"></i> All Conversions
+                    </button>
+                </div>
+                
+                <!-- Tab Content -->
+                <div class="admin-tab-content">
+                    <!-- Overview Tab -->
+                    <div id="overviewTab" class="tab-pane active">
+                        <div class="overview-grid">
+                            <div class="overview-card">
+                                <h3><i class="fas fa-chart-line"></i> Conversion Statistics</h3>
+                                <div class="stats-chart">
+                                    <div class="chart-bar">
+                                        <div class="chart-label">Pending</div>
+                                        <div class="chart-value">
+                                            <div class="chart-fill pending-fill" id="chartPending"></div>
+                                            <span id="chartPendingText">0%</span>
+                                        </div>
+                                    </div>
+                                    <div class="chart-bar">
+                                        <div class="chart-label">Accepted</div>
+                                        <div class="chart-value">
+                                            <div class="chart-fill accepted-fill" id="chartAccepted"></div>
+                                            <span id="chartAcceptedText">0%</span>
+                                        </div>
+                                    </div>
+                                    <div class="chart-bar">
+                                        <div class="chart-label">Rejected</div>
+                                        <div class="chart-value">
+                                            <div class="chart-fill rejected-fill" id="chartRejected"></div>
+                                            <span id="chartRejectedText">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="overview-card">
+                                <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                                <div class="quick-actions">
+                                    <button onclick="processAllPending()" class="action-btn process-all">
+                                        <i class="fas fa-play-circle"></i>
+                                        Process All Pending
+                                    </button>
+                                    <button onclick="loadPendingConversions()" class="action-btn refresh">
+                                        <i class="fas fa-sync"></i>
+                                        Refresh Data
+                                    </button>
+                                    <button onclick="showBulkActionModal()" class="action-btn bulk">
+                                        <i class="fas fa-layer-group"></i>
+                                        Bulk Actions
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="overview-card">
+                                <h3><i class="fas fa-info-circle"></i> System Info</h3>
+                                <div class="system-info">
+                                    <div class="info-item">
+                                        <span>Last Updated:</span>
+                                        <strong id="lastUpdated">Never</strong>
+                                    </div>
+                                    <div class="info-item">
+                                        <span>Total Conversions:</span>
+                                        <strong id="totalConversions">0</strong>
+                                    </div>
+                                    <div class="info-item">
+                                        <span>Success Rate:</span>
+                                        <strong id="successRate">0%</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pending Review Tab -->
+                    <div id="pendingTab" class="tab-pane">
+                        <div class="tab-header">
+                            <h3>Pending Conversions</h3>
+                            <button onclick="processAllPending()" class="admin-btn process-all-btn">
+                                <i class="fas fa-play-circle"></i> Process All
+                            </button>
+                        </div>
+                        <div class="conversions-list" id="pendingConversionsList">
+                            <div class="empty-state">Loading pending conversions...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Accepted Tab -->
+                    <div id="acceptedTab" class="tab-pane">
+                        <div class="tab-header">
+                            <h3>Accepted Conversions</h3>
+                            <div class="tab-stats">
+                                <span>Total NMX Sent: <strong id="acceptedNmxTotal">0</strong></span>
+                            </div>
+                        </div>
+                        <div class="conversions-list" id="acceptedConversionsList">
+                            <div class="empty-state">No accepted conversions</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Rejected Tab -->
+                    <div id="rejectedTab" class="tab-pane">
+                        <div class="tab-header">
+                            <h3>Rejected Conversions</h3>
+                            <div class="tab-stats">
+                                <span>Total NMXp Returned: <strong id="rejectedNmxpTotal">0</strong></span>
+                            </div>
+                        </div>
+                        <div class="conversions-list" id="rejectedConversionsList">
+                            <div class="empty-state">No rejected conversions</div>
+                        </div>
+                    </div>
+                    
+                    <!-- All Conversions Tab -->
+                    <div id="allTab" class="tab-pane">
+                        <div class="tab-header">
+                            <h3>All Conversions</h3>
+                            <div class="filters">
+                                <select id="statusFilter" onchange="filterConversions()">
+                                    <option value="all">All Status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="accepted">Accepted</option>
+                                    <option value="rejected">Rejected</option>
+                                </select>
+                                <input type="date" id="dateFilter" onchange="filterConversions()" placeholder="Filter by date">
+                            </div>
+                        </div>
+                        <div class="conversions-list" id="allConversionsList">
+                            <div class="empty-state">No conversions found</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.querySelector('.nmx-admin-content').innerHTML = adminContent;
+        }
+
+        // Switch between admin tabs
+        function switchAdminTab(tabName) {
+            // Hide all tab panes
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab pane
+            const tabElement = document.getElementById(tabName + 'Tab');
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
+            
+            // Activate selected tab button
+            const buttonElement = document.querySelector(`[onclick="switchAdminTab('${tabName}')"]`);
+            if (buttonElement) {
+                buttonElement.classList.add('active');
+            }
+            
+            currentAdminTab = tabName;
+            
+            // Load data for the selected tab
+            if (tabName === 'pending') {
+                loadPendingConversions();
+            } else if (tabName === 'accepted') {
+                loadAcceptedConversions();
+            } else if (tabName === 'rejected') {
+                loadRejectedConversions();
+            } else if (tabName === 'all') {
+                loadAllConversions();
+            }
+        }
+
+        // Load pending conversions
+        async function loadPendingConversions() {
+            try {
+                console.log('🔄 Loading pending conversions...');
+                
+                // Fetch pending conversions from Supabase
+                const { data: conversions, error } = await supabaseClient
+                    .from('conversions')
+                    .select('*')
+                    .eq('status', 'pending')
+                    .order('created_at', { ascending: true });
+
+                if (error) throw error;
+
+                allConversions = conversions || [];
+                updateAdminStats();
+                renderPendingConversions(conversions || []);
+                
+            } catch (error) {
+                console.error('❌ Error loading pending conversions:', error);
+                showToast('Error loading conversions', 'error');
+            }
+        }
+
+        // Load accepted conversions
+        async function loadAcceptedConversions() {
+            try {
+                const { data: conversions, error } = await supabaseClient
+                    .from('conversions')
+                    .select('*')
+                    .eq('status', 'accepted')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                renderAcceptedConversions(conversions || []);
+                
+            } catch (error) {
+                console.error('❌ Error loading accepted conversions:', error);
+            }
+        }
+
+        // Load rejected conversions
+        async function loadRejectedConversions() {
+            try {
+                const { data: conversions, error } = await supabaseClient
+                    .from('conversions')
+                    .select('*')
+                    .eq('status', 'rejected')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                renderRejectedConversions(conversions || []);
+                
+            } catch (error) {
+                console.error('❌ Error loading rejected conversions:', error);
+            }
+        }
+
+        // Load all conversions
+        async function loadAllConversions() {
+            try {
+                const { data: conversions, error } = await supabaseClient
+                    .from('conversions')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                renderAllConversions(conversions || []);
+                
+            } catch (error) {
+                console.error('❌ Error loading all conversions:', error);
+            }
+        }
+
+        // Update admin statistics
+        function updateAdminStats() {
+            const pending = allConversions.filter(c => c.status === 'pending').length;
+            const accepted = allConversions.filter(c => c.status === 'accepted').length;
+            const rejected = allConversions.filter(c => c.status === 'rejected').length;
+            const totalNmxp = allConversions.reduce((sum, conv) => sum + (conv.nmxp_amount || 0), 0);
+            const totalNmx = allConversions.reduce((sum, conv) => sum + (conv.nmx_amount || 0), 0);
+            
+            // Update stat cards
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('totalAccepted').textContent = accepted;
+            document.getElementById('totalRejected').textContent = rejected;
+            document.getElementById('totalNmxpConverted').textContent = formatNumber(totalNmxp);
+            document.getElementById('totalNMXSend').textContent = formatNumber(totalNmx) + ' NMX';
+            
+            // Update tab badges
+            document.getElementById('pendingBadge').textContent = pending;
+            document.getElementById('acceptedBadge').textContent = accepted;
+            document.getElementById('rejectedBadge').textContent = rejected;
+            
+            // Update chart
+            const total = pending + accepted + rejected;
+            if (total > 0) {
+                const pendingPercent = (pending / total) * 100;
+                const acceptedPercent = (accepted / total) * 100;
+                const rejectedPercent = (rejected / total) * 100;
+                
+                document.getElementById('chartPending').style.width = pendingPercent + '%';
+                document.getElementById('chartAccepted').style.width = acceptedPercent + '%';
+                document.getElementById('chartRejected').style.width = rejectedPercent + '%';
+                
+                document.getElementById('chartPendingText').textContent = pendingPercent.toFixed(1) + '%';
+                document.getElementById('chartAcceptedText').textContent = acceptedPercent.toFixed(1) + '%';
+                document.getElementById('chartRejectedText').textContent = rejectedPercent.toFixed(1) + '%';
+            }
+            
+            // Update system info
+            document.getElementById('totalConversions').textContent = total;
+            document.getElementById('successRate').textContent = total > 0 ? ((accepted / total) * 100).toFixed(1) + '%' : '0%';
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+        }
+
+        // Render pending conversions
+        function renderPendingConversions(conversions) {
+            const container = document.getElementById('pendingConversionsList');
+            if (!container) return;
+            
+            if (conversions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No pending conversions</div>';
                 return;
             }
             
+            container.innerHTML = conversions.map(conversion => `
+                <div class="conversion-item" data-id="${conversion.id}">
+                    <div class="conversion-info">
+                        <div class="conversion-user">
+                            User: ${conversion.user_id?.substring(0, 8)}... | 
+                            Wallet: ${conversion.wallet_address?.substring(0, 8)}...
+                        </div>
+                        <div class="conversion-details">
+                            ${formatNumber(conversion.nmxp_amount)} NMXp → ${conversion.nmx_amount?.toFixed(6)} NMX
+                            | Created: ${new Date(conversion.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="conversion-actions">
+                        <button onclick="processConversion('${conversion.id}', 'accepted')" class="admin-btn" style="background: #28a745;">
+                            <i class="fas fa-check"></i> Accept
+                        </button>
+                        <button onclick="processConversion('${conversion.id}', 'rejected')" class="admin-btn" style="background: #dc3545;">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render accepted conversions
+        function renderAcceptedConversions(conversions) {
+            const container = document.getElementById('acceptedConversionsList');
+            if (!container) return;
+            
+            const totalNmx = conversions.reduce((sum, conv) => sum + (conv.nmx_amount || 0), 0);
+            document.getElementById('acceptedNmxTotal').textContent = formatNumber(totalNmx) + ' NMX';
+            
+            if (conversions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No accepted conversions</div>';
+                return;
+            }
+            
+            container.innerHTML = conversions.map(conversion => `
+                <div class="conversion-item">
+                    <div class="conversion-info">
+                        <div class="conversion-user">
+                            ✅ User: ${conversion.user_id?.substring(0, 8)}...
+                        </div>
+                        <div class="conversion-details">
+                            ${formatNumber(conversion.nmxp_amount)} NMXp → ${conversion.nmx_amount?.toFixed(6)} NMX
+                            | Processed: ${new Date(conversion.updated_at || conversion.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render rejected conversions
+        function renderRejectedConversions(conversions) {
+            const container = document.getElementById('rejectedConversionsList');
+            if (!container) return;
+            
+            const totalNmxp = conversions.reduce((sum, conv) => sum + (conv.nmxp_amount || 0), 0);
+            document.getElementById('rejectedNmxpTotal').textContent = formatNumber(totalNmxp) + ' NMXp';
+            
+            if (conversions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No rejected conversions</div>';
+                return;
+            }
+            
+            container.innerHTML = conversions.map(conversion => `
+                <div class="conversion-item">
+                    <div class="conversion-info">
+                        <div class="conversion-user">
+                            ❌ User: ${conversion.user_id?.substring(0, 8)}...
+                        </div>
+                        <div class="conversion-details">
+                            ${formatNumber(conversion.nmxp_amount)} NMXp → REJECTED
+                            | Rejected: ${new Date(conversion.updated_at || conversion.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Render all conversions
+        function renderAllConversions(conversions) {
+            const container = document.getElementById('allConversionsList');
+            if (!container) return;
+            
+            if (conversions.length === 0) {
+                container.innerHTML = '<div class="empty-state">No conversions found</div>';
+                return;
+            }
+            
+            container.innerHTML = conversions.map(conversion => `
+                <div class="conversion-item">
+                    <div class="conversion-info">
+                        <div class="conversion-user">
+                            ${getStatusIcon(conversion.status)} User: ${conversion.user_id?.substring(0, 8)}...
+                            | Status: <span class="status-${conversion.status}">${conversion.status.toUpperCase()}</span>
+                        </div>
+                        <div class="conversion-details">
+                            ${formatNumber(conversion.nmxp_amount)} NMXp → ${conversion.status === 'rejected' ? 'REJECTED' : conversion.nmx_amount?.toFixed(6) + ' NMX'}
+                            | ${new Date(conversion.created_at).toLocaleDateString()}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'pending': return '⏳';
+                case 'accepted': return '✅';
+                case 'rejected': return '❌';
+                default: return '📄';
+            }
+        }
+
+        // Process a single conversion
+        async function processConversion(conversionId, action) {
+            try {
+                console.log(`🔄 Processing conversion ${conversionId} as ${action}`);
+                
+                const { error } = await supabaseClient
+                    .from('conversions')
+                    .update({ 
+                        status: action,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', conversionId);
+
+                if (error) throw error;
+
+                showToast(`Conversion ${action} successfully!`, 'success');
+                
+                // Reload data
+                loadPendingConversions();
+                
+            } catch (error) {
+                console.error('❌ Error processing conversion:', error);
+                showToast('Error processing conversion', 'error');
+            }
+        }
+
+        // Process all pending conversions
+        async function processAllPending() {
+            try {
+                console.log('🔄 Processing all pending conversions...');
+                
+                const { data: pendingConversions, error } = await supabaseClient
+                    .from('conversions')
+                    .select('*')
+                    .eq('status', 'pending');
+
+                if (error) throw error;
+
+                if (pendingConversions.length === 0) {
+                    showToast('No pending conversions to process', 'info');
+                    return;
+                }
+
+                // Process each conversion
+                for (const conversion of pendingConversions) {
+                    await processConversion(conversion.id, 'accepted');
+                }
+
+                showToast(`Processed ${pendingConversions.length} conversions`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Error processing all conversions:', error);
+                showToast('Error processing conversions', 'error');
+            }
+        }
+
+        // Export conversions to CSV
+        function exportConversionsCSV() {
+            if (allConversions.length === 0) {
+                showToast('No data to export', 'warning');
+                return;
+            }
+
+            const headers = ['User ID', 'Wallet Address', 'NMXp Amount', 'NMX Amount', 'Status', 'Created At'];
+            const csvData = allConversions.map(conv => [
+                conv.user_id,
+                conv.wallet_address,
+                conv.nmxp_amount,
+                conv.nmx_amount,
+                conv.status,
+                new Date(conv.created_at).toLocaleString()
+            ]);
+
+            const csvContent = [headers, ...csvData]
+                .map(row => row.map(field => `"${field}"`).join(','))
+                .join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `conversions-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            
+            showToast('CSV exported successfully', 'success');
+        }
+
+        // Filter conversions
+        function filterConversions() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            
+            // This would filter the existing allConversions array
+            // Implementation depends on your data structure
+        }
+
+        // Show bulk action modal
+        function showBulkActionModal() {
+            // Implement bulk action modal
+            alert('Bulk actions feature coming soon!');
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            // You can use your existing notification system
+            console.log(`📢 ${type.toUpperCase()}: ${message}`);
+            // For now, using alert - you can replace with your toast system
+            alert(`${type.toUpperCase()}: ${message}`);
+        }
+
+        // ... [REST OF YOUR EXISTING DASHBOARD JAVASCRIPT CODE] ...
+        // Loading Screen Function
+        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
 
@@ -1246,7 +2353,7 @@
                     if (transactionAdminSettings) transactionAdminSettings.style.display = 'flex';
                     if (nmxDistributionAdminSettings) nmxDistributionAdminSettings.style.display = 'flex';
 
-                    // Add click events - DIRECT NAVIGATION WITHOUT LOADING SCREEN
+                    // Add click events - NMX Admin opens as overlay, others redirect
                     if (transactionAdminButton) {
                         transactionAdminButton.addEventListener('click', function() {
                             window.location.href = 'admin-transactions.html';
@@ -1261,7 +2368,7 @@
 
                     if (nmxDistributionAdminButton) {
                         nmxDistributionAdminButton.addEventListener('click', function() {
-                            window.location.href = 'NMX-admin.html';
+                            openNmxAdmin(); // This opens the overlay
                         });
                     }
 
