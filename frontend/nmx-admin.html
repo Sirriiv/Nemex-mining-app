@@ -1,17 +1,476 @@
-<!-- NMX Distribution Admin Panel Overlay -->
-<div id="nmxAdminOverlay" class="admin-overlay" style="display: none;">
-    <div class="admin-panel-container">
-        <!-- Close Button -->
-        <div class="admin-close-section">
-            <button class="admin-close-btn" onclick="closeNmxAdmin()">
-                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-            </button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMX Distribution Admin</title>
+    
+    <!-- Include your existing CSS -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Admin Panel Styles with Gold & Dark Theme */
+        body {
+            background: var(--dark-bg);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, var(--bg-secondary) 100%);
+            border-bottom: 2px solid var(--gold);
+            padding: 20px;
+            color: var(--text);
+            border-radius: 10px 10px 0 0;
+            margin-bottom: 0;
+        }
+
+        .admin-title-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .admin-title-section h2 {
+            color: var(--gold);
+            margin: 0;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .stat-icon.pending { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
+        .stat-icon.accepted { background: rgba(40, 167, 69, 0.2); color: #28a745; }
+        .stat-icon.rejected { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
+        .stat-icon.converted { background: rgba(0, 123, 255, 0.2); color: #007bff; }
+        .stat-icon.nmx { background: rgba(212, 175, 55, 0.2); color: var(--gold); }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 18px;
+            color: var(--text);
+            margin-top: 5px;
+        }
+
+        /* Tab Styles */
+        .admin-tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            color: var(--muted);
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .tab-button.active {
+            color: var(--gold);
+            border-bottom-color: var(--gold);
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .tab-badge {
+            background: #ffc107;
+            color: #000;
+            border-radius: 10px;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .tab-badge.accepted-badge { background: #28a745; color: white; }
+        .tab-badge.rejected-badge { background: #dc3545; color: white; }
+
+        /* Tab Content */
+        .admin-tab-content {
+            padding: 20px;
+            background: var(--dark-bg);
+            min-height: 500px;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Overview Grid */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .overview-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .overview-card h3 {
+            color: var(--gold);
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Chart Styles */
+        .chart-bar {
+            margin-bottom: 15px;
+        }
+
+        .chart-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .chart-value {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-fill {
+            height: 20px;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            min-width: 20px;
+        }
+
+        .chart-fill.pending-fill { background: #ffc107; }
+        .chart-fill.accepted-fill { background: #28a745; }
+        .chart-fill.rejected-fill { background: #dc3545; }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .action-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .action-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
+        /* System Info */
+        .system-info {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        /* Tab Headers */
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .tab-header h3 {
+            color: var(--gold);
+            margin: 0;
+        }
+
+        /* Conversions List */
+        .conversions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .conversion-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .conversion-info {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .conversion-user {
+            font-weight: bold;
+            color: var(--gold);
+            margin-bottom: 5px;
+        }
+
+        .conversion-details {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .conversion-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Admin Buttons */
+        .admin-btn {
+            background: linear-gradient(135deg, var(--gold) 0%, #b8941f 100%);
+            border: none;
+            color: var(--dark-bg);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .admin-btn.refresh-btn { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; }
+        .admin-btn.export-btn { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white; }
+        .admin-btn.logout-btn { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; }
+        .admin-btn.process-all-btn { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #000; }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filters select, .filters input {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .filters select:focus, .filters input:focus {
+            border-color: var(--gold);
+            outline: none;
+        }
+
+        /* Back to Dashboard */
+        .back-to-dashboard {
+            margin-bottom: 20px;
+        }
+
+        .back-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .status-pending { color: #ffc107; }
+        .status-accepted { color: #28a745; }
+        .status-rejected { color: #dc3545; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 10px;
+            }
+            
+            .admin-title-section {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .admin-actions {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .admin-stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-tabs {
+                flex-direction: column;
+            }
+            
+            .tab-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .conversion-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .conversion-actions {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Back to Dashboard -->
+        <div class="back-to-dashboard">
+            <a href="dashboard.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
         </div>
 
-        <!-- Admin Panel Content -->
-        <div class="admin-panel-content">
+        <!-- Admin Panel -->
+        <div id="adminPanel">
             <div class="admin-header">
                 <div class="admin-title-section">
                     <h2><i class="fas fa-crown"></i> NMX Distribution Panel</h2>
@@ -22,9 +481,9 @@
                         <button onclick="exportConversionsCSV()" class="admin-btn export-btn">
                             <i class="fas fa-download"></i> Export CSV
                         </button>
-                        <button onclick="closeNmxAdmin()" class="admin-btn logout-btn">
+                        <a href="dashboard.html" class="admin-btn logout-btn">
                             <i class="fas fa-times"></i> Close
-                        </button>
+                        </a>
                     </div>
                 </div>
                 
@@ -234,471 +693,115 @@
             </div>
         </div>
     </div>
-</div>
 
-<style>
-/* NMX Admin Overlay Styles */
-.admin-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 15, 15, 0.95);
-    z-index: 10000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-}
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-.admin-panel-container {
-    background: var(--darker-bg);
-    border: 2px solid var(--gold);
-    border-radius: 15px;
-    width: 100%;
-    max-width: 1200px;
-    max-height: 90vh;
-    overflow: hidden;
-    position: relative;
-}
+    <script>
+        // Initialize Supabase (same as dashboard)
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
-.admin-close-section {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    z-index: 10001;
-}
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-.admin-close-btn {
-    background: rgba(220, 53, 69, 0.8);
-    border: none;
-    color: white;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
+        // Global variables
+        let currentAdminTab = 'overview';
+        let allConversions = [];
 
-.admin-close-btn:hover {
-    background: #dc3545;
-    transform: scale(1.1);
-}
+        // Format number with commas (same as dashboard)
+        function formatNumber(number) {            
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
 
-.admin-panel-content {
-    height: 100%;
-    overflow-y: auto;
-}
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
 
-/* Admin Panel Styles with Gold & Dark Theme */
-.admin-header {
-    background: linear-gradient(135deg, var(--dark-bg) 0%, var(--bg-secondary) 100%);
-    border-bottom: 2px solid var(--gold);
-    padding: 20px;
-    color: var(--text);
-}
+                if (error) {
+                    console.error('Session error:', error);
+                    throw error;
+                }
 
-.admin-title-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    gap: 15px;
-}
+                if (!session) {
+                    console.log('❌ No Supabase session found - redirecting to login');
+                    window.location.href = 'login.html';
+                    return null;
+                }
 
-.admin-title-section h2 {
-    color: var(--gold);
-    margin: 0;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+                console.log('✅ Supabase session found for user:', session.user.id);
+                return session.user;
 
-.admin-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
+            } catch (error) {
+                console.error('❌ Auth check error:', error);
+                window.location.href = 'login.html';
+                return null;
+            }
+        }
 
-.admin-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
+        // Check if user is admin
+        async function checkAdminAccess() {
+            try {
+                const userSession = await checkAuth();
+                if (!userSession) return false;
 
-.stat-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    border-radius: 10px;
-    padding: 15px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    transition: all 0.3s ease;
-}
+                const { data: profile, error } = await supabaseClient
+                    .from('profiles')
+                    .select('admin_level, email')
+                    .eq('id', userSession.id)
+                    .single();
 
-.stat-card:hover {
-    border-color: var(--gold);
-    transform: translateY(-2px);
-}
+                const userEmail = profile?.email;
+                const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
 
-.stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-}
+                const isAdmin = (profile && profile.admin_level > 0) || 
+                               (userEmail && adminEmails.includes(userEmail));
 
-.stat-icon.pending { background: rgba(255, 193, 7, 0.2); color: #ffc107; }
-.stat-icon.accepted { background: rgba(40, 167, 69, 0.2); color: #28a745; }
-.stat-icon.rejected { background: rgba(220, 53, 69, 0.2); color: #dc3545; }
-.stat-icon.converted { background: rgba(0, 123, 255, 0.2); color: #007bff; }
-.stat-icon.nmx { background: rgba(212, 175, 55, 0.2); color: var(--gold); }
+                if (!isAdmin) {
+                    window.location.href = 'dashboard.html';
+                    return false;
+                }
 
-.stat-info {
-    flex: 1;
-}
+                return true;
+            } catch (error) {
+                console.error('Error checking admin access:', error);
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+        }
 
-.stat-label {
-    display: block;
-    font-size: 12px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
+        // Initialize admin panel
+        async function initializeAdminPanel() {
+            try {
+                console.log('🚀 Initializing NMX Distribution Admin...');
+                
+                // Check admin access
+                const isAdmin = await checkAdminAccess();
+                if (!isAdmin) return;
 
-.stat-value {
-    display: block;
-    font-size: 18px;
-    color: var(--text);
-    margin-top: 5px;
-}
+                // Load initial data
+                await loadPendingConversions();
+                
+                console.log('✅ NMX Distribution Admin initialized successfully');
 
-/* Tab Styles */
-.admin-tabs {
-    display: flex;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 20px;
-    flex-wrap: wrap;
-}
+            } catch (error) {
+                console.error('❌ Admin panel initialization failed:', error);
+            }
+        }
 
-.tab-button {
-    background: none;
-    border: none;
-    color: var(--muted);
-    padding: 15px 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
-    position: relative;
-    white-space: nowrap;
-}
+        // All the admin functions from previous code (loadPendingConversions, switchAdminTab, updateAdminStats, etc.)
+        // ... [Include all the JavaScript functions from the previous response here]
 
-.tab-button:hover {
-    color: var(--gold);
-    background: rgba(212, 175, 55, 0.1);
-}
+        // Wait for DOM to load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAdminPanel();
+        });
 
-.tab-button.active {
-    color: var(--gold);
-    border-bottom-color: var(--gold);
-    background: rgba(212, 175, 55, 0.1);
-}
-
-.tab-badge {
-    background: #ffc107;
-    color: #000;
-    border-radius: 10px;
-    padding: 2px 8px;
-    font-size: 11px;
-    font-weight: bold;
-}
-
-.tab-badge.accepted-badge { background: #28a745; color: white; }
-.tab-badge.rejected-badge { background: #dc3545; color: white; }
-
-/* Tab Content */
-.admin-tab-content {
-    padding: 20px;
-    background: var(--dark-bg);
-    min-height: 400px;
-    max-height: 60vh;
-    overflow-y: auto;
-}
-
-.tab-pane {
-    display: none;
-}
-
-.tab-pane.active {
-    display: block;
-}
-
-/* Overview Grid */
-.overview-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.overview-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 20px;
-}
-
-.overview-card h3 {
-    color: var(--gold);
-    margin-bottom: 15px;
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Chart Styles */
-.chart-bar {
-    margin-bottom: 15px;
-}
-
-.chart-label {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 5px;
-    font-size: 14px;
-    color: var(--muted);
-}
-
-.chart-value {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.chart-fill {
-    height: 20px;
-    border-radius: 10px;
-    transition: width 0.5s ease;
-    min-width: 20px;
-}
-
-.chart-fill.pending-fill { background: #ffc107; }
-.chart-fill.accepted-fill { background: #28a745; }
-.chart-fill.rejected-fill { background: #dc3545; }
-
-/* Quick Actions */
-.quick-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.action-btn {
-    background: rgba(212, 175, 55, 0.1);
-    border: 1px solid var(--gold);
-    color: var(--gold);
-    padding: 12px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    transition: all 0.3s ease;
-    text-align: left;
-}
-
-.action-btn:hover {
-    background: var(--gold);
-    color: var(--dark-bg);
-}
-
-/* System Info */
-.system-info {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.info-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.info-item:last-child {
-    border-bottom: none;
-}
-
-/* Tab Headers */
-.tab-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border-color);
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
-.tab-header h3 {
-    color: var(--gold);
-    margin: 0;
-}
-
-/* Conversions List */
-.conversions-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.conversion-item {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 15px;
-}
-
-.conversion-info {
-    flex: 1;
-    min-width: 300px;
-}
-
-.conversion-user {
-    font-weight: bold;
-    color: var(--gold);
-    margin-bottom: 5px;
-}
-
-.conversion-details {
-    font-size: 14px;
-    color: var(--muted);
-}
-
-.conversion-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-/* Admin Buttons */
-.admin-btn {
-    background: linear-gradient(135deg, var(--gold) 0%, #b8941f 100%);
-    border: none;
-    color: var(--dark-bg);
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    white-space: nowrap;
-}
-
-.admin-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
-}
-
-.admin-btn.refresh-btn { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; }
-.admin-btn.export-btn { background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white; }
-.admin-btn.logout-btn { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; }
-.admin-btn.process-all-btn { background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%); color: #000; }
-
-/* Filters */
-.filters {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.filters select, .filters input {
-    background: var(--dark-bg);
-    border: 1px solid var(--border-color);
-    color: var(--text);
-    padding: 8px 12px;
-    border-radius: 6px;
-}
-
-.filters select:focus, .filters input:focus {
-    border-color: var(--gold);
-    outline: none;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 40px;
-    color: var(--muted);
-    font-style: italic;
-}
-
-.status-pending { color: #ffc107; }
-.status-accepted { color: #28a745; }
-.status-rejected { color: #dc3545; }
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .admin-overlay {
-        padding: 10px;
-    }
-    
-    .admin-title-section {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .admin-actions {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .admin-stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .admin-tabs {
-        flex-direction: column;
-    }
-    
-    .tab-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .conversion-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .conversion-actions {
-        width: 100%;
-        justify-content: center;
-    }
-}
-</style>
+        // Include all the remaining JavaScript functions from the previous response
+        // (loadPendingConversions, loadAcceptedConversions, loadRejectedConversions, loadAllConversions,
+        // updateAdminStats, renderPendingConversions, renderAcceptedConversions, renderRejectedConversions,
+        // renderAllConversions, getStatusIcon, processConversion, processAllPending, exportConversionsCSV,
+        // filterConversions, showBulkActionModal, showToast)
+    </script>
+</body>
+</html>
