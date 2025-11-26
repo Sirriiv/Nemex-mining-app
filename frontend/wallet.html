@@ -5602,41 +5602,101 @@ function removeDebugButtons() {
 // BALANCE DISPLAY FUNCTIONS
 // =============================================
 
-// ✅ CRITICAL FIX: Balance display function
+// ✅ ULTIMATE FIX: Balance display function
 function setBalanceDisplay(balance) {
     console.log('💥 setBalanceDisplay CALLED with:', balance);
     
-    // Multiple attempts to find and update the balance element
+    // EXTREME DEBUGGING: Multiple attempts with different strategies
     const attempts = [
-        { delay: 0, name: 'IMMEDIATE' },
-        { delay: 100, name: 'FAST' },
-        { delay: 300, name: 'MEDIUM' },
-        { delay: 500, name: 'SLOW' }
+        { delay: 0, name: 'IMMEDIATE', strategy: 'direct' },
+        { delay: 100, name: 'FAST', strategy: 'modal' },
+        { delay: 300, name: 'MEDIUM', strategy: 'wildcard' },
+        { delay: 500, name: 'SLOW', strategy: 'textSearch' }
     ];
     
     attempts.forEach(attempt => {
         setTimeout(() => {
-            console.log(`🔍 ${attempt.name} attempt - Looking for #realNmxpBalance`);
+            console.log(`🔍 ${attempt.name} attempt - Strategy: ${attempt.strategy}`);
             
-            const balanceElement = document.getElementById('realNmxpBalance');
+            let balanceElement = null;
+            
+            switch(attempt.strategy) {
+                case 'direct':
+                    balanceElement = document.getElementById('realNmxpBalance');
+                    break;
+                    
+                case 'modal':
+                    const modal = document.getElementById('productionSwapModal');
+                    if (modal) {
+                        balanceElement = modal.querySelector('#realNmxpBalance');
+                    }
+                    break;
+                    
+                case 'wildcard':
+                    // Try any element that might contain balance
+                    const wildcardSelectors = [
+                        '#realNmxpBalance',
+                        '.available-balance',
+                        '.balance-amount',
+                        '[data-balance]',
+                        '.nmxp-balance',
+                        '*'
+                    ];
+                    
+                    for (let selector of wildcardSelectors) {
+                        const element = document.querySelector(selector);
+                        if (element && (element.textContent.includes('NMXp') || element.id.includes('balance') || element.className.includes('balance'))) {
+                            balanceElement = element;
+                            console.log(`🎯 Found via wildcard: ${selector}`);
+                            break;
+                        }
+                    }
+                    break;
+                    
+                case 'textSearch':
+                    // Search for "Available Balance" text and update the next element
+                    const allElements = document.querySelectorAll('*');
+                    for (let el of allElements) {
+                        if (el.textContent && el.textContent.includes('Available Balance')) {
+                            console.log('🎯 Found "Available Balance" text:', el);
+                            // Try to find the balance element nearby
+                            const parent = el.parentElement;
+                            if (parent) {
+                                const siblings = Array.from(parent.children);
+                                const balanceIndex = siblings.indexOf(el) + 1;
+                                if (siblings[balanceIndex]) {
+                                    balanceElement = siblings[balanceIndex];
+                                    console.log('🎯 Found sibling balance element:', balanceElement);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    break;
+            }
             
             if (balanceElement) {
-                console.log(`✅ ${attempt.name} - Found element, updating from "${balanceElement.textContent}" to "${formatNumber(balance)}"`);
-                balanceElement.textContent = formatNumber(balance);
+                console.log(`✅ ${attempt.name} - FOUND ELEMENT:`, balanceElement);
+                console.log(`📝 BEFORE: "${balanceElement.textContent}"`);
                 
-                // Force visual update
-                balanceElement.style.display = 'inline-block';
-                balanceElement.style.visibility = 'visible';
+                balanceElement.textContent = formatNumber(balance) + ' NMXp';
+                
+                console.log(`📝 AFTER: "${balanceElement.textContent}"`);
+                console.log(`🎉 ${attempt.name} - BALANCE UPDATE SUCCESSFUL!`);
+                
+                // Force visual confirmation
+                balanceElement.style.color = '#00ff00';
+                balanceElement.style.fontWeight = 'bold';
+                balanceElement.style.border = '2px solid red';
+                
             } else {
-                console.error(`❌ ${attempt.name} - Balance element not found`);
+                console.error(`❌ ${attempt.name} - Balance element not found with strategy: ${attempt.strategy}`);
                 
-                // Try alternative search
-                const modal = document.getElementById('productionSwapModal');
-                if (modal) {
-                    const modalBalance = modal.querySelector('#realNmxpBalance');
-                    if (modalBalance) {
-                        console.log(`✅ ${attempt.name} - Found via modal query, updating to: ${formatNumber(balance)}`);
-                        modalBalance.textContent = formatNumber(balance);
+                // Last resort: log the entire modal content
+                if (attempt.strategy === 'textSearch') {
+                    const modal = document.getElementById('productionSwapModal');
+                    if (modal) {
+                        console.log('📄 Modal innerHTML:', modal.innerHTML);
                     }
                 }
             }
@@ -5720,7 +5780,7 @@ async function getUserNMXpBalance(userId) {
 }
 
 // =============================================
-// CONVERSION FUNCTIONS (Must be defined before event listeners)
+// CONVERSION FUNCTIONS
 // =============================================
 
 function calculateProductionConversion() {
@@ -5809,6 +5869,107 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
     }
 }
 
+// ✅ MISSING FUNCTION: Execute production conversion
+async function executeProductionConversion() {
+    const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
+
+    if (!nmxpAmount || nmxpAmount <= 0) {
+        showToast('Please enter a valid amount', 'error');
+        return;
+    }
+
+    try {
+        showToast('Processing your conversion...', 'info');
+
+        const userSession = await checkAuth();
+        if (!userSession) {
+            throw new Error('Please log in to convert');
+        }
+
+        const userData = await getUserNMXpBalance(userSession.id);
+        const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
+
+        // Final validation
+        if (!userData.wallet_address) {
+            throw new Error('Wallet address not set');
+        }
+
+        if (userData.balance < nmxpAmount) {
+            throw new Error('Insufficient NMXp balance');
+        }
+
+        if (nmxpAmount < PRODUCTION_CONFIG.MIN_CONVERSION) {
+            throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
+        }
+
+        // Update balance
+        const newNmxpBalance = userData.balance - nmxpAmount;
+
+        const { error: updateError } = await supabaseClient
+            .from('profiles')
+            .update({
+                balance: newNmxpBalance,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userSession.id);
+
+        if (updateError) throw updateError;
+
+        // Record conversion
+        const { error: recordError } = await supabaseClient
+            .from('conversions')
+            .insert([{
+                user_id: userSession.id,
+                nmxp_amount: nmxpAmount,
+                nmx_amount: nmxAmount,
+                wallet_address: userData.wallet_address,
+                status: 'pending',
+                created_at: new Date().toISOString()
+            }]);
+
+        if (recordError) throw recordError;
+
+        // Create notification
+        await createConversionNotification(userSession.id, nmxpAmount, nmxAmount);
+
+        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent.`, 'success');
+
+        // Refresh and close
+        await loadProductionSwapData();
+        closeProductionSwapModal();
+
+        // Reset inputs
+        document.getElementById('productionConvertAmount').value = '';
+        document.getElementById('productionReceiveAmount').value = '';
+
+    } catch (error) {
+        console.error('❌ Conversion failed:', error);
+        showToast('Conversion failed: ' + error.message, 'error');
+    }
+}
+
+// ✅ MISSING FUNCTION: Create conversion notification
+async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
+    try {
+        const notificationData = {
+            user_id: userId,
+            type: 'conversion',
+            title: 'Conversion Submitted!',
+            message: `You converted ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX.`,
+            is_read: false,
+            created_at: new Date().toISOString()
+        };
+
+        await supabaseClient
+            .from('notifications')
+            .insert([notificationData]);
+
+        console.log('✅ Conversion notification created');
+    } catch (error) {
+        console.error('❌ Error creating notification:', error);
+    }
+}
+
 // =============================================
 // MODAL & DATA LOADING FUNCTIONS
 // =============================================
@@ -5853,6 +6014,8 @@ function openProductionSwapModal() {
     const modal = document.getElementById('productionSwapModal');
     modal.style.display = 'block';
     document.body.classList.add('modal-open');
+
+    console.log('🔍 Modal opened, starting data load...');
 
     setTimeout(() => {
         console.log('🔍 Loading swap data after delay...');
@@ -5994,9 +6157,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ All production swap event listeners initialized');
 });
 
-console.log('✅ Production swap system LOADED - All functions defined');
-
-// =============================================
+console.log('✅ Production swap system LOADED - All functions defined'); =============================================
 // INITIALIZE APP
 // =============================================
 
