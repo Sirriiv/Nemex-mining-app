@@ -682,6 +682,11 @@
             <header class="header">
                 <div class="header-title">〽️ NEMEXCOIN <span id="telegramBadge" class="telegram-badge" style="display: none;">Telegram</span></div>
                 <div class="header-icons">
+                    <!-- NMX DISTRIBUTION ADMIN ICON - Only visible to you -->
+                    <svg class="transaction-admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="nmxDistributionAdminButton" style="display: none;" title="NMX Distribution Admin">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+
                     <!-- TRANSACTION ADMIN ICON - Only visible to you -->
                     <svg class="transaction-admin-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" id="transactionAdminButton" style="display: none;" title="Transaction Admin">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -763,6 +768,15 @@
                     </button>
                 </div>
                 <div class="settings-list">
+                    <!-- ADDED: NMX Distribution Admin Link -->
+                    <a href="NMX-admin.html" class="settings-item" id="nmxDistributionAdminSettings" style="display: none;">
+                        <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        <span class="settings-text">NMX Distribution Admin</span>
+                        <span class="admin-badge">ADMIN</span>
+                    </a>
+
                     <!-- ADDED: Main Admin Panel Link -->
                     <a href="admin.html" class="settings-item" id="mainAdminSettings" style="display: none;">
                         <svg class="settings-icon-small" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1216,11 +1230,15 @@
                     const adminButton = document.getElementById('adminButton');
                     const mainAdminSettings = document.getElementById('mainAdminSettings');
                     const transactionAdminSettings = document.getElementById('transactionAdminSettings');
+                    const nmxDistributionAdminButton = document.getElementById('nmxDistributionAdminButton');
+                    const nmxDistributionAdminSettings = document.getElementById('nmxDistributionAdminSettings');
 
                     if (transactionAdminButton) transactionAdminButton.style.display = 'block';
                     if (adminButton) adminButton.style.display = 'block';
+                    if (nmxDistributionAdminButton) nmxDistributionAdminButton.style.display = 'block';
                     if (mainAdminSettings) mainAdminSettings.style.display = 'flex';
                     if (transactionAdminSettings) transactionAdminSettings.style.display = 'flex';
+                    if (nmxDistributionAdminSettings) nmxDistributionAdminSettings.style.display = 'flex';
 
                     // Add click events
                     if (transactionAdminButton) {
@@ -1232,6 +1250,12 @@
                     if (adminButton) {
                         adminButton.addEventListener('click', function() {
                             showLoadingScreen('admin.html', 'Loading Admin Panel...');
+                        });
+                    }
+
+                    if (nmxDistributionAdminButton) {
+                        nmxDistributionAdminButton.addEventListener('click', function() {
+                            showLoadingScreen('NMX-admin.html', 'Loading NMX Distribution Admin...');
                         });
                     }
 
