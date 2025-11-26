@@ -3025,6 +3025,240 @@ let SUPPORTED_TOKENS = [
 ];
 
 // =============================================
+// WALLET MANAGEMENT FUNCTIONS
+// =============================================
+
+async function loadUserWallets() {
+    try {
+        if (!window.nemexWalletAPI) {
+            console.error('❌ Wallet API not available');
+            return;
+        }
+
+        const wallets = await window.nemexWalletAPI.getUserWallets();
+
+        // Remove duplicates by address
+        userWallets = wallets.filter((wallet, index, self) => 
+            index === self.findIndex(w => w.address === wallet.address)
+        );
+
+        console.log(`✅ Loaded ${userWallets.length} unique user wallets from Supabase`);
+        updateWalletList();
+
+        // If we have wallets but no active session, try to restore the first one
+        if (userWallets.length > 0 && !walletState.isInitialized) {
+            console.log('🔄 No active session but wallets found, attempting auto-restore...');
+            await autoRestoreFromWallets();
+        }
+    } catch (error) {
+        console.error('Failed to load user wallets:', error);
+    }
+}
+
+function updateWalletList() {
+    const walletList = document.getElementById('walletList');
+    if (!walletList) {
+        console.log('ℹ️ Wallet list element not found');
+        return;
+    }
+
+    // Filter out duplicate wallets by address
+    const uniqueWallets = userWallets.filter((wallet, index, self) => 
+        index === self.findIndex(w => w.address === wallet.address)
+    );
+
+    console.log(`🔄 Updating wallet list: ${uniqueWallets.length} unique wallets found`);
+
+    if (uniqueWallets.length > 0) {
+        walletList.innerHTML = uniqueWallets.map(wallet => `
+            <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
+                        ${wallet.address === walletState.address ? 
+                            '<span class="active-badge">(Active)</span>' : 
+                            '<span class="inactive-badge">(Inactive)</span>'
+                        }
+                    </div>
+                    <div class="wallet-address">${formatAddress(wallet.address)}</div>
+                    <div class="wallet-meta">
+                        <span class="wallet-type ${wallet.source}">${wallet.source}</span>
+                        ${wallet.wordCount ? `<span class="wallet-words">${wallet.wordCount} words</span>` : ''}
+                    </div>
+                </div>
+                <div class="wallet-actions">
+                    ${wallet.address !== walletState.address ? 
+                        `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')" title="Switch to this wallet">
+                            <i class="fas fa-exchange-alt"></i> Switch
+                        </button>` : 
+                        '<button class="wallet-action-btn active" disabled><i class="fas fa-check"></i> Active</button>'
+                    }
+                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')" title="View seed phrase">
+                        <i class="fas fa-seedling"></i> Seed
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    } else if (walletState.isInitialized && walletState.address) {
+        // Fallback: Show current wallet even if not in userWallets array
+        walletList.innerHTML = `
+            <div class="wallet-item active">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} 
+                        <span class="active-badge">(Active)</span>
+                    </div>
+                    <div class="wallet-address">${formatAddress(walletState.address)}</div>
+                    <div class="wallet-meta">
+                        <span class="wallet-type ${walletState.walletType}">${walletState.walletType || 'active'}</span>
+                    </div>
+                </div>
+                <div class="wallet-actions">
+                    <button class="wallet-action-btn active" disabled>
+                        <i class="fas fa-check"></i> Active
+                    </button>
+                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')" title="View seed phrase">
+                        <i class="fas fa-seedling"></i> Seed
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        walletList.innerHTML = `
+            <div class="no-wallets-message">
+                <div class="no-wallets-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="no-wallets-text">
+                    <h4>No Wallets Found</h4>
+                    <p>Create or import a wallet to get started with Nemex Wallet.</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function formatAddress(address, startChars = 6, endChars = 4) {
+    if (!address) return 'No Address';
+    if (address.length <= startChars + endChars) return address;
+    return `${address.substring(0, startChars)}...${address.substring(address.length - endChars)}`;
+}
+
+// Auto-restore from available wallets
+async function autoRestoreFromWallets() {
+    try {
+        const userId = await window.nemexWalletAPI.getUserId();
+
+        if (!userId) {
+            console.log('❌ No user ID for auto-restore');
+            return false;
+        }
+
+        // Try to get the most recently used wallet
+        const recentWallet = userWallets
+            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
+
+        if (recentWallet) {
+            console.log('🔄 Auto-restoring most recent wallet:', recentWallet.address);
+
+            // Set as active in Supabase
+            await window.nemexWalletAPI.setActiveWallet(recentWallet.address);
+            await window.nemexWalletAPI.setStoredWallet(recentWallet);
+
+            walletState = {
+                isInitialized: true,
+                walletType: recentWallet.source || 'imported',
+                userId: recentWallet.userId,
+                address: recentWallet.address,
+                balances: {},
+                lastUpdate: null
+            };
+
+            updateCurrentUser();
+            updateWalletDisplay();
+            await updateRealBalances();
+
+            showStatusMessage('✅ Auto-restored your wallet!', 'success');
+            return true;
+        }
+    } catch (error) {
+        console.error('❌ Auto-restore failed:', error);
+    }
+    return false;
+}
+
+// Emergency session restoration when normal flow fails
+async function emergencySessionRestoration() {
+    console.log('🚨 Attempting emergency session restoration...');
+
+    try {
+        if (!window.nemexWalletAPI) return false;
+
+        const userId = await window.nemexWalletAPI.getUserId();
+        console.log('🔍 Emergency restoration for user:', userId);
+
+        if (!userId) {
+            console.log('❌ No user ID found, cannot restore session');
+            return false;
+        }
+
+        // Try to get active wallet directly from Supabase
+        const activeWalletResponse = await fetch(`/api/wallet/active-wallet/${userId}`);
+        if (activeWalletResponse.ok) {
+            const activeData = await activeWalletResponse.json();
+            if (activeData.success && activeData.activeWallet) {
+                console.log('🎯 Found active wallet in Supabase:', activeData.activeWallet);
+
+                // Get wallet details
+                const walletsResponse = await fetch(`/api/wallet/user-wallets/${userId}`);
+                if (walletsResponse.ok) {
+                    const walletsData = await walletsResponse.json();
+                    if (walletsData.success && walletsData.wallets) {
+                        const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
+                        if (wallet) {
+                            console.log('✅ Using Supabase wallet data:', wallet);
+
+                            // Update both API state and local state
+                            await window.nemexWalletAPI.setStoredWallet(wallet);
+
+                            walletState = {
+                                isInitialized: true,
+                                walletType: wallet.source || 'imported',
+                                userId: wallet.userId,
+                                address: wallet.address,
+                                balances: {},
+                                lastUpdate: null
+                            };
+
+                            updateCurrentUser();
+                            updateWalletDisplay();
+                            await updateRealBalances();
+                            await loadUserWallets();
+
+                            showStatusMessage('✅ Session restored from Supabase!', 'success');
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log('ℹ️ No wallet found in emergency restoration');
+        return false;
+
+    } catch (error) {
+        console.error('❌ Emergency restoration failed:', error);
+        return false;
+    }
+}
+
+// =============================================
 // WALLET INITIALIZATION
 // =============================================
 
@@ -3753,6 +3987,46 @@ function updateWalletAddressDisplay(walletAddress) {
 }
 
 // =============================================
+// UTILITY FUNCTIONS
+// =============================================
+
+function showStatusMessage(message, type = 'info') {
+    console.log(`📢 Status (${type}): ${message}`);
+
+    const statusElement = document.getElementById('statusMessage') || createStatusElement();
+
+    statusElement.textContent = message;
+    statusElement.className = `status-message ${type}`;
+    statusElement.style.display = 'block';
+
+    if (type === 'success') {
+        setTimeout(() => {
+            statusElement.style.display = 'none';
+        }, 3000);
+    }
+}
+
+function createStatusElement() {
+    const statusElement = document.createElement('div');
+    statusElement.id = 'statusMessage';
+    statusElement.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        z-index: 10000;
+        display: none;
+        max-width: 300px;
+        word-wrap: break-word;
+    `;
+    document.body.appendChild(statusElement);
+    return statusElement;
+}
+
+// =============================================
 // EVENT LISTENERS
 // =============================================
 
@@ -3802,48 +4076,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM loaded, initializing wallet...');
     initWallet();
 });
-
-// =============================================
-// UTILITY FUNCTIONS
-// =============================================
-
-function showStatusMessage(message, type = 'info') {
-    console.log(`📢 Status (${type}): ${message}`);
-
-    const statusElement = document.getElementById('statusMessage') || createStatusElement();
-
-    statusElement.textContent = message;
-    statusElement.className = `status-message ${type}`;
-    statusElement.style.display = 'block';
-
-    if (type === 'success') {
-        setTimeout(() => {
-            statusElement.style.display = 'none';
-        }, 3000);
-    }
-}
-
-function createStatusElement() {
-    const statusElement = document.createElement('div');
-    statusElement.id = 'statusMessage';
-    statusElement.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 600;
-        z-index: 10000;
-        display: none;
-        max-width: 300px;
-        word-wrap: break-word;
-    `;
-    document.body.appendChild(statusElement);
-    return statusElement;
-}
-
-// Add other essential functions here...
 
 console.log('✅ Production swap system LOADED - All functions defined');
 </script>
