@@ -5629,71 +5629,53 @@ async function loadProductionSwapData() {
     }
 }
 
-// ✅ ENHANCED: Helper function to safely update balance display
+// ✅ BULLETPROOF: Balance display update
 function setBalanceDisplay(balance) {
     console.log('🔄 setBalanceDisplay called with:', balance);
     
-    const balanceElement = document.getElementById('realNmxpBalance');
-    console.log('🔍 Balance element found:', balanceElement);
+    // Method 1: Direct ID
+    let balanceElement = document.getElementById('realNmxpBalance');
     
-    if (balanceElement) {
-        console.log('🔍 Before update - textContent:', balanceElement.textContent);
-        console.log('🔍 Before update - innerHTML:', balanceElement.innerHTML);
-        
+    if (balanceElement && balanceElement.hasAttribute('data-balance-display')) {
+        console.log('✅ Found balance element with data attribute');
         balanceElement.textContent = formatNumber(balance);
-        
-        console.log('🔍 After update - textContent:', balanceElement.textContent);
-        console.log('🔍 After update - innerHTML:', balanceElement.innerHTML);
-        console.log('✅ Balance display updated to:', balance);
-        
-        // Force a DOM reflow to ensure rendering
-        balanceElement.offsetHeight;
-        
-    } else {
-        console.error('❌ Balance element not found, retrying...');
-        
-        // Try alternative selectors
-        const alternativeSelectors = [
-            '#realNmxpBalance',
-            '[id="realNmxpBalance"]',
-            '.balance-value',
-            '.compact-balance .balance-value'
-        ];
-        
-        for (const selector of alternativeSelectors) {
-            const element = document.querySelector(selector);
-            if (element) {
-                console.log(`✅ Found element with selector: ${selector}`);
-                element.textContent = formatNumber(balance);
-                console.log('✅ Balance display updated via alternative selector:', balance);
-                return;
-            }
-        }
-        
-        console.error('❌ Balance element not found with any selector');
-        
-        // Retry after a short delay
-        setTimeout(() => {
-            const retryElement = document.getElementById('realNmxpBalance');
-            if (retryElement) {
-                retryElement.textContent = formatNumber(balance);
-                console.log('✅ Balance display updated on retry:', balance);
-            } else {
-                console.error('❌ Balance element still not found after retry');
-                
-                // Last resort: search entire DOM
-                const allElements = document.getElementsByTagName('*');
-                for (let el of allElements) {
-                    if (el.id === 'realNmxpBalance') {
-                        el.textContent = formatNumber(balance);
-                        console.log('✅ Balance found and updated via DOM search');
-                        return;
-                    }
-                }
-                console.error('❌ Balance element not found in entire DOM');
-            }
-        }, 100);
+        return true;
     }
+    
+    // Method 2: Search within modal
+    const modal = document.getElementById('productionSwapModal');
+    if (modal) {
+        const modalBalance = modal.querySelector('#realNmxpBalance');
+        if (modalBalance) {
+            console.log('✅ Found balance element within modal');
+            modalBalance.textContent = formatNumber(balance);
+            return true;
+        }
+    }
+    
+    // Method 3: Query all and find the right one
+    const allBalanceElements = document.querySelectorAll('#realNmxpBalance');
+    console.log('🔍 Found', allBalanceElements.length, 'balance elements');
+    
+    for (let element of allBalanceElements) {
+        // Check if this is in a visible modal
+        const modalParent = element.closest('#productionSwapModal');
+        if (modalParent && modalParent.style.display !== 'none') {
+            console.log('✅ Found balance element in visible modal');
+            element.textContent = formatNumber(balance);
+            return true;
+        }
+    }
+    
+    // Method 4: Last resort - use any balance element
+    if (allBalanceElements.length > 0) {
+        console.log('✅ Using first found balance element');
+        allBalanceElements[0].textContent = formatNumber(balance);
+        return true;
+    }
+    
+    console.error('❌ No balance element found with any method');
+    return false;
 }
 
 // Calculate production conversion
