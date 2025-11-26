@@ -5531,102 +5531,20 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - DEBUG VERSION
+// NUCLEAR DEBUGGING - FORCE BALANCE DISPLAY
 // =============================================
 
 // Production configuration
 const PRODUCTION_CONFIG = {
-    CONVERSION_RATE: 1/30, // 30 NMXp = 1 NMX
-    MIN_CONVERSION: 30,    // Minimum 30 NMXp
-    MAX_CONVERSION: 1000000 // Safety limit
+    CONVERSION_RATE: 1/30,
+    MIN_CONVERSION: 30,
+    MAX_CONVERSION: 1000000
 };
 
-// Remove debug buttons completely
-function removeDebugButtons() {
-    const debugButton = document.getElementById('debugUserState');
-    if (debugButton) debugButton.remove();
-
-    const debugButtons = document.querySelectorAll('.debug-btn, .debug-button');
-    debugButtons.forEach(button => button.remove());
-}
-
-// ✅ FIXED: Enhanced auth check
-async function checkAuth() {
-    try {
-        if (typeof supabaseClient === 'undefined') {
-            console.error('❌ supabaseClient is not defined');
-            return null;
-        }
-
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
-
-        if (error) {
-            console.error('Session error:', error);
-            return null;
-        }
-
-        if (!session) {
-            console.log('❌ No active session found');
-            return null;
-        }
-
-        console.log('✅ User authenticated:', session.user.id);
-        return session.user;
-
-    } catch (error) {
-        console.error('❌ Auth check error:', error);
-        return null;
-    }
-}
-
-// ✅ FIXED: Get user NMXp balance
-async function getUserNMXpBalance(userId) {
-    try {
-        console.log('💰 Fetching NMXp balance for user:', userId);
-
-        const { data: profile, error } = await supabaseClient
-            .from('profiles')
-            .select('balance, wallet_address')
-            .eq('id', userId)
-            .single();
-
-        if (error) {
-            console.error('❌ Error fetching NMXp balance:', error);
-            return {
-                balance: 0,
-                wallet_address: null
-            };
-        }
-
-        if (!profile) {
-            console.log('❌ No profile found for user');
-            return {
-                balance: 0,
-                wallet_address: null
-            };
-        }
-
-        const balance = parseInt(profile.balance) || 0;
-        console.log('✅ NMXp balance fetched:', balance);
-
-        return {
-            balance: balance,
-            wallet_address: profile.wallet_address
-        };
-
-    } catch (error) {
-        console.error('❌ Error in getUserNMXpBalance:', error);
-        return {
-            balance: 0,
-            wallet_address: null
-        };
-    }
-}
-
-// ✅ DEBUG VERSION: Load production swap data
+// ✅ NUCLEAR DEBUG: Load production swap data
 async function loadProductionSwapData() {
-    console.log('🔄 Loading production swap data...');
-
+    console.log('💥 NUCLEAR DEBUG: loadProductionSwapData STARTED');
+    
     try {
         // Check authentication first
         const userSession = await checkAuth();
@@ -5638,18 +5556,35 @@ async function loadProductionSwapData() {
         }
 
         // Get user data
+        console.log('💥 NUCLEAR DEBUG: Calling getUserNMXpBalance');
         const userData = await getUserNMXpBalance(userSession.id);
         const nmxpBalance = userData.balance;
 
-        console.log('💰 User NMXp Balance:', nmxpBalance);
-        console.log('🎯 DEBUG: About to call setBalanceDisplay with:', nmxpBalance);
+        console.log('💥 NUCLEAR DEBUG: Balance fetched:', nmxpBalance);
+        console.log('💥 NUCLEAR DEBUG: About to call setBalanceDisplay');
 
-        // ✅ DEBUG: Force call setBalanceDisplay
+        // ✅ FORCE CALL setBalanceDisplay multiple times
         setBalanceDisplay(nmxpBalance);
-        console.log('🎯 DEBUG: setBalanceDisplay called successfully');
+        
+        // Additional forced calls
+        setTimeout(() => {
+            console.log('💥 NUCLEAR DEBUG: Delayed setBalanceDisplay call 1');
+            setBalanceDisplay(nmxpBalance);
+        }, 100);
+        
+        setTimeout(() => {
+            console.log('💥 NUCLEAR DEBUG: Delayed setBalanceDisplay call 2');
+            setBalanceDisplay(nmxpBalance);
+        }, 300);
+        
+        setTimeout(() => {
+            console.log('💥 NUCLEAR DEBUG: Delayed setBalanceDisplay call 3');
+            setBalanceDisplay(nmxpBalance);
+        }, 500);
 
         // Update wallet display
         updateWalletAddressDisplay(userData.wallet_address);
+        console.log('💥 NUCLEAR DEBUG: loadProductionSwapData COMPLETED');
 
     } catch (error) {
         console.error('❌ Error loading production swap data:', error);
@@ -5658,405 +5593,127 @@ async function loadProductionSwapData() {
     }
 }
 
-// ✅ DEBUG VERSION: Balance display update with forced logging
+// ✅ NUCLEAR DEBUG: Balance display with extreme logging
 function setBalanceDisplay(balance) {
-    console.log('🔄 setBalanceDisplay CALLED with balance:', balance);
-    console.trace('🔍 Stack trace for setBalanceDisplay');
-
-    // Multiple attempts with increasing delays
-    const attempts = [
-        { delay: 0, name: 'IMMEDIATE' },
-        { delay: 100, name: 'FAST' },
-        { delay: 300, name: 'MEDIUM' },
-        { delay: 500, name: 'SLOW' },
-        { delay: 1000, name: 'VERY SLOW' }
+    console.log('💥💥💥 setBalanceDisplay EXECUTING with balance:', balance);
+    console.trace('🔍 FULL STACK TRACE');
+    
+    // Check if function is even reachable
+    console.log('💥 setBalanceDisplay IS BEING CALLED!');
+    
+    // Try EVERY possible way to find and update the balance element
+    const selectors = [
+        '#realNmxpBalance',
+        '.realNmxpBalance',
+        '[id*="nmxp"]',
+        '[id*="balance"]',
+        '[class*="balance"]',
+        '.available-balance',
+        '.balance-amount',
+        '.nmxp-balance'
     ];
-
-    attempts.forEach(attempt => {
-        setTimeout(() => {
-            console.log(`🔍 ${attempt.name} ATTEMPT (${attempt.delay}ms): Looking for #realNmxpBalance`);
-            
-            const balanceElement = document.getElementById('realNmxpBalance');
-            console.log(`🔍 ${attempt.name} ELEMENT FOUND:`, balanceElement);
-            
-            if (balanceElement) {
-                console.log(`🔍 ${attempt.name} BEFORE UPDATE:`, balanceElement.textContent);
-                console.log(`🔍 ${attempt.name} UPDATING TO:`, formatNumber(balance));
+    
+    console.log('🔍 Searching for balance element with selectors:', selectors);
+    
+    selectors.forEach(selector => {
+        try {
+            const element = document.querySelector(selector);
+            if (element) {
+                console.log(`✅ FOUND element with selector "${selector}":`, element);
+                console.log(`📝 BEFORE - Text: "${element.textContent}", HTML: ${element.innerHTML}`);
                 
-                balanceElement.textContent = formatNumber(balance);
+                element.textContent = formatNumber(balance);
                 
-                console.log(`🔍 ${attempt.name} AFTER UPDATE:`, balanceElement.textContent);
+                console.log(`📝 AFTER - Text: "${element.textContent}"`);
+                console.log(`🎯 SUCCESS: Updated balance using selector "${selector}"`);
                 
-                // Force style updates
-                balanceElement.style.display = 'inline';
-                balanceElement.style.visibility = 'visible';
-                balanceElement.style.opacity = '1';
-                
-                console.log(`✅ ${attempt.name} UPDATE COMPLETE`);
-            } else {
-                console.error(`❌ ${attempt.name} ELEMENT NOT FOUND`);
-                
-                // Try alternative selectors
-                console.log('🔍 Trying alternative selectors...');
-                const alternatives = [
-                    '#realNmxpBalance',
-                    '.realNmxpBalance',
-                    '[id*="NmxpBalance"]',
-                    '[id*="nmxpBalance"]',
-                    '[id*="balance"]'
-                ];
-                
-                alternatives.forEach(selector => {
-                    const altElement = document.querySelector(selector);
-                    if (altElement) {
-                        console.log(`🔍 Found element with selector "${selector}":`, altElement);
-                        altElement.textContent = formatNumber(balance);
-                        console.log(`✅ Updated via alternative selector: ${selector}`);
-                    }
-                });
+                // Force visual updates
+                element.style.display = 'inline-block';
+                element.style.visibility = 'visible';
+                element.style.opacity = '1';
+                element.style.color = 'red'; // Make it obvious
+                element.style.fontWeight = 'bold';
+                element.style.fontSize = '20px';
             }
-        }, attempt.delay);
+        } catch (err) {
+            console.error(`❌ Error with selector "${selector}":`, err);
+        }
+    });
+    
+    // Last resort: manually check common locations
+    console.log('🔍 Manual DOM search...');
+    
+    // Check modal content
+    const modal = document.getElementById('productionSwapModal');
+    if (modal) {
+        console.log('🔍 Found modal, searching inside...');
+        const modalText = modal.innerText || modal.textContent;
+        console.log('🔍 Modal text content:', modalText);
+        
+        // Look for any element containing "Available Balance"
+        const balanceLabels = modal.querySelectorAll('*');
+        balanceLabels.forEach(el => {
+            if (el.textContent && el.textContent.includes('Available Balance')) {
+                console.log('🔍 Found "Available Balance" label, next element might be balance:', el);
+                console.log('🔍 Parent:', el.parentElement);
+                console.log('🔍 Siblings:', el.parentElement?.children);
+            }
+        });
+    }
+    
+    // Global search for any balance-like elements
+    const allElements = document.querySelectorAll('*');
+    allElements.forEach(el => {
+        if (el.textContent && el.textContent.includes('NMXp') && el.textContent.includes('0')) {
+            console.log('🔍 Potential balance element found:', el);
+            console.log('🔍 Element details:', {
+                tag: el.tagName,
+                id: el.id,
+                class: el.className,
+                text: el.textContent
+            });
+        }
     });
 }
 
-// Calculate production conversion
-function calculateProductionConversion() {
-    const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value) || 0;
-    const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
-
-    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
-    validateProductionConversion(nmxpAmount, nmxAmount);
-}
-
-// Validate conversion
-async function validateProductionConversion(nmxpAmount, nmxAmount) {
-    const convertBtn = document.getElementById('productionConvertBtn');
-
-    try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            convertBtn.disabled = true;
-            convertBtn.textContent = 'Please log in first';
-            convertBtn.className = 'compact-convert-btn disabled';
-            return;
-        }
-
-        const userData = await getUserNMXpBalance(userSession.id);
-        const userNmxpBalance = userData.balance;
-        const hasWallet = !!userData.wallet_address;
-        const hasEnoughNMXp = userNmxpBalance >= nmxpAmount;
-        const meetsMinimum = nmxpAmount >= PRODUCTION_CONFIG.MIN_CONVERSION;
-        const withinMax = nmxpAmount <= PRODUCTION_CONFIG.MAX_CONVERSION;
-        const validAmount = nmxpAmount > 0;
-
-        if (hasWallet && hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
-            convertBtn.disabled = false;
-            convertBtn.textContent = `Convert ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX`;
-            convertBtn.className = 'compact-convert-btn active';
-        } else {
-            convertBtn.disabled = true;
-            convertBtn.className = 'compact-convert-btn disabled';
-
-            if (!hasWallet) {
-                convertBtn.textContent = 'Setup wallet address first';
-            } else if (!meetsMinimum) {
-                convertBtn.textContent = `Minimum ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp required`;
-            } else if (!hasEnoughNMXp) {
-                convertBtn.textContent = 'Insufficient NMXp balance';
-            } else if (!withinMax) {
-                convertBtn.textContent = `Maximum ${PRODUCTION_CONFIG.MAX_CONVERSION.toLocaleString()} NMXp`;
-            } else {
-                convertBtn.textContent = 'Enter amount to convert';
-            }
-        }
-
-    } catch (error) {
-        console.error('Validation error:', error);
-        convertBtn.disabled = true;
-        convertBtn.textContent = 'Error validating';
-        convertBtn.className = 'compact-convert-btn disabled';
-    }
-}
-
-// Set max conversion
-async function setMaxConversion() {
-    try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            showToast('Please log in first', 'error');
-            return;
-        }
-
-        const userData = await getUserNMXpBalance(userSession.id);
-        const maxAmount = Math.min(userData.balance, PRODUCTION_CONFIG.MAX_CONVERSION);
-
-        if (maxAmount <= 0) {
-            showToast('Insufficient balance for conversion', 'error');
-            return;
-        }
-
-        document.getElementById('productionConvertAmount').value = maxAmount;
-        calculateProductionConversion();
-
-    } catch (error) {
-        console.error('Error setting max conversion:', error);
-        showToast('Error loading balance', 'error');
-    }
-}
-
-// Execute production conversion
-async function executeProductionConversion() {
-    const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
-
-    if (!nmxpAmount || nmxpAmount <= 0) {
-        showToast('Please enter a valid amount', 'error');
-        return;
-    }
-
-    try {
-        showToast('Processing your conversion...', 'info');
-
-        const userSession = await checkAuth();
-        if (!userSession) {
-            throw new Error('Please log in to convert');
-        }
-
-        const userData = await getUserNMXpBalance(userSession.id);
-        const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
-
-        // Final validation
-        if (!userData.wallet_address) {
-            throw new Error('Wallet address not set');
-        }
-
-        if (userData.balance < nmxpAmount) {
-            throw new Error('Insufficient NMXp balance');
-        }
-
-        if (nmxpAmount < PRODUCTION_CONFIG.MIN_CONVERSION) {
-            throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
-        }
-
-        // Update balance
-        const newNmxpBalance = userData.balance - nmxpAmount;
-
-        const { error: updateError } = await supabaseClient
-            .from('profiles')
-            .update({
-                balance: newNmxpBalance,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userSession.id);
-
-        if (updateError) throw updateError;
-
-        // Record conversion
-        const { error: recordError } = await supabaseClient
-            .from('conversions')
-            .insert([{
-                user_id: userSession.id,
-                nmxp_amount: nmxpAmount,
-                nmx_amount: nmxAmount,
-                wallet_address: userData.wallet_address,
-                status: 'pending',
-                created_at: new Date().toISOString()
-            }]);
-
-        if (recordError) throw recordError;
-
-        // Create notification
-        await createConversionNotification(userSession.id, nmxpAmount, nmxAmount);
-
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent.`, 'success');
-
-        // Refresh and close
-        await loadProductionSwapData();
-        closeProductionSwapModal();
-
-        // Reset inputs
-        document.getElementById('productionConvertAmount').value = '';
-        document.getElementById('productionReceiveAmount').value = '';
-
-    } catch (error) {
-        console.error('❌ Conversion failed:', error);
-        showToast('Conversion failed: ' + error.message, 'error');
-    }
-}
-
-// Create conversion notification
-async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
-    try {
-        const notificationData = {
-            user_id: userId,
-            type: 'conversion',
-            title: 'Conversion Submitted!',
-            message: `You converted ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX.`,
-            is_read: false,
-            created_at: new Date().toISOString()
-        };
-
-        await supabaseClient
-            .from('notifications')
-            .insert([notificationData]);
-
-        console.log('✅ Conversion notification created');
-    } catch (error) {
-        console.error('❌ Error creating notification:', error);
-    }
-}
-
-// Update wallet display
-function updateWalletAddressDisplay(walletAddress) {
-    const walletBtn = document.querySelector('.wallet-settings-btn');
-
-    if (walletAddress) {
-        const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
-        walletBtn.innerHTML = `<i class="fas fa-wallet"></i> ${shortAddress}`;
-        walletBtn.title = `Wallet: ${walletAddress}`;
-        walletBtn.classList.add('connected');
-    } else {
-        walletBtn.innerHTML = '<i class="fas fa-cog"></i> Wallet';
-        walletBtn.title = 'Setup wallet address';
-        walletBtn.classList.remove('connected');
-    }
-}
-
-// ✅ DEBUG VERSION: Open modal with forced logging
+// ✅ NUCLEAR DEBUG: Open modal
 function openProductionSwapModal() {
-    console.log('🚀 DEBUG: Opening production swap modal...');
-    removeDebugButtons();
-
+    console.log('💥 NUCLEAR DEBUG: openProductionSwapModal CALLED');
+    
     // Show modal first
     const modal = document.getElementById('productionSwapModal');
+    if (!modal) {
+        console.error('💥❌ CRITICAL: productionSwapModal element not found!');
+        return;
+    }
+    
     modal.style.display = 'block';
     document.body.classList.add('modal-open');
+    
+    console.log('💥 Modal displayed, DOM state:', {
+        modalVisible: modal.style.display,
+        modalInDOM: document.body.contains(modal)
+    });
 
-    console.log('🔍 DEBUG: Modal displayed, waiting for DOM...');
-
-    // ✅ DEBUG: Multiple timing attempts
+    // Force load data multiple times
+    console.log('💥 Calling loadProductionSwapData...');
+    loadProductionSwapData();
+    
     setTimeout(() => {
-        console.log('🔍 DEBUG: 150ms delay - Loading data now...');
+        console.log('💥 Delayed loadProductionSwapData 1...');
         loadProductionSwapData();
-        calculateProductionConversion();
-    }, 150);
-
-    // Additional attempt
+    }, 200);
+    
     setTimeout(() => {
-        console.log('🔍 DEBUG: 500ms delay - Force refresh data...');
+        console.log('💥 Delayed loadProductionSwapData 2...');
         loadProductionSwapData();
     }, 500);
 }
 
-function closeProductionSwapModal() {
-    document.getElementById('productionSwapModal').style.display = 'none';
-    document.body.classList.remove('modal-open');
-}
+// Keep all your other functions the same (getUserNMXpBalance, checkAuth, etc.)
+// ... rest of your existing code ...
 
-function showWalletSetup() {
-    document.getElementById('walletSetupModal').style.display = 'block';
-    document.body.classList.add('modal-open');
-    closeProductionSwapModal();
-}
-
-function closeWalletSetup() {
-    document.getElementById('walletSetupModal').style.display = 'none';
-    document.body.classList.remove('modal-open');
-}
-
-// Validate TON wallet address
-function validateTONAddress(address) {
-    if (!address) return false;
-    return (address.length >= 48 && (address.startsWith('EQ') || address.startsWith('UQ')));
-}
-
-// Save wallet address
-async function saveWalletAddress() {
-    const walletAddress = document.getElementById('userWalletAddress').value.trim();
-
-    if (!validateTONAddress(walletAddress)) {
-        showToast('Please enter a valid TON wallet address', 'error');
-        return;
-    }
-
-    try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            throw new Error('Please log in to save wallet');
-        }
-
-        const { error } = await supabaseClient
-            .from('profiles')
-            .update({ 
-                wallet_address: walletAddress,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userSession.id);
-
-        if (error) throw error;
-
-        showToast('Wallet address saved successfully!', 'success');
-        closeWalletSetup();
-
-        // Refresh swap modal
-        if (document.getElementById('productionSwapModal').style.display === 'block') {
-            loadProductionSwapData();
-        }
-
-    } catch (error) {
-        console.error('Error saving wallet address:', error);
-        showToast('Failed to save wallet address', 'error');
-    }
-}
-
-// Format number function
-function formatNumber(number) {            
-    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-// Show toast function
-function showToast(message, type = 'info') {
-    let toast = document.getElementById('globalToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'globalToast';
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            z-index: 10000;
-            transition: all 0.3s ease;
-            max-width: 90%;
-            text-align: center;
-        `;
-        document.body.appendChild(toast);
-    }
-
-    const styles = {
-        success: 'background: var(--success);',
-        error: 'background: var(--error);',
-        info: 'background: var(--gold);',
-        warning: 'background: var(--warning); color: #000;'
-    };
-
-    toast.style.cssText += styles[type] || styles.info;
-    toast.textContent = message;
-    toast.style.display = 'block';
-
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 3000);
-}
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    removeDebugButtons();
-    console.log('✅ Production swap system initialized');
-});
+console.log('💥 NUCLEAR DEBUG: Production swap system LOADED');
 
 // =============================================
 // INITIALIZE APP
