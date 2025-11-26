@@ -6412,48 +6412,56 @@ function closeSeedPhraseModal() {
     }
 }
 
-// Debug function to check user state
-function debugUserState() {
-    console.log('🔍 DEBUG User State:');
-    console.log('currentUser:', currentUser);
-    console.log('walletState:', walletState);
-    console.log('walletState.userId:', walletState.userId);
-    console.log('walletState.isInitialized:', walletState.isInitialized);
+// TEMPORARY: Debug the DOM structure
+function debugModalStructure() {
+    console.log('🔍 === MODAL STRUCTURE DEBUG ===');
     
-    if (currentUser) {
-        alert('✅ currentUser is set: ' + currentUser.id);
-    } else if (walletState.userId) {
-        alert('🔄 currentUser not set but walletState.userId exists: ' + walletState.userId);
-        updateCurrentUser();
-        alert('✅ currentUser should be set now. Try swap modal again.');
-    } else {
-        alert('❌ No user data available. Wallet not properly loaded.');
-    }
-}
-
-// ✅ DEBUG: Check the DOM state
-function debugDOM() {
-    console.log('🔍 === DEBUG DOM CHECK ===');
+    // Check how many modals exist
+    const modals = document.querySelectorAll('#productionSwapModal');
+    console.log('🔍 Number of productionSwapModal elements:', modals.length);
     
-    // Check if modal is visible
-    const modal = document.getElementById('productionSwapModal');
-    console.log('🔍 Modal element:', modal);
-    console.log('🔍 Modal display style:', modal ? modal.style.display : 'NOT FOUND');
+    modals.forEach((modal, index) => {
+        console.log(`🔍 Modal ${index + 1}:`, modal);
+        console.log(`🔍 Modal ${index + 1} display style:`, modal.style.display);
+        
+        // Check if balance element exists in this modal
+        const balanceElement = modal.querySelector('#realNmxpBalance');
+        console.log(`🔍 Balance element in modal ${index + 1}:`, balanceElement);
+        
+        if (balanceElement) {
+            console.log(`🔍 Balance text in modal ${index + 1}:`, balanceElement.textContent);
+        }
+    });
     
-    // Check balance element
-    const balanceElement = document.getElementById('realNmxpBalance');
-    console.log('🔍 Balance element:', balanceElement);
-    console.log('🔍 Balance parent:', balanceElement ? balanceElement.parentElement : 'NOT FOUND');
-    console.log('🔍 Balance textContent:', balanceElement ? balanceElement.textContent : 'NOT FOUND');
-    console.log('🔍 Balance innerHTML:', balanceElement ? balanceElement.innerHTML : 'NOT FOUND');
+    // Check global search for balance element
+    const globalBalanceElements = document.querySelectorAll('#realNmxpBalance');
+    console.log('🔍 Global #realNmxpBalance elements:', globalBalanceElements.length);
     
-    // Check if element is in visible DOM
-    if (balanceElement) {
-        console.log('🔍 Is element in document?', document.contains(balanceElement));
-        console.log('🔍 Element computed style:', window.getComputedStyle(balanceElement));
-    }
+    globalBalanceElements.forEach((el, index) => {
+        console.log(`🔍 Global balance ${index + 1}:`, el);
+        console.log(`🔍 Global balance text ${index + 1}:`, el.textContent);
+        console.log(`🔍 Global balance parent:`, el.parentElement);
+    });
     
     console.log('🔍 === END DEBUG ===');
+}
+
+// Call this in your openProductionSwapModal:
+function openProductionSwapModal() {
+    console.log('🚀 Opening production swap modal...');
+    removeDebugButtons();
+    
+    // Show modal first
+    document.getElementById('productionSwapModal').style.display = 'block';
+    document.body.classList.add('modal-open');
+    
+    // DEBUG: Check structure
+    setTimeout(() => {
+        debugModalStructure();
+        
+        loadProductionSwapData();
+        calculateProductionConversion();
+    }, 50);
 }
 </script>
 </body>
