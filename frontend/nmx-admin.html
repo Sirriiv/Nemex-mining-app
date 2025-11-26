@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NMX Distribution Admin</title>
+    
+    <!-- Include your existing CSS -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* Add the admin-specific CSS styles we created */
+        /* [All the admin CSS styles from above] */
+    </style>
+</head>
+<body class="admin-body">
+    <!-- Include the admin panel HTML we created -->
+    <div id="adminLogin" class="admin-login-overlay">
+        <div class="admin-login-modal">
+            <div class="login-header">
+                <i class="fas fa-crown"></i>
+                <h3>NMX Distribution Admin</h3>
+                <p>Enter password to access distribution panel</p>
+            </div>
+            <div class="login-body">
+                <input type="password" id="adminPassword" placeholder="Enter admin password" class="admin-input">
+                <button onclick="verifyAdminAccess()" class="admin-btn login-btn">
+                    <i class="fas fa-lock"></i> Access Panel
+                </button>
+            </div>
+            <div class="login-footer">
+                <small>Authorized personnel only</small>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminPanel">
+        <!-- [All the admin panel HTML from above] -->
+    </div>
+
+    <!-- Include necessary JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script>
+        // Supabase configuration
+        const supabaseUrl = 'your-supabase-url';
+        const supabaseKey = 'your-supabase-key';
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    </script>
+    
+    <script>
+        // Include all the admin JavaScript functions we created
+        // [All the admin JavaScript code from above]
+        
+        // Auto-show login on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('adminLogin').style.display = 'flex';
+        });
+    </script>
+</body>
+</html>
