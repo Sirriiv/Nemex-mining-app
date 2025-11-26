@@ -5644,48 +5644,56 @@ async function loadProductionSwapData() {
         console.log('💰 User NMXp Balance:', nmxpBalance);
 
         // ✅ FIXED: Update balance display
-        setBalanceDisplay(nmxpBalance);
+setBalanceDisplay(nmxpBalance);
 
-        // Update wallet display
-        updateWalletAddressDisplay(userData.wallet_address);
+// Update wallet display
+updateWalletAddressDisplay(userData.wallet_address);
 
-    } catch (error) {
-        console.error('❌ Error loading production swap data:', error);
-        setBalanceDisplay(0);
-        showToast('Error loading balance data', 'error');
-    }
+} catch (error) {
+console.error('❌ Error loading production swap data:', error);
+setBalanceDisplay(0);
+showToast('Error loading balance data', 'error');
+}
 }
 
-// ✅ FIXED: Balance display update with DOM verification
+// ✅ DIAGNOSTIC: Balance display update with timing tests
 function setBalanceDisplay(balance) {
     console.log('🔄 setBalanceDisplay called with:', balance);
     
-    // Wait a bit to ensure DOM is ready
+    // Test 1: Check if element exists immediately
+    const balanceElement1 = document.getElementById('realNmxpBalance');
+    console.log('🔍 Immediate balance element:', balanceElement1);
+    
+    // Test 2: Check after a longer delay
     setTimeout(() => {
-        const balanceElement = document.getElementById('realNmxpBalance');
+        const balanceElement2 = document.getElementById('realNmxpBalance');
+        console.log('🔍 Delayed balance element (500ms):', balanceElement2);
         
-        if (balanceElement) {
-            console.log('✅ Balance element found, updating to:', balance);
-            balanceElement.textContent = formatNumber(balance);
+        if (balanceElement2) {
+            console.log('🔍 Before update:', balanceElement2.textContent);
+            balanceElement2.textContent = formatNumber(balance);
+            console.log('🔍 After update:', balanceElement2.textContent);
             
-            // Double-check the update worked
+            // Test 3: Verify the update stuck
             setTimeout(() => {
-                console.log('🔍 Balance after update:', balanceElement.textContent);
-            }, 50);
+                console.log('🔍 Final check (1000ms):', balanceElement2.textContent);
+            }, 500);
         } else {
-            console.error('❌ Balance element not found');
+            console.error('❌ Balance element not found after 500ms delay');
             
-            // Try alternative method
+            // Try alternative search methods
+            console.log('🔍 Searching for balance element in modal...');
             const modal = document.getElementById('productionSwapModal');
             if (modal) {
                 const modalBalance = modal.querySelector('#realNmxpBalance');
+                console.log('🔍 Balance element via modal query:', modalBalance);
                 if (modalBalance) {
-                    console.log('✅ Found balance in modal, updating to:', balance);
                     modalBalance.textContent = formatNumber(balance);
+                    console.log('✅ Updated via modal query');
                 }
             }
         }
-    }, 100);
+    }, 500);
 }
 
 // Calculate production conversion
