@@ -2802,7 +2802,7 @@ body.modal-open {
         </div>
 
 <!-- Production Swap Modal - FULLSCREEN VERSION -->
-<div class="modal fullscreen-modal" id="productionSwapModal">
+<div class="modal fullscreen-modal" id="productionSwapModal" style="display: none;">
     <div class="modal-content compact-modal">
         <!-- Compact Header with Back Button ONLY -->
         <div class="modal-header compact-header">
@@ -2824,14 +2824,14 @@ body.modal-open {
         <div class="compact-balance">
             <div class="balance-item">
                 <span class="balance-label">Available Balance:</span>
+                <!-- CHANGED: Added unique data attribute -->
                 <span class="balance-value" id="realNmxpBalance" data-balance-display="true">0</span>
                 <span class="balance-currency">NMXp</span>
             </div>
         </div>
 
-        <!-- Compact Conversion Interface -->
+        <!-- Rest of your modal remains the same -->
         <div class="compact-conversion">
-            <!-- From Section -->
             <div class="conversion-row from-row">
                 <div class="row-label">You pay</div>
                 <div class="input-container">
@@ -2841,12 +2841,10 @@ body.modal-open {
                 </div>
             </div>
 
-            <!-- Arrow between sections -->
             <div class="conversion-arrow">
                 <i class="fas fa-arrow-down"></i>
             </div>
 
-            <!-- To Section -->
             <div class="conversion-row to-row">
                 <div class="row-label">You receive</div>
                 <div class="output-container">
@@ -2855,44 +2853,18 @@ body.modal-open {
                 </div>
             </div>
 
-            <!-- Fee at the bottom of swap panels -->
             <div class="conversion-fee">
                 <span class="fee-text">Fee: 0.005 TON</span>
             </div>
         </div>
 
-        <!-- Convert Button -->
         <button class="compact-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
             Convert to NMX Tokens
         </button>
 
-        <!-- Minimal Note -->
         <div class="compact-note">
             <i class="fas fa-shield-alt"></i>
             <span>NMX tokens will be sent to your wallet address</span>
-        </div>
-    </div>
-</div>
-
-<!-- Wallet Setup Modal - FULLSCREEN VERSION -->
-<div class="modal fullscreen-modal" id="walletSetupModal">
-    <div class="modal-content mini-modal">
-        <div class="modal-header">
-            <button class="back-button" onclick="closeWalletSetup()">
-                <i class="fas fa-arrow-left"></i>
-                Back
-            </button>
-            <h3><i class="fas fa-wallet"></i> Setup Wallet</h3>
-            <!-- Removed X button from wallet modal too -->
-        </div>
-
-        <div class="modal-body">
-            <p>Enter your TON wallet address to receive NMX tokens:</p>
-            <input type="text" id="userWalletAddress" placeholder="EQABCD1234..." class="wallet-input">
-            
-            <div class="modal-actions">
-                <button class="btn primary" onclick="saveWalletAddress()">Save Wallet Address</button>
-            </div>
         </div>
     </div>
 </div>
