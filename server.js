@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -10,6 +11,14 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// ✅ CRITICAL FIX: Force HTTPS in production (Render requirement)
+app.use((req, res, next) => {
+    if (req.headers['x-forwarded-proto'] !== 'https' && process.env.NODE_ENV === 'production') {
+        return res.redirect(`https://${req.headers.host}${req.url}`);
+    }
+    next();
+});
 
 // Serve static files from frontend directory
 app.use(express.static(path.join(__dirname, 'frontend')));
@@ -73,12 +82,37 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html'));
 });
 
+// ✅ ADDED: Debug route to check file serving
+app.get('/api/debug', (req, res) => {
+    try {
+        const frontendPath = path.join(__dirname, 'frontend');
+        const files = fs.existsSync(frontendPath) ? fs.readdirSync(frontendPath) : ['Directory not found'];
+        
+        res.json({
+            success: true,
+            message: 'Server debug information',
+            frontendPath: frontendPath,
+            files: files,
+            isProduction: process.env.NODE_ENV === 'production',
+            httpsRedirect: req.headers['x-forwarded-proto'] || 'not-set',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message,
+            frontendPath: path.join(__dirname, 'frontend')
+        });
+    }
+});
+
 // API Routes
 app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'NemexCoin API is running!',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
@@ -122,14 +156,14 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
-        
+
         if (!name || !email || !password) {
             return res.status(400).json({ 
                 success: false, 
                 error: 'Name, email and password are required' 
             });
         }
-        
+
         const existingUser = users.find(u => u.email === email);
         if (existingUser) {
             return res.status(400).json({ 
@@ -137,9 +171,9 @@ app.post('/api/register', async (req, res) => {
                 error: 'User already exists with this email' 
             });
         }
-        
+
         const hashedPassword = await bcrypt.hash(password, 10);
-        
+
         const newUser = {
             user_id: users.length + 1,
             name,
@@ -149,11 +183,11 @@ app.post('/api/register', async (req, res) => {
             total_mined: 0,
             created_at: new Date()
         };
-        
+
         users.push(newUser);
-        
+
         const { password: _, ...userWithoutPassword } = newUser;
-        
+
         res.status(201).json({
             success: true,
             user: userWithoutPassword,
@@ -259,7 +293,10 @@ app.listen(PORT, () => {
     console.log(`📝 Register: http://localhost:${PORT}/register`);
     console.log(`📊 Dashboard: http://localhost:${PORT}/dashboard`);
     console.log(`🩺 API Health: http://localhost:${PORT}/api/health`);
-    console.log(`👛 Wallet API: http://localhost:${PORT}/api/wallet/test`); // ← Add this line
+    console.log(`🐛 Debug: http://localhost:${PORT}/api/debug`);
+    console.log(`👛 Wallet API: http://localhost:${PORT}/api/wallet/test`);
     console.log(`📧 Demo account: test@nemexcoin.com / 123456`);
     console.log(`✅ Frontend folder: ${path.join(__dirname, 'frontend')}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔒 HTTPS Redirect: ${process.env.NODE_ENV === 'production' ? 'ENABLED' : 'DISABLED'}`);
 });
