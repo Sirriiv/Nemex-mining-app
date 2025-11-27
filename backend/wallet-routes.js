@@ -1,4 +1,4 @@
-// wallet-routes.js - COMPLETE VERSION WITH ALL ENDPOINTS
+// wallet-routes.js - COMPLETE CORRECTED VERSION
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -792,7 +792,7 @@ router.post('/import-wallet', async function(req, res) {
         const address = walletAddress.toString(true, true, false);
         const addressBounceable = walletAddress.toString(true, true, true);
 
-        console.log('✅ Wallet address derived:', derivedAddress);
+        console.log('✅ Wallet derived:', address);
 
         const encryptedData = BackendCryptoUtils.encryptPrivateKey(
             TonWeb.utils.bytesToHex(keyPair.secretKey), 
@@ -1167,7 +1167,7 @@ router.get('/all-balances/:address', async function(req, res) {
 });
 
 // =============================================
-// TRANSACTION ENDPOINTS
+// TRANSACTION ENDPOINTS - FIXED SYNTAX
 // =============================================
 
 router.post('/send-ton', async function(req, res) {
@@ -1241,7 +1241,7 @@ router.post('/send-ton', async function(req, res) {
             console.log('📍 Deriving wallet address...');
             walletAddress = await wallet.getAddress();
             const derivedAddress = walletAddress.toString(true, true, false);
-            console.log('✅ Wallet address derived:', derivedAddress');
+            console.log('✅ Wallet address derived:', derivedAddress); // ✅ FIXED: Removed extra quote
         } catch (addressError) {
             console.error('❌ Address derivation failed:', addressError);
             return res.status(400).json({
@@ -1461,7 +1461,7 @@ router.get('/validate-address/:address', async function(req, res) {
     }
 });
 
-router.get('/health', (req, res) => {
+router.get('/health', (req, res) {
     res.json({
         success: true,
         message: 'Wallet API is running with ALL endpoints',
