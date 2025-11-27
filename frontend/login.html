@@ -164,7 +164,6 @@
             cursor: pointer;
         }
 
-        /* 2FA Recovery Option */
         .recovery-option {
             text-align: center;
             margin-top: 10px;
@@ -183,7 +182,6 @@
             border-bottom-color: #b8941f;
         }
 
-        /* 2FA Modal Styles */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -298,7 +296,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Recovery Specific Styles */
         .recovery-notice {
             background: rgba(212, 175, 55, 0.1);
             border: 1px solid var(--gold);
@@ -309,7 +306,6 @@
             color: var(--gold);
         }
 
-        /* NEW: Password Reset Modal Styles */
         .password-reset-modal {
             display: none;
             position: fixed;
@@ -374,7 +370,6 @@
             color: #ffbb33;
         }
 
-        /* 🆕 NEW: Loading Screen Styles */
         .loading-overlay {
             display: none;
             position: fixed;
@@ -468,7 +463,6 @@
     </style>
 </head>
 <body>
-    <!-- 🆕 NEW: Loading Screen Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-logo">
             <div class="loading-logo-text">NMX</div>
@@ -502,7 +496,6 @@
             <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
         </form>
 
-        <!-- 2FA Recovery Option -->
         <div class="recovery-option">
             <a onclick="use2FARecovery()">Forgot password? Use 2FA to access your account</a>
         </div>
@@ -512,7 +505,6 @@
         </div>
     </div>
 
-    <!-- 2FA Verification Modal -->
     <div id="twoFactorModal" class="modal-overlay">
         <div class="modal-content">
             <h3 class="modal-title" id="twoFAModalTitle">Two-Factor Authentication</h3>
@@ -536,7 +528,6 @@
         </div>
     </div>
 
-    <!-- Backup Code Modal -->
     <div id="backupCodeModal" class="modal-overlay">
         <div class="modal-content">
             <h3 class="modal-title">Use Backup Code</h3>
@@ -553,7 +544,6 @@
         </div>
     </div>
 
-    <!-- NEW: Password Reset Modal -->
     <div id="passwordResetModal" class="password-reset-modal">
         <div class="password-reset-form">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -588,30 +578,59 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // 🆕 NEW: Loading Screen Function
+        // Supabase configuration with HTTP-compatible storage
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+            auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: false,
+                storage: {
+                    getItem: (key) => {
+                        const value = localStorage.getItem(key);
+                        console.log('🔑 Storage GET:', key, value ? '***' : 'null');
+                        return value;
+                    },
+                    setItem: (key, value) => {
+                        console.log('🔑 Storage SET:', key, value ? '***' : 'null');
+                        localStorage.setItem(key, value);
+                    },
+                    removeItem: (key) => {
+                        console.log('🔑 Storage REMOVE:', key);
+                        localStorage.removeItem(key);
+                    }
+                }
+            }
+        });
+
+        let currentUser = null;
+        let user2FASecret = null;
+        let isRecoveryMode = false;
+
+        // Loading Screen Function
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
 
             setTimeout(() => {
                 window.location.href = targetPage;
-            }, 2000); // 2 second loading screen
+            }, 2000);
         }
 
-        // 🆕 NEW: Wallet Integration - Store password for wallet operations
+        // Wallet Integration
         async function handleWalletLoginIntegration(user, password) {
             try {
                 console.log('🔐 Setting up wallet session for user:', user.email);
-                
-                // Store user session with password for wallet operations
+
                 window.currentUser = {
                     id: user.id,
                     email: user.email,
                     username: user.username,
-                    password: password // Store temporarily for wallet encryption
+                    password: password
                 };
-                
-                // Also store basic session data (without password) for security
+
                 sessionStorage.setItem('nemex_user_session', JSON.stringify({
                     id: user.id,
                     email: user.email,
@@ -619,35 +638,73 @@
                     wallet_initialized: false,
                     logged_in_at: new Date().toISOString()
                 }));
-                
+
                 console.log('✅ Wallet session initialized for user:', user.email);
                 return true;
-                
+
             } catch (error) {
                 console.error('❌ Wallet session setup failed:', error);
                 return false;
             }
         }
 
-        // Supabase configuration
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Store custom session for HTTP compatibility
+        async function storeCustomSession(user) {
+            try {
+                const { data: profile, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
 
-        let currentUser = null;
-        let user2FASecret = null;
-        let isRecoveryMode = false;
-        let recoveryTemporaryPassword = null;
+                if (error) throw error;
 
-        // Check if user is already logged in
+                const sessionData = {
+                    id: user.id,
+                    email: user.email,
+                    username: profile.username,
+                    full_name: profile.full_name,
+                    balance: profile.balance || 0,
+                    two_factor_enabled: profile.two_factor_enabled || false,
+                    loggedIn: true,
+                    session_start: new Date().toISOString()
+                };
+
+                localStorage.setItem('nemexcoin_user_session', JSON.stringify(sessionData));
+                console.log('✅ Custom session stored for HTTP:', user.email);
+                
+                return sessionData;
+            } catch (error) {
+                console.error('❌ Error storing custom session:', error);
+                throw error;
+            }
+        }
+
+        // Check for existing session
         async function checkExistingSession() {
             try {
+                console.log('🔍 Checking for existing session...');
+                
+                const customSession = localStorage.getItem('nemexcoin_user_session');
+                if (customSession) {
+                    console.log('✅ Found custom session in localStorage');
+                    const sessionData = JSON.parse(customSession);
+                    if (sessionData.loggedIn && sessionData.id) {
+                        console.log('✅ Valid custom session found, redirecting to dashboard');
+                        showLoadingScreen('dashboard.html', 'Welcome Back!');
+                        return true;
+                    }
+                }
+
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (session && !error) {
-                    console.log('✅ User already has active session, redirecting to dashboard');
+                    console.log('✅ Supabase session found, storing custom session');
+                    await storeCustomSession(session.user);
                     showLoadingScreen('dashboard.html', 'Welcome Back!');
                     return true;
                 }
+                
+                console.log('❌ No active session found');
                 return false;
             } catch (error) {
                 console.error('❌ Session check error:', error);
@@ -655,82 +712,18 @@
             }
         }
 
-        // 2FA Recovery Function - ENHANCED with better flow
-        async function use2FARecovery() {
-            const email = document.getElementById('email').value.trim().toLowerCase();
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
-
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-
-            if (!email) {
-                errorMessage.textContent = 'Please enter your email address first';
-                errorMessage.style.display = 'block';
-                document.getElementById('email').focus();
-                return;
-            }
-
-            try {
-                console.log('🔐 Starting 2FA recovery for:', email);
-
-                // Check if user exists and has 2FA enabled
-                const { data: user, error } = await supabase
-                    .from('profiles')
-                    .select('id, email, username, full_name, balance, two_factor_enabled, two_factor_secret, backup_codes')
-                    .eq('email', email)
-                    .single();
-
-                if (error || !user) {
-                    throw new Error('No account found with this email');
-                }
-
-                if (!user.two_factor_enabled || !user.two_factor_secret) {
-                    throw new Error('2FA is not enabled for this account. Please contact support for password recovery.');
-                }
-
-                console.log('✅ User found with 2FA enabled');
-
-                // Store user for 2FA verification
-                currentUser = user;
-                user2FASecret = user.two_factor_secret;
-                isRecoveryMode = true;
-
-                // Show 2FA modal with recovery message
-                show2FARecoveryModal();
-
-            } catch (error) {
-                console.error('❌ 2FA recovery error:', error);
-                errorMessage.textContent = error.message;
-                errorMessage.style.display = 'block';
-            }
-        }
-
-        function show2FARecoveryModal() {
-            document.getElementById('twoFactorModal').style.display = 'flex';
-            document.getElementById('twoFactorCode').value = '';
-            document.getElementById('twoFactorCode').focus();
-            document.getElementById('verify2FABtn').disabled = true;
-            document.getElementById('verify2FABtn').textContent = 'Verify & Reset Password';
-
-            // Update modal for recovery mode
-            document.getElementById('twoFAModalTitle').textContent = '2FA Password Recovery';
-            document.getElementById('twoFAModalDesc').textContent = 'Enter your 2FA code to reset your password and access your account';
-            document.getElementById('recoveryNotice').style.display = 'block';
-        }
-
-        // 🆕 UPDATED: Complete login with wallet integration
+        // Complete login with HTTP session storage
         async function completeLoginWithWallet(user, session, password, isRecovery = false) {
             try {
-                console.log('✅ Completing login with wallet integration for user:', user.email);
-                
-                // Set up wallet session with password
+                console.log('✅ Completing login with HTTP session storage for:', user.email);
+
+                const sessionData = await storeCustomSession(user);
+
                 const walletReady = await handleWalletLoginIntegration(user, password);
                 if (!walletReady) {
                     console.warn('⚠️ Wallet session setup failed, but continuing with login');
                 }
-                
-                // Update last login in profiles table
+
                 const { error: updateError } = await supabase
                     .from('profiles')
                     .update({ 
@@ -743,37 +736,21 @@
                     console.error('❌ Error updating last login:', updateError);
                 }
 
-                // Store session data for backward compatibility
-                const userSession = {
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    full_name: user.full_name,
-                    balance: user.balance || 0,
-                    two_factor_enabled: user.two_factor_enabled || false,
-                    loggedIn: true
-                };
+                console.log('✅ HTTP session stored, redirecting to dashboard...');
 
-                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
-                console.log('✅ Session stored, redirecting to dashboard...');
-
-                // Close any open modals
                 document.getElementById('twoFactorModal').style.display = 'none';
                 document.getElementById('backupCodeModal').style.display = 'none';
                 document.getElementById('passwordResetModal').style.display = 'none';
 
                 if (isRecovery) {
-                    // Show success message for recovery
                     const successMessage = document.getElementById('successMessage');
                     successMessage.textContent = '✅ Password reset successful! You have been logged in.';
                     successMessage.style.display = 'block';
 
-                    // Small delay to show success message then show loading screen
                     setTimeout(() => {
                         showLoadingScreen('dashboard.html', 'Welcome Back!');
                     }, 1500);
                 } else {
-                    // Normal login redirect with loading screen
                     showLoadingScreen('dashboard.html', 'Welcome Back!');
                 }
 
@@ -785,7 +762,7 @@
             }
         }
 
-        // UPDATED: Login with proper Supabase Auth integration AND WALLET SUPPORT
+        // Login form submission
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -804,7 +781,6 @@
             try {
                 console.log('🔐 Attempting Supabase Auth login for:', email);
 
-                // Use Supabase Auth to sign in
                 const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -824,7 +800,6 @@
 
                 console.log('✅ Supabase Auth successful:', authData.user.email);
 
-                // Get user profile with 2FA info
                 const { data: user, error: profileError } = await supabase
                     .from('profiles')
                     .select('*, two_factor_enabled, two_factor_secret, backup_codes')
@@ -841,10 +816,8 @@
                     hasSecret: !!user.two_factor_secret
                 });
 
-                // Store user data for potential 2FA verification
                 currentUser = user;
 
-                // Check if 2FA is enabled AND has a secret
                 if (user.two_factor_enabled && user.two_factor_secret) {
                     console.log('🔒 2FA is enabled for user, showing verification modal');
                     user2FASecret = user.two_factor_secret;
@@ -854,7 +827,6 @@
                     return;
                 } else {
                     console.log('🔓 2FA not enabled, proceeding with normal login');
-                    // 🆕 UPDATED: Use wallet-integrated login function
                     await completeLoginWithWallet(user, authData.session, password);
                 }
 
@@ -867,6 +839,66 @@
             }
         });
 
+        // 2FA Recovery Function
+        async function use2FARecovery() {
+            const email = document.getElementById('email').value.trim().toLowerCase();
+            const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
+
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+
+            if (!email) {
+                errorMessage.textContent = 'Please enter your email address first';
+                errorMessage.style.display = 'block';
+                document.getElementById('email').focus();
+                return;
+            }
+
+            try {
+                console.log('🔐 Starting 2FA recovery for:', email);
+
+                const { data: user, error } = await supabase
+                    .from('profiles')
+                    .select('id, email, username, full_name, balance, two_factor_enabled, two_factor_secret, backup_codes')
+                    .eq('email', email)
+                    .single();
+
+                if (error || !user) {
+                    throw new Error('No account found with this email');
+                }
+
+                if (!user.two_factor_enabled || !user.two_factor_secret) {
+                    throw new Error('2FA is not enabled for this account. Please contact support for password recovery.');
+                }
+
+                console.log('✅ User found with 2FA enabled');
+
+                currentUser = user;
+                user2FASecret = user.two_factor_secret;
+                isRecoveryMode = true;
+
+                show2FARecoveryModal();
+
+            } catch (error) {
+                console.error('❌ 2FA recovery error:', error);
+                errorMessage.textContent = error.message;
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        function show2FARecoveryModal() {
+            document.getElementById('twoFactorModal').style.display = 'flex';
+            document.getElementById('twoFactorCode').value = '';
+            document.getElementById('twoFactorCode').focus();
+            document.getElementById('verify2FABtn').disabled = true;
+            document.getElementById('verify2FABtn').textContent = 'Verify & Reset Password';
+
+            document.getElementById('twoFAModalTitle').textContent = '2FA Password Recovery';
+            document.getElementById('twoFAModalDesc').textContent = 'Enter your 2FA code to reset your password and access your account';
+            document.getElementById('recoveryNotice').style.display = 'block';
+        }
+
         function show2FAModal() {
             document.getElementById('twoFactorModal').style.display = 'flex';
             document.getElementById('twoFactorCode').value = '';
@@ -874,7 +906,6 @@
             document.getElementById('verify2FABtn').disabled = true;
             document.getElementById('verify2FABtn').textContent = 'Verify';
 
-            // Reset modal to normal mode
             document.getElementById('twoFAModalTitle').textContent = 'Two-Factor Authentication';
             document.getElementById('twoFAModalDesc').textContent = 'Enter the 6-digit code from your authenticator app';
             document.getElementById('recoveryNotice').style.display = 'none';
@@ -891,7 +922,7 @@
             }
         }
 
-        // ENHANCED: 2FA verification with improved recovery flow AND WALLET SUPPORT
+        // 2FA verification
         async function verify2FACode() {
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
@@ -903,7 +934,6 @@
                 console.log('🔐 Verifying 2FA code:', code);
                 console.log('🔄 Recovery Mode:', isRecoveryMode);
 
-                // FIXED: Proper TOTP verification
                 const isValid = await verifyTOTPCode(code, user2FASecret);
 
                 if (!isValid) {
@@ -916,11 +946,9 @@
                     console.log('🎯 Recovery mode - showing password reset form');
                     showPasswordResetModal();
                 } else {
-                    // Normal login flow - get fresh session
                     const { data: { session }, error } = await supabase.auth.getSession();
                     if (error) throw error;
-                    
-                    // 🆕 UPDATED: Use wallet-integrated login with original password
+
                     const originalPassword = document.getElementById('password').value;
                     await completeLoginWithWallet(currentUser, session, originalPassword);
                 }
@@ -935,7 +963,39 @@
             }
         }
 
-        // NEW: Show password reset modal after successful 2FA verification
+        // TOTP verification function
+        async function verifyTOTPCode(code, secret) {
+            try {
+                const OTPAuth = window.OTPAuth;
+
+                if (!OTPAuth) {
+                    throw new Error('2FA verification library not loaded');
+                }
+
+                const totp = new OTPAuth.TOTP({
+                    issuer: "NemexCoin",
+                    label: currentUser.email,
+                    algorithm: "SHA1",
+                    digits: 6,
+                    period: 30,
+                    secret: OTPAuth.Secret.fromBase32(secret)
+                });
+
+                const isValid = totp.validate({ token: code, window: 1 }) !== null;
+
+                console.log('🔐 TOTP Verification Result:', {
+                    code: code,
+                    isValid: isValid,
+                    timestamp: new Date().toISOString()
+                });
+
+                return isValid;
+            } catch (error) {
+                console.error('❌ TOTP verification error:', error);
+                return false;
+            }
+        }
+
         function showPasswordResetModal() {
             document.getElementById('twoFactorModal').style.display = 'none';
             document.getElementById('passwordResetModal').style.display = 'flex';
@@ -944,13 +1004,12 @@
             document.getElementById('newPassword').focus();
         }
 
-        // NEW: Close password reset modal
         function closePasswordResetModal() {
             document.getElementById('passwordResetModal').style.display = 'none';
             resetLoginForm();
         }
 
-        // NEW: Set new password after recovery WITH WALLET SUPPORT
+        // Set new password after recovery
         async function setNewPassword() {
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
@@ -975,7 +1034,6 @@
 
                 console.log('🔐 Setting new password for user:', currentUser.email);
 
-                // Update password in Supabase Auth
                 const { error: authUpdateError } = await supabase.auth.updateUser({
                     password: newPassword
                 });
@@ -984,7 +1042,6 @@
                     throw new Error('Password update failed: ' + authUpdateError.message);
                 }
 
-                // Update password in profiles table for consistency
                 const { error: profileUpdateError } = await supabase
                     .from('profiles')
                     .update({ 
@@ -995,12 +1052,10 @@
 
                 if (profileUpdateError) {
                     console.error('❌ Profile password update error:', profileUpdateError);
-                    // Continue anyway since Supabase Auth was updated
                 }
 
                 console.log('✅ Password updated successfully');
 
-                // Now sign in with the new password
                 const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                     email: currentUser.email,
                     password: newPassword
@@ -1011,8 +1066,7 @@
                 }
 
                 console.log('✅ Successfully signed in with new password');
-                
-                // 🆕 UPDATED: Use wallet-integrated login with new password
+
                 await completeLoginWithWallet(currentUser, signInData.session, newPassword, true);
 
             } catch (error) {
@@ -1024,41 +1078,7 @@
             }
         }
 
-        // FIXED: Proper TOTP verification function
-        async function verifyTOTPCode(code, secret) {
-            try {
-                const OTPAuth = window.OTPAuth;
-
-                if (!OTPAuth) {
-                    throw new Error('2FA verification library not loaded');
-                }
-
-                const totp = new OTPAuth.TOTP({
-                    issuer: "NemexCoin",
-                    label: currentUser.email,
-                    algorithm: "SHA1",
-                    digits: 6,
-                    period: 30,
-                    secret: OTPAuth.Secret.fromBase32(secret)
-                });
-
-                // Validate with 1-step window for time sync issues
-                const isValid = totp.validate({ token: code, window: 1 }) !== null;
-
-                console.log('🔐 TOTP Verification Result:', {
-                    code: code,
-                    isValid: isValid,
-                    timestamp: new Date().toISOString()
-                });
-
-                return isValid;
-            } catch (error) {
-                console.error('❌ TOTP verification error:', error);
-                return false;
-            }
-        }
-
-        // FIXED: Backup code system WITH WALLET SUPPORT
+        // Backup code system
         function useBackupCode() {
             document.getElementById('twoFactorModal').style.display = 'none';
             document.getElementById('backupCodeModal').style.display = 'flex';
@@ -1073,7 +1093,7 @@
             verifyBtn.disabled = !/^[A-Z0-9]{10}$/i.test(code);
         }
 
-        // FIXED: Backup code verification - allows reuse WITH WALLET SUPPORT
+        // Backup code verification
         async function verifyBackupCode() {
             const code = document.getElementById('backupCode').value.toUpperCase();
             const verifyBtn = document.getElementById('verifyBackupBtn');
@@ -1084,12 +1104,10 @@
             try {
                 console.log('🔑 Backup code verification attempt:', code);
 
-                // Check if backup codes exist in database
                 if (!currentUser.backup_codes || !Array.isArray(currentUser.backup_codes)) {
                     throw new Error('No backup codes available for this account');
                 }
 
-                // FIXED: Check if code exists (no usage check - allows reuse)
                 const backupCode = currentUser.backup_codes.find(bc => 
                     bc.code === code
                 );
@@ -1100,9 +1118,6 @@
 
                 console.log('✅ Valid backup code found - allowing reuse');
 
-                // FIXED: No longer mark backup codes as used - they remain reusable
-                // We don't update the database because codes stay the same
-
                 console.log('✅ Backup code verified successfully (reusable)');
 
                 if (isRecoveryMode) {
@@ -1110,8 +1125,7 @@
                 } else {
                     const { data: { session }, error } = await supabase.auth.getSession();
                     if (error) throw error;
-                    
-                    // 🆕 UPDATED: Use wallet-integrated login with original password
+
                     const originalPassword = document.getElementById('password').value;
                     await completeLoginWithWallet(currentUser, session, originalPassword);
                 }
@@ -1146,7 +1160,6 @@
             currentUser = null;
             user2FASecret = null;
             isRecoveryMode = false;
-            recoveryTemporaryPassword = null;
         }
 
         // Handle Enter key press
@@ -1168,21 +1181,19 @@
             }
         });
 
-        // 🆕 NEW: Handle page refresh - restore wallet session if available
+        // Handle page refresh - restore wallet session if available
         window.addEventListener('load', function() {
             const walletSession = sessionStorage.getItem('nemex_user_session');
             if (walletSession) {
                 console.log('🔐 Existing wallet session found');
                 const sessionData = JSON.parse(walletSession);
-                
-                // If we have a session but no currentUser, try to restore it
+
                 if (!window.currentUser && sessionData.id) {
                     console.log('🔄 Restoring wallet session for user:', sessionData.email);
                     window.currentUser = {
                         id: sessionData.id,
                         email: sessionData.email,
                         username: sessionData.username
-                        // Password not stored in sessionStorage for security
                     };
                 }
             }
@@ -1195,10 +1206,12 @@
                 console.log('🔐 User already logged in, redirecting...');
             } else {
                 console.log('🔐 No active session, showing login form');
+                localStorage.removeItem('nemexcoin_user_session');
+                sessionStorage.removeItem('nemex_user_session');
             }
         });
 
-        console.log('🔧 Login page loaded - Enhanced 2FA Recovery with Password Reset AND WALLET INTEGRATION ready');
+        console.log('🔧 Login page loaded - HTTP-Compatible Session Management ready');
     </script>
 </body>
 </html>
