@@ -1241,7 +1241,7 @@ router.post('/send-ton', async function(req, res) {
             console.log('📍 Deriving wallet address...');
             walletAddress = await wallet.getAddress();
             const derivedAddress = walletAddress.toString(true, true, false);
-            console.log('✅ Wallet address derived:', derivedAddress); // ✅ FIXED: Removed extra quote
+            console.log('✅ Wallet address derived:', derivedAddress);
         } catch (addressError) {
             console.error('❌ Address derivation failed:', addressError);
             return res.status(400).json({
@@ -1408,7 +1408,7 @@ router.post('/send-nmx', async function(req, res) {
 });
 
 // =============================================
-// ADDITIONAL ENDPOINTS
+// ADDITIONAL ENDPOINTS - FIXED SYNTAX
 // =============================================
 
 router.get('/transaction-history/:address', async function(req, res) {
@@ -1461,7 +1461,8 @@ router.get('/validate-address/:address', async function(req, res) {
     }
 });
 
-router.get('/health', (req, res) {
+// ✅ FIXED: Added missing => arrow function
+router.get('/health', (req, res) => {
     res.json({
         success: true,
         message: 'Wallet API is running with ALL endpoints',
