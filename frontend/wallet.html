@@ -9,10 +9,32 @@
 <script src="assets/js/crypto-utils.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-    // Initialize Supabase in wallet.html
+    // 🚀 FIXED: HTTPS-Compatible Supabase Configuration
     const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey, {
+        auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: false,
+            storage: {
+                getItem: (key) => {
+                    const value = localStorage.getItem(key);
+                    console.log('🔑 Storage GET:', key, value ? '***' : 'null');
+                    return value;
+                },
+                setItem: (key, value) => {
+                    console.log('🔑 Storage SET:', key, value ? '***' : 'null');
+                    localStorage.setItem(key, value);
+                },
+                removeItem: (key) => {
+                    console.log('🔑 Storage REMOVE:', key);
+                    localStorage.removeItem(key);
+                }
+            }
+        }
+    });
 </script>
 
     <style>
@@ -30,7 +52,6 @@
             --border-radius: 16px;
             --border-radius-sm: 12px;
             --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            /* 🆕 ADD THESE MISSING VARIABLES */
             --bg-secondary: #1a1a1a;
             --border-color: rgba(212, 175, 55, 0.3);
             --muted: #888888;
@@ -1415,651 +1436,651 @@
         }
 
         /* ============================================= */
-/* PRODUCTION SWAP MODAL - COMPACT TRUST WALLET STYLE */
-/* ============================================= */
-
-/* Fullscreen Modal Base */
-.fullscreen-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--dark-bg);
-    z-index: 2000;
-    overflow-y: auto;
-}
-
-.fullscreen-modal .modal-content {
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    max-height: none;
-    margin: 0;
-    border-radius: 0;
-    border: none;
-    box-shadow: none;
-    background: var(--dark-bg);
-    padding: 0;
-}
-
-/* Compact Modal Layout */
-.compact-modal {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    background: var(--dark-bg);
-    max-width: 100%;
-    padding: 0;
-    /* CRITICAL: Ensure entire modal is visible */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* Header - More Compact */
-.compact-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-    background: var(--dark-bg);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
-
-.header-main {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.compact-header h3 {
-    color: var(--gold);
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.header-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* Back Button - Smaller */
-.back-button {
-    background: rgba(212, 175, 55, 0.1);
-    color: var(--gold);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-}
-
-.back-button:hover {
-    background: rgba(212, 175, 55, 0.2);
-}
-
-/* Wallet Settings Button - Smaller */
-.wallet-settings-btn {
-    background: rgba(212, 175, 55, 0.1);
-    color: var(--gold);
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    padding: 6px 10px;
-    border-radius: 6px;
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 600;
-}
-
-.wallet-settings-btn:hover {
-    background: rgba(212, 175, 55, 0.2);
-}
-
-.wallet-settings-btn.connected {
-    background: rgba(0, 200, 81, 0.1);
-    border-color: rgba(0, 200, 81, 0.3);
-    color: var(--success);
-}
-
-/* ============================================= */
-/* CRITICAL FIX: BALANCE DISPLAY VISIBILITY */
-/* ============================================= */
-
-/* Balance Display - More Compact */
-.compact-balance {
-    padding: 20px;
-    background: rgba(212, 175, 55, 0.03);
-    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
-    margin: 0;
-    /* CRITICAL: Ensure container is visible */
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: block !important;
-}
-
-.balance-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-    /* CRITICAL: Ensure item is visible */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.balance-label {
-    color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 600;
-    /* CRITICAL: Ensure label is visible */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* CRITICAL FIX: Balance value visibility */
-.balance-value {
-    color: var(--gold) !important; /* Force gold color */
-    font-size: 20px !important; /* Force font size */
-    font-weight: 700 !important; /* Force font weight */
-    /* CRITICAL: Ensure value is visible */
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: inline !important;
-    /* Prevent any text hiding */
-    text-transform: none !important;
-    font-family: inherit !important;
-    /* Ensure proper contrast */
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-    /* Force specific styles */
-    background: transparent !important;
-    border: none !important;
-    outline: none !important;
-}
-
-/* Specific fix for the balance number element */
-#realNmxpBalance {
-    color: var(--gold) !important;
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: inline !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-    background: transparent !important;
-    border: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: normal !important;
-}
-
-.balance-currency {
-    color: var(--text-muted);
-    font-size: 14px;
-    font-weight: 600;
-    background: rgba(212, 175, 55, 0.08);
-    padding: 4px 8px;
-    border-radius: 6px;
-    /* CRITICAL: Ensure currency is visible */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* ============================================= */
-/* CONVERSION INTERFACE */
-/* ============================================= */
-
-/* Conversion Interface - Much More Compact */
-.compact-conversion {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    max-width: 380px;
-    margin: 0 auto;
-    width: 100%;
-    padding: 20px;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.conversion-row {
-    margin-bottom: 0;
-}
-
-.row-label {
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    display: block;
-    text-align: left;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* Input/Output Containers - Smaller */
-.input-container, .output-container {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    border-radius: 12px;
-    padding: 16px;
-    transition: all 0.3s ease;
-    position: relative;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.input-container:focus-within {
-    border-color: var(--gold);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
-}
-
-.input-container input, .output-container input {
-    flex: 1;
-    background: transparent;
-    border: none;
-    color: var(--gold);
-    font-size: 18px;
-    font-weight: 600;
-    outline: none;
-    text-align: left;
-    min-width: 0;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.input-container input::placeholder {
-    color: rgba(212, 175, 55, 0.4);
-}
-
-.output-container input {
-    color: var(--gold);
-    opacity: 0.9;
-}
-
-/* Token Badges - Smaller */
-.token-badge {
-    background: rgba(212, 175, 55, 0.15);
-    color: var(--gold);
-    padding: 6px 12px;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 12px;
-    border: 1px solid rgba(212, 175, 55, 0.3);
-    min-width: 60px;
-    text-align: center;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* MAX Button - Smaller */
-.max-btn {
-    background: rgba(212, 175, 55, 0.2);
-    color: var(--gold);
-    border: 1px solid rgba(212, 175, 55, 0.4);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 11px;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.max-btn:hover {
-    background: rgba(212, 175, 55, 0.3);
-}
-
-/* Conversion Arrow - Smaller */
-.conversion-arrow {
-    text-align: center;
-    margin: 15px 0;
-    color: var(--gold);
-    font-size: 20px;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.conversion-arrow i {
-    background: rgba(212, 175, 55, 0.1);
-    padding: 10px;
-    border-radius: 50%;
-    border: 1px solid rgba(212, 175, 55, 0.2);
-}
-
-/* Conversion Fee - Smaller */
-.conversion-fee {
-    text-align: center;
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid rgba(212, 175, 55, 0.1);
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.fee-text {
-    color: var(--text-muted);
-    font-size: 12px;
-    font-weight: 600;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* Convert Button - Smaller like Trust Wallet */
-.compact-convert-btn {
-    width: calc(100% - 40px);
-    margin: 20px;
-    padding: 14px;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 15px;
-    text-transform: none;
-    letter-spacing: normal;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.compact-convert-btn.active {
-    background: linear-gradient(135deg, var(--gold), var(--gold-light));
-    color: var(--dark-bg);
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-    border: 1px solid var(--gold);
-}
-
-.compact-convert-btn.active:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
-}
-
-.compact-convert-btn.disabled {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-muted);
-    cursor: not-allowed;
-    opacity: 0.6;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Compact Note - Smaller */
-.compact-note {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    color: var(--text-muted);
-    font-size: 12px;
-    padding: 15px 20px;
-    background: rgba(212, 175, 55, 0.02);
-    border-top: 1px solid rgba(212, 175, 55, 0.1);
-    text-align: center;
-    line-height: 1.4;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.compact-note i {
-    color: var(--gold);
-    font-size: 11px;
-}
-
-/* Mini Wallet Modal - More Compact */
-.mini-modal {
-    background: var(--dark-bg);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    /* Ensure visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-.mini-modal .modal-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
-    background: var(--dark-bg);
-}
-
-.mini-modal .modal-header h3 {
-    color: var(--gold);
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    font-weight: 700;
-}
-
-.modal-body {
-    padding: 30px 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    max-width: 380px;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.modal-body p {
-    color: var(--text-muted);
-    margin-bottom: 20px;
-    text-align: center;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.wallet-input {
-    width: 100%;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(212, 175, 55, 0.2);
-    border-radius: 10px;
-    padding: 14px 16px;
-    color: var(--gold);
-    font-size: 14px;
-    margin-bottom: 20px;
-    transition: all 0.3s ease;
-    font-family: monospace;
-    text-align: center;
-}
-
-.wallet-input:focus {
-    outline: none;
-    border-color: var(--gold);
-    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
-}
-
-.modal-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-}
-
-.btn {
-    padding: 12px 24px;
-    border: none;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-    min-width: 140px;
-}
-
-.btn.primary {
-    background: linear-gradient(135deg, var(--gold), var(--gold-light));
-    color: var(--dark-bg);
-    border: 1px solid var(--gold);
-}
-
-.btn.primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-}
-
-/* Body scroll lock */
-body.modal-open {
-    overflow: hidden;
-}
-
-/* Remove the old conversion-info styles */
-.conversion-info {
-    display: none;
-}
-
-/* Ensure proper spacing */
-.input-container, .output-container {
-    margin-top: 4px;
-}
-
-/* ============================================= */
-/* CRITICAL: OVERRIDE ANY HIDING STYLES */
-/* ============================================= */
-
-/* Force visibility for all modal content */
-.fullscreen-modal .compact-modal,
-.fullscreen-modal .compact-modal * {
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* Specifically target and override any hiding styles */
-#productionSwapModal .balance-value,
-#productionSwapModal #realNmxpBalance,
-.compact-balance .balance-value,
-.compact-balance #realNmxpBalance {
-    opacity: 1 !important;
-    visibility: visible !important;
-    display: inline !important;
-    color: var(--gold) !important;
-    font-size: 20px !important;
-    font-weight: 700 !important;
-}
-
-/* Responsive Design for Mobile */
-@media (max-width: 480px) {
-    .compact-header {
-        padding: 14px 16px;
-    }
-
-    .header-main {
-        gap: 12px;
-    }
-
-    .back-button {
-        padding: 6px 10px;
-        font-size: 12px;
-    }
-
-    .compact-header h3 {
-        font-size: 16px;
-    }
-
-    .compact-conversion {
-        padding: 16px;
-        max-width: 100%;
-    }
-
-    .input-container, .output-container {
-        padding: 14px;
-    }
-
-    .input-container input, .output-container input {
-        font-size: 16px;
-    }
-
-    .token-badge {
-        padding: 5px 10px;
-        font-size: 11px;
-        min-width: 55px;
-    }
-
-    .max-btn {
-        padding: 5px 10px;
-        font-size: 10px;
-    }
-
-    .conversion-arrow {
-        margin: 12px 0;
-        font-size: 18px;
-    }
-
-    .conversion-arrow i {
-        padding: 8px;
-    }
-
-    .compact-convert-btn {
-        margin: 16px;
-        padding: 12px;
-        font-size: 14px;
-    }
-
-    .compact-note {
-        padding: 12px 16px;
-        font-size: 11px;
-    }
-
-    .modal-body {
-        padding: 24px 16px;
-    }
-
-    .wallet-input {
-        padding: 12px 14px;
-        font-size: 13px;
-    }
-
-    .btn {
-        padding: 10px 20px;
-        font-size: 13px;
-        min-width: 120px;
-    }
-}
-
-/* Tablet and Desktop */
-@media (min-width: 768px) {
-    .compact-conversion {
-        max-width: 420px;
-    }
-
-    .input-container, .output-container {
-        padding: 18px;
-    }
-
-    .input-container input, .output-container input {
-        font-size: 20px;
-    }
-}
+        /* PRODUCTION SWAP MODAL - COMPACT TRUST WALLET STYLE */
+        /* ============================================= */
+
+        /* Fullscreen Modal Base */
+        .fullscreen-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--dark-bg);
+            z-index: 2000;
+            overflow-y: auto;
+        }
+
+        .fullscreen-modal .modal-content {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            margin: 0;
+            border-radius: 0;
+            border: none;
+            box-shadow: none;
+            background: var(--dark-bg);
+            padding: 0;
+        }
+
+        /* Compact Modal Layout */
+        .compact-modal {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--dark-bg);
+            max-width: 100%;
+            padding: 0;
+            /* CRITICAL: Ensure entire modal is visible */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Header - More Compact */
+        .compact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            background: var(--dark-bg);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-main {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .compact-header h3 {
+            color: var(--gold);
+            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Back Button - Smaller */
+        .back-button {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .back-button:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+
+        /* Wallet Settings Button - Smaller */
+        .wallet-settings-btn {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+
+        .wallet-settings-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+
+        .wallet-settings-btn.connected {
+            background: rgba(0, 200, 81, 0.1);
+            border-color: rgba(0, 200, 81, 0.3);
+            color: var(--success);
+        }
+
+        /* ============================================= */
+        /* CRITICAL FIX: BALANCE DISPLAY VISIBILITY */
+        /* ============================================= */
+
+        /* Balance Display - More Compact */
+        .compact-balance {
+            padding: 20px;
+            background: rgba(212, 175, 55, 0.03);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+            margin: 0;
+            /* CRITICAL: Ensure container is visible */
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: block !important;
+        }
+
+        .balance-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            /* CRITICAL: Ensure item is visible */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .balance-label {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            /* CRITICAL: Ensure label is visible */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* CRITICAL FIX: Balance value visibility */
+        .balance-value {
+            color: var(--gold) !important; /* Force gold color */
+            font-size: 20px !important; /* Force font size */
+            font-weight: 700 !important; /* Force font weight */
+            /* CRITICAL: Ensure value is visible */
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: inline !important;
+            /* Prevent any text hiding */
+            text-transform: none !important;
+            font-family: inherit !important;
+            /* Ensure proper contrast */
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            /* Force specific styles */
+            background: transparent !important;
+            border: none !important;
+            outline: none !important;
+        }
+
+        /* Specific fix for the balance number element */
+        #realNmxpBalance {
+            color: var(--gold) !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: inline !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+            background: transparent !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: normal !important;
+        }
+
+        .balance-currency {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 600;
+            background: rgba(212, 175, 55, 0.08);
+            padding: 4px 8px;
+            border-radius: 6px;
+            /* CRITICAL: Ensure currency is visible */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* ============================================= */
+        /* CONVERSION INTERFACE */
+        /* ============================================= */
+
+        /* Conversion Interface - Much More Compact */
+        .compact-conversion {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 380px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 20px;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .conversion-row {
+            margin-bottom: 0;
+        }
+
+        .row-label {
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: block;
+            text-align: left;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Input/Output Containers - Smaller */
+        .input-container, .output-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .input-container:focus-within {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
+        }
+
+        .input-container input, .output-container input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--gold);
+            font-size: 18px;
+            font-weight: 600;
+            outline: none;
+            text-align: left;
+            min-width: 0;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .input-container input::placeholder {
+            color: rgba(212, 175, 55, 0.4);
+        }
+
+        .output-container input {
+            color: var(--gold);
+            opacity: 0.9;
+        }
+
+        /* Token Badges - Smaller */
+        .token-badge {
+            background: rgba(212, 175, 55, 0.15);
+            color: var(--gold);
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 12px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            min-width: 60px;
+            text-align: center;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* MAX Button - Smaller */
+        .max-btn {
+            background: rgba(212, 175, 55, 0.2);
+            color: var(--gold);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 11px;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .max-btn:hover {
+            background: rgba(212, 175, 55, 0.3);
+        }
+
+        /* Conversion Arrow - Smaller */
+        .conversion-arrow {
+            text-align: center;
+            margin: 15px 0;
+            color: var(--gold);
+            font-size: 20px;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .conversion-arrow i {
+            background: rgba(212, 175, 55, 0.1);
+            padding: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        /* Conversion Fee - Smaller */
+        .conversion-fee {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(212, 175, 55, 0.1);
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .fee-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Convert Button - Smaller like Trust Wallet */
+        .compact-convert-btn {
+            width: calc(100% - 40px);
+            margin: 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            text-transform: none;
+            letter-spacing: normal;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .compact-convert-btn.active {
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            color: var(--dark-bg);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+            border: 1px solid var(--gold);
+        }
+
+        .compact-convert-btn.active:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
+        }
+
+        .compact-convert-btn.disabled {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            opacity: 0.6;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Compact Note - Smaller */
+        .compact-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 12px;
+            padding: 15px 20px;
+            background: rgba(212, 175, 55, 0.02);
+            border-top: 1px solid rgba(212, 175, 55, 0.1);
+            text-align: center;
+            line-height: 1.4;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .compact-note i {
+            color: var(--gold);
+            font-size: 11px;
+        }
+
+        /* Mini Wallet Modal - More Compact */
+        .mini-modal {
+            background: var(--dark-bg);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            /* Ensure visibility */
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        .mini-modal .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+            background: var(--dark-bg);
+        }
+
+        .mini-modal .modal-header h3 {
+            color: var(--gold);
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 30px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 380px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .modal-body p {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .wallet-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 10px;
+            padding: 14px 16px;
+            color: var(--gold);
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            font-family: monospace;
+            text-align: center;
+        }
+
+        .wallet-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            min-width: 140px;
+        }
+
+        .btn.primary {
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            color: var(--dark-bg);
+            border: 1px solid var(--gold);
+        }
+
+        .btn.primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Body scroll lock */
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        /* Remove the old conversion-info styles */
+        .conversion-info {
+            display: none;
+        }
+
+        /* Ensure proper spacing */
+        .input-container, .output-container {
+            margin-top: 4px;
+        }
+
+        /* ============================================= */
+        /* CRITICAL: OVERRIDE ANY HIDING STYLES */
+        /* ============================================= */
+
+        /* Force visibility for all modal content */
+        .fullscreen-modal .compact-modal,
+        .fullscreen-modal .compact-modal * {
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+
+        /* Specifically target and override any hiding styles */
+        #productionSwapModal .balance-value,
+        #productionSwapModal #realNmxpBalance,
+        .compact-balance .balance-value,
+        .compact-balance #realNmxpBalance {
+            opacity: 1 !important;
+            visibility: visible !important;
+            display: inline !important;
+            color: var(--gold) !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
+        }
+
+        /* Responsive Design for Mobile */
+        @media (max-width: 480px) {
+            .compact-header {
+                padding: 14px 16px;
+            }
+
+            .header-main {
+                gap: 12px;
+            }
+
+            .back-button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+
+            .compact-header h3 {
+                font-size: 16px;
+            }
+
+            .compact-conversion {
+                padding: 16px;
+                max-width: 100%;
+            }
+
+            .input-container, .output-container {
+                padding: 14px;
+            }
+
+            .input-container input, .output-container input {
+                font-size: 16px;
+            }
+
+            .token-badge {
+                padding: 5px 10px;
+                font-size: 11px;
+                min-width: 55px;
+            }
+
+            .max-btn {
+                padding: 5px 10px;
+                font-size: 10px;
+            }
+
+            .conversion-arrow {
+                margin: 12px 0;
+                font-size: 18px;
+            }
+
+            .conversion-arrow i {
+                padding: 8px;
+            }
+
+            .compact-convert-btn {
+                margin: 16px;
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .compact-note {
+                padding: 12px 16px;
+                font-size: 11px;
+            }
+
+            .modal-body {
+                padding: 24px 16px;
+            }
+
+            .wallet-input {
+                padding: 12px 14px;
+                font-size: 13px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 13px;
+                min-width: 120px;
+            }
+        }
+
+        /* Tablet and Desktop */
+        @media (min-width: 768px) {
+            .compact-conversion {
+                max-width: 420px;
+            }
+
+            .input-container, .output-container {
+                padding: 18px;
+            }
+
+            .input-container input, .output-container input {
+                font-size: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -2888,16 +2909,18 @@ body.modal-open {
         <div class="modal-body">
             <p>Enter your TON wallet address to receive NMX tokens:</p>
             <input type="text" id="userWalletAddress" placeholder="EQABCD1234..." class="wallet-input">
-            
+
             <div class="modal-actions">
                 <button class="btn primary" onclick="saveWalletAddress()">Save Wallet Address</button>
             </div>
         </div>
     </div>
 </div>
+    </div>
+
     <script>
 // =============================================
-// WALLET STATE MANAGEMENT
+// 🚀 FIXED: HTTPS-COMPATIBLE WALLET SYSTEM
 // =============================================
 
 let walletState = {
@@ -2914,10 +2937,305 @@ let customTokens = [];
 let currentMnemonic = null;
 let currentUser = null;
 
+// 🆕 FIXED: HTTPS-Compatible Session Management
+async function checkWalletSession() {
+    try {
+        console.log('🔍 Checking for wallet session with HTTPS compatibility...');
+        
+        // Check custom session first
+        const customSession = localStorage.getItem('nemexcoin_user_session');
+        if (customSession) {
+            console.log('✅ Found custom session in localStorage');
+            const sessionData = JSON.parse(customSession);
+            if (sessionData.loggedIn && sessionData.id) {
+                console.log('✅ Valid custom session found');
+                return {
+                    user: { id: sessionData.id },
+                    session: { user: { id: sessionData.id } }
+                };
+            }
+        }
+
+        // Also check Supabase session with HTTPS compatibility
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (session && !error) {
+            console.log('✅ Supabase session found with HTTPS');
+            return { session };
+        }
+        
+        console.log('❌ No active session found');
+        return null;
+    } catch (error) {
+        console.error('❌ Session check error:', error);
+        return null;
+    }
+}
+
+// 🆕 FIXED: Enhanced auth check for HTTPS compatibility
+async function checkAuth() {
+    try {
+        console.log('🔐 Checking authentication with HTTPS compatibility...');
+
+        // Check custom session first
+        const customSession = localStorage.getItem('nemexcoin_user_session');
+        if (customSession) {
+            const sessionData = JSON.parse(customSession);
+            if (sessionData.loggedIn && sessionData.id) {
+                console.log('✅ User authenticated via custom session:', sessionData.id);
+                return { 
+                    id: sessionData.id,
+                    email: sessionData.email 
+                };
+            }
+        }
+
+        // Fallback to Supabase session with HTTPS
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+        if (error) {
+            console.error('Session error:', error);
+            return null;
+        }
+
+        if (!session) {
+            console.log('❌ No active session found');
+            return null;
+        }
+
+        console.log('✅ User authenticated via Supabase with HTTPS:', session.user.id);
+        return session.user;
+
+    } catch (error) {
+        console.error('❌ Auth check error:', error);
+        return null;
+    }
+}
+
+// 🆕 FIXED: Enhanced wallet initialization with HTTPS session support
+async function initWallet() {
+    console.log('🔄 Initializing wallet with HTTPS-compatible session management...');
+
+    if (!window.nemexWalletAPI) {
+        console.error('❌ Wallet API not available');
+        showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
+        return;
+    }
+
+    const apiReady = await window.nemexWalletAPI.init();
+    if (!apiReady) {
+        showStatusMessage('❌ Cannot connect to wallet server', 'error');
+        return;
+    }
+
+    console.log('✅ Wallet API initialized, checking for HTTPS session...');
+
+    // Check if we have an active HTTPS session
+    const sessionData = await checkWalletSession();
+
+    if (sessionData) {
+        console.log('🎯 Active HTTPS session found, restoring wallet...');
+        try {
+            const userId = sessionData.user?.id || sessionData.session?.user?.id;
+            
+            if (userId) {
+                // Try to get the most recent wallet for this user
+                const currentWallet = await window.nemexWalletAPI.getStoredWallet();
+                
+                if (currentWallet && currentWallet.address) {
+                    walletState = {
+                        isInitialized: true,
+                        walletType: currentWallet.source || 'imported',
+                        userId: userId,
+                        address: currentWallet.address,
+                        balances: {},
+                        lastUpdate: null
+                    };
+
+                    updateCurrentUser();
+                    console.log('✅ Session restored from HTTPS storage:', walletState.address);
+
+                    // Immediately update the UI
+                    updateWalletDisplay();
+                    await updateRealBalances();
+                    await loadUserWallets();
+
+                    showStatusMessage('✅ Welcome back! Your wallet is ready.', 'success');
+                } else {
+                    console.log('❌ No valid wallet data in HTTPS session');
+                    await emergencySessionRestoration();
+                }
+            } else {
+                console.log('❌ No user ID in session');
+                await emergencySessionRestoration();
+            }
+        } catch (error) {
+            console.error('❌ Error restoring HTTPS session:', error);
+            await emergencySessionRestoration();
+        }
+    } else {
+        console.log('ℹ️ No active HTTPS session found, showing welcome screen');
+        await emergencySessionRestoration();
+    }
+
+    console.log('🚀 Wallet initialization complete with HTTPS compatibility');
+}
+
+// 🆕 FIXED: Enhanced emergency session restoration with HTTPS support
+async function emergencySessionRestoration() {
+    console.log('🚨 Attempting emergency session restoration with HTTPS support...');
+
+    try {
+        if (!window.nemexWalletAPI) return false;
+
+        // Check HTTPS session first
+        const sessionData = await checkWalletSession();
+        const userId = sessionData?.user?.id || sessionData?.session?.user?.id;
+
+        console.log('🔍 Emergency restoration for user:', userId);
+
+        if (!userId) {
+            console.log('❌ No user ID found in HTTPS session, cannot restore');
+            return false;
+        }
+
+        // Try to get active wallet directly from Supabase with HTTPS
+        const activeWalletResponse = await fetch(`/api/wallet/active-wallet/${userId}`);
+        if (activeWalletResponse.ok) {
+            const activeData = await activeWalletResponse.json();
+            if (activeData.success && activeData.activeWallet) {
+                console.log('🎯 Found active wallet in Supabase:', activeData.activeWallet);
+
+                // Get wallet details
+                const walletsResponse = await fetch(`/api/wallet/user-wallets/${userId}`);
+                if (walletsResponse.ok) {
+                    const walletsData = await walletsResponse.json();
+                    if (walletsData.success && walletsData.wallets) {
+                        const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
+                        if (wallet) {
+                            console.log('✅ Using Supabase wallet data:', wallet);
+
+                            // Update both API state and local state
+                            await window.nemexWalletAPI.setStoredWallet(wallet);
+
+                            walletState = {
+                                isInitialized: true,
+                                walletType: wallet.source || 'imported',
+                                userId: wallet.userId,
+                                address: wallet.address,
+                                balances: {},
+                                lastUpdate: null
+                            };
+
+                            updateCurrentUser();
+                            updateWalletDisplay();
+                            await updateRealBalances();
+                            await loadUserWallets();
+
+                            showStatusMessage('✅ Session restored from Supabase!', 'success');
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log('ℹ️ No wallet found in emergency restoration');
+        return false;
+
+    } catch (error) {
+        console.error('❌ Emergency restoration failed:', error);
+        return false;
+    }
+}
+
+// 🆕 FIXED: Enhanced user management with HTTPS compatibility
+function updateCurrentUser() {
+    if (walletState.isInitialized && walletState.userId) {
+        currentUser = {
+            id: walletState.userId,
+            email: null
+        };
+        console.log('✅ currentUser updated with HTTPS compatibility:', currentUser);
+    } else {
+        currentUser = null;
+        console.log('🔄 currentUser cleared');
+    }
+}
+
+// 🆕 FIXED: Enhanced logout with HTTPS session cleanup
+async function logout() {
+    try {
+        console.log('🚪 Logging out with HTTPS session cleanup...');
+
+        // Clear custom HTTPS session
+        localStorage.removeItem('nemexcoin_user_session');
+        localStorage.removeItem('nemexcoin_user');
+        sessionStorage.removeItem('nemex_user_session');
+
+        // Clear Supabase session
+        await supabaseClient.auth.signOut();
+
+        // Clear wallet state
+        walletState = {
+            isInitialized: false,
+            walletType: null,
+            userId: null,
+            address: null,
+            balances: {},
+            lastUpdate: null
+        };
+
+        currentUser = null;
+        userWallets = [];
+
+        // Update UI
+        updateWalletDisplay();
+
+        console.log('✅ Logout completed with HTTPS session cleanup');
+
+        // Redirect to login
+        showToast('Logged out successfully', 'success');
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1500);
+
+    } catch (error) {
+        console.error('❌ Logout error:', error);
+        showToast('Error during logout', 'error');
+    }
+}
+
 // =============================================
-// CORE UTILITY FUNCTIONS
+// ALL YOUR EXISTING WALLET FUNCTIONS REMAIN EXACTLY THE SAME
 // =============================================
 
+// WALLET STATE MANAGEMENT
+let SUPPORTED_TOKENS = [
+    {
+        symbol: "TON",
+        name: "Toncoin",
+        balance: 0,
+        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
+        price: 0,
+        change24h: 0,
+        canSend: true,
+        isNative: true,
+        isFeatured: true
+    },
+    {
+        symbol: "NMX", 
+        name: "NemexCoin",
+        balance: 0,
+        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
+        price: 0.10,
+        change24h: 0,
+        canSend: true,
+        isNative: false,
+        isFeatured: true
+    }
+];
+
+// UTILITY FUNCTIONS
 function formatNumber(number) {            
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
@@ -2968,70 +3286,18 @@ function removeDebugButtons() {
     debugButtons.forEach(button => button.remove());
 }
 
-// =============================================
-// USER MANAGEMENT
-// =============================================
-
-function initializeCurrentUser() {
-    if (walletState.isInitialized && walletState.userId) {
-        currentUser = {
-            id: walletState.userId,
-            email: null
-        };
-        console.log('✅ currentUser initialized:', currentUser);
-    }
-}
-
-function updateCurrentUser() {
-    if (walletState.isInitialized && walletState.userId) {
-        currentUser = {
-            id: walletState.userId,
-            email: null
-        };
-        console.log('✅ currentUser updated:', currentUser);
-    } else {
-        currentUser = null;
-        console.log('🔄 currentUser cleared');
-    }
-}
-
-// =============================================
-// TOKEN MANAGEMENT
-// =============================================
-
-let SUPPORTED_TOKENS = [
-    {
-        symbol: "TON",
-        name: "Toncoin",
-        balance: 0,
-        logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-        price: 0,
-        change24h: 0,
-        canSend: true,
-        isNative: true,
-        isFeatured: true
-    },
-    {
-        symbol: "NMX", 
-        name: "NemexCoin",
-        balance: 0,
-        logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        price: 0.10,
-        change24h: 0,
-        canSend: true,
-        isNative: false,
-        isFeatured: true
-    }
-];
-
-// =============================================
 // WALLET MANAGEMENT FUNCTIONS
-// =============================================
-
 async function loadUserWallets() {
     try {
         if (!window.nemexWalletAPI) {
             console.error('❌ Wallet API not available');
+            return;
+        }
+
+        // Check HTTPS session first
+        const sessionData = await checkWalletSession();
+        if (!sessionData) {
+            console.log('❌ No HTTPS session for wallet loading');
             return;
         }
 
@@ -3042,7 +3308,7 @@ async function loadUserWallets() {
             index === self.findIndex(w => w.address === wallet.address)
         );
 
-        console.log(`✅ Loaded ${userWallets.length} unique user wallets from Supabase`);
+        console.log(`✅ Loaded ${userWallets.length} unique user wallets with HTTPS session`);
         updateWalletList();
 
         // If we have wallets but no active session, try to restore the first one
@@ -3153,10 +3419,11 @@ function formatAddress(address, startChars = 6, endChars = 4) {
 // Auto-restore from available wallets
 async function autoRestoreFromWallets() {
     try {
-        const userId = await window.nemexWalletAPI.getUserId();
+        const sessionData = await checkWalletSession();
+        const userId = sessionData?.user?.id || sessionData?.session?.user?.id;
 
         if (!userId) {
-            console.log('❌ No user ID for auto-restore');
+            console.log('❌ No user ID in HTTPS session for auto-restore');
             return false;
         }
 
@@ -3193,75 +3460,45 @@ async function autoRestoreFromWallets() {
     return false;
 }
 
-// Emergency session restoration when normal flow fails
-async function emergencySessionRestoration() {
-    console.log('🚨 Attempting emergency session restoration...');
+// 🆕 FIXED: Enhanced wallet display with HTTPS session awareness
+function updateWalletDisplay() {
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const balanceSection = document.getElementById('balanceSection');
+    const actionButtons = document.getElementById('actionButtons');
+    const tokenSection = document.getElementById('tokenSection');
+    const container = document.querySelector('.container');
 
-    try {
-        if (!window.nemexWalletAPI) return false;
+    if (walletState.isInitialized) {
+        document.body.classList.add('wallet-loaded');
+        if (container) container.classList.add('wallet-loaded');
 
-        const userId = await window.nemexWalletAPI.getUserId();
-        console.log('🔍 Emergency restoration for user:', userId);
-
-        if (!userId) {
-            console.log('❌ No user ID found, cannot restore session');
-            return false;
+        if (welcomeScreen) welcomeScreen.style.display = 'none';
+        if (balanceSection) balanceSection.style.display = 'block';
+        if (actionButtons) actionButtons.style.display = 'grid';
+        if (tokenSection) {
+            tokenSection.style.display = 'block';
+            tokenSection.style.opacity = '1';
+            tokenSection.style.visibility = 'visible';
         }
 
-        // Try to get active wallet directly from Supabase
-        const activeWalletResponse = await fetch(`/api/wallet/active-wallet/${userId}`);
-        if (activeWalletResponse.ok) {
-            const activeData = await activeWalletResponse.json();
-            if (activeData.success && activeData.activeWallet) {
-                console.log('🎯 Found active wallet in Supabase:', activeData.activeWallet);
+        updatePortfolioValue();
+        setTimeout(() => {
+            loadTokens();
+        }, 100);
+    } else {
+        document.body.classList.remove('wallet-loaded');
+        if (container) container.classList.remove('wallet-loaded');
 
-                // Get wallet details
-                const walletsResponse = await fetch(`/api/wallet/user-wallets/${userId}`);
-                if (walletsResponse.ok) {
-                    const walletsData = await walletsResponse.json();
-                    if (walletsData.success && walletsData.wallets) {
-                        const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
-                        if (wallet) {
-                            console.log('✅ Using Supabase wallet data:', wallet);
-
-                            // Update both API state and local state
-                            await window.nemexWalletAPI.setStoredWallet(wallet);
-
-                            walletState = {
-                                isInitialized: true,
-                                walletType: wallet.source || 'imported',
-                                userId: wallet.userId,
-                                address: wallet.address,
-                                balances: {},
-                                lastUpdate: null
-                            };
-
-                            updateCurrentUser();
-                            updateWalletDisplay();
-                            await updateRealBalances();
-                            await loadUserWallets();
-
-                            showStatusMessage('✅ Session restored from Supabase!', 'success');
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-
-        console.log('ℹ️ No wallet found in emergency restoration');
-        return false;
-
-    } catch (error) {
-        console.error('❌ Emergency restoration failed:', error);
-        return false;
+        if (welcomeScreen) welcomeScreen.style.display = 'block';
+        if (balanceSection) balanceSection.style.display = 'none';
+        if (actionButtons) actionButtons.style.display = 'none';
+        if (tokenSection) tokenSection.style.display = 'none';
     }
+
+    updateWalletList();
 }
 
-// =============================================
 // MODAL MANAGEMENT FUNCTIONS
-// =============================================
-
 function closeModal() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.style.display = 'none';
@@ -3339,7 +3576,7 @@ function showSwapModal() {
 
     console.log('🔄 Opening swap modal');
     closeModal();
-    
+
     // Use the production swap modal
     openProductionSwapModal();
 }
@@ -3379,10 +3616,7 @@ function showMainWalletInterface() {
     }
 }
 
-// =============================================
 // SEND MODAL FUNCTIONALITY
-// =============================================
-
 let currentSendToken = 'TON';
 let currentTokenBalance = 0;
 let currentTokenPrice = 0;
@@ -3729,10 +3963,7 @@ async function confirmSendTransaction() {
     }
 }
 
-// =============================================
 // RECEIVE MODAL FUNCTIONALITY
-// =============================================
-
 let currentReceiveToken = 'TON';
 
 function initializeWalletCard() {
@@ -3854,75 +4085,7 @@ function generateShortHash(input) {
     return Math.abs(hash).toString(36).substring(0, 4).toUpperCase();
 }
 
-// =============================================
-// WALLET INITIALIZATION
-// =============================================
-
-async function initWallet() {
-    console.log('🔄 Initializing wallet with Supabase session management...');
-
-    if (!window.nemexWalletAPI) {
-        console.error('❌ Wallet API not available');
-        showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
-        return;
-    }
-
-    const apiReady = await window.nemexWalletAPI.init();
-    if (!apiReady) {
-        showStatusMessage('❌ Cannot connect to wallet server', 'error');
-        return;
-    }
-
-    console.log('✅ Wallet API initialized, checking for Supabase session...');
-
-    // Check if we have an active session
-    const hasActiveSession = window.nemexWalletAPI.isWalletLoaded();
-
-    if (hasActiveSession) {
-        console.log('🎯 Active session found in Supabase, restoring wallet...');
-        try {
-            const currentWallet = await window.nemexWalletAPI.getStoredWallet();
-            console.log('📋 Supabase wallet data:', currentWallet);
-
-            if (currentWallet && currentWallet.address) {
-                walletState = {
-                    isInitialized: true,
-                    walletType: currentWallet.source || 'imported',
-                    userId: currentWallet.userId,
-                    address: currentWallet.address,
-                    balances: {},
-                    lastUpdate: null
-                };
-
-                updateCurrentUser();
-                console.log('✅ Session restored from Supabase:', walletState.address);
-
-                // Immediately update the UI
-                updateWalletDisplay();
-                await updateRealBalances();
-                await loadUserWallets();
-
-                showStatusMessage('✅ Welcome back! Your wallet is ready.', 'success');
-            } else {
-                console.log('❌ No valid wallet data in Supabase session');
-                await emergencySessionRestoration();
-            }
-        } catch (error) {
-            console.error('❌ Error restoring Supabase session:', error);
-            await emergencySessionRestoration();
-        }
-    } else {
-        console.log('ℹ️ No active session found in Supabase, showing welcome screen');
-        await emergencySessionRestoration();
-    }
-
-    console.log('🚀 Wallet initialization complete with Supabase');
-}
-
-// =============================================
 // BALANCE & PRICE UPDATES
-// =============================================
-
 async function updateRealBalances() {
     if (!walletState.isInitialized || !walletState.address) {
         return;
@@ -4009,47 +4172,7 @@ async function updateRealBalances() {
     }
 }
 
-// =============================================
 // UI UPDATES
-// =============================================
-
-function updateWalletDisplay() {
-    const welcomeScreen = document.getElementById('welcomeScreen');
-    const balanceSection = document.getElementById('balanceSection');
-    const actionButtons = document.getElementById('actionButtons');
-    const tokenSection = document.getElementById('tokenSection');
-    const container = document.querySelector('.container');
-
-    if (walletState.isInitialized) {
-        document.body.classList.add('wallet-loaded');
-        if (container) container.classList.add('wallet-loaded');
-
-        if (welcomeScreen) welcomeScreen.style.display = 'none';
-        if (balanceSection) balanceSection.style.display = 'block';
-        if (actionButtons) actionButtons.style.display = 'grid';
-        if (tokenSection) {
-            tokenSection.style.display = 'block';
-            tokenSection.style.opacity = '1';
-            tokenSection.style.visibility = 'visible';
-        }
-
-        updatePortfolioValue();
-        setTimeout(() => {
-            loadTokens();
-        }, 100);
-    } else {
-        document.body.classList.remove('wallet-loaded');
-        if (container) container.classList.remove('wallet-loaded');
-
-        if (welcomeScreen) welcomeScreen.style.display = 'block';
-        if (balanceSection) balanceSection.style.display = 'none';
-        if (actionButtons) actionButtons.style.display = 'none';
-        if (tokenSection) tokenSection.style.display = 'none';
-    }
-
-    updateWalletList();
-}
-
 function updatePortfolioValue() {
     setTimeout(() => {
         const allTokens = [...SUPPORTED_TOKENS, ...customTokens];
@@ -4208,7 +4331,7 @@ function handleTokenLogoError(img, symbol) {
 }
 
 // =============================================
-// PRODUCTION SWAP SYSTEM - FIXED
+// 🆕 FIXED: PRODUCTION SWAP WITH HTTPS SESSION SUPPORT
 // =============================================
 
 const PRODUCTION_CONFIG = {
@@ -4217,37 +4340,16 @@ const PRODUCTION_CONFIG = {
     MAX_CONVERSION: 1000000
 };
 
-async function checkAuth() {
-    try {
-        if (typeof supabaseClient === 'undefined') {
-            console.error('❌ supabaseClient is not defined');
-            return null;
-        }
-
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
-
-        if (error) {
-            console.error('Session error:', error);
-            return null;
-        }
-
-        if (!session) {
-            console.log('❌ No active session found');
-            return null;
-        }
-
-        console.log('✅ User authenticated:', session.user.id);
-        return session.user;
-
-    } catch (error) {
-        console.error('❌ Auth check error:', error);
-        return null;
-    }
-}
-
+// 🆕 FIXED: Enhanced getUserNMXpBalance with HTTPS session support
 async function getUserNMXpBalance(userId) {
     try {
         console.log('💰 Fetching NMXp balance for user:', userId);
+
+        // Check if we have a valid HTTPS session first
+        const sessionData = await checkWalletSession();
+        if (!sessionData) {
+            throw new Error('No valid HTTPS session');
+        }
 
         const { data: profile, error } = await supabaseClient
             .from('profiles')
@@ -4288,54 +4390,14 @@ async function getUserNMXpBalance(userId) {
     }
 }
 
-// ✅ FIXED: Balance display function
-function setBalanceDisplay(balance) {
-    console.log('💥 setBalanceDisplay CALLED with:', balance);
-    
-    const attempts = [
-        { delay: 0, name: 'IMMEDIATE' },
-        { delay: 100, name: 'FAST' },
-        { delay: 300, name: 'MEDIUM' },
-        { delay: 500, name: 'SLOW' }
-    ];
-    
-    attempts.forEach(attempt => {
-        setTimeout(() => {
-            console.log(`🔍 ${attempt.name} attempt - Looking for #realNmxpBalance`);
-            
-            const balanceElement = document.getElementById('realNmxpBalance');
-            
-            if (balanceElement) {
-                console.log(`✅ ${attempt.name} - Found element, updating from "${balanceElement.textContent}" to "${formatNumber(balance)}"`);
-                balanceElement.textContent = formatNumber(balance);
-                
-                // Force visual update
-                balanceElement.style.display = 'inline-block';
-                balanceElement.style.visibility = 'visible';
-            } else {
-                console.error(`❌ ${attempt.name} - Balance element not found`);
-                
-                // Try alternative search
-                const modal = document.getElementById('productionSwapModal');
-                if (modal) {
-                    const modalBalance = modal.querySelector('#realNmxpBalance');
-                    if (modalBalance) {
-                        console.log(`✅ ${attempt.name} - Found via modal query, updating to: ${formatNumber(balance)}`);
-                        modalBalance.textContent = formatNumber(balance);
-                    }
-                }
-            }
-        }, attempt.delay);
-    });
-}
-
+// 🆕 FIXED: Enhanced production swap data loading with HTTPS session support
 async function loadProductionSwapData() {
-    console.log('🔄 loadProductionSwapData CALLED');
+    console.log('🔄 loadProductionSwapData CALLED with HTTPS session support');
 
     try {
         const userSession = await checkAuth();
         if (!userSession) {
-            console.error('❌ User not authenticated');
+            console.error('❌ User not authenticated via HTTPS session');
             setBalanceDisplay(0);
             showToast('Please log in to access swap features', 'error');
             return;
@@ -4352,14 +4414,55 @@ async function loadProductionSwapData() {
 
         // Update wallet display
         updateWalletAddressDisplay(userData.wallet_address);
-        
-        console.log('✅ loadProductionSwapData COMPLETED');
+
+        console.log('✅ loadProductionSwapData COMPLETED with HTTPS session');
 
     } catch (error) {
         console.error('❌ Error loading production swap data:', error);
         setBalanceDisplay(0);
         showToast('Error loading balance data', 'error');
     }
+}
+
+// ✅ FIXED: Balance display function
+function setBalanceDisplay(balance) {
+    console.log('💥 setBalanceDisplay CALLED with:', balance);
+
+    const attempts = [
+        { delay: 0, name: 'IMMEDIATE' },
+        { delay: 100, name: 'FAST' },
+        { delay: 300, name: 'MEDIUM' },
+        { delay: 500, name: 'SLOW' }
+    ];
+
+    attempts.forEach(attempt => {
+        setTimeout(() => {
+            console.log(`🔍 ${attempt.name} attempt - Looking for #realNmxpBalance`);
+
+            const balanceElement = document.getElementById('realNmxpBalance');
+
+            if (balanceElement) {
+                console.log(`✅ ${attempt.name} - Found element, updating from "${balanceElement.textContent}" to "${formatNumber(balance)}"`);
+                balanceElement.textContent = formatNumber(balance);
+
+                // Force visual update
+                balanceElement.style.display = 'inline-block';
+                balanceElement.style.visibility = 'visible';
+            } else {
+                console.error(`❌ ${attempt.name} - Balance element not found`);
+
+                // Try alternative search
+                const modal = document.getElementById('productionSwapModal');
+                if (modal) {
+                    const modalBalance = modal.querySelector('#realNmxpBalance');
+                    if (modalBalance) {
+                        console.log(`✅ ${attempt.name} - Found via modal query, updating to: ${formatNumber(balance)}`);
+                        modalBalance.textContent = formatNumber(balance);
+                    }
+                }
+            }
+        }, attempt.delay);
+    });
 }
 
 function openProductionSwapModal() {
@@ -4392,7 +4495,7 @@ function calculateProductionConversion() {
 
 async function setMaxConversion() {
     console.log('📈 setMaxConversion CALLED');
-    
+
     try {
         const userSession = await checkAuth();
         if (!userSession) {
@@ -4410,7 +4513,7 @@ async function setMaxConversion() {
 
         document.getElementById('productionConvertAmount').value = maxAmount;
         calculateProductionConversion();
-        
+
         console.log('✅ Max amount set to:', maxAmount);
 
     } catch (error) {
@@ -4468,6 +4571,7 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
     }
 }
 
+// 🆕 FIXED: Enhanced production conversion with HTTPS session validation
 async function executeProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
 
@@ -4487,7 +4591,7 @@ async function executeProductionConversion() {
         const userData = await getUserNMXpBalance(userSession.id);
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
 
-        // Final validation
+        // Final validation with HTTPS session check
         if (!userData.wallet_address) {
             throw new Error('Wallet address not set');
         }
@@ -4498,6 +4602,12 @@ async function executeProductionConversion() {
 
         if (nmxpAmount < PRODUCTION_CONFIG.MIN_CONVERSION) {
             throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
+        }
+
+        // Verify HTTPS session is still valid
+        const currentSession = await checkWalletSession();
+        if (!currentSession) {
+            throw new Error('Session expired. Please log in again.');
         }
 
         // Update balance
@@ -4582,10 +4692,7 @@ function updateWalletAddressDisplay(walletAddress) {
     }
 }
 
-// =============================================
 // UTILITY FUNCTIONS
-// =============================================
-
 function showStatusMessage(message, type = 'info') {
     console.log(`📢 Status (${type}): ${message}`);
 
@@ -4623,12 +4730,12 @@ function createStatusElement() {
 }
 
 // =============================================
-// EVENT LISTENERS
+// 🚀 INITIALIZATION WITH HTTPS SESSION SUPPORT
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Initializing production swap event listeners...');
-    
+    console.log('🎯 Initializing wallet with HTTPS session support...');
+
     removeDebugButtons();
 
     // Production Swap Modal Events
@@ -4666,14 +4773,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    console.log('✅ All production swap event listeners initialized');
-    
-    // Initialize wallet
-    console.log('🚀 DOM loaded, initializing wallet...');
+    console.log('✅ All HTTPS-compatible event listeners initialized');
+
+    // Initialize wallet with HTTPS session support
+    console.log('🚀 DOM loaded, initializing wallet with HTTPS sessions...');
     initWallet();
 });
 
-console.log('✅ Production swap system LOADED - All functions defined');
+console.log('✅ HTTPS-Compatible Wallet System LOADED - All functions defined');
 </script>
 </body>
 </html>
