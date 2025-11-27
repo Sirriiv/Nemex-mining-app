@@ -792,7 +792,7 @@ router.post('/import-wallet', async function(req, res) {
         const address = walletAddress.toString(true, true, false);
         const addressBounceable = walletAddress.toString(true, true, true);
 
-        console.log('✅ Wallet derived:', address);
+        console.log('✅ Wallet address derived:', derivedAddress);
 
         const encryptedData = BackendCryptoUtils.encryptPrivateKey(
             TonWeb.utils.bytesToHex(keyPair.secretKey), 
