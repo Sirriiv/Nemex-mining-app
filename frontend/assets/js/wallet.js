@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED WITH MODAL ISSUE RESOLVED
+// assets/js/wallet.js - COMPLETE FIXED WITH PRICE API INTEGRATION
 
 class SecureSupabaseStorage {
     constructor() {
@@ -31,11 +31,11 @@ class SecureSupabaseStorage {
     async setItem(key, value) {
         try {
             localStorage.setItem(`${this.storageKey}_${key}`, JSON.stringify(value));
-            
+
             if (key === 'nemexCurrentWallet' && value) {
                 await this.storeWalletInSupabase(value);
             }
-            
+
             return true;
         } catch (error) {
             console.error('❌ Storage failed:', error);
@@ -52,7 +52,7 @@ class SecureSupabaseStorage {
                     return supabaseWallet;
                 }
             }
-            
+
             const localData = localStorage.getItem(`${this.storageKey}_${key}`);
             if (localData) {
                 return JSON.parse(localData);
@@ -67,7 +67,7 @@ class SecureSupabaseStorage {
     async fetchWalletFromSupabase() {
         try {
             console.log('🔄 Fetching wallet from Supabase...');
-            
+
             const userId = localStorage.getItem(`${this.storageKey}_nemexUserId`);
             if (!userId) {
                 console.log('ℹ️ No user ID found for Supabase fetch');
@@ -100,7 +100,7 @@ class SecureSupabaseStorage {
     async storeWalletInSupabase(walletData) {
         try {
             console.log('🔄 Storing wallet in Supabase:', walletData.address);
-            
+
             const walletRecord = {
                 user_id: walletData.userId,
                 address: walletData.address,
@@ -238,7 +238,7 @@ class NemexWalletAPI {
             }
 
             this.currentWallet = await this.storage.getItem('nemexCurrentWallet');
-            
+
             if (this.currentWallet) {
                 console.log('✅ Wallet restored successfully from Supabase:', this.currentWallet.address);
                 this.triggerSessionRestored();
@@ -299,7 +299,7 @@ class NemexWalletAPI {
             const userId = await this.getUserId();
 
             const wallet = await this.generateWalletInBrowser(wordCount);
-            
+
             const walletData = {
                 userId: userId,
                 address: wallet.address,
@@ -345,13 +345,13 @@ class NemexWalletAPI {
             'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual',
             'adapt', 'add', 'addict', 'address', 'adjust', 'admit', 'adult', 'advance'
         ];
-        
+
         let mnemonic = [];
         for (let i = 0; i < wordCount; i++) {
             const randomIndex = Math.floor(Math.random() * wordList.length);
             mnemonic.push(wordList[randomIndex]);
         }
-        
+
         return mnemonic.join(' ');
     }
 
@@ -390,6 +390,129 @@ class NemexWalletAPI {
             throw new Error('Cannot import wallet: ' + error.message);
         }
     }
+
+    // =============================================
+    // PRICE API METHODS - ADDED TO FIX PRICE FETCHING
+    // =============================================
+
+    async getTokenPrices() {
+        try {
+            console.log('🔄 Fetching real token prices from backend API...');
+            const response = await fetch('/api/wallet/token-prices');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('✅ Real prices fetched from:', data.source, '- TON:', data.prices.TON.price);
+                return data;
+            } else {
+                throw new Error(data.error || 'Failed to fetch prices');
+            }
+        } catch (error) {
+            console.error('❌ Price fetch failed:', error);
+            // Return fallback prices
+            return {
+                success: false,
+                prices: { 
+                    TON: { price: 2.5, change24h: 1.2 }, 
+                    NMX: { price: 0.10, change24h: 0 } 
+                },
+                source: 'fallback'
+            };
+        }
+    }
+
+    async getAllRealData(address) {
+        try {
+            console.log('🔄 Fetching ALL real data for:', address);
+            const [balanceResult, priceResult] = await Promise.all([
+                this.getAllBalances(address),
+                this.getTokenPrices() // Use the new price API method
+            ]);
+
+            return {
+                success: balanceResult.success && priceResult.success,
+                balances: balanceResult.balances || { TON: 0, NMX: 0 },
+                prices: priceResult.prices || { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
+                address: address,
+                source: priceResult.source || 'unknown'
+            };
+        } catch (error) {
+            console.error('❌ All real data fetch failed:', error);
+            return {
+                success: false,
+                balances: { TON: 0, NMX: 0 },
+                prices: { TON: { price: 0, change24h: 0 }, NMX: { price: 0, change24h: 0 } },
+                error: error.message
+            };
+        }
+    }
+
+    // =============================================
+    // BALANCE FUNCTIONS - UPDATED TO USE REAL DATA
+    // =============================================
+
+    async getRealBalance(address) {
+        try {
+            console.log('🔄 Fetching TON balance for:', address);
+            const response = await fetch(`/api/wallet/real-balance/${encodeURIComponent(address)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
+                console.log('✅ TON Balance:', data.balance);
+            }
+            return data;
+        } catch (error) {
+            console.error('TON balance fetch failed:', error);
+            return { success: false, balance: 0, error: error.message };
+        }
+    }
+
+    async getNMXBalance(address) {
+        try {
+            console.log('🔄 Fetching NMX balance for:', address);
+            const response = await fetch(`/api/wallet/nmx-balance/${encodeURIComponent(address)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                data.balance = typeof data.balance === 'string' ? parseFloat(data.balance) : data.balance;
+                console.log('✅ NMX Balance:', data.balance, 'Source:', data.source);
+            }
+            return data;
+        } catch (error) {
+            console.error('NMX balance fetch failed:', error);
+            return { success: false, balance: 0, error: error.message };
+        }
+    }
+
+    async getAllBalances(address) {
+        try {
+            console.log('🔄 Fetching all balances for:', address);
+            const response = await fetch(`/api/wallet/all-balances/${encodeURIComponent(address)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.balances) {
+                    data.balances.TON = typeof data.balances.TON === 'string' ? parseFloat(data.balances.TON) : data.balances.TON;
+                    data.balances.NMX = typeof data.balances.NMX === 'string' ? parseFloat(data.balances.NMX) : data.balances.NMX;
+                }
+                console.log('✅ All balances fetched - TON:', data.balances.TON, 'NMX:', data.balances.NMX);
+            }
+            return data;
+        } catch (error) {
+            console.error('All balances fetch failed:', error);
+            return { success: false, balances: { TON: 0, NMX: 0 }, error: error.message };
+        }
+    }
+
+    // =============================================
+    // HELPER FUNCTIONS
+    // =============================================
 
     cleanMnemonic(mnemonic) {
         return mnemonic.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z\s]/g, '');
@@ -460,7 +583,7 @@ class NemexWalletAPI {
 // ✅ FIXED: Create modals immediately when script loads
 function createWalletModals() {
     console.log('🔧 Creating wallet modals...');
-    
+
     // Only create if they don't exist
     if (!document.getElementById('createWalletModal')) {
         const createModalHTML = `
@@ -502,14 +625,14 @@ function createWalletModals() {
         `;
         document.body.insertAdjacentHTML('beforeend', importModalHTML);
     }
-    
+
     console.log('✅ Wallet modals created successfully');
 }
 
 function showCreateWalletModal() {
     console.log('🔄 Opening create wallet modal...');
     createWalletModals(); // Ensure modals exist
-    
+
     const modal = document.getElementById('createWalletModal');
     if (modal) {
         modal.style.display = 'flex';
@@ -523,7 +646,7 @@ function showCreateWalletModal() {
 function showImportWalletModal() {
     console.log('🔄 Opening import wallet modal...');
     createWalletModals(); // Ensure modals exist
-    
+
     const modal = document.getElementById('importWalletModal');
     if (modal) {
         modal.style.display = 'flex';
@@ -554,16 +677,16 @@ function closeImportWalletModal() {
 async function importWalletFromModal() {
     try {
         console.log('🔄 Importing wallet from modal...');
-        
+
         // ✅ FIXED: Get input safely
         const mnemonicInput = document.getElementById('importMnemonicInput');
         if (!mnemonicInput) {
             throw new Error('Import input field not found. Please refresh the page and try again.');
         }
-        
+
         const mnemonic = mnemonicInput.value.trim();
         console.log('🔍 Input mnemonic length:', mnemonic.length);
-        
+
         if (!mnemonic) {
             alert('❌ Please enter your seed phrase');
             mnemonicInput.focus();
@@ -572,19 +695,19 @@ async function importWalletFromModal() {
 
         if (window.nemexWalletAPI) {
             closeImportWalletModal();
-            
+
             // Show loading
             alert('🔄 Importing your wallet...');
-            
+
             const result = await window.nemexWalletAPI.importWallet(mnemonic);
             if (result.success) {
                 alert(`✅ Wallet imported successfully!\n\nAddress: ${result.wallet.address}`);
-                
+
                 // Refresh wallet display
                 if (typeof updateWalletDisplay === 'function') {
                     updateWalletDisplay();
                 }
-                
+
                 // Trigger balance update
                 if (typeof updateRealBalances === 'function') {
                     updateRealBalances();
@@ -604,17 +727,17 @@ async function createNewWallet() {
         console.log('🔄 Creating new wallet from modal...');
         if (window.nemexWalletAPI) {
             closeCreateWalletModal();
-            
+
             alert('🔄 Creating your wallet...');
-            
+
             const result = await window.nemexWalletAPI.generateNewWallet(12);
             if (result.success) {
                 alert(`✅ Wallet created successfully!\n\nAddress: ${result.wallet.address}\n\n⚠️ IMPORTANT: Your seed phrase has been stored securely. Make sure to back it up!`);
-                
+
                 if (typeof updateWalletDisplay === 'function') {
                     updateWalletDisplay();
                 }
-                
+
                 if (typeof updateRealBalances === 'function') {
                     updateRealBalances();
                 }
@@ -670,10 +793,10 @@ window.addEventListener('nemexSessionRestored', function(event) {
 
 window.addEventListener('DOMContentLoaded', function() {
     console.log('🔗 Setting up website session integration...');
-    
+
     // ✅ FIXED: Create modals when DOM is ready
     createWalletModals();
-    
+
     if (window.currentUser) {
         console.log('✅ Website user session detected:', window.currentUser.email);
         if (window.nemexWalletAPI && !window.nemexWalletAPI.isInitialized) {
@@ -683,11 +806,11 @@ window.addEventListener('DOMContentLoaded', function() {
 });
 
 // Auto-initialization
-console.log('🎯 NemexWalletAPI class loaded with MODAL FIXES');
+console.log('🎯 NemexWalletAPI class loaded with PRICE API INTEGRATION');
 
 function initializeWalletAPI() {
     window.nemexWalletAPI = new NemexWalletAPI();
-    
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('📄 DOM ready, initializing wallet API...');
