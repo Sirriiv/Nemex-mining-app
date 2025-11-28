@@ -648,29 +648,32 @@
             flex: 1;
         }
 
-        /* Wallet Management Styles */
+        /* Enhanced Wallet Management Styles */
         .wallet-management-section {
             margin: 20px 0;
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            overflow: hidden;
         }
 
         .wallet-management-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px;
-            background: var(--card-bg);
-            border-radius: var(--border-radius-sm);
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
             cursor: pointer;
             transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.1);
         }
 
         .wallet-management-header:hover {
-            background: rgba(212, 175, 55, 0.05);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.1) 100%);
         }
 
         .wallet-management-header.active {
-            background: rgba(212, 175, 55, 0.1);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.15) 100%);
             border-color: var(--gold);
         }
 
@@ -679,10 +682,12 @@
             align-items: center;
             gap: 12px;
             font-weight: 600;
+            color: var(--gold);
         }
 
         .wallet-management-arrow {
             transition: transform 0.3s ease;
+            color: var(--gold);
         }
 
         .wallet-management-arrow.expanded {
@@ -693,6 +698,7 @@
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
+            background: var(--darker-bg);
         }
 
         .wallet-management-content.expanded {
@@ -700,7 +706,7 @@
         }
 
         .wallet-list {
-            margin: 10px 0;
+            padding: 16px;
         }
 
         .wallet-item {
@@ -709,61 +715,105 @@
             padding: 16px;
             background: var(--card-bg);
             border-radius: var(--border-radius-sm);
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .wallet-item.active {
             border: 2px solid var(--gold);
-            background: rgba(212, 175, 55, 0.1);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
         }
 
         .wallet-item:hover {
             background: rgba(212, 175, 55, 0.05);
+            transform: translateY(-2px);
         }
 
         .wallet-icon {
-            width: 40px;
-            height: 40px;
+            width: 48px;
+            height: 48px;
             border-radius: 50%;
-            background: rgba(212, 175, 55, 0.2);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.2) 0%, rgba(212, 175, 55, 0.1) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 12px;
+            margin-right: 16px;
             color: var(--gold);
+            font-size: 18px;
+            border: 2px solid rgba(212, 175, 55, 0.3);
         }
 
         .wallet-info {
             flex: 1;
+            min-width: 0;
         }
 
         .wallet-name-display {
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: var(--text);
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .active-badge {
+            background: var(--success);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
             font-weight: 600;
-            margin-bottom: 4px;
+        }
+
+        .inactive-badge {
+            background: var(--text-muted);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
         }
 
         .wallet-address {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-muted);
             font-family: 'Courier New', monospace;
             word-break: break-all;
+            margin-bottom: 6px;
+        }
+
+        .wallet-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .wallet-type {
-            font-size: 10px;
-            padding: 2px 8px;
+            font-size: 11px;
+            padding: 4px 8px;
             background: rgba(212, 175, 55, 0.2);
             color: var(--gold);
-            border-radius: 10px;
-            margin-top: 4px;
-            display: inline-block;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .wallet-words {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: rgba(0, 200, 81, 0.2);
+            color: var(--success);
+            border-radius: 8px;
+            font-weight: 600;
         }
 
         .wallet-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .wallet-action-btn {
@@ -773,36 +823,119 @@
             border-radius: 8px;
             color: var(--text);
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
         }
 
         .wallet-action-btn.view-seed {
-            background: rgba(212, 175, 55, 0.1);
-            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.15);
+            border-color: rgba(212, 175, 55, 0.4);
             color: var(--gold);
         }
 
         .wallet-action-btn.delete {
-            background: rgba(255, 68, 68, 0.1);
-            border-color: var(--error);
+            background: rgba(255, 68, 68, 0.15);
+            border-color: rgba(255, 68, 68, 0.4);
             color: var(--error);
         }
 
         .wallet-action-btn.switch {
-            background: rgba(212, 175, 55, 0.1);
+            background: rgba(0, 200, 81, 0.15);
+            border-color: rgba(0, 200, 81, 0.4);
+            color: var(--success);
+        }
+
+        .wallet-action-btn.active {
+            background: rgba(212, 175, 55, 0.2);
             border-color: var(--gold);
             color: var(--gold);
+            cursor: not-allowed;
         }
 
         .wallet-action-btn:hover {
-            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .wallet-action-btn.view-seed:hover {
+            background: rgba(212, 175, 55, 0.25);
             border-color: var(--gold);
         }
 
         .wallet-action-btn.delete:hover {
-            background: rgba(255, 68, 68, 0.2);
+            background: rgba(255, 68, 68, 0.25);
             border-color: var(--error);
+        }
+
+        .wallet-action-btn.switch:hover {
+            background: rgba(0, 200, 81, 0.25);
+            border-color: var(--success);
+        }
+
+        .wallet-action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .no-wallets-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .no-wallets-icon {
+            font-size: 48px;
+            color: var(--gold);
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .no-wallets-text h4 {
+            color: var(--text);
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .no-wallets-text p {
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .add-wallet-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 16px;
+            background: var(--darker-bg);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .add-wallet-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: var(--border-radius-sm);
+            color: var(--gold);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .add-wallet-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .add-wallet-btn i {
+            font-size: 18px;
         }
 
         /* Security Warning */
@@ -2352,7 +2485,7 @@
             <div class="modal-content">
                 <div class="modal-title">Settings</div>
 
-                <!-- Wallet Management Section -->
+                <!-- Enhanced Wallet Management Section -->
                 <div class="wallet-management-section">
                     <div class="wallet-management-header" onclick="toggleWalletManagement()">
                         <div class="wallet-management-title">
@@ -2369,35 +2502,28 @@
                             <!-- Wallets will be loaded from database -->
                         </div>
 
-                        <div class="settings-option" onclick="showCreateWalletModal()">
-                            <div class="settings-option-content">
-                                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                </svg>
-                                <div>Create New Wallet</div>
-                            </div>
-                        </div>
-
-                        <div class="settings-option" onclick="showImportWalletModal()">
-                            <div class="settings-option-content">
-                                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
-                                </svg>
-                                <div>Import Wallet</div>
-                            </div>
+                        <div class="add-wallet-actions">
+                            <button class="add-wallet-btn" onclick="showCreateWalletModal()">
+                                <i class="fas fa-plus-circle"></i>
+                                Create New Wallet
+                            </button>
+                            <button class="add-wallet-btn" onclick="showImportWalletModal()">
+                                <i class="fas fa-download"></i>
+                                Import Existing Wallet
+                            </button>
                         </div>
                     </div>
                 </div>
 
-               <!-- View Seed Phrase Option -->
-<div class="settings-option" onclick="viewRecoveryPhrase()">
-    <div class="settings-option-content">
-        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-        </svg>
-        <div>View Recovery Phrase</div>
-    </div>
-</div>
+                <!-- View Seed Phrase Option -->
+                <div class="settings-option" onclick="viewRecoveryPhrase()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        <div>View Recovery Phrase</div>
+                    </div>
+                </div>
 
                 <!-- Logout Option -->
                 <div class="settings-option" onclick="logout()">
@@ -2414,6 +2540,30 @@
                 </div>
 
                 <button class="close-modal" onclick="closeModal()">Close Settings</button>
+            </div>
+        </div>
+
+        <!-- Delete Wallet Confirmation Modal -->
+        <div id="deleteWalletModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Delete Wallet</div>
+                <div class="security-warning">
+                    <strong>⚠️ WARNING:</strong> This action cannot be undone!
+                </div>
+                <p style="text-align: left; margin: 16px 0; color: var(--text);">
+                    You are about to delete the wallet: <strong id="deleteWalletAddress"></strong><br><br>
+                    This will remove the wallet from your list but <strong>WILL NOT</strong> delete your funds on the blockchain.<br><br>
+                    Make sure you have your recovery phrase backed up before proceeding.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Type "DELETE" to confirm:</label>
+                    <input type="text" id="deleteConfirmation" class="form-input" placeholder="DELETE">
+                </div>
+                <div id="deleteWalletStatus"></div>
+                <button class="close-modal" onclick="confirmDeleteWallet()" id="confirmDeleteBtn" style="background: var(--error);">
+                    Delete Wallet
+                </button>
+                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
             </div>
         </div>
 
@@ -3206,6 +3356,414 @@ async function logout() {
 }
 
 // =============================================
+// ENHANCED WALLET MANAGEMENT FUNCTIONS
+// =============================================
+
+// Toggle wallet management section
+function toggleWalletManagement() {
+    const content = document.getElementById('walletManagementContent');
+    const arrow = document.querySelector('.wallet-management-arrow');
+    const header = document.querySelector('.wallet-management-header');
+    
+    if (content.classList.contains('expanded')) {
+        content.classList.remove('expanded');
+        arrow.classList.remove('expanded');
+        header.classList.remove('active');
+    } else {
+        content.classList.add('expanded');
+        arrow.classList.add('expanded');
+        header.classList.add('active');
+        // Refresh wallet list when expanding
+        loadUserWallets();
+    }
+}
+
+// 🆕 FIXED: Enhanced wallet loading with HTTPS session support
+async function loadUserWallets() {
+    try {
+        console.log('🔄 Loading user wallets with HTTPS session support...');
+
+        if (!window.nemexWalletAPI) {
+            console.error('❌ Wallet API not available');
+            return;
+        }
+
+        // Check HTTPS session first
+        const sessionData = await checkWalletSession();
+        if (!sessionData) {
+            console.log('❌ No HTTPS session for wallet loading');
+            return;
+        }
+
+        const userId = sessionData.user?.id || sessionData.session?.user?.id;
+        if (!userId) {
+            console.log('❌ No user ID in session');
+            return;
+        }
+
+        console.log('🔍 Fetching wallets for user:', userId);
+
+        // Try to get wallets from Supabase via API
+        try {
+            const response = await fetch(`/api/wallet/user-wallets/${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.wallets) {
+                    userWallets = data.wallets;
+                    console.log(`✅ Loaded ${userWallets.length} wallets from Supabase`);
+                } else {
+                    console.log('❌ No wallets found in Supabase response');
+                    userWallets = [];
+                }
+            } else {
+                console.log('❌ API call failed, falling back to local storage');
+                // Fallback to local storage
+                const wallets = await window.nemexWalletAPI.getUserWallets();
+                userWallets = Array.isArray(wallets) ? wallets : [];
+            }
+        } catch (apiError) {
+            console.error('❌ API error, using local storage:', apiError);
+            const wallets = await window.nemexWalletAPI.getUserWallets();
+            userWallets = Array.isArray(wallets) ? wallets : [];
+        }
+
+        // Remove duplicates by address
+        userWallets = userWallets.filter((wallet, index, self) => 
+            index === self.findIndex(w => w.address === wallet.address)
+        );
+
+        console.log(`✅ Final wallet list: ${userWallets.length} unique wallets`);
+        updateWalletList();
+
+        // If we have wallets but no active session, try to restore the first one
+        if (userWallets.length > 0 && !walletState.isInitialized) {
+            console.log('🔄 No active session but wallets found, attempting auto-restore...');
+            await autoRestoreFromWallets();
+        }
+    } catch (error) {
+        console.error('❌ Failed to load user wallets:', error);
+        userWallets = [];
+        updateWalletList();
+    }
+}
+
+// 🆕 FIXED: Enhanced wallet list update
+function updateWalletList() {
+    const walletList = document.getElementById('walletList');
+    if (!walletList) {
+        console.log('ℹ️ Wallet list element not found');
+        return;
+    }
+
+    // Filter out duplicate wallets by address
+    const uniqueWallets = userWallets.filter((wallet, index, self) => 
+        index === self.findIndex(w => w.address === wallet.address)
+    );
+
+    console.log(`🔄 Updating wallet list: ${uniqueWallets.length} unique wallets found`);
+
+    if (uniqueWallets.length > 0) {
+        walletList.innerHTML = uniqueWallets.map(wallet => `
+            <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
+                        ${wallet.address === walletState.address ? 
+                            '<span class="active-badge">(Active)</span>' : 
+                            '<span class="inactive-badge">(Inactive)</span>'
+                        }
+                    </div>
+                    <div class="wallet-address">${formatAddress(wallet.address)}</div>
+                    <div class="wallet-meta">
+                        <span class="wallet-type ${wallet.source}">${wallet.source}</span>
+                        ${wallet.wordCount ? `<span class="wallet-words">${wallet.wordCount} words</span>` : ''}
+                    </div>
+                </div>
+                <div class="wallet-actions">
+                    ${wallet.address !== walletState.address ? 
+                        `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')" title="Switch to this wallet">
+                            <i class="fas fa-exchange-alt"></i> Switch
+                        </button>` : 
+                        '<button class="wallet-action-btn active" disabled><i class="fas fa-check"></i> Active</button>'
+                    }
+                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')" title="View seed phrase">
+                        <i class="fas fa-seedling"></i> Seed
+                    </button>
+                    ${wallet.address !== walletState.address ? 
+                        `<button class="wallet-action-btn delete" onclick="showDeleteWalletModal('${wallet.address}')" title="Delete wallet">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>` : 
+                        ''
+                    }
+                </div>
+            </div>
+        `).join('');
+    } else if (walletState.isInitialized && walletState.address) {
+        // Fallback: Show current wallet even if not in userWallets array
+        walletList.innerHTML = `
+            <div class="wallet-item active">
+                <div class="wallet-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="wallet-info">
+                    <div class="wallet-name-display">
+                        ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} 
+                        <span class="active-badge">(Active)</span>
+                    </div>
+                    <div class="wallet-address">${formatAddress(walletState.address)}</div>
+                    <div class="wallet-meta">
+                        <span class="wallet-type ${walletState.walletType}">${walletState.walletType || 'active'}</span>
+                    </div>
+                </div>
+                <div class="wallet-actions">
+                    <button class="wallet-action-btn active" disabled>
+                        <i class="fas fa-check"></i> Active
+                    </button>
+                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')" title="View seed phrase">
+                        <i class="fas fa-seedling"></i> Seed
+                    </button>
+                </div>
+            </div>
+        `;
+    } else {
+        walletList.innerHTML = `
+            <div class="no-wallets-message">
+                <div class="no-wallets-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="no-wallets-text">
+                    <h4>No Wallets Found</h4>
+                    <p>Create or import a wallet to get started with Nemex Wallet.</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// 🆕 FIXED: Enhanced address formatting
+function formatAddress(address, startChars = 6, endChars = 4) {
+    if (!address) return 'No Address';
+    if (address.length <= startChars + endChars) return address;
+    return `${address.substring(0, startChars)}...${address.substring(address.length - endChars)}`;
+}
+
+// 🆕 FIXED: Enhanced wallet switching
+async function switchToWallet(address) {
+    try {
+        console.log(`🔄 Switching to wallet: ${address}`);
+        
+        if (!window.nemexWalletAPI) {
+            throw new Error('Wallet API not available');
+        }
+
+        // Find the wallet in userWallets
+        const wallet = userWallets.find(w => w.address === address);
+        if (!wallet) {
+            throw new Error('Wallet not found in your wallet list');
+        }
+
+        // Show loading
+        showToast('Switching wallet...', 'info');
+
+        // Set as active wallet
+        await window.nemexWalletAPI.setStoredWallet(wallet);
+
+        // Update wallet state
+        walletState = {
+            isInitialized: true,
+            walletType: wallet.source || 'imported',
+            userId: wallet.userId,
+            address: wallet.address,
+            balances: {},
+            lastUpdate: null
+        };
+
+        updateCurrentUser();
+        updateWalletDisplay();
+        await updateRealBalances();
+        updateWalletList();
+
+        showToast(`✅ Switched to wallet: ${formatAddress(address)}`, 'success');
+        
+        // Close settings modal
+        closeModal();
+
+    } catch (error) {
+        console.error('❌ Wallet switch failed:', error);
+        showToast(`Failed to switch wallet: ${error.message}`, 'error');
+    }
+}
+
+// 🆕 FIXED: Enhanced view seed phrase with security
+async function showViewSeedPhrase(address) {
+    try {
+        console.log(`🔐 Requesting seed phrase for: ${address}`);
+        
+        if (!window.nemexWalletAPI) {
+            throw new Error('Wallet API not available');
+        }
+
+        // Security confirmation
+        const confirmed = confirm('⚠️ SECURITY WARNING\n\nViewing your seed phrase can compromise your wallet security.\n\nOnly proceed if you are in a secure environment and no one can see your screen.\n\nDo you want to continue?');
+        if (!confirmed) {
+            return;
+        }
+
+        // Get the mnemonic from secure storage
+        const mnemonic = await window.nemexWalletAPI.storage.retrieveMnemonicSecurely(address);
+        
+        if (!mnemonic) {
+            throw new Error('Seed phrase not found for this wallet. It may have been cleared for security.');
+        }
+
+        // Display the seed phrase
+        const words = mnemonic.split(' ');
+        const mnemonicWords = document.getElementById('viewSeedWords');
+        
+        if (mnemonicWords) {
+            mnemonicWords.innerHTML = words.map((word, index) => `
+                <div class="mnemonic-word">
+                    <span class="word-index">${index + 1}.</span>
+                    <span class="word-text">${word}</span>
+                </div>
+            `).join('');
+        }
+
+        // Show the modal
+        const viewSeedModal = document.getElementById('viewSeedModal');
+        if (viewSeedModal) {
+            viewSeedModal.style.display = 'flex';
+        }
+
+    } catch (error) {
+        console.error('❌ Failed to view seed phrase:', error);
+        showToast(`Cannot view seed phrase: ${error.message}`, 'error');
+    }
+}
+
+// 🆕 FIXED: Enhanced delete wallet functionality
+function showDeleteWalletModal(address) {
+    const wallet = userWallets.find(w => w.address === address);
+    if (!wallet) {
+        showToast('Wallet not found', 'error');
+        return;
+    }
+
+    // Don't allow deleting the active wallet
+    if (address === walletState.address) {
+        showToast('Cannot delete the active wallet. Please switch to another wallet first.', 'error');
+        return;
+    }
+
+    document.getElementById('deleteWalletAddress').textContent = formatAddress(address);
+    document.getElementById('deleteConfirmation').value = '';
+    document.getElementById('deleteWalletStatus').innerHTML = '';
+
+    const deleteModal = document.getElementById('deleteWalletModal');
+    if (deleteModal) {
+        deleteModal.style.display = 'flex';
+    }
+
+    // Store the address to delete
+    deleteModal.dataset.walletAddress = address;
+}
+
+// 🆕 FIXED: Enhanced wallet deletion with confirmation
+async function confirmDeleteWallet() {
+    const deleteModal = document.getElementById('deleteWalletModal');
+    const address = deleteModal.dataset.walletAddress;
+    const confirmation = document.getElementById('deleteConfirmation').value;
+    const statusElement = document.getElementById('deleteWalletStatus');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+
+    if (!address) {
+        showToast('No wallet address specified', 'error');
+        return;
+    }
+
+    if (confirmation !== 'DELETE') {
+        statusElement.innerHTML = '<div class="status-error">Please type "DELETE" to confirm</div>';
+        return;
+    }
+
+    try {
+        confirmBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Deleting...';
+        confirmBtn.disabled = true;
+
+        console.log(`🗑️ Deleting wallet: ${address}`);
+
+        // Remove from userWallets array
+        userWallets = userWallets.filter(w => w.address !== address);
+
+        // Clear mnemonic from secure storage
+        await window.nemexWalletAPI.storage.clearMnemonic(address);
+
+        // Update UI
+        updateWalletList();
+
+        // Show success message
+        statusElement.innerHTML = '<div class="status-success">✅ Wallet deleted successfully</div>';
+
+        setTimeout(() => {
+            closeModal();
+            showToast('Wallet deleted successfully', 'success');
+        }, 1500);
+
+    } catch (error) {
+        console.error('❌ Wallet deletion failed:', error);
+        statusElement.innerHTML = `<div class="status-error">❌ Failed to delete wallet: ${error.message}</div>`;
+        confirmBtn.innerHTML = 'Delete Wallet';
+        confirmBtn.disabled = false;
+    }
+}
+
+// 🆕 FIXED: Enhanced auto-restore from available wallets
+async function autoRestoreFromWallets() {
+    try {
+        const sessionData = await checkWalletSession();
+        const userId = sessionData?.user?.id || sessionData?.session?.user?.id;
+
+        if (!userId) {
+            console.log('❌ No user ID in HTTPS session for auto-restore');
+            return false;
+        }
+
+        // Try to get the most recently used wallet
+        const recentWallet = userWallets
+            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
+
+        if (recentWallet) {
+            console.log('🔄 Auto-restoring most recent wallet:', recentWallet.address);
+
+            // Set as active in Supabase
+            await window.nemexWalletAPI.setStoredWallet(recentWallet);
+
+            walletState = {
+                isInitialized: true,
+                walletType: recentWallet.source || 'imported',
+                userId: recentWallet.userId,
+                address: recentWallet.address,
+                balances: {},
+                lastUpdate: null
+            };
+
+            updateCurrentUser();
+            updateWalletDisplay();
+            await updateRealBalances();
+
+            showStatusMessage('✅ Auto-restored your wallet!', 'success');
+            return true;
+        }
+    } catch (error) {
+        console.error('❌ Auto-restore failed:', error);
+    }
+    return false;
+}
+
+// =============================================
 // ALL YOUR EXISTING WALLET FUNCTIONS REMAIN EXACTLY THE SAME
 // =============================================
 
@@ -3284,180 +3842,6 @@ function removeDebugButtons() {
 
     const debugButtons = document.querySelectorAll('.debug-btn, .debug-button');
     debugButtons.forEach(button => button.remove());
-}
-
-// WALLET MANAGEMENT FUNCTIONS
-async function loadUserWallets() {
-    try {
-        if (!window.nemexWalletAPI) {
-            console.error('❌ Wallet API not available');
-            return;
-        }
-
-        // Check HTTPS session first
-        const sessionData = await checkWalletSession();
-        if (!sessionData) {
-            console.log('❌ No HTTPS session for wallet loading');
-            return;
-        }
-
-        const wallets = await window.nemexWalletAPI.getUserWallets();
-
-        // Remove duplicates by address
-        userWallets = wallets.filter((wallet, index, self) => 
-            index === self.findIndex(w => w.address === wallet.address)
-        );
-
-        console.log(`✅ Loaded ${userWallets.length} unique user wallets with HTTPS session`);
-        updateWalletList();
-
-        // If we have wallets but no active session, try to restore the first one
-        if (userWallets.length > 0 && !walletState.isInitialized) {
-            console.log('🔄 No active session but wallets found, attempting auto-restore...');
-            await autoRestoreFromWallets();
-        }
-    } catch (error) {
-        console.error('Failed to load user wallets:', error);
-    }
-}
-
-function updateWalletList() {
-    const walletList = document.getElementById('walletList');
-    if (!walletList) {
-        console.log('ℹ️ Wallet list element not found');
-        return;
-    }
-
-    // Filter out duplicate wallets by address
-    const uniqueWallets = userWallets.filter((wallet, index, self) => 
-        index === self.findIndex(w => w.address === wallet.address)
-    );
-
-    console.log(`🔄 Updating wallet list: ${uniqueWallets.length} unique wallets found`);
-
-    if (uniqueWallets.length > 0) {
-        walletList.innerHTML = uniqueWallets.map(wallet => `
-            <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
-                <div class="wallet-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="wallet-info">
-                    <div class="wallet-name-display">
-                        ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
-                        ${wallet.address === walletState.address ? 
-                            '<span class="active-badge">(Active)</span>' : 
-                            '<span class="inactive-badge">(Inactive)</span>'
-                        }
-                    </div>
-                    <div class="wallet-address">${formatAddress(wallet.address)}</div>
-                    <div class="wallet-meta">
-                        <span class="wallet-type ${wallet.source}">${wallet.source}</span>
-                        ${wallet.wordCount ? `<span class="wallet-words">${wallet.wordCount} words</span>` : ''}
-                    </div>
-                </div>
-                <div class="wallet-actions">
-                    ${wallet.address !== walletState.address ? 
-                        `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')" title="Switch to this wallet">
-                            <i class="fas fa-exchange-alt"></i> Switch
-                        </button>` : 
-                        '<button class="wallet-action-btn active" disabled><i class="fas fa-check"></i> Active</button>'
-                    }
-                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')" title="View seed phrase">
-                        <i class="fas fa-seedling"></i> Seed
-                    </button>
-                </div>
-            </div>
-        `).join('');
-    } else if (walletState.isInitialized && walletState.address) {
-        // Fallback: Show current wallet even if not in userWallets array
-        walletList.innerHTML = `
-            <div class="wallet-item active">
-                <div class="wallet-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="wallet-info">
-                    <div class="wallet-name-display">
-                        ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} 
-                        <span class="active-badge">(Active)</span>
-                    </div>
-                    <div class="wallet-address">${formatAddress(walletState.address)}</div>
-                    <div class="wallet-meta">
-                        <span class="wallet-type ${walletState.walletType}">${walletState.walletType || 'active'}</span>
-                    </div>
-                </div>
-                <div class="wallet-actions">
-                    <button class="wallet-action-btn active" disabled>
-                        <i class="fas fa-check"></i> Active
-                    </button>
-                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')" title="View seed phrase">
-                        <i class="fas fa-seedling"></i> Seed
-                    </button>
-                </div>
-            </div>
-        `;
-    } else {
-        walletList.innerHTML = `
-            <div class="no-wallets-message">
-                <div class="no-wallets-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="no-wallets-text">
-                    <h4>No Wallets Found</h4>
-                    <p>Create or import a wallet to get started with Nemex Wallet.</p>
-                </div>
-            </div>
-        `;
-    }
-}
-
-function formatAddress(address, startChars = 6, endChars = 4) {
-    if (!address) return 'No Address';
-    if (address.length <= startChars + endChars) return address;
-    return `${address.substring(0, startChars)}...${address.substring(address.length - endChars)}`;
-}
-
-// Auto-restore from available wallets
-async function autoRestoreFromWallets() {
-    try {
-        const sessionData = await checkWalletSession();
-        const userId = sessionData?.user?.id || sessionData?.session?.user?.id;
-
-        if (!userId) {
-            console.log('❌ No user ID in HTTPS session for auto-restore');
-            return false;
-        }
-
-        // Try to get the most recently used wallet
-        const recentWallet = userWallets
-            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
-
-        if (recentWallet) {
-            console.log('🔄 Auto-restoring most recent wallet:', recentWallet.address);
-
-            // Set as active in Supabase
-            await window.nemexWalletAPI.setActiveWallet(recentWallet.address);
-            await window.nemexWalletAPI.setStoredWallet(recentWallet);
-
-            walletState = {
-                isInitialized: true,
-                walletType: recentWallet.source || 'imported',
-                userId: recentWallet.userId,
-                address: recentWallet.address,
-                balances: {},
-                lastUpdate: null
-            };
-
-            updateCurrentUser();
-            updateWalletDisplay();
-            await updateRealBalances();
-
-            showStatusMessage('✅ Auto-restored your wallet!', 'success');
-            return true;
-        }
-    } catch (error) {
-        console.error('❌ Auto-restore failed:', error);
-    }
-    return false;
 }
 
 // 🆕 FIXED: Enhanced wallet display with HTTPS session awareness
@@ -4763,6 +5147,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('click', function(e) {
         if (e.target.id === 'productionSwapModal') closeProductionSwapModal();
         if (e.target.id === 'walletSetupModal') closeWalletSetup();
+        if (e.target.id === 'deleteWalletModal') closeModal();
     });
 
     // Close modals with Escape key
@@ -4770,6 +5155,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape') {
             closeProductionSwapModal();
             closeWalletSetup();
+            closeModal();
         }
     });
 
