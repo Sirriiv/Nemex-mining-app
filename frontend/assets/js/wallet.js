@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED WITH MULTI-WALLET & PRICE FIXES
+// assets/js/wallet.js - COMPLETE FIXED WITH MULTI-WALLET, PRICE & UI FIXES
 
 class SecureSupabaseStorage {
     constructor() {
@@ -849,7 +849,7 @@ class NemexWalletAPI {
 }
 
 // =============================================
-// FIXED MODAL FUNCTIONS
+// 🆕 FIXED MODAL FUNCTIONS WITH UI IMPROVEMENTS
 // =============================================
 
 function createWalletModals() {
@@ -868,8 +868,9 @@ function createWalletModals() {
         <div style="background:white; padding:30px; border-radius:15px; width:90%; max-width:500px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
             <h2 style="color:#333; margin-bottom:15px;">Create New Wallet</h2>
             <p style="color:#666; margin-bottom:25px;">This will generate a new TON wallet with a 12-word seed phrase. Keep your seed phrase safe!</p>
+            <div id="createWalletStatus" style="margin-bottom:15px; min-height:20px;"></div>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button id="createWalletBtn" style="background:#007bff; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-size:16px;">
+                <button id="createWalletBtn" style="background:#007bff; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">
                     🚀 Create Wallet
                 </button>
                 <button id="cancelCreateBtn" style="background:#6c757d; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-size:16px;">
@@ -888,8 +889,9 @@ function createWalletModals() {
             <h2 style="color:#333; margin-bottom:15px;">Import Wallet</h2>
             <p style="color:#666; margin-bottom:10px;">Enter your 12 or 24-word seed phrase:</p>
             <textarea id="importMnemonicInput" placeholder="Enter your seed phrase here..." style="width:100%; height:120px; padding:15px; border:2px solid #ddd; border-radius:8px; margin:15px 0; font-size:16px; resize:vertical; font-family:monospace;"></textarea>
+            <div id="importWalletStatus" style="margin-bottom:15px; min-height:20px;"></div>
             <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button id="importWalletBtn" style="background:#28a745; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-size:16px;">
+                <button id="importWalletBtn" style="background:#28a745; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-size:16px; transition:all 0.3s;">
                     📥 Import Wallet
                 </button>
                 <button id="cancelImportBtn" style="background:#6c757d; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; font-size:16px;">
@@ -910,10 +912,23 @@ function createWalletModals() {
     console.log('✅ Wallet modals created successfully with event listeners');
 }
 
+// 🆕 FIXED: Enhanced modal functions with proper UI states
 function showCreateWalletModal() {
     console.log('🔄 Opening create wallet modal...');
     const modal = document.getElementById('createWalletModal');
     if (modal) {
+        // Reset button state
+        const createBtn = document.getElementById('createWalletBtn');
+        const statusDiv = document.getElementById('createWalletStatus');
+        if (createBtn) {
+            createBtn.innerHTML = '🚀 Create Wallet';
+            createBtn.disabled = false;
+            createBtn.style.background = '#007bff';
+        }
+        if (statusDiv) {
+            statusDiv.innerHTML = '';
+            statusDiv.style.color = '';
+        }
         modal.style.display = 'flex';
         console.log('✅ Create wallet modal opened');
     } else {
@@ -933,13 +948,25 @@ function showImportWalletModal() {
     console.log('🔄 Opening import wallet modal...');
     const modal = document.getElementById('importWalletModal');
     if (modal) {
-        modal.style.display = 'flex';
+        // Reset button state
+        const importBtn = document.getElementById('importWalletBtn');
+        const statusDiv = document.getElementById('importWalletStatus');
         const input = document.getElementById('importMnemonicInput');
+        
+        if (importBtn) {
+            importBtn.innerHTML = '📥 Import Wallet';
+            importBtn.disabled = false;
+            importBtn.style.background = '#28a745';
+        }
+        if (statusDiv) {
+            statusDiv.innerHTML = '';
+            statusDiv.style.color = '';
+        }
         if (input) {
             input.value = '';
             input.focus();
-            console.log('✅ Import input focused');
         }
+        modal.style.display = 'flex';
         console.log('✅ Import wallet modal opened');
     } else {
         console.error('❌ Import wallet modal not found');
@@ -961,19 +988,39 @@ function showImportWalletModal() {
 
 function closeCreateWalletModal() {
     const modal = document.getElementById('createWalletModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        console.log('✅ Create wallet modal closed');
+    }
 }
 
 function closeImportWalletModal() {
     const modal = document.getElementById('importWalletModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+        modal.style.display = 'none';
+        console.log('✅ Import wallet modal closed');
+    }
 }
 
+// 🆕 FIXED: Enhanced import with proper UI states
 async function importWalletFromModal() {
     try {
         console.log('🔄 Importing wallet from modal...');
 
+        const importBtn = document.getElementById('importWalletBtn');
+        const statusDiv = document.getElementById('importWalletStatus');
         let mnemonicInput = document.getElementById('importMnemonicInput');
+
+        // Update UI to show loading state
+        if (importBtn) {
+            importBtn.innerHTML = '⏳ Importing...';
+            importBtn.disabled = true;
+            importBtn.style.background = '#6c757d';
+        }
+        if (statusDiv) {
+            statusDiv.innerHTML = '🔄 Importing your wallet...';
+            statusDiv.style.color = '#007bff';
+        }
 
         if (!mnemonicInput) {
             console.error('❌ Import input not found, searching for alternatives...');
@@ -991,71 +1038,151 @@ async function importWalletFromModal() {
         console.log('🔍 Input mnemonic length:', mnemonic.length);
 
         if (!mnemonic) {
-            alert('❌ Please enter your seed phrase');
+            if (statusDiv) {
+                statusDiv.innerHTML = '❌ Please enter your seed phrase';
+                statusDiv.style.color = '#dc3545';
+            }
+            if (importBtn) {
+                importBtn.innerHTML = '📥 Import Wallet';
+                importBtn.disabled = false;
+                importBtn.style.background = '#28a745';
+            }
             mnemonicInput.focus();
             return;
         }
 
         if (window.nemexWalletAPI) {
-            closeImportWalletModal();
-
-            alert('🔄 Importing your wallet... Please wait...');
-
             const result = await window.nemexWalletAPI.importWalletFromMnemonic(mnemonic);
             if (result.success) {
-                alert(`✅ Wallet imported successfully!\n\nAddress: ${result.wallet.address}\n\nYour wallet is now ready to use!`);
-
-                if (typeof updateWalletDisplay === 'function') {
-                    updateWalletDisplay();
+                // Update UI to show success
+                if (statusDiv) {
+                    statusDiv.innerHTML = '✅ Wallet imported successfully!';
+                    statusDiv.style.color = '#28a745';
+                }
+                if (importBtn) {
+                    importBtn.innerHTML = '✅ Success!';
+                    importBtn.style.background = '#28a745';
                 }
 
-                if (typeof updateRealBalances === 'function') {
-                    updateRealBalances();
-                }
+                console.log('✅ Wallet imported successfully:', result.wallet.address);
 
+                // Close modal after success
                 setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
+                    closeImportWalletModal();
+                    
+                    // Show success message
+                    alert(`✅ Wallet imported successfully!\n\nAddress: ${result.wallet.address}\n\nYour wallet is now ready to use!`);
+
+                    // Update UI
+                    if (typeof updateWalletDisplay === 'function') {
+                        updateWalletDisplay();
+                    }
+                    if (typeof updateRealBalances === 'function') {
+                        updateRealBalances();
+                    }
+
+                    // Reload page to ensure everything updates
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 1000);
             }
         } else {
             throw new Error('Wallet system not ready. Please refresh the page and try again.');
         }
     } catch (error) {
         console.error('❌ Wallet import failed:', error);
-        alert('❌ Error importing wallet: ' + error.message);
+        
+        // Update UI to show error
+        const importBtn = document.getElementById('importWalletBtn');
+        const statusDiv = document.getElementById('importWalletStatus');
+        
+        if (statusDiv) {
+            statusDiv.innerHTML = `❌ Error: ${error.message}`;
+            statusDiv.style.color = '#dc3545';
+        }
+        if (importBtn) {
+            importBtn.innerHTML = '📥 Import Wallet';
+            importBtn.disabled = false;
+            importBtn.style.background = '#28a745';
+        }
     }
 }
 
+// 🆕 FIXED: Enhanced create with proper UI states
 async function createNewWallet() {
     try {
         console.log('🔄 Creating new wallet from modal...');
+        
+        const createBtn = document.getElementById('createWalletBtn');
+        const statusDiv = document.getElementById('createWalletStatus');
+
+        // Update UI to show loading state
+        if (createBtn) {
+            createBtn.innerHTML = '⏳ Generating...';
+            createBtn.disabled = true;
+            createBtn.style.background = '#6c757d';
+        }
+        if (statusDiv) {
+            statusDiv.innerHTML = '🔄 Creating your wallet...';
+            statusDiv.style.color = '#007bff';
+        }
+
         if (window.nemexWalletAPI) {
-            closeCreateWalletModal();
-
-            alert('🔄 Creating your wallet... Please wait...');
-
             const result = await window.nemexWalletAPI.generateNewWallet(12);
             if (result.success) {
-                alert(`✅ Wallet created successfully!\n\nAddress: ${result.wallet.address}\n\n⚠️ IMPORTANT: Your seed phrase has been stored securely. Make sure to back it up!\n\nYour wallet is now ready to use!`);
-
-                if (typeof updateWalletDisplay === 'function') {
-                    updateWalletDisplay();
+                // Update UI to show success
+                if (statusDiv) {
+                    statusDiv.innerHTML = '✅ Wallet created successfully!';
+                    statusDiv.style.color = '#28a745';
+                }
+                if (createBtn) {
+                    createBtn.innerHTML = '✅ Success!';
+                    createBtn.style.background = '#28a745';
                 }
 
-                if (typeof updateRealBalances === 'function') {
-                    updateRealBalances();
-                }
+                console.log('✅ Wallet created successfully:', result.wallet.address);
 
+                // Close modal after success
                 setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
+                    closeCreateWalletModal();
+                    
+                    // Show success message
+                    alert(`✅ Wallet created successfully!\n\nAddress: ${result.wallet.address}\n\n⚠️ IMPORTANT: Your seed phrase has been stored securely. Make sure to back it up!\n\nYour wallet is now ready to use!`);
+
+                    // Update UI
+                    if (typeof updateWalletDisplay === 'function') {
+                        updateWalletDisplay();
+                    }
+                    if (typeof updateRealBalances === 'function') {
+                        updateRealBalances();
+                    }
+
+                    // Reload page to ensure everything updates
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }, 1000);
             }
         } else {
             throw new Error('Wallet system not ready. Please refresh the page and try again.');
         }
     } catch (error) {
         console.error('❌ Wallet creation failed:', error);
-        alert('❌ Error creating wallet: ' + error.message);
+        
+        // Update UI to show error
+        const createBtn = document.getElementById('createWalletBtn');
+        const statusDiv = document.getElementById('createWalletStatus');
+        
+        if (statusDiv) {
+            statusDiv.innerHTML = `❌ Error: ${error.message}`;
+            statusDiv.style.color = '#dc3545';
+        }
+        if (createBtn) {
+            createBtn.innerHTML = '🚀 Create Wallet';
+            createBtn.disabled = false;
+            createBtn.style.background = '#007bff';
+        }
     }
 }
 
@@ -1163,7 +1290,7 @@ window.addEventListener('nemexSessionRestored', function(event) {
     }
 });
 
-console.log('🎯 NemexWalletAPI class loaded with MULTI-WALLET & PRICE FIXES');
+console.log('🎯 NemexWalletAPI class loaded with MULTI-WALLET, PRICE & UI FIXES');
 
 function initializeWalletAPI() {
     window.nemexWalletAPI = new NemexWalletAPI();
