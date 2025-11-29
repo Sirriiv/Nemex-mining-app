@@ -6,6 +6,7 @@
     <title>Login - NemexCoin</title>
     <script src="https://cdn.jsdelivr.net/npm/otpauth@9.1.3/dist/otpauth.umd.min.js"></script>
     <style>
+        /* ... your existing CSS remains exactly the same ... */
         :root { 
             --dark-bg: #0f0f0f; 
             --darker-bg: #080808; 
@@ -501,7 +502,7 @@
         </div>
 
         <div class="register-link">
-            Don't have an account? <a onclick="showLoadingScreen('register.html')">Create Account</a>
+            Don't have an account? <a onclick="redirectToRegister()">Create Account</a>
         </div>
     </div>
 
@@ -578,30 +579,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Supabase configuration with HTTP-compatible storage
+        // 🆕 FIXED: Pure Supabase Configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        
+
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
             auth: {
                 autoRefreshToken: true,
                 persistSession: true,
-                detectSessionInUrl: false,
-                storage: {
-                    getItem: (key) => {
-                        const value = localStorage.getItem(key);
-                        console.log('🔑 Storage GET:', key, value ? '***' : 'null');
-                        return value;
-                    },
-                    setItem: (key, value) => {
-                        console.log('🔑 Storage SET:', key, value ? '***' : 'null');
-                        localStorage.setItem(key, value);
-                    },
-                    removeItem: (key) => {
-                        console.log('🔑 Storage REMOVE:', key);
-                        localStorage.removeItem(key);
-                    }
-                }
+                detectSessionInUrl: false
             }
         });
 
@@ -609,135 +595,81 @@
         let user2FASecret = null;
         let isRecoveryMode = false;
 
-        // Loading Screen Function
-        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+        // 🆕 FIXED: Simple loading screen
+        function showLoadingScreen(loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-
-            setTimeout(() => {
-                window.location.href = targetPage;
-            }, 2000);
         }
 
-        // Wallet Integration
-        async function handleWalletLoginIntegration(user, password) {
-            try {
-                console.log('🔐 Setting up wallet session for user:', user.email);
+        // 🆕 FIXED: Simple redirect
+        function redirectToRegister() {
+            window.location.href = 'register.html';
+        }
 
+        // 🆕 FIXED: Pure Supabase Session Check
+        async function checkExistingSession() {
+            try {
+                console.log('🔍 Checking for existing Supabase session...');
+
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                    console.error('❌ Session check error:', error);
+                    return false;
+                }
+
+                if (session?.user) {
+                    console.log('✅ User already logged in:', session.user.email);
+                    
+                    // 🆕 Set up wallet session
+                    window.currentUser = {
+                        id: session.user.id,
+                        email: session.user.email
+                    };
+                    
+                    // Redirect to dashboard
+                    showLoadingScreen('Welcome Back!');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    return true;
+                }
+
+                console.log('ℹ️ No active session found');
+                return false;
+            } catch (error) {
+                console.error('❌ Session check failed:', error);
+                return false;
+            }
+        }
+
+        // 🆕 FIXED: Pure Supabase Login Completion
+        async function completeLogin(user, isRecovery = false) {
+            try {
+                console.log('✅ Login completed for:', user.email);
+
+                // 🆕 Set up wallet session
                 window.currentUser = {
                     id: user.id,
                     email: user.email,
                     username: user.username,
-                    password: password
+                    full_name: user.full_name
                 };
 
-                sessionStorage.setItem('nemex_user_session', JSON.stringify({
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    wallet_initialized: false,
-                    logged_in_at: new Date().toISOString()
-                }));
-
-                console.log('✅ Wallet session initialized for user:', user.email);
-                return true;
-
-            } catch (error) {
-                console.error('❌ Wallet session setup failed:', error);
-                return false;
-            }
-        }
-
-        // Store custom session for HTTP compatibility
-        async function storeCustomSession(user) {
-            try {
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
-
-                if (error) throw error;
-
-                const sessionData = {
-                    id: user.id,
-                    email: user.email,
-                    username: profile.username,
-                    full_name: profile.full_name,
-                    balance: profile.balance || 0,
-                    two_factor_enabled: profile.two_factor_enabled || false,
-                    loggedIn: true,
-                    session_start: new Date().toISOString()
-                };
-
-                localStorage.setItem('nemexcoin_user_session', JSON.stringify(sessionData));
-                console.log('✅ Custom session stored for HTTP:', user.email);
-                
-                return sessionData;
-            } catch (error) {
-                console.error('❌ Error storing custom session:', error);
-                throw error;
-            }
-        }
-
-        // Check for existing session
-        async function checkExistingSession() {
-            try {
-                console.log('🔍 Checking for existing session...');
-                
-                const customSession = localStorage.getItem('nemexcoin_user_session');
-                if (customSession) {
-                    console.log('✅ Found custom session in localStorage');
-                    const sessionData = JSON.parse(customSession);
-                    if (sessionData.loggedIn && sessionData.id) {
-                        console.log('✅ Valid custom session found, redirecting to dashboard');
-                        showLoadingScreen('dashboard.html', 'Welcome Back!');
-                        return true;
-                    }
-                }
-
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (session && !error) {
-                    console.log('✅ Supabase session found, storing custom session');
-                    await storeCustomSession(session.user);
-                    showLoadingScreen('dashboard.html', 'Welcome Back!');
-                    return true;
-                }
-                
-                console.log('❌ No active session found');
-                return false;
-            } catch (error) {
-                console.error('❌ Session check error:', error);
-                return false;
-            }
-        }
-
-        // Complete login with HTTP session storage
-        async function completeLoginWithWallet(user, session, password, isRecovery = false) {
-            try {
-                console.log('✅ Completing login with HTTP session storage for:', user.email);
-
-                const sessionData = await storeCustomSession(user);
-
-                const walletReady = await handleWalletLoginIntegration(user, password);
-                if (!walletReady) {
-                    console.warn('⚠️ Wallet session setup failed, but continuing with login');
-                }
-
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        last_login: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', user.id);
-
-                if (updateError) {
+                // Update last login
+                try {
+                    await supabase
+                        .from('profiles')
+                        .update({ 
+                            last_login: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', user.id);
+                } catch (updateError) {
                     console.error('❌ Error updating last login:', updateError);
                 }
 
-                console.log('✅ HTTP session stored, redirecting to dashboard...');
-
+                // Close modals
                 document.getElementById('twoFactorModal').style.display = 'none';
                 document.getElementById('backupCodeModal').style.display = 'none';
                 document.getElementById('passwordResetModal').style.display = 'none';
@@ -748,10 +680,16 @@
                     successMessage.style.display = 'block';
 
                     setTimeout(() => {
-                        showLoadingScreen('dashboard.html', 'Welcome Back!');
+                        showLoadingScreen('Welcome Back!');
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html';
+                        }, 2000);
                     }, 1500);
                 } else {
-                    showLoadingScreen('dashboard.html', 'Welcome Back!');
+                    showLoadingScreen('Welcome Back!');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 2000);
                 }
 
             } catch (error) {
@@ -762,7 +700,7 @@
             }
         }
 
-        // Login form submission
+        // 🆕 FIXED: Pure Supabase Login
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -800,6 +738,7 @@
 
                 console.log('✅ Supabase Auth successful:', authData.user.email);
 
+                // Get user profile
                 const { data: user, error: profileError } = await supabase
                     .from('profiles')
                     .select('*, two_factor_enabled, two_factor_secret, backup_codes')
@@ -818,6 +757,7 @@
 
                 currentUser = user;
 
+                // Check if 2FA is enabled
                 if (user.two_factor_enabled && user.two_factor_secret) {
                     console.log('🔒 2FA is enabled for user, showing verification modal');
                     user2FASecret = user.two_factor_secret;
@@ -827,7 +767,7 @@
                     return;
                 } else {
                     console.log('🔓 2FA not enabled, proceeding with normal login');
-                    await completeLoginWithWallet(user, authData.session, password);
+                    await completeLogin(user);
                 }
 
             } catch (error) {
@@ -839,7 +779,7 @@
             }
         });
 
-        // 2FA Recovery Function
+        // 🆕 FIXED: 2FA Recovery Function
         async function use2FARecovery() {
             const email = document.getElementById('email').value.trim().toLowerCase();
             const errorMessage = document.getElementById('errorMessage');
@@ -860,7 +800,7 @@
 
                 const { data: user, error } = await supabase
                     .from('profiles')
-                    .select('id, email, username, full_name, balance, two_factor_enabled, two_factor_secret, backup_codes')
+                    .select('id, email, username, full_name, two_factor_enabled, two_factor_secret, backup_codes')
                     .eq('email', email)
                     .single();
 
@@ -922,7 +862,7 @@
             }
         }
 
-        // 2FA verification
+        // 🆕 FIXED: 2FA Verification
         async function verify2FACode() {
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
@@ -946,11 +886,7 @@
                     console.log('🎯 Recovery mode - showing password reset form');
                     showPasswordResetModal();
                 } else {
-                    const { data: { session }, error } = await supabase.auth.getSession();
-                    if (error) throw error;
-
-                    const originalPassword = document.getElementById('password').value;
-                    await completeLoginWithWallet(currentUser, session, originalPassword);
+                    await completeLogin(currentUser);
                 }
             } catch (error) {
                 console.error('❌ 2FA verification error:', error);
@@ -1009,7 +945,7 @@
             resetLoginForm();
         }
 
-        // Set new password after recovery
+        // 🆕 FIXED: Set New Password
         async function setNewPassword() {
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
@@ -1034,6 +970,7 @@
 
                 console.log('🔐 Setting new password for user:', currentUser.email);
 
+                // Update password in Supabase Auth
                 const { error: authUpdateError } = await supabase.auth.updateUser({
                     password: newPassword
                 });
@@ -1042,20 +979,9 @@
                     throw new Error('Password update failed: ' + authUpdateError.message);
                 }
 
-                const { error: profileUpdateError } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        password: newPassword,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', currentUser.id);
-
-                if (profileUpdateError) {
-                    console.error('❌ Profile password update error:', profileUpdateError);
-                }
-
                 console.log('✅ Password updated successfully');
 
+                // Sign in with new password
                 const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
                     email: currentUser.email,
                     password: newPassword
@@ -1067,7 +993,7 @@
 
                 console.log('✅ Successfully signed in with new password');
 
-                await completeLoginWithWallet(currentUser, signInData.session, newPassword, true);
+                await completeLogin(currentUser, true);
 
             } catch (error) {
                 console.error('❌ Password set error:', error);
@@ -1116,18 +1042,12 @@
                     throw new Error('Invalid backup code');
                 }
 
-                console.log('✅ Valid backup code found - allowing reuse');
-
-                console.log('✅ Backup code verified successfully (reusable)');
+                console.log('✅ Backup code verified successfully');
 
                 if (isRecoveryMode) {
                     showPasswordResetModal();
                 } else {
-                    const { data: { session }, error } = await supabase.auth.getSession();
-                    if (error) throw error;
-
-                    const originalPassword = document.getElementById('password').value;
-                    await completeLoginWithWallet(currentUser, session, originalPassword);
+                    await completeLogin(currentUser);
                 }
             } catch (error) {
                 console.error('❌ Backup code verification error:', error);
@@ -1181,37 +1101,17 @@
             }
         });
 
-        // Handle page refresh - restore wallet session if available
-        window.addEventListener('load', function() {
-            const walletSession = sessionStorage.getItem('nemex_user_session');
-            if (walletSession) {
-                console.log('🔐 Existing wallet session found');
-                const sessionData = JSON.parse(walletSession);
-
-                if (!window.currentUser && sessionData.id) {
-                    console.log('🔄 Restoring wallet session for user:', sessionData.email);
-                    window.currentUser = {
-                        id: sessionData.id,
-                        email: sessionData.email,
-                        username: sessionData.username
-                    };
-                }
-            }
-        });
-
-        // Check for existing session on page load
+        // 🆕 FIXED: Check for existing session on page load
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Login page loaded - checking session...');
+            
             const hasSession = await checkExistingSession();
-            if (hasSession) {
-                console.log('🔐 User already logged in, redirecting...');
-            } else {
+            if (!hasSession) {
                 console.log('🔐 No active session, showing login form');
-                localStorage.removeItem('nemexcoin_user_session');
-                sessionStorage.removeItem('nemex_user_session');
             }
         });
 
-        console.log('🔧 Login page loaded - HTTP-Compatible Session Management ready');
+        console.log('✅ Login page ready with pure Supabase Auth');
     </script>
 </body>
 </html>
