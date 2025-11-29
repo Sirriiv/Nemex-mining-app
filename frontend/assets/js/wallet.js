@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED WITH MULTI-WALLET, PRICE & UI FIXES
+// assets/js/wallet.js - COMPLETE FIXED WITH SESSION LOOP FIXES
 
 class SecureSupabaseStorage {
     constructor() {
@@ -207,6 +207,7 @@ class NemexWalletAPI {
         this.userWallets = []; // 🆕 Store multiple wallets
         this.isInitialized = false;
         this.pendingImport = null;
+        this.sessionCheckComplete = false; // 🆕 FIX: Track session completion
     }
 
     async init() {
@@ -224,6 +225,9 @@ class NemexWalletAPI {
                 return false;
             }
 
+            // 🆕 FIX: Add session flow debugging
+            await this.debugSessionFlow('BEFORE_SESSION_RESTORE');
+
             await this.restoreSession();
 
             this.isInitialized = true;
@@ -237,24 +241,56 @@ class NemexWalletAPI {
         }
     }
 
+    // 🆕 FIX: Session flow debugging
+    async debugSessionFlow(step) {
+        console.log(`🔍 DEBUG ${step}:`);
+        console.log('1. window.currentUser:', window.currentUser);
+        console.log('2. localStorage user_id:', localStorage.getItem('user_id'));
+        console.log('3. localStorage nemexUserId:', localStorage.getItem('nemex_supabase_v1_nemexUserId'));
+        console.log('4. document.cookie length:', document.cookie.length);
+        console.log('5. URL path:', window.location.pathname);
+        console.log('6. Has walletState:', !!window.walletState);
+        console.log('7. Session check complete:', this.sessionCheckComplete);
+    }
+
+    // 🆕 FIXED: Enhanced session restoration to prevent loops
     async restoreSession() {
         try {
             console.log('🔄 Restoring session from Supabase...');
+            
+            // 🆕 FIX: Wait for main site auth to settle first
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 🆕 FIX: Check if we're in auth flow - if no user after delay, don't proceed
+            if (!window.currentUser && (window.location.pathname.includes('/login') || window.location.pathname.includes('/auth'))) {
+                console.log('ℹ️ In login flow, skipping wallet session restore');
+                this.sessionCheckComplete = true;
+                return null;
+            }
 
+            // 🆕 FIX: Check if main site has user session
             if (window.currentUser && window.currentUser.id) {
                 console.log('✅ Using website user session:', window.currentUser.email);
                 this.userId = window.currentUser.id;
                 await this.storage.setItem('nemexUserId', this.userId);
             } else {
-                this.userId = await this.storage.getItem('nemexUserId');
-                if (!this.userId) {
-                    console.log('ℹ️ No existing session found');
+                // 🆕 FIX: Only use localStorage if we're not in auth pages
+                if (window.location.pathname.includes('/dashboard') || window.location.pathname.includes('/wallet')) {
+                    this.userId = await this.storage.getItem('nemexUserId');
+                    if (!this.userId) {
+                        console.log('ℹ️ No existing session found and not in auth-required page');
+                        this.sessionCheckComplete = true;
+                        return null;
+                    }
+                    console.log('🔍 Found user ID from localStorage:', this.userId);
+                } else {
+                    console.log('ℹ️ Not in authenticated section, skipping wallet restore');
+                    this.sessionCheckComplete = true;
                     return null;
                 }
-                console.log('🔍 Found user ID from localStorage:', this.userId);
             }
 
-            // 🆕 FIXED: Load all user wallets
+            // 🆕 FIX: Load all user wallets
             await this.loadUserWallets();
 
             // Set current wallet from storage
@@ -262,15 +298,18 @@ class NemexWalletAPI {
 
             if (this.currentWallet) {
                 console.log('✅ Current wallet restored:', this.currentWallet.address);
+                this.sessionCheckComplete = true;
                 this.triggerSessionRestored();
                 return this.currentWallet;
             }
 
             console.log('ℹ️ No current wallet found');
+            this.sessionCheckComplete = true;
             return null;
 
         } catch (error) {
             console.error('❌ Session restoration failed:', error);
+            this.sessionCheckComplete = true;
             return null;
         }
     }
@@ -1277,7 +1316,7 @@ async function deleteWallet(address) {
 }
 
 // =============================================
-// INITIALIZATION
+// INITIALIZATION WITH SESSION LOOP FIXES
 // =============================================
 
 window.addEventListener('nemexSessionRestored', function(event) {
@@ -1290,17 +1329,24 @@ window.addEventListener('nemexSessionRestored', function(event) {
     }
 });
 
-console.log('🎯 NemexWalletAPI class loaded with MULTI-WALLET, PRICE & UI FIXES');
+console.log('🎯 NemexWalletAPI class loaded with SESSION LOOP FIXES');
 
 function initializeWalletAPI() {
     window.nemexWalletAPI = new NemexWalletAPI();
 
-    createWalletModals();
+    // 🆕 FIX: Only create modals if we're on wallet-related pages
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/wallet') || currentPath.includes('/dashboard') || currentPath === '/') {
+        createWalletModals();
+    }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', async function() {
             console.log('📄 DOM ready, initializing wallet API...');
             try {
+                // 🆕 FIX: Add delay to let main site auth settle
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
                 const success = await window.nemexWalletAPI.init();
                 console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
             } catch (error) {
@@ -1308,15 +1354,24 @@ function initializeWalletAPI() {
             }
         });
     } else {
-        window.nemexWalletAPI.init().then(success => {
-            console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
-        }).catch(error => {
-            console.error('❌ Initialization error:', error);
-        });
+        // 🆕 FIX: Add delay to let main site auth settle
+        setTimeout(async () => {
+            window.nemexWalletAPI.init().then(success => {
+                console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
+            }).catch(error => {
+                console.error('❌ Initialization error:', error);
+            });
+        }, 500);
     }
 }
 
-initializeWalletAPI();
+// 🆕 FIX: Only initialize if we're not in auth flow
+const currentPath = window.location.pathname;
+if (!currentPath.includes('/login') && !currentPath.includes('/auth') && !currentPath.includes('/register')) {
+    initializeWalletAPI();
+} else {
+    console.log('ℹ️ In auth flow, skipping wallet initialization');
+}
 
 // Make functions globally available
 window.showCreateWalletModal = showCreateWalletModal;
@@ -1330,8 +1385,9 @@ window.loadUserWallets = loadUserWallets;
 window.switchToWallet = switchToWallet;
 window.deleteWallet = deleteWallet;
 
-// Create modals immediately if possible
-if (document.readyState === 'interactive' || document.readyState === 'complete') {
+// Create modals immediately if possible (only on wallet pages)
+if ((document.readyState === 'interactive' || document.readyState === 'complete') && 
+    (window.location.pathname.includes('/wallet') || window.location.pathname.includes('/dashboard'))) {
     console.log('🔧 Creating modals immediately...');
     createWalletModals();
 }
