@@ -3009,7 +3009,7 @@
                 <div class="input-container">
                     <input type="number" id="productionConvertAmount" placeholder="0.0" oninput="calculateProductionConversion()">
                     <div class="token-badge">NMXp</div>
-                    <button class="max-btn">MAX</button>
+                    <button class="max-btn" onclick="setMaxConversion()">MAX</button>
                 </div>
             </div>
 
@@ -3071,7 +3071,7 @@
 
     <script>
 // =============================================
-// 🚀 FIXED: WALLET MANAGEMENT SYSTEM
+// 🚀 FIXED: ENHANCED WALLET MANAGEMENT SYSTEM
 // =============================================
 
 let walletState = {
@@ -3080,7 +3080,8 @@ let walletState = {
     userId: null,
     address: null,
     balances: {},
-    lastUpdate: null
+    lastUpdate: null,
+    sessionCheckComplete: false // 🆕 Prevent retry loops
 };
 
 let userWallets = [];
@@ -3088,8 +3089,17 @@ let customTokens = [];
 let currentMnemonic = null;
 let currentUser = null;
 
-// 🆕 FIXED: HTTPS-Compatible Session Management
+// 🆕 FIXED: Enhanced Session Management with Loop Prevention
+let sessionCheckInProgress = false;
+
 async function checkWalletSession() {
+    if (sessionCheckInProgress) {
+        console.log('⏳ Session check already in progress, skipping...');
+        return null;
+    }
+
+    sessionCheckInProgress = true;
+
     try {
         console.log('🔍 Checking for wallet session with HTTPS compatibility...');
         
@@ -3119,6 +3129,8 @@ async function checkWalletSession() {
     } catch (error) {
         console.error('❌ Session check error:', error);
         return null;
+    } finally {
+        sessionCheckInProgress = false;
     }
 }
 
@@ -3166,6 +3178,12 @@ async function checkAuth() {
 async function initWallet() {
     console.log('🔄 Initializing wallet with HTTPS-compatible session management...');
 
+    // Mark session check as complete to prevent loops
+    if (walletState.sessionCheckComplete) {
+        console.log('✅ Session check already completed, skipping...');
+        return;
+    }
+
     if (!window.nemexWalletAPI) {
         console.error('❌ Wallet API not available');
         showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
@@ -3199,7 +3217,8 @@ async function initWallet() {
                         userId: userId,
                         address: currentWallet.address,
                         balances: {},
-                        lastUpdate: null
+                        lastUpdate: null,
+                        sessionCheckComplete: true // 🆕 Mark as complete
                     };
 
                     updateCurrentUser();
@@ -3228,6 +3247,7 @@ async function initWallet() {
         await emergencySessionRestoration();
     }
 
+    walletState.sessionCheckComplete = true;
     console.log('🚀 Wallet initialization complete with HTTPS compatibility');
 }
 
@@ -3246,57 +3266,97 @@ async function emergencySessionRestoration() {
 
         if (!userId) {
             console.log('❌ No user ID found in HTTPS session, cannot restore');
+            showWelcomeScreen();
             return false;
         }
 
         // Try to get active wallet directly from Supabase with HTTPS
-        const activeWalletResponse = await fetch(`/api/wallet/active-wallet/${userId}`);
-        if (activeWalletResponse.ok) {
-            const activeData = await activeWalletResponse.json();
-            if (activeData.success && activeData.activeWallet) {
-                console.log('🎯 Found active wallet in Supabase:', activeData.activeWallet);
+        try {
+            const activeWalletResponse = await fetch(`/api/wallet/active-wallet/${userId}`);
+            if (activeWalletResponse.ok) {
+                const activeData = await activeWalletResponse.json();
+                if (activeData.success && activeData.activeWallet) {
+                    console.log('🎯 Found active wallet in Supabase:', activeData.activeWallet);
 
-                // Get wallet details
-                const walletsResponse = await fetch(`/api/wallet/user-wallets/${userId}`);
-                if (walletsResponse.ok) {
-                    const walletsData = await walletsResponse.json();
-                    if (walletsData.success && walletsData.wallets) {
-                        const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
-                        if (wallet) {
-                            console.log('✅ Using Supabase wallet data:', wallet);
+                    // Get wallet details
+                    const walletsResponse = await fetch(`/api/wallet/user-wallets/${userId}`);
+                    if (walletsResponse.ok) {
+                        const walletsData = await walletsResponse.json();
+                        if (walletsData.success && walletsData.wallets) {
+                            const wallet = walletsData.wallets.find(w => w.address === activeData.activeWallet);
+                            if (wallet) {
+                                console.log('✅ Using Supabase wallet data:', wallet);
 
-                            // Update both API state and local state
-                            await window.nemexWalletAPI.setStoredWallet(wallet);
+                                // Update both API state and local state
+                                await window.nemexWalletAPI.setStoredWallet(wallet);
 
-                            walletState = {
-                                isInitialized: true,
-                                walletType: wallet.source || 'imported',
-                                userId: wallet.userId,
-                                address: wallet.address,
-                                balances: {},
-                                lastUpdate: null
-                            };
+                                walletState = {
+                                    isInitialized: true,
+                                    walletType: wallet.source || 'imported',
+                                    userId: wallet.userId,
+                                    address: wallet.address,
+                                    balances: {},
+                                    lastUpdate: null,
+                                    sessionCheckComplete: true
+                                };
 
-                            updateCurrentUser();
-                            updateWalletDisplay();
-                            await updateRealBalances();
-                            await loadUserWallets();
+                                updateCurrentUser();
+                                updateWalletDisplay();
+                                await updateRealBalances();
+                                await loadUserWallets();
 
-                            showStatusMessage('✅ Session restored from Supabase!', 'success');
-                            return true;
+                                showStatusMessage('✅ Session restored from Supabase!', 'success');
+                                return true;
+                            }
                         }
                     }
                 }
             }
+        } catch (apiError) {
+            console.log('ℹ️ API call failed, trying local storage:', apiError);
+        }
+
+        // Try local storage fallback
+        const localWallet = await window.nemexWalletAPI.getStoredWallet();
+        if (localWallet && localWallet.address) {
+            console.log('✅ Found wallet in local storage:', localWallet.address);
+            
+            walletState = {
+                isInitialized: true,
+                walletType: localWallet.source || 'imported',
+                userId: userId,
+                address: localWallet.address,
+                balances: {},
+                lastUpdate: null,
+                sessionCheckComplete: true
+            };
+
+            updateCurrentUser();
+            updateWalletDisplay();
+            await updateRealBalances();
+            await loadUserWallets();
+
+            showStatusMessage('✅ Wallet restored from local storage!', 'success');
+            return true;
         }
 
         console.log('ℹ️ No wallet found in emergency restoration');
+        showWelcomeScreen();
         return false;
 
     } catch (error) {
         console.error('❌ Emergency restoration failed:', error);
+        showWelcomeScreen();
         return false;
     }
+}
+
+// 🆕 FIXED: Show welcome screen properly
+function showWelcomeScreen() {
+    console.log('👋 Showing welcome screen for new user');
+    walletState.isInitialized = false;
+    walletState.sessionCheckComplete = true;
+    updateWalletDisplay();
 }
 
 // 🆕 FIXED: Enhanced user management with HTTPS compatibility
@@ -3333,7 +3393,8 @@ async function logout() {
             userId: null,
             address: null,
             balances: {},
-            lastUpdate: null
+            lastUpdate: null,
+            sessionCheckComplete: false
         };
 
         currentUser = null;
@@ -3579,7 +3640,8 @@ async function switchToWallet(address) {
             userId: wallet.userId,
             address: wallet.address,
             balances: {},
-            lastUpdate: null
+            lastUpdate: null,
+            sessionCheckComplete: true
         };
 
         updateCurrentUser();
@@ -3748,7 +3810,8 @@ async function autoRestoreFromWallets() {
                 userId: recentWallet.userId,
                 address: recentWallet.address,
                 balances: {},
-                lastUpdate: null
+                lastUpdate: null,
+                sessionCheckComplete: true
             };
 
             updateCurrentUser();
@@ -3824,7 +3887,8 @@ async function checkAndGenerateWallet() {
                 userId: result.wallet.userId,
                 address: result.wallet.address,
                 balances: {},
-                lastUpdate: null
+                lastUpdate: null,
+                sessionCheckComplete: true
             };
 
             // Add to user wallets
@@ -3955,7 +4019,8 @@ async function importWalletFromModal() {
                 userId: result.wallet.userId,
                 address: result.wallet.address,
                 balances: {},
-                lastUpdate: null
+                lastUpdate: null,
+                sessionCheckComplete: true
             };
 
             // Add to user wallets
