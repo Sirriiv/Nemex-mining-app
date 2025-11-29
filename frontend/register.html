@@ -354,36 +354,21 @@
         </form>
 
         <div class="login-link">
-            Already have an account? <a onclick="showLoadingScreen('login.html', 'Redirecting to Login...')">Sign In</a>
+            Already have an account? <a onclick="redirectToLogin()">Sign In</a>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // 🚀 FIXED: HTTP-Compatible Supabase Configuration
+        // Supabase Configuration
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        
+
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
             auth: {
                 autoRefreshToken: true,
                 persistSession: true,
-                detectSessionInUrl: false,
-                storage: {
-                    getItem: (key) => {
-                        const value = localStorage.getItem(key);
-                        console.log('🔑 Storage GET:', key, value ? '***' : 'null');
-                        return value;
-                    },
-                    setItem: (key, value) => {
-                        console.log('🔑 Storage SET:', key, value ? '***' : 'null');
-                        localStorage.setItem(key, value);
-                    },
-                    removeItem: (key) => {
-                        console.log('🔑 Storage REMOVE:', key);
-                        localStorage.removeItem(key);
-                    }
-                }
+                detectSessionInUrl: false
             }
         });
 
@@ -391,160 +376,57 @@
         let referrerUsername = null;
         let isReferrerExhausted = false;
 
-        // 🆕 NEW: Loading Screen Function
-        function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
+        // 🆕 FIXED: Simple loading screen
+        function showLoadingScreen(loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
-
-            setTimeout(() => {
-                window.location.href = targetPage;
-            }, 2000);
         }
 
-        // 🆕 NEW: Wallet Integration - Store password for wallet operations
-        async function handleWalletRegistrationIntegration(user, password) {
-            try {
-                console.log('🔐 Setting up wallet session for new user:', user.email);
-
-                window.currentUser = {
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    password: password
-                };
-
-                sessionStorage.setItem('nemex_user_session', JSON.stringify({
-                    id: user.id,
-                    email: user.email,
-                    username: user.username,
-                    wallet_initialized: false,
-                    registered_at: new Date().toISOString()
-                }));
-
-                console.log('✅ Wallet session initialized for new user:', user.email);
-                return true;
-
-            } catch (error) {
-                console.error('❌ Wallet session setup failed:', error);
-                return false;
-            }
+        // 🆕 FIXED: Simple redirect function
+        function redirectToLogin() {
+            window.location.href = 'login.html';
         }
 
-        // 🆕 FIXED: HTTP-Compatible Session Checking
+        // 🆕 FIXED: Check if user is already logged in (pure Supabase)
         async function checkExistingSession() {
             try {
-                console.log('🔍 Checking for existing session...');
-                
-                const customSession = localStorage.getItem('nemexcoin_user_session');
-                if (customSession) {
-                    console.log('✅ Found custom session in localStorage');
-                    const sessionData = JSON.parse(customSession);
-                    if (sessionData.loggedIn && sessionData.id) {
-                        console.log('✅ Valid custom session found, redirecting to dashboard');
-                        showLoadingScreen('dashboard.html', 'Welcome Back!');
-                        return true;
-                    }
-                }
+                console.log('🔍 Checking for existing Supabase session...');
 
                 const { data: { session }, error } = await supabase.auth.getSession();
-                if (session && !error) {
-                    console.log('✅ Supabase session found, storing custom session');
-                    await storeCustomSession(session.user);
-                    showLoadingScreen('dashboard.html', 'Welcome Back!');
+                
+                if (error) {
+                    console.error('❌ Session check error:', error);
+                    return false;
+                }
+
+                if (session?.user) {
+                    console.log('✅ User already logged in:', session.user.email);
+                    
+                    // Store user info for wallet system
+                    window.currentUser = {
+                        id: session.user.id,
+                        email: session.user.email
+                    };
+                    
+                    // Redirect to dashboard
+                    showLoadingScreen('Welcome Back!');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
                     return true;
                 }
-                
-                console.log('❌ No active session found');
+
+                console.log('ℹ️ No active session found');
                 return false;
             } catch (error) {
-                console.error('❌ Session check error:', error);
+                console.error('❌ Session check failed:', error);
                 return false;
-            }
-        }
-
-        // 🆕 NEW: Store custom session for HTTP compatibility
-        async function storeCustomSession(user) {
-            try {
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single();
-
-                if (error) throw error;
-
-                const sessionData = {
-                    id: user.id,
-                    email: user.email,
-                    username: profile.username,
-                    full_name: profile.full_name,
-                    balance: profile.balance || 0,
-                    loggedIn: true,
-                    session_start: new Date().toISOString()
-                };
-
-                localStorage.setItem('nemexcoin_user_session', JSON.stringify(sessionData));
-                console.log('✅ Custom session stored for HTTP:', user.email);
-                
-                return sessionData;
-            } catch (error) {
-                console.error('❌ Error storing custom session:', error);
-                throw error;
-            }
-        }
-
-        // 🆕 FIXED: Complete registration with HTTP session storage
-        async function completeRegistrationWithWallet(user, profile, password, isReferral = false, hasBonus = false) {
-            try {
-                console.log('✅ Completing registration with HTTP session storage for:', user.email);
-
-                const sessionData = await storeCustomSession(profile);
-
-                const walletReady = await handleWalletRegistrationIntegration(profile, password);
-                if (!walletReady) {
-                    console.warn('⚠️ Wallet session setup failed, but continuing with registration');
-                }
-
-                const userSession = {
-                    id: user.id,
-                    email: user.email,
-                    username: profile.username,
-                    full_name: profile.full_name,
-                    balance: profile.balance || 0,
-                    loggedIn: true
-                };
-
-                localStorage.setItem('nemexcoin_user', JSON.stringify(userSession));
-
-                try {
-                    const welcomeNotification = {
-                        user_id: user.id,
-                        type: 'system',
-                        title: 'Welcome to NemexCoin! 🎉',
-                        message: `Welcome ${profile.full_name}! You've successfully joined NemexCoin. Start mining and earning NMXp today!`,
-                        is_read: false,
-                        created_at: new Date().toISOString()
-                    };
-
-                    await supabase
-                        .from('notifications')
-                        .insert([welcomeNotification]);
-
-                    console.log('✅ Welcome notification created');
-                } catch (notificationError) {
-                    console.error('❌ Error creating welcome notification:', notificationError);
-                }
-
-                console.log('✅ Registration completed successfully with HTTP session');
-                return true;
-
-            } catch (error) {
-                console.error('❌ Registration completion error:', error);
-                throw error;
             }
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Register page loaded - checking session...');
+            
             const hasSession = await checkExistingSession();
             if (!hasSession) {
                 checkReferral();
@@ -595,30 +477,7 @@
             document.getElementById('invalidReferralBanner').style.display = 'block';
         }
 
-        async function createReferralNotification(referrerId, referredUser, bonus) {
-            try {
-                const notificationData = {
-                    user_id: referrerId,
-                    type: 'referral',
-                    title: 'New Referral!',
-                    message: `${referredUser} joined using your referral link. You earned ${bonus} NMXp bonus!`,
-                    is_read: false,
-                    created_at: new Date().toISOString()
-                };
-
-                const { data, error } = await supabase
-                    .from('notifications')
-                    .insert([notificationData]);
-
-                if (!error) {
-                    console.log('✅ Referral notification created');
-                }
-            } catch (error) {
-                console.error('❌ Error creating referral notification:', error);
-            }
-        }
-
-        // 🆕 FIXED: Registration with HTTP-compatible session system
+        // 🆕 FIXED: Pure Supabase Registration - No custom sessions
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
@@ -634,8 +493,9 @@
             clearErrors();
 
             try {
-                console.log('🔄 Starting registration with HTTP-Compatible Session System...');
+                console.log('🔄 Starting pure Supabase registration...');
 
+                // Basic validation
                 if (username.length < 3) {
                     throw new Error('Username must be at least 3 characters');
                 }
@@ -644,6 +504,7 @@
                     throw new Error('Password must be at least 6 characters');
                 }
 
+                // Check if username exists
                 const { data: existingUsernames } = await supabase
                     .from('profiles')
                     .select('id')
@@ -653,6 +514,7 @@
                     throw new Error('Username already taken');
                 }
 
+                // Check if email exists
                 const { data: existingEmails } = await supabase
                     .from('profiles')
                     .select('id')
@@ -664,6 +526,7 @@
 
                 console.log('✅ Basic validation passed');
 
+                // Create Supabase Auth user
                 console.log('🔐 Creating Supabase Auth user...');
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: email,
@@ -689,14 +552,15 @@
 
                 const userId = authData.user.id;
 
+                // Calculate initial balance
                 let initialBalance = 0;
                 const hasReferralBonus = (referrerId && !isReferrerExhausted);
                 if (hasReferralBonus) {
                     initialBalance = 30;
                 }
 
-                console.log('📝 Creating user profile with HTTP session compatibility...');
-
+                // Create user profile
+                console.log('📝 Creating user profile...');
                 const profileData = {
                     id: userId,
                     email: email,
@@ -710,73 +574,73 @@
                     updated_at: new Date().toISOString(),
                     last_login: new Date().toISOString(),
                     is_active: true,
-                    created_via: 'website',
-                    nmxp_balance: 0,
-                    is_vip: false,
-                    admin_level: 0,
-                    daily_checkins: 0,
-                    last_active: new Date().toISOString()
+                    created_via: 'website'
                 };
 
                 if (referrerId) {
                     profileData.referred_by = referrerId;
                 }
 
-                console.log('🔄 Profile data to insert:', profileData);
-
                 const { error: profileError } = await supabase
                     .from('profiles')
-                    .upsert([profileData], { 
-                        onConflict: 'id'
-                    });
+                    .upsert([profileData]);
 
                 if (profileError) {
                     console.error('❌ Profile creation error:', profileError);
-
-                    if (profileError.code === '23505') {
-                        console.log('🔄 Profile already exists, updating instead...');
-
-                        const updateData = { ...profileData };
-                        delete updateData.id;
-
-                        const { error: updateError } = await supabase
-                            .from('profiles')
-                            .update(updateData)
-                            .eq('id', userId);
-
-                        if (updateError) {
-                            throw new Error(`Profile update failed: ${updateError.message}`);
-                        }
-                        console.log('✅ Profile updated successfully');
-                    } else {
-                        throw new Error(`Profile creation failed: ${profileError.message}`);
-                    }
-                } else {
-                    console.log('✅ Profile created successfully');
+                    throw new Error(`Profile creation failed: ${profileError.message}`);
                 }
 
+                console.log('✅ Profile created successfully');
+
+                // Process referral if applicable
                 if (referrerId) {
                     await processReferral(userId, referrerId, hasReferralBonus);
                 }
 
-                // 🆕 FIXED: Use HTTP-compatible registration completion
-                await completeRegistrationWithWallet(authData.user, profileData, password, !!referrerId, hasReferralBonus);
+                // Create welcome notification
+                try {
+                    const welcomeNotification = {
+                        user_id: userId,
+                        type: 'system',
+                        title: 'Welcome to NemexCoin! 🎉',
+                        message: `Welcome ${fullName}! You've successfully joined NemexCoin. Start mining and earning NMXp today!`,
+                        is_read: false,
+                        created_at: new Date().toISOString()
+                    };
 
+                    await supabase
+                        .from('notifications')
+                        .insert([welcomeNotification]);
+
+                    console.log('✅ Welcome notification created');
+                } catch (notificationError) {
+                    console.error('❌ Error creating welcome notification:', notificationError);
+                }
+
+                // 🆕 FIXED: Set up wallet session using pure Supabase session
+                window.currentUser = {
+                    id: userId,
+                    email: email,
+                    username: username,
+                    full_name: fullName
+                };
+
+                console.log('✅ Registration completed successfully!');
+
+                // Show success message
                 let successMessage = 'Account created successfully!';
                 if (referrerId && hasReferralBonus) {
                     successMessage = '🎉 Account created successfully! You received 30 NMXp bonus!';
-                    registerBtn.innerHTML = '✅ ' + successMessage;
                 } else if (referrerId && !hasReferralBonus) {
                     successMessage = 'Account created successfully! (Referral link was exhausted - no bonus given)';
-                    registerBtn.innerHTML = '✅ ' + successMessage;
-                } else {
-                    registerBtn.innerHTML = '✅ ' + successMessage;
                 }
 
-                console.log('🔐 HTTP session is ready - user will stay logged in');
+                registerBtn.innerHTML = '✅ ' + successMessage;
 
+                // Redirect to dashboard after success
+                showLoadingScreen('Welcome to NemexCoin!');
                 setTimeout(() => {
-                    showLoadingScreen('dashboard.html', 'Welcome to NemexCoin!');
+                    window.location.href = 'dashboard.html';
                 }, 2000);
 
             } catch (error) {
@@ -790,7 +654,6 @@
         async function processReferral(newUserId, referrerId, shouldGiveBonus) {
             try {
                 console.log('🔄 Processing referral...');
-                console.log('Should give bonus:', shouldGiveBonus);
 
                 if (shouldGiveBonus) {
                     const BONUS_AMOUNT = 30;
@@ -818,9 +681,26 @@
 
                     console.log('✅ Referral bonus processed successfully');
 
-                    await createReferralNotification(referrerId, username, BONUS_AMOUNT);
+                    // Create referral notification
+                    try {
+                        const notificationData = {
+                            user_id: referrerId,
+                            type: 'referral',
+                            title: 'New Referral!',
+                            message: `${document.getElementById('username').value} joined using your referral link. You earned ${BONUS_AMOUNT} NMXp bonus!`,
+                            is_read: false,
+                            created_at: new Date().toISOString()
+                        };
+
+                        await supabase
+                            .from('notifications')
+                            .insert([notificationData]);
+                    } catch (notificationError) {
+                        console.error('❌ Error creating referral notification:', notificationError);
+                    }
                 }
 
+                // Create referral network record
                 await supabase
                     .from('referral_network')
                     .insert({
@@ -849,24 +729,6 @@
             element.textContent = message;
             element.style.display = 'block';
         }
-
-        // 🆕 FIXED: Handle page refresh with HTTP session compatibility
-        window.addEventListener('load', function() {
-            const walletSession = sessionStorage.getItem('nemex_user_session');
-            if (walletSession) {
-                console.log('🔐 Existing wallet session found');
-                const sessionData = JSON.parse(walletSession);
-
-                if (!window.currentUser && sessionData.id) {
-                    console.log('🔄 Restoring wallet session for user:', sessionData.email);
-                    window.currentUser = {
-                        id: sessionData.id,
-                        email: sessionData.email,
-                        username: sessionData.username
-                    };
-                }
-            }
-        });
     </script>
 </body>
 </html>
