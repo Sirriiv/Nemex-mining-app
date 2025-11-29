@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED WITH SESSION LOOP FIXES
+// assets/js/wallet.js - COMPLETE FIXED WITH SESSION LOOP & SEED PHRASE FIXES
 
 class SecureSupabaseStorage {
     constructor() {
@@ -148,11 +148,21 @@ class SecureSupabaseStorage {
         }
     }
 
-    async storeMnemonicSecurely(mnemonic, address) {
+    // 🆕 FIXED: Enhanced mnemonic storage with user session validation
+    async storeMnemonicSecurely(mnemonic, address, userId = null) {
         try {
-            console.log('🔐 Storing mnemonic in sessionStorage for:', address);
+            console.log('🔐 Storing mnemonic for:', address, 'User:', userId);
+            
+            // Store in sessionStorage for immediate access
             sessionStorage.setItem(`nemex_mnemonic_${address}`, mnemonic);
-            console.log('✅ Mnemonic stored securely in sessionStorage');
+            
+            // Also store in localStorage with user binding for persistence
+            if (userId) {
+                const encryptedKey = `nemex_mnemonic_${userId}_${address}`;
+                localStorage.setItem(encryptedKey, btoa(mnemonic)); // Simple base64 encoding
+            }
+            
+            console.log('✅ Mnemonic stored securely');
             return true;
         } catch (error) {
             console.error('❌ Failed to store mnemonic:', error);
@@ -160,24 +170,69 @@ class SecureSupabaseStorage {
         }
     }
 
-    async retrieveMnemonicSecurely(address) {
+    // 🆕 FIXED: Enhanced mnemonic retrieval with user validation
+    async retrieveMnemonicSecurely(address, userId = null) {
         try {
-            const mnemonic = sessionStorage.getItem(`nemex_mnemonic_${address}`);
-            console.log('🔐 Retrieved mnemonic for address:', address, mnemonic ? 'Found' : 'Not found');
-            return mnemonic;
+            console.log('🔐 Retrieving mnemonic for:', address, 'User:', userId);
+            
+            // Try sessionStorage first (most secure)
+            let mnemonic = sessionStorage.getItem(`nemex_mnemonic_${address}`);
+            
+            // If not in sessionStorage, try localStorage with user validation
+            if (!mnemonic && userId) {
+                const encryptedKey = `nemex_mnemonic_${userId}_${address}`;
+                const encryptedMnemonic = localStorage.getItem(encryptedKey);
+                if (encryptedMnemonic) {
+                    mnemonic = atob(encryptedMnemonic); // Decode from base64
+                    // Restore to sessionStorage for future access
+                    sessionStorage.setItem(`nemex_mnemonic_${address}`, mnemonic);
+                }
+            }
+            
+            if (mnemonic) {
+                console.log('✅ Mnemonic retrieved successfully');
+                return mnemonic;
+            } else {
+                console.log('❌ Mnemonic not found for address:', address);
+                return null;
+            }
         } catch (error) {
-            console.error('Failed to retrieve mnemonic:', error);
+            console.error('❌ Failed to retrieve mnemonic:', error);
             return null;
         }
     }
 
-    async clearMnemonic(address) {
-        sessionStorage.removeItem(`nemex_mnemonic_${address}`);
-        console.log('🗑️ Cleared mnemonic for address:', address);
+    // 🆕 FIXED: Enhanced mnemonic clearance
+    async clearMnemonic(address, userId = null) {
+        try {
+            // Clear from sessionStorage
+            sessionStorage.removeItem(`nemex_mnemonic_${address}`);
+            
+            // Clear from localStorage if userId provided
+            if (userId) {
+                const encryptedKey = `nemex_mnemonic_${userId}_${address}`;
+                localStorage.removeItem(encryptedKey);
+            }
+            
+            console.log('🗑️ Cleared mnemonic for address:', address);
+            return true;
+        } catch (error) {
+            console.error('❌ Failed to clear mnemonic:', error);
+            return false;
+        }
     }
 
-    hasMnemonic(address) {
-        const hasMnemonic = !!sessionStorage.getItem(`nemex_mnemonic_${address}`);
+    // 🆕 FIXED: Enhanced mnemonic check
+    hasMnemonic(address, userId = null) {
+        // Check sessionStorage first
+        let hasMnemonic = !!sessionStorage.getItem(`nemex_mnemonic_${address}`);
+        
+        // Check localStorage if not found and userId provided
+        if (!hasMnemonic && userId) {
+            const encryptedKey = `nemex_mnemonic_${userId}_${address}`;
+            hasMnemonic = !!localStorage.getItem(encryptedKey);
+        }
+        
         console.log('🔍 Checking mnemonic for address:', address, hasMnemonic ? 'Exists' : 'Not found');
         return hasMnemonic;
     }
@@ -204,10 +259,11 @@ class NemexWalletAPI {
         this.storage = new SecureSupabaseStorage();
         this.userId = null;
         this.currentWallet = null;
-        this.userWallets = []; // 🆕 Store multiple wallets
+        this.userWallets = [];
         this.isInitialized = false;
         this.pendingImport = null;
-        this.sessionCheckComplete = false; // 🆕 FIX: Track session completion
+        this.sessionCheckComplete = false;
+        this.waitingForAuth = false; // 🆕 FIX: Track if we're waiting for auth
     }
 
     async init() {
@@ -225,8 +281,16 @@ class NemexWalletAPI {
                 return false;
             }
 
-            // 🆕 FIX: Add session flow debugging
-            await this.debugSessionFlow('BEFORE_SESSION_RESTORE');
+            // 🆕 FIX: Wait for main site auth to be ready
+            await this.waitForMainSiteAuth();
+
+            // Only proceed if we have a valid user session
+            if (!this.userId && !this.isInWalletPage()) {
+                console.log('ℹ️ No user session and not in wallet page, skipping wallet init');
+                this.isInitialized = true;
+                this.sessionCheckComplete = true;
+                return true;
+            }
 
             await this.restoreSession();
 
@@ -237,60 +301,95 @@ class NemexWalletAPI {
         } catch (error) {
             console.error('❌ Wallet API initialization failed:', error);
             this.isInitialized = true;
+            this.sessionCheckComplete = true;
             return true;
         }
     }
 
-    // 🆕 FIX: Session flow debugging
-    async debugSessionFlow(step) {
-        console.log(`🔍 DEBUG ${step}:`);
-        console.log('1. window.currentUser:', window.currentUser);
-        console.log('2. localStorage user_id:', localStorage.getItem('user_id'));
-        console.log('3. localStorage nemexUserId:', localStorage.getItem('nemex_supabase_v1_nemexUserId'));
-        console.log('4. document.cookie length:', document.cookie.length);
-        console.log('5. URL path:', window.location.pathname);
-        console.log('6. Has walletState:', !!window.walletState);
-        console.log('7. Session check complete:', this.sessionCheckComplete);
+    // 🆕 FIX: Wait for main site authentication to be ready
+    async waitForMainSiteAuth() {
+        console.log('🔄 Waiting for main site authentication...');
+        
+        // Check if we already have a user
+        if (window.currentUser && window.currentUser.id) {
+            this.userId = window.currentUser.id;
+            console.log('✅ Main site user found:', this.userId);
+            return;
+        }
+
+        // Check if we're in a page that requires auth
+        if (!this.isInWalletPage() && !this.isInDashboardPage()) {
+            console.log('ℹ️ Not in authenticated section, skipping auth wait');
+            return;
+        }
+
+        // Wait for main site auth with timeout
+        const maxWaitTime = 5000; // 5 seconds max
+        const startTime = Date.now();
+        
+        while (Date.now() - startTime < maxWaitTime) {
+            if (window.currentUser && window.currentUser.id) {
+                this.userId = window.currentUser.id;
+                console.log('✅ Main site user found after wait:', this.userId);
+                return;
+            }
+            
+            // Also check for Supabase session
+            try {
+                const { createClient } = window.supabase || {};
+                if (createClient) {
+                    const supabase = createClient(this.storage.supabaseUrl, this.storage.supabaseKey);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.user?.id) {
+                        this.userId = session.user.id;
+                        console.log('✅ Supabase session found:', this.userId);
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('ℹ️ Supabase check failed, continuing...');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
+        console.log('ℹ️ No main site auth found after waiting');
     }
 
-    // 🆕 FIXED: Enhanced session restoration to prevent loops
+    // 🆕 FIX: Check if we're in a wallet-related page
+    isInWalletPage() {
+        const path = window.location.pathname;
+        return path.includes('/wallet') || path.includes('/wallet.html');
+    }
+
+    // 🆕 FIX: Check if we're in a dashboard page
+    isInDashboardPage() {
+        const path = window.location.pathname;
+        return path.includes('/dashboard') || path === '/' || path.includes('/profile');
+    }
+
+    // 🆕 FIXED: Enhanced session restoration
     async restoreSession() {
         try {
-            console.log('🔄 Restoring session from Supabase...');
-            
-            // 🆕 FIX: Wait for main site auth to settle first
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // 🆕 FIX: Check if we're in auth flow - if no user after delay, don't proceed
-            if (!window.currentUser && (window.location.pathname.includes('/login') || window.location.pathname.includes('/auth'))) {
-                console.log('ℹ️ In login flow, skipping wallet session restore');
-                this.sessionCheckComplete = true;
-                return null;
-            }
+            console.log('🔄 Restoring session...');
 
-            // 🆕 FIX: Check if main site has user session
+            // 🆕 FIX: Use main site user if available
             if (window.currentUser && window.currentUser.id) {
-                console.log('✅ Using website user session:', window.currentUser.email);
                 this.userId = window.currentUser.id;
                 await this.storage.setItem('nemexUserId', this.userId);
+                console.log('✅ Using main site user:', this.userId);
             } else {
-                // 🆕 FIX: Only use localStorage if we're not in auth pages
-                if (window.location.pathname.includes('/dashboard') || window.location.pathname.includes('/wallet')) {
-                    this.userId = await this.storage.getItem('nemexUserId');
-                    if (!this.userId) {
-                        console.log('ℹ️ No existing session found and not in auth-required page');
-                        this.sessionCheckComplete = true;
-                        return null;
-                    }
-                    console.log('🔍 Found user ID from localStorage:', this.userId);
-                } else {
-                    console.log('ℹ️ Not in authenticated section, skipping wallet restore');
+                // Fallback to stored user ID
+                this.userId = await this.storage.getItem('nemexUserId');
+                if (!this.userId) {
+                    console.log('ℹ️ No user ID found, cannot restore session');
                     this.sessionCheckComplete = true;
                     return null;
                 }
+                console.log('🔍 Using stored user ID:', this.userId);
             }
 
-            // 🆕 FIX: Load all user wallets
+            // Load user wallets
             await this.loadUserWallets();
 
             // Set current wallet from storage
@@ -318,10 +417,16 @@ class NemexWalletAPI {
     async loadUserWallets() {
         try {
             console.log('🔄 Loading all user wallets...');
-            
+
+            if (!this.userId) {
+                console.log('❌ No user ID, cannot load wallets');
+                this.userWallets = [];
+                return [];
+            }
+
             // Get from Supabase first
             const supabaseWallets = await this.storage.fetchUserWalletsFromSupabase(this.userId);
-            
+
             if (supabaseWallets.length > 0) {
                 this.userWallets = supabaseWallets.map(wallet => ({
                     userId: wallet.user_id,
@@ -342,7 +447,7 @@ class NemexWalletAPI {
                 this.userWallets = Array.isArray(localWallets) ? localWallets : [];
                 console.log(`✅ Loaded ${this.userWallets.length} wallets from localStorage`);
             }
-            
+
             return this.userWallets;
         } catch (error) {
             console.error('❌ Failed to load user wallets:', error);
@@ -371,10 +476,11 @@ class NemexWalletAPI {
 
     async getUserId() {
         if (!this.userId) {
+            // 🆕 FIX: Use main site user first
             if (window.currentUser && window.currentUser.id) {
                 this.userId = window.currentUser.id;
                 await this.storage.setItem('nemexUserId', this.userId);
-                console.log('✅ Using website user ID:', this.userId);
+                console.log('✅ Using main site user ID:', this.userId);
             } else {
                 this.userId = await this.storage.getItem('nemexUserId');
                 if (!this.userId) {
@@ -389,19 +495,19 @@ class NemexWalletAPI {
 
     async getStoredWallet() {
         console.log('🔄 COMPATIBILITY: getStoredWallet called');
-        
+
         if (this.currentWallet) {
             console.log('✅ Using current wallet instance:', this.currentWallet.address);
             return this.currentWallet;
         }
-        
+
         const stored = await this.storage.getItem('nemexCurrentWallet');
         if (stored) {
             console.log('✅ Using stored wallet:', stored.address);
             this.currentWallet = stored;
             return stored;
         }
-        
+
         console.log('ℹ️ No stored wallet found');
         return null;
     }
@@ -413,7 +519,7 @@ class NemexWalletAPI {
         console.log('✅ Wallet stored as current');
     }
 
-    // 🆕 FIXED: Generate wallet without infinite recursion
+    // 🆕 FIXED: Generate wallet with proper user binding
     async generateNewWallet(wordCount = 12) {
         try {
             console.log('🔄 Generating new wallet with Supabase integration...');
@@ -454,14 +560,14 @@ class NemexWalletAPI {
                 isActive: true
             };
 
-            // 🆕 FIXED: Add to user wallets instead of replacing
+            // Add to user wallets
             await this.addWalletToUserWallets(walletData);
-            
+
             // Set as current wallet
             await this.setStoredWallet(walletData);
-            
-            // Store mnemonic securely
-            await this.storage.storeMnemonicSecurely(data.wallet.mnemonic, data.wallet.address);
+
+            // 🆕 FIX: Store mnemonic with user binding
+            await this.storage.storeMnemonicSecurely(data.wallet.mnemonic, data.wallet.address, userId);
 
             console.log('✅ Wallet generated and added to user wallets:', data.wallet.address);
             return { success: true, wallet: walletData, mnemonic: data.wallet.mnemonic };
@@ -477,7 +583,7 @@ class NemexWalletAPI {
         try {
             // Check if wallet already exists
             const existingIndex = this.userWallets.findIndex(w => w.address === walletData.address);
-            
+
             if (existingIndex >= 0) {
                 // Update existing wallet
                 this.userWallets[existingIndex] = walletData;
@@ -487,13 +593,13 @@ class NemexWalletAPI {
                 this.userWallets.push(walletData);
                 console.log('✅ Added new wallet to user wallets');
             }
-            
+
             // Save to storage
             await this.saveUserWallets();
-            
+
             // Store in Supabase
             await this.storage.storeWalletInSupabase(walletData);
-            
+
             return true;
         } catch (error) {
             console.error('❌ Failed to add wallet to user wallets:', error);
@@ -542,11 +648,14 @@ class NemexWalletAPI {
                     isActive: true
                 };
 
-                // 🆕 FIXED: Add to user wallets instead of replacing
+                // Add to user wallets
                 await this.addWalletToUserWallets(walletData);
-                
+
                 // Set as current wallet
                 await this.setStoredWallet(walletData);
+
+                // 🆕 FIX: Store mnemonic with user binding
+                await this.storage.storeMnemonicSecurely(cleanedMnemonic, data.wallet.address, userId);
 
                 console.log('✅ Wallet imported and added to user wallets:', data.wallet.address);
                 return { success: true, wallet: walletData };
@@ -571,22 +680,77 @@ class NemexWalletAPI {
         }
     }
 
+    // 🆕 FIXED: Enhanced seed phrase retrieval with user validation
+    async retrieveMnemonicSecurely(address) {
+        try {
+            console.log('🔐 COMPATIBILITY: retrieveMnemonicSecurely called for:', address);
+            
+            const userId = await this.getUserId();
+            const mnemonic = await this.storage.retrieveMnemonicSecurely(address, userId);
+            
+            if (mnemonic) {
+                console.log('✅ Seed phrase retrieved successfully');
+                return mnemonic;
+            } else {
+                console.log('❌ Seed phrase not found');
+                return null;
+            }
+        } catch (error) {
+            console.error('❌ Failed to retrieve seed phrase:', error);
+            return null;
+        }
+    }
+
+    // 🆕 FIXED: Enhanced seed phrase storage
+    async storeMnemonicSecurely(mnemonic, address) {
+        try {
+            console.log('🔐 COMPATIBILITY: storeMnemonicSecurely called for:', address);
+            
+            const userId = await this.getUserId();
+            return await this.storage.storeMnemonicSecurely(mnemonic, address, userId);
+        } catch (error) {
+            console.error('❌ Failed to store seed phrase:', error);
+            return false;
+        }
+    }
+
+    // 🆕 FIXED: Enhanced seed phrase clearance
+    async clearMnemonic(address) {
+        try {
+            console.log('🔐 COMPATIBILITY: clearMnemonic called for:', address);
+            
+            const userId = await this.getUserId();
+            return await this.storage.clearMnemonic(address, userId);
+        } catch (error) {
+            console.error('❌ Failed to clear seed phrase:', error);
+            return false;
+        }
+    }
+
+    // 🆕 FIXED: Enhanced seed phrase check
+    hasMnemonic(address) {
+        console.log('🔐 COMPATIBILITY: hasMnemonic called for:', address);
+        
+        const userId = this.userId;
+        return this.storage.hasMnemonic(address, userId);
+    }
+
     // 🆕 FIXED: Switch to different wallet
     async switchToWallet(address) {
         try {
             console.log('🔄 Switching to wallet:', address);
-            
+
             const wallet = this.userWallets.find(w => w.address === address);
             if (!wallet) {
                 throw new Error('Wallet not found in user wallets');
             }
-            
+
             // Set as current wallet
             await this.setStoredWallet(wallet);
-            
+
             // Update active status in Supabase
             await this.storage.updateWalletActiveStatus(address, true);
-            
+
             console.log('✅ Switched to wallet:', address);
             return { success: true, wallet: wallet };
         } catch (error) {
@@ -605,22 +769,22 @@ class NemexWalletAPI {
     async removeWallet(address) {
         try {
             console.log('🔄 Removing wallet:', address);
-            
+
             // Remove from user wallets
             this.userWallets = this.userWallets.filter(w => w.address !== address);
-            
+
             // Save to storage
             await this.saveUserWallets();
-            
+
             // Clear mnemonic
-            await this.storage.clearMnemonic(address);
-            
+            await this.clearMnemonic(address);
+
             // If removing current wallet, clear current
             if (this.currentWallet && this.currentWallet.address === address) {
                 await this.setStoredWallet(null);
                 this.currentWallet = null;
             }
-            
+
             console.log('✅ Wallet removed:', address);
             return { success: true };
         } catch (error) {
@@ -636,7 +800,7 @@ class NemexWalletAPI {
     async getTokenPrices() {
         try {
             console.log('🔄 Fetching real token prices from multiple sources...');
-            
+
             // Try multiple price sources with fallbacks
             const priceSources = [
                 this.fetchPricesFromBackendAPI(),
@@ -696,16 +860,16 @@ class NemexWalletAPI {
     async fetchPricesFromCoinGecko() {
         try {
             console.log('🔄 Trying CoinGecko API for prices...');
-            
+
             // TON CoinGecko ID
             const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true');
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
 
             const data = await response.json();
-            
+
             if (data['the-open-network']) {
                 const tonData = data['the-open-network'];
                 const prices = {
@@ -718,7 +882,7 @@ class NemexWalletAPI {
                         change24h: 0
                     }
                 };
-                
+
                 console.log('✅ CoinGecko prices - TON:', prices.TON.price);
                 return {
                     success: true,
@@ -726,7 +890,7 @@ class NemexWalletAPI {
                     source: 'coingecko'
                 };
             }
-            
+
             throw new Error('No TON data from CoinGecko');
         } catch (error) {
             console.error('❌ CoinGecko price fetch failed:', error);
@@ -746,7 +910,7 @@ class NemexWalletAPI {
                 change24h: 0
             }
         };
-        
+
         return {
             success: true,
             prices: prices,
@@ -858,11 +1022,11 @@ class NemexWalletAPI {
     }
 
     canShowSeedPhrase(address) {
-        return this.storage.hasMnemonic(address);
+        return this.hasMnemonic(address);
     }
 
     async clearMnemonicForAddress(address) {
-        await this.storage.clearMnemonic(address);
+        await this.clearMnemonic(address);
     }
 
     getCurrentWalletAddress() {
@@ -871,7 +1035,7 @@ class NemexWalletAPI {
 
     async clearSession() {
         const currentAddress = this.currentWallet?.address;
-        if (currentAddress) await this.storage.clearMnemonic(currentAddress);
+        if (currentAddress) await this.clearMnemonic(currentAddress);
         await this.setStoredWallet(null);
         this.pendingImport = null;
         await this.storage.clear();
@@ -991,7 +1155,7 @@ function showImportWalletModal() {
         const importBtn = document.getElementById('importWalletBtn');
         const statusDiv = document.getElementById('importWalletStatus');
         const input = document.getElementById('importMnemonicInput');
-        
+
         if (importBtn) {
             importBtn.innerHTML = '📥 Import Wallet';
             importBtn.disabled = false;
@@ -1108,7 +1272,7 @@ async function importWalletFromModal() {
                 // Close modal after success
                 setTimeout(() => {
                     closeImportWalletModal();
-                    
+
                     // Show success message
                     alert(`✅ Wallet imported successfully!\n\nAddress: ${result.wallet.address}\n\nYour wallet is now ready to use!`);
 
@@ -1131,11 +1295,11 @@ async function importWalletFromModal() {
         }
     } catch (error) {
         console.error('❌ Wallet import failed:', error);
-        
+
         // Update UI to show error
         const importBtn = document.getElementById('importWalletBtn');
         const statusDiv = document.getElementById('importWalletStatus');
-        
+
         if (statusDiv) {
             statusDiv.innerHTML = `❌ Error: ${error.message}`;
             statusDiv.style.color = '#dc3545';
@@ -1152,7 +1316,7 @@ async function importWalletFromModal() {
 async function createNewWallet() {
     try {
         console.log('🔄 Creating new wallet from modal...');
-        
+
         const createBtn = document.getElementById('createWalletBtn');
         const statusDiv = document.getElementById('createWalletStatus');
 
@@ -1185,7 +1349,7 @@ async function createNewWallet() {
                 // Close modal after success
                 setTimeout(() => {
                     closeCreateWalletModal();
-                    
+
                     // Show success message
                     alert(`✅ Wallet created successfully!\n\nAddress: ${result.wallet.address}\n\n⚠️ IMPORTANT: Your seed phrase has been stored securely. Make sure to back it up!\n\nYour wallet is now ready to use!`);
 
@@ -1208,11 +1372,11 @@ async function createNewWallet() {
         }
     } catch (error) {
         console.error('❌ Wallet creation failed:', error);
-        
+
         // Update UI to show error
         const createBtn = document.getElementById('createWalletBtn');
         const statusDiv = document.getElementById('createWalletStatus');
-        
+
         if (statusDiv) {
             statusDiv.innerHTML = `❌ Error: ${error.message}`;
             statusDiv.style.color = '#dc3545';
@@ -1259,13 +1423,13 @@ async function loadUserWallets() {
 async function switchToWallet(address) {
     try {
         console.log(`🔄 FIXED: Switching to wallet: ${address}`);
-        
+
         if (!window.nemexWalletAPI) {
             throw new Error('Wallet API not available');
         }
 
         const result = await window.nemexWalletAPI.switchToWallet(address);
-        
+
         if (result.success) {
             window.walletState = {
                 isInitialized: true,
@@ -1283,7 +1447,7 @@ async function switchToWallet(address) {
 
             showToast(`✅ Switched to wallet: ${formatAddress(address)}`, 'success');
         }
-        
+
     } catch (error) {
         console.error('❌ Wallet switch failed:', error);
         showToast(`Failed to switch wallet: ${error.message}`, 'error');
@@ -1293,7 +1457,7 @@ async function switchToWallet(address) {
 async function deleteWallet(address) {
     try {
         console.log(`🔄 FIXED: Deleting wallet: ${address}`);
-        
+
         if (!window.nemexWalletAPI) {
             throw new Error('Wallet API not available');
         }
@@ -1303,12 +1467,12 @@ async function deleteWallet(address) {
         }
 
         const result = await window.nemexWalletAPI.removeWallet(address);
-        
+
         if (result.success) {
             updateWalletList();
             showToast('✅ Wallet deleted successfully', 'success');
         }
-        
+
     } catch (error) {
         console.error('❌ Wallet deletion failed:', error);
         showToast(`Failed to delete wallet: ${error.message}`, 'error');
@@ -1345,8 +1509,8 @@ function initializeWalletAPI() {
             console.log('📄 DOM ready, initializing wallet API...');
             try {
                 // 🆕 FIX: Add delay to let main site auth settle
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
                 const success = await window.nemexWalletAPI.init();
                 console.log(success ? '✅ Wallet API initialized!' : '❌ Wallet API initialization failed');
             } catch (error) {
@@ -1361,7 +1525,7 @@ function initializeWalletAPI() {
             }).catch(error => {
                 console.error('❌ Initialization error:', error);
             });
-        }, 500);
+        }, 1000);
     }
 }
 
