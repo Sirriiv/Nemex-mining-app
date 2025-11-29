@@ -5405,6 +5405,148 @@ function createStatusElement() {
 // 🚀 INITIALIZATION
 // =============================================
 
+// 🎯 ADD THESE FUNCTIONS BEFORE DOMContentLoaded
+async function initializeWalletWithRealData() {
+    console.log('🔄 Initializing wallet with REAL data fetching...');
+    
+    try {
+        // Initialize the wallet manager
+        const walletReady = await tonWalletManager.initializeWalletAPI();
+        
+        if (!walletReady) {
+            throw new Error('Wallet manager failed to initialize');
+        }
+
+        console.log('✅ Wallet system loaded successfully');
+        showStatus('success', '✅ Wallet system loaded successfully!');
+        
+        // Check if we have a wallet
+        const hasWallet = await tonWalletManager.hasWallet();
+        const currentWallet = await tonWalletManager.getCurrentWallet();
+        
+        if (hasWallet && currentWallet) {
+            console.log('✅ User wallet available:', currentWallet.address);
+            showStatus('success', '✅ Wallet loaded successfully!');
+            
+            // Update wallet display
+            updateWalletDisplay(currentWallet);
+            
+            // Start balance updates
+            tonWalletManager.startBalanceUpdates(() => {
+                updateRealBalancesAndPrices();
+            });
+            
+            // Initial balance fetch
+            updateRealBalancesAndPrices();
+            
+            // Show wallet interface
+            showWalletInterface();
+        } else {
+            console.log('ℹ️ No wallet found, showing create wallet screen');
+            showStatus('info', '👛 Create or import a wallet to get started');
+            showCreateWalletScreen();
+        }
+        
+    } catch (error) {
+        console.error('❌ Wallet initialization failed:', error);
+        showStatus('error', '❌ Wallet system not loaded. Please refresh the page.');
+    }
+}
+
+function updateWalletDisplay(wallet) {
+    const walletAddressEl = document.getElementById('walletAddress');
+    const walletStatusEl = document.getElementById('walletStatus');
+    
+    if (walletAddressEl) {
+        walletAddressEl.textContent = `${wallet.address.substring(0, 8)}...${wallet.address.substring(wallet.address.length - 8)}`;
+    }
+    if (walletStatusEl) {
+        walletStatusEl.textContent = 'Connected';
+        walletStatusEl.className = 'status-connected';
+    }
+}
+
+function showCreateWalletScreen() {
+    const createSection = document.getElementById('createWalletSection');
+    const walletSection = document.getElementById('walletInterface');
+    
+    if (createSection) createSection.style.display = 'block';
+    if (walletSection) walletSection.style.display = 'none';
+}
+
+function showWalletInterface() {
+    const createSection = document.getElementById('createWalletSection');
+    const walletSection = document.getElementById('walletInterface');
+    
+    if (createSection) createSection.style.display = 'none';
+    if (walletSection) walletSection.style.display = 'block';
+}
+
+function updateRealBalancesAndPrices() {
+    console.log('💰 Updating balances and prices...');
+    
+    const currentWallet = tonWalletManager.getCurrentWallet();
+    if (!currentWallet) {
+        console.log('ℹ️ No wallet available for balance update');
+        return;
+    }
+    
+    // Fetch balances
+    tonWalletManager.fetchRealBalances(currentWallet.address)
+        .then(balances => {
+            console.log('✅ Balances updated:', balances);
+            updateUIWithBalances(balances);
+        })
+        .catch(error => {
+            console.error('❌ Balance update failed:', error);
+        });
+    
+    // Fetch prices
+    tonWalletManager.fetchTokenPrices()
+        .then(prices => {
+            console.log('✅ Prices updated:', prices);
+            updateUIWithPrices(prices);
+        })
+        .catch(error => {
+            console.error('❌ Price update failed:', error);
+        });
+}
+
+function updateUIWithBalances(balances) {
+    const tonBalanceEl = document.getElementById('tonBalance');
+    const nmxBalanceEl = document.getElementById('nmxBalance');
+    
+    if (tonBalanceEl) {
+        tonBalanceEl.textContent = `${parseFloat(balances.ton.balance).toFixed(4)} TON`;
+    }
+    if (nmxBalanceEl) {
+        nmxBalanceEl.textContent = `${parseFloat(balances.nmx.balance).toFixed(2)} NMX`;
+    }
+    
+    console.log('🎨 UI updated with balances');
+}
+
+function updateUIWithPrices(prices) {
+    const tonPriceEl = document.getElementById('tonPrice');
+    const portfolioValueEl = document.getElementById('portfolioValue');
+    
+    if (tonPriceEl) {
+        tonPriceEl.textContent = `$${prices.ton.toFixed(2)}`;
+    }
+    
+    console.log('🎨 UI updated with prices');
+}
+
+function showStatus(type, message) {
+    const statusEl = document.getElementById('statusMessage');
+    if (statusEl) {
+        statusEl.textContent = message;
+        statusEl.className = `status-${type}`;
+    }
+    console.log(`📢 Status (${type}): ${message}`);
+}
+
+// 🎯 MAIN DOMContentLoaded EVENT
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Initializing wallet with REAL data fetching...');
 
@@ -5449,9 +5591,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ All event listeners initialized');
 
-    // Initialize wallet with REAL data support
+    // Initialize wallet with REAL data support - FIXED CALL
     console.log('🚀 DOM loaded, initializing wallet with REAL data...');
-    initWallet();
+    initializeWalletWithRealData(); // 🎯 CHANGED FROM initWallet() TO initializeWalletWithRealData()
 });
 
 console.log('✅ COMPLETE REAL DATA Wallet System LOADED');
