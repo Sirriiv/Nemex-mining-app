@@ -1,4 +1,32 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION (NO LOCALSTORAGE - SUPABASE ONLY)
+// assets/js/wallet.js - COMPLETE FIXED VERSION WITH SUPABASE INITIALIZATION
+// =============================================
+// 🎯 SUPABASE INITIALIZATION - ADD THIS AT THE TOP
+// =============================================
+
+// Initialize Supabase client
+const SUPABASE_URL = 'https://bjulifvbfogymoduxnzl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg5Mzg4ODUsImV4cCI6MjA0NDUxNDg4NX0.7M9Mynk8PHT1-DgI0kP3DgauJ8n5w1kS9n7x1wXqJ5k';
+
+// Create Supabase client
+const supabase = window.supabase || (() => {
+    console.log('🚀 Initializing Supabase client...');
+    return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: true
+        }
+    });
+})();
+
+// Make supabase available globally
+window.supabase = supabase;
+console.log('✅ Supabase client initialized');
+
+// =============================================
+// 🎯 SECURE MNEMONIC MANAGER CLASS
+// =============================================
+
 class SecureMnemonicManager {
     constructor() {
         console.log('✅ Secure Mnemonic Manager initialized');
@@ -300,6 +328,10 @@ class SecureMnemonicManager {
         return mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
     }
 }
+
+// =============================================
+// 🎯 TON WALLET MANAGER CLASS
+// =============================================
 
 class TONWalletManager {
     constructor() {
