@@ -12,8 +12,7 @@ console.log('✅ Wallet Routes - COMPLETE FIXED VERSION WITH ENHANCED SESSION HA
 
 // Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcyODkzODg4NSwiZXhwIjoyMDQ0NTE0ODg1fQ.8ytrVcJf6VY4Bhr1bZ5Oj4q6p3p5w6Q7X8zV9C0vJ7k';
-const supabase = createClient(supabaseUrl, supabaseKey);
+
 
 // Initialize TonWeb
 const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/jsonRPC', {
