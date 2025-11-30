@@ -3069,9 +3069,9 @@
 </div>
     </div>
 
-    <script>
+        <script>
 // =============================================
-// 🚀 COMPLETE FIX: USING NEW WALLET MANAGER
+// 🚀 COMPLETE FIX: SESSION SYNCHRONIZATION
 // =============================================
 
 let walletState = {
@@ -3117,7 +3117,7 @@ let SUPPORTED_TOKENS = [
 ];
 
 // =============================================
-// 🎯 CORE WALLET FUNCTIONS - UPDATED FOR NEW MANAGER
+// 🎯 CORE WALLET FUNCTIONS - FIXED SESSION DETECTION
 // =============================================
 
 async function checkWalletSession() {
@@ -3129,31 +3129,71 @@ async function checkWalletSession() {
     sessionCheckInProgress = true;
 
     try {
-        console.log('🔍 Checking for wallet session with HTTPS compatibility...');
+        console.log('🔍 Checking for wallet session with MULTIPLE methods...');
 
-        // Check custom session first
+        // 🎯 METHOD 1: Check Supabase Auth session (PRIMARY)
+        if (window.supabase && window.supabase.auth) {
+            const { data: { session }, error } = await window.supabase.auth.getSession();
+            if (session && !error) {
+                console.log('✅ Supabase session found:', session.user.id);
+                return { 
+                    session,
+                    user: session.user,
+                    method: 'supabase_auth'
+                };
+            }
+        }
+
+        // 🎯 METHOD 2: Check localStorage for Supabase session
+        try {
+            const authToken = localStorage.getItem('supabase.auth.token');
+            if (authToken) {
+                const parsedToken = JSON.parse(authToken);
+                if (parsedToken.currentSession?.user) {
+                    const user = parsedToken.currentSession.user;
+                    console.log('✅ User found in localStorage Supabase session:', user.id);
+                    return { 
+                        user: user,
+                        session: { user: user },
+                        method: 'local_storage'
+                    };
+                }
+            }
+        } catch (localStorageError) {
+            console.log('ℹ️ No Supabase session in localStorage');
+        }
+
+        // 🎯 METHOD 3: Check custom session (your mining app)
         const customSession = localStorage.getItem('nemexcoin_user_session');
         if (customSession) {
             console.log('✅ Found custom session in localStorage');
             const sessionData = JSON.parse(customSession);
             if (sessionData.loggedIn && sessionData.id) {
-                console.log('✅ Valid custom session found');
+                console.log('✅ Valid custom session found:', sessionData.id);
                 return {
-                    user: { id: sessionData.id },
-                    session: { user: { id: sessionData.id } }
+                    user: { 
+                        id: sessionData.id,
+                        email: sessionData.email 
+                    },
+                    session: { user: { id: sessionData.id } },
+                    method: 'custom_session'
                 };
             }
         }
 
-        // Also check Supabase session with HTTPS compatibility
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session && !error) {
-            console.log('✅ Supabase session found with HTTPS');
-            return { session };
+        // 🎯 METHOD 4: Check global user object
+        if (window.currentUser) {
+            console.log('✅ User found in global window object:', window.currentUser.id);
+            return { 
+                user: window.currentUser,
+                session: { user: window.currentUser },
+                method: 'global_object'
+            };
         }
 
-        console.log('❌ No active session found');
+        console.log('❌ No active session found in any method');
         return null;
+
     } catch (error) {
         console.error('❌ Session check error:', error);
         return null;
@@ -3164,36 +3204,16 @@ async function checkWalletSession() {
 
 async function checkAuth() {
     try {
-        console.log('🔐 Checking authentication with HTTPS compatibility...');
+        console.log('🔐 Checking authentication with enhanced methods...');
 
-        // Check custom session first
-        const customSession = localStorage.getItem('nemexcoin_user_session');
-        if (customSession) {
-            const sessionData = JSON.parse(customSession);
-            if (sessionData.loggedIn && sessionData.id) {
-                console.log('✅ User authenticated via custom session:', sessionData.id);
-                return { 
-                    id: sessionData.id,
-                    email: sessionData.email 
-                };
-            }
+        const sessionResult = await checkWalletSession();
+        if (sessionResult) {
+            console.log('✅ User authenticated via:', sessionResult.method);
+            return sessionResult.user;
         }
 
-        // Fallback to Supabase session with HTTPS
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-            console.error('Session error:', error);
-            return null;
-        }
-
-        if (!session) {
-            console.log('❌ No active session found');
-            return null;
-        }
-
-        console.log('✅ User authenticated via Supabase with HTTPS:', session.user.id);
-        return session.user;
+        console.log('❌ No authentication found');
+        return null;
 
     } catch (error) {
         console.error('❌ Auth check error:', error);
@@ -3201,11 +3221,24 @@ async function checkAuth() {
     }
 }
 
-// 🎯 FIXED: Using new wallet manager
+// 🎯 FIXED: Enhanced wallet initialization with session sync
 async function initWallet() {
-    console.log('🔄 Initializing wallet with NEW wallet manager...');
+    console.log('🔄 Initializing wallet with ENHANCED session detection...');
 
     try {
+        // First, ensure Supabase is properly initialized
+        if (!window.supabase) {
+            console.log('🔄 Waiting for Supabase initialization...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            if (!window.supabase) {
+                console.error('❌ Supabase not available after waiting');
+                throw new Error('Supabase client not loaded');
+            }
+        }
+
+        console.log('✅ Supabase client available:', !!window.supabase);
+
         // Use the new wallet manager
         const walletReady = await tonWalletManager.initializeWalletAPI();
         
@@ -3214,6 +3247,9 @@ async function initWallet() {
         }
 
         console.log('✅ Wallet manager initialized successfully');
+
+        // 🎯 CRITICAL FIX: Force session synchronization
+        await forceSessionSync();
 
         // Check if we have a wallet
         const hasWallet = await tonWalletManager.hasWallet();
@@ -3254,6 +3290,41 @@ async function initWallet() {
     } catch (error) {
         console.error('❌ Wallet initialization failed:', error);
         showStatusMessage('❌ Wallet system not loaded. Please refresh the page.', 'error');
+    }
+}
+
+// 🎯 NEW: Force session synchronization between systems
+async function forceSessionSync() {
+    console.log('🔄 Force syncing sessions between systems...');
+    
+    try {
+        // Get current session from multiple sources
+        const sessionResult = await checkWalletSession();
+        
+        if (sessionResult && sessionResult.user) {
+            console.log('✅ Session sync - User found:', sessionResult.user.id);
+            
+            // Ensure the wallet manager knows about this user
+            if (window.tonWalletManager) {
+                // Force load wallet for this user
+                await window.tonWalletManager.loadWalletForUser(sessionResult.user.id);
+                
+                const currentWallet = await window.tonWalletManager.getCurrentWallet();
+                if (currentWallet) {
+                    console.log('✅ Session sync - Wallet loaded:', currentWallet.address);
+                } else {
+                    console.log('ℹ️ Session sync - No wallet found for user');
+                }
+            }
+            
+            return true;
+        } else {
+            console.log('❌ Session sync - No user session found');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Session sync failed:', error);
+        return false;
     }
 }
 
@@ -3365,7 +3436,7 @@ function updateCurrentUser() {
             id: walletState.userId,
             email: null
         };
-        console.log('✅ currentUser updated with HTTPS compatibility:', currentUser);
+        console.log('✅ currentUser updated:', currentUser);
     } else {
         currentUser = null;
         console.log('🔄 currentUser cleared');
@@ -3380,7 +3451,287 @@ function showWelcomeScreen() {
 }
 
 // =============================================
-// 🎯 WALLET DISPLAY & UI FUNCTIONS
+// 🎯 WALLET CREATION & IMPORT FUNCTIONS - FIXED
+// =============================================
+
+// 🎯 FIXED: Enhanced wallet creation with session verification
+async function checkAndGenerateWallet() {
+    try {
+        console.log('🔄 Starting wallet generation with session verification...');
+
+        const statusElement = document.getElementById('createWalletStatus');
+        const generateBtn = document.getElementById('generateWalletBtn');
+
+        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
+        generateBtn.disabled = true;
+
+        statusElement.innerHTML = '<div class="status-loading">🔄 Generating secure wallet...</div>';
+
+        // 🎯 CRITICAL: Verify session before creating wallet
+        const sessionResult = await checkWalletSession();
+        if (!sessionResult || !sessionResult.user) {
+            throw new Error('Please log in to your mining account first. Refresh the page and try again.');
+        }
+
+        console.log('✅ Session verified, creating wallet for user:', sessionResult.user.id);
+
+        // 🎯 FIXED: Use new wallet manager
+        const result = await tonWalletManager.createNewWallet();
+
+        console.log('✅ Wallet generated successfully:', result);
+
+        currentMnemonic = result.mnemonic;
+
+        // Update wallet state
+        const walletData = result.wallet;
+        walletState = {
+            isInitialized: true,
+            walletType: 'generated',
+            userId: walletData.userId,
+            address: walletData.address,
+            balances: {},
+            lastUpdate: null,
+            sessionCheckComplete: true
+        };
+
+        userWallets.push(walletData);
+
+        showBackupModal(result.mnemonic);
+
+        statusElement.innerHTML = '<div class="status-success">✅ Wallet generated successfully!</div>';
+
+    } catch (error) {
+        console.error('❌ Wallet generation failed:', error);
+        const statusElement = document.getElementById('createWalletStatus');
+        
+        let errorMessage = error.message;
+        if (errorMessage.includes('sign in') || errorMessage.includes('log in')) {
+            errorMessage = 'Please make sure you are logged into your mining account. Refresh the page and try again.';
+        }
+        
+        statusElement.innerHTML = `<div class="status-error">❌ ${errorMessage}</div>`;
+
+        const generateBtn = document.getElementById('generateWalletBtn');
+        generateBtn.innerHTML = 'Generate New Wallet';
+        generateBtn.disabled = false;
+    }
+}
+
+// 🎯 FIXED: Enhanced wallet import with session verification
+async function importWalletFromModal() {
+    try {
+        console.log('🔄 Starting wallet import with session verification...');
+
+        const mnemonicInput = document.getElementById('importMnemonic');
+        const statusElement = document.getElementById('importWalletStatus');
+        const importBtn = document.getElementById('importWalletBtn');
+
+        const mnemonic = mnemonicInput.value.trim();
+
+        if (!mnemonic) {
+            throw new Error('Please enter your recovery phrase');
+        }
+
+        const words = mnemonic.split(' ').filter(word => word.trim().length > 0);
+        if (words.length !== 12 && words.length !== 24) {
+            throw new Error('Recovery phrase must be 12 or 24 words');
+        }
+
+        // 🎯 CRITICAL: Verify session before importing wallet
+        const sessionResult = await checkWalletSession();
+        if (!sessionResult || !sessionResult.user) {
+            throw new Error('Please log in to your mining account first. Refresh the page and try again.');
+        }
+
+        console.log('✅ Session verified, importing wallet for user:', sessionResult.user.id);
+
+        importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Importing...';
+        importBtn.disabled = true;
+
+        statusElement.innerHTML = '<div class="status-loading">🔄 Importing wallet...</div>';
+
+        // 🎯 FIXED: Use new wallet manager
+        const result = await tonWalletManager.importWalletFromMnemonic(mnemonic);
+
+        console.log('✅ Wallet imported successfully:', result);
+
+        // Update wallet state
+        const walletData = result.wallet;
+        walletState = {
+            isInitialized: true,
+            walletType: 'imported',
+            userId: walletData.userId,
+            address: walletData.address,
+            balances: {},
+            lastUpdate: null,
+            sessionCheckComplete: true
+        };
+
+        userWallets.push(walletData);
+        updateCurrentUser();
+        updateWalletDisplay();
+        await updateRealBalances();
+        closeModal();
+
+        statusElement.innerHTML = '<div class="status-success">✅ Wallet imported successfully!</div>';
+        showStatusMessage('✅ Wallet imported successfully!', 'success');
+
+    } catch (error) {
+        console.error('❌ Wallet import failed:', error);
+        const statusElement = document.getElementById('importWalletStatus');
+        
+        let errorMessage = error.message;
+        if (errorMessage.includes('sign in') || errorMessage.includes('log in')) {
+            errorMessage = 'Please make sure you are logged into your mining account. Refresh the page and try again.';
+        }
+        
+        statusElement.innerHTML = `<div class="status-error">❌ ${errorMessage}</div>`;
+
+        const importBtn = document.getElementById('importWalletBtn');
+        importBtn.innerHTML = 'Import Wallet';
+        importBtn.disabled = false;
+    }
+}
+
+// =============================================
+// 🎯 PRODUCTION SWAP FUNCTIONS - FIXED SESSION
+// =============================================
+
+const PRODUCTION_CONFIG = {
+    CONVERSION_RATE: 1/30,
+    MIN_CONVERSION: 30,
+    MAX_CONVERSION: 1000000
+};
+
+async function getUserNMXpBalance(userId) {
+    try {
+        console.log('💰 Fetching NMXp balance for user:', userId);
+
+        const sessionData = await checkWalletSession();
+        if (!sessionData) {
+            throw new Error('No valid session found');
+        }
+
+        // Use the same Supabase instance that wallet.js uses
+        const { data: profile, error } = await window.supabase
+            .from('profiles')
+            .select('balance, wallet_address')
+            .eq('id', userId)
+            .single();
+
+        if (error) {
+            console.error('❌ Error fetching NMXp balance:', error);
+            return {
+                balance: 0,
+                wallet_address: null
+            };
+        }
+
+        if (!profile) {
+            console.log('❌ No profile found for user');
+            return {
+                balance: 0,
+                wallet_address: null
+            };
+        }
+
+        const balance = parseInt(profile.balance) || 0;
+        console.log('✅ NMXp balance fetched:', balance);
+
+        return {
+            balance: balance,
+            wallet_address: profile.wallet_address
+        };
+
+    } catch (error) {
+        console.error('❌ Error in getUserNMXpBalance:', error);
+        return {
+            balance: 0,
+            wallet_address: null
+        };
+    }
+}
+
+async function loadProductionSwapData() {
+    console.log('🔄 loadProductionSwapData CALLED with enhanced session support');
+
+    try {
+        // 🎯 FIXED: Use enhanced session check
+        const sessionResult = await checkWalletSession();
+        if (!sessionResult || !sessionResult.user) {
+            console.error('❌ User not authenticated');
+            setBalanceDisplay(0);
+            showToast('Please log in to access swap features', 'error');
+            return;
+        }
+
+        const userData = await getUserNMXpBalance(sessionResult.user.id);
+        const nmxpBalance = userData.balance;
+
+        console.log('💰 User NMXp Balance:', nmxpBalance);
+        console.log('🎯 Calling setBalanceDisplay with:', nmxpBalance);
+
+        setBalanceDisplay(nmxpBalance);
+        updateWalletAddressDisplay(userData.wallet_address);
+
+        console.log('✅ loadProductionSwapData COMPLETED');
+
+    } catch (error) {
+        console.error('❌ Error loading production swap data:', error);
+        setBalanceDisplay(0);
+        showToast('Error loading balance data', 'error');
+    }
+}
+
+// =============================================
+// 🎯 UTILITY FUNCTIONS (Keep existing)
+// =============================================
+
+function formatNumber(number) {            
+    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+function showToast(message, type = 'info') {
+    let toast = document.getElementById('globalToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'globalToast';
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            z-index: 10000;
+            transition: all 0.3s ease;
+            max-width: 90%;
+            text-align: center;
+        `;
+        document.body.appendChild(toast);
+    }
+
+    const styles = {
+        success: 'background: var(--success);',
+        error: 'background: var(--error);',
+        info: 'background: var(--gold);',
+        warning: 'background: var(--warning); color: #000;'
+    };
+
+    toast.style.cssText += styles[type] || styles.info;
+    toast.textContent = message;
+    toast.style.display = 'block';
+
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
+
+// ... (Keep all your existing UI functions the same - they don't need changes)
+// =============================================
+// 🎯 WALLET DISPLAY & UI FUNCTIONS (NO CHANGES)
 // =============================================
 
 function updateWalletDisplay() {
@@ -3562,1628 +3913,11 @@ function formatTokenPrice(price) {
 }
 
 // =============================================
-// 🎯 WALLET MANAGEMENT FUNCTIONS - UPDATED
-// =============================================
-
-function toggleWalletManagement() {
-    const content = document.getElementById('walletManagementContent');
-    const arrow = document.querySelector('.wallet-management-arrow');
-    const header = document.querySelector('.wallet-management-header');
-
-    if (content.classList.contains('expanded')) {
-        content.classList.remove('expanded');
-        arrow.classList.remove('expanded');
-        header.classList.remove('active');
-    } else {
-        content.classList.add('expanded');
-        arrow.classList.add('expanded');
-        header.classList.add('active');
-        loadUserWallets();
-    }
-}
-
-async function loadUserWallets() {
-    try {
-        console.log('🔄 Loading user wallets...');
-
-        const sessionData = await checkWalletSession();
-        if (!sessionData) {
-            console.log('❌ No HTTPS session for wallet loading');
-            return;
-        }
-
-        const userId = sessionData.user?.id || sessionData.session?.user?.id;
-        if (!userId) {
-            console.log('❌ No user ID in session');
-            return;
-        }
-
-        console.log('🔍 Fetching wallets for user:', userId);
-
-        try {
-            const response = await fetch(`/api/wallet/user-wallets/${userId}`);
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.wallets) {
-                    userWallets = data.wallets;
-                    console.log(`✅ Loaded ${userWallets.length} wallets from Supabase`);
-                } else {
-                    console.log('❌ No wallets found in Supabase response');
-                    userWallets = [];
-                }
-            } else {
-                console.log('❌ API call failed');
-                userWallets = [];
-            }
-        } catch (apiError) {
-            console.error('❌ API error:', apiError);
-            userWallets = [];
-        }
-
-        userWallets = userWallets.filter((wallet, index, self) => 
-            index === self.findIndex(w => w.address === wallet.address)
-        );
-
-        console.log(`✅ Final wallet list: ${userWallets.length} unique wallets`);
-        updateWalletList();
-
-    } catch (error) {
-        console.error('❌ Failed to load user wallets:', error);
-        userWallets = [];
-        updateWalletList();
-    }
-}
-
-function updateWalletList() {
-    const walletList = document.getElementById('walletList');
-    if (!walletList) {
-        console.log('ℹ️ Wallet list element not found');
-        return;
-    }
-
-    const uniqueWallets = userWallets.filter((wallet, index, self) => 
-        index === self.findIndex(w => w.address === wallet.address)
-    );
-
-    console.log(`🔄 Updating wallet list: ${uniqueWallets.length} unique wallets found`);
-
-    if (uniqueWallets.length > 0) {
-        walletList.innerHTML = uniqueWallets.map(wallet => `
-            <div class="wallet-item ${wallet.address === walletState.address ? 'active' : ''}">
-                <div class="wallet-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="wallet-info">
-                    <div class="wallet-name-display">
-                        ${wallet.source === 'generated' ? 'Generated Wallet' : 'Imported Wallet'} 
-                        ${wallet.address === walletState.address ? 
-                            '<span class="active-badge">(Active)</span>' : 
-                            '<span class="inactive-badge">(Inactive)</span>'
-                        }
-                    </div>
-                    <div class="wallet-address">${formatAddress(wallet.address)}</div>
-                    <div class="wallet-meta">
-                        <span class="wallet-type ${wallet.source}">${wallet.source}</span>
-                        ${wallet.wordCount ? `<span class="wallet-words">${wallet.wordCount} words</span>` : ''}
-                    </div>
-                </div>
-                <div class="wallet-actions">
-                    ${wallet.address !== walletState.address ? 
-                        `<button class="wallet-action-btn switch" onclick="switchToWallet('${wallet.address}')" title="Switch to this wallet">
-                            <i class="fas fa-exchange-alt"></i> Switch
-                        </button>` : 
-                        '<button class="wallet-action-btn active" disabled><i class="fas fa-check"></i> Active</button>'
-                    }
-                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${wallet.address}')" title="View seed phrase">
-                        <i class="fas fa-seedling"></i> Seed
-                    </button>
-                    ${wallet.address !== walletState.address ? 
-                        `<button class="wallet-action-btn delete" onclick="showDeleteWalletModal('${wallet.address}')" title="Delete wallet">
-                            <i class="fas fa-trash"></i> Delete
-                        </button>` : 
-                        ''
-                    }
-                </div>
-            </div>
-        `).join('');
-    } else if (walletState.isInitialized && walletState.address) {
-        walletList.innerHTML = `
-            <div class="wallet-item active">
-                <div class="wallet-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="wallet-info">
-                    <div class="wallet-name-display">
-                        ${walletState.walletType === 'new' ? 'Generated Wallet' : 'Imported Wallet'} 
-                        <span class="active-badge">(Active)</span>
-                    </div>
-                    <div class="wallet-address">${formatAddress(walletState.address)}</div>
-                    <div class="wallet-meta">
-                        <span class="wallet-type ${walletState.walletType}">${walletState.walletType || 'active'}</span>
-                    </div>
-                </div>
-                <div class="wallet-actions">
-                    <button class="wallet-action-btn active" disabled>
-                        <i class="fas fa-check"></i> Active
-                    </button>
-                    <button class="wallet-action-btn view-seed" onclick="showViewSeedPhrase('${walletState.address}')" title="View seed phrase">
-                        <i class="fas fa-seedling"></i> Seed
-                    </button>
-                </div>
-            </div>
-        `;
-    } else {
-        walletList.innerHTML = `
-            <div class="no-wallets-message">
-                <div class="no-wallets-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="no-wallets-text">
-                    <h4>No Wallets Found</h4>
-                    <p>Create or import a wallet to get started with Nemex Wallet.</p>
-                </div>
-            </div>
-        `;
-    }
-}
-
-function formatAddress(address, startChars = 6, endChars = 4) {
-    if (!address) return 'No Address';
-    if (address.length <= startChars + endChars) return address;
-    return `${address.substring(0, startChars)}...${address.substring(address.length - endChars)}`;
-}
-
-async function switchToWallet(address) {
-    try {
-        console.log(`🔄 Switching to wallet: ${address}`);
-
-        const wallet = userWallets.find(w => w.address === address);
-        if (!wallet) {
-            throw new Error('Wallet not found in your wallet list');
-        }
-
-        showToast('Switching wallet...', 'info');
-
-        // 🎯 FIXED: Use new wallet manager
-        await tonWalletManager.setCurrentWallet(wallet);
-
-        walletState = {
-            isInitialized: true,
-            walletType: wallet.source || 'imported',
-            userId: wallet.userId,
-            address: wallet.address,
-            balances: {},
-            lastUpdate: null,
-            sessionCheckComplete: true
-        };
-
-        updateCurrentUser();
-        updateWalletDisplay();
-        await updateRealBalances();
-        updateWalletList();
-
-        showToast(`✅ Switched to wallet: ${formatAddress(address)}`, 'success');
-
-        closeModal();
-
-    } catch (error) {
-        console.error('❌ Wallet switch failed:', error);
-        showToast(`Failed to switch wallet: ${error.message}`, 'error');
-    }
-}
-
-// =============================================
-// 🎯 WALLET CREATION & IMPORT FUNCTIONS - UPDATED
-// =============================================
-
-function showCreateWalletModal() {
-    console.log('🔄 Opening create wallet modal...');
-    closeModal();
-
-    const createWalletModal = document.getElementById('createWalletModal');
-    if (createWalletModal) {
-        createWalletModal.style.display = 'flex';
-    }
-}
-
-function showImportWalletModal() {
-    console.log('🔄 Opening import wallet modal...');
-    closeModal();
-
-    const importWalletModal = document.getElementById('importWalletModal');
-    if (importWalletModal) {
-        importWalletModal.style.display = 'flex';
-    }
-}
-
-// 🎯 FIXED: Using new wallet manager for creation
-async function checkAndGenerateWallet() {
-    try {
-        console.log('🔄 Starting wallet generation...');
-
-        const statusElement = document.getElementById('createWalletStatus');
-        const generateBtn = document.getElementById('generateWalletBtn');
-
-        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
-        generateBtn.disabled = true;
-
-        statusElement.innerHTML = '<div class="status-loading">🔄 Generating secure wallet...</div>';
-
-        // 🎯 FIXED: Use new wallet manager
-        const result = await tonWalletManager.createNewWallet();
-
-        console.log('✅ Wallet generated successfully:', result);
-
-        currentMnemonic = result.mnemonic;
-
-        // Update wallet state
-        const walletData = result.wallet;
-        walletState = {
-            isInitialized: true,
-            walletType: 'generated',
-            userId: walletData.userId,
-            address: walletData.address,
-            balances: {},
-            lastUpdate: null,
-            sessionCheckComplete: true
-        };
-
-        userWallets.push(walletData);
-
-        showBackupModal(result.mnemonic);
-
-        statusElement.innerHTML = '<div class="status-success">✅ Wallet generated successfully!</div>';
-
-    } catch (error) {
-        console.error('❌ Wallet generation failed:', error);
-        const statusElement = document.getElementById('createWalletStatus');
-        statusElement.innerHTML = `<div class="status-error">❌ Failed to create wallet: ${error.message}</div>`;
-
-        const generateBtn = document.getElementById('generateWalletBtn');
-        generateBtn.innerHTML = 'Generate New Wallet';
-        generateBtn.disabled = false;
-    }
-}
-
-function showBackupModal(mnemonic) {
-    closeModal();
-
-    const backupModal = document.getElementById('backupModal');
-    const mnemonicWords = document.getElementById('mnemonicWords');
-
-    if (backupModal && mnemonicWords) {
-        const words = mnemonic.split(' ');
-        mnemonicWords.innerHTML = words.map((word, index) => `
-            <div class="mnemonic-word">
-                <span class="word-index">${index + 1}.</span>
-                <span class="word-text">${word}</span>
-            </div>
-        `).join('');
-
-        backupModal.style.display = 'flex';
-    }
-}
-
-function toggleContinueButton() {
-    const backupConfirmed = document.getElementById('backupConfirmed');
-    const confirmBackupBtn = document.getElementById('confirmBackupBtn');
-
-    if (backupConfirmed && confirmBackupBtn) {
-        confirmBackupBtn.disabled = !backupConfirmed.checked;
-    }
-}
-
-async function confirmBackupAndContinue() {
-    try {
-        console.log('✅ Backup confirmed, activating wallet...');
-
-        updateCurrentUser();
-        updateWalletDisplay();
-        await updateRealBalances();
-        closeModal();
-        showStatusMessage('✅ Your wallet is now active!', 'success');
-
-    } catch (error) {
-        console.error('❌ Error activating wallet:', error);
-        showStatusMessage('❌ Error activating wallet', 'error');
-    }
-}
-
-// 🎯 FIXED: Using new wallet manager for import
-async function importWalletFromModal() {
-    try {
-        console.log('🔄 Starting wallet import...');
-
-        const mnemonicInput = document.getElementById('importMnemonic');
-        const statusElement = document.getElementById('importWalletStatus');
-        const importBtn = document.getElementById('importWalletBtn');
-
-        const mnemonic = mnemonicInput.value.trim();
-
-        if (!mnemonic) {
-            throw new Error('Please enter your recovery phrase');
-        }
-
-        const words = mnemonic.split(' ').filter(word => word.trim().length > 0);
-        if (words.length !== 12 && words.length !== 24) {
-            throw new Error('Recovery phrase must be 12 or 24 words');
-        }
-
-        importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Importing...';
-        importBtn.disabled = true;
-
-        statusElement.innerHTML = '<div class="status-loading">🔄 Importing wallet...</div>';
-
-        // 🎯 FIXED: Use new wallet manager
-        const result = await tonWalletManager.importWalletFromMnemonic(mnemonic);
-
-        console.log('✅ Wallet imported successfully:', result);
-
-        // Update wallet state
-        const walletData = result.wallet;
-        walletState = {
-            isInitialized: true,
-            walletType: 'imported',
-            userId: walletData.userId,
-            address: walletData.address,
-            balances: {},
-            lastUpdate: null,
-            sessionCheckComplete: true
-        };
-
-        userWallets.push(walletData);
-        updateCurrentUser();
-        updateWalletDisplay();
-        await updateRealBalances();
-        closeModal();
-
-        statusElement.innerHTML = '<div class="status-success">✅ Wallet imported successfully!</div>';
-        showStatusMessage('✅ Wallet imported successfully!', 'success');
-
-    } catch (error) {
-        console.error('❌ Wallet import failed:', error);
-        const statusElement = document.getElementById('importWalletStatus');
-        statusElement.innerHTML = `<div class="status-error">❌ Failed to import wallet: ${error.message}</div>`;
-
-        const importBtn = document.getElementById('importWalletBtn');
-        importBtn.innerHTML = 'Import Wallet';
-        importBtn.disabled = false;
-    }
-}
-
-// =============================================
-// 🎯 SEED PHRASE & SECURITY FUNCTIONS
-// =============================================
-
-async function showViewSeedPhrase(address) {
-    try {
-        console.log(`🔐 Requesting seed phrase for: ${address}`);
-
-        const confirmed = confirm('⚠️ SECURITY WARNING\n\nViewing your seed phrase can compromise your wallet security.\n\nOnly proceed if you are in a secure environment and no one can see your screen.\n\nDo you want to continue?');
-        if (!confirmed) {
-            return;
-        }
-
-        // 🎯 FIXED: Use new wallet manager to get mnemonic
-        const currentWallet = await tonWalletManager.getCurrentWallet();
-        if (!currentWallet || currentWallet.address !== address) {
-            throw new Error('Wallet not found or not active');
-        }
-
-        // For security, we don't store mnemonics in the new system
-        // User should have backed up their mnemonic during creation/import
-        throw new Error('Seed phrase viewing not available in this version. Please use your backup.');
-
-    } catch (error) {
-        console.error('❌ Failed to view seed phrase:', error);
-        showToast(`Cannot view seed phrase: ${error.message}`, 'error');
-    }
-}
-
-async function viewRecoveryPhrase() {
-    try {
-        if (!walletState.isInitialized || !walletState.address) {
-            showToast('No active wallet found', 'error');
-            return;
-        }
-
-        await showViewSeedPhrase(walletState.address);
-    } catch (error) {
-        console.error('❌ Error viewing recovery phrase:', error);
-        showToast('Cannot view recovery phrase', 'error');
-    }
-}
-
-async function copySeedPhrase() {
-    try {
-        showToast('Seed phrase copying not available in this version', 'error');
-    } catch (error) {
-        console.error('❌ Failed to copy seed phrase:', error);
-        showToast('❌ Failed to copy recovery phrase', 'error');
-    }
-}
-
-function showDeleteWalletModal(address) {
-    const wallet = userWallets.find(w => w.address === address);
-    if (!wallet) {
-        showToast('Wallet not found', 'error');
-        return;
-    }
-
-    if (address === walletState.address) {
-        showToast('Cannot delete the active wallet. Please switch to another wallet first.', 'error');
-        return;
-    }
-
-    document.getElementById('deleteWalletAddress').textContent = formatAddress(address);
-    document.getElementById('deleteConfirmation').value = '';
-    document.getElementById('deleteWalletStatus').innerHTML = '';
-
-    const deleteModal = document.getElementById('deleteWalletModal');
-    if (deleteModal) {
-        deleteModal.style.display = 'flex';
-    }
-
-    deleteModal.dataset.walletAddress = address;
-}
-
-async function confirmDeleteWallet() {
-    const deleteModal = document.getElementById('deleteWalletModal');
-    const address = deleteModal.dataset.walletAddress;
-    const confirmation = document.getElementById('deleteConfirmation').value;
-    const statusElement = document.getElementById('deleteWalletStatus');
-    const confirmBtn = document.getElementById('confirmDeleteBtn');
-
-    if (!address) {
-        showToast('No wallet address specified', 'error');
-        return;
-    }
-
-    if (confirmation !== 'DELETE') {
-        statusElement.innerHTML = '<div class="status-error">Please type "DELETE" to confirm</div>';
-        return;
-    }
-
-    try {
-        confirmBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Deleting...';
-        confirmBtn.disabled = true;
-
-        console.log(`🗑️ Deleting wallet: ${address}`);
-
-        userWallets = userWallets.filter(w => w.address !== address);
-        
-        // 🎯 FIXED: Use new wallet manager to clear
-        if (address === (await tonWalletManager.getCurrentWallet())?.address) {
-            tonWalletManager.clearWallet();
-        }
-        
-        updateWalletList();
-
-        statusElement.innerHTML = '<div class="status-success">✅ Wallet deleted successfully</div>';
-
-        setTimeout(() => {
-            closeModal();
-            showToast('Wallet deleted successfully', 'success');
-        }, 1500);
-
-    } catch (error) {
-        console.error('❌ Wallet deletion failed:', error);
-        statusElement.innerHTML = `<div class="status-error">❌ Failed to delete wallet: ${error.message}</div>`;
-        confirmBtn.innerHTML = 'Delete Wallet';
-        confirmBtn.disabled = false;
-    }
-}
-
-async function logout() {
-    try {
-        console.log('🚪 Logging out with HTTPS session cleanup...');
-
-        localStorage.removeItem('nemexcoin_user_session');
-        localStorage.removeItem('nemexcoin_user');
-        sessionStorage.removeItem('nemex_user_session');
-
-        await supabase.auth.signOut();
-
-        // 🎯 FIXED: Use new wallet manager to clear
-        tonWalletManager.clearWallet();
-
-        walletState = {
-            isInitialized: false,
-            walletType: null,
-            userId: null,
-            address: null,
-            balances: {},
-            lastUpdate: null,
-            sessionCheckComplete: false
-        };
-
-        currentUser = null;
-        userWallets = [];
-
-        updateWalletDisplay();
-
-        console.log('✅ Logout completed with HTTPS session cleanup');
-
-        showToast('Logged out successfully', 'success');
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 1500);
-
-    } catch (error) {
-        console.error('❌ Logout error:', error);
-        showToast('Error during logout', 'error');
-    }
-}
-
-// =============================================
-// 🎯 MODAL & UI FUNCTIONS (Keep existing)
-// =============================================
-
-function closeModal() {
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.style.display = 'none';
-    });
-}
-
-function showSettingsModal() {
-    closeModal();
-    updateWalletList();
-    const settingsModal = document.getElementById('settingsModal');
-    if (settingsModal) settingsModal.style.display = 'flex';
-}
-
-function showSendModal() {
-    if (!walletState.isInitialized) {
-        showStatusMessage('Please create or import a wallet first', 'error');
-        return;
-    }
-
-    console.log('🔄 Opening send modal, wallet state:', walletState);
-
-    document.getElementById('sendToAddress').value = '';
-    document.getElementById('sendAmount').value = '';
-    document.getElementById('sendMemo').value = '';
-    document.getElementById('sendStatus').innerHTML = '';
-    document.getElementById('sendSummary').style.display = 'none';
-    document.getElementById('addressValidation').innerHTML = '';
-
-    document.getElementById('tokenDropdown').style.display = 'none';
-    document.getElementById('dropdownArrow').style.transform = 'rotate(0deg)';
-
-    updateSendBalances();
-    updateFeeDisplay();
-    updateDropdownBalances();
-
-    const sendModal = document.getElementById('sendModal');
-    if (sendModal) {
-        sendModal.style.display = 'flex';
-        sendModal.style.animation = 'slideInUp 0.3s ease-out';
-        console.log('✅ Send modal opened with balances updated');
-    }
-}
-
-function showReceiveModal() {
-    if (!walletState.isInitialized || !walletState.address) {
-        showStatusMessage('Please create or import a wallet first', 'error');
-        return;
-    }
-
-    console.log('🔄 Opening receive modal for address:', walletState.address);
-
-    closeModal();
-    initializeWalletCard();
-
-    const receiveModal = document.getElementById('receiveModal');
-    if (receiveModal) {
-        receiveModal.style.display = 'flex';
-        console.log('✅ Receive modal opened');
-    } else {
-        console.error('❌ Receive modal element not found');
-    }
-}
-
-function showSwapModal() {
-    if (!walletState.isInitialized) {
-        showStatusMessage('Please create or import a wallet first', 'error');
-        return;
-    }
-
-    console.log('🔄 Opening swap modal');
-    closeModal();
-    openProductionSwapModal();
-}
-
-function showBuyModal() {
-    if (!walletState.isInitialized) {
-        showStatusMessage('Please create or import a wallet first', 'error');
-        return;
-    }
-
-    console.log('🔄 Opening buy modal');
-    closeModal();
-    const buyModal = document.getElementById('buyModal');
-    if (buyModal) buyModal.style.display = 'flex';
-}
-
-function showWalletView() {
-    console.log('📱 Showing wallet view');
-}
-
-function showHistoryView() {
-    console.log('📊 Showing history view');
-    alert('Transaction history coming soon!');
-}
-
-function showMainWalletInterface() {
-    console.log('📱 Showing main wallet interface');
-    const onboarding = document.getElementById('onboardingSection');
-    const walletInterface = document.getElementById('walletInterface');
-
-    if (onboarding) onboarding.style.display = 'none';
-    if (walletInterface) walletInterface.style.display = 'block';
-
-    if (typeof refreshWalletDisplay === 'function') {
-        refreshWalletDisplay();
-    }
-}
-
-// =============================================
-// 🎯 SEND MODAL FUNCTIONS (Keep existing)
-// =============================================
-
-let currentSendToken = 'TON';
-let currentTokenBalance = 0;
-let currentTokenPrice = 0;
-const TRANSACTION_FEE = 0.001;
-
-function toggleTokenDropdown() {
-    const dropdown = document.getElementById('tokenDropdown');
-    const arrow = document.getElementById('dropdownArrow');
-
-    if (dropdown.style.display === 'block') {
-        dropdown.style.display = 'none';
-        arrow.style.transform = 'rotate(0deg)';
-    } else {
-        dropdown.style.display = 'block';
-        arrow.style.transform = 'rotate(180deg)';
-        updateDropdownBalances();
-    }
-}
-
-function selectToken(symbol, name, logoUrl) {
-    currentSendToken = symbol;
-
-    const selectedLogo = document.getElementById('selectedTokenLogo');
-    const selectedTokenName = document.getElementById('selectedTokenName');
-    const selectedTokenSymbol = document.getElementById('selectedTokenSymbol');
-
-    selectedLogo.src = logoUrl;
-    selectedLogo.alt = name;
-    selectedLogo.onerror = function() { handleTokenLogoError(this, symbol); };
-
-    if (selectedTokenName) selectedTokenName.textContent = name;
-    if (selectedTokenSymbol) selectedTokenSymbol.textContent = symbol;
-
-    toggleTokenDropdown();
-
-    updateSendBalances();
-    updateFeeDisplay();
-    updateSendSummary();
-
-    const selectedToken = document.querySelector('.dropdown-selected');
-    selectedToken.style.borderColor = 'var(--gold)';
-    selectedToken.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.1) 100%)';
-    setTimeout(() => {
-        selectedToken.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-        selectedToken.style.background = 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%)';
-    }, 500);
-}
-
-function updateDropdownBalances() {
-    const tonToken = SUPPORTED_TOKENS.find(token => token.symbol === 'TON');
-    const tonBalanceElement = document.getElementById('tonBalanceDropdown');
-    if (tonBalanceElement && tonToken) {
-        tonBalanceElement.textContent = formatTokenBalance(tonToken.balance);
-    }
-
-    const nmxToken = SUPPORTED_TOKENS.find(token => token.symbol === 'NMX');
-    const nmxBalanceElement = document.getElementById('nmxBalanceDropdown');
-    if (nmxBalanceElement && nmxToken) {
-        nmxBalanceElement.textContent = formatTokenBalance(nmxToken.balance);
-    }
-}
-
-function updateSendBalances() {
-    console.log('🔄 updateSendBalances called for token:', currentSendToken);
-
-    const token = SUPPORTED_TOKENS.find(t => t.symbol === currentSendToken);
-    currentTokenBalance = token ? token.balance : 0;
-    currentTokenPrice = token ? token.price : 0;
-
-    console.log('📊 Token data:', {
-        symbol: currentSendToken,
-        balance: currentTokenBalance,
-        price: currentTokenPrice
-    });
-
-    const balanceElement = document.getElementById('remainingBalance');
-    const tokenElement = document.getElementById('remainingToken');
-
-    if (balanceElement && tokenElement) {
-        balanceElement.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            balanceElement.style.transform = 'scale(1)';
-        }, 300);
-
-        balanceElement.textContent = formatTokenBalance(currentTokenBalance);
-        tokenElement.textContent = currentSendToken;
-
-        console.log('✅ Updated available balance:', currentTokenBalance, currentSendToken);
-    } else {
-        console.error('❌ Balance elements not found');
-    }
-
-    updateDropdownBalances();
-    updateUsdConversion();
-}
-
-function updateUsdConversion() {
-    const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
-    const usdValue = amount * currentTokenPrice;
-
-    const usdElement = document.getElementById('sendUsdValue');
-    if (usdElement) {
-        usdElement.textContent = usdValue.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-    }
-
-    const feeUsdElement = document.getElementById('feeUsdValue');
-    if (feeUsdElement) {
-        const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
-        const tonPrice = tonToken ? tonToken.price : 0;
-        const feeUsd = TRANSACTION_FEE * tonPrice;
-        feeUsdElement.textContent = feeUsd.toFixed(4);
-    }
-}
-
-function updateFeeDisplay() {
-    const feeElement = document.getElementById('transactionFee');
-    if (feeElement) {
-        if (currentSendToken === 'TON') {
-            feeElement.textContent = `${TRANSACTION_FEE} TON`;
-        } else {
-            feeElement.textContent = `${TRANSACTION_FEE} TON (gas fee)`;
-        }
-    }
-    updateUsdConversion();
-}
-
-async function pasteAddress() {
-    try {
-        const text = await navigator.clipboard.readText();
-        const addressInput = document.getElementById('sendToAddress');
-        addressInput.value = text;
-
-        addressInput.style.borderColor = 'var(--success)';
-        setTimeout(() => {
-            addressInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-        }, 1000);
-
-        validateSendAddress();
-        updateSendSummary();
-
-        showStatusMessage('Address pasted successfully!', 'success', document.getElementById('sendStatus'));
-    } catch (error) {
-        console.error('Failed to paste address:', error);
-        showStatusMessage('Failed to paste from clipboard', 'error', document.getElementById('sendStatus'));
-    }
-}
-
-function validateSendAddress() {
-    const addressInput = document.getElementById('sendToAddress');
-    const validationElement = document.getElementById('addressValidation');
-    const address = addressInput.value.trim();
-
-    if (!address) {
-        validationElement.innerHTML = '';
-        addressInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-        return false;
-    }
-
-    const isValid = address.startsWith('EQ') || address.startsWith('UQ');
-
-    if (isValid) {
-        validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address format</span>';
-        addressInput.style.borderColor = 'var(--success)';
-    } else {
-        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid TON address format</span>';
-        addressInput.style.borderColor = 'var(--error)';
-    }
-
-    return isValid;
-}
-
-function setMaxAmount() {
-    const amountInput = document.getElementById('sendAmount');
-
-    if (currentSendToken === 'TON') {
-        const maxAmount = Math.max(0, currentTokenBalance - TRANSACTION_FEE);
-        amountInput.value = maxAmount.toFixed(6);
-    } else {
-        amountInput.value = currentTokenBalance;
-    }
-
-    amountInput.style.borderColor = 'var(--gold)';
-    setTimeout(() => {
-        amountInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-    }, 500);
-
-    updateUsdConversion();
-    updateSendSummary();
-}
-
-function updateSendSummary() {
-    const amount = parseFloat(document.getElementById('sendAmount').value) || 0;
-    const toAddress = document.getElementById('sendToAddress').value.trim();
-    const memo = document.getElementById('sendMemo').value;
-
-    const summaryElement = document.getElementById('sendSummary');
-    const detailsElement = document.getElementById('sendSummaryDetails');
-
-    updateUsdConversion();
-
-    if (amount > 0 && toAddress) {
-        const isValid = toAddress.startsWith('EQ') || toAddress.startsWith('UQ');
-
-        const usdValue = (amount * currentTokenPrice).toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
-
-        let summaryText = `
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
-                <div style="color: var(--text-muted);">Token:</div>
-                <div style="text-align: right; font-weight: 600; color: var(--gold);">${currentSendToken}</div>
-                
-                <div style="color: var(--text-muted);">Amount:</div>
-                <div style="text-align: right; font-weight: 600;">${amount} ${currentSendToken}</div>
-                
-                <div style="color: var(--text-muted);">Value:</div>
-                <div style="text-align: right; font-weight: 600;">$${usdValue} USD</div>
-                
-                <div style="color: var(--text-muted);">Network Fee:</div>
-                <div style="text-align: right; font-weight: 600;">${TRANSACTION_FEE} TON</div>
-            </div>
-        `;
-
-        if (memo) {
-            summaryText += `
-                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(212, 175, 55, 0.2);">
-                    <div style="color: var(--text-muted); font-size: 13px;">Memo:</div>
-                    <div style="color: var(--text); font-weight: 600; font-size: 13px;">"${memo}"</div>
-                </div>
-            `;
-        }
-
-        summaryText += `
-            <div style="margin-top: 16px; padding: 12px; background: ${isValid ? 'rgba(0, 200, 81, 0.1)' : 'rgba(255, 68, 68, 0.1)'}; border-radius: 8px; border: 1px solid ${isValid ? 'var(--success)' : 'var(--error)'};">
-                <div style="color: ${isValid ? 'var(--success)' : 'var(--error)'}; font-weight: 600; font-size: 13px; text-align: center;">
-                    ${isValid ? '✓ Ready to send transaction' : '✗ Please check recipient address'}
-                </div>
-            </div>
-        `;
-
-        detailsElement.innerHTML = summaryText;
-        summaryElement.style.display = 'block';
-    } else {
-        summaryElement.style.display = 'none';
-    }
-}
-
-async function confirmSendTransaction() {
-    const toAddress = document.getElementById('sendToAddress').value.trim();
-    const amount = parseFloat(document.getElementById('sendAmount').value);
-    const memo = document.getElementById('sendMemo').value;
-    const statusElement = document.getElementById('sendStatus');
-    const confirmBtn = document.getElementById('confirmSendBtn');
-
-    if (!toAddress) {
-        showStatusMessage('Please enter recipient address', 'error', statusElement);
-        document.getElementById('sendToAddress').focus();
-        return;
-    }
-
-    if (!amount || amount <= 0) {
-        showStatusMessage('Please enter valid amount', 'error', statusElement);
-        document.getElementById('sendAmount').focus();
-        return;
-    }
-
-    if (!validateSendAddress()) {
-        showStatusMessage('Please enter valid TON address', 'error', statusElement);
-        return;
-    }
-
-    if (currentSendToken === 'TON') {
-        const totalCost = amount + TRANSACTION_FEE;
-        if (totalCost > currentTokenBalance) {
-            showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(6)} TON (including fee)`, 'error', statusElement);
-            return;
-        }
-    } else {
-        const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
-        if (amount > currentTokenBalance) {
-            showStatusMessage(`Insufficient ${currentSendToken} balance`, 'error', statusElement);
-            return;
-        }
-        if (!tonToken || tonToken.balance < TRANSACTION_FEE) {
-            showStatusMessage(`Insufficient TON for gas fee (need ${TRANSACTION_FEE} TON)`, 'error', statusElement);
-            return;
-        }
-    }
-
-    try {
-        confirmBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Processing Transaction...';
-        confirmBtn.disabled = true;
-        confirmBtn.style.opacity = '0.7';
-
-        showStatusMessage(' Processing transaction. . .', 'loading', statusElement);
-
-        // 🎯 FIXED: Send transaction logic would go here
-        // For now, show success message
-        showStatusMessage(`✅ Transaction submitted for ${amount} ${currentSendToken}`, 'success', statusElement);
-        confirmBtn.innerHTML = 'Transaction Sent!';
-
-        setTimeout(() => {
-            updateRealBalances();
-        }, 2000);
-
-        setTimeout(() => {
-            closeModal();
-            setTimeout(() => {
-                confirmBtn.innerHTML = 'Confirm Send';
-                confirmBtn.disabled = false;
-                confirmBtn.style.opacity = '1';
-            }, 1000);
-        }, 3000);
-
-    } catch (error) {
-        console.error('Send transaction failed:', error);
-        showStatusMessage(`❌ Transaction failed: ${error.message}`, 'error', statusElement);
-        confirmBtn.innerHTML = 'Confirm Send';
-        confirmBtn.disabled = false;
-        confirmBtn.style.opacity = '1';
-    }
-}
-
-// =============================================
-// 🎯 RECEIVE MODAL FUNCTIONS (Keep existing)
-// =============================================
-
-let currentReceiveToken = 'TON';
-
-function initializeWalletCard() {
-    const address = walletState.address;
-    const userId = walletState.userId;
-
-    console.log('🔄 Initializing wallet card with address:', address);
-
-    if (!address) {
-        console.log('❌ No wallet address available for receive modal');
-        return;
-    }
-
-    const addressFull = document.getElementById('addressFull');
-    if (addressFull) {
-        addressFull.textContent = address;
-        addressFull.style.color = 'var(--gold)';
-        console.log('✅ Receive modal address set:', address);
-    }
-
-    const walletIdentifier = document.getElementById('walletIdentifier');
-    if (walletIdentifier && userId) {
-        const shortHash = generateShortHash(userId);
-        walletIdentifier.textContent = `#${shortHash}`;
-    }
-
-    selectReceiveToken('TON');
-    console.log('✅ Wallet card initialized with real data:', address);
-}
-
-function selectReceiveToken(token) {
-    currentReceiveToken = token;
-
-    document.querySelectorAll('.token-option').forEach(option => {
-        option.classList.remove('active');
-    });
-
-    const activeOption = document.querySelector(`[data-token="${token}"]`);
-    if (activeOption) {
-        activeOption.classList.add('active');
-    }
-
-    const tokenIndicator = document.getElementById('activeTokenIndicator');
-    if (tokenIndicator) {
-        tokenIndicator.textContent = token;
-    }
-
-    const networkType = document.getElementById('cardNetworkType');
-    if (networkType) {
-        networkType.textContent = `${token} Wallet`;
-    }
-}
-
-function copyWalletAddress() {
-    const address = walletState.address;
-    if (!address) {
-        showStatusMessage('No wallet address available', 'error');
-        return;
-    }
-
-    navigator.clipboard.writeText(address).then(() => {
-        showStatusMessage(`✅ ${currentReceiveToken} address copied!`, 'success');
-
-        const card = document.getElementById('walletCard');
-        if (card) {
-            card.style.transform = 'scale(0.98)';
-            card.style.borderColor = 'var(--success)';
-            setTimeout(() => {
-                card.style.transform = 'scale(1)';
-                card.style.borderColor = 'rgba(212, 175, 55, 0.3)';
-            }, 300);
-        }
-    }).catch(err => {
-        console.error('Failed to copy address:', err);
-        showStatusMessage('❌ Failed to copy address', 'error');
-    });
-}
-
-function showAddressDetails() {
-    const address = walletState.address;
-    if (!address) {
-        showStatusMessage('No wallet address available', 'error');
-        return;
-    }
-
-    const details = `
-🔐 **Wallet Address Details**
-
-📍 **Address:** ${address}
-
-🦅 **Network:** TON Mainnet
-💫 **Type:** Universal TON Address
-
-🎯 **Supported Tokens:**
-• TON (Toncoin)
-• NMX (NemexCoin)
-• Any TEP-64 tokens
-• All TON-based assets
-
-📱 **Wallet:** Nemex Wallet
-👤 **User ID:** ${walletState.userId || 'N/A'}
-
-🌐 **Universal Compatibility:**
-This single address can receive all supported TON blockchain tokens.
-    `.trim();
-
-    alert(details);
-}
-
-function generateShortHash(input) {
-    let hash = 0;
-    for (let i = 0; i < input.length; i++) {
-        const char = input.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return Math.abs(hash).toString(36).substring(0, 4).toUpperCase();
-}
-
-// =============================================
-// 🎯 PRODUCTION SWAP FUNCTIONS (Keep existing)
-// =============================================
-
-const PRODUCTION_CONFIG = {
-    CONVERSION_RATE: 1/30,
-    MIN_CONVERSION: 30,
-    MAX_CONVERSION: 1000000
-};
-
-async function getUserNMXpBalance(userId) {
-    try {
-        console.log('💰 Fetching NMXp balance for user:', userId);
-
-        const sessionData = await checkWalletSession();
-        if (!sessionData) {
-            throw new Error('No valid HTTPS session');
-        }
-
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('balance, wallet_address')
-            .eq('id', userId)
-            .single();
-
-        if (error) {
-            console.error('❌ Error fetching NMXp balance:', error);
-            return {
-                balance: 0,
-                wallet_address: null
-            };
-        }
-
-        if (!profile) {
-            console.log('❌ No profile found for user');
-            return {
-                balance: 0,
-                wallet_address: null
-            };
-        }
-
-        const balance = parseInt(profile.balance) || 0;
-        console.log('✅ NMXp balance fetched:', balance);
-
-        return {
-            balance: balance,
-            wallet_address: profile.wallet_address
-        };
-
-    } catch (error) {
-        console.error('❌ Error in getUserNMXpBalance:', error);
-        return {
-            balance: 0,
-            wallet_address: null
-        };
-    }
-}
-
-async function loadProductionSwapData() {
-    console.log('🔄 loadProductionSwapData CALLED with HTTPS session support');
-
-    try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            console.error('❌ User not authenticated via HTTPS session');
-            setBalanceDisplay(0);
-            showToast('Please log in to access swap features', 'error');
-            return;
-        }
-
-        const userData = await getUserNMXpBalance(userSession.id);
-        const nmxpBalance = userData.balance;
-
-        console.log('💰 User NMXp Balance:', nmxpBalance);
-        console.log('🎯 Calling setBalanceDisplay with:', nmxpBalance);
-
-        setBalanceDisplay(nmxpBalance);
-        updateWalletAddressDisplay(userData.wallet_address);
-
-        console.log('✅ loadProductionSwapData COMPLETED with HTTPS session');
-
-    } catch (error) {
-        console.error('❌ Error loading production swap data:', error);
-        setBalanceDisplay(0);
-        showToast('Error loading balance data', 'error');
-    }
-}
-
-function setBalanceDisplay(balance) {
-    console.log('💥 setBalanceDisplay CALLED with:', balance);
-
-    const attempts = [
-        { delay: 0, name: 'IMMEDIATE' },
-        { delay: 100, name: 'FAST' },
-        { delay: 300, name: 'MEDIUM' },
-        { delay: 500, name: 'SLOW' }
-    ];
-
-    attempts.forEach(attempt => {
-        setTimeout(() => {
-            console.log(`🔍 ${attempt.name} attempt - Looking for #realNmxpBalance`);
-
-            const balanceElement = document.getElementById('realNmxpBalance');
-
-            if (balanceElement) {
-                console.log(`✅ ${attempt.name} - Found element, updating from "${balanceElement.textContent}" to "${formatNumber(balance)}"`);
-                balanceElement.textContent = formatNumber(balance);
-                balanceElement.style.display = 'inline-block';
-                balanceElement.style.visibility = 'visible';
-            } else {
-                console.error(`❌ ${attempt.name} - Balance element not found`);
-
-                const modal = document.getElementById('productionSwapModal');
-                if (modal) {
-                    const modalBalance = modal.querySelector('#realNmxpBalance');
-                    if (modalBalance) {
-                        console.log(`✅ ${attempt.name} - Found via modal query, updating to: ${formatNumber(balance)}`);
-                        modalBalance.textContent = formatNumber(balance);
-                    }
-                }
-            }
-        }, attempt.delay);
-    });
-}
-
-function openProductionSwapModal() {
-    console.log('🚀 openProductionSwapModal CALLED');
-    removeDebugButtons();
-
-    const modal = document.getElementById('productionSwapModal');
-    modal.style.display = 'block';
-    document.body.classList.add('modal-open');
-
-    setTimeout(() => {
-        console.log('🔍 Loading swap data after delay...');
-        loadProductionSwapData();
-        calculateProductionConversion();
-    }, 150);
-}
-
-function closeProductionSwapModal() {
-    document.getElementById('productionSwapModal').style.display = 'none';
-    document.body.classList.remove('modal-open');
-}
-
-function calculateProductionConversion() {
-    const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value) || 0;
-    const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
-
-    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
-    validateProductionConversion(nmxpAmount, nmxAmount);
-}
-
-async function setMaxConversion() {
-    console.log('📈 setMaxConversion CALLED');
-
-    try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            showToast('Please log in first', 'error');
-            return;
-        }
-
-        const userData = await getUserNMXpBalance(userSession.id);
-        const maxAmount = Math.min(userData.balance, PRODUCTION_CONFIG.MAX_CONVERSION);
-
-        if (maxAmount <= 0) {
-            showToast('Insufficient balance for conversion', 'error');
-            return;
-        }
-
-        document.getElementById('productionConvertAmount').value = maxAmount;
-        calculateProductionConversion();
-
-        console.log('✅ Max amount set to:', maxAmount);
-
-    } catch (error) {
-        console.error('Error setting max conversion:', error);
-        showToast('Error loading balance', 'error');
-    }
-}
-
-async function validateProductionConversion(nmxpAmount, nmxAmount) {
-    const convertBtn = document.getElementById('productionConvertBtn');
-
-    try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            convertBtn.disabled = true;
-            convertBtn.textContent = 'Please log in first';
-            convertBtn.className = 'compact-convert-btn disabled';
-            return;
-        }
-
-        const userData = await getUserNMXpBalance(userSession.id);
-        const userNmxpBalance = userData.balance;
-        const hasWallet = !!userData.wallet_address;
-        const hasEnoughNMXp = userNmxpBalance >= nmxpAmount;
-        const meetsMinimum = nmxpAmount >= PRODUCTION_CONFIG.MIN_CONVERSION;
-        const withinMax = nmxpAmount <= PRODUCTION_CONFIG.MAX_CONVERSION;
-        const validAmount = nmxpAmount > 0;
-
-        if (hasWallet && hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
-            convertBtn.disabled = false;
-            convertBtn.textContent = `Convert ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX`;
-            convertBtn.className = 'compact-convert-btn active';
-        } else {
-            convertBtn.disabled = true;
-            convertBtn.className = 'compact-convert-btn disabled';
-
-            if (!hasWallet) {
-                convertBtn.textContent = 'Setup wallet address first';
-            } else if (!meetsMinimum) {
-                convertBtn.textContent = `Minimum ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp required`;
-            } else if (!hasEnoughNMXp) {
-                convertBtn.textContent = 'Insufficient NMXp balance';
-            } else if (!withinMax) {
-                convertBtn.textContent = `Maximum ${PRODUCTION_CONFIG.MAX_CONVERSION.toLocaleString()} NMXp`;
-            } else {
-                convertBtn.textContent = 'Enter amount to convert';
-            }
-        }
-
-    } catch (error) {
-        console.error('Validation error:', error);
-        convertBtn.disabled = true;
-        convertBtn.textContent = 'Error validating';
-        convertBtn.className = 'compact-convert-btn disabled';
-    }
-}
-
-async function executeProductionConversion() {
-    const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value);
-
-    if (!nmxpAmount || nmxpAmount <= 0) {
-        showToast('Please enter a valid amount', 'error');
-        return;
-    }
-
-    try {
-        showToast('Processing your conversion...', 'info');
-
-        const userSession = await checkAuth();
-        if (!userSession) {
-            throw new Error('Please log in to convert');
-        }
-
-        const userData = await getUserNMXpBalance(userSession.id);
-        const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
-
-        if (!userData.wallet_address) {
-            throw new Error('Wallet address not set');
-        }
-
-        if (userData.balance < nmxpAmount) {
-            throw new Error('Insufficient NMXp balance');
-        }
-
-        if (nmxpAmount < PRODUCTION_CONFIG.MIN_CONVERSION) {
-            throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
-        }
-
-        const currentSession = await checkWalletSession();
-        if (!currentSession) {
-            throw new Error('Session expired. Please log in again.');
-        }
-
-        const newNmxpBalance = userData.balance - nmxpAmount;
-
-        const { error: updateError } = await supabase
-            .from('profiles')
-            .update({
-                balance: newNmxpBalance,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userSession.id);
-
-        if (updateError) throw updateError;
-
-        const { error: recordError } = await supabase
-            .from('conversions')
-            .insert([{
-                user_id: userSession.id,
-                nmxp_amount: nmxpAmount,
-                nmx_amount: nmxAmount,
-                wallet_address: userData.wallet_address,
-                status: 'pending',
-                created_at: new Date().toISOString()
-            }]);
-
-        if (recordError) throw recordError;
-
-        await createConversionNotification(userSession.id, nmxpAmount, nmxAmount);
-
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent.`, 'success');
-
-        await loadProductionSwapData();
-        closeProductionSwapModal();
-
-        document.getElementById('productionConvertAmount').value = '';
-        document.getElementById('productionReceiveAmount').value = '';
-
-    } catch (error) {
-        console.error('❌ Conversion failed:', error);
-        showToast('Conversion failed: ' + error.message, 'error');
-    }
-}
-
-async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
-    try {
-        const notificationData = {
-            user_id: userId,
-            type: 'conversion',
-            title: 'Conversion Submitted!',
-            message: `You converted ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX.`,
-            is_read: false,
-            created_at: new Date().toISOString()
-        };
-
-        await supabase
-            .from('notifications')
-            .insert([notificationData]);
-
-        console.log('✅ Conversion notification created');
-    } catch (error) {
-        console.error('❌ Error creating notification:', error);
-    }
-}
-
-function updateWalletAddressDisplay(walletAddress) {
-    const walletBtn = document.querySelector('.wallet-settings-btn');
-
-    if (walletAddress) {
-        const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
-        walletBtn.innerHTML = `<i class="fas fa-wallet"></i> ${shortAddress}`;
-        walletBtn.title = `Wallet: ${walletAddress}`;
-        walletBtn.classList.add('connected');
-    } else {
-        walletBtn.innerHTML = '<i class="fas fa-cog"></i> Wallet';
-        walletBtn.title = 'Setup wallet address';
-        walletBtn.classList.remove('connected');
-    }
-}
-
-function showWalletSetup() {
-    closeProductionSwapModal();
-    const walletSetupModal = document.getElementById('walletSetupModal');
-    if (walletSetupModal) walletSetupModal.style.display = 'block';
-}
-
-function closeWalletSetup() {
-    const walletSetupModal = document.getElementById('walletSetupModal');
-    if (walletSetupModal) walletSetupModal.style.display = 'none';
-}
-
-async function saveWalletAddress() {
-    try {
-        const walletAddress = document.getElementById('userWalletAddress').value.trim();
-        const userSession = await checkAuth();
-
-        if (!userSession) {
-            showToast('Please log in first', 'error');
-            return;
-        }
-
-        if (!walletAddress) {
-            showToast('Please enter a wallet address', 'error');
-            return;
-        }
-
-        if (!walletAddress.startsWith('EQ') && !walletAddress.startsWith('UQ')) {
-            showToast('Please enter a valid TON wallet address', 'error');
-            return;
-        }
-
-        const { error } = await supabase
-            .from('profiles')
-            .update({
-                wallet_address: walletAddress,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', userSession.id);
-
-        if (error) throw error;
-
-        showToast('✅ Wallet address saved successfully!', 'success');
-        closeWalletSetup();
-        await loadProductionSwapData();
-
-    } catch (error) {
-        console.error('❌ Error saving wallet address:', error);
-        showToast('Failed to save wallet address', 'error');
-    }
-}
-
-// =============================================
-// 🎯 UTILITY FUNCTIONS (Keep existing)
-// =============================================
-
-function formatNumber(number) {            
-    return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
-
-function showToast(message, type = 'info') {
-    let toast = document.getElementById('globalToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'globalToast';
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            z-index: 10000;
-            transition: all 0.3s ease;
-            max-width: 90%;
-            text-align: center;
-        `;
-        document.body.appendChild(toast);
-    }
-
-    const styles = {
-        success: 'background: var(--success);',
-        error: 'background: var(--error);',
-        info: 'background: var(--gold);',
-        warning: 'background: var(--warning); color: #000;'
-    };
-
-    toast.style.cssText += styles[type] || styles.info;
-    toast.textContent = message;
-    toast.style.display = 'block';
-
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 3000);
-}
-
-function removeDebugButtons() {
-    const debugButton = document.getElementById('debugUserState');
-    if (debugButton) debugButton.remove();
-
-    const debugButtons = document.querySelectorAll('.debug-btn, .debug-button');
-    debugButtons.forEach(button => button.remove());
-}
-
-function handleTokenLogoError(img, symbol) {
-    img.style.display = 'none';
-    const container = img.parentElement;
-    container.innerHTML = symbol.charAt(0);
-    container.style.background = 'rgba(255, 255, 255, 0.1)';
-    container.style.color = 'white';
-    container.style.fontWeight = 'bold';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.justifyContent = 'center';
-}
-
-function showStatusMessage(message, type = 'info') {
-    console.log(`📢 Status (${type}): ${message}`);
-
-    const statusElement = document.getElementById('statusMessage') || createStatusElement();
-
-    statusElement.textContent = message;
-    statusElement.className = `status-message ${type}`;
-    statusElement.style.display = 'block';
-
-    if (type === 'success') {
-        setTimeout(() => {
-            statusElement.style.display = 'none';
-        }, 3000);
-    }
-}
-
-function createStatusElement() {
-    const statusElement = document.createElement('div');
-    statusElement.id = 'statusMessage';
-    statusElement.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 8px;
-        color: white;
-        font-weight: 600;
-        z-index: 10000;
-        display: none;
-        max-width: 300px;
-        word-wrap: break-word;
-    `;
-    document.body.appendChild(statusElement);
-    return statusElement;
-}
-
-// =============================================
-// 🚀 INITIALIZATION - UPDATED FOR NEW MANAGER
+// 🚀 INITIALIZATION - FIXED SESSION SYNC
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Initializing wallet with NEW wallet manager...');
+    console.log('🎯 Initializing wallet with ENHANCED session synchronization...');
 
     removeDebugButtons();
 
@@ -5226,12 +3960,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ All event listeners initialized');
 
-    // Initialize wallet with REAL data support - FIXED CALL
-    console.log('🚀 DOM loaded, initializing wallet with REAL data...');
-    initWallet(); // 🎯 This now uses the new wallet manager
+    // Initialize wallet with enhanced session sync
+    console.log('🚀 DOM loaded, initializing wallet with session sync...');
+    initWallet();
 });
 
-console.log('✅ COMPLETE REAL DATA Wallet System LOADED');
+console.log('✅ ENHANCED Wallet System LOADED with Session Sync');
 </script>
 </body>
 </html>
