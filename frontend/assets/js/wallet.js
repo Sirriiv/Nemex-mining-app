@@ -1,20 +1,9 @@
-// assets/js/wallet.js - COMPLETE SECURE VERSION WITH ENV VARIABLES
+// assets/js/wallet.js - COMPLETE SECURE VERSION - NO HARDCODED KEYS
 // =============================================
-// 🎯 SECURE SUPABASE INITIALIZATION - ENV VARIABLES ONLY
+// 🎯 SECURE SUPABASE INITIALIZATION - NO HARDCODED KEYS
 // =============================================
 
-// 🚨 SECURE: No hardcoded keys - use environment variables from your build process
-const SUPABASE_CONFIG = {
-    url: window.SUPABASE_URL || process.env.SUPABASE_URL,
-    anonKey: window.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
-};
-
-// Security validation
-if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
-    console.warn('⚠️ Supabase configuration missing. Using fallback mode.');
-    console.log('Please set SUPABASE_URL and SUPABASE_ANON_KEY in your environment variables');
-}
-
+// 🚨 SECURE: No hardcoded keys - configuration comes from server or build process
 let supabase = null;
 let supabaseInitialized = false;
 
@@ -29,16 +18,16 @@ function initializeSupabase() {
         return supabase;
     }
     
-    // Check if @supabase/supabase-js is loaded
-    if (typeof createClient !== 'undefined') {
-        console.log('✅ Supabase createClient available');
+    // 🎯 METHOD 1: Check if Supabase config is provided by server via global variable
+    if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey) {
+        console.log('✅ Using Supabase config from server');
         try {
-            if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
-                console.warn('⚠️ Supabase credentials not fully configured, using fallback');
+            if (typeof createClient === 'undefined') {
+                console.error('❌ Supabase createClient not available');
                 return createFallbackSupabase();
             }
             
-            supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+            supabase = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey, {
                 auth: {
                     autoRefreshToken: true,
                     persistSession: true,
@@ -48,15 +37,41 @@ function initializeSupabase() {
             });
             window.supabase = supabase;
             supabaseInitialized = true;
-            console.log('✅ Supabase initialized securely with environment variables');
+            console.log('✅ Supabase initialized with server config');
             return supabase;
         } catch (error) {
-            console.error('❌ Supabase createClient failed:', error);
+            console.error('❌ Supabase initialization failed:', error);
         }
     }
     
-    // Final fallback
-    console.log('🔄 Creating secure fallback Supabase client');
+    // 🎯 METHOD 2: Build-time injected environment variables
+    if (typeof process !== 'undefined' && process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+        console.log('✅ Using build-time Supabase config');
+        try {
+            if (typeof createClient === 'undefined') {
+                console.error('❌ Supabase createClient not available');
+                return createFallbackSupabase();
+            }
+            
+            supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+                auth: {
+                    autoRefreshToken: true,
+                    persistSession: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage
+                }
+            });
+            window.supabase = supabase;
+            supabaseInitialized = true;
+            console.log('✅ Supabase initialized with build-time config');
+            return supabase;
+        } catch (error) {
+            console.error('❌ Supabase initialization failed:', error);
+        }
+    }
+    
+    // Final fallback - no keys available
+    console.log('🔄 Creating secure fallback Supabase client - no keys available');
     supabase = createFallbackSupabase();
     window.supabase = supabase;
     supabaseInitialized = true;
@@ -71,16 +86,35 @@ function createFallbackSupabase() {
             getSession: () => Promise.resolve({ data: { session: null }, error: null }),
             onAuthStateChange: (callback) => { 
                 console.log('🔄 Fallback auth state change listener');
+                // Simulate auth state changes
+                setTimeout(() => {
+                    callback('SIGNED_OUT', null);
+                }, 100);
                 return { data: { subscription: { unsubscribe: () => {} } } };
             },
-            signOut: () => Promise.resolve({ error: null }),
-            signInWithPassword: () => Promise.resolve({ error: { message: 'Fallback mode' } })
+            signOut: () => {
+                console.log('🔐 Fallback sign out');
+                return Promise.resolve({ error: null });
+            },
+            signInWithPassword: () => {
+                console.log('🔐 Fallback sign in');
+                return Promise.resolve({ 
+                    data: null, 
+                    error: { message: 'Authentication not available in fallback mode' } 
+                });
+            }
         },
         from: () => ({
             select: () => ({
                 eq: () => ({
-                    single: () => Promise.resolve({ data: null, error: { message: 'Fallback' } })
+                    single: () => Promise.resolve({ data: null, error: { message: 'Database not available in fallback mode' } })
                 })
+            })
+        }),
+        // Add more fallback methods as needed
+        channel: () => ({
+            subscribe: () => ({
+                unsubscribe: () => {}
             })
         })
     };
@@ -294,7 +328,7 @@ class SecureMnemonicManager {
             'rose', 'rotate', 'rough', 'round', 'route', 'royal', 'rubber', 'rude',
             'rug', 'rule', 'run', 'runway', 'rural', 'sad', 'saddle', 'sadness',
             'safe', 'sail', 'salad', 'salmon', 'salon', 'salt', 'same', 'sample',
-            'sand', 'satisfy', 'satoshi', 'sauce', 'sausage', 'save', 'say', 'scale',
+            'sand', 'satisfy', 'sauce', 'sausage', 'save', 'say', 'scale',
             'scan', 'scare', 'scatter', 'scene', 'scheme', 'school', 'science', 'scissors',
             'scorpion', 'scout', 'scrap', 'screen', 'script', 'scrub', 'sea', 'search',
             'season', 'seat', 'second', 'secret', 'section', 'security', 'seed', 'seek',
@@ -411,7 +445,7 @@ class TONWalletManager {
         console.log('🔧 Wallet manager Supabase status:', {
             hasSupabase: !!this.supabase,
             hasAuth: !!(this.supabase && this.supabase.auth),
-            usingEnvVars: !!(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey)
+            usingFallback: !!(this.supabase && this.supabase.auth && this.supabase.auth.getUser && this.supabase.auth.getUser().then === undefined)
         });
     }
 
@@ -480,8 +514,8 @@ class TONWalletManager {
         try {
             console.log('🔄 Loading user wallet from database...');
 
-            // Method 1: Try Supabase session first
-            if (this.supabase && this.supabase.auth) {
+            // Method 1: Try Supabase session first (only if not in fallback mode)
+            if (this.supabase && this.supabase.auth && this.supabase.auth.getUser) {
                 try {
                     const { data: { user }, error } = await this.supabase.auth.getUser();
                     if (!error && user) {
@@ -573,8 +607,8 @@ class TONWalletManager {
         try {
             console.log('🔐 Checking user authentication from mining app...');
 
-            // Method 1: Check Supabase Auth session (YOUR MINING APP USES THIS!)
-            if (this.supabase && this.supabase.auth) {
+            // Method 1: Check Supabase Auth session (only if not in fallback mode)
+            if (this.supabase && this.supabase.auth && this.supabase.auth.getUser) {
                 try {
                     const { data: { user }, error } = await this.supabase.auth.getUser();
                     
@@ -993,8 +1027,11 @@ class TONWalletManager {
     // 🎯 Get current user ID
     async getCurrentUserId() {
         try {
-            const { data: { user } } = await this.supabase.auth.getUser();
-            return user?.id || null;
+            if (this.supabase && this.supabase.auth && this.supabase.auth.getUser) {
+                const { data: { user } } = await this.supabase.auth.getUser();
+                return user?.id || null;
+            }
+            return null;
         } catch (error) {
             console.error('❌ Failed to get current user ID:', error);
             return null;
@@ -1076,7 +1113,7 @@ const tonWalletManager = new TONWalletManager();
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔑 Setting up Supabase auth listener...');
 
-    if (window.supabase && window.supabase.auth) {
+    if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
         const { data: { subscription } } = window.supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('🔑 Supabase Auth State Change:', event);
 
@@ -1102,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         window.supabaseAuthSubscription = subscription;
     } else {
-        console.log('ℹ️ Supabase auth not available for listener');
+        console.log('ℹ️ Supabase auth not available for listener (fallback mode)');
     }
 });
 
@@ -1176,5 +1213,5 @@ document.addEventListener('DOMContentLoaded', async function() {
     await tonWalletManager.initializeWalletAPI();
 });
 
-// 🎯 SECURITY NOTE: Frontend uses public anon key only
-console.log('🔐 SECURITY: Frontend using environment variables for Supabase configuration');
+// 🎯 SECURITY NOTE: No hardcoded keys - configuration must come from server
+console.log('🔐 SECURITY: No hardcoded Supabase keys - using server-provided configuration');
