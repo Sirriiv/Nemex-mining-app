@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION WITH MNEMONIC COMPATIBILITY
+// assets/js/wallet.js - COMPLETE FIXED VERSION (FULL LENGTH)
 // =============================================
 // 🎯 SUPABASE INITIALIZATION - FIXED VERSION
 // =============================================
@@ -9,45 +9,76 @@ const SUPABASE_CONFIG = {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg5Mzg4ODUsImV4cCI6MjA0NDUxNDg4NX0.7M9Mynk8PHT1-DgI0kP3DgauJ8n5w1kS9n7x1wXqJ5k'
 };
 
-// Initialize Supabase safely
+// 🎯 FIXED: Initialize Supabase safely with proper timing
+let supabase;
+
 function initializeSupabase() {
-    if (window.supabase) {
+    if (window.supabase && window.supabase.auth) {
         console.log('✅ Supabase already initialized');
         return window.supabase;
     }
 
     console.log('🚀 Initializing Supabase client...');
     try {
+        // Check if supabase is available globally
+        if (typeof supabase === 'undefined' || !supabase.createClient) {
+            console.error('❌ Supabase SDK not loaded');
+            return createFallbackSupabase();
+        }
+
         const supabaseClient = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
             auth: {
                 autoRefreshToken: true,
                 persistSession: true,
-                detectSessionInUrl: true
+                detectSessionInUrl: true,
+                storage: window.localStorage
             }
         });
+        
+        // Test the connection
+        supabaseClient.auth.getSession().then(({ data }) => {
+            console.log('✅ Supabase connection test successful');
+        }).catch(error => {
+            console.warn('⚠️ Supabase connection test failed, using fallback:', error.message);
+        });
+
         window.supabase = supabaseClient;
-        console.log('✅ Supabase client initialized successfully');
         return supabaseClient;
     } catch (error) {
         console.error('❌ Failed to initialize Supabase:', error);
-        // Create a mock supabase for fallback
-        window.supabase = {
-            auth: {
-                getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-                getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-                onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-                signOut: () => Promise.resolve({ error: null })
-            }
-        };
-        return window.supabase;
+        return createFallbackSupabase();
     }
 }
 
-// Initialize Supabase immediately
-const supabase = initializeSupabase();
+function createFallbackSupabase() {
+    console.log('🔄 Creating fallback Supabase client');
+    window.supabase = {
+        auth: {
+            getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+            getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+            signOut: () => Promise.resolve({ error: null }),
+            signInWithPassword: () => Promise.resolve({ error: { message: 'Fallback mode' } })
+        },
+        from: () => ({
+            select: () => ({
+                eq: () => ({
+                    single: () => Promise.resolve({ data: null, error: { message: 'Fallback' } })
+                })
+            })
+        })
+    };
+    return window.supabase;
+}
+
+// Initialize Supabase when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Initializing Supabase on DOM ready...');
+    supabase = initializeSupabase();
+});
 
 // =============================================
-// 🎯 SECURE MNEMONIC MANAGER CLASS - FIXED FOR COMPATIBILITY
+// 🎯 SECURE MNEMONIC MANAGER CLASS (COMPLETE)
 // =============================================
 
 class SecureMnemonicManager {
@@ -320,44 +351,27 @@ class SecureMnemonicManager {
 
     generateMnemonic(wordCount = 12) {
         console.log('🔑 Generating proper BIP39 mnemonic...');
-
         let mnemonic = '';
         for (let i = 0; i < wordCount; i++) {
             const randomIndex = Math.floor(Math.random() * this.wordlist.length);
             mnemonic += this.wordlist[randomIndex] + ' ';
         }
-
         const finalMnemonic = mnemonic.trim();
-        console.log('✅ Generated proper BIP39 mnemonic:', finalMnemonic);
+        console.log('✅ Generated proper BIP39 mnemonic');
         return finalMnemonic;
     }
 
-    // 🎯 FIXED: More flexible validation for existing wallets
     validateMnemonic(mnemonic) {
         const words = mnemonic.trim().toLowerCase().split(/\s+/g);
         const validLength = words.length === 12 || words.length === 24;
         
-        // 🎯 FIX: Check if words are in BIP39 list OR allow any valid-looking words
         const validWords = words.every(word => {
-            // Check if word is in BIP39 list
-            if (this.wordlist.includes(word)) {
-                return true;
-            }
-            
-            // 🎯 FIX: Allow words that look valid (3-8 letters, lowercase)
+            if (this.wordlist.includes(word)) return true;
             if (word.length >= 3 && word.length <= 8 && /^[a-z]+$/.test(word)) {
                 console.log('⚠️ Non-BIP39 word detected but allowing:', word);
                 return true;
             }
-            
             return false;
-        });
-
-        console.log('🔍 Validating mnemonic:', {
-            length: words.length,
-            validLength,
-            validWords,
-            words: words
         });
 
         return validLength && validWords;
@@ -369,7 +383,7 @@ class SecureMnemonicManager {
 }
 
 // =============================================
-// 🎯 TON WALLET MANAGER CLASS - FIXED AUTH & MNEMONIC
+// 🎯 TON WALLET MANAGER CLASS - COMPLETE VERSION
 // =============================================
 
 class TONWalletManager {
@@ -378,11 +392,28 @@ class TONWalletManager {
         this.mnemonicManager = new SecureMnemonicManager();
         this.updateInterval = null;
         this.currentWallet = null;
-        this.supabase = window.supabase; // Use the global instance
+        this.supabase = null;
+        this.initializeSupabase();
+    }
+
+    async initializeSupabase() {
+        // Wait for Supabase to be available
+        let attempts = 0;
+        while (attempts < 10) {
+            if (window.supabase) {
+                this.supabase = window.supabase;
+                console.log('✅ Supabase connected to wallet manager');
+                return;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        console.warn('⚠️ Supabase not available, using fallback');
+        this.supabase = createFallbackSupabase();
     }
 
     async initializeWalletAPI() {
-        console.log('🚀 Initializing TON Wallet API with Supabase backend...');
+        console.log('🚀 Initializing TON Wallet API...');
 
         try {
             // Test backend connectivity
@@ -396,129 +427,125 @@ class TONWalletManager {
                 console.log('✅ Backend API is accessible:', testData.message);
             } else {
                 console.warn('⚠️ Backend API may not be fully configured');
-                // Don't throw error - continue in fallback mode
             }
 
-            // Load user wallet if authenticated
-            await this.loadUserWallet();
+            // Load user wallet using database session
+            await this.loadUserWalletFromDatabase();
 
-            console.log('✅ TON Wallet API initialized successfully with Supabase backend');
+            console.log('✅ TON Wallet API initialized successfully');
             return true;
         } catch (error) {
             console.error('❌ Failed to initialize TON Wallet API:', error);
-            // Don't throw error - continue in standalone mode
-            return true;
+            return true; // Continue in standalone mode
         }
     }
 
-    async loadUserWallet() {
+    // 🎯 FIXED: Database-based session management
+    async loadUserWalletFromDatabase() {
         try {
-            console.log('🔄 Loading user wallet from Supabase backend...');
+            console.log('🔄 Loading user wallet from database...');
 
-            // Get current user from Supabase auth
-            const { data: { user }, error } = await this.supabase.auth.getUser();
-
-            if (error) {
-                console.warn('⚠️ Auth error, continuing in standalone mode:', error.message);
-                this.currentWallet = null;
-                return;
-            }
-
-            if (!user) {
-                console.log('ℹ️ No authenticated user, wallet will work in standalone mode');
-                this.currentWallet = null;
-                return;
-            }
-
-            console.log('🔍 Loading wallet for authenticated user:', user.id);
-
-            // Get user wallet from Supabase backend
-            const walletResponse = await fetch('/api/wallet/get-user-wallet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id })
-            });
-
-            if (walletResponse.ok) {
-                const walletData = await walletResponse.json();
-
-                if (walletData.success && walletData.wallet) {
-                    this.currentWallet = walletData.wallet;
-                    console.log('✅ User wallet loaded from Supabase:', this.currentWallet.address);
-                } else {
-                    console.log('ℹ️ No wallet found for user in Supabase database');
-                    this.currentWallet = null;
+            // Method 1: Try Supabase session first
+            if (this.supabase && this.supabase.auth) {
+                const { data: { user }, error } = await this.supabase.auth.getUser();
+                if (!error && user) {
+                    console.log('✅ User authenticated via Supabase:', user.id);
+                    await this.loadWalletForUser(user.id);
+                    return;
                 }
-            } else {
-                console.warn('⚠️ Failed to load user wallet from backend, but continuing in standalone mode');
-                this.currentWallet = null;
             }
+
+            // Method 2: Check for existing wallet in database via API
+            const sessionCheck = await this.checkDatabaseSession();
+            if (sessionCheck && sessionCheck.userId) {
+                console.log('✅ User session found in database:', sessionCheck.userId);
+                await this.loadWalletForUser(sessionCheck.userId);
+                return;
+            }
+
+            console.log('ℹ️ No active session found, wallet will work in standalone mode');
+            this.currentWallet = null;
 
         } catch (error) {
-            console.error('❌ Error loading user wallet from Supabase:', error);
+            console.error('❌ Error loading user wallet:', error);
             this.currentWallet = null;
         }
     }
 
-    // 🎯 FIXED: Flexible authentication check
+    // 🎯 NEW: Database session check
+    async checkDatabaseSession() {
+        try {
+            console.log('🔍 Checking for database session...');
+            
+            const response = await fetch('/api/wallet/check-session', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.user) {
+                    console.log('✅ Database session found:', data.user.id);
+                    return data.user;
+                }
+            }
+            
+            console.log('ℹ️ No database session found');
+            return null;
+        } catch (error) {
+            console.error('❌ Database session check failed:', error);
+            return null;
+        }
+    }
+
+    async loadWalletForUser(userId) {
+        try {
+            console.log('🔍 Loading wallet for user:', userId);
+
+            const walletResponse = await fetch('/api/wallet/get-user-wallet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            if (walletResponse.ok) {
+                const walletData = await walletResponse.json();
+                if (walletData.success && walletData.wallet) {
+                    this.currentWallet = walletData.wallet;
+                    console.log('✅ User wallet loaded:', this.currentWallet.address);
+                } else {
+                    console.log('ℹ️ No wallet found for user in database');
+                    this.currentWallet = null;
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error loading wallet for user:', error);
+            this.currentWallet = null;
+        }
+    }
+
+    // 🎯 FIXED: Database-based authentication
     async checkUserAuthentication() {
         try {
-            console.log('🔐 Checking user authentication with multiple methods...');
+            console.log('🔐 Checking user authentication...');
 
-            // Method 1: Check Supabase auth first
-            const { data: { user }, error } = await this.supabase.auth.getUser();
-            
-            if (!error && user) {
-                console.log('✅ User authenticated via Supabase:', user.id);
-                return { user, method: 'supabase' };
-            }
-
-            // Method 2: Check localStorage session
-            const localSession = localStorage.getItem('nemexcoin_user_session');
-            if (localSession) {
-                const sessionData = JSON.parse(localSession);
-                if (sessionData.loggedIn && sessionData.id) {
-                    console.log('✅ User authenticated via localStorage session:', sessionData.id);
-                    return { 
-                        user: { 
-                            id: sessionData.id, 
-                            email: sessionData.email 
-                        }, 
-                        method: 'localStorage' 
-                    };
+            // Method 1: Supabase auth
+            if (this.supabase && this.supabase.auth) {
+                const { data: { user }, error } = await this.supabase.auth.getUser();
+                if (!error && user) {
+                    console.log('✅ User authenticated via Supabase:', user.id);
+                    return { user, method: 'supabase' };
                 }
             }
 
-            // Method 3: Check sessionStorage
-            const sessionStorageAuth = sessionStorage.getItem('nemex_user_session');
-            if (sessionStorageAuth) {
-                const sessionData = JSON.parse(sessionStorageAuth);
-                if (sessionData.loggedIn && sessionData.id) {
-                    console.log('✅ User authenticated via sessionStorage:', sessionData.id);
-                    return { 
-                        user: { 
-                            id: sessionData.id, 
-                            email: sessionData.email 
-                        }, 
-                        method: 'sessionStorage' 
-                    };
-                }
+            // Method 2: Database session
+            const dbSession = await this.checkDatabaseSession();
+            if (dbSession) {
+                console.log('✅ User authenticated via database session:', dbSession.id);
+                return { user: dbSession, method: 'database' };
             }
 
-            // Method 4: Check for any existing user data
-            const existingUserData = localStorage.getItem('nemexcoin_user');
-            if (existingUserData) {
-                const userData = JSON.parse(existingUserData);
-                if (userData.id) {
-                    console.log('✅ Found existing user data:', userData.id);
-                    return { 
-                        user: userData, 
-                        method: 'legacy' 
-                    };
-                }
-            }
-
-            console.log('❌ No authentication found via any method');
+            console.log('❌ No authentication found');
             return null;
 
         } catch (error) {
@@ -527,66 +554,108 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 FIXED: Create wallet with flexible auth
+    // 🎯 FIXED: Create wallet with database auth
     async createNewWallet() {
         try {
-            console.log('🆕 Creating new wallet via Supabase backend...');
+            console.log('🆕 Creating new wallet...');
 
-            // 🎯 FIX: Use flexible authentication check
             const authResult = await this.checkUserAuthentication();
-
             if (!authResult) {
-                throw new Error('User must be authenticated to create a wallet. Please sign in first.');
+                throw new Error('Please sign in to create a wallet');
             }
 
             const userId = authResult.user.id;
-            console.log('🔑 Generating wallet for user:', userId, 'via method:', authResult.method);
+            console.log('🔑 Generating wallet for user:', userId);
 
-            // Generate proper BIP39 mnemonic
             const mnemonic = this.mnemonicManager.generateMnemonic(12);
-
             if (!this.mnemonicManager.validateMnemonic(mnemonic)) {
-                throw new Error('Generated invalid mnemonic. Please try again.');
+                throw new Error('Generated invalid mnemonic');
             }
 
-            console.log('🔑 Creating wallet via backend API...');
-
-            // Create wallet via backend (stores in Supabase)
+            // 🚨 CRITICAL: Never store mnemonic in database!
+            // Only derive address and store public info
             const response = await fetch('/api/wallet/generate-wallet', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: userId,
                     wordCount: 12,
-                    authMethod: authResult.method // Let backend know which auth method we used
+                    authMethod: authResult.method
                 })
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to create wallet in backend');
+                throw new Error(errorData.error || 'Failed to create wallet');
             }
 
             const result = await response.json();
-
             if (!result.success) {
-                throw new Error(result.error || 'Wallet creation failed in backend');
+                throw new Error(result.error || 'Wallet creation failed');
             }
 
-            console.log('✅ New wallet created successfully via backend:', result.wallet.address);
-
-            // Update current wallet
+            console.log('✅ New wallet created:', result.wallet.address);
             this.currentWallet = result.wallet;
 
+            // 🚨 SECURITY: Return mnemonic ONLY to user (never store)
             return {
                 wallet: result.wallet,
-                mnemonic: result.mnemonic,
-                securityWarning: result.securityWarning,
-                recoveryInstructions: result.recoveryInstructions
+                mnemonic: result.mnemonic, // User must backup immediately!
+                securityWarning: 'WRITE DOWN YOUR SEED PHRASE! Never store digitally.',
+                recoveryInstructions: 'This is your ONLY backup. Store it securely.'
             };
 
         } catch (error) {
             console.error('❌ Failed to create new wallet:', error);
+            throw error;
+        }
+    }
+
+    // 🎯 FIXED: Import wallet with database auth
+    async importWalletFromMnemonic(mnemonic) {
+        try {
+            console.log('📥 Importing wallet from mnemonic...');
+
+            const authResult = await this.checkUserAuthentication();
+            if (!authResult) {
+                throw new Error('Please sign in to import a wallet');
+            }
+
+            const userId = authResult.user.id;
+            const normalizedMnemonic = this.mnemonicManager.normalizeMnemonic(mnemonic);
+
+            if (!this.mnemonicManager.validateMnemonic(normalizedMnemonic)) {
+                throw new Error('Invalid mnemonic phrase. Please check your words.');
+            }
+
+            // Backend derives address without storing mnemonic
+            const response = await fetch('/api/wallet/import-wallet', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    mnemonic: normalizedMnemonic,
+                    authMethod: authResult.method
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to import wallet');
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Wallet import failed');
+            }
+
+            console.log('✅ Wallet imported:', result.wallet.address);
+            this.currentWallet = result.wallet;
+
+            return result;
+
+        } catch (error) {
+            console.error('❌ Failed to import wallet:', error);
             throw error;
         }
     }
@@ -623,190 +692,66 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 FIXED: Import wallet with flexible auth & mnemonic validation
-    async importWalletFromMnemonic(mnemonic) {
+    // 🎯 FIXED: Enhanced price fetching with fallbacks
+    async fetchTokenPrices() {
         try {
-            console.log('📥 Importing wallet from mnemonic via Supabase backend...');
+            console.log('📈 Fetching REAL token prices...');
 
-            // 🎯 FIX: Use flexible authentication check
-            const authResult = await this.checkUserAuthentication();
-
-            if (!authResult) {
-                throw new Error('User must be authenticated to import a wallet. Please sign in first.');
-            }
-
-            const userId = authResult.user.id;
-            const normalizedMnemonic = this.mnemonicManager.normalizeMnemonic(mnemonic);
-
-            // 🎯 FIX: More flexible validation for existing wallets
-            if (!this.mnemonicManager.validateMnemonic(normalizedMnemonic)) {
-                console.log('⚠️ Standard validation failed, checking word structure...');
-                
-                // Additional check: are these valid-looking words?
-                const words = normalizedMnemonic.split(' ');
-                const allWordsValid = words.every(word => 
-                    word.length >= 3 && word.length <= 8 && /^[a-z]+$/.test(word)
-                );
-                
-                if (!allWordsValid) {
-                    throw new Error('Invalid mnemonic phrase. Please check your words and try again.');
-                }
-                
-                console.log('🔄 Proceeding with non-standard but valid-looking mnemonic');
-            }
-
-            console.log('🔑 Importing wallet via backend API for user:', userId, 'via method:', authResult.method);
-
-            // Import wallet via backend (stores in Supabase)
-            const response = await fetch('/api/wallet/import-wallet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: userId,
-                    mnemonic: normalizedMnemonic,
-                    authMethod: authResult.method // Let backend know which auth method we used
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to import wallet in backend');
-            }
-
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || 'Wallet import failed in backend');
-            }
-
-            console.log('✅ Wallet imported successfully via backend:', result.wallet.address);
-
-            // Update current wallet
-            this.currentWallet = result.wallet;
-
-            return result;
-
-        } catch (error) {
-            console.error('❌ Failed to import wallet:', error);
-            throw error;
-        }
-    }
-
-    async getCurrentWallet() {
-        return this.currentWallet;
-    }
-
-    async setCurrentWallet(walletData) {
-        this.currentWallet = walletData;
-        console.log('✅ Current wallet set in memory:', walletData?.address);
-    }
-
-    // 🎯 FIXED: Real balance fetching using backend APIs
-    async fetchRealBalances(walletAddress) {
-        try {
-            console.log('💰 Fetching REAL balances for:', walletAddress);
-
-            if (!walletAddress) {
-                console.warn('❌ No address provided for balance fetch');
-                return this.getFallbackBalances();
-            }
-
-            // Try backend balance API first
+            // Try main price API first
             try {
-                const response = await fetch('/api/wallet/get-balances', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ address: walletAddress })
+                const response = await fetch('/api/wallet/token-prices', {
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('✅ Backend balance data received successfully');
-                    return data.balances || data;
-                }
-            } catch (backendError) {
-                console.warn('⚠️ Backend balance API failed, trying direct TON API...');
-            }
-
-            // Fallback to direct TON API via backend
-            try {
-                const response = await fetch(`/api/wallet/real-balance/${walletAddress}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success) {
-                        console.log('✅ Direct TON balance received via backend');
+                    if (data.success && data.prices) {
+                        console.log('✅ Real prices fetched:', {
+                            TON: data.prices.TON?.price,
+                            NMX: data.prices.NMX?.price
+                        });
                         return {
-                            ton: {
-                                balance: data.balance.toString(),
-                                usdValue: '0'
-                            },
-                            nmx: {
-                                balance: '0',
-                                usdValue: '0'
-                            }
+                            ton: data.prices.TON?.price || 2.5,
+                            nmx: data.prices.NMX?.price || 0.10
                         };
                     }
                 }
-            } catch (tonError) {
-                console.warn('⚠️ Direct TON API via backend also failed');
+            } catch (mainError) {
+                console.warn('⚠️ Main price API failed, trying exchange API...');
+            }
+
+            // Fallback to exchange prices
+            try {
+                const response = await fetch('/api/wallet/exchange-prices', {
+                    signal: AbortSignal.timeout(5000)
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.averagePrice) {
+                        console.log('✅ Exchange prices fetched:', data.averagePrice);
+                        return {
+                            ton: data.averagePrice,
+                            nmx: 0.10
+                        };
+                    }
+                }
+            } catch (exchangeError) {
+                console.warn('⚠️ Exchange API failed, using fallback prices');
             }
 
             // Final fallback
-            return this.getFallbackBalances();
-
-        } catch (error) {
-            console.error('❌ All balance fetch methods failed, using fallback:', error);
-            return this.getFallbackBalances();
-        }
-    }
-
-    getFallbackBalances() {
-        console.log('🔄 Using fallback balances');
-        return {
-            ton: {
-                balance: '0',
-                usdValue: '0'
-            },
-            nmx: {
-                balance: '0',
-                usdValue: '0'
-            }
-        };
-    }
-
-    async fetchTokenPrices() {
-        try {
-            console.log('📈 Fetching REAL token prices from backend...');
-
-            // Use backend price API
-            const response = await fetch('/api/wallet/token-prices');
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.prices) {
-                    console.log('✅ Real prices fetched from backend:', {
-                        TON: data.prices.TON?.price,
-                        NMX: data.prices.NMX?.price
-                    });
-                    return {
-                        ton: data.prices.TON?.price || 2.5,
-                        nmx: data.prices.NMX?.price || 0.05
-                    };
-                }
-            }
-
-            // Fallback prices
-            console.warn('⚠️ Backend price API failed, using fallback prices');
+            console.log('🔄 Using fallback prices');
             return {
                 ton: 2.5,
-                nmx: 0.05
+                nmx: 0.10
             };
 
         } catch (error) {
-            console.error('❌ Price fetch failed, using fallback:', error);
+            console.error('❌ All price APIs failed:', error);
             return {
                 ton: 2.5,
-                nmx: 0.05
+                nmx: 0.10
             };
         }
     }
@@ -843,42 +788,84 @@ class TONWalletManager {
         }
     }
 
-    startBalanceUpdates(callback, interval = 30000) {
-        console.log('🔄 Starting periodic balance updates...');
+    // 🎯 FIXED: Balance fetching with better error handling
+    async fetchRealBalances(walletAddress) {
+        try {
+            console.log('💰 Fetching REAL balances for:', walletAddress);
 
-        // Clear existing interval
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-
-        // Initial update
-        if (callback) {
-            setTimeout(() => callback(), 1000);
-        }
-
-        // Set up periodic updates
-        this.updateInterval = setInterval(() => {
-            console.log('🔄 Periodic balance update triggered');
-            if (callback) {
-                callback();
+            if (!walletAddress) {
+                return this.getFallbackBalances();
             }
-        }, interval);
-    }
 
-    stopBalanceUpdates() {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
-            console.log('🛑 Balance updates stopped');
+            // Try multiple balance endpoints
+            const endpoints = [
+                '/api/wallet/get-balances',
+                `/api/wallet/real-balance/${walletAddress}`,
+                `/api/wallet/all-balances/${walletAddress}`
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: endpoint.includes('get-balances') ? 'POST' : 'GET',
+                        headers: endpoint.includes('get-balances') ? { 
+                            'Content-Type': 'application/json' 
+                        } : {},
+                        body: endpoint.includes('get-balances') ? JSON.stringify({ 
+                            address: walletAddress 
+                        }) : null,
+                        signal: AbortSignal.timeout(8000) // 8 second timeout
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log(`✅ Balance from ${endpoint}:`, data);
+                        
+                        if (data.balances) return data.balances;
+                        if (data.balance) {
+                            return {
+                                ton: { balance: data.balance.toString(), usdValue: '0' },
+                                nmx: { balance: '0', usdValue: '0' }
+                            };
+                        }
+                    }
+                } catch (endpointError) {
+                    console.warn(`⚠️ ${endpoint} failed:`, endpointError.message);
+                    continue;
+                }
+            }
+
+            return this.getFallbackBalances();
+
+        } catch (error) {
+            console.error('❌ All balance fetch methods failed:', error);
+            return this.getFallbackBalances();
         }
     }
 
-    validateTONAddress(address) {
-        if (!address) return false;
+    getFallbackBalances() {
+        console.log('🔄 Using fallback balances');
+        return {
+            ton: { balance: '0', usdValue: '0' },
+            nmx: { balance: '0', usdValue: '0' }
+        };
+    }
 
-        // Basic TON address validation
-        const tonRegex = /^EQ[0-9a-zA-Z]{48}$/;
-        return tonRegex.test(address);
+    async getCurrentWallet() {
+        return this.currentWallet;
+    }
+
+    async setCurrentWallet(walletData) {
+        this.currentWallet = walletData;
+        console.log('✅ Current wallet set in memory:', walletData?.address);
+    }
+
+    async hasWallet() {
+        return this.currentWallet !== null;
+    }
+
+    getWalletAddress() {
+        return this.currentWallet?.address || null;
     }
 
     // 🎯 Check if user has wallet
@@ -939,43 +926,72 @@ class TONWalletManager {
             throw error;
         }
     }
+
+    validateTONAddress(address) {
+        if (!address) return false;
+        const tonRegex = /^EQ[0-9a-zA-Z]{48}$/;
+        return tonRegex.test(address);
+    }
+
+    startBalanceUpdates(callback, interval = 30000) {
+        console.log('🔄 Starting periodic balance updates...');
+
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+        }
+
+        if (callback) {
+            setTimeout(() => callback(), 1000);
+        }
+
+        this.updateInterval = setInterval(() => {
+            console.log('🔄 Periodic balance update triggered');
+            if (callback) callback();
+        }, interval);
+    }
+
+    stopBalanceUpdates() {
+        if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+            console.log('🛑 Balance updates stopped');
+        }
+    }
 }
 
 // Initialize global wallet instance
 const tonWalletManager = new TONWalletManager();
 
-// Supabase Auth State Listener - CRITICAL FOR PROPER INTEGRATION
-// Wait for DOM to be ready before setting up auth listener
+// Supabase Auth State Listener
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🔑 Setting up Supabase auth listener...');
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-        console.log('🔑 Supabase Auth State Change:', event);
+    if (window.supabase && window.supabase.auth) {
+        const { data: { subscription } } = window.supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('🔑 Supabase Auth State Change:', event);
 
-        if (event === 'SIGNED_IN' && session) {
-            console.log('✅ User signed in, loading wallet from Supabase...');
-            await tonWalletManager.loadUserWallet();
+            if (event === 'SIGNED_IN' && session) {
+                console.log('✅ User signed in, loading wallet from Supabase...');
+                await tonWalletManager.loadUserWalletFromDatabase();
 
-            // Notify frontend to update UI
-            if (typeof window.onWalletLoaded === 'function') {
-                window.onWalletLoaded(tonWalletManager.currentWallet);
+                if (typeof window.onWalletLoaded === 'function') {
+                    window.onWalletLoaded(tonWalletManager.currentWallet);
+                }
+            } else if (event === 'SIGNED_OUT') {
+                console.log('ℹ️ User signed out, clearing wallet from memory...');
+                tonWalletManager.clearWallet();
+
+                if (typeof window.onWalletCleared === 'function') {
+                    window.onWalletCleared();
+                }
+            } else if (event === 'USER_UPDATED') {
+                console.log('🔄 User updated, reloading wallet...');
+                await tonWalletManager.loadUserWalletFromDatabase();
             }
-        } else if (event === 'SIGNED_OUT') {
-            console.log('ℹ️ User signed out, clearing wallet from memory...');
-            tonWalletManager.clearWallet();
+        });
 
-            // Notify frontend to update UI
-            if (typeof window.onWalletCleared === 'function') {
-                window.onWalletCleared();
-            }
-        } else if (event === 'USER_UPDATED') {
-            console.log('🔄 User updated, reloading wallet...');
-            await tonWalletManager.loadUserWallet();
-        }
-    });
-
-    // Store subscription for cleanup if needed
-    window.supabaseAuthSubscription = subscription;
+        window.supabaseAuthSubscription = subscription;
+    }
 });
 
 // Export for use in other modules
@@ -986,9 +1002,7 @@ if (typeof module !== 'undefined' && module.exports) {
 // Global functions for UI integration
 window.onWalletLoaded = function(wallet) {
     console.log('🎯 Wallet loaded in UI:', wallet?.address);
-    // Update your UI here - show wallet interface
     if (wallet) {
-        // Example UI updates - customize based on your HTML structure
         const walletStatus = document.getElementById('walletStatus');
         const createWalletBtn = document.getElementById('createWalletBtn');
         const walletInterface = document.getElementById('walletInterface');
@@ -1000,7 +1014,6 @@ window.onWalletLoaded = function(wallet) {
         if (createWalletBtn) createWalletBtn.style.display = 'none';
         if (walletInterface) walletInterface.style.display = 'block';
 
-        // Trigger balance refresh
         if (typeof updateRealBalancesAndPrices === 'function') {
             updateRealBalancesAndPrices();
         }
@@ -1009,7 +1022,6 @@ window.onWalletLoaded = function(wallet) {
 
 window.onWalletCleared = function() {
     console.log('🎯 Wallet cleared from UI');
-    // Update your UI here - show login/create wallet
     const walletStatus = document.getElementById('walletStatus');
     const createWalletBtn = document.getElementById('createWalletBtn');
     const walletInterface = document.getElementById('walletInterface');
