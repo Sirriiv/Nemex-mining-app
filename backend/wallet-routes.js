@@ -23,6 +23,74 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
 
 // =============================================
+// 🆕 CRITICAL: SESSION CHECK ENDPOINT (MISSING!)
+// =============================================
+
+router.get('/check-session', async function(req, res) {
+    try {
+        console.log('🔍 Checking database session...');
+        
+        // Set proper content type
+        res.setHeader('Content-Type', 'application/json');
+        
+        // Method 1: Check Supabase auth via Authorization header
+        if (req.headers.authorization) {
+            const token = req.headers.authorization.replace('Bearer ', '');
+            const { data: { user }, error } = await supabase.auth.getUser(token);
+            
+            if (!error && user) {
+                console.log('✅ User authenticated via Supabase:', user.id);
+                return res.json({
+                    success: true,
+                    user: {
+                        id: user.id,
+                        email: user.email
+                    },
+                    method: 'supabase'
+                });
+            }
+        }
+        
+        // Method 2: Check session from query parameters or body
+        const userId = req.query.userId || req.body.userId;
+        if (userId) {
+            console.log('🔍 Checking user in database:', userId);
+            
+            // Check if user exists in profiles
+            const { data: user, error } = await supabase
+                .from('profiles')
+                .select('id, email')
+                .eq('id', userId)
+                .single();
+
+            if (!error && user) {
+                console.log('✅ User found in database:', user.id);
+                return res.json({
+                    success: true,
+                    user: user,
+                    method: 'database'
+                });
+            }
+        }
+        
+        // No session found
+        console.log('ℹ️ No active session found');
+        res.json({
+            success: true,
+            user: null,
+            message: 'No active session found'
+        });
+
+    } catch (error) {
+        console.error('❌ Session check failed:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// =============================================
 // 🆕 RELAXED SESSION VALIDATION MIDDLEWARE
 // =============================================
 
@@ -44,7 +112,7 @@ async function validateUserSession(req, res, next) {
             '/check-wallet-exists', '/real-balance', '/nmx-balance', '/all-balances',
             '/test', '/derive-address', '/get-balances', '/exchange-prices',
             '/mexc-price', '/bitget-price', '/bybit-price', '/binance-price', 
-            '/coingecko-price', '/coinmarketcap-price'
+            '/coingecko-price', '/coinmarketcap-price', '/check-session'
         ];
 
         if (publicEndpoints.some(endpoint => req.path.includes(endpoint))) {
@@ -112,7 +180,7 @@ router.get('/test', (req, res) => {
 router.post('/derive-address', async function(req, res) {
     try {
         const { mnemonic } = req.body;
-        
+
         console.log('🔑 Deriving address from mnemonic...');
 
         if (!mnemonic) {
@@ -124,10 +192,10 @@ router.post('/derive-address', async function(req, res) {
 
         // Normalize mnemonic
         const normalizedMnemonic = mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
-        
+
         // Derive wallet from mnemonic
         const keyPair = await mnemonicToWalletKey(normalizedMnemonic.split(' '));
-        
+
         const WalletClass = tonweb.wallet.all.v4R2;
         const wallet = new WalletClass(tonweb.provider, {
             publicKey: keyPair.publicKey,
@@ -160,7 +228,7 @@ router.post('/derive-address', async function(req, res) {
 router.post('/get-balances', async function(req, res) {
     try {
         const { address } = req.body;
-        
+
         console.log('💰 Getting balances for:', address);
 
         if (!address) {
@@ -787,7 +855,7 @@ router.get('/mexc-price', async (req, res) => {
         const response = await axios.get('https://api.mexc.com/api/v3/ticker/price?symbol=TONUSDT', {
             timeout: 5000
         });
-        
+
         if (response.data && response.data.price) {
             res.json({
                 success: true,
@@ -812,7 +880,7 @@ router.get('/bitget-price', async (req, res) => {
         const response = await axios.get('https://api.bitget.com/api/spot/v1/market/ticker?symbol=TONUSDT', {
             timeout: 5000
         });
-        
+
         if (response.data && response.data.data && response.data.data.close) {
             res.json({
                 success: true,
@@ -837,7 +905,7 @@ router.get('/bybit-price', async (req, res) => {
         const response = await axios.get('https://api.bybit.com/v2/public/tickers?symbol=TONUSDT', {
             timeout: 5000
         });
-        
+
         if (response.data && response.data.result && response.data.result[0]) {
             res.json({
                 success: true,
@@ -863,7 +931,7 @@ router.get('/binance-price', async (req, res) => {
         const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT', {
             timeout: 5000
         });
-        
+
         if (response.data && response.data.lastPrice) {
             res.json({
                 success: true,
@@ -889,7 +957,7 @@ router.get('/coingecko-price', async (req, res) => {
         const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true', {
             timeout: 10000
         });
-        
+
         const tonData = response.data['the-open-network'];
         if (tonData && tonData.usd) {
             res.json({
@@ -915,7 +983,7 @@ router.get('/coinmarketcap-price', async (req, res) => {
     try {
         // Note: CoinMarketCap requires API key
         const apiKey = process.env.COINMARKETCAP_API_KEY;
-        
+
         if (!apiKey) {
             return res.status(501).json({
                 success: false,
@@ -929,7 +997,7 @@ router.get('/coinmarketcap-price', async (req, res) => {
             headers: { 'X-CMC_PRO_API_KEY': apiKey },
             timeout: 10000
         });
-        
+
         if (response.data && response.data.data && response.data.data.TON) {
             const tonData = response.data.data.TON[0];
             res.json({
@@ -955,7 +1023,7 @@ router.get('/coinmarketcap-price', async (req, res) => {
 router.get('/exchange-prices', async (req, res) => {
     try {
         console.log('🔄 Fetching prices from all exchanges...');
-        
+
         const exchanges = [
             { name: 'Binance', endpoint: '/binance-price' },
             { name: 'Bybit', endpoint: '/bybit-price' },
@@ -986,7 +1054,7 @@ router.get('/exchange-prices', async (req, res) => {
         });
 
         const results = await Promise.all(pricePromises);
-        
+
         const successfulPrices = results.filter(r => r.success).map(r => r.price);
         const averagePrice = successfulPrices.length > 0 
             ? successfulPrices.reduce((a, b) => a + b, 0) / successfulPrices.length 
