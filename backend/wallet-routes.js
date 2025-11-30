@@ -1,4 +1,4 @@
-// wallet-routes.js - COMPLETE SECURE VERSION WITH ENV VARIABLES ONLY
+// wallet-routes.js - COMPLETE SECURE VERSION - NO HARDCODED KEYS
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -21,9 +21,10 @@ if (!supabaseUrl || !supabaseKey) {
     throw new Error('Supabase credentials not configured');
 }
 
-// Security check for keys
-if (supabaseKey.includes('eyJ') && supabaseKey.length < 50) {
-    console.warn('⚠️  WARNING: Supabase key appears to be invalid or exposed');
+// Security validation
+if (supabaseKey.length < 20) {
+    console.error('❌ CRITICAL: Supabase service key appears invalid');
+    throw new Error('Invalid Supabase service key configuration');
 }
 
 console.log('🔐 Supabase initialized securely with environment variables');
@@ -35,7 +36,59 @@ const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/
     apiKey: process.env.TONCENTER_API_KEY || '' // Use env variable for TON API key
 }));
 
+// NMX contract address (this is public information, not a secret)
 const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
+
+// =============================================
+// 🎯 CONFIG ENDPOINT - Provide public config to frontend
+// =============================================
+
+router.get('/config', (req, res) => {
+    try {
+        // Only return public configuration, never secrets!
+        const publicConfig = {
+            success: true,
+            supabase: {
+                url: process.env.SUPABASE_URL,
+                anonKey: process.env.SUPABASE_ANON_KEY // Only public anon key
+            },
+            features: {
+                walletCreation: true,
+                walletImport: true,
+                priceTracking: true,
+                balanceChecking: true,
+                crossDeviceRecovery: true
+            },
+            tokens: {
+                ton: {
+                    name: "Toncoin",
+                    symbol: "TON",
+                    native: true
+                },
+                nmx: {
+                    name: "NemexCoin", 
+                    symbol: "NMX",
+                    contract: NMX_CONTRACT
+                }
+            },
+            security: {
+                environmentVariables: true,
+                noHardcodedKeys: true,
+                secureSessionHandling: true
+            }
+        };
+
+        console.log('✅ Public config provided to frontend');
+        res.json(publicConfig);
+
+    } catch (error) {
+        console.error('❌ Config endpoint failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to load configuration'
+        });
+    }
+});
 
 // =============================================
 // 🆕 SECURE SESSION CHECK ENDPOINT
@@ -127,7 +180,7 @@ async function validateUserSession(req, res, next) {
             '/check-wallet-exists', '/real-balance', '/nmx-balance', '/all-balances',
             '/test', '/derive-address', '/get-balances', '/exchange-prices',
             '/mexc-price', '/bitget-price', '/bybit-price', '/binance-price', 
-            '/coingecko-price', '/coinmarketcap-price', '/check-session'
+            '/coingecko-price', '/coinmarketcap-price', '/check-session', '/config'
         ];
 
         if (publicEndpoints.some(endpoint => req.path.includes(endpoint))) {
@@ -186,12 +239,17 @@ router.get('/test', (req, res) => {
         status: 'ready', 
         message: 'Wallet API is available with secure environment variables',
         timestamp: new Date().toISOString(),
-        version: '7.0.0',
+        version: '8.0.0',
         security: 'environment_variables_only',
         supabase: {
             configured: !!(supabaseUrl && supabaseKey),
             url: supabaseUrl ? '***configured***' : 'missing',
             key: supabaseKey ? '***configured***' : 'missing'
+        },
+        environment: {
+            node_env: process.env.NODE_ENV || 'development',
+            toncenter: !!process.env.TONCENTER_API_KEY,
+            coinmarketcap: !!process.env.COINMARKETCAP_API_KEY
         }
     });
 });
@@ -1395,19 +1453,21 @@ router.get('/health', (req, res) => {
         success: true,
         message: 'Wallet API is running with SECURE environment variables',
         timestamp: new Date().toISOString(),
-        version: '7.0.0',
+        version: '8.0.0',
         security: 'environment_variables_only',
         features: [
             'Secure Supabase Configuration',
             'Environment Variables Only',
             'No Hardcoded Secrets',
             'Enhanced Session Handling',
-            'Multiple Exchange Price APIs'
+            'Multiple Exchange Price APIs',
+            'Cross-Device Wallet Recovery'
         ],
         environment: {
             supabase: !!supabaseUrl && !!supabaseKey,
             toncenter: !!process.env.TONCENTER_API_KEY,
-            coinmarketcap: !!process.env.COINMARKETCAP_API_KEY
+            coinmarketcap: !!process.env.COINMARKETCAP_API_KEY,
+            node_env: process.env.NODE_ENV || 'development'
         }
     });
 });
