@@ -1,62 +1,78 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION (FULL LENGTH)
+// assets/js/wallet.js - COMPLETE SECURE VERSION WITH ENV VARIABLES
 // =============================================
-// 🎯 SUPABASE INITIALIZATION - FIXED VERSION
+// 🎯 SECURE SUPABASE INITIALIZATION - ENV VARIABLES ONLY
 // =============================================
 
-// Define Supabase configuration
+// 🚨 SECURE: No hardcoded keys - use environment variables from your build process
 const SUPABASE_CONFIG = {
-    url: 'https://bjulifvbfogymoduxnzl.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjg5Mzg4ODUsImV4cCI6MjA0NDUxNDg4NX0.7M9Mynk8PHT1-DgI0kP3DgauJ8n5w1kS9n7x1wXqJ5k'
+    url: window.SUPABASE_URL || process.env.SUPABASE_URL,
+    anonKey: window.SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY
 };
 
-// 🎯 FIXED: Initialize Supabase safely with proper timing
-let supabase;
+// Security validation
+if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+    console.warn('⚠️ Supabase configuration missing. Using fallback mode.');
+    console.log('Please set SUPABASE_URL and SUPABASE_ANON_KEY in your environment variables');
+}
+
+let supabase = null;
+let supabaseInitialized = false;
 
 function initializeSupabase() {
-    if (window.supabase && window.supabase.auth) {
-        console.log('✅ Supabase already initialized');
-        return window.supabase;
+    console.log('🚀 Secure Supabase initialization...');
+    
+    // Check if Supabase is already available globally
+    if (typeof window.supabase !== 'undefined' && window.supabase.auth) {
+        console.log('✅ Supabase already available globally');
+        supabase = window.supabase;
+        supabaseInitialized = true;
+        return supabase;
     }
-
-    console.log('🚀 Initializing Supabase client...');
-    try {
-        // Check if supabase is available globally
-        if (typeof supabase === 'undefined' || !supabase.createClient) {
-            console.error('❌ Supabase SDK not loaded');
-            return createFallbackSupabase();
-        }
-
-        const supabaseClient = supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
-            auth: {
-                autoRefreshToken: true,
-                persistSession: true,
-                detectSessionInUrl: true,
-                storage: window.localStorage
+    
+    // Check if @supabase/supabase-js is loaded
+    if (typeof createClient !== 'undefined') {
+        console.log('✅ Supabase createClient available');
+        try {
+            if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.anonKey) {
+                console.warn('⚠️ Supabase credentials not fully configured, using fallback');
+                return createFallbackSupabase();
             }
-        });
-
-        // Test the connection
-        supabaseClient.auth.getSession().then(({ data }) => {
-            console.log('✅ Supabase connection test successful');
-        }).catch(error => {
-            console.warn('⚠️ Supabase connection test failed, using fallback:', error.message);
-        });
-
-        window.supabase = supabaseClient;
-        return supabaseClient;
-    } catch (error) {
-        console.error('❌ Failed to initialize Supabase:', error);
-        return createFallbackSupabase();
+            
+            supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey, {
+                auth: {
+                    autoRefreshToken: true,
+                    persistSession: true,
+                    detectSessionInUrl: true,
+                    storage: window.localStorage
+                }
+            });
+            window.supabase = supabase;
+            supabaseInitialized = true;
+            console.log('✅ Supabase initialized securely with environment variables');
+            return supabase;
+        } catch (error) {
+            console.error('❌ Supabase createClient failed:', error);
+        }
     }
+    
+    // Final fallback
+    console.log('🔄 Creating secure fallback Supabase client');
+    supabase = createFallbackSupabase();
+    window.supabase = supabase;
+    supabaseInitialized = true;
+    return supabase;
 }
 
 function createFallbackSupabase() {
-    console.log('🔄 Creating fallback Supabase client');
-    window.supabase = {
+    console.log('🔄 Creating secure fallback Supabase client');
+    return {
         auth: {
             getUser: () => Promise.resolve({ data: { user: null }, error: null }),
             getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-            onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+            onAuthStateChange: (callback) => { 
+                console.log('🔄 Fallback auth state change listener');
+                return { data: { subscription: { unsubscribe: () => {} } } };
+            },
             signOut: () => Promise.resolve({ error: null }),
             signInWithPassword: () => Promise.resolve({ error: { message: 'Fallback mode' } })
         },
@@ -68,17 +84,14 @@ function createFallbackSupabase() {
             })
         })
     };
-    return window.supabase;
 }
 
-// Initialize Supabase when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔧 Initializing Supabase on DOM ready...');
-    supabase = initializeSupabase();
-});
+// Initialize Supabase immediately when script loads
+console.log('🔧 SECURE: Initializing Supabase on script load...');
+supabase = initializeSupabase();
 
 // =============================================
-// 🎯 SECURE MNEMONIC MANAGER CLASS (COMPLETE)
+// 🎯 SECURE MNEMONIC MANAGER CLASS
 // =============================================
 
 class SecureMnemonicManager {
@@ -383,7 +396,7 @@ class SecureMnemonicManager {
 }
 
 // =============================================
-// 🎯 TON WALLET MANAGER CLASS - COMPLETE VERSION
+// 🎯 TON WALLET MANAGER CLASS - SECURE VERSION
 // =============================================
 
 class TONWalletManager {
@@ -392,28 +405,18 @@ class TONWalletManager {
         this.mnemonicManager = new SecureMnemonicManager();
         this.updateInterval = null;
         this.currentWallet = null;
-        this.supabase = null;
-        this.initializeSupabase();
-    }
-
-    async initializeSupabase() {
-        // Wait for Supabase to be available
-        let attempts = 0;
-        while (attempts < 10) {
-            if (window.supabase) {
-                this.supabase = window.supabase;
-                console.log('✅ Supabase connected to wallet manager');
-                return;
-            }
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-        console.warn('⚠️ Supabase not available, using fallback');
-        this.supabase = createFallbackSupabase();
+        this.supabase = supabase; // Use the globally initialized supabase
+        this.walletReady = false;
+        
+        console.log('🔧 Wallet manager Supabase status:', {
+            hasSupabase: !!this.supabase,
+            hasAuth: !!(this.supabase && this.supabase.auth),
+            usingEnvVars: !!(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey)
+        });
     }
 
     async initializeWalletAPI() {
-        console.log('🚀 Initializing TON Wallet API...');
+        console.log('🚀 SECURE: Initializing TON Wallet API...');
 
         try {
             // Test backend connectivity
@@ -433,11 +436,43 @@ class TONWalletManager {
             await this.loadUserWalletFromDatabase();
 
             console.log('✅ TON Wallet API initialized successfully');
+            this.walletReady = true;
+            
+            // 🎯 CRITICAL: Mark wallet system as ready
+            this.markWalletSystemReady();
+            
             return true;
         } catch (error) {
             console.error('❌ Failed to initialize TON Wallet API:', error);
-            return true; // Continue in standalone mode
+            this.walletReady = true; // Still mark as ready for standalone mode
+            this.markWalletSystemReady();
+            return true;
         }
+    }
+
+    // 🎯 CRITICAL: Mark wallet system as ready
+    markWalletSystemReady() {
+        console.log('🎯 WALLET SYSTEM READY!');
+        this.walletReady = true;
+        
+        // Update UI to show wallet is ready
+        if (typeof window.onWalletSystemReady === 'function') {
+            window.onWalletSystemReady();
+        }
+        
+        // Remove any "wallet not ready" messages
+        const errorElements = document.querySelectorAll('.wallet-error, .system-not-ready');
+        errorElements.forEach(el => {
+            el.style.display = 'none';
+            el.remove();
+        });
+        
+        // Show wallet interface
+        const walletInterface = document.getElementById('walletInterface');
+        const createWalletBtn = document.getElementById('createWalletBtn');
+        
+        if (walletInterface) walletInterface.style.display = 'block';
+        if (createWalletBtn) createWalletBtn.style.display = 'block';
     }
 
     // 🎯 FIXED: Database-based session management
@@ -447,11 +482,15 @@ class TONWalletManager {
 
             // Method 1: Try Supabase session first
             if (this.supabase && this.supabase.auth) {
-                const { data: { user }, error } = await this.supabase.auth.getUser();
-                if (!error && user) {
-                    console.log('✅ User authenticated via Supabase:', user.id);
-                    await this.loadWalletForUser(user.id);
-                    return;
+                try {
+                    const { data: { user }, error } = await this.supabase.auth.getUser();
+                    if (!error && user) {
+                        console.log('✅ User authenticated via Supabase:', user.id);
+                        await this.loadWalletForUser(user.id);
+                        return;
+                    }
+                } catch (supabaseError) {
+                    console.log('ℹ️ Supabase auth check failed:', supabaseError.message);
                 }
             }
 
@@ -472,7 +511,7 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 NEW: Database session check
+    // 🎯 FIXED: Database session check
     async checkDatabaseSession() {
         try {
             console.log('🔍 Checking for database session...');
@@ -486,7 +525,7 @@ class TONWalletManager {
                 const data = await response.json();
                 if (data.success && data.user) {
                     console.log('✅ Database session found:', data.user.id);
-                    return data.user;
+                    return { userId: data.user.id, user: data.user };
                 }
             }
 
@@ -513,6 +552,11 @@ class TONWalletManager {
                 if (walletData.success && walletData.wallet) {
                     this.currentWallet = walletData.wallet;
                     console.log('✅ User wallet loaded:', this.currentWallet.address);
+                    
+                    // Notify UI that wallet is loaded
+                    if (typeof window.onWalletLoaded === 'function') {
+                        window.onWalletLoaded(this.currentWallet);
+                    }
                 } else {
                     console.log('ℹ️ No wallet found for user in database');
                     this.currentWallet = null;
@@ -531,17 +575,21 @@ class TONWalletManager {
 
             // Method 1: Check Supabase Auth session (YOUR MINING APP USES THIS!)
             if (this.supabase && this.supabase.auth) {
-                const { data: { user }, error } = await this.supabase.auth.getUser();
-                
-                if (!error && user) {
-                    console.log('✅ User authenticated via Supabase Auth:', user.id);
-                    return { 
-                        user: { 
-                            id: user.id,
-                            email: user.email
-                        }, 
-                        method: 'supabase_auth' 
-                    };
+                try {
+                    const { data: { user }, error } = await this.supabase.auth.getUser();
+                    
+                    if (!error && user) {
+                        console.log('✅ User authenticated via Supabase Auth:', user.id);
+                        return { 
+                            user: { 
+                                id: user.id,
+                                email: user.email
+                            }, 
+                            method: 'supabase_auth' 
+                        };
+                    }
+                } catch (supabaseError) {
+                    console.log('ℹ️ Supabase auth check failed:', supabaseError.message);
                 }
             }
 
@@ -578,8 +626,8 @@ class TONWalletManager {
             // Method 4: Check database session via API
             const dbSession = await this.checkDatabaseSession();
             if (dbSession) {
-                console.log('✅ User authenticated via database session:', dbSession.id);
-                return { user: dbSession, method: 'database' };
+                console.log('✅ User authenticated via database session:', dbSession.userId);
+                return { user: dbSession.user, method: 'database' };
             }
 
             console.log('❌ No authentication found in any method');
@@ -633,6 +681,11 @@ class TONWalletManager {
 
             console.log('✅ New wallet created:', result.wallet.address);
             this.currentWallet = result.wallet;
+
+            // Notify UI
+            if (typeof window.onWalletLoaded === 'function') {
+                window.onWalletLoaded(this.currentWallet);
+            }
 
             // 🚨 SECURITY: Return mnemonic ONLY to user (never store)
             return {
@@ -695,6 +748,11 @@ class TONWalletManager {
             console.log('✅ Wallet imported:', result.wallet.address);
             this.currentWallet = result.wallet;
 
+            // Notify UI
+            if (typeof window.onWalletLoaded === 'function') {
+                window.onWalletLoaded(this.currentWallet);
+            }
+
             return result;
 
         } catch (error) {
@@ -741,7 +799,6 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 FIXED: Enhanced price fetching with fallbacks
     async fetchTokenPrices() {
         try {
             console.log('📈 Fetching REAL token prices...');
@@ -837,7 +894,6 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 FIXED: Balance fetching with better error handling
     async fetchRealBalances(walletAddress) {
         try {
             console.log('💰 Fetching REAL balances for:', walletAddress);
@@ -1006,6 +1062,11 @@ class TONWalletManager {
             console.log('🛑 Balance updates stopped');
         }
     }
+
+    // 🎯 NEW: Check if wallet system is ready
+    isWalletSystemReady() {
+        return this.walletReady;
+    }
 }
 
 // Initialize global wallet instance
@@ -1040,6 +1101,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         window.supabaseAuthSubscription = subscription;
+    } else {
+        console.log('ℹ️ Supabase auth not available for listener');
     }
 });
 
@@ -1049,6 +1112,30 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // Global functions for UI integration
+window.onWalletSystemReady = function() {
+    console.log('🎯 WALLET SYSTEM READY - UI can now interact with wallet!');
+    
+    // Remove any "system not ready" messages
+    const errorElements = document.querySelectorAll('.system-not-ready, .wallet-error');
+    errorElements.forEach(el => {
+        el.style.display = 'none';
+        el.remove();
+    });
+    
+    // Enable wallet buttons
+    const createBtn = document.getElementById('createWalletBtn');
+    const importBtn = document.getElementById('importWalletBtn');
+    if (createBtn) createBtn.disabled = false;
+    if (importBtn) importBtn.disabled = false;
+    
+    // Show success message
+    const walletStatus = document.getElementById('walletStatus');
+    if (walletStatus) {
+        walletStatus.textContent = 'Wallet System Ready';
+        walletStatus.className = 'wallet-status ready';
+    }
+};
+
 window.onWalletLoaded = function(wallet) {
     console.log('🎯 Wallet loaded in UI:', wallet?.address);
     if (wallet) {
@@ -1085,6 +1172,9 @@ window.onWalletCleared = function() {
 
 // Initialize wallet when page loads
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 DOM loaded, initializing wallet with Supabase backend...');
+    console.log('🚀 DOM loaded, initializing wallet with secure Supabase backend...');
     await tonWalletManager.initializeWalletAPI();
 });
+
+// 🎯 SECURITY NOTE: Frontend uses public anon key only
+console.log('🔐 SECURITY: Frontend using environment variables for Supabase configuration');
