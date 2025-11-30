@@ -34,7 +34,7 @@ function initializeSupabase() {
                 storage: window.localStorage
             }
         });
-        
+
         // Test the connection
         supabaseClient.auth.getSession().then(({ data }) => {
             console.log('✅ Supabase connection test successful');
@@ -364,7 +364,7 @@ class SecureMnemonicManager {
     validateMnemonic(mnemonic) {
         const words = mnemonic.trim().toLowerCase().split(/\s+/g);
         const validLength = words.length === 12 || words.length === 24;
-        
+
         const validWords = words.every(word => {
             if (this.wordlist.includes(word)) return true;
             if (word.length >= 3 && word.length <= 8 && /^[a-z]+$/.test(word)) {
@@ -476,7 +476,7 @@ class TONWalletManager {
     async checkDatabaseSession() {
         try {
             console.log('🔍 Checking for database session...');
-            
+
             const response = await fetch('/api/wallet/check-session', {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' }
@@ -489,7 +489,7 @@ class TONWalletManager {
                     return data.user;
                 }
             }
-            
+
             console.log('ℹ️ No database session found');
             return null;
         } catch (error) {
@@ -524,28 +524,65 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 FIXED: Database-based authentication
+    // 🎯 FIXED: Enhanced user authentication check
     async checkUserAuthentication() {
         try {
-            console.log('🔐 Checking user authentication...');
+            console.log('🔐 Checking user authentication from mining app...');
 
-            // Method 1: Supabase auth
+            // Method 1: Check Supabase Auth session (YOUR MINING APP USES THIS!)
             if (this.supabase && this.supabase.auth) {
                 const { data: { user }, error } = await this.supabase.auth.getUser();
+                
                 if (!error && user) {
-                    console.log('✅ User authenticated via Supabase:', user.id);
-                    return { user, method: 'supabase' };
+                    console.log('✅ User authenticated via Supabase Auth:', user.id);
+                    return { 
+                        user: { 
+                            id: user.id,
+                            email: user.email
+                        }, 
+                        method: 'supabase_auth' 
+                    };
                 }
             }
 
-            // Method 2: Database session
+            // Method 2: Check localStorage for Supabase session
+            try {
+                const authToken = localStorage.getItem('supabase.auth.token');
+                if (authToken) {
+                    const parsedToken = JSON.parse(authToken);
+                    if (parsedToken.currentSession?.user) {
+                        const user = parsedToken.currentSession.user;
+                        console.log('✅ User found in localStorage Supabase session:', user.id);
+                        return { 
+                            user: { 
+                                id: user.id,
+                                email: user.email
+                            }, 
+                            method: 'local_storage' 
+                        };
+                    }
+                }
+            } catch (localStorageError) {
+                console.log('ℹ️ No Supabase session in localStorage');
+            }
+
+            // Method 3: Check for global user object (from your mining app)
+            if (window.currentUser) {
+                console.log('✅ User found in global window object:', window.currentUser.id);
+                return { 
+                    user: window.currentUser, 
+                    method: 'global_object' 
+                };
+            }
+
+            // Method 4: Check database session via API
             const dbSession = await this.checkDatabaseSession();
             if (dbSession) {
                 console.log('✅ User authenticated via database session:', dbSession.id);
                 return { user: dbSession, method: 'database' };
             }
 
-            console.log('❌ No authentication found');
+            console.log('❌ No authentication found in any method');
             return null;
 
         } catch (error) {
@@ -554,14 +591,14 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 FIXED: Create wallet with database auth
+    // 🎯 FIXED: Create wallet with enhanced error handling
     async createNewWallet() {
         try {
             console.log('🆕 Creating new wallet...');
 
             const authResult = await this.checkUserAuthentication();
             if (!authResult) {
-                throw new Error('Please sign in to create a wallet');
+                throw new Error('Please sign in to create a wallet. Make sure you are logged into your mining account.');
             }
 
             const userId = authResult.user.id;
@@ -607,18 +644,24 @@ class TONWalletManager {
 
         } catch (error) {
             console.error('❌ Failed to create new wallet:', error);
+            
+            // Enhanced error message for better user experience
+            if (error.message.includes('sign in')) {
+                throw new Error('Please make sure you are logged into your mining account. Refresh the page and try again.');
+            }
+            
             throw error;
         }
     }
 
-    // 🎯 FIXED: Import wallet with database auth
+    // 🎯 FIXED: Import wallet with enhanced error handling
     async importWalletFromMnemonic(mnemonic) {
         try {
             console.log('📥 Importing wallet from mnemonic...');
 
             const authResult = await this.checkUserAuthentication();
             if (!authResult) {
-                throw new Error('Please sign in to import a wallet');
+                throw new Error('Please sign in to import a wallet. Make sure you are logged into your mining account.');
             }
 
             const userId = authResult.user.id;
@@ -656,6 +699,12 @@ class TONWalletManager {
 
         } catch (error) {
             console.error('❌ Failed to import wallet:', error);
+            
+            // Enhanced error message for better user experience
+            if (error.message.includes('sign in')) {
+                throw new Error('Please make sure you are logged into your mining account. Refresh the page and try again.');
+            }
+            
             throw error;
         }
     }
@@ -820,7 +869,7 @@ class TONWalletManager {
                     if (response.ok) {
                         const data = await response.json();
                         console.log(`✅ Balance from ${endpoint}:`, data);
-                        
+
                         if (data.balances) return data.balances;
                         if (data.balance) {
                             return {
