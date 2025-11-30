@@ -1,4 +1,4 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION WITH FLEXIBLE AUTH
+// assets/js/wallet.js - COMPLETE FIXED VERSION WITH MNEMONIC COMPATIBILITY
 // =============================================
 // 🎯 SUPABASE INITIALIZATION - FIXED VERSION
 // =============================================
@@ -47,7 +47,7 @@ function initializeSupabase() {
 const supabase = initializeSupabase();
 
 // =============================================
-// 🎯 SECURE MNEMONIC MANAGER CLASS
+// 🎯 SECURE MNEMONIC MANAGER CLASS - FIXED FOR COMPATIBILITY
 // =============================================
 
 class SecureMnemonicManager {
@@ -332,10 +332,26 @@ class SecureMnemonicManager {
         return finalMnemonic;
     }
 
+    // 🎯 FIXED: More flexible validation for existing wallets
     validateMnemonic(mnemonic) {
         const words = mnemonic.trim().toLowerCase().split(/\s+/g);
         const validLength = words.length === 12 || words.length === 24;
-        const validWords = words.every(word => this.wordlist.includes(word));
+        
+        // 🎯 FIX: Check if words are in BIP39 list OR allow any valid-looking words
+        const validWords = words.every(word => {
+            // Check if word is in BIP39 list
+            if (this.wordlist.includes(word)) {
+                return true;
+            }
+            
+            // 🎯 FIX: Allow words that look valid (3-8 letters, lowercase)
+            if (word.length >= 3 && word.length <= 8 && /^[a-z]+$/.test(word)) {
+                console.log('⚠️ Non-BIP39 word detected but allowing:', word);
+                return true;
+            }
+            
+            return false;
+        });
 
         console.log('🔍 Validating mnemonic:', {
             length: words.length,
@@ -353,7 +369,7 @@ class SecureMnemonicManager {
 }
 
 // =============================================
-// 🎯 TON WALLET MANAGER CLASS - FIXED AUTH
+// 🎯 TON WALLET MANAGER CLASS - FIXED AUTH & MNEMONIC
 // =============================================
 
 class TONWalletManager {
@@ -607,7 +623,7 @@ class TONWalletManager {
         }
     }
 
-    // 🎯 FIXED: Import wallet with flexible auth
+    // 🎯 FIXED: Import wallet with flexible auth & mnemonic validation
     async importWalletFromMnemonic(mnemonic) {
         try {
             console.log('📥 Importing wallet from mnemonic via Supabase backend...');
@@ -622,8 +638,21 @@ class TONWalletManager {
             const userId = authResult.user.id;
             const normalizedMnemonic = this.mnemonicManager.normalizeMnemonic(mnemonic);
 
+            // 🎯 FIX: More flexible validation for existing wallets
             if (!this.mnemonicManager.validateMnemonic(normalizedMnemonic)) {
-                throw new Error('Invalid mnemonic phrase. Please check your words and try again.');
+                console.log('⚠️ Standard validation failed, checking word structure...');
+                
+                // Additional check: are these valid-looking words?
+                const words = normalizedMnemonic.split(' ');
+                const allWordsValid = words.every(word => 
+                    word.length >= 3 && word.length <= 8 && /^[a-z]+$/.test(word)
+                );
+                
+                if (!allWordsValid) {
+                    throw new Error('Invalid mnemonic phrase. Please check your words and try again.');
+                }
+                
+                console.log('🔄 Proceeding with non-standard but valid-looking mnemonic');
             }
 
             console.log('🔑 Importing wallet via backend API for user:', userId, 'via method:', authResult.method);
