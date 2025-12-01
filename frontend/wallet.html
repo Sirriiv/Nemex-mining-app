@@ -2592,7 +2592,7 @@
 
     <script>
 // =============================================
-// 🚀 COMPLETE SECURE WALLET SYSTEM
+// 🚀 COMPLETE SECURE WALLET SYSTEM - SUPABASE AUTH ONLY
 // =============================================
 
 // Configuration - Gets from backend config endpoint
@@ -2644,8 +2644,7 @@ async function initializeSupabaseClient() {
 
     } catch (error) {
         console.error('❌ Failed to initialize Supabase:', error);
-        showStatusMessage('❌ Wallet system configuration failed', 'error');
-        throw error;
+        throw new Error('Supabase configuration required. Please ensure backend is running.');
     }
 }
 
@@ -2666,14 +2665,7 @@ async function loadAppConfig() {
         }
     } catch (error) {
         console.error('❌ Failed to load app config from backend:', error);
-        
-        // Fallback: Show error and use development mode
-        console.log('🔄 Running in development mode - backend configuration required');
-        showStatusMessage('⚠️ Backend configuration required. Please check server environment variables.', 'error');
-        
-        // Set empty values to force configuration from backend
-        appConfig.supabaseUrl = '';
-        appConfig.supabaseAnonKey = '';
+        throw new Error('Backend configuration required. Please check server environment variables.');
     }
 }
 
@@ -2688,7 +2680,8 @@ let walletState = {
     address: null,
     balances: {},
     lastUpdate: null,
-    sessionCheckComplete: false
+    sessionCheckComplete: false,
+    isAuthenticated: false
 };
 
 let userWallets = [];
@@ -2726,177 +2719,300 @@ let SUPPORTED_TOKENS = [
 ];
 
 // =============================================
-// 🎯 CORE WALLET FUNCTIONS
+// 🎯 CORE WALLET FUNCTIONS - SUPABASE AUTH ONLY
 // =============================================
 
-async function checkWalletSession() {
-    if (sessionCheckInProgress) return null;
-    sessionCheckInProgress = true;
+async function checkUserAuthentication() {
+    if (!window.supabase) {
+        console.log('❌ Supabase not initialized');
+        return { authenticated: false };
+    }
 
     try {
-        console.log('🔍 Checking for wallet session...');
-
-        // METHOD 1: Check Supabase session directly
-        if (window.supabase && window.supabase.auth) {
-            try {
-                const { data: { session }, error } = await window.supabase.auth.getSession();
-                if (session && !error) {
-                    console.log('✅ Supabase session found:', session.user.id);
-                    return { 
-                        session,
-                        user: session.user,
-                        method: 'supabase_auth'
-                    };
-                }
-            } catch (supabaseError) {
-                console.log('ℹ️ Supabase session check failed:', supabaseError.message);
-            }
+        const { data: { session }, error } = await window.supabase.auth.getSession();
+        
+        if (error) {
+            console.error('❌ Auth check error:', error);
+            return { authenticated: false, error: error.message };
         }
-
-        // METHOD 2: Check localStorage for ANY session data
-        console.log('🔍 Checking localStorage for sessions...');
-
-        // Check all possible session storage keys
-        const sessionKeys = [
-            'supabase.auth.token',
-            'nemexcoin_user_session',
-            'supabase-auth-token'
-        ];
-
-        for (const sessionKey of sessionKeys) {
-            try {
-                const sessionData = localStorage.getItem(sessionKey);
-                console.log(`🔍 Checking ${sessionKey}:`, sessionData ? 'Found' : 'Not found');
-
-                if (sessionData) {
-                    const parsed = JSON.parse(sessionData);
-
-                    // Check different session formats
-                    if (parsed.currentSession?.user) {
-                        console.log('✅ Session found (currentSession format):', parsed.currentSession.user.id);
-                        return {
-                            user: parsed.currentSession.user,
-                            session: { user: parsed.currentSession.user },
-                            method: 'local_storage_' + sessionKey
-                        };
-                    }
-
-                    if (parsed.loggedIn && parsed.id) {
-                        console.log('✅ Session found (loggedIn format):', parsed.id);
-                        return {
-                            user: { id: parsed.id, email: parsed.email },
-                            session: { user: { id: parsed.id, email: parsed.email } },
-                            method: 'local_storage_' + sessionKey
-                        };
-                    }
-
-                    if (parsed.user) {
-                        console.log('✅ Session found (user format):', parsed.user.id);
-                        return {
-                            user: parsed.user,
-                            session: { user: parsed.user },
-                            method: 'local_storage_' + sessionKey
-                        };
-                    }
-                }
-            } catch (e) {
-                console.log(`ℹ️ Failed to parse ${sessionKey}:`, e.message);
-            }
-        }
-
-        // METHOD 3: Check for global user object
-        if (window.currentUser) {
-            console.log('✅ User found in global window.currentUser:', window.currentUser.id);
+        
+        if (session) {
+            console.log('✅ User authenticated:', session.user.id);
             return { 
-                user: window.currentUser,
-                session: { user: window.currentUser },
-                method: 'global_object'
+                authenticated: true, 
+                user: session.user,
+                session: session
             };
+        } else {
+            console.log('ℹ️ User not authenticated');
+            return { authenticated: false };
         }
-
-        console.log('❌ No active session found in any method');
-        return null;
-
     } catch (error) {
-        console.error('❌ Session check error:', error);
-        return null;
-    } finally {
-        sessionCheckInProgress = false;
+        console.error('❌ Authentication check failed:', error);
+        return { authenticated: false, error: error.message };
     }
 }
 
-// Create test session for development
-async function createTestSession() {
-    console.log('🔄 Creating test session for development...');
-
-    // Create a mock session for testing
-    const testSession = {
-        id: 'test-user-' + Date.now(),
-        email: 'test@nemex.com',
-        loggedIn: true
-    };
-
-    localStorage.setItem('nemexcoin_user_session', JSON.stringify(testSession));
-    console.log('✅ Test session created:', testSession.id);
-
-    return testSession;
-}
-
-// Wallet initialization with session fallback
+// 🎯 UPDATED: Wallet initialization - SUPABASE AUTH ONLY
 async function initWallet() {
-    console.log('🔄 Initializing wallet system...');
+    console.log('🔄 Initializing wallet system with Supabase Auth...');
 
     try {
-        // First initialize Supabase with proper configuration
+        // Initialize Supabase first
         await initializeSupabaseClient();
 
         if (window.tonWalletManager) {
             console.log('✅ Wallet manager found, initializing...');
-            await window.tonWalletManager.initializeWalletAPI();
+            const initResult = await window.tonWalletManager.initializeWalletAPI();
 
-            // Check for existing wallet
-            const hasWallet = await window.tonWalletManager.hasWallet();
-            const currentWallet = await window.tonWalletManager.getCurrentWallet();
+            if (initResult.success) {
+                console.log('✅ Wallet API initialized successfully');
 
-            if (hasWallet && currentWallet) {
-                console.log('✅ Existing wallet found:', currentWallet.address);
+                // Check if user is authenticated
+                const authResult = await checkUserAuthentication();
+                
+                if (authResult.authenticated) {
+                    walletState.isAuthenticated = true;
+                    walletState.userId = authResult.user.id;
+                    currentUser = authResult.user;
+                    
+                    // Check for existing wallet
+                    const hasWallet = await window.tonWalletManager.hasWallet();
+                    const currentWallet = await window.tonWalletManager.getCurrentWallet();
 
-                // Check if this is a created wallet
-                if (currentWallet.source === 'generated') {
-                    hasCreatedWallet = true;
-                    console.log('✅ User already has a created wallet');
+                    if (hasWallet && currentWallet) {
+                        console.log('✅ Existing wallet found:', currentWallet.address);
+
+                        // Check if this is a created wallet
+                        if (currentWallet.source === 'generated') {
+                            hasCreatedWallet = true;
+                            console.log('✅ User already has a created wallet');
+                        }
+
+                        walletState = {
+                            isInitialized: true,
+                            walletType: currentWallet.source || 'imported',
+                            userId: currentWallet.userId,
+                            address: currentWallet.address,
+                            balances: {},
+                            lastUpdate: null,
+                            sessionCheckComplete: true,
+                            isAuthenticated: true
+                        };
+
+                        updateWalletDisplay();
+                        await updateRealBalances();
+                        console.log('✅ Wallet loaded successfully!');
+                    } else {
+                        console.log('ℹ️ No wallet found for authenticated user, showing welcome screen');
+                        showWelcomeScreen();
+                    }
+                } else {
+                    console.log('ℹ️ User not authenticated, showing login screen');
+                    showLoginScreen();
                 }
-
-                walletState = {
-                    isInitialized: true,
-                    walletType: currentWallet.source || 'imported',
-                    userId: currentWallet.userId,
-                    address: currentWallet.address,
-                    balances: {},
-                    lastUpdate: null,
-                    sessionCheckComplete: true
-                };
-
-                updateWalletDisplay();
-                await updateRealBalances();
-                showStatusMessage('✅ Wallet loaded successfully!', 'success');
             } else {
-                console.log('ℹ️ No wallet found, showing welcome screen');
-                showWelcomeScreen();
+                console.error('❌ Wallet API initialization failed:', initResult.error);
+                showLoginScreen();
             }
         } else {
             console.error('❌ Wallet manager not available');
-            showWelcomeScreen();
+            showLoginScreen();
         }
 
     } catch (error) {
         console.error('❌ Wallet initialization failed:', error);
-        showWelcomeScreen();
+        showLoginScreen();
     }
 }
 
-// Show create wallet modal with session fallback
+// 🎯 NEW: Show login screen
+function showLoginScreen() {
+    console.log('🔐 Showing login screen');
+    
+    // Hide welcome screen if it exists
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    if (welcomeScreen) {
+        welcomeScreen.style.display = 'none';
+    }
+    
+    // Show login prompt
+    showStatusMessage('🔐 Please sign in to access your wallet', 'info');
+    
+    // In a real app, you would show a login form here
+    // For now, we'll show a message
+    const loginMessage = document.createElement('div');
+    loginMessage.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: var(--border-radius);
+        border: 2px solid var(--gold);
+        text-align: center;
+        z-index: 10000;
+        max-width: 400px;
+        width: 90%;
+    `;
+    
+    loginMessage.innerHTML = `
+        <h3 style="color: var(--gold); margin-bottom: 15px;">🔒 Authentication Required</h3>
+        <p style="color: var(--text); margin-bottom: 20px;">Please sign in to access the wallet features.</p>
+        <button onclick="showSignInModal()" style="background: var(--gold); color: var(--dark-bg); border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+            Sign In / Sign Up
+        </button>
+    `;
+    
+    document.body.appendChild(loginMessage);
+    
+    // Store reference to remove later
+    window.loginMessage = loginMessage;
+}
+
+// 🎯 NEW: Sign in modal
+function showSignInModal() {
+    closeModal();
+    
+    if (window.loginMessage) {
+        document.body.removeChild(window.loginMessage);
+        window.loginMessage = null;
+    }
+    
+    // Create sign in modal
+    const modal = document.createElement('div');
+    modal.id = 'signInModal';
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-title">🔐 Sign In / Sign Up</div>
+            
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" id="authEmail" class="form-input" placeholder="your@email.com">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                <input type="password" id="authPassword" class="form-input" placeholder="••••••••">
+            </div>
+            
+            <div id="authStatus" style="margin: 15px 0;"></div>
+            
+            <button class="close-modal" onclick="signInWithEmail()" id="signInBtn">
+                Sign In
+            </button>
+            
+            <button class="close-modal secondary" onclick="signUpWithEmail()" id="signUpBtn">
+                Sign Up
+            </button>
+            
+            <button class="close-modal secondary" onclick="closeModal()" style="margin-top: 10px;">
+                Cancel
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+async function signInWithEmail() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const statusElement = document.getElementById('authStatus');
+    const signInBtn = document.getElementById('signInBtn');
+    
+    if (!email || !password) {
+        showStatusMessage('❌ Please enter email and password', 'error');
+        return;
+    }
+    
+    try {
+        signInBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Signing in...';
+        signInBtn.disabled = true;
+        
+        statusElement.innerHTML = '<div class="status-loading">🔄 Signing in...</div>';
+        
+        const result = await window.tonWalletManager.signInWithEmail(email, password);
+        
+        if (result.success) {
+            statusElement.innerHTML = '<div class="status-success">✅ Signed in successfully!</div>';
+            showStatusMessage('✅ Signed in successfully!', 'success');
+            
+            // Reload wallet after sign in
+            setTimeout(() => {
+                closeModal();
+                location.reload();
+            }, 1500);
+        } else {
+            throw new Error(result.error || 'Sign in failed');
+        }
+    } catch (error) {
+        console.error('❌ Sign in failed:', error);
+        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
+        signInBtn.innerHTML = 'Sign In';
+        signInBtn.disabled = false;
+    }
+}
+
+async function signUpWithEmail() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    const statusElement = document.getElementById('authStatus');
+    const signUpBtn = document.getElementById('signUpBtn');
+    
+    if (!email || !password) {
+        showStatusMessage('❌ Please enter email and password', 'error');
+        return;
+    }
+    
+    if (password.length < 6) {
+        showStatusMessage('❌ Password must be at least 6 characters', 'error');
+        return;
+    }
+    
+    try {
+        signUpBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Signing up...';
+        signUpBtn.disabled = true;
+        
+        statusElement.innerHTML = '<div class="status-loading">🔄 Creating account...</div>';
+        
+        const result = await window.tonWalletManager.signUpWithEmail(email, password);
+        
+        if (result.success) {
+            statusElement.innerHTML = '<div class="status-success">✅ Account created! Please check your email to confirm.</div>';
+            showStatusMessage('✅ Account created! Please check your email.', 'success');
+            
+            // Auto sign in after sign up
+            setTimeout(async () => {
+                const signInResult = await window.tonWalletManager.signInWithEmail(email, password);
+                if (signInResult.success) {
+                    closeModal();
+                    location.reload();
+                }
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Sign up failed');
+        }
+    } catch (error) {
+        console.error('❌ Sign up failed:', error);
+        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
+        signUpBtn.innerHTML = 'Sign Up';
+        signUpBtn.disabled = false;
+    }
+}
+
+// 🎯 UPDATED: Show create wallet modal - AUTH REQUIRED
 function showCreateWalletModal() {
+    if (!walletState.isAuthenticated) {
+        showStatusMessage('❌ Please sign in to create a wallet', 'error');
+        showSignInModal();
+        return;
+    }
+    
     console.log('🔄 Opening create wallet modal...');
     closeModal();
 
@@ -2910,19 +3026,17 @@ function showCreateWalletModal() {
     if (createWalletModal) {
         createWalletModal.style.display = 'flex';
         document.getElementById('createWalletStatus').innerHTML = '';
-
-        // Restore gold styling to buttons
-        const buttons = createWalletModal.querySelectorAll('.close-modal');
-        buttons.forEach(btn => {
-            btn.style.background = 'var(--gold)';
-            btn.style.color = 'var(--dark-bg)';
-            btn.style.border = 'none';
-        });
     }
 }
 
-// Show import wallet modal with session fallback  
+// 🎯 UPDATED: Show import wallet modal - AUTH REQUIRED
 function showImportWalletModal() {
+    if (!walletState.isAuthenticated) {
+        showStatusMessage('❌ Please sign in to import a wallet', 'error');
+        showSignInModal();
+        return;
+    }
+    
     console.log('🔄 Opening import wallet modal...');
     closeModal();
 
@@ -2930,25 +3044,16 @@ function showImportWalletModal() {
     if (importWalletModal) {
         importWalletModal.style.display = 'flex';
         document.getElementById('importWalletStatus').innerHTML = '';
-
-        // Restore gold styling to buttons
-        const buttons = importWalletModal.querySelectorAll('.close-modal');
-        buttons.forEach(btn => {
-            if (btn.classList.contains('secondary')) {
-                btn.style.background = 'transparent';
-                btn.style.color = 'var(--gold)';
-                btn.style.border = '2px solid var(--gold)';
-            } else {
-                btn.style.background = 'var(--gold)';
-                btn.style.color = 'var(--dark-bg)';
-                btn.style.border = 'none';
-            }
-        });
     }
 }
 
-// Wallet creation with session fallback
+// 🎯 UPDATED: Wallet creation - AUTH REQUIRED
 async function checkAndGenerateWallet() {
+    if (!walletState.isAuthenticated) {
+        showStatusMessage('❌ Please sign in to create a wallet', 'error');
+        return;
+    }
+    
     const statusElement = document.getElementById('createWalletStatus');
     const generateBtn = document.getElementById('generateWalletBtn');
 
@@ -2964,22 +3069,6 @@ async function checkAndGenerateWallet() {
         generateBtn.disabled = true;
 
         statusElement.innerHTML = '<div class="status-loading">🔄 Generating secure wallet...</div>';
-
-        let sessionResult = await checkWalletSession();
-
-        // If no session found, create a test session for development
-        if (!sessionResult || !sessionResult.user) {
-            console.log('⚠️ No session found, creating test session for development...');
-            const testUser = await createTestSession();
-            sessionResult = {
-                user: testUser,
-                session: { user: testUser },
-                method: 'test_session'
-            };
-            console.log('✅ Using test session:', testUser.id);
-        }
-
-        console.log('✅ Session verified, creating wallet...');
 
         if (!window.tonWalletManager) {
             throw new Error('Wallet system not ready. Please refresh the page.');
@@ -3003,7 +3092,8 @@ async function checkAndGenerateWallet() {
             address: result.wallet.address,
             balances: {},
             lastUpdate: null,
-            sessionCheckComplete: true
+            sessionCheckComplete: true,
+            isAuthenticated: true
         };
 
         showBackupModal(result.mnemonic);
@@ -3011,26 +3101,19 @@ async function checkAndGenerateWallet() {
 
     } catch (error) {
         console.error('❌ Wallet generation failed:', error);
-
-        let errorMessage = error.message;
-        if (error.message.includes('sign in') || error.message.includes('log in')) {
-            errorMessage = 'Session issue detected. Creating test session for development...';
-            // Auto-create test session and retry
-            setTimeout(() => {
-                checkAndGenerateWallet();
-            }, 1000);
-            statusElement.innerHTML = '<div class="status-loading">🔄 Creating test session...</div>';
-            return;
-        }
-
-        statusElement.innerHTML = `<div class="status-error">❌ ${errorMessage}</div>`;
+        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
         generateBtn.innerHTML = 'Generate New Wallet';
         generateBtn.disabled = false;
     }
 }
 
-// Wallet import with session fallback
+// 🎯 UPDATED: Wallet import - AUTH REQUIRED
 async function importWalletFromModal() {
+    if (!walletState.isAuthenticated) {
+        showStatusMessage('❌ Please sign in to import a wallet', 'error');
+        return;
+    }
+    
     const mnemonicInput = document.getElementById('importMnemonic');
     const statusElement = document.getElementById('importWalletStatus');
     const importBtn = document.getElementById('importWalletBtn');
@@ -3046,20 +3129,6 @@ async function importWalletFromModal() {
         const words = mnemonic.split(' ').filter(word => word.trim().length > 0);
         if (words.length !== 12 && words.length !== 24) {
             throw new Error('Recovery phrase must be 12 or 24 words');
-        }
-
-        let sessionResult = await checkWalletSession();
-
-        // If no session found, create a test session for development
-        if (!sessionResult || !sessionResult.user) {
-            console.log('⚠️ No session found, creating test session for development...');
-            const testUser = await createTestSession();
-            sessionResult = {
-                user: testUser,
-                session: { user: testUser },
-                method: 'test_session'
-            };
-            console.log('✅ Using test session:', testUser.id);
         }
 
         importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Importing...';
@@ -3086,7 +3155,8 @@ async function importWalletFromModal() {
             address: result.wallet.address,
             balances: {},
             lastUpdate: null,
-            sessionCheckComplete: true
+            sessionCheckComplete: true,
+            isAuthenticated: true
         };
 
         updateWalletDisplay();
@@ -3098,25 +3168,13 @@ async function importWalletFromModal() {
 
     } catch (error) {
         console.error('❌ Wallet import failed:', error);
-
-        let errorMessage = error.message;
-        if (error.message.includes('sign in') || error.message.includes('log in')) {
-            errorMessage = 'Session issue detected. Creating test session for development...';
-            // Auto-create test session and retry
-            setTimeout(() => {
-                importWalletFromModal();
-            }, 1000);
-            statusElement.innerHTML = '<div class="status-loading">🔄 Creating test session...</div>';
-            return;
-        }
-
-        statusElement.innerHTML = `<div class="status-error">❌ ${errorMessage}</div>`;
+        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
         importBtn.innerHTML = 'Import Wallet';
         importBtn.disabled = false;
     }
 }
 
-// Backup modal styling
+// 🎯 FIXED: Backup modal styling
 function showBackupModal(mnemonic) {
     closeModal();
 
@@ -3135,14 +3193,6 @@ function showBackupModal(mnemonic) {
         document.getElementById('backupConfirmed').checked = false;
         const confirmBackupBtn = document.getElementById('confirmBackupBtn');
         confirmBackupBtn.disabled = true;
-
-        // Restore gold styling to backup modal buttons
-        const buttons = backupModal.querySelectorAll('.close-modal');
-        buttons.forEach(btn => {
-            btn.style.background = 'var(--gold)';
-            btn.style.color = 'var(--dark-bg)';
-            btn.style.border = 'none';
-        });
 
         backupModal.style.display = 'flex';
     }
@@ -3169,6 +3219,25 @@ async function confirmBackupAndContinue() {
     } catch (error) {
         console.error('❌ Error activating wallet:', error);
         showStatusMessage('❌ Error activating wallet', 'error');
+    }
+}
+
+// 🎯 NEW: Logout function
+async function logout() {
+    try {
+        console.log('🚪 Logging out...');
+        
+        const result = await window.tonWalletManager.signOut();
+        
+        if (result.success) {
+            showStatusMessage('✅ Signed out successfully', 'success');
+            location.reload();
+        } else {
+            throw new Error(result.error || 'Logout failed');
+        }
+    } catch (error) {
+        console.error('❌ Logout failed:', error);
+        showStatusMessage('❌ Logout failed: ' + error.message, 'error');
     }
 }
 
@@ -3208,7 +3277,7 @@ function updateWalletDisplay() {
     const actionButtons = document.getElementById('actionButtons');
     const tokenSection = document.getElementById('tokenSection');
 
-    if (walletState.isInitialized) {
+    if (walletState.isInitialized && walletState.isAuthenticated) {
         document.body.classList.add('wallet-loaded');
 
         if (welcomeScreen) welcomeScreen.style.display = 'none';
@@ -3219,15 +3288,32 @@ function updateWalletDisplay() {
         updatePortfolioValue();
         loadTokens();
         startBalanceUpdates();
+        
+        // Update address in receive modal
+        if (walletState.address) {
+            const addressElement = document.getElementById('addressFull');
+            if (addressElement) {
+                addressElement.textContent = walletState.address;
+            }
+        }
     } else {
         document.body.classList.remove('wallet-loaded');
 
-        if (welcomeScreen) welcomeScreen.style.display = 'block';
+        if (welcomeScreen && !walletState.isAuthenticated) {
+            welcomeScreen.style.display = 'block';
+        }
         if (balanceSection) balanceSection.style.display = 'none';
         if (actionButtons) actionButtons.style.display = 'none';
         if (tokenSection) tokenSection.style.display = 'none';
     }
 }
+
+// 🎯 NEW: Clear wallet display (called by wallet manager)
+window.clearWalletDisplay = function() {
+    walletState.isInitialized = false;
+    walletState.isAuthenticated = false;
+    updateWalletDisplay();
+};
 
 function startBalanceUpdates() {
     updateRealBalances();
@@ -3309,15 +3395,54 @@ function closeModal() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.style.display = 'none';
     });
+    
+    // Also remove dynamically created modals
+    const signInModal = document.getElementById('signInModal');
+    if (signInModal) {
+        document.body.removeChild(signInModal);
+    }
 }
 
 function showStatusMessage(message, type = 'info') {
     console.log(`📢 Status (${type}): ${message}`);
+    
+    // Create a temporary status message
+    const statusDiv = document.createElement('div');
+    statusDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 10000;
+        max-width: 90%;
+        text-align: center;
+    `;
+    
     if (type === 'error') {
-        alert('❌ ' + message);
+        statusDiv.style.background = 'var(--error)';
+        statusDiv.style.color = 'white';
+        statusDiv.innerHTML = `❌ ${message}`;
     } else if (type === 'success') {
-        alert('✅ ' + message);
+        statusDiv.style.background = 'var(--success)';
+        statusDiv.style.color = 'white';
+        statusDiv.innerHTML = `✅ ${message}`;
+    } else {
+        statusDiv.style.background = 'var(--gold)';
+        statusDiv.style.color = 'var(--dark-bg)';
+        statusDiv.innerHTML = `ℹ️ ${message}`;
     }
+    
+    document.body.appendChild(statusDiv);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        if (statusDiv.parentNode) {
+            statusDiv.parentNode.removeChild(statusDiv);
+        }
+    }, 3000);
 }
 
 function handleTokenLogoError(img, symbol) {
@@ -3339,15 +3464,17 @@ function handleTokenLogoError(img, symbol) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 DOM loaded, initializing wallet system...');
 
+    // Remove any debug buttons
     const debugButtons = document.querySelectorAll('.debug-btn, .debug-button');
     debugButtons.forEach(button => button.remove());
 
+    // Initialize wallet system
     setTimeout(() => {
         initWallet();
     }, 500);
 });
 
-console.log('✅ Complete Secure Wallet System LOADED - No Hardcoded Keys');
+console.log('✅ Complete Secure Wallet System LOADED - Full Supabase Auth');
 </script>
 </body>
 </html>
