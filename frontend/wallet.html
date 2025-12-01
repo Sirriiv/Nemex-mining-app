@@ -2592,14 +2592,17 @@
 
     <script>
 // =============================================
-// 🎯 SIMPLIFIED INTEGRATED WALLET
+// 🎯 INTEGRATED WALLET FOR LOGGED-IN NEMEX USERS
 // =============================================
 
-// Get current user from your website's session
-// This should come from your main website authentication
+// IMPORTANT: Your main website must set these when user logs in:
+// In your main website's JavaScript (after user logs in), add:
+// window.currentUserId = userData.id;  // From your database
+// window.currentUserEmail = userData.email;
+
 let currentUser = {
-    id: window.currentUserId || localStorage.getItem('user_id') || null,
-    email: window.currentUserEmail || localStorage.getItem('user_email') || null
+    id: window.currentUserId || localStorage.getItem('nemex_user_id') || null,
+    email: window.currentUserEmail || localStorage.getItem('nemex_user_email') || null
 };
 
 let walletState = {
@@ -2607,7 +2610,8 @@ let walletState = {
     wallet: null,
     balances: {},
     prices: {},
-    isLoading: false
+    isLoading: false,
+    currentView: 'wallet'
 };
 
 let SUPPORTED_TOKENS = [
@@ -2616,10 +2620,11 @@ let SUPPORTED_TOKENS = [
         name: "Toncoin",
         balance: 0,
         logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-        price: 0,
+        price: 2.5,
         change24h: 0,
         canSend: true,
-        isNative: true
+        isNative: true,
+        contract: null
     },
     {
         symbol: "NMX", 
@@ -2629,7 +2634,8 @@ let SUPPORTED_TOKENS = [
         price: 0.10,
         change24h: 0,
         canSend: true,
-        isNative: false
+        isNative: false,
+        contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f"
     }
 ];
 
@@ -2638,13 +2644,16 @@ let SUPPORTED_TOKENS = [
 // =============================================
 
 async function initWallet() {
-    console.log('🔄 Initializing integrated wallet...');
+    console.log('🔄 Initializing Nemex wallet for user...');
 
+    // Check if user is logged in (from your website)
     if (!currentUser.id) {
-        console.log('❌ No user logged in');
-        showLoginPrompt();
+        console.log('⚠️ No user ID found - user might not be logged in');
+        showNotLoggedInMessage();
         return;
     }
+
+    console.log('✅ User is logged in:', currentUser.id);
 
     try {
         // Set current user in wallet manager
@@ -2655,100 +2664,128 @@ async function initWallet() {
         
         if (result.success) {
             if (result.hasWallet) {
+                // User has a wallet - show wallet interface
                 walletState.hasWallet = true;
                 walletState.wallet = result.wallet;
-                console.log('✅ Wallet loaded:', result.wallet.address);
+                console.log('✅ Wallet loaded for user:', result.wallet.address);
+                
+                document.body.classList.add('wallet-loaded');
                 showWalletInterface();
                 await loadWalletData();
             } else {
-                console.log('ℹ️ No wallet found for user');
+                // User doesn't have a wallet - show welcome screen
+                console.log('ℹ️ No wallet found for user - showing welcome screen');
+                document.body.classList.remove('wallet-loaded');
                 showWelcomeScreen();
             }
         } else {
             console.error('❌ Wallet init failed:', result.error);
-            showWelcomeScreen();
+            showErrorMessage('Failed to load wallet');
         }
     } catch (error) {
         console.error('❌ Wallet initialization failed:', error);
-        showWelcomeScreen();
+        showErrorMessage('Wallet system error');
     }
 }
 
 // =============================================
-// 🎯 WALLET CREATION
+// 🎯 WALLET CREATION & IMPORT
 // =============================================
 
-async function createWallet() {
+async function checkAndGenerateWallet() {
     if (!currentUser.id) {
-        showMessage('❌ Please log in first', 'error');
+        showMessage('❌ You need to be logged in to create a wallet', 'error');
         return;
     }
 
+    const statusElement = document.getElementById('createWalletStatus');
+    const generateBtn = document.getElementById('generateWalletBtn');
+
     try {
-        showLoading('Creating your wallet...');
-        
+        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
+        generateBtn.disabled = true;
+
+        statusElement.innerHTML = '<div class="status-loading">🔄 Creating your wallet...</div>';
+
+        // Create wallet for current user
         const result = await window.walletManager.createWallet();
-        
-        if (result.success) {
-            console.log('✅ Wallet created:', result.wallet.address);
+
+        if (result.success && result.wallet) {
+            console.log('✅ Wallet created for user:', result.wallet.address);
             
             // Show backup modal with seed phrase
             showBackupModal(result.mnemonic);
             
-            // Update state
+            // Update wallet state
             walletState.hasWallet = true;
             walletState.wallet = result.wallet;
             
-            showMessage('✅ Wallet created successfully!', 'success');
+            statusElement.innerHTML = '<div class="status-success">✅ Wallet created successfully!</div>';
+            
+            // Don't close modal yet - user needs to backup seed phrase
         } else {
-            showMessage(`❌ ${result.error}`, 'error');
+            throw new Error(result.error || 'Failed to create wallet');
         }
     } catch (error) {
         console.error('❌ Create wallet failed:', error);
-        showMessage('❌ Failed to create wallet', 'error');
-    } finally {
-        hideLoading();
+        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
+        generateBtn.innerHTML = 'Generate New Wallet';
+        generateBtn.disabled = false;
     }
 }
 
-async function importWallet() {
-    const mnemonic = document.getElementById('importMnemonic')?.value.trim();
-    
-    if (!mnemonic) {
-        showMessage('❌ Please enter your seed phrase', 'error');
-        return;
-    }
+async function importWalletFromModal() {
+    const mnemonicInput = document.getElementById('importMnemonic');
+    const statusElement = document.getElementById('importWalletStatus');
+    const importBtn = document.getElementById('importWalletBtn');
 
-    const words = mnemonic.split(' ').filter(w => w.trim().length > 0);
-    if (words.length !== 12 && words.length !== 24) {
-        showMessage('❌ Seed phrase must be 12 or 24 words', 'error');
+    if (!currentUser.id) {
+        showMessage('❌ You need to be logged in to import a wallet', 'error');
         return;
     }
 
     try {
-        showLoading('Importing wallet...');
-        
+        const mnemonic = mnemonicInput.value.trim();
+        if (!mnemonic) {
+            throw new Error('Please enter your recovery phrase');
+        }
+
+        const words = mnemonic.split(' ').filter(word => word.trim().length > 0);
+        if (words.length !== 12 && words.length !== 24) {
+            throw new Error('Seed phrase must be 12 or 24 words');
+        }
+
+        importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Importing...';
+        importBtn.disabled = true;
+
+        statusElement.innerHTML = '<div class="status-loading">🔄 Importing wallet...</div>';
+
+        // Import wallet for current user
         const result = await window.walletManager.importWallet(mnemonic);
-        
-        if (result.success) {
-            console.log('✅ Wallet imported:', result.wallet.address);
+
+        if (result.success && result.wallet) {
+            console.log('✅ Wallet imported for user:', result.wallet.address);
             
+            // Update wallet state
             walletState.hasWallet = true;
             walletState.wallet = result.wallet;
             
+            // Switch to wallet interface
+            document.body.classList.add('wallet-loaded');
             showWalletInterface();
             await loadWalletData();
-            
-            showMessage('✅ Wallet imported successfully!', 'success');
             closeModal();
+            
+            statusElement.innerHTML = '<div class="status-success">✅ Wallet imported successfully!</div>';
+            showMessage('✅ Wallet imported successfully!', 'success');
         } else {
-            showMessage(`❌ ${result.error}`, 'error');
+            throw new Error(result.error || 'Failed to import wallet');
         }
     } catch (error) {
         console.error('❌ Import wallet failed:', error);
-        showMessage('❌ Invalid seed phrase', 'error');
-    } finally {
-        hideLoading();
+        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
+        importBtn.innerHTML = 'Import Wallet';
+        importBtn.disabled = false;
     }
 }
 
@@ -2760,7 +2797,7 @@ async function loadWalletData() {
     if (!walletState.hasWallet || !walletState.wallet) return;
 
     try {
-        // Load balances
+        // Load TON balance
         const balanceResult = await window.walletManager.getBalance(walletState.wallet.address);
         if (balanceResult.success) {
             SUPPORTED_TOKENS[0].balance = balanceResult.balance;
@@ -2768,12 +2805,11 @@ async function loadWalletData() {
 
         // Load prices
         const priceResult = await window.walletManager.getPrices();
-        if (priceResult.success) {
-            walletState.prices = priceResult.prices;
-            SUPPORTED_TOKENS[0].price = priceResult.prices.TON.price;
-            SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
-            SUPPORTED_TOKENS[1].price = priceResult.prices.NMX.price;
-            SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX.change24h;
+        if (priceResult.success && priceResult.prices) {
+            SUPPORTED_TOKENS[0].price = priceResult.prices.TON?.price || 2.5;
+            SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON?.change24h || 0;
+            SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0.10;
+            SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
         }
 
         updateWalletDisplay();
@@ -2783,9 +2819,15 @@ async function loadWalletData() {
 }
 
 async function sendTransaction() {
+    if (!currentUser.id || !walletState.wallet) {
+        showMessage('❌ You need a wallet to send transactions', 'error');
+        return;
+    }
+
     const toAddress = document.getElementById('sendToAddress')?.value.trim();
     const amount = document.getElementById('sendAmount')?.value;
     const memo = document.getElementById('sendMemo')?.value.trim();
+    const selectedToken = document.getElementById('selectedTokenSymbol')?.textContent || 'TON';
 
     if (!toAddress || !amount) {
         showMessage('❌ Please fill all required fields', 'error');
@@ -2800,21 +2842,31 @@ async function sendTransaction() {
     try {
         showLoading('Sending transaction...');
         
-        const result = await window.walletManager.sendTON(toAddress, amount, memo);
-        
-        if (result.success) {
-            console.log('✅ Transaction sent:', result.transaction.hash);
-            showMessage(`✅ Sent ${amount} TON successfully!`, 'success');
-            closeModal();
+        if (selectedToken === 'TON') {
+            const result = await window.walletManager.sendTON(
+                walletState.wallet.address,
+                toAddress,
+                amount,
+                memo
+            );
             
-            // Refresh balances
-            await loadWalletData();
-        } else {
-            showMessage(`❌ ${result.error}`, 'error');
+            if (result.success) {
+                console.log('✅ Transaction sent:', result.transaction?.hash);
+                showMessage(`✅ Sent ${amount} TON successfully!`, 'success');
+                closeModal();
+                
+                // Refresh balances
+                await loadWalletData();
+            } else {
+                throw new Error(result.error || 'Transaction failed');
+            }
+        } else if (selectedToken === 'NMX') {
+            // For NMX tokens, you'd need a different endpoint
+            showMessage('⚠️ NMX token sending not implemented yet', 'warning');
         }
     } catch (error) {
         console.error('❌ Send transaction failed:', error);
-        showMessage('❌ Failed to send transaction', 'error');
+        showMessage(`❌ ${error.message}`, 'error');
     } finally {
         hideLoading();
     }
@@ -2825,26 +2877,41 @@ async function sendTransaction() {
 // =============================================
 
 function showWelcomeScreen() {
+    // User is logged in but has no wallet
     document.getElementById('welcomeScreen').style.display = 'block';
     document.getElementById('walletInterface').style.display = 'none';
 }
 
 function showWalletInterface() {
+    // User has a wallet - show wallet UI
     document.getElementById('welcomeScreen').style.display = 'none';
     document.getElementById('walletInterface').style.display = 'block';
     
     // Update wallet address display
     if (walletState.wallet) {
-        const addressElement = document.getElementById('walletAddress');
-        if (addressElement) {
-            addressElement.textContent = walletState.wallet.address;
-        }
-        
         const addressFullElement = document.getElementById('addressFull');
         if (addressFullElement) {
             addressFullElement.textContent = walletState.wallet.address;
         }
     }
+}
+
+function showNotLoggedInMessage() {
+    // User is not logged in to the website
+    document.getElementById('welcomeScreen').style.display = 'block';
+    document.getElementById('walletInterface').style.display = 'none';
+    
+    document.getElementById('welcomeScreen').innerHTML = `
+        <div class="welcome-title">🔒 Please Log In</div>
+        <div class="welcome-subtitle">
+            You need to be logged into your Nemex account to access the wallet.
+        </div>
+        <div class="welcome-actions">
+            <button class="welcome-btn primary" onclick="window.location.href='/login'">
+                Go to Login
+            </button>
+        </div>
+    `;
 }
 
 function updateWalletDisplay() {
@@ -2855,16 +2922,21 @@ function updateWalletDisplay() {
     
     const balanceElement = document.getElementById('totalBalance');
     if (balanceElement) {
-        balanceElement.textContent = `$${totalUSD.toFixed(2)}`;
+        balanceElement.innerHTML = `
+            <span class="loading" id="balanceLoading" style="display: none;"></span>
+            <span id="balanceAmount">$${totalUSD.toFixed(2)}</span>
+        `;
     }
 
     // Update token list
     const tokenList = document.getElementById('tokenList');
     if (tokenList) {
         tokenList.innerHTML = SUPPORTED_TOKENS.map(token => `
-            <div class="token-card">
+            <div class="token-card ${token.symbol === 'TON' ? 'featured' : ''}">
                 <div class="token-icon ${token.symbol.toLowerCase()}-icon">
-                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img">
+                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                         onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    ${token.symbol === 'TON' ? '<div class="featured-star">★</div>' : ''}
                 </div>
                 <div class="token-info">
                     <div class="token-name">${token.name}</div>
@@ -2898,7 +2970,72 @@ function showBackupModal(mnemonic) {
         `).join('');
     }
     
+    // Reset confirmation checkbox
+    const backupConfirmed = document.getElementById('backupConfirmed');
+    if (backupConfirmed) {
+        backupConfirmed.checked = false;
+    }
+    
+    const confirmBackupBtn = document.getElementById('confirmBackupBtn');
+    if (confirmBackupBtn) {
+        confirmBackupBtn.disabled = true;
+    }
+    
     document.getElementById('backupModal').style.display = 'flex';
+}
+
+function confirmBackupAndContinue() {
+    // User has confirmed they backed up their seed phrase
+    document.body.classList.add('wallet-loaded');
+    showWalletInterface();
+    loadWalletData();
+    closeModal();
+    showMessage('✅ Your wallet is now active!', 'success');
+}
+
+function toggleContinueButton() {
+    const backupConfirmed = document.getElementById('backupConfirmed');
+    const confirmBackupBtn = document.getElementById('confirmBackupBtn');
+
+    if (backupConfirmed && confirmBackupBtn) {
+        confirmBackupBtn.disabled = !backupConfirmed.checked;
+    }
+}
+
+// =============================================
+// 🎯 MODAL FUNCTIONS
+// =============================================
+
+function showCreateWalletModal() {
+    document.getElementById('createWalletModal').style.display = 'flex';
+}
+
+function showImportWalletModal() {
+    document.getElementById('importWalletModal').style.display = 'flex';
+}
+
+function showSendModal() {
+    if (!walletState.hasWallet) {
+        showMessage('❌ You need a wallet to send tokens', 'error');
+        return;
+    }
+    document.getElementById('sendModal').style.display = 'flex';
+}
+
+function showReceiveModal() {
+    if (!walletState.hasWallet) {
+        showMessage('❌ You need a wallet to receive tokens', 'error');
+        return;
+    }
+    document.getElementById('receiveModal').style.display = 'flex';
+}
+
+function showSwapModal() {
+    document.getElementById('productionSwapModal').style.display = 'block';
+}
+
+function showSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'flex';
 }
 
 function closeModal() {
@@ -2907,10 +3044,18 @@ function closeModal() {
     });
 }
 
+function closeProductionSwapModal() {
+    document.getElementById('productionSwapModal').style.display = 'none';
+}
+
+// =============================================
+// 🎯 UTILITY FUNCTIONS
+// =============================================
+
 function showMessage(message, type = 'info') {
+    console.log(`📢 ${message}`);
+    
     const messageDiv = document.createElement('div');
-    messageDiv.className = `status-message status-${type}`;
-    messageDiv.textContent = message;
     messageDiv.style.cssText = `
         position: fixed;
         top: 20px;
@@ -2920,7 +3065,27 @@ function showMessage(message, type = 'info') {
         border-radius: 8px;
         font-weight: 600;
         z-index: 10000;
+        max-width: 90%;
+        text-align: center;
     `;
+    
+    if (type === 'error') {
+        messageDiv.style.background = 'var(--error)';
+        messageDiv.style.color = 'white';
+        messageDiv.innerHTML = `❌ ${message}`;
+    } else if (type === 'success') {
+        messageDiv.style.background = 'var(--success)';
+        messageDiv.style.color = 'white';
+        messageDiv.innerHTML = `✅ ${message}`;
+    } else if (type === 'warning') {
+        messageDiv.style.background = 'var(--warning)';
+        messageDiv.style.color = 'var(--dark-bg)';
+        messageDiv.innerHTML = `⚠️ ${message}`;
+    } else {
+        messageDiv.style.background = 'var(--gold)';
+        messageDiv.style.color = 'var(--dark-bg)';
+        messageDiv.innerHTML = `ℹ️ ${message}`;
+    }
     
     document.body.appendChild(messageDiv);
     
@@ -2931,31 +3096,262 @@ function showMessage(message, type = 'info') {
     }, 3000);
 }
 
-function showLoading(message = 'Loading...') {
+function showErrorMessage(message) {
+    showMessage(message, 'error');
+}
+
+function showLoading(message) {
     walletState.isLoading = true;
-    // You can show a loading spinner here
+    // You can implement a loading spinner if needed
+    const loadingEl = document.getElementById('loadingOverlay');
+    if (loadingEl) {
+        loadingEl.style.display = 'flex';
+    }
 }
 
 function hideLoading() {
     walletState.isLoading = false;
-    // Hide loading spinner
+    const loadingEl = document.getElementById('loadingOverlay');
+    if (loadingEl) {
+        loadingEl.style.display = 'none';
+    }
 }
 
-function showLoginPrompt() {
-    // Show message that user needs to log in
-    document.getElementById('welcomeScreen').innerHTML = `
-        <div class="welcome-title">🔒 Authentication Required</div>
-        <div class="welcome-subtitle">
-            Please log in to your account to access the wallet.
-        </div>
-        <div class="welcome-actions">
-            <button class="welcome-btn primary" onclick="window.location.href='/login'">
-                Go to Login
-            </button>
-        </div>
+function handleTokenLogoError(img, symbol) {
+    img.style.display = 'none';
+    const container = img.parentElement;
+    container.innerHTML = symbol.charAt(0);
+    container.style.background = 'rgba(255, 255, 255, 0.1)';
+    container.style.color = 'white';
+    container.style.fontWeight = 'bold';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+}
+
+function copyWalletAddress() {
+    if (!walletState.wallet?.address) {
+        showMessage('❌ No wallet address available', 'error');
+        return;
+    }
+    
+    navigator.clipboard.writeText(walletState.wallet.address)
+        .then(() => {
+            showMessage('✅ Address copied to clipboard!', 'success');
+        })
+        .catch(err => {
+            console.error('❌ Failed to copy:', err);
+            showMessage('❌ Failed to copy address', 'error');
+        });
+}
+
+// =============================================
+// 🎯 VIEW NAVIGATION
+// =============================================
+
+function showWalletView() {
+    walletState.currentView = 'wallet';
+    updateNavItems();
+}
+
+function showHistoryView() {
+    walletState.currentView = 'history';
+    updateNavItems();
+    showMessage('⚠️ Transaction history not implemented yet', 'warning');
+}
+
+function updateNavItems() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    if (walletState.currentView === 'wallet') {
+        document.querySelectorAll('.nav-item')[0]?.classList.add('active');
+    } else if (walletState.currentView === 'history') {
+        document.querySelectorAll('.nav-item')[1]?.classList.add('active');
+    }
+}
+
+// =============================================
+// 🎯 ADDITIONAL FUNCTIONS FOR YOUR HTML
+// =============================================
+
+function toggleTokenDropdown() {
+    const dropdown = document.getElementById('tokenDropdown');
+    const arrow = document.getElementById('dropdownArrow');
+    
+    if (dropdown.style.display === 'block') {
+        dropdown.style.display = 'none';
+        arrow.style.transform = 'rotate(0deg)';
+    } else {
+        dropdown.style.display = 'block';
+        arrow.style.transform = 'rotate(180deg)';
+    }
+}
+
+function selectToken(symbol, name, logo) {
+    document.getElementById('selectedTokenSymbol').textContent = symbol;
+    document.getElementById('selectedTokenName').textContent = name;
+    document.getElementById('selectedTokenLogo').src = logo;
+    document.getElementById('selectedTokenLogo').alt = name;
+    
+    // Update UI based on selected token
+    const remainingToken = document.getElementById('remainingToken');
+    if (remainingToken) {
+        remainingToken.textContent = symbol;
+    }
+    
+    // Close dropdown
+    toggleTokenDropdown();
+}
+
+function pasteAddress() {
+    navigator.clipboard.readText()
+        .then(text => {
+            document.getElementById('sendToAddress').value = text;
+            showMessage('✅ Address pasted from clipboard', 'success');
+        })
+        .catch(err => {
+            console.error('Failed to read clipboard:', err);
+            showMessage('❌ Failed to read clipboard', 'error');
+        });
+}
+
+function setMaxAmount() {
+    const tokenSymbol = document.getElementById('selectedTokenSymbol').textContent;
+    const token = SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol);
+    
+    if (token) {
+        document.getElementById('sendAmount').value = token.balance.toFixed(6);
+        updateSendSummary();
+    }
+}
+
+function updateSendSummary() {
+    // This function would update the send summary based on input
+    const amount = document.getElementById('sendAmount').value;
+    const tokenSymbol = document.getElementById('selectedTokenSymbol').textContent;
+    const token = SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol);
+    
+    if (amount && token) {
+        const usdValue = (parseFloat(amount) * token.price).toFixed(2);
+        document.getElementById('sendUsdValue').textContent = usdValue;
+        
+        // Show/hide summary
+        const summary = document.getElementById('sendSummary');
+        if (parseFloat(amount) > 0) {
+            summary.style.display = 'block';
+            document.getElementById('sendSummaryDetails').innerHTML = `
+                <strong>Sending:</strong> ${amount} ${tokenSymbol}<br>
+                <strong>To:</strong> ${document.getElementById('sendToAddress').value.substring(0, 20)}...<br>
+                <strong>Network Fee:</strong> 0.001 TON<br>
+                <strong>Total:</strong> ${(parseFloat(amount) + 0.001).toFixed(6)} ${tokenSymbol}
+            `;
+        } else {
+            summary.style.display = 'none';
+        }
+    }
+}
+
+function confirmSendTransaction() {
+    sendTransaction();
+}
+
+function selectReceiveToken(token) {
+    showMessage(`✅ Ready to receive ${token} tokens!`, 'success');
+}
+
+function showAddressDetails() {
+    if (!walletState.wallet?.address) {
+        showMessage('❌ No wallet address available', 'error');
+        return;
+    }
+    
+    const details = `
+        Wallet Address: ${walletState.wallet.address}<br>
+        Network: TON<br>
+        Wallet Type: Standard (v4R2)<br>
+        Created: ${new Date().toLocaleDateString()}
     `;
-    document.getElementById('welcomeScreen').style.display = 'block';
-    document.getElementById('walletInterface').style.display = 'none';
+    
+    showMessage('ℹ️ ' + details.replace(/<br>/g, ', '), 'info');
+}
+
+function calculateProductionConversion() {
+    const inputAmount = document.getElementById('productionConvertAmount').value;
+    if (inputAmount && parseFloat(inputAmount) > 0) {
+        const nmxAmount = (parseFloat(inputAmount) * 1.0).toFixed(6); // 1:1 conversion
+        document.getElementById('productionReceiveAmount').value = nmxAmount;
+        document.getElementById('productionConvertBtn').classList.add('active');
+        document.getElementById('productionConvertBtn').classList.remove('disabled');
+    } else {
+        document.getElementById('productionReceiveAmount').value = '';
+        document.getElementById('productionConvertBtn').classList.remove('active');
+        document.getElementById('productionConvertBtn').classList.add('disabled');
+    }
+}
+
+function setMaxConversion() {
+    // This would get the user's NMXp balance from your backend
+    const nmxpBalance = 1000; // Example balance
+    document.getElementById('productionConvertAmount').value = nmxpBalance;
+    calculateProductionConversion();
+}
+
+function executeProductionConversion() {
+    const amount = document.getElementById('productionConvertAmount').value;
+    if (!amount || parseFloat(amount) <= 0) {
+        showMessage('❌ Please enter a valid amount', 'error');
+        return;
+    }
+    
+    showMessage('🔄 Converting NMXp to NMX...', 'info');
+    // Here you would call your backend API to process the conversion
+    setTimeout(() => {
+        showMessage(`✅ Successfully converted ${amount} NMXp to ${amount} NMX!`, 'success');
+        closeProductionSwapModal();
+    }, 2000);
+}
+
+function showWalletSetup() {
+    document.getElementById('walletSetupModal').style.display = 'block';
+}
+
+function closeWalletSetup() {
+    document.getElementById('walletSetupModal').style.display = 'none';
+}
+
+function saveWalletAddress() {
+    const address = document.getElementById('userWalletAddress').value.trim();
+    if (!address) {
+        showMessage('❌ Please enter a wallet address', 'error');
+        return;
+    }
+    
+    // Save to localStorage for demo
+    localStorage.setItem('nemex_wallet_address', address);
+    showMessage('✅ Wallet address saved!', 'success');
+    closeWalletSetup();
+}
+
+function viewRecoveryPhrase() {
+    if (!walletState.hasWallet) {
+        showMessage('❌ You need a wallet to view recovery phrase', 'error');
+        return;
+    }
+    
+    // In a real app, you would fetch the mnemonic from secure storage
+    showMessage('⚠️ For security, recovery phrase viewing requires additional authentication', 'warning');
+}
+
+function logout() {
+    // Clear local storage
+    localStorage.removeItem('nemex_user_id');
+    localStorage.removeItem('nemex_user_email');
+    localStorage.removeItem('nemex_wallet_address');
+    
+    // Redirect to login
+    window.location.href = '/login';
 }
 
 // =============================================
@@ -2963,15 +3359,22 @@ function showLoginPrompt() {
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Initializing integrated wallet system...');
+    console.log('🎯 Nemex Wallet page loaded - checking user status...');
     
-    // Start initialization
+    // Check if user is logged in (from your website)
+    if (!window.currentUserId) {
+        console.log('⚠️ No user ID found in window.currentUserId');
+        console.log('💡 Make sure your website sets: window.currentUserId = "user-id"; when user logs in');
+        console.log('💡 For testing, you can set: localStorage.setItem("nemex_user_id", "test-user-123")');
+    }
+    
+    // Initialize wallet after page loads
     setTimeout(() => {
         initWallet();
     }, 500);
 });
 
-console.log('✅ Integrated Wallet System loaded - Simple & Secure');
+console.log('✅ Nemex Wallet System loaded');
 </script>
 </body>
 </html>
