@@ -1,1217 +1,522 @@
-// assets/js/wallet.js - COMPLETE SECURE VERSION - NO HARDCODED KEYS
-// =============================================
-// 🎯 SECURE SUPABASE INITIALIZATION - NO HARDCODED KEYS
-// =============================================
-
-// 🚨 SECURE: No hardcoded keys - configuration comes from server or build process
-let supabase = null;
-let supabaseInitialized = false;
-
-function initializeSupabase() {
-    console.log('🚀 Secure Supabase initialization...');
-    
-    // Check if Supabase is already available globally
-    if (typeof window.supabase !== 'undefined' && window.supabase.auth) {
-        console.log('✅ Supabase already available globally');
-        supabase = window.supabase;
-        supabaseInitialized = true;
-        return supabase;
-    }
-    
-    // 🎯 METHOD 1: Check if Supabase config is provided by server via global variable
-    if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey) {
-        console.log('✅ Using Supabase config from server');
-        try {
-            if (typeof createClient === 'undefined') {
-                console.error('❌ Supabase createClient not available');
-                return createFallbackSupabase();
-            }
-            
-            supabase = createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey, {
-                auth: {
-                    autoRefreshToken: true,
-                    persistSession: true,
-                    detectSessionInUrl: true,
-                    storage: window.localStorage
-                }
-            });
-            window.supabase = supabase;
-            supabaseInitialized = true;
-            console.log('✅ Supabase initialized with server config');
-            return supabase;
-        } catch (error) {
-            console.error('❌ Supabase initialization failed:', error);
-        }
-    }
-    
-    // 🎯 METHOD 2: Build-time injected environment variables
-    if (typeof process !== 'undefined' && process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-        console.log('✅ Using build-time Supabase config');
-        try {
-            if (typeof createClient === 'undefined') {
-                console.error('❌ Supabase createClient not available');
-                return createFallbackSupabase();
-            }
-            
-            supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-                auth: {
-                    autoRefreshToken: true,
-                    persistSession: true,
-                    detectSessionInUrl: true,
-                    storage: window.localStorage
-                }
-            });
-            window.supabase = supabase;
-            supabaseInitialized = true;
-            console.log('✅ Supabase initialized with build-time config');
-            return supabase;
-        } catch (error) {
-            console.error('❌ Supabase initialization failed:', error);
-        }
-    }
-    
-    // Final fallback - no keys available
-    console.log('🔄 Creating secure fallback Supabase client - no keys available');
-    supabase = createFallbackSupabase();
-    window.supabase = supabase;
-    supabaseInitialized = true;
-    return supabase;
-}
-
-function createFallbackSupabase() {
-    console.log('🔄 Creating secure fallback Supabase client');
-    return {
-        auth: {
-            getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-            getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-            onAuthStateChange: (callback) => { 
-                console.log('🔄 Fallback auth state change listener');
-                // Simulate auth state changes
-                setTimeout(() => {
-                    callback('SIGNED_OUT', null);
-                }, 100);
-                return { data: { subscription: { unsubscribe: () => {} } } };
-            },
-            signOut: () => {
-                console.log('🔐 Fallback sign out');
-                return Promise.resolve({ error: null });
-            },
-            signInWithPassword: () => {
-                console.log('🔐 Fallback sign in');
-                return Promise.resolve({ 
-                    data: null, 
-                    error: { message: 'Authentication not available in fallback mode' } 
-                });
-            }
-        },
-        from: () => ({
-            select: () => ({
-                eq: () => ({
-                    single: () => Promise.resolve({ data: null, error: { message: 'Database not available in fallback mode' } })
-                })
-            })
-        }),
-        // Add more fallback methods as needed
-        channel: () => ({
-            subscribe: () => ({
-                unsubscribe: () => {}
-            })
-        })
-    };
-}
-
-// Initialize Supabase immediately when script loads
-console.log('🔧 SECURE: Initializing Supabase on script load...');
-supabase = initializeSupabase();
-
-// =============================================
-// 🎯 SECURE MNEMONIC MANAGER CLASS
-// =============================================
-
-class SecureMnemonicManager {
-    constructor() {
-        console.log('✅ Secure Mnemonic Manager initialized');
-        this.wordlist = this.getBIP39Wordlist();
-    }
-
-    getBIP39Wordlist() {
-        return [
-            'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract',
-            'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid',
-            'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual',
-            'adapt', 'add', 'addict', 'address', 'adjust', 'admit', 'adult', 'advance',
-            'advice', 'aerobic', 'affair', 'afford', 'afraid', 'again', 'age', 'agent',
-            'agree', 'ahead', 'aim', 'air', 'airport', 'aisle', 'alarm', 'album',
-            'alcohol', 'alert', 'alien', 'all', 'alley', 'allow', 'almost', 'alone',
-            'alpha', 'already', 'also', 'alter', 'always', 'amateur', 'amazing', 'among',
-            'amount', 'amused', 'analyst', 'anchor', 'ancient', 'anger', 'angle', 'angry',
-            'animal', 'ankle', 'announce', 'annual', 'another', 'answer', 'antenna', 'antique',
-            'anxiety', 'any', 'apart', 'apology', 'appear', 'apple', 'approve', 'april',
-            'arch', 'arctic', 'area', 'arena', 'argue', 'arm', 'armed', 'armor',
-            'army', 'around', 'arrange', 'arrest', 'arrive', 'arrow', 'art', 'artefact',
-            'artist', 'artwork', 'ask', 'aspect', 'assault', 'asset', 'assist', 'assume',
-            'asthma', 'athlete', 'atom', 'attack', 'attend', 'attitude', 'attract', 'auction',
-            'audit', 'august', 'aunt', 'author', 'auto', 'autumn', 'average', 'avocado',
-            'avoid', 'awake', 'aware', 'away', 'awesome', 'awful', 'awkward', 'axis',
-            'baby', 'bachelor', 'bacon', 'badge', 'bag', 'balance', 'balcony', 'ball',
-            'bamboo', 'banana', 'banner', 'bar', 'barely', 'bargain', 'barrel', 'base',
-            'basic', 'basket', 'battle', 'beach', 'bean', 'beauty', 'because', 'become',
-            'beef', 'before', 'begin', 'behave', 'behind', 'believe', 'below', 'belt',
-            'bench', 'benefit', 'best', 'betray', 'better', 'between', 'beyond', 'bicycle',
-            'bid', 'bike', 'bind', 'biology', 'bird', 'birth', 'bitter', 'black',
-            'blade', 'blame', 'blanket', 'blast', 'bleak', 'bless', 'blind', 'blood',
-            'blossom', 'blouse', 'blue', 'blur', 'blush', 'board', 'boat', 'body',
-            'boil', 'bomb', 'bone', 'bonus', 'book', 'boost', 'border', 'boring',
-            'borrow', 'boss', 'bottom', 'bounce', 'box', 'boy', 'bracket', 'brain',
-            'brand', 'brass', 'brave', 'bread', 'breeze', 'brick', 'bridge', 'brief',
-            'bright', 'bring', 'brisk', 'broccoli', 'broken', 'bronze', 'broom', 'brother',
-            'brown', 'brush', 'bubble', 'buddy', 'budget', 'buffalo', 'build', 'bulb',
-            'bulk', 'bullet', 'bundle', 'bunker', 'burden', 'burger', 'burst', 'bus',
-            'business', 'busy', 'butter', 'buyer', 'buzz', 'cabbage', 'cabin', 'cable',
-            'cactus', 'cage', 'cake', 'call', 'calm', 'camera', 'camp', 'can',
-            'canal', 'cancel', 'candy', 'cannon', 'canoe', 'canvas', 'canyon', 'capable',
-            'capital', 'captain', 'car', 'carbon', 'card', 'cargo', 'carpet', 'carry',
-            'cart', 'case', 'cash', 'casino', 'castle', 'casual', 'cat', 'catch',
-            'category', 'cattle', 'caught', 'cause', 'caution', 'cave', 'ceiling', 'celery',
-            'cement', 'census', 'century', 'ceremony', 'certain', 'chair', 'chalk', 'champion',
-            'change', 'chaos', 'chapter', 'charge', 'chase', 'chat', 'cheap', 'check',
-            'cheek', 'cheese', 'chef', 'cherry', 'chest', 'chicken', 'chief', 'child',
-            'chimney', 'choice', 'choose', 'chronic', 'chuckle', 'chunk', 'churn', 'cigar',
-            'cinnamon', 'circle', 'citizen', 'city', 'civil', 'claim', 'clap', 'clarify',
-            'claw', 'clay', 'clean', 'clerk', 'clever', 'click', 'client', 'cliff',
-            'climb', 'clinic', 'clip', 'clock', 'clog', 'close', 'cloth', 'cloud',
-            'clown', 'club', 'clump', 'cluster', 'clutch', 'coach', 'coast', 'coconut',
-            'code', 'coffee', 'coil', 'coin', 'collect', 'color', 'column', 'combine',
-            'come', 'comfort', 'comic', 'common', 'company', 'concert', 'conduct', 'confirm',
-            'congress', 'connect', 'consider', 'control', 'convince', 'cook', 'cool', 'copper',
-            'copy', 'coral', 'core', 'corn', 'correct', 'cost', 'cotton', 'couch',
-            'country', 'couple', 'course', 'cousin', 'cover', 'coyote', 'crack', 'cradle',
-            'craft', 'cram', 'crane', 'crash', 'crater', 'crawl', 'crazy', 'cream',
-            'credit', 'creek', 'crew', 'cricket', 'crime', 'crisp', 'critic', 'crop',
-            'cross', 'crouch', 'crowd', 'crucial', 'cruel', 'cruise', 'crumble', 'crunch',
-            'crush', 'cry', 'crystal', 'cube', 'culture', 'cup', 'cupboard', 'curious',
-            'current', 'curtain', 'curve', 'cushion', 'custom', 'cute', 'cycle', 'dad',
-            'damage', 'damp', 'dance', 'danger', 'daring', 'dark', 'dash', 'date',
-            'daughter', 'dawn', 'day', 'deal', 'debate', 'debris', 'decade', 'december',
-            'decide', 'decline', 'decorate', 'decrease', 'deer', 'defense', 'define', 'defy',
-            'degree', 'delay', 'deliver', 'demand', 'demise', 'denial', 'dentist', 'deny',
-            'depart', 'depend', 'deposit', 'depth', 'deputy', 'derive', 'describe', 'desert',
-            'design', 'desk', 'despair', 'destroy', 'detail', 'detect', 'develop', 'device',
-            'devote', 'diagram', 'dial', 'diamond', 'diary', 'dice', 'diesel', 'diet',
-            'differ', 'digital', 'dignity', 'dilemma', 'dinner', 'dinosaur', 'direct', 'dirt',
-            'disagree', 'discover', 'disease', 'dish', 'dismiss', 'disorder', 'display', 'distance',
-            'divert', 'divide', 'divorce', 'dizzy', 'doctor', 'document', 'dog', 'doll',
-            'dolphin', 'domain', 'donate', 'donkey', 'donor', 'door', 'dose', 'double',
-            'dove', 'draft', 'dragon', 'drama', 'drastic', 'draw', 'dream', 'dress',
-            'drift', 'drill', 'drink', 'drip', 'drive', 'drop', 'drum', 'dry',
-            'duck', 'dumb', 'dune', 'during', 'dust', 'dutch', 'duty', 'dwarf',
-            'dynamic', 'eager', 'eagle', 'early', 'earn', 'earth', 'easily', 'east',
-            'easy', 'echo', 'ecology', 'economy', 'edge', 'edit', 'educate', 'effort',
-            'egg', 'eight', 'either', 'elbow', 'elder', 'electric', 'elegant', 'element',
-            'elephant', 'elevator', 'elite', 'else', 'embark', 'embody', 'embrace', 'emerge',
-            'emotion', 'employ', 'empower', 'empty', 'enable', 'enact', 'end', 'endless',
-            'endorse', 'enemy', 'energy', 'enforce', 'engage', 'engine', 'enhance', 'enjoy',
-            'enlist', 'enough', 'enrich', 'enroll', 'ensure', 'enter', 'entire', 'entry',
-            'envelope', 'episode', 'equal', 'equip', 'era', 'erase', 'erode', 'erosion',
-            'error', 'erupt', 'escape', 'essay', 'essence', 'estate', 'eternal', 'ethics',
-            'evidence', 'evil', 'evoke', 'evolve', 'exact', 'example', 'exceed', 'excel',
-            'exception', 'excess', 'exchange', 'excite', 'exclude', 'excuse', 'execute', 'exercise',
-            'exhaust', 'exhibit', 'exile', 'exist', 'exit', 'exotic', 'expand', 'expect',
-            'expire', 'explain', 'expose', 'express', 'extend', 'extra', 'eye', 'eyebrow',
-            'fabric', 'face', 'faculty', 'fade', 'faint', 'faith', 'fall', 'false',
-            'fame', 'family', 'famous', 'fan', 'fancy', 'fantasy', 'farm', 'fashion',
-            'fat', 'fatal', 'father', 'fatigue', 'fault', 'favorite', 'feature', 'february',
-            'federal', 'fee', 'feed', 'feel', 'female', 'fence', 'festival', 'fetch',
-            'fever', 'few', 'fiber', 'fiction', 'field', 'figure', 'file', 'film',
-            'filter', 'final', 'find', 'fine', 'finger', 'finish', 'fire', 'firm',
-            'first', 'fiscal', 'fish', 'fit', 'fitness', 'fix', 'flag', 'flame',
-            'flash', 'flat', 'flavor', 'flee', 'flight', 'flip', 'float', 'flock',
-            'floor', 'flower', 'fluid', 'flush', 'fly', 'foam', 'focus', 'fog',
-            'foil', 'fold', 'follow', 'food', 'foot', 'force', 'foreign', 'forest',
-            'forget', 'fork', 'fortune', 'forum', 'forward', 'fossil', 'foster', 'found',
-            'fox', 'fragile', 'frame', 'frequent', 'fresh', 'friend', 'fringe', 'frog',
-            'front', 'frost', 'frown', 'frozen', 'fruit', 'fuel', 'fun', 'funny',
-            'furnace', 'fury', 'future', 'gadget', 'gain', 'galaxy', 'gallery', 'game',
-            'gap', 'garage', 'garbage', 'garden', 'garlic', 'garment', 'gas', 'gasp',
-            'gate', 'gather', 'gauge', 'gaze', 'general', 'genius', 'genre', 'gentle',
-            'genuine', 'gesture', 'ghost', 'giant', 'gift', 'giggle', 'ginger', 'giraffe',
-            'girl', 'give', 'glad', 'glance', 'glare', 'glass', 'glide', 'glimpse',
-            'globe', 'gloom', 'glory', 'glove', 'glow', 'glue', 'goat', 'goddess',
-            'gold', 'good', 'goose', 'gorilla', 'gospel', 'gossip', 'govern', 'gown',
-            'grab', 'grace', 'grain', 'grant', 'grape', 'grass', 'gravity', 'great',
-            'green', 'grid', 'grief', 'grit', 'grocery', 'group', 'grow', 'grunt',
-            'guard', 'guess', 'guide', 'guilt', 'guitar', 'gun', 'gym', 'habit',
-            'hair', 'half', 'hammer', 'hamster', 'hand', 'happy', 'harbor', 'hard',
-            'harsh', 'harvest', 'hat', 'have', 'hawk', 'hazard', 'head', 'health',
-            'heart', 'heavy', 'hedgehog', 'height', 'hello', 'helmet', 'help', 'hen',
-            'hero', 'hidden', 'high', 'hill', 'hint', 'hip', 'hire', 'history',
-            'hobby', 'hockey', 'hold', 'hole', 'holiday', 'hollow', 'home', 'honey',
-            'hood', 'hope', 'horn', 'horror', 'horse', 'hospital', 'host', 'hotel',
-            'hour', 'hover', 'hub', 'huge', 'human', 'humble', 'humor', 'hundred',
-            'hungry', 'hunt', 'hurdle', 'hurry', 'hurt', 'husband', 'hybrid', 'ice',
-            'icon', 'idea', 'identify', 'idle', 'ignore', 'ill', 'illegal', 'illness',
-            'image', 'imitate', 'immense', 'immune', 'impact', 'impose', 'improve', 'impulse',
-            'inch', 'include', 'income', 'increase', 'index', 'indicate', 'indoor', 'industry',
-            'infant', 'inflict', 'inform', 'inhale', 'inherit', 'initial', 'inject', 'injury',
-            'inmate', 'inner', 'innocent', 'input', 'inquiry', 'insane', 'insect', 'inside',
-            'inspire', 'install', 'intact', 'interest', 'into', 'invest', 'invite', 'involve',
-            'iron', 'island', 'isolate', 'issue', 'item', 'ivory', 'jacket', 'jaguar',
-            'jar', 'jazz', 'jealous', 'jeans', 'jelly', 'jewel', 'job', 'join',
-            'joke', 'journey', 'joy', 'judge', 'juice', 'jump', 'jungle', 'junior',
-            'junk', 'just', 'kangaroo', 'keen', 'keep', 'ketchup', 'key', 'kick',
-            'kid', 'kidney', 'kind', 'kingdom', 'kiss', 'kit', 'kitchen', 'kite',
-            'kitten', 'kiwi', 'knee', 'knife', 'knock', 'know', 'lab', 'label',
-            'labor', 'ladder', 'lady', 'lake', 'lamp', 'language', 'laptop', 'large',
-            'later', 'latin', 'laugh', 'laundry', 'lava', 'law', 'lawn', 'lawsuit',
-            'layer', 'lazy', 'leader', 'leaf', 'learn', 'leave', 'lecture', 'left',
-            'leg', 'legal', 'legend', 'leisure', 'lemon', 'lend', 'length', 'lens',
-            'leopard', 'lesson', 'letter', 'level', 'liar', 'liberty', 'library', 'license',
-            'life', 'lift', 'light', 'like', 'limb', 'limit', 'link', 'lion',
-            'liquid', 'list', 'little', 'live', 'lizard', 'load', 'loan', 'lobster',
-            'local', 'lock', 'logic', 'lonely', 'long', 'loop', 'lottery', 'loud',
-            'lounge', 'love', 'loyal', 'lucky', 'luggage', 'lumber', 'lunar', 'lunch',
-            'luxury', 'lyrics', 'machine', 'mad', 'magic', 'magnet', 'maid', 'mail',
-            'main', 'major', 'make', 'mammal', 'man', 'manage', 'mandate', 'mango',
-            'mansion', 'manual', 'maple', 'marble', 'march', 'margin', 'marine', 'market',
-            'marriage', 'mask', 'mass', 'master', 'match', 'material', 'math', 'matrix',
-            'matter', 'maximum', 'maze', 'meadow', 'mean', 'measure', 'meat', 'mechanic',
-            'medal', 'media', 'melody', 'melt', 'member', 'memory', 'mention', 'menu',
-            'mercy', 'merge', 'merit', 'merry', 'mesh', 'message', 'metal', 'method',
-            'middle', 'midnight', 'milk', 'million', 'mimic', 'mind', 'minimum', 'minor',
-            'minute', 'miracle', 'mirror', 'misery', 'miss', 'mistake', 'mix', 'mixed',
-            'mixture', 'mobile', 'model', 'modify', 'mom', 'moment', 'monitor', 'monkey',
-            'monster', 'month', 'moon', 'moral', 'more', 'morning', 'mosquito', 'mother',
-            'motion', 'motor', 'mountain', 'mouse', 'move', 'movie', 'much', 'muffin',
-            'mule', 'multiply', 'muscle', 'museum', 'mushroom', 'music', 'must', 'mutual',
-            'myself', 'mystery', 'myth', 'naive', 'name', 'napkin', 'narrow', 'nasty',
-            'nation', 'nature', 'near', 'neck', 'need', 'negative', 'neglect', 'neither',
-            'nephew', 'nerve', 'nest', 'net', 'network', 'neutral', 'never', 'news',
-            'next', 'nice', 'night', 'noble', 'noise', 'nominee', 'noodle', 'normal',
-            'north', 'nose', 'notable', 'note', 'nothing', 'notice', 'novel', 'now',
-            'nuclear', 'number', 'nurse', 'nut', 'oak', 'obey', 'object', 'oblige',
-            'obscure', 'observe', 'obtain', 'obvious', 'occur', 'ocean', 'october', 'odor',
-            'off', 'offer', 'office', 'often', 'oil', 'okay', 'old', 'olive',
-            'olympic', 'omit', 'once', 'one', 'onion', 'online', 'only', 'open',
-            'opera', 'opinion', 'oppose', 'option', 'orange', 'orbit', 'orchard', 'order',
-            'ordinary', 'organ', 'orient', 'original', 'orphan', 'ostrich', 'other', 'outdoor',
-            'outer', 'output', 'outside', 'oval', 'oven', 'over', 'own', 'owner',
-            'oxygen', 'oyster', 'ozone', 'pact', 'paddle', 'page', 'pair', 'palace',
-            'palm', 'panda', 'panel', 'panic', 'panther', 'paper', 'parade', 'parent',
-            'park', 'parrot', 'party', 'pass', 'patch', 'path', 'patient', 'patrol',
-            'pattern', 'pause', 'pave', 'payment', 'peace', 'peanut', 'pear', 'peasant',
-            'pelican', 'pen', 'penalty', 'pencil', 'people', 'pepper', 'perfect', 'permit',
-            'person', 'pet', 'phone', 'photo', 'phrase', 'physical', 'piano', 'picnic',
-            'picture', 'piece', 'pig', 'pigeon', 'pill', 'pilot', 'pink', 'pioneer',
-            'pipe', 'pistol', 'pitch', 'pizza', 'place', 'planet', 'plastic', 'plate',
-            'play', 'player', 'pleasure', 'pledge', 'pluck', 'plug', 'plunge', 'poem',
-            'poet', 'point', 'polar', 'pole', 'police', 'pond', 'pony', 'pool',
-            'popular', 'portion', 'position', 'possible', 'post', 'potato', 'pottery', 'poverty',
-            'powder', 'power', 'practice', 'praise', 'predict', 'prefer', 'prepare', 'present',
-            'pretty', 'prevent', 'price', 'pride', 'primary', 'print', 'priority', 'prison',
-            'private', 'prize', 'problem', 'process', 'produce', 'profit', 'program', 'project',
-            'promote', 'proof', 'property', 'prosper', 'protect', 'proud', 'provide', 'public',
-            'pudding', 'pull', 'pulp', 'pulse', 'pumpkin', 'punch', 'pupil', 'puppy',
-            'purchase', 'purity', 'purpose', 'purse', 'push', 'put', 'puzzle', 'pyramid',
-            'quality', 'quantum', 'quarter', 'question', 'quick', 'quit', 'quiz', 'quote',
-            'rabbit', 'raccoon', 'race', 'rack', 'radar', 'radio', 'rail', 'rain',
-            'raise', 'rally', 'ramp', 'ranch', 'random', 'range', 'rapid', 'rare',
-            'rate', 'rather', 'raven', 'raw', 'razor', 'ready', 'real', 'reason',
-            'rebel', 'rebuild', 'recall', 'receive', 'recipe', 'record', 'recycle', 'reduce',
-            'reflect', 'reform', 'refuse', 'region', 'regret', 'regular', 'reject', 'relax',
-            'release', 'relief', 'rely', 'remain', 'remember', 'remind', 'remove', 'render',
-            'renew', 'rent', 'reopen', 'repair', 'repeat', 'replace', 'report', 'require',
-            'rescue', 'resemble', 'resist', 'resource', 'response', 'result', 'retire', 'retreat',
-            'return', 'reunion', 'reveal', 'review', 'reward', 'rhythm', 'rib', 'ribbon',
-            'rice', 'rich', 'ride', 'ridge', 'rifle', 'right', 'rigid', 'ring',
-            'riot', 'rip', 'ripe', 'rise', 'risk', 'rival', 'river', 'road',
-            'roast', 'robot', 'robust', 'rocket', 'romance', 'roof', 'rookie', 'room',
-            'rose', 'rotate', 'rough', 'round', 'route', 'royal', 'rubber', 'rude',
-            'rug', 'rule', 'run', 'runway', 'rural', 'sad', 'saddle', 'sadness',
-            'safe', 'sail', 'salad', 'salmon', 'salon', 'salt', 'same', 'sample',
-            'sand', 'satisfy', 'sauce', 'sausage', 'save', 'say', 'scale',
-            'scan', 'scare', 'scatter', 'scene', 'scheme', 'school', 'science', 'scissors',
-            'scorpion', 'scout', 'scrap', 'screen', 'script', 'scrub', 'sea', 'search',
-            'season', 'seat', 'second', 'secret', 'section', 'security', 'seed', 'seek',
-            'segment', 'select', 'sell', 'seminar', 'senior', 'sense', 'sentence', 'series',
-            'service', 'session', 'settle', 'setup', 'seven', 'shadow', 'shaft', 'shallow',
-            'share', 'shed', 'shell', 'sheriff', 'shield', 'shift', 'shine', 'ship',
-            'shiver', 'shock', 'shoe', 'shoot', 'shop', 'short', 'shoulder', 'shove',
-            'shrimp', 'shrug', 'shuffle', 'shy', 'sibling', 'sick', 'side', 'siege',
-            'sight', 'sign', 'silent', 'silk', 'silly', 'silver', 'similar', 'simple',
-            'since', 'sing', 'siren', 'sister', 'situate', 'six', 'size', 'skate',
-            'sketch', 'ski', 'skill', 'skin', 'skirt', 'skull', 'slab', 'slam',
-            'sleep', 'slender', 'slice', 'slide', 'slight', 'slim', 'slog', 'slot',
-            'slow', 'slush', 'small', 'smart', 'smile', 'smoke', 'smooth', 'snack',
-            'snake', 'snap', 'sniff', 'snow', 'soap', 'soccer', 'social', 'sock',
-            'soda', 'soft', 'solar', 'soldier', 'solid', 'solution', 'solve', 'someone',
-            'song', 'soon', 'sorry', 'sort', 'soul', 'sound', 'soup', 'source',
-            'south', 'space', 'spare', 'spatial', 'spawn', 'speak', 'special', 'speed',
-            'spell', 'spend', 'sphere', 'spice', 'spider', 'spike', 'spin', 'spirit',
-            'split', 'spoil', 'sponsor', 'spoon', 'sport', 'spot', 'spray', 'spread',
-            'spring', 'spy', 'square', 'squeeze', 'squirrel', 'stable', 'stadium', 'staff',
-            'stage', 'stairs', 'stamp', 'stand', 'start', 'state', 'stay', 'steak',
-            'steel', 'stem', 'step', 'stereo', 'stick', 'still', 'sting', 'stock',
-            'stomach', 'stone', 'stool', 'story', 'stove', 'strategy', 'street', 'strike',
-            'strong', 'struggle', 'student', 'stuff', 'stumble', 'style', 'subject', 'submit',
-            'subway', 'success', 'such', 'sudden', 'suffer', 'sugar', 'suggest', 'suit',
-            'summer', 'sun', 'sunny', 'sunset', 'super', 'supply', 'supreme', 'sure',
-            'surface', 'surge', 'surprise', 'surround', 'survey', 'suspect', 'sustain', 'swallow',
-            'swamp', 'swap', 'swarm', 'swear', 'sweet', 'swift', 'swim', 'swing',
-            'switch', 'sword', 'symbol', 'symptom', 'syrup', 'system', 'table', 'tackle',
-            'tag', 'tail', 'talent', 'talk', 'tank', 'tape', 'target', 'task',
-            'taste', 'tattoo', 'taxi', 'teach', 'team', 'tell', 'ten', 'tenant',
-            'tennis', 'tent', 'term', 'test', 'text', 'thank', 'that', 'theme',
-            'then', 'theory', 'there', 'they', 'thing', 'this', 'thought', 'three',
-            'thrive', 'throw', 'thumb', 'thunder', 'ticket', 'tide', 'tiger', 'tilt',
-            'timber', 'time', 'tiny', 'tip', 'tired', 'tissue', 'title', 'toast',
-            'tobacco', 'today', 'toddler', 'toe', 'together', 'toilet', 'token', 'tomato',
-            'tomorrow', 'tone', 'tongue', 'tonight', 'tool', 'tooth', 'top', 'topic',
-            'topple', 'torch', 'tornado', 'tortoise', 'toss', 'total', 'tourist', 'toward',
-            'tower', 'town', 'toy', 'track', 'trade', 'traffic', 'tragic', 'train',
-            'transfer', 'trap', 'trash', 'travel', 'tray', 'treat', 'tree', 'trend',
-            'trial', 'tribe', 'trick', 'trigger', 'trim', 'trip', 'trophy', 'trouble',
-            'truck', 'true', 'truly', 'trumpet', 'trust', 'truth', 'try', 'tube',
-            'tuition', 'tumble', 'tuna', 'tunnel', 'turkey', 'turn', 'turtle', 'twelve',
-            'twenty', 'twice', 'twin', 'twist', 'two', 'type', 'typical', 'ugly',
-            'umbrella', 'unable', 'unaware', 'uncle', 'uncover', 'under', 'undo', 'unfair',
-            'unfold', 'unhappy', 'uniform', 'unique', 'unit', 'universe', 'unknown', 'unlock',
-            'until', 'unusual', 'unveil', 'update', 'upgrade', 'uphold', 'upon', 'upper',
-            'upset', 'urban', 'urge', 'usage', 'use', 'used', 'useful', 'useless',
-            'usual', 'utility', 'vacant', 'vacuum', 'vague', 'valid', 'valley', 'valve',
-            'van', 'vanish', 'vapor', 'various', 'vast', 'vault', 'vehicle', 'velvet',
-            'vendor', 'venture', 'venue', 'verb', 'verify', 'version', 'very', 'vessel',
-            'veteran', 'viable', 'vibrant', 'vicious', 'victory', 'video', 'view', 'village',
-            'vintage', 'violin', 'virtual', 'virus', 'visa', 'visit', 'visual', 'vital',
-            'vivid', 'vocal', 'voice', 'void', 'volcano', 'volume', 'vote', 'voyage',
-            'wage', 'wagon', 'wait', 'walk', 'wall', 'walnut', 'want', 'warfare',
-            'warm', 'warrior', 'wash', 'wasp', 'waste', 'water', 'wave', 'way',
-            'wealth', 'weapon', 'weary', 'weather', 'web', 'wedding', 'weekend', 'weird',
-            'welcome', 'west', 'wet', 'whale', 'what', 'wheat', 'wheel', 'when',
-            'where', 'whip', 'whisper', 'wide', 'width', 'wife', 'wild', 'will',
-            'win', 'window', 'wine', 'wing', 'wink', 'winner', 'winter', 'wire',
-            'wisdom', 'wise', 'wish', 'witness', 'wolf', 'woman', 'wonder', 'wood',
-            'wool', 'word', 'work', 'world', 'worry', 'worth', 'wrap', 'wreck',
-            'wrestle', 'wrist', 'write', 'wrong', 'yard', 'year', 'yellow', 'you',
-            'young', 'youth', 'zebra', 'zero', 'zone', 'zoo'
-        ];
-    }
-
-    generateMnemonic(wordCount = 12) {
-        console.log('🔑 Generating proper BIP39 mnemonic...');
-        let mnemonic = '';
-        for (let i = 0; i < wordCount; i++) {
-            const randomIndex = Math.floor(Math.random() * this.wordlist.length);
-            mnemonic += this.wordlist[randomIndex] + ' ';
-        }
-        const finalMnemonic = mnemonic.trim();
-        console.log('✅ Generated proper BIP39 mnemonic');
-        return finalMnemonic;
-    }
-
-    validateMnemonic(mnemonic) {
-        const words = mnemonic.trim().toLowerCase().split(/\s+/g);
-        const validLength = words.length === 12 || words.length === 24;
-
-        const validWords = words.every(word => {
-            if (this.wordlist.includes(word)) return true;
-            if (word.length >= 3 && word.length <= 8 && /^[a-z]+$/.test(word)) {
-                console.log('⚠️ Non-BIP39 word detected but allowing:', word);
-                return true;
-            }
-            return false;
-        });
-
-        return validLength && validWords;
-    }
-
-    normalizeMnemonic(mnemonic) {
-        return mnemonic.trim().toLowerCase().replace(/\s+/g, ' ');
-    }
-}
-
-// =============================================
-// 🎯 TON WALLET MANAGER CLASS - SECURE VERSION
-// =============================================
+// wallet.js - COMPLETE SECURE VERSION - NO HARDCODED KEYS
+console.log('🔄 Loading Secure Wallet System...');
 
 class TONWalletManager {
     constructor() {
-        console.log('✅ TON Wallet Manager initialized');
-        this.mnemonicManager = new SecureMnemonicManager();
-        this.updateInterval = null;
+        this.supabase = null;
         this.currentWallet = null;
-        this.supabase = supabase; // Use the globally initialized supabase
-        this.walletReady = false;
+        this.isInitialized = false;
+        this.apiBaseUrl = '/api/wallet';
+        console.log('🚀 Secure Supabase initialization...');
+        this.initializeSupabase();
+    }
+
+    async initializeSupabase() {
+        try {
+            console.log('🔄 Getting Supabase configuration from backend...');
+            
+            // Get configuration from backend first
+            const configResponse = await fetch(`${this.apiBaseUrl}/config`);
+            const config = await configResponse.json();
+            
+            if (config.success && config.supabase) {
+                console.log('✅ Backend configuration loaded:', {
+                    url: config.supabase.url ? '***configured***' : 'missing',
+                    anonKey: config.supabase.anonKey ? '***configured***' : 'missing'
+                });
+
+                // Create Supabase client with backend configuration
+                this.supabase = supabase.createClient(config.supabase.url, config.supabase.anonKey, {
+                    auth: {
+                        autoRefreshToken: true,
+                        persistSession: true,
+                        detectSessionInUrl: false,
+                        storage: window.localStorage
+                    }
+                });
+
+                console.log('✅ Supabase client created with backend configuration');
+                
+                // Test the connection
+                const { data: { session }, error } = await this.supabase.auth.getSession();
+                if (error) {
+                    console.warn('⚠️ Supabase session test failed:', error.message);
+                } else {
+                    console.log('✅ Supabase connection successful');
+                    if (session) {
+                        console.log('✅ Active session found:', session.user.id);
+                    } else {
+                        console.log('ℹ️ No active session - user needs to sign in');
+                    }
+                }
+
+                this.setupAuthListener();
+                
+            } else {
+                throw new Error('Failed to load configuration from backend');
+            }
+
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase with backend config:', error);
+            console.log('🔄 Creating secure fallback Supabase client - no keys available');
+            
+            // Create a minimal fallback client
+            this.supabase = {
+                auth: {
+                    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+                    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+                    signOut: () => Promise.resolve({ error: null }),
+                    onAuthStateChange: (callback) => { 
+                        console.log('🔄 Fallback auth state change listener');
+                        // Simulate signed out state
+                        setTimeout(() => {
+                            callback('SIGNED_OUT', null);
+                        }, 100);
+                        return { data: { subscription: { unsubscribe: () => {} } } };
+                    }
+                },
+                from: () => ({
+                    select: () => ({
+                        eq: () => ({
+                            single: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
+                            limit: () => Promise.resolve({ data: [], error: null })
+                        }),
+                        insert: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
+                        upsert: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
+                        update: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
+                        delete: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } })
+                    })
+                })
+            };
+            
+            console.log('✅ Fallback Supabase client created');
+        }
+    }
+
+    setupAuthListener() {
+        if (!this.supabase || !this.supabase.auth) {
+            console.log('🔄 Setting up fallback auth listener');
+            return;
+        }
+
+        console.log('🔑 Setting up Supabase auth listener...');
         
-        console.log('🔧 Wallet manager Supabase status:', {
-            hasSupabase: !!this.supabase,
-            hasAuth: !!(this.supabase && this.supabase.auth),
-            usingFallback: !!(this.supabase && this.supabase.auth && this.supabase.auth.getUser && this.supabase.auth.getUser().then === undefined)
+        this.supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log(`🔑 Supabase Auth State Change: ${event}`, session ? 'User: ' + session.user.id : 'No session');
+            
+            switch (event) {
+                case 'SIGNED_IN':
+                    console.log('✅ User signed in:', session.user.id);
+                    await this.handleUserSignedIn(session.user);
+                    break;
+                    
+                case 'SIGNED_OUT':
+                    console.log('ℹ️ User signed out, clearing wallet from memory...');
+                    await this.clearWallet();
+                    break;
+                    
+                case 'USER_UPDATED':
+                    console.log('🔄 User updated:', session.user.id);
+                    break;
+                    
+                case 'TOKEN_REFRESHED':
+                    console.log('🔄 Token refreshed');
+                    break;
+            }
         });
+    }
+
+    async handleUserSignedIn(user) {
+        console.log('🔄 Handling user sign in:', user.id);
+        try {
+            // Check if user has existing wallet
+            const existingWallet = await this.getUserWallet(user.id);
+            if (existingWallet) {
+                console.log('✅ Existing wallet found for user:', existingWallet.address);
+                this.currentWallet = existingWallet;
+                await this.updateWalletDisplay();
+            } else {
+                console.log('ℹ️ No existing wallet found for user');
+                this.currentWallet = null;
+            }
+        } catch (error) {
+            console.error('❌ Error handling user sign in:', error);
+        }
+    }
+
+    async clearWallet() {
+        console.log('🔄 Clearing wallet data...');
+        this.currentWallet = null;
+        this.isInitialized = false;
+        
+        // Clear from localStorage
+        localStorage.removeItem('nemex_current_wallet');
+        localStorage.removeItem('nemex_user_session');
+        
+        // Update UI
+        await this.updateWalletDisplay();
+        console.log('✅ Wallet cleared from memory');
+    }
+
+    async updateWalletDisplay() {
+        // This will be called by the main wallet system
+        if (typeof window.updateWalletUI === 'function') {
+            window.updateWalletUI(this.currentWallet);
+        }
     }
 
     async initializeWalletAPI() {
         console.log('🚀 SECURE: Initializing TON Wallet API...');
-
+        
         try {
-            // Test backend connectivity
-            const testResponse = await fetch('/api/wallet/test', {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            });
+            // Test backend connection
+            const testResponse = await fetch(`${this.apiBaseUrl}/test`);
+            const testData = await testResponse.json();
+            console.log('✅ Backend API is accessible:', testData.message);
 
-            if (testResponse.ok) {
-                const testData = await testResponse.json();
-                console.log('✅ Backend API is accessible:', testData.message);
+            // Check for existing session
+            let session = null;
+            if (this.supabase && this.supabase.auth) {
+                const sessionResult = await this.supabase.auth.getSession();
+                session = sessionResult.data.session;
+            }
+
+            if (session && session.user) {
+                console.log('✅ Active session found, loading wallet...');
+                await this.handleUserSignedIn(session.user);
             } else {
-                console.warn('⚠️ Backend API may not be fully configured');
+                console.log('ℹ️ No active session - wallet system ready for login');
+                this.isInitialized = true;
             }
 
-            // Load user wallet using database session
-            await this.loadUserWalletFromDatabase();
+            console.log('✅ TON Wallet Manager initialized successfully');
+            return { success: true, message: 'Wallet system ready' };
 
-            console.log('✅ TON Wallet API initialized successfully');
-            this.walletReady = true;
-            
-            // 🎯 CRITICAL: Mark wallet system as ready
-            this.markWalletSystemReady();
-            
+        } catch (error) {
+            console.error('❌ Wallet API initialization failed:', error);
+            this.isInitialized = true; // Still mark as initialized to allow wallet creation
+            return { success: false, error: error.message };
+        }
+    }
+
+    async hasWallet() {
+        if (!this.isInitialized) {
+            console.log('⚠️ Wallet system not initialized');
+            return false;
+        }
+
+        // Check if we have a current wallet in memory
+        if (this.currentWallet) {
             return true;
-        } catch (error) {
-            console.error('❌ Failed to initialize TON Wallet API:', error);
-            this.walletReady = true; // Still mark as ready for standalone mode
-            this.markWalletSystemReady();
-            return true;
         }
-    }
 
-    // 🎯 CRITICAL: Mark wallet system as ready
-    markWalletSystemReady() {
-        console.log('🎯 WALLET SYSTEM READY!');
-        this.walletReady = true;
-        
-        // Update UI to show wallet is ready
-        if (typeof window.onWalletSystemReady === 'function') {
-            window.onWalletSystemReady();
-        }
-        
-        // Remove any "wallet not ready" messages
-        const errorElements = document.querySelectorAll('.wallet-error, .system-not-ready');
-        errorElements.forEach(el => {
-            el.style.display = 'none';
-            el.remove();
-        });
-        
-        // Show wallet interface
-        const walletInterface = document.getElementById('walletInterface');
-        const createWalletBtn = document.getElementById('createWalletBtn');
-        
-        if (walletInterface) walletInterface.style.display = 'block';
-        if (createWalletBtn) createWalletBtn.style.display = 'block';
-    }
-
-    // 🎯 FIXED: Database-based session management
-    async loadUserWalletFromDatabase() {
+        // Check for user session and wallet in database
         try {
-            console.log('🔄 Loading user wallet from database...');
-
-            // Method 1: Try Supabase session first (only if not in fallback mode)
-            if (this.supabase && this.supabase.auth && this.supabase.auth.getUser) {
-                try {
-                    const { data: { user }, error } = await this.supabase.auth.getUser();
-                    if (!error && user) {
-                        console.log('✅ User authenticated via Supabase:', user.id);
-                        await this.loadWalletForUser(user.id);
-                        return;
-                    }
-                } catch (supabaseError) {
-                    console.log('ℹ️ Supabase auth check failed:', supabaseError.message);
-                }
-            }
-
-            // Method 2: Check for existing wallet in database via API
-            const sessionCheck = await this.checkDatabaseSession();
-            if (sessionCheck && sessionCheck.userId) {
-                console.log('✅ User session found in database:', sessionCheck.userId);
-                await this.loadWalletForUser(sessionCheck.userId);
-                return;
-            }
-
-            console.log('ℹ️ No active session found, wallet will work in standalone mode');
-            this.currentWallet = null;
-
-        } catch (error) {
-            console.error('❌ Error loading user wallet:', error);
-            this.currentWallet = null;
-        }
-    }
-
-    // 🎯 FIXED: Database session check
-    async checkDatabaseSession() {
-        try {
-            console.log('🔍 Checking for database session...');
-
-            const response = await fetch('/api/wallet/check-session', {
-                method: 'GET',
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success && data.user) {
-                    console.log('✅ Database session found:', data.user.id);
-                    return { userId: data.user.id, user: data.user };
-                }
-            }
-
-            console.log('ℹ️ No database session found');
-            return null;
-        } catch (error) {
-            console.error('❌ Database session check failed:', error);
-            return null;
-        }
-    }
-
-    async loadWalletForUser(userId) {
-        try {
-            console.log('🔍 Loading wallet for user:', userId);
-
-            const walletResponse = await fetch('/api/wallet/get-user-wallet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: userId })
-            });
-
-            if (walletResponse.ok) {
-                const walletData = await walletResponse.json();
-                if (walletData.success && walletData.wallet) {
-                    this.currentWallet = walletData.wallet;
-                    console.log('✅ User wallet loaded:', this.currentWallet.address);
-                    
-                    // Notify UI that wallet is loaded
-                    if (typeof window.onWalletLoaded === 'function') {
-                        window.onWalletLoaded(this.currentWallet);
-                    }
-                } else {
-                    console.log('ℹ️ No wallet found for user in database');
-                    this.currentWallet = null;
+            if (this.supabase && this.supabase.auth) {
+                const { data: { session } } = await this.supabase.auth.getSession();
+                if (session && session.user) {
+                    const wallet = await this.getUserWallet(session.user.id);
+                    return !!wallet;
                 }
             }
         } catch (error) {
-            console.error('❌ Error loading wallet for user:', error);
-            this.currentWallet = null;
+            console.log('ℹ️ Session check failed, checking localStorage...');
         }
-    }
 
-    // 🎯 FIXED: Enhanced user authentication check
-    async checkUserAuthentication() {
-        try {
-            console.log('🔐 Checking user authentication from mining app...');
-
-            // Method 1: Check Supabase Auth session (only if not in fallback mode)
-            if (this.supabase && this.supabase.auth && this.supabase.auth.getUser) {
-                try {
-                    const { data: { user }, error } = await this.supabase.auth.getUser();
-                    
-                    if (!error && user) {
-                        console.log('✅ User authenticated via Supabase Auth:', user.id);
-                        return { 
-                            user: { 
-                                id: user.id,
-                                email: user.email
-                            }, 
-                            method: 'supabase_auth' 
-                        };
-                    }
-                } catch (supabaseError) {
-                    console.log('ℹ️ Supabase auth check failed:', supabaseError.message);
-                }
-            }
-
-            // Method 2: Check localStorage for Supabase session
+        // Check localStorage as fallback
+        const storedWallet = localStorage.getItem('nemex_current_wallet');
+        if (storedWallet) {
             try {
-                const authToken = localStorage.getItem('supabase.auth.token');
-                if (authToken) {
-                    const parsedToken = JSON.parse(authToken);
-                    if (parsedToken.currentSession?.user) {
-                        const user = parsedToken.currentSession.user;
-                        console.log('✅ User found in localStorage Supabase session:', user.id);
-                        return { 
-                            user: { 
-                                id: user.id,
-                                email: user.email
-                            }, 
-                            method: 'local_storage' 
-                        };
-                    }
-                }
-            } catch (localStorageError) {
-                console.log('ℹ️ No Supabase session in localStorage');
+                this.currentWallet = JSON.parse(storedWallet);
+                return true;
+            } catch (e) {
+                console.error('❌ Error parsing stored wallet:', e);
             }
-
-            // Method 3: Check for global user object (from your mining app)
-            if (window.currentUser) {
-                console.log('✅ User found in global window object:', window.currentUser.id);
-                return { 
-                    user: window.currentUser, 
-                    method: 'global_object' 
-                };
-            }
-
-            // Method 4: Check database session via API
-            const dbSession = await this.checkDatabaseSession();
-            if (dbSession) {
-                console.log('✅ User authenticated via database session:', dbSession.userId);
-                return { user: dbSession.user, method: 'database' };
-            }
-
-            console.log('❌ No authentication found in any method');
-            return null;
-
-        } catch (error) {
-            console.error('❌ Error checking authentication:', error);
-            return null;
         }
-    }
 
-    // 🎯 FIXED: Create wallet with enhanced error handling
-    async createNewWallet() {
-        try {
-            console.log('🆕 Creating new wallet...');
-
-            const authResult = await this.checkUserAuthentication();
-            if (!authResult) {
-                throw new Error('Please sign in to create a wallet. Make sure you are logged into your mining account.');
-            }
-
-            const userId = authResult.user.id;
-            console.log('🔑 Generating wallet for user:', userId);
-
-            const mnemonic = this.mnemonicManager.generateMnemonic(12);
-            if (!this.mnemonicManager.validateMnemonic(mnemonic)) {
-                throw new Error('Generated invalid mnemonic');
-            }
-
-            // 🚨 CRITICAL: Never store mnemonic in database!
-            // Only derive address and store public info
-            const response = await fetch('/api/wallet/generate-wallet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: userId,
-                    wordCount: 12,
-                    authMethod: authResult.method
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to create wallet');
-            }
-
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Wallet creation failed');
-            }
-
-            console.log('✅ New wallet created:', result.wallet.address);
-            this.currentWallet = result.wallet;
-
-            // Notify UI
-            if (typeof window.onWalletLoaded === 'function') {
-                window.onWalletLoaded(this.currentWallet);
-            }
-
-            // 🚨 SECURITY: Return mnemonic ONLY to user (never store)
-            return {
-                wallet: result.wallet,
-                mnemonic: result.mnemonic, // User must backup immediately!
-                securityWarning: 'WRITE DOWN YOUR SEED PHRASE! Never store digitally.',
-                recoveryInstructions: 'This is your ONLY backup. Store it securely.'
-            };
-
-        } catch (error) {
-            console.error('❌ Failed to create new wallet:', error);
-            
-            // Enhanced error message for better user experience
-            if (error.message.includes('sign in')) {
-                throw new Error('Please make sure you are logged into your mining account. Refresh the page and try again.');
-            }
-            
-            throw error;
-        }
-    }
-
-    // 🎯 FIXED: Import wallet with enhanced error handling
-    async importWalletFromMnemonic(mnemonic) {
-        try {
-            console.log('📥 Importing wallet from mnemonic...');
-
-            const authResult = await this.checkUserAuthentication();
-            if (!authResult) {
-                throw new Error('Please sign in to import a wallet. Make sure you are logged into your mining account.');
-            }
-
-            const userId = authResult.user.id;
-            const normalizedMnemonic = this.mnemonicManager.normalizeMnemonic(mnemonic);
-
-            if (!this.mnemonicManager.validateMnemonic(normalizedMnemonic)) {
-                throw new Error('Invalid mnemonic phrase. Please check your words.');
-            }
-
-            // Backend derives address without storing mnemonic
-            const response = await fetch('/api/wallet/import-wallet', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: userId,
-                    mnemonic: normalizedMnemonic,
-                    authMethod: authResult.method
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to import wallet');
-            }
-
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Wallet import failed');
-            }
-
-            console.log('✅ Wallet imported:', result.wallet.address);
-            this.currentWallet = result.wallet;
-
-            // Notify UI
-            if (typeof window.onWalletLoaded === 'function') {
-                window.onWalletLoaded(this.currentWallet);
-            }
-
-            return result;
-
-        } catch (error) {
-            console.error('❌ Failed to import wallet:', error);
-            
-            // Enhanced error message for better user experience
-            if (error.message.includes('sign in')) {
-                throw new Error('Please make sure you are logged into your mining account. Refresh the page and try again.');
-            }
-            
-            throw error;
-        }
-    }
-
-    async generateWalletAddress(mnemonic) {
-        try {
-            console.log('🏗️ Generating TON wallet address from mnemonic via backend...');
-
-            const response = await fetch('/api/wallet/derive-address', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mnemonic: mnemonic })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Backend error: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (!data.address) {
-                throw new Error('No address returned from backend');
-            }
-
-            console.log('✅ TON address generated via backend:', data.address);
-            return data.address;
-
-        } catch (error) {
-            console.error('❌ Failed to generate wallet address via backend:', error);
-            // Fallback: Generate a mock address for development
-            const mockAddress = 'EQ' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-            console.log('🔄 Using mock address for development:', mockAddress);
-            return mockAddress;
-        }
-    }
-
-    async fetchTokenPrices() {
-        try {
-            console.log('📈 Fetching REAL token prices...');
-
-            // Try main price API first
-            try {
-                const response = await fetch('/api/wallet/token-prices', {
-                    signal: AbortSignal.timeout(5000) // 5 second timeout
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.prices) {
-                        console.log('✅ Real prices fetched:', {
-                            TON: data.prices.TON?.price,
-                            NMX: data.prices.NMX?.price
-                        });
-                        return {
-                            ton: data.prices.TON?.price || 2.5,
-                            nmx: data.prices.NMX?.price || 0.10
-                        };
-                    }
-                }
-            } catch (mainError) {
-                console.warn('⚠️ Main price API failed, trying exchange API...');
-            }
-
-            // Fallback to exchange prices
-            try {
-                const response = await fetch('/api/wallet/exchange-prices', {
-                    signal: AbortSignal.timeout(5000)
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.success && data.averagePrice) {
-                        console.log('✅ Exchange prices fetched:', data.averagePrice);
-                        return {
-                            ton: data.averagePrice,
-                            nmx: 0.10
-                        };
-                    }
-                }
-            } catch (exchangeError) {
-                console.warn('⚠️ Exchange API failed, using fallback prices');
-            }
-
-            // Final fallback
-            console.log('🔄 Using fallback prices');
-            return {
-                ton: 2.5,
-                nmx: 0.10
-            };
-
-        } catch (error) {
-            console.error('❌ All price APIs failed:', error);
-            return {
-                ton: 2.5,
-                nmx: 0.10
-            };
-        }
-    }
-
-    async fetchExchangePrices() {
-        try {
-            console.log('🏦 Fetching comprehensive prices from all exchanges...');
-
-            const response = await fetch('/api/wallet/exchange-prices');
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data.success) {
-                    console.log('✅ Exchange prices fetched successfully:', {
-                        averagePrice: data.averagePrice,
-                        successfulExchanges: data.successfulExchanges
-                    });
-                    return data;
-                }
-            }
-
-            throw new Error('Exchange prices API failed');
-
-        } catch (error) {
-            console.error('❌ Exchange prices fetch failed:', error);
-            return {
-                success: false,
-                averagePrice: 2.5,
-                exchanges: [],
-                totalExchanges: 0,
-                successfulExchanges: 0,
-                timestamp: new Date().toISOString()
-            };
-        }
-    }
-
-    async fetchRealBalances(walletAddress) {
-        try {
-            console.log('💰 Fetching REAL balances for:', walletAddress);
-
-            if (!walletAddress) {
-                return this.getFallbackBalances();
-            }
-
-            // Try multiple balance endpoints
-            const endpoints = [
-                '/api/wallet/get-balances',
-                `/api/wallet/real-balance/${walletAddress}`,
-                `/api/wallet/all-balances/${walletAddress}`
-            ];
-
-            for (const endpoint of endpoints) {
-                try {
-                    const response = await fetch(endpoint, {
-                        method: endpoint.includes('get-balances') ? 'POST' : 'GET',
-                        headers: endpoint.includes('get-balances') ? { 
-                            'Content-Type': 'application/json' 
-                        } : {},
-                        body: endpoint.includes('get-balances') ? JSON.stringify({ 
-                            address: walletAddress 
-                        }) : null,
-                        signal: AbortSignal.timeout(8000) // 8 second timeout
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log(`✅ Balance from ${endpoint}:`, data);
-
-                        if (data.balances) return data.balances;
-                        if (data.balance) {
-                            return {
-                                ton: { balance: data.balance.toString(), usdValue: '0' },
-                                nmx: { balance: '0', usdValue: '0' }
-                            };
-                        }
-                    }
-                } catch (endpointError) {
-                    console.warn(`⚠️ ${endpoint} failed:`, endpointError.message);
-                    continue;
-                }
-            }
-
-            return this.getFallbackBalances();
-
-        } catch (error) {
-            console.error('❌ All balance fetch methods failed:', error);
-            return this.getFallbackBalances();
-        }
-    }
-
-    getFallbackBalances() {
-        console.log('🔄 Using fallback balances');
-        return {
-            ton: { balance: '0', usdValue: '0' },
-            nmx: { balance: '0', usdValue: '0' }
-        };
+        return false;
     }
 
     async getCurrentWallet() {
-        return this.currentWallet;
-    }
+        if (this.currentWallet) {
+            return this.currentWallet;
+        }
 
-    async setCurrentWallet(walletData) {
-        this.currentWallet = walletData;
-        console.log('✅ Current wallet set in memory:', walletData?.address);
-    }
-
-    async hasWallet() {
-        return this.currentWallet !== null;
-    }
-
-    getWalletAddress() {
-        return this.currentWallet?.address || null;
-    }
-
-    // 🎯 Check if user has wallet
-    async hasWallet() {
-        return this.currentWallet !== null;
-    }
-
-    // 🎯 Get wallet address safely
-    getWalletAddress() {
-        return this.currentWallet?.address || null;
-    }
-
-    // 🎯 Clear current wallet (on logout)
-    clearWallet() {
-        this.currentWallet = null;
-        this.stopBalanceUpdates();
-        console.log('✅ Wallet cleared from memory');
-    }
-
-    // 🎯 Get current user ID
-    async getCurrentUserId() {
+        // Try to load from user session
         try {
-            if (this.supabase && this.supabase.auth && this.supabase.auth.getUser) {
-                const { data: { user } } = await this.supabase.auth.getUser();
-                return user?.id || null;
+            if (this.supabase && this.supabase.auth) {
+                const { data: { session } } = await this.supabase.auth.getSession();
+                if (session && session.user) {
+                    const wallet = await this.getUserWallet(session.user.id);
+                    if (wallet) {
+                        this.currentWallet = wallet;
+                        return wallet;
+                    }
+                }
             }
-            return null;
         } catch (error) {
-            console.error('❌ Failed to get current user ID:', error);
+            console.log('ℹ️ Session wallet load failed, trying localStorage...');
+        }
+
+        // Try localStorage as fallback
+        const storedWallet = localStorage.getItem('nemex_current_wallet');
+        if (storedWallet) {
+            try {
+                this.currentWallet = JSON.parse(storedWallet);
+                return this.currentWallet;
+            } catch (e) {
+                console.error('❌ Error parsing stored wallet:', e);
+            }
+        }
+
+        return null;
+    }
+
+    async getUserWallet(userId) {
+        if (!userId) {
+            console.log('⚠️ No user ID provided for wallet lookup');
             return null;
         }
-    }
 
-    // 🎯 Verify wallet recovery
-    async verifySeedRecovery(mnemonic) {
         try {
-            console.log('🔐 Verifying seed phrase recovery via backend...');
+            console.log('🔍 Looking up wallet for user:', userId);
 
-            const response = await fetch('/api/wallet/verify-seed-recovery', {
+            // Try backend API first
+            const response = await fetch(`${this.apiBaseUrl}/get-user-wallet`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mnemonic: mnemonic })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    userId: userId,
+                    authMethod: 'supabase_session'
+                })
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Seed verification failed');
-            }
 
             const result = await response.json();
 
-            if (!result.success) {
-                throw new Error(result.error || 'Seed verification failed');
+            if (result.success && result.wallet) {
+                console.log('✅ Wallet found via API:', result.wallet.address);
+                return result.wallet;
+            } else {
+                console.log('ℹ️ No wallet found via API for user:', userId);
+                return null;
             }
-
-            console.log('✅ Seed phrase verified successfully');
-            return result;
 
         } catch (error) {
-            console.error('❌ Seed verification failed:', error);
-            throw error;
+            console.error('❌ Error fetching user wallet:', error);
+            return null;
         }
     }
 
-    validateTONAddress(address) {
-        if (!address) return false;
-        const tonRegex = /^EQ[0-9a-zA-Z]{48}$/;
-        return tonRegex.test(address);
-    }
+    async createNewWallet() {
+        console.log('🔄 Creating new wallet...');
 
-    startBalanceUpdates(callback, interval = 30000) {
-        console.log('🔄 Starting periodic balance updates...');
+        try {
+            // Get current user session
+            let userId = 'demo-user-' + Date.now();
+            let authMethod = 'demo_session';
 
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-        }
-
-        if (callback) {
-            setTimeout(() => callback(), 1000);
-        }
-
-        this.updateInterval = setInterval(() => {
-            console.log('🔄 Periodic balance update triggered');
-            if (callback) callback();
-        }, interval);
-    }
-
-    stopBalanceUpdates() {
-        if (this.updateInterval) {
-            clearInterval(this.updateInterval);
-            this.updateInterval = null;
-            console.log('🛑 Balance updates stopped');
-        }
-    }
-
-    // 🎯 NEW: Check if wallet system is ready
-    isWalletSystemReady() {
-        return this.walletReady;
-    }
-}
-
-// Initialize global wallet instance
-const tonWalletManager = new TONWalletManager();
-
-// Supabase Auth State Listener
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔑 Setting up Supabase auth listener...');
-
-    if (window.supabase && window.supabase.auth && window.supabase.auth.onAuthStateChange) {
-        const { data: { subscription } } = window.supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('🔑 Supabase Auth State Change:', event);
-
-            if (event === 'SIGNED_IN' && session) {
-                console.log('✅ User signed in, loading wallet from Supabase...');
-                await tonWalletManager.loadUserWalletFromDatabase();
-
-                if (typeof window.onWalletLoaded === 'function') {
-                    window.onWalletLoaded(tonWalletManager.currentWallet);
+            if (this.supabase && this.supabase.auth) {
+                const { data: { session } } = await this.supabase.auth.getSession();
+                if (session && session.user) {
+                    userId = session.user.id;
+                    authMethod = 'supabase_session';
+                    console.log('✅ Using authenticated user:', userId);
                 }
-            } else if (event === 'SIGNED_OUT') {
-                console.log('ℹ️ User signed out, clearing wallet from memory...');
-                tonWalletManager.clearWallet();
-
-                if (typeof window.onWalletCleared === 'function') {
-                    window.onWalletCleared();
-                }
-            } else if (event === 'USER_UPDATED') {
-                console.log('🔄 User updated, reloading wallet...');
-                await tonWalletManager.loadUserWalletFromDatabase();
             }
-        });
 
-        window.supabaseAuthSubscription = subscription;
-    } else {
-        console.log('ℹ️ Supabase auth not available for listener (fallback mode)');
+            // Call backend to generate wallet
+            const response = await fetch(`${this.apiBaseUrl}/generate-wallet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    wordCount: 12,
+                    authMethod: authMethod
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.wallet) {
+                console.log('✅ Wallet created successfully:', result.wallet.address);
+                
+                // Store wallet locally
+                this.currentWallet = result.wallet;
+                localStorage.setItem('nemex_current_wallet', JSON.stringify(result.wallet));
+                
+                // Return both wallet and mnemonic
+                return {
+                    success: true,
+                    wallet: result.wallet,
+                    mnemonic: result.mnemonic
+                };
+            } else {
+                throw new Error(result.error || 'Failed to create wallet');
+            }
+
+        } catch (error) {
+            console.error('❌ Wallet creation failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
     }
-});
 
-// Export for use in other modules
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { tonWalletManager, SecureMnemonicManager };
+    async importWalletFromMnemonic(mnemonic) {
+        console.log('🔄 Importing wallet from mnemonic...');
+
+        try {
+            // Get current user session
+            let userId = 'demo-user-' + Date.now();
+            let authMethod = 'demo_session';
+
+            if (this.supabase && this.supabase.auth) {
+                const { data: { session } } = await this.supabase.auth.getSession();
+                if (session && session.user) {
+                    userId = session.user.id;
+                    authMethod = 'supabase_session';
+                    console.log('✅ Using authenticated user:', userId);
+                }
+            }
+
+            // Call backend to import wallet
+            const response = await fetch(`${this.apiBaseUrl}/import-wallet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    mnemonic: mnemonic,
+                    authMethod: authMethod
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.wallet) {
+                console.log('✅ Wallet imported successfully:', result.wallet.address);
+                
+                // Store wallet locally
+                this.currentWallet = result.wallet;
+                localStorage.setItem('nemex_current_wallet', JSON.stringify(result.wallet));
+                
+                return {
+                    success: true,
+                    wallet: result.wallet
+                };
+            } else {
+                throw new Error(result.error || 'Failed to import wallet');
+            }
+
+        } catch (error) {
+            console.error('❌ Wallet import failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    async getBalances(address) {
+        if (!address) {
+            console.log('⚠️ No address provided for balance check');
+            return null;
+        }
+
+        try {
+            console.log('💰 Getting balances for:', address);
+
+            const response = await fetch(`${this.apiBaseUrl}/get-balances`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ address: address })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('✅ Balances retrieved successfully');
+                return result.balances;
+            } else {
+                console.warn('⚠️ Balance fetch failed:', result.error);
+                return {
+                    ton: { balance: '0', usdValue: '0' },
+                    nmx: { balance: '0', usdValue: '0' }
+                };
+            }
+
+        } catch (error) {
+            console.error('❌ Balance check failed:', error);
+            return {
+                ton: { balance: '0', usdValue: '0' },
+                nmx: { balance: '0', usdValue: '0' }
+            };
+        }
+    }
+
+    async sendTransaction(fromAddress, toAddress, amount, memo = '') {
+        console.log('🔄 Sending transaction...');
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/send-ton`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fromAddress: fromAddress,
+                    toAddress: toAddress,
+                    amount: amount,
+                    memo: memo
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                console.log('✅ Transaction sent successfully:', result.transaction.hash);
+                return result;
+            } else {
+                throw new Error(result.error || 'Transaction failed');
+            }
+
+        } catch (error) {
+            console.error('❌ Transaction failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    // Helper method to check backend status
+    async checkBackendStatus() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/health`);
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('❌ Backend health check failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
 }
 
-// Global functions for UI integration
-window.onWalletSystemReady = function() {
-    console.log('🎯 WALLET SYSTEM READY - UI can now interact with wallet!');
-    
-    // Remove any "system not ready" messages
-    const errorElements = document.querySelectorAll('.system-not-ready, .wallet-error');
-    errorElements.forEach(el => {
-        el.style.display = 'none';
-        el.remove();
-    });
-    
-    // Enable wallet buttons
-    const createBtn = document.getElementById('createWalletBtn');
-    const importBtn = document.getElementById('importWalletBtn');
-    if (createBtn) createBtn.disabled = false;
-    if (importBtn) importBtn.disabled = false;
-    
-    // Show success message
-    const walletStatus = document.getElementById('walletStatus');
-    if (walletStatus) {
-        walletStatus.textContent = 'Wallet System Ready';
-        walletStatus.className = 'wallet-status ready';
-    }
-};
+// Initialize when script loads
+console.log('🔧 Initializing Secure TON Wallet Manager...');
+window.tonWalletManager = new TONWalletManager();
 
-window.onWalletLoaded = function(wallet) {
-    console.log('🎯 Wallet loaded in UI:', wallet?.address);
-    if (wallet) {
-        const walletStatus = document.getElementById('walletStatus');
-        const createWalletBtn = document.getElementById('createWalletBtn');
-        const walletInterface = document.getElementById('walletInterface');
+// Export for module systems
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TONWalletManager;
+}
 
-        if (walletStatus) {
-            walletStatus.textContent = `Wallet: ${wallet.address.substring(0, 8)}...`;
-            walletStatus.className = 'wallet-status connected';
-        }
-        if (createWalletBtn) createWalletBtn.style.display = 'none';
-        if (walletInterface) walletInterface.style.display = 'block';
-
-        if (typeof updateRealBalancesAndPrices === 'function') {
-            updateRealBalancesAndPrices();
-        }
-    }
-};
-
-window.onWalletCleared = function() {
-    console.log('🎯 Wallet cleared from UI');
-    const walletStatus = document.getElementById('walletStatus');
-    const createWalletBtn = document.getElementById('createWalletBtn');
-    const walletInterface = document.getElementById('walletInterface');
-
-    if (walletStatus) {
-        walletStatus.textContent = 'No wallet loaded';
-        walletStatus.className = 'wallet-status disconnected';
-    }
-    if (createWalletBtn) createWalletBtn.style.display = 'block';
-    if (walletInterface) walletInterface.style.display = 'none';
-};
-
-// Initialize wallet when page loads
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 DOM loaded, initializing wallet with secure Supabase backend...');
-    await tonWalletManager.initializeWalletAPI();
-});
-
-// 🎯 SECURITY NOTE: No hardcoded keys - configuration must come from server
-console.log('🔐 SECURITY: No hardcoded Supabase keys - using server-provided configuration');
+console.log('✅ TON Wallet Manager loaded - Secure Version');
