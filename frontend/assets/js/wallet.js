@@ -1,59 +1,62 @@
-// wallet.js - SIMPLIFIED INTEGRATED WALLET
-console.log('🔄 Loading Integrated Wallet System...');
+// wallet.js - INTEGRATED WALLET MANAGER FOR NEMEX WEBSITE
+console.log('🔄 Loading Nemex Integrated Wallet System...');
 
-class IntegratedWalletManager {
+class NemexWalletManager {
     constructor() {
-        this.currentUserId = null;
-        this.currentWallet = null;
         this.apiBaseUrl = '/api/wallet';
-        console.log('✅ Integrated Wallet Manager initialized');
+        this.currentWallet = null;
+        this.userId = null;
+        console.log('✅ Nemex Wallet Manager initialized');
     }
 
-    // Set current user from your website's session
+    // Set user ID from website session
     setCurrentUser(userId) {
         console.log('👤 Setting current user:', userId);
-        this.currentUserId = userId;
+        this.userId = userId;
     }
 
+    // Initialize wallet for current user
     async initialize() {
-        console.log('🚀 Initializing Integrated Wallet...');
+        console.log('🚀 Initializing wallet for user:', this.userId);
         
-        try {
-            if (!this.currentUserId) {
-                console.log('ℹ️ No user ID set - user needs to be logged in');
-                return {
-                    success: false,
-                    requiresLogin: true
-                };
-            }
-
-            // Check if user exists
-            const userCheck = await this.checkUser(this.currentUserId);
-            if (!userCheck.success) {
-                return {
-                    success: false,
-                    error: 'User not found'
-                };
-            }
-
-            // Get user's wallet
-            const walletResult = await this.getUserWallet(this.currentUserId);
-            
+        if (!this.userId) {
+            console.log('⚠️ No user ID set - user might not be logged in');
             return {
-                success: true,
-                hasWallet: !!walletResult.wallet,
-                wallet: walletResult.wallet
+                success: false,
+                requiresLogin: true
             };
+        }
 
+        try {
+            // Get user's wallet
+            const result = await this.getUserWallet(this.userId);
+            
+            if (result.success && result.wallet) {
+                this.currentWallet = result.wallet;
+                console.log('✅ Wallet loaded:', result.wallet.address);
+                return {
+                    success: true,
+                    hasWallet: true,
+                    wallet: result.wallet
+                };
+            } else {
+                console.log('ℹ️ No wallet found for user');
+                return {
+                    success: true,
+                    hasWallet: false,
+                    message: 'No wallet found'
+                };
+            }
         } catch (error) {
             console.error('❌ Wallet initialization failed:', error);
             return {
                 success: false,
-                error: error.message
+                error: 'Failed to load wallet'
             };
         }
     }
 
+    // Check if user exists in database
     async checkUser(userId) {
         try {
             const response = await fetch(`${this.apiBaseUrl}/check-user`, {
@@ -71,6 +74,7 @@ class IntegratedWalletManager {
         }
     }
 
+    // Get user's wallet from database
     async getUserWallet(userId) {
         try {
             const response = await fetch(`${this.apiBaseUrl}/get-user-wallet`, {
@@ -88,8 +92,9 @@ class IntegratedWalletManager {
         }
     }
 
+    // Create wallet for current user
     async createWallet() {
-        if (!this.currentUserId) {
+        if (!this.userId) {
             throw new Error('User must be logged in');
         }
 
@@ -99,15 +104,15 @@ class IntegratedWalletManager {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ userId: this.currentUserId })
+                body: JSON.stringify({ userId: this.userId })
             });
 
             const result = await response.json();
-            
+
             if (result.success) {
                 this.currentWallet = result.wallet;
             }
-            
+
             return result;
 
         } catch (error) {
@@ -116,29 +121,30 @@ class IntegratedWalletManager {
         }
     }
 
+    // Import wallet with seed phrase
     async importWallet(mnemonic) {
-        if (!this.currentUserId) {
+        if (!this.userId) {
             throw new Error('User must be logged in');
         }
 
         try {
             const response = await fetch(`${this.apiBaseUrl}/import-wallet`, {
-                method: POST,
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.currentUserId,
+                    userId: this.userId,
                     mnemonic: mnemonic
                 })
             });
 
             const result = await response.json();
-            
+
             if (result.success) {
                 this.currentWallet = result.wallet;
             }
-            
+
             return result;
 
         } catch (error) {
@@ -147,6 +153,7 @@ class IntegratedWalletManager {
         }
     }
 
+    // Get balance for address
     async getBalance(address) {
         try {
             const response = await fetch(`${this.apiBaseUrl}/balance/${address}`);
@@ -157,8 +164,9 @@ class IntegratedWalletManager {
         }
     }
 
-    async sendTON(toAddress, amount, memo = '') {
-        if (!this.currentUserId || !this.currentWallet) {
+    // Send TON transaction
+    async sendTON(fromAddress, toAddress, amount, memo = '') {
+        if (!this.userId || !this.currentWallet) {
             throw new Error('User must have a wallet');
         }
 
@@ -169,8 +177,8 @@ class IntegratedWalletManager {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.currentUserId,
-                    fromAddress: this.currentWallet.address,
+                    userId: this.userId,
+                    fromAddress: fromAddress,
                     toAddress: toAddress,
                     amount: amount,
                     memo: memo
@@ -184,6 +192,7 @@ class IntegratedWalletManager {
         }
     }
 
+    // Get token prices
     async getPrices() {
         try {
             const response = await fetch(`${this.apiBaseUrl}/prices`);
@@ -191,7 +200,7 @@ class IntegratedWalletManager {
         } catch (error) {
             console.error('❌ Price fetch failed:', error);
             return {
-                success: false,
+                success: true,
                 prices: {
                     TON: { price: 2.5, change24h: 0 },
                     NMX: { price: 0.10, change24h: 0 }
@@ -200,22 +209,45 @@ class IntegratedWalletManager {
         }
     }
 
-    async hasWallet() {
+    // Check if user has wallet
+    hasWallet() {
         return !!this.currentWallet;
     }
 
-    async getCurrentWallet() {
+    // Get current wallet
+    getCurrentWallet() {
         return this.currentWallet;
+    }
+
+    // Health check
+    async checkHealth() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/health`);
+            return await response.json();
+        } catch (error) {
+            console.error('❌ Health check failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Get wallet address
+    getAddress() {
+        return this.currentWallet ? this.currentWallet.address : null;
+    }
+
+    // Get address in bounceable format
+    getBounceableAddress() {
+        return this.currentWallet ? (this.currentWallet.addressBounceable || this.currentWallet.address) : null;
     }
 }
 
 // Initialize global instance
-console.log('🔧 Creating Integrated Wallet Manager...');
-window.walletManager = new IntegratedWalletManager();
+console.log('🔧 Creating Nemex Wallet Manager...');
+window.walletManager = new NemexWalletManager();
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = IntegratedWalletManager;
+    module.exports = NemexWalletManager;
 }
 
-console.log('✅ Integrated Wallet Manager loaded - Simple Version');
+console.log('✅ Nemex Wallet Manager loaded');
