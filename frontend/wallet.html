@@ -2595,15 +2595,7 @@
 // 🎯 INTEGRATED WALLET FOR LOGGED-IN NEMEX USERS
 // =============================================
 
-// IMPORTANT: Your main website must set these when user logs in:
-// In your main website's JavaScript (after user logs in), add:
-// window.currentUserId = userData.id;  // From your database
-// window.currentUserEmail = userData.email;
-
-let currentUser = {
-    id: window.currentUserId || localStorage.getItem('nemex_user_id') || null,
-    email: window.currentUserEmail || localStorage.getItem('nemex_user_email') || null
-};
+// We don't need window.currentUserId anymore - we use Supabase Auth directly
 
 let walletState = {
     hasWallet: false,
@@ -2611,7 +2603,8 @@ let walletState = {
     balances: {},
     prices: {},
     isLoading: false,
-    currentView: 'wallet'
+    currentView: 'wallet',
+    currentUser: null
 };
 
 let SUPPORTED_TOKENS = [
@@ -2644,22 +2637,10 @@ let SUPPORTED_TOKENS = [
 // =============================================
 
 async function initWallet() {
-    console.log('🔄 Initializing Nemex wallet for user...');
-
-    // Check if user is logged in (from your website)
-    if (!currentUser.id) {
-        console.log('⚠️ No user ID found - user might not be logged in');
-        showNotLoggedInMessage();
-        return;
-    }
-
-    console.log('✅ User is logged in:', currentUser.id);
+    console.log('🔄 Initializing Nemex wallet...');
 
     try {
-        // Set current user in wallet manager
-        window.walletManager.setCurrentUser(currentUser.id);
-        
-        // Initialize wallet
+        // Initialize wallet manager
         const result = await window.walletManager.initialize();
         
         if (result.success) {
@@ -2667,6 +2648,7 @@ async function initWallet() {
                 // User has a wallet - show wallet interface
                 walletState.hasWallet = true;
                 walletState.wallet = result.wallet;
+                walletState.currentUser = result.user;
                 console.log('✅ Wallet loaded for user:', result.wallet.address);
                 
                 document.body.classList.add('wallet-loaded');
@@ -2675,12 +2657,18 @@ async function initWallet() {
             } else {
                 // User doesn't have a wallet - show welcome screen
                 console.log('ℹ️ No wallet found for user - showing welcome screen');
+                walletState.currentUser = result.user;
                 document.body.classList.remove('wallet-loaded');
                 showWelcomeScreen();
             }
         } else {
-            console.error('❌ Wallet init failed:', result.error);
-            showErrorMessage('Failed to load wallet');
+            if (result.requiresLogin) {
+                console.log('⚠️ User not logged in - redirecting to login');
+                showLoginRequiredMessage();
+            } else {
+                console.error('❌ Wallet init failed:', result.error);
+                showErrorMessage('Failed to load wallet');
+            }
         }
     } catch (error) {
         console.error('❌ Wallet initialization failed:', error);
@@ -2693,7 +2681,7 @@ async function initWallet() {
 // =============================================
 
 async function checkAndGenerateWallet() {
-    if (!currentUser.id) {
+    if (!walletState.currentUser?.id) {
         showMessage('❌ You need to be logged in to create a wallet', 'error');
         return;
     }
@@ -2708,7 +2696,7 @@ async function checkAndGenerateWallet() {
         statusElement.innerHTML = '<div class="status-loading">🔄 Creating your wallet...</div>';
 
         // Create wallet for current user
-        const result = await window.walletManager.createWallet();
+        const result = await window.walletManager.createWallet(walletState.currentUser.id);
 
         if (result.success && result.wallet) {
             console.log('✅ Wallet created for user:', result.wallet.address);
@@ -2739,7 +2727,7 @@ async function importWalletFromModal() {
     const statusElement = document.getElementById('importWalletStatus');
     const importBtn = document.getElementById('importWalletBtn');
 
-    if (!currentUser.id) {
+    if (!walletState.currentUser?.id) {
         showMessage('❌ You need to be logged in to import a wallet', 'error');
         return;
     }
@@ -2761,7 +2749,7 @@ async function importWalletFromModal() {
         statusElement.innerHTML = '<div class="status-loading">🔄 Importing wallet...</div>';
 
         // Import wallet for current user
-        const result = await window.walletManager.importWallet(mnemonic);
+        const result = await window.walletManager.importWallet(walletState.currentUser.id, mnemonic);
 
         if (result.success && result.wallet) {
             console.log('✅ Wallet imported for user:', result.wallet.address);
@@ -2819,7 +2807,7 @@ async function loadWalletData() {
 }
 
 async function sendTransaction() {
-    if (!currentUser.id || !walletState.wallet) {
+    if (!walletState.currentUser?.id || !walletState.wallet) {
         showMessage('❌ You need a wallet to send transactions', 'error');
         return;
     }
@@ -2844,6 +2832,7 @@ async function sendTransaction() {
         
         if (selectedToken === 'TON') {
             const result = await window.walletManager.sendTON(
+                walletState.currentUser.id,
                 walletState.wallet.address,
                 toAddress,
                 amount,
@@ -2896,8 +2885,8 @@ function showWalletInterface() {
     }
 }
 
-function showNotLoggedInMessage() {
-    // User is not logged in to the website
+function showLoginRequiredMessage() {
+    // User is not logged in
     document.getElementById('welcomeScreen').style.display = 'block';
     document.getElementById('walletInterface').style.display = 'none';
     
@@ -2907,7 +2896,7 @@ function showNotLoggedInMessage() {
             You need to be logged into your Nemex account to access the wallet.
         </div>
         <div class="welcome-actions">
-            <button class="welcome-btn primary" onclick="window.location.href='/login'">
+            <button class="welcome-btn primary" onclick="window.location.href='login.html'">
                 Go to Login
             </button>
         </div>
@@ -3102,7 +3091,6 @@ function showErrorMessage(message) {
 
 function showLoading(message) {
     walletState.isLoading = true;
-    // You can implement a loading spinner if needed
     const loadingEl = document.getElementById('loadingOverlay');
     if (loadingEl) {
         loadingEl.style.display = 'flex';
@@ -3173,200 +3161,11 @@ function updateNavItems() {
 }
 
 // =============================================
-// 🎯 ADDITIONAL FUNCTIONS FOR YOUR HTML
-// =============================================
-
-function toggleTokenDropdown() {
-    const dropdown = document.getElementById('tokenDropdown');
-    const arrow = document.getElementById('dropdownArrow');
-    
-    if (dropdown.style.display === 'block') {
-        dropdown.style.display = 'none';
-        arrow.style.transform = 'rotate(0deg)';
-    } else {
-        dropdown.style.display = 'block';
-        arrow.style.transform = 'rotate(180deg)';
-    }
-}
-
-function selectToken(symbol, name, logo) {
-    document.getElementById('selectedTokenSymbol').textContent = symbol;
-    document.getElementById('selectedTokenName').textContent = name;
-    document.getElementById('selectedTokenLogo').src = logo;
-    document.getElementById('selectedTokenLogo').alt = name;
-    
-    // Update UI based on selected token
-    const remainingToken = document.getElementById('remainingToken');
-    if (remainingToken) {
-        remainingToken.textContent = symbol;
-    }
-    
-    // Close dropdown
-    toggleTokenDropdown();
-}
-
-function pasteAddress() {
-    navigator.clipboard.readText()
-        .then(text => {
-            document.getElementById('sendToAddress').value = text;
-            showMessage('✅ Address pasted from clipboard', 'success');
-        })
-        .catch(err => {
-            console.error('Failed to read clipboard:', err);
-            showMessage('❌ Failed to read clipboard', 'error');
-        });
-}
-
-function setMaxAmount() {
-    const tokenSymbol = document.getElementById('selectedTokenSymbol').textContent;
-    const token = SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol);
-    
-    if (token) {
-        document.getElementById('sendAmount').value = token.balance.toFixed(6);
-        updateSendSummary();
-    }
-}
-
-function updateSendSummary() {
-    // This function would update the send summary based on input
-    const amount = document.getElementById('sendAmount').value;
-    const tokenSymbol = document.getElementById('selectedTokenSymbol').textContent;
-    const token = SUPPORTED_TOKENS.find(t => t.symbol === tokenSymbol);
-    
-    if (amount && token) {
-        const usdValue = (parseFloat(amount) * token.price).toFixed(2);
-        document.getElementById('sendUsdValue').textContent = usdValue;
-        
-        // Show/hide summary
-        const summary = document.getElementById('sendSummary');
-        if (parseFloat(amount) > 0) {
-            summary.style.display = 'block';
-            document.getElementById('sendSummaryDetails').innerHTML = `
-                <strong>Sending:</strong> ${amount} ${tokenSymbol}<br>
-                <strong>To:</strong> ${document.getElementById('sendToAddress').value.substring(0, 20)}...<br>
-                <strong>Network Fee:</strong> 0.001 TON<br>
-                <strong>Total:</strong> ${(parseFloat(amount) + 0.001).toFixed(6)} ${tokenSymbol}
-            `;
-        } else {
-            summary.style.display = 'none';
-        }
-    }
-}
-
-function confirmSendTransaction() {
-    sendTransaction();
-}
-
-function selectReceiveToken(token) {
-    showMessage(`✅ Ready to receive ${token} tokens!`, 'success');
-}
-
-function showAddressDetails() {
-    if (!walletState.wallet?.address) {
-        showMessage('❌ No wallet address available', 'error');
-        return;
-    }
-    
-    const details = `
-        Wallet Address: ${walletState.wallet.address}<br>
-        Network: TON<br>
-        Wallet Type: Standard (v4R2)<br>
-        Created: ${new Date().toLocaleDateString()}
-    `;
-    
-    showMessage('ℹ️ ' + details.replace(/<br>/g, ', '), 'info');
-}
-
-function calculateProductionConversion() {
-    const inputAmount = document.getElementById('productionConvertAmount').value;
-    if (inputAmount && parseFloat(inputAmount) > 0) {
-        const nmxAmount = (parseFloat(inputAmount) * 1.0).toFixed(6); // 1:1 conversion
-        document.getElementById('productionReceiveAmount').value = nmxAmount;
-        document.getElementById('productionConvertBtn').classList.add('active');
-        document.getElementById('productionConvertBtn').classList.remove('disabled');
-    } else {
-        document.getElementById('productionReceiveAmount').value = '';
-        document.getElementById('productionConvertBtn').classList.remove('active');
-        document.getElementById('productionConvertBtn').classList.add('disabled');
-    }
-}
-
-function setMaxConversion() {
-    // This would get the user's NMXp balance from your backend
-    const nmxpBalance = 1000; // Example balance
-    document.getElementById('productionConvertAmount').value = nmxpBalance;
-    calculateProductionConversion();
-}
-
-function executeProductionConversion() {
-    const amount = document.getElementById('productionConvertAmount').value;
-    if (!amount || parseFloat(amount) <= 0) {
-        showMessage('❌ Please enter a valid amount', 'error');
-        return;
-    }
-    
-    showMessage('🔄 Converting NMXp to NMX...', 'info');
-    // Here you would call your backend API to process the conversion
-    setTimeout(() => {
-        showMessage(`✅ Successfully converted ${amount} NMXp to ${amount} NMX!`, 'success');
-        closeProductionSwapModal();
-    }, 2000);
-}
-
-function showWalletSetup() {
-    document.getElementById('walletSetupModal').style.display = 'block';
-}
-
-function closeWalletSetup() {
-    document.getElementById('walletSetupModal').style.display = 'none';
-}
-
-function saveWalletAddress() {
-    const address = document.getElementById('userWalletAddress').value.trim();
-    if (!address) {
-        showMessage('❌ Please enter a wallet address', 'error');
-        return;
-    }
-    
-    // Save to localStorage for demo
-    localStorage.setItem('nemex_wallet_address', address);
-    showMessage('✅ Wallet address saved!', 'success');
-    closeWalletSetup();
-}
-
-function viewRecoveryPhrase() {
-    if (!walletState.hasWallet) {
-        showMessage('❌ You need a wallet to view recovery phrase', 'error');
-        return;
-    }
-    
-    // In a real app, you would fetch the mnemonic from secure storage
-    showMessage('⚠️ For security, recovery phrase viewing requires additional authentication', 'warning');
-}
-
-function logout() {
-    // Clear local storage
-    localStorage.removeItem('nemex_user_id');
-    localStorage.removeItem('nemex_user_email');
-    localStorage.removeItem('nemex_wallet_address');
-    
-    // Redirect to login
-    window.location.href = '/login';
-}
-
-// =============================================
 // 🚀 INITIALIZE ON PAGE LOAD
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Nemex Wallet page loaded - checking user status...');
-    
-    // Check if user is logged in (from your website)
-    if (!window.currentUserId) {
-        console.log('⚠️ No user ID found in window.currentUserId');
-        console.log('💡 Make sure your website sets: window.currentUserId = "user-id"; when user logs in');
-        console.log('💡 For testing, you can set: localStorage.setItem("nemex_user_id", "test-user-123")');
-    }
+    console.log('🎯 Nemex Wallet page loaded - initializing...');
     
     // Initialize wallet after page loads
     setTimeout(() => {
