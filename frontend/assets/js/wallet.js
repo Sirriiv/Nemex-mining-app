@@ -1,5 +1,5 @@
-// wallet.js - COMPLETE SECURE VERSION - NO HARDCODED KEYS
-console.log('🔄 Loading Secure Wallet System...');
+// wallet.js - COMPLETE SUPABASE AUTH VERSION
+console.log('🔄 Loading Secure Wallet System with Supabase Auth...');
 
 class TONWalletManager {
     constructor() {
@@ -7,7 +7,10 @@ class TONWalletManager {
         this.currentWallet = null;
         this.isInitialized = false;
         this.apiBaseUrl = '/api/wallet';
-        console.log('🚀 Secure Supabase initialization...');
+        this.isAuthenticated = false;
+        this.currentUser = null;
+        
+        console.log('🚀 Initializing TON Wallet Manager with Supabase Auth...');
         this.initializeSupabase();
     }
 
@@ -37,20 +40,11 @@ class TONWalletManager {
 
                 console.log('✅ Supabase client created with backend configuration');
                 
-                // Test the connection
-                const { data: { session }, error } = await this.supabase.auth.getSession();
-                if (error) {
-                    console.warn('⚠️ Supabase session test failed:', error.message);
-                } else {
-                    console.log('✅ Supabase connection successful');
-                    if (session) {
-                        console.log('✅ Active session found:', session.user.id);
-                    } else {
-                        console.log('ℹ️ No active session - user needs to sign in');
-                    }
-                }
-
+                // Set up auth listener
                 this.setupAuthListener();
+                
+                // Check initial auth state
+                await this.checkAuthState();
                 
             } else {
                 throw new Error('Failed to load configuration from backend');
@@ -58,230 +52,100 @@ class TONWalletManager {
 
         } catch (error) {
             console.error('❌ Failed to initialize Supabase with backend config:', error);
-            console.log('🔄 Creating secure fallback Supabase client - no keys available');
+            throw new Error('Supabase configuration required. Please ensure backend is running with proper environment variables.');
+        }
+    }
+
+    async checkAuthState() {
+        try {
+            const { data: { session }, error } = await this.supabase.auth.getSession();
             
-            // Create a minimal fallback client
-            this.supabase = {
-                auth: {
-                    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-                    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-                    signOut: () => Promise.resolve({ error: null }),
-                    onAuthStateChange: (callback) => { 
-                        console.log('🔄 Fallback auth state change listener');
-                        // Simulate signed out state
-                        setTimeout(() => {
-                            callback('SIGNED_OUT', null);
-                        }, 100);
-                        return { data: { subscription: { unsubscribe: () => {} } } };
-                    }
-                },
-                from: () => ({
-                    select: () => ({
-                        eq: () => ({
-                            single: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
-                            limit: () => Promise.resolve({ data: [], error: null })
-                        }),
-                        insert: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
-                        upsert: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
-                        update: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } }),
-                        delete: () => Promise.resolve({ data: null, error: { message: 'Fallback mode' } })
-                    })
-                })
-            };
+            if (error) {
+                console.error('❌ Error checking auth state:', error);
+                this.isAuthenticated = false;
+                this.currentUser = null;
+                this.currentWallet = null;
+                return;
+            }
             
-            console.log('✅ Fallback Supabase client created');
+            if (session) {
+                console.log('✅ User authenticated:', session.user.id);
+                this.isAuthenticated = true;
+                this.currentUser = session.user;
+                
+                // Load user's wallet
+                await this.loadUserWallet(session.user.id);
+            } else {
+                console.log('ℹ️ No active session - user needs to sign in');
+                this.isAuthenticated = false;
+                this.currentUser = null;
+                this.currentWallet = null;
+            }
+        } catch (error) {
+            console.error('❌ Auth state check failed:', error);
+            this.isAuthenticated = false;
+            this.currentUser = null;
+            this.currentWallet = null;
         }
     }
 
     setupAuthListener() {
         if (!this.supabase || !this.supabase.auth) {
-            console.log('🔄 Setting up fallback auth listener');
+            console.error('❌ Supabase auth not available');
             return;
         }
 
         console.log('🔑 Setting up Supabase auth listener...');
         
         this.supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log(`🔑 Supabase Auth State Change: ${event}`, session ? 'User: ' + session.user.id : 'No session');
+            console.log(`🔑 Supabase Auth State Change: ${event}`, session ? `User: ${session.user.id}` : 'No session');
             
             switch (event) {
                 case 'SIGNED_IN':
                     console.log('✅ User signed in:', session.user.id);
-                    await this.handleUserSignedIn(session.user);
+                    this.isAuthenticated = true;
+                    this.currentUser = session.user;
+                    await this.loadUserWallet(session.user.id);
                     break;
                     
                 case 'SIGNED_OUT':
-                    console.log('ℹ️ User signed out, clearing wallet from memory...');
-                    await this.clearWallet();
+                    console.log('🔒 User signed out');
+                    this.isAuthenticated = false;
+                    this.currentUser = null;
+                    this.currentWallet = null;
+                    this.clearWalletUI();
                     break;
                     
                 case 'USER_UPDATED':
                     console.log('🔄 User updated:', session.user.id);
+                    this.currentUser = session.user;
                     break;
                     
                 case 'TOKEN_REFRESHED':
                     console.log('🔄 Token refreshed');
                     break;
+                    
+                case 'USER_DELETED':
+                    console.log('🗑️ User deleted');
+                    this.isAuthenticated = false;
+                    this.currentUser = null;
+                    this.currentWallet = null;
+                    this.clearWalletUI();
+                    break;
             }
         });
     }
 
-    async handleUserSignedIn(user) {
-        console.log('🔄 Handling user sign in:', user.id);
-        try {
-            // Check if user has existing wallet
-            const existingWallet = await this.getUserWallet(user.id);
-            if (existingWallet) {
-                console.log('✅ Existing wallet found for user:', existingWallet.address);
-                this.currentWallet = existingWallet;
-                await this.updateWalletDisplay();
-            } else {
-                console.log('ℹ️ No existing wallet found for user');
-                this.currentWallet = null;
-            }
-        } catch (error) {
-            console.error('❌ Error handling user sign in:', error);
-        }
-    }
-
-    async clearWallet() {
-        console.log('🔄 Clearing wallet data...');
-        this.currentWallet = null;
-        this.isInitialized = false;
-        
-        // Clear from localStorage
-        localStorage.removeItem('nemex_current_wallet');
-        localStorage.removeItem('nemex_user_session');
-        
-        // Update UI
-        await this.updateWalletDisplay();
-        console.log('✅ Wallet cleared from memory');
-    }
-
-    async updateWalletDisplay() {
-        // This will be called by the main wallet system
-        if (typeof window.updateWalletUI === 'function') {
-            window.updateWalletUI(this.currentWallet);
-        }
-    }
-
-    async initializeWalletAPI() {
-        console.log('🚀 SECURE: Initializing TON Wallet API...');
-        
-        try {
-            // Test backend connection
-            const testResponse = await fetch(`${this.apiBaseUrl}/test`);
-            const testData = await testResponse.json();
-            console.log('✅ Backend API is accessible:', testData.message);
-
-            // Check for existing session
-            let session = null;
-            if (this.supabase && this.supabase.auth) {
-                const sessionResult = await this.supabase.auth.getSession();
-                session = sessionResult.data.session;
-            }
-
-            if (session && session.user) {
-                console.log('✅ Active session found, loading wallet...');
-                await this.handleUserSignedIn(session.user);
-            } else {
-                console.log('ℹ️ No active session - wallet system ready for login');
-                this.isInitialized = true;
-            }
-
-            console.log('✅ TON Wallet Manager initialized successfully');
-            return { success: true, message: 'Wallet system ready' };
-
-        } catch (error) {
-            console.error('❌ Wallet API initialization failed:', error);
-            this.isInitialized = true; // Still mark as initialized to allow wallet creation
-            return { success: false, error: error.message };
-        }
-    }
-
-    async hasWallet() {
-        if (!this.isInitialized) {
-            console.log('⚠️ Wallet system not initialized');
-            return false;
-        }
-
-        // Check if we have a current wallet in memory
-        if (this.currentWallet) {
-            return true;
-        }
-
-        // Check for user session and wallet in database
-        try {
-            if (this.supabase && this.supabase.auth) {
-                const { data: { session } } = await this.supabase.auth.getSession();
-                if (session && session.user) {
-                    const wallet = await this.getUserWallet(session.user.id);
-                    return !!wallet;
-                }
-            }
-        } catch (error) {
-            console.log('ℹ️ Session check failed, checking localStorage...');
-        }
-
-        // Check localStorage as fallback
-        const storedWallet = localStorage.getItem('nemex_current_wallet');
-        if (storedWallet) {
-            try {
-                this.currentWallet = JSON.parse(storedWallet);
-                return true;
-            } catch (e) {
-                console.error('❌ Error parsing stored wallet:', e);
-            }
-        }
-
-        return false;
-    }
-
-    async getCurrentWallet() {
-        if (this.currentWallet) {
-            return this.currentWallet;
-        }
-
-        // Try to load from user session
-        try {
-            if (this.supabase && this.supabase.auth) {
-                const { data: { session } } = await this.supabase.auth.getSession();
-                if (session && session.user) {
-                    const wallet = await this.getUserWallet(session.user.id);
-                    if (wallet) {
-                        this.currentWallet = wallet;
-                        return wallet;
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('ℹ️ Session wallet load failed, trying localStorage...');
-        }
-
-        // Try localStorage as fallback
-        const storedWallet = localStorage.getItem('nemex_current_wallet');
-        if (storedWallet) {
-            try {
-                this.currentWallet = JSON.parse(storedWallet);
-                return this.currentWallet;
-            } catch (e) {
-                console.error('❌ Error parsing stored wallet:', e);
-            }
-        }
-
-        return null;
-    }
-
-    async getUserWallet(userId) {
+    async loadUserWallet(userId) {
         if (!userId) {
-            console.log('⚠️ No user ID provided for wallet lookup');
-            return null;
+            console.log('⚠️ No user ID provided for wallet load');
+            return;
         }
 
         try {
-            console.log('🔍 Looking up wallet for user:', userId);
-
-            // Try backend API first
+            console.log('🔍 Loading wallet for user:', userId);
+            
+            // Call backend to get user's wallet
             const response = await fetch(`${this.apiBaseUrl}/get-user-wallet`, {
                 method: 'POST',
                 headers: {
@@ -296,10 +160,110 @@ class TONWalletManager {
             const result = await response.json();
 
             if (result.success && result.wallet) {
-                console.log('✅ Wallet found via API:', result.wallet.address);
+                console.log('✅ Wallet loaded successfully:', result.wallet.address);
+                this.currentWallet = result.wallet;
+                this.updateWalletUI();
+            } else {
+                console.log('ℹ️ No wallet found for user');
+                this.currentWallet = null;
+                this.updateWalletUI();
+            }
+
+        } catch (error) {
+            console.error('❌ Error loading user wallet:', error);
+            this.currentWallet = null;
+        }
+    }
+
+    clearWalletUI() {
+        this.currentWallet = null;
+        if (typeof window.clearWalletDisplay === 'function') {
+            window.clearWalletDisplay();
+        }
+    }
+
+    updateWalletUI() {
+        if (typeof window.updateWalletDisplay === 'function') {
+            window.updateWalletDisplay(this.currentWallet);
+        }
+    }
+
+    async initializeWalletAPI() {
+        console.log('🚀 Initializing TON Wallet API with Supabase Auth...');
+        
+        try {
+            // Test backend connection
+            const testResponse = await fetch(`${this.apiBaseUrl}/health`);
+            const testData = await testResponse.json();
+            
+            if (!testData.success) {
+                throw new Error('Backend API not available');
+            }
+
+            console.log('✅ Backend API is accessible:', testData.message);
+
+            // Wait for Supabase initialization
+            if (!this.supabase) {
+                throw new Error('Supabase not initialized');
+            }
+
+            // Check if user is authenticated
+            await this.checkAuthState();
+
+            console.log('✅ TON Wallet Manager initialized successfully');
+            
+            return { 
+                success: true, 
+                message: 'Wallet system ready',
+                authenticated: this.isAuthenticated,
+                hasWallet: !!this.currentWallet
+            };
+
+        } catch (error) {
+            console.error('❌ Wallet API initialization failed:', error);
+            return { 
+                success: false, 
+                error: error.message,
+                requiresAuth: true
+            };
+        }
+    }
+
+    async hasWallet() {
+        return !!this.currentWallet && this.isAuthenticated;
+    }
+
+    async getCurrentWallet() {
+        if (!this.isAuthenticated) {
+            console.log('⚠️ User not authenticated');
+            return null;
+        }
+        return this.currentWallet;
+    }
+
+    async getUserWallet(userId) {
+        if (!userId || !this.isAuthenticated) {
+            console.log('⚠️ User not authenticated or no user ID');
+            return null;
+        }
+
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/get-user-wallet`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    userId: userId,
+                    authMethod: 'supabase_session'
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.wallet) {
                 return result.wallet;
             } else {
-                console.log('ℹ️ No wallet found via API for user:', userId);
                 return null;
             }
 
@@ -310,22 +274,13 @@ class TONWalletManager {
     }
 
     async createNewWallet() {
-        console.log('🔄 Creating new wallet...');
+        if (!this.isAuthenticated || !this.currentUser) {
+            throw new Error('User must be authenticated to create a wallet');
+        }
+
+        console.log('🔄 Creating new wallet for user:', this.currentUser.id);
 
         try {
-            // Get current user session
-            let userId = 'demo-user-' + Date.now();
-            let authMethod = 'demo_session';
-
-            if (this.supabase && this.supabase.auth) {
-                const { data: { session } } = await this.supabase.auth.getSession();
-                if (session && session.user) {
-                    userId = session.user.id;
-                    authMethod = 'supabase_session';
-                    console.log('✅ Using authenticated user:', userId);
-                }
-            }
-
             // Call backend to generate wallet
             const response = await fetch(`${this.apiBaseUrl}/generate-wallet`, {
                 method: 'POST',
@@ -333,9 +288,9 @@ class TONWalletManager {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: userId,
+                    userId: this.currentUser.id,
                     wordCount: 12,
-                    authMethod: authMethod
+                    authMethod: 'supabase_session'
                 })
             });
 
@@ -344,9 +299,9 @@ class TONWalletManager {
             if (result.success && result.wallet) {
                 console.log('✅ Wallet created successfully:', result.wallet.address);
                 
-                // Store wallet locally
+                // Update current wallet
                 this.currentWallet = result.wallet;
-                localStorage.setItem('nemex_current_wallet', JSON.stringify(result.wallet));
+                this.updateWalletUI();
                 
                 // Return both wallet and mnemonic
                 return {
@@ -368,22 +323,13 @@ class TONWalletManager {
     }
 
     async importWalletFromMnemonic(mnemonic) {
-        console.log('🔄 Importing wallet from mnemonic...');
+        if (!this.isAuthenticated || !this.currentUser) {
+            throw new Error('User must be authenticated to import a wallet');
+        }
+
+        console.log('🔄 Importing wallet for user:', this.currentUser.id);
 
         try {
-            // Get current user session
-            let userId = 'demo-user-' + Date.now();
-            let authMethod = 'demo_session';
-
-            if (this.supabase && this.supabase.auth) {
-                const { data: { session } } = await this.supabase.auth.getSession();
-                if (session && session.user) {
-                    userId = session.user.id;
-                    authMethod = 'supabase_session';
-                    console.log('✅ Using authenticated user:', userId);
-                }
-            }
-
             // Call backend to import wallet
             const response = await fetch(`${this.apiBaseUrl}/import-wallet`, {
                 method: 'POST',
@@ -391,9 +337,9 @@ class TONWalletManager {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: userId,
+                    userId: this.currentUser.id,
                     mnemonic: mnemonic,
-                    authMethod: authMethod
+                    authMethod: 'supabase_session'
                 })
             });
 
@@ -402,9 +348,9 @@ class TONWalletManager {
             if (result.success && result.wallet) {
                 console.log('✅ Wallet imported successfully:', result.wallet.address);
                 
-                // Store wallet locally
+                // Update current wallet
                 this.currentWallet = result.wallet;
-                localStorage.setItem('nemex_current_wallet', JSON.stringify(result.wallet));
+                this.updateWalletUI();
                 
                 return {
                     success: true,
@@ -463,7 +409,11 @@ class TONWalletManager {
     }
 
     async sendTransaction(fromAddress, toAddress, amount, memo = '') {
-        console.log('🔄 Sending transaction...');
+        if (!this.isAuthenticated) {
+            throw new Error('User must be authenticated to send transactions');
+        }
+
+        console.log('🔄 Sending transaction from:', fromAddress);
 
         try {
             const response = await fetch(`${this.apiBaseUrl}/send-ton`, {
@@ -475,7 +425,8 @@ class TONWalletManager {
                     fromAddress: fromAddress,
                     toAddress: toAddress,
                     amount: amount,
-                    memo: memo
+                    memo: memo,
+                    userId: this.currentUser.id
                 })
             });
 
@@ -497,6 +448,60 @@ class TONWalletManager {
         }
     }
 
+    async signInWithEmail(email, password) {
+        try {
+            console.log('🔐 Signing in with email:', email);
+            
+            const { data, error } = await this.supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) throw error;
+            
+            return { success: true, user: data.user };
+            
+        } catch (error) {
+            console.error('❌ Sign in failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async signUpWithEmail(email, password) {
+        try {
+            console.log('📝 Signing up with email:', email);
+            
+            const { data, error } = await this.supabase.auth.signUp({
+                email: email,
+                password: password
+            });
+
+            if (error) throw error;
+            
+            return { success: true, user: data.user };
+            
+        } catch (error) {
+            console.error('❌ Sign up failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async signOut() {
+        try {
+            console.log('🚪 Signing out...');
+            
+            const { error } = await this.supabase.auth.signOut();
+            
+            if (error) throw error;
+            
+            return { success: true };
+            
+        } catch (error) {
+            console.error('❌ Sign out failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
     // Helper method to check backend status
     async checkBackendStatus() {
         try {
@@ -511,7 +516,7 @@ class TONWalletManager {
 }
 
 // Initialize when script loads
-console.log('🔧 Initializing Secure TON Wallet Manager...');
+console.log('🔧 Initializing TON Wallet Manager with Supabase Auth...');
 window.tonWalletManager = new TONWalletManager();
 
 // Export for module systems
@@ -519,4 +524,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = TONWalletManager;
 }
 
-console.log('✅ TON Wallet Manager loaded - Secure Version');
+console.log('✅ TON Wallet Manager loaded - Full Supabase Auth Version');
