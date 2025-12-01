@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/wallet.js"></script>
-    <script src="assets/js/crypto-utils.js"></script>
 
     <style>
         :root {
@@ -49,11 +48,630 @@
         .container {
             max-width: 480px;
             margin: 0 auto;
-            padding-bottom: 0;
+            padding-bottom: 80px;
         }
 
-        /* ... (all existing CSS styles remain the same) ... */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: var(--dark-bg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
+        .wallet-name {
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--gold);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            background: var(--gold);
+            color: var(--dark-bg);
+        }
+
+        .balance-section {
+            padding: 30px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+            margin: 10px 20px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: 800;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 20px;
+            margin: 0 10px;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 15px 8px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            min-height: 80px;
+        }
+
+        .action-btn:hover {
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn:disabled:hover {
+            background: var(--card-bg);
+            transform: none;
+        }
+
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--gold);
+        }
+
+        .action-label {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .token-section {
+            padding: 0 20px;
+            margin-top: 10px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+        }
+
+        .token-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .token-card {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .token-card:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .token-card.featured {
+            border: 2px solid var(--gold);
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
+        }
+
+        .token-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-weight: 700;
+            color: white;
+            font-size: 16px;
+            background-size: cover;
+            background-position: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .token-icon-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .ton-icon { background: linear-gradient(135deg, #0088CC, #006699); }
+        .nmx-icon { background: linear-gradient(135deg, var(--gold), #B8941F); }
+
+        .featured-star {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--gold);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+
+        .token-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .token-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .token-symbol {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .token-price {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .token-change {
+            font-size: 12px;
+            margin-left: 4px;
+        }
+
+        .change-positive {
+            color: var(--success);
+        }
+
+        .change-negative {
+            color: var(--error);
+        }
+
+        .token-balance {
+            text-align: right;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+
+        .token-amount {
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 2px;
+            font-size: 16px;
+        }
+
+        .token-value {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: var(--border-radius-sm);
+            transition: all 0.3s ease;
+        }
+
+        .nav-item.active {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .nav-item:hover {
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--text-muted);
+        }
+
+        .nav-item.active .nav-icon {
+            color: var(--gold);
+        }
+
+        .nav-label {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .nav-item.active .nav-label {
+            color: var(--gold);
+            font-weight: 600;
+        }
+
+        .welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: var(--dark-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            text-align: center;
+            z-index: 1000;
+        }
+
+        .welcome-title {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--gold);
+            margin-bottom: 20px;
+            text-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+        }
+
+        .welcome-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 50px;
+            line-height: 1.6;
+            font-size: 16px;
+            max-width: 400px;
+        }
+
+        .welcome-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .welcome-btn {
+            padding: 18px 24px;
+            border-radius: var(--border-radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .welcome-btn.primary {
+            background: var(--gold);
+            color: var(--dark-bg);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+        }
+
+        .welcome-btn.primary:hover {
+            background: var(--gold-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.6);
+        }
+
+        .welcome-btn.secondary {
+            background: transparent;
+            color: var(--gold);
+            border: 2px solid var(--gold);
+        }
+
+        .welcome-btn.secondary:hover {
+            background: rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--gold);
+        }
+
+        .close-modal {
+            background: var(--gold);
+            color: var(--dark-bg);
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .close-modal:hover {
+            background: var(--gold-light);
+        }
+
+        .close-modal.secondary {
+            background: transparent;
+            border: 2px solid var(--gold);
+            color: var(--gold);
+        }
+
+        .close-modal.secondary:hover {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+            color: var(--text);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius-sm);
+            color: var(--text);
+            font-size: 16px;
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+        }
+
+        .backup-confirmation {
+            margin: 20px 0;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .confirmation-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .confirmation-checkbox input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .confirmation-checkbox label {
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--gold);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        .status-error {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+            border: 1px solid var(--error);
+        }
+
+        .status-loading {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border: 1px solid var(--gold);
+        }
+
+        .address-display {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 12px;
+            margin: 16px 0;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .security-warning {
+            background: rgba(255, 187, 51, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: var(--border-radius-sm);
+            padding: 12px;
+            margin: 16px 0;
+            font-size: 12px;
+            color: var(--warning);
+        }
+
+        .mnemonic-words {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 16px 0;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .mnemonic-word {
+            padding: 8px;
+            background: rgba(212, 175, 55, 0.1);
+            border-radius: 4px;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+        }
+
+        .word-index {
+            color: var(--gold);
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        /* Settings Modal Styles */
+        .settings-option {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-sm);
+            padding: 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .settings-option:hover {
+            background: rgba(212, 175, 55, 0.05);
+            transform: translateX(4px);
+        }
+
+        .settings-option-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .settings-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+        }
+
+        /* Modal Overlay for Password Modals */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -118,49 +736,340 @@
         .strength-medium { color: var(--warning); }
         .strength-strong { color: var(--success); }
 
-        /* Add to your existing styles */
+        /* Wallet Management */
+        .wallet-management-section {
+            margin: 20px 0;
+        }
 
+        .wallet-management-header {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-sm);
+            padding: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .wallet-management-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .wallet-management-arrow {
+            color: var(--gold);
+            transition: transform 0.3s ease;
+        }
+
+        .wallet-management-content {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .wallet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .wallet-item {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .add-wallet-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .add-wallet-btn {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .add-wallet-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+
+        /* Message Styles */
+        .message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 10000;
+            max-width: 90%;
+            text-align: center;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .message-error {
+            background: var(--error);
+            color: white;
+        }
+
+        .message-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .message-warning {
+            background: var(--warning);
+            color: var(--dark-bg);
+        }
+
+        /* Loading Overlay */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            color: var(--gold);
+            font-size: 18px;
+            font-weight: 600;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Visibility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .visible {
+            display: flex !important;
+        }
+
+        .block {
+            display: block !important;
+        }
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="loading" style="width: 40px; height: 40px; border-width: 4px;"></div>
+        <span id="loadingMessage">Loading...</span>
+    </div>
+
     <div class="container">
-        <!-- ALL EXISTING HTML CODE REMAINS THE SAME UNTIL THE SETTINGS MODAL -->
+        <!-- Header -->
+        <header class="header">
+            <div class="wallet-name">
+                Nemex Wallet
+            </div>
+            <div class="header-actions">
+                <button class="header-btn" onclick="showSettingsModal()">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </header>
 
-        <!-- ... (all existing HTML remains the same) ... -->
+        <!-- Welcome Screen (shown when no wallet) -->
+        <div id="welcomeScreen" class="welcome-screen">
+            <div class="welcome-title">Welcome to Nemex Wallet</div>
+            <div class="welcome-subtitle">
+                Secure, non-custodial wallet for TON and NemexCoin. 
+                Create your personal wallet or import an existing one to get started.
+            </div>
+            <div class="welcome-actions">
+                <button class="welcome-btn primary" onclick="showPasswordModalForCreation()">
+                    Create New Wallet
+                </button>
+                <button class="welcome-btn secondary" onclick="showImportWalletModal()">
+                    Import Existing Wallet
+                </button>
+            </div>
+        </div>
 
-        <div id="settingsModal" class="modal fullscreen">
+        <!-- Wallet Interface (shown when wallet exists) -->
+        <div id="walletInterface" class="hidden">
+            <!-- Balance Section -->
+            <section class="balance-section">
+                <div class="balance-amount" id="totalBalance">
+                    <span class="loading" id="balanceLoading"></span>
+                    <span id="balanceAmount">$0.00</span>
+                </div>
+            </section>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <div class="action-btn" onclick="showSendModal()" id="sendButton">
+                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                    <div class="action-label">Send</div>
+                </div>
+                <div class="action-btn" onclick="showReceiveModal()" id="receiveButton">
+                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                    </svg>
+                    <div class="action-label">Receive</div>
+                </div>
+                <div class="action-btn" onclick="showSwapModal()" id="swapButton">
+                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                    <div class="action-label">Convert NMXp</div>
+                </div>
+                <div class="action-btn" onclick="showBuyModal()" id="buyButton">
+                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                    </svg>
+                    <div class="action-label">Buy</div>
+                </div>
+            </div>
+
+            <!-- Token List -->
+            <section class="token-section">
+                <div class="section-title">
+                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    Your Assets
+                </div>
+                <div class="token-list" id="tokenList">
+                    <!-- Tokens will be loaded here -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="showWalletView()">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                </svg>
+                <div class="nav-label">Wallet</div>
+            </div>
+            <div class="nav-item" onclick="showHistoryView()">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <div class="nav-label">History</div>
+            </div>
+            <div class="nav-item" onclick="showSettingsModal()">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <div class="nav-label">Settings</div>
+            </div>
+        </nav>
+
+        <!-- Modals -->
+        <div id="createWalletModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Settings</div>
+                <div class="modal-title">Create New Wallet</div>
+                <div class="security-warning">
+                    <strong>⚠️ IMPORTANT:</strong> You will generate a 12-word recovery phrase. Store it securely!
+                </div>
+                <div id="createWalletStatus"></div>
+                <button class="close-modal" onclick="showPasswordModalForCreation()" id="generateWalletBtn">
+                    Generate New Wallet
+                </button>
+                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
 
-                <div class="wallet-management-section">
-                    <div class="wallet-management-header" onclick="toggleWalletManagement()">
-                        <div class="wallet-management-title">
-                            <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                            </svg>
-                            Wallet Management
-                        </div>
-                        <div class="wallet-management-arrow">▼</div>
+        <div id="importWalletModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Import Wallet</div>
+                <div class="security-warning">
+                    <strong>🔑 Enter your 12 or 24-word recovery phrase:</strong>
+                </div>
+                <div class="form-group">
+                    <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
+                              class="form-textarea" rows="4"></textarea>
+                </div>
+                <div id="importWalletStatus"></div>
+                <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
+                    Import Wallet
+                </button>
+                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+
+        <div id="backupModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">🔒 Backup Your Wallet</div>
+                <div class="security-warning">
+                    <strong>⚠️ CRITICAL:</strong> Write down these 12 words and store them securely. Never share them!
+                </div>
+                <div class="mnemonic-words" id="mnemonicWords"></div>
+                <div class="backup-confirmation">
+                    <div class="confirmation-checkbox">
+                        <input type="checkbox" id="backupConfirmed" onchange="toggleContinueButton()">
+                        <label for="backupConfirmed"> I have written down my recovery phrase and stored it securely</label>
                     </div>
-
-                    <div class="wallet-management-content" id="walletManagementContent">
-                        <div class="wallet-list" id="walletList">
-                        </div>
-
-                        <div class="add-wallet-actions">
-                            <button class="add-wallet-btn" onclick="showPasswordModalForCreation()">
-                                <i class="fas fa-plus-circle"></i>
-                                Create New Wallet
-                            </button>
-                            <button class="add-wallet-btn" onclick="showImportWalletModal()">
-                                <i class="fas fa-download"></i>
-                                Import Existing Wallet
-                            </button>
-                        </div>
+                    <div class="security-warning">
+                        <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
+                        We don't store your recovery phrase and cannot recover it for you.
                     </div>
                 </div>
+                <button class="close-modal" id="confirmBackupBtn" onclick="confirmBackupAndContinue()" disabled>
+                     Continue to Dashboard
+                </button>
+            </div>
+        </div>
 
-                <!-- 🔐 UPDATED: View Recovery Phrase now requires password -->
+        <div id="viewSeedModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">🔒 Recovery Phrase</div>
+                <div class="security-warning">
+                    <strong>⚠️ CRITICAL:</strong> Never share these words with anyone!
+                </div>
+                <div class="mnemonic-words" id="viewSeedWords"></div>
+                <button class="close-modal" onclick="copySeedPhrase()">
+                    Copy Recovery Phrase
+                </button>
+                <button class="close-modal secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
+
+        <div id="settingsModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Settings</div>
+                
+                <!-- View Recovery Phrase -->
                 <div class="settings-option" onclick="showPasswordModalForSeedView()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -170,7 +1079,7 @@
                     </div>
                 </div>
 
-                <!-- 🔐 NEW: Change Encryption Password -->
+                <!-- Change Encryption Password -->
                 <div class="settings-option" onclick="showChangePasswordModal()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +1089,7 @@
                     </div>
                 </div>
 
-                <!-- 🔐 NEW: Backup Status -->
+                <!-- Backup Status -->
                 <div class="settings-option" onclick="showBackupStatus()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,6 +1099,7 @@
                     </div>
                 </div>
 
+                <!-- Logout -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,13 +1117,40 @@
             </div>
         </div>
 
-        <!-- ... (all existing HTML remains the same) ... -->
+        <!-- Send Modal (simplified) -->
+        <div id="sendModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Send Tokens</div>
+                <div class="form-group">
+                    <label class="form-label">Recipient Address</label>
+                    <input type="text" id="sendToAddress" class="form-input" placeholder="EQ...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount</label>
+                    <input type="number" id="sendAmount" class="form-input" placeholder="0.00" step="0.000001">
+                </div>
+                <div id="sendStatus"></div>
+                <button class="close-modal" onclick="sendTransaction()">Send</button>
+                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
 
+        <!-- Receive Modal (simplified) -->
+        <div id="receiveModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Receive Tokens</div>
+                <div class="address-display" id="receiveAddress">
+                    Loading address...
+                </div>
+                <button class="close-modal" onclick="copyAddress()">Copy Address</button>
+                <button class="close-modal secondary" onclick="closeModal()">Close</button>
+            </div>
+        </div>
     </div>
 
     <script>
 // =============================================
-// 🎯 INTEGRATED WALLET FOR LOGGED-IN NEMEX USERS
+// 🎯 WALLET STATE AND CONFIGURATION
 // =============================================
 
 let walletState = {
@@ -235,8 +1172,7 @@ let SUPPORTED_TOKENS = [
         price: 2.5,
         change24h: 0,
         canSend: true,
-        isNative: true,
-        contract: null
+        isNative: true
     },
     {
         symbol: "NMX", 
@@ -246,20 +1182,18 @@ let SUPPORTED_TOKENS = [
         price: 0.10,
         change24h: 0,
         canSend: true,
-        isNative: false,
-        contract: "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f"
+        isNative: false
     }
 ];
 
 // =============================================
-// 🎯 NEW: PASSWORD MODALS FOR HYBRID SYSTEM
+// 🎯 PASSWORD MODALS (HYBRID SYSTEM)
 // =============================================
 
-// 🔐 Password modal for wallet creation
 function showPasswordModalForCreation() {
     const modalHtml = `
         <div class="modal-overlay" id="passwordModal">
-            <div class="modal-content" style="max-width: 380px; background: var(--card-bg); padding: 24px; border-radius: var(--border-radius);">
+            <div class="modal-content" style="max-width: 380px;">
                 <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">🔐 Wallet Security</h3>
                 <p style="color: var(--muted); margin-bottom: 20px; text-align: center;">
                     Enter your account password to create a secure wallet.
@@ -289,7 +1223,6 @@ function showPasswordModalForCreation() {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-// 🔐 Password modal for seed phrase viewing
 function showPasswordModalForSeedView() {
     if (!walletState.hasWallet) {
         showMessage('❌ You need a wallet to view seed phrase', 'error');
@@ -298,7 +1231,7 @@ function showPasswordModalForSeedView() {
     
     const modalHtml = `
         <div class="modal-overlay" id="seedPasswordModal">
-            <div class="modal-content" style="max-width: 380px; background: var(--card-bg); padding: 24px; border-radius: var(--border-radius);">
+            <div class="modal-content" style="max-width: 380px;">
                 <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">🔐 View Seed Phrase</h3>
                 <p style="color: var(--muted); margin-bottom: 20px; text-align: center;">
                     Enter your account password to view your seed phrase.
@@ -325,11 +1258,10 @@ function showPasswordModalForSeedView() {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-// 🔐 NEW: Change encryption password modal
 function showChangePasswordModal() {
     const modalHtml = `
         <div class="modal-overlay" id="changePasswordModal">
-            <div class="modal-content" style="max-width: 380px; background: var(--card-bg); padding: 24px; border-radius: var(--border-radius);">
+            <div class="modal-content" style="max-width: 380px;">
                 <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">🔐 Change Encryption Password</h3>
                 
                 <div class="form-group">
@@ -363,63 +1295,65 @@ function showChangePasswordModal() {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-// 🔐 NEW: Backup status modal
 async function showBackupStatus() {
     if (!walletState.currentUser?.id) {
         showMessage('❌ You need to be logged in', 'error');
         return;
     }
     
-    const result = await window.walletManager.getBackupStatus(walletState.currentUser.id);
-    
-    if (result.success && result.status) {
-        const status = result.status;
-        const modalHtml = `
-            <div class="modal-overlay" id="backupStatusModal">
-                <div class="modal-content" style="max-width: 400px; background: var(--card-bg); padding: 24px; border-radius: var(--border-radius);">
-                    <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">📊 Backup Status</h3>
-                    
-                    <div style="background: rgba(212, 175, 55, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: var(--muted);">Backup Method:</span>
-                            <span style="color: var(--gold); font-weight: 600;">${status.backupMethod || 'Unknown'}</span>
+    try {
+        const result = await window.walletManager.getBackupStatus(walletState.currentUser.id);
+        
+        if (result.success && result.status) {
+            const status = result.status;
+            const modalHtml = `
+                <div class="modal-overlay" id="backupStatusModal">
+                    <div class="modal-content" style="max-width: 400px;">
+                        <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">📊 Backup Status</h3>
+                        
+                        <div style="background: rgba(212, 175, 55, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: var(--muted);">Backup Method:</span>
+                                <span style="color: var(--gold); font-weight: 600;">${status.backupMethod || 'Unknown'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: var(--muted);">First Viewed:</span>
+                                <span style="color: ${status.firstViewed ? 'var(--success)' : 'var(--warning)'};">${status.firstViewed ? 'Yes' : 'No'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: var(--muted);">Can Recover:</span>
+                                <span style="color: ${status.canRecover ? 'var(--success)' : 'var(--warning)'};">${status.canRecover ? 'Yes' : 'No'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: var(--muted);">Security Level:</span>
+                                <span style="color: var(--gold); font-weight: 600;">${status.securityLevel || 'Unknown'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="color: var(--muted);">Wallet Age:</span>
+                                <span style="color: var(--muted);">${status.walletAge || 'Unknown'}</span>
+                            </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: var(--muted);">First Viewed:</span>
-                            <span style="color: ${status.firstViewed ? 'var(--success)' : 'var(--warning)'};">${status.firstViewed ? 'Yes' : 'No'}</span>
+                        
+                        <div style="color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 20px;">
+                            ${result.recommendations || ''}
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: var(--muted);">Can Recover:</span>
-                            <span style="color: ${status.canRecover ? 'var(--success)' : 'var(--warning)'};">${status.canRecover ? 'Yes' : 'No'}</span>
+                        
+                        <div class="modal-actions">
+                            <button class="modal-btn primary" onclick="closeBackupStatusModal()">Close</button>
                         </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: var(--muted);">Security Level:</span>
-                            <span style="color: var(--gold); font-weight: 600;">${status.securityLevel || 'Unknown'}</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: var(--muted);">Wallet Age:</span>
-                            <span style="color: var(--muted);">${status.walletAge || 'Unknown'}</span>
-                        </div>
-                    </div>
-                    
-                    <div style="color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 20px;">
-                        ${result.recommendations || ''}
-                    </div>
-                    
-                    <div class="modal-actions">
-                        <button class="modal-btn primary" onclick="closeBackupStatusModal()">Close</button>
                     </div>
                 </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    } else {
-        showMessage('❌ Failed to get backup status: ' + (result.error || 'Unknown error'), 'error');
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        } else {
+            throw new Error(result.error || 'Failed to get backup status');
+        }
+    } catch (error) {
+        showMessage(`❌ ${error.message}`, 'error');
     }
 }
 
-// 🔐 NEW: Close modal functions
 function closePasswordModal() {
     const modal = document.getElementById('passwordModal');
     if (modal) modal.remove();
@@ -440,7 +1374,10 @@ function closeBackupStatusModal() {
     if (modal) modal.remove();
 }
 
-// 🔐 NEW: Create wallet with password
+// =============================================
+// 🎯 WALLET OPERATIONS WITH PASSWORD
+// =============================================
+
 async function createWalletWithPassword() {
     const password = document.getElementById('walletPassword')?.value;
     
@@ -465,20 +1402,14 @@ async function createWalletWithPassword() {
         if (result.success) {
             closePasswordModal();
             
-            // Show seed phrase modal
-            showSeedPhraseModal(result.mnemonic);
+            // Show seed phrase in backup modal
+            showBackupModal(result.mnemonic);
             
             // Update wallet state
             walletState.hasWallet = true;
             walletState.wallet = result.wallet;
             
-            // Show success message
-            setTimeout(() => {
-                document.body.classList.add('wallet-loaded');
-                showWalletInterface();
-                loadWalletData();
-                showMessage('✅ Wallet created successfully!', 'success');
-            }, 1000);
+            showMessage('✅ Wallet created successfully!', 'success');
         } else {
             throw new Error(result.error || 'Failed to create wallet');
         }
@@ -490,7 +1421,6 @@ async function createWalletWithPassword() {
     }
 }
 
-// 🔐 NEW: View seed phrase with password
 async function viewSeedPhraseWithPassword() {
     const password = document.getElementById('seedViewPassword')?.value;
     
@@ -526,7 +1456,6 @@ async function viewSeedPhraseWithPassword() {
     }
 }
 
-// 🔐 NEW: Change encryption password
 async function changeEncryptionPassword() {
     const currentPassword = document.getElementById('currentPassword')?.value;
     const newPassword = document.getElementById('newPassword')?.value;
@@ -570,7 +1499,6 @@ async function changeEncryptionPassword() {
     }
 }
 
-// 🔐 NEW: Password strength checker
 function checkPasswordStrength(password, indicatorId) {
     const indicator = document.getElementById(indicatorId);
     if (!password || !indicator) return;
@@ -582,25 +1510,8 @@ function checkPasswordStrength(password, indicatorId) {
          result.strength === 'medium' ? 'strength-medium' : 'strength-weak');
 }
 
-// 🔐 UPDATED: Show seed phrase modal
-function showSeedPhraseModal(seedPhrase) {
-    const words = seedPhrase.split(' ');
-    const mnemonicWords = document.getElementById('viewSeedWords');
-    
-    if (mnemonicWords) {
-        mnemonicWords.innerHTML = words.map((word, index) => `
-            <div class="mnemonic-word">
-                <span class="word-index">${index + 1}.</span>
-                <span class="word-text">${word}</span>
-            </div>
-        `).join('');
-    }
-    
-    document.getElementById('viewSeedModal').style.display = 'flex';
-}
-
 // =============================================
-// 🎯 INITIALIZATION (Updated for Hybrid System)
+// 🎯 INITIALIZATION
 // =============================================
 
 async function initWallet() {
@@ -618,19 +1529,17 @@ async function initWallet() {
                 walletState.currentUser = result.user;
                 console.log('✅ Wallet loaded for user:', result.wallet.address);
                 
-                document.body.classList.add('wallet-loaded');
                 showWalletInterface();
                 await loadWalletData();
             } else {
                 // User doesn't have a wallet - show welcome screen
                 console.log('ℹ️ No wallet found for user - showing welcome screen');
                 walletState.currentUser = result.user;
-                document.body.classList.remove('wallet-loaded');
                 showWelcomeScreen();
             }
         } else {
             if (result.requiresLogin) {
-                console.log('⚠️ User not logged in - redirecting to login');
+                console.log('⚠️ User not logged in - showing login message');
                 showLoginRequiredMessage();
             } else {
                 console.error('❌ Wallet init failed:', result.error);
@@ -644,13 +1553,205 @@ async function initWallet() {
 }
 
 // =============================================
-// 🎯 WALLET CREATION & IMPORT (Updated)
+// 🎯 UI MANAGEMENT
 // =============================================
 
-// 🔐 UPDATED: Show create wallet button now triggers password modal
-function showCreateWalletModal() {
-    showPasswordModalForCreation();
+function showWelcomeScreen() {
+    document.getElementById('welcomeScreen').classList.remove('hidden');
+    document.getElementById('walletInterface').classList.add('hidden');
 }
+
+function showWalletInterface() {
+    document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('walletInterface').classList.remove('hidden');
+}
+
+function showLoginRequiredMessage() {
+    document.getElementById('welcomeScreen').innerHTML = `
+        <div class="welcome-title">🔒 Please Log In</div>
+        <div class="welcome-subtitle">
+            You need to be logged into your Nemex account to access the wallet.
+        </div>
+        <div class="welcome-actions">
+            <button class="welcome-btn primary" onclick="window.location.href='login.html'">
+                Go to Login
+            </button>
+        </div>
+    `;
+    document.getElementById('welcomeScreen').classList.remove('hidden');
+    document.getElementById('walletInterface').classList.add('hidden');
+}
+
+async function loadWalletData() {
+    if (!walletState.hasWallet || !walletState.wallet) return;
+
+    try {
+        // Load TON balance
+        const balanceResult = await window.walletManager.getBalance(walletState.wallet.address);
+        if (balanceResult.success) {
+            SUPPORTED_TOKENS[0].balance = balanceResult.balance;
+        }
+
+        // Load prices
+        const priceResult = await window.walletManager.getPrices();
+        if (priceResult.success && priceResult.prices) {
+            SUPPORTED_TOKENS[0].price = priceResult.prices.TON?.price || 2.5;
+            SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON?.change24h || 0;
+            SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0.10;
+            SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
+        }
+
+        updateWalletDisplay();
+    } catch (error) {
+        console.error('❌ Load wallet data failed:', error);
+    }
+}
+
+function updateWalletDisplay() {
+    // Update total balance
+    const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
+        return sum + (token.balance * token.price);
+    }, 0);
+    
+    const balanceElement = document.getElementById('balanceAmount');
+    if (balanceElement) {
+        balanceElement.textContent = `$${totalUSD.toFixed(2)}`;
+    }
+
+    // Update token list
+    const tokenList = document.getElementById('tokenList');
+    if (tokenList) {
+        tokenList.innerHTML = SUPPORTED_TOKENS.map(token => `
+            <div class="token-card ${token.symbol === 'TON' ? 'featured' : ''}">
+                <div class="token-icon ${token.symbol.toLowerCase()}-icon">
+                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                         onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    ${token.symbol === 'TON' ? '<div class="featured-star">★</div>' : ''}
+                </div>
+                <div class="token-info">
+                    <div class="token-name">${token.name}</div>
+                    <div class="token-symbol">${token.symbol}</div>
+                    <div class="token-price">
+                        $${token.price.toFixed(4)} 
+                        <span class="token-change ${token.change24h >= 0 ? 'change-positive' : 'change-negative'}">
+                            ${token.change24h >= 0 ? '+' : ''}${token.change24h.toFixed(2)}%
+                        </span>
+                    </div>
+                </div>
+                <div class="token-balance">
+                    <div class="token-amount">${token.balance.toFixed(4)}</div>
+                    <div class="token-value">$${(token.balance * token.price).toFixed(2)}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+// =============================================
+// 🎯 MODAL FUNCTIONS
+// =============================================
+
+function showCreateWalletModal() {
+    document.getElementById('createWalletModal').style.display = 'flex';
+}
+
+function showImportWalletModal() {
+    document.getElementById('importWalletModal').style.display = 'flex';
+}
+
+function showBackupModal(mnemonic) {
+    const words = mnemonic.split(' ');
+    const mnemonicWords = document.getElementById('mnemonicWords');
+    
+    if (mnemonicWords) {
+        mnemonicWords.innerHTML = words.map((word, index) => `
+            <div class="mnemonic-word">
+                <span class="word-index">${index + 1}.</span>
+                <span class="word-text">${word}</span>
+            </div>
+        `).join('');
+    }
+    
+    // Reset confirmation checkbox
+    const backupConfirmed = document.getElementById('backupConfirmed');
+    if (backupConfirmed) {
+        backupConfirmed.checked = false;
+    }
+    
+    const confirmBackupBtn = document.getElementById('confirmBackupBtn');
+    if (confirmBackupBtn) {
+        confirmBackupBtn.disabled = true;
+    }
+    
+    document.getElementById('backupModal').style.display = 'flex';
+}
+
+function showSeedPhraseModal(seedPhrase) {
+    const words = seedPhrase.split(' ');
+    const mnemonicWords = document.getElementById('viewSeedWords');
+    
+    if (mnemonicWords) {
+        mnemonicWords.innerHTML = words.map((word, index) => `
+            <div class="mnemonic-word">
+                <span class="word-index">${index + 1}.</span>
+                <span class="word-text">${word}</span>
+            </div>
+        `).join('');
+    }
+    
+    document.getElementById('viewSeedModal').style.display = 'flex';
+}
+
+function showSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'flex';
+}
+
+function showSendModal() {
+    if (!walletState.hasWallet) {
+        showMessage('❌ You need a wallet to send tokens', 'error');
+        return;
+    }
+    document.getElementById('sendModal').style.display = 'flex';
+}
+
+function showReceiveModal() {
+    if (!walletState.hasWallet) {
+        showMessage('❌ You need a wallet to receive tokens', 'error');
+        return;
+    }
+    document.getElementById('receiveModal').style.display = 'flex';
+    
+    // Update receive address
+    const addressElement = document.getElementById('receiveAddress');
+    if (addressElement && walletState.wallet) {
+        addressElement.textContent = walletState.wallet.address;
+    }
+}
+
+function showSwapModal() {
+    showMessage('⚠️ Swap functionality coming soon!', 'warning');
+}
+
+function showBuyModal() {
+    showMessage('⚠️ Buy functionality coming soon!', 'warning');
+}
+
+function closeModal() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.style.display = 'none';
+    });
+}
+
+function closeModalById(id) {
+    const modal = document.getElementById(id);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// =============================================
+// 🎯 WALLET OPERATIONS
+// =============================================
 
 async function importWalletFromModal() {
     const mnemonicInput = document.getElementById('importMnemonic');
@@ -689,7 +1790,6 @@ async function importWalletFromModal() {
             walletState.wallet = result.wallet;
             
             // Switch to wallet interface
-            document.body.classList.add('wallet-loaded');
             showWalletInterface();
             await loadWalletData();
             closeModal();
@@ -707,32 +1807,20 @@ async function importWalletFromModal() {
     }
 }
 
-// =============================================
-// 🎯 WALLET OPERATIONS
-// =============================================
+function confirmBackupAndContinue() {
+    // User has confirmed they backed up their seed phrase
+    showWalletInterface();
+    loadWalletData();
+    closeModal();
+    showMessage('✅ Your wallet is now active!', 'success');
+}
 
-async function loadWalletData() {
-    if (!walletState.hasWallet || !walletState.wallet) return;
+function toggleContinueButton() {
+    const backupConfirmed = document.getElementById('backupConfirmed');
+    const confirmBackupBtn = document.getElementById('confirmBackupBtn');
 
-    try {
-        // Load TON balance
-        const balanceResult = await window.walletManager.getBalance(walletState.wallet.address);
-        if (balanceResult.success) {
-            SUPPORTED_TOKENS[0].balance = balanceResult.balance;
-        }
-
-        // Load prices
-        const priceResult = await window.walletManager.getPrices();
-        if (priceResult.success && priceResult.prices) {
-            SUPPORTED_TOKENS[0].price = priceResult.prices.TON?.price || 2.5;
-            SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON?.change24h || 0;
-            SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0.10;
-            SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
-        }
-
-        updateWalletDisplay();
-    } catch (error) {
-        console.error('❌ Load wallet data failed:', error);
+    if (backupConfirmed && confirmBackupBtn) {
+        confirmBackupBtn.disabled = !backupConfirmed.checked;
     }
 }
 
@@ -744,8 +1832,6 @@ async function sendTransaction() {
 
     const toAddress = document.getElementById('sendToAddress')?.value.trim();
     const amount = document.getElementById('sendAmount')?.value;
-    const memo = document.getElementById('sendMemo')?.value.trim();
-    const selectedToken = document.getElementById('selectedTokenSymbol')?.textContent || 'TON';
 
     if (!toAddress || !amount) {
         showMessage('❌ Please fill all required fields', 'error');
@@ -760,33 +1846,91 @@ async function sendTransaction() {
     try {
         showLoading('Sending transaction...');
         
-        if (selectedToken === 'TON') {
-            const result = await window.walletManager.sendTON(
-                walletState.currentUser.id,
-                walletState.wallet.address,
-                toAddress,
-                amount,
-                memo
-            );
+        const result = await window.walletManager.sendTON(
+            walletState.currentUser.id,
+            walletState.wallet.address,
+            toAddress,
+            amount
+        );
+        
+        if (result.success) {
+            console.log('✅ Transaction sent:', result.transaction?.hash);
+            showMessage(`✅ Sent ${amount} TON successfully!`, 'success');
+            closeModal();
             
-            if (result.success) {
-                console.log('✅ Transaction sent:', result.transaction?.hash);
-                showMessage(`✅ Sent ${amount} TON successfully!`, 'success');
-                closeModal();
-                
-                // Refresh balances
-                await loadWalletData();
-            } else {
-                throw new Error(result.error || 'Transaction failed');
-            }
-        } else if (selectedToken === 'NMX') {
-            showMessage('⚠️ NMX token sending not implemented yet', 'warning');
+            // Refresh balances
+            await loadWalletData();
+        } else {
+            throw new Error(result.error || 'Transaction failed');
         }
     } catch (error) {
         console.error('❌ Send transaction failed:', error);
         showMessage(`❌ ${error.message}`, 'error');
     } finally {
         hideLoading();
+    }
+}
+
+function copyAddress() {
+    if (!walletState.wallet?.address) {
+        showMessage('❌ No wallet address available', 'error');
+        return;
+    }
+    
+    navigator.clipboard.writeText(walletState.wallet.address)
+        .then(() => {
+            showMessage('✅ Address copied to clipboard!', 'success');
+        })
+        .catch(err => {
+            console.error('❌ Failed to copy:', err);
+            showMessage('❌ Failed to copy address', 'error');
+        });
+}
+
+function copySeedPhrase() {
+    const seedPhrase = Array.from(document.querySelectorAll('#viewSeedWords .word-text'))
+        .map(span => span.textContent)
+        .join(' ');
+    
+    if (!seedPhrase) {
+        showMessage('❌ No seed phrase to copy', 'error');
+        return;
+    }
+    
+    navigator.clipboard.writeText(seedPhrase)
+        .then(() => {
+            showMessage('✅ Seed phrase copied to clipboard!', 'success');
+        })
+        .catch(err => {
+            console.error('❌ Failed to copy:', err);
+            showMessage('❌ Failed to copy seed phrase', 'error');
+        });
+}
+
+// =============================================
+// 🎯 VIEW NAVIGATION
+// =============================================
+
+function showWalletView() {
+    walletState.currentView = 'wallet';
+    updateNavItems();
+}
+
+function showHistoryView() {
+    walletState.currentView = 'history';
+    updateNavItems();
+    showMessage('⚠️ Transaction history coming soon!', 'warning');
+}
+
+function updateNavItems() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    if (walletState.currentView === 'wallet') {
+        document.querySelectorAll('.nav-item')[0]?.classList.add('active');
+    } else if (walletState.currentView === 'history') {
+        document.querySelectorAll('.nav-item')[1]?.classList.add('active');
     }
 }
 
@@ -798,36 +1942,10 @@ function showMessage(message, type = 'info') {
     console.log(`📢 ${message}`);
     
     const messageDiv = document.createElement('div');
-    messageDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-weight: 600;
-        z-index: 10000;
-        max-width: 90%;
-        text-align: center;
-    `;
-    
-    if (type === 'error') {
-        messageDiv.style.background = 'var(--error)';
-        messageDiv.style.color = 'white';
-        messageDiv.innerHTML = `❌ ${message}`;
-    } else if (type === 'success') {
-        messageDiv.style.background = 'var(--success)';
-        messageDiv.style.color = 'white';
-        messageDiv.innerHTML = `✅ ${message}`;
-    } else if (type === 'warning') {
-        messageDiv.style.background = 'var(--warning)';
-        messageDiv.style.color = 'var(--dark-bg)';
-        messageDiv.innerHTML = `⚠️ ${message}`;
-    } else {
-        messageDiv.style.background = 'var(--gold)';
-        messageDiv.style.color = 'var(--dark-bg)';
-        messageDiv.innerHTML = `ℹ️ ${message}`;
-    }
+    messageDiv.className = `message message-${type}`;
+    messageDiv.innerHTML = type === 'error' ? `❌ ${message}` : 
+                          type === 'success' ? `✅ ${message}` : 
+                          type === 'warning' ? `⚠️ ${message}` : `ℹ️ ${message}`;
     
     document.body.appendChild(messageDiv);
     
@@ -842,19 +1960,53 @@ function showErrorMessage(message) {
     showMessage(message, 'error');
 }
 
-function showLoading(message) {
+function showLoading(message = 'Loading...') {
     walletState.isLoading = true;
-    const loadingEl = document.getElementById('loadingOverlay');
-    if (loadingEl) {
-        loadingEl.style.display = 'flex';
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+    
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'flex';
+    }
+    
+    if (loadingMessage) {
+        loadingMessage.textContent = message;
     }
 }
 
 function hideLoading() {
     walletState.isLoading = false;
-    const loadingEl = document.getElementById('loadingOverlay');
-    if (loadingEl) {
-        loadingEl.style.display = 'none';
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    if (loadingOverlay) {
+        loadingOverlay.style.display = 'none';
+    }
+}
+
+function handleTokenLogoError(img, symbol) {
+    img.style.display = 'none';
+    const container = img.parentElement;
+    container.innerHTML = symbol.charAt(0);
+    container.style.background = 'rgba(255, 255, 255, 0.1)';
+    container.style.color = 'white';
+    container.style.fontWeight = 'bold';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+}
+
+function logout() {
+    if (window.supabase) {
+        window.supabase.auth.signOut()
+            .then(() => {
+                window.location.href = 'login.html';
+            })
+            .catch(error => {
+                console.error('❌ Logout failed:', error);
+                showMessage('❌ Failed to logout', 'error');
+            });
+    } else {
+        window.location.href = 'login.html';
     }
 }
 
@@ -863,7 +2015,7 @@ function hideLoading() {
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Nemex Hybrid Wallet page loaded - initializing...');
+    console.log('🎯 Nemex Wallet page loaded - initializing...');
     
     // Initialize wallet after page loads
     setTimeout(() => {
