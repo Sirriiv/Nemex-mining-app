@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nemex Wallet - Secure TON Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- 🚀 FIXED: Load Supabase FIRST -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/wallet.js"></script>
     <script src="assets/js/crypto-utils.js"></script>
 
     <style>
-        /* All your existing CSS styles remain exactly the same */
         :root {
             --dark-bg: #0A0A0A;
             --darker-bg: #080808;
@@ -51,12 +49,11 @@
         .container {
             max-width: 480px;
             margin: 0 auto;
-            padding-bottom: 0; /* 🎯 REMOVED: No bottom padding for fullscreen welcome */
+            padding-bottom: 0;
         }
 
-        /* 🎯 UPDATED: Header - Hidden on welcome screen */
         .header {
-            display: none; /* Hidden by default */
+            display: none;
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
@@ -68,7 +65,7 @@
         }
 
         .wallet-loaded .header {
-            display: flex; /* Show only when wallet is loaded */
+            display: flex;
         }
 
         .wallet-name {
@@ -98,7 +95,6 @@
             color: var(--dark-bg);
         }
 
-        /* 🎯 UPDATED: Balance Section - Removed duplicate USD value */
         .balance-section {
             padding: 30px 20px;
             text-align: center;
@@ -106,11 +102,11 @@
             margin: 10px 20px;
             border-radius: var(--border-radius);
             box-shadow: var(--shadow);
-            display: none; /* Hidden by default */
+            display: none;
         }
 
         .wallet-loaded .balance-section {
-            display: block; /* Show only when wallet loaded */
+            display: block;
         }
 
         .balance-amount {
@@ -120,11 +116,8 @@
             margin-bottom: 4px;
         }
 
-        /* 🎯 REMOVED: .balance-usd - No duplicate USD value */
-
-        /* Action Buttons - Only in Main Wallet */
         .action-buttons {
-            display: none; /* Hidden by default */
+            display: none;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             padding: 20px;
@@ -176,15 +169,14 @@
             font-weight: 600;
         }
 
-        /* Token List */
         .token-section {
             padding: 0 20px;
             margin-top: 10px;
-            display: none; /* Hidden by default */
+            display: none;
         }
 
         .wallet-loaded .token-section {
-            display: block; /* Show only when wallet loaded */
+            display: block;
         }
 
         .section-title {
@@ -326,9 +318,8 @@
             color: var(--text-muted);
         }
 
-        /* 🎯 UPDATED: Bottom Navigation - Hidden on welcome screen */
         .bottom-nav {
-            display: none; /* Hidden by default */
+            display: none;
             position: fixed;
             bottom: 0;
             left: 0;
@@ -341,7 +332,7 @@
         }
 
         .wallet-loaded .bottom-nav {
-            display: flex; /* Show only when wallet loaded */
+            display: flex;
         }
 
         .nav-item {
@@ -383,7 +374,6 @@
             font-weight: 600;
         }
 
-        /* 🎯 UPDATED: Welcome Screen - Full Screen */
         .welcome-screen {
             position: fixed;
             top: 0;
@@ -401,7 +391,7 @@
         }
 
         .wallet-loaded .welcome-screen {
-            display: none; /* Hide when wallet loaded */
+            display: none;
         }
 
         .welcome-title {
@@ -462,7 +452,6 @@
             transform: translateY(-2px);
         }
 
-        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -486,7 +475,6 @@
             box-shadow: var(--shadow);
         }
 
-        /* FULL SCREEN SETTINGS MODAL */
         .modal.fullscreen {
             align-items: flex-start;
             overflow-y: auto;
@@ -535,7 +523,6 @@
             background: rgba(212, 175, 55, 0.1);
         }
 
-        /* Form Inputs */
         .form-group {
             margin-bottom: 16px;
             text-align: left;
@@ -584,7 +571,6 @@
             background: rgba(212, 175, 55, 0.05);
         }
 
-        /* Wallet Selection Styles */
         .wallet-selection-list {
             max-height: 300px;
             overflow-y: auto;
@@ -626,7 +612,6 @@
             margin-top: 4px;
         }
 
-        /* Backup Confirmation */
         .backup-confirmation {
             margin: 20px 0;
             padding: 16px;
@@ -652,7 +637,6 @@
             color: var(--text);
         }
 
-        /* Loading Animation */
         .loading {
             display: inline-block;
             width: 16px;
@@ -667,7 +651,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Success/Error Messages */
         .status-message {
             padding: 12px;
             border-radius: 8px;
@@ -694,7 +677,6 @@
             border: 1px solid var(--gold);
         }
 
-        /* Receive Modal */
         .qr-code {
             width: 200px;
             height: 200px;
@@ -729,7 +711,6 @@
             margin-top: 10px;
         }
 
-        /* Session Status */
         .session-status {
             font-size: 12px;
             color: var(--text-muted);
@@ -745,9 +726,6 @@
             color: var(--warning);
         }
 
-        /* ===== UPDATED CARD WALLET STYLES ===== */
-
-        /* Wallet Card Center Section */
         .wallet-card-center-section {
             flex: 1;
             display: flex;
@@ -783,7 +761,6 @@
             transform: translateY(-1px);
         }
 
-        /* Card Pattern */
         .card-pattern {
             position: absolute;
             top: 0;
@@ -800,7 +777,6 @@
             z-index: 1;
         }
 
-        /* Card Header Final */
         .card-header-final {
             position: relative;
             z-index: 2;
@@ -814,7 +790,6 @@
             letter-spacing: 0.3px;
         }
 
-        /* Card Body Final - Center Address */
         .card-body-final {
             position: relative;
             z-index: 2;
@@ -840,7 +815,6 @@
             text-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
         }
 
-        /* Card Footer Final - UPDATED: Only Copy Icon, No Chip */
         .card-footer-final {
             position: relative;
             z-index: 2;
@@ -850,7 +824,6 @@
             margin-top: 10px;
         }
 
-        /* Copy Indicator - UPDATED: More Visible */
         .copy-indicator {
             display: flex;
             align-items: center;
@@ -887,7 +860,6 @@
             font-weight: 600;
         }
 
-        /* Hologram Effect */
         .card-hologram-final {
             position: absolute;
             top: -50%;
@@ -902,7 +874,6 @@
             opacity: 0.4;
         }
 
-        /* Circular Actions Section - UPDATED: Closer to Card */
         .circular-actions-section {
             padding: 20px 24px 40px;
         }
@@ -973,7 +944,6 @@
             text-align: center;
         }
 
-        /* Token Specific Styles */
         .ton-icon {
             background: linear-gradient(135deg, rgba(0, 136, 204, 0.1), rgba(0, 102, 153, 0.05));
             border-color: rgba(0, 136, 204, 0.3);
@@ -988,13 +958,11 @@
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
         }
 
-        /* Animations */
         @keyframes rotateHologram {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
 
-        /* Mobile & Laptop Compatibility */
         @media (max-width: 480px) {
             .wallet-card-center-section {
                 padding: 30px 20px 15px;
@@ -1084,11 +1052,6 @@
             }
         }
 
-        /* ============================================= */
-        /* ENHANCED SEND MODAL DROPDOWN STYLES */
-        /* ============================================= */
-
-        /* Enhanced Dropdown Styles */
         .custom-dropdown {
             position: relative;
             z-index: 1000;
@@ -1103,7 +1066,6 @@
             background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%) !important;
         }
 
-        /* Scrollbar styling for dropdown */
         .dropdown-options::-webkit-scrollbar {
             width: 6px;
         }
@@ -1122,7 +1084,6 @@
             background: var(--gold-light);
         }
 
-        /* Animation for dropdown */
         @keyframes slideInUp {
             from {
                 opacity: 0;
@@ -1138,7 +1099,6 @@
             animation: slideInUp 0.2s ease-out;
         }
 
-        /* Enhanced form input focus states */
         .form-input:focus {
             outline: none;
             border-color: var(--gold) !important;
@@ -1147,14 +1107,12 @@
             transition: all 0.3s ease;
         }
 
-        /* Enhanced button hover effects */
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4) !important;
             transition: all 0.3s ease;
         }
 
-        /* Modal entrance animation */
         @keyframes modalSlideIn {
             from {
                 opacity: 0;
@@ -1169,10 +1127,6 @@
         .modal-content {
             animation: modalSlideIn 0.3s ease-out;
         }
-
-        /* ============================================= */
-        /* FIXED: Token Display Issues */
-        /* ============================================= */
 
         #tokenSection {
             display: block !important;
@@ -1190,7 +1144,6 @@
             visibility: visible !important;
         }
 
-        /* Ensure wallet sections show properly when wallet is loaded */
         .wallet-loaded #welcomeScreen {
             display: none !important;
         }
@@ -1201,12 +1154,10 @@
             display: block !important;
         }
 
-        /* EMERGENCY FIX: Remove any duplicate action buttons */
         .action-buttons:not(#actionButtons) {
             display: none !important;
         }
 
-        /* Force horizontal layout for main action buttons */
         #actionButtons {
             display: none;
             grid-template-columns: repeat(4, 1fr) !important;
@@ -1217,11 +1168,6 @@
             display: grid !important;
         }
 
-        /* ============================================= */
-        /* PRODUCTION SWAP MODAL - COMPACT TRUST WALLET STYLE */
-        /* ============================================= */
-
-        /* Fullscreen Modal Base */
         .fullscreen-modal {
             display: none;
             position: fixed;
@@ -1247,7 +1193,6 @@
             padding: 0;
         }
 
-        /* Compact Modal Layout */
         .compact-modal {
             display: flex;
             flex-direction: column;
@@ -1255,12 +1200,10 @@
             background: var(--dark-bg);
             max-width: 100%;
             padding: 0;
-            /* CRITICAL: Ensure entire modal is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* Header - More Compact */
         .compact-header {
             display: flex;
             justify-content: space-between;
@@ -1292,7 +1235,6 @@
             gap: 12px;
         }
 
-        /* Back Button - Smaller */
         .back-button {
             background: rgba(212, 175, 55, 0.1);
             color: var(--gold);
@@ -1312,7 +1254,6 @@
             background: rgba(212, 175, 55, 0.2);
         }
 
-        /* Wallet Settings Button - Smaller */
         .wallet-settings-btn {
             background: rgba(212, 175, 55, 0.1);
             color: var(--gold);
@@ -1338,17 +1279,11 @@
             color: var(--success);
         }
 
-        /* ============================================= */
-        /* CRITICAL FIX: BALANCE DISPLAY VISIBILITY */
-        /* ============================================= */
-
-        /* Balance Display - More Compact */
         .compact-balance {
             padding: 20px;
             background: rgba(212, 175, 55, 0.03);
             border-bottom: 1px solid rgba(212, 175, 55, 0.1);
             margin: 0;
-            /* CRITICAL: Ensure container is visible */
             opacity: 1 !important;
             visibility: visible !important;
             display: block !important;
@@ -1360,7 +1295,6 @@
             gap: 8px;
             flex-wrap: wrap;
             justify-content: center;
-            /* CRITICAL: Ensure item is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1369,32 +1303,25 @@
             color: var(--text-muted);
             font-size: 14px;
             font-weight: 600;
-            /* CRITICAL: Ensure label is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* CRITICAL FIX: Balance value visibility */
         .balance-value {
-            color: var(--gold) !important; /* Force gold color */
-            font-size: 20px !important; /* Force font size */
-            font-weight: 700 !important; /* Force font weight */
-            /* CRITICAL: Ensure value is visible */
+            color: var(--gold) !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
             opacity: 1 !important;
             visibility: visible !important;
             display: inline !important;
-            /* Prevent any text hiding */
             text-transform: none !important;
             font-family: inherit !important;
-            /* Ensure proper contrast */
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-            /* Force specific styles */
             background: transparent !important;
             border: none !important;
             outline: none !important;
         }
 
-        /* Specific fix for the balance number element */
         #realNmxpBalance {
             color: var(--gold) !important;
             font-size: 20px !important;
@@ -1417,16 +1344,10 @@
             background: rgba(212, 175, 55, 0.08);
             padding: 4px 8px;
             border-radius: 6px;
-            /* CRITICAL: Ensure currency is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* ============================================= */
-        /* CONVERSION INTERFACE */
-        /* ============================================= */
-
-        /* Conversion Interface - Much More Compact */
         .compact-conversion {
             flex: 1;
             display: flex;
@@ -1436,7 +1357,6 @@
             margin: 0 auto;
             width: 100%;
             padding: 20px;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1452,12 +1372,10 @@
             margin-bottom: 8px;
             display: block;
             text-align: left;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* Input/Output Containers - Smaller */
         .input-container, .output-container {
             display: flex;
             align-items: center;
@@ -1468,7 +1386,6 @@
             padding: 16px;
             transition: all 0.3s ease;
             position: relative;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1488,7 +1405,6 @@
             outline: none;
             text-align: left;
             min-width: 0;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1502,7 +1418,6 @@
             opacity: 0.9;
         }
 
-        /* Token Badges - Smaller */
         .token-badge {
             background: rgba(212, 175, 55, 0.15);
             color: var(--gold);
@@ -1513,12 +1428,10 @@
             border: 1px solid rgba(212, 175, 55, 0.3);
             min-width: 60px;
             text-align: center;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* MAX Button - Smaller */
         .max-btn {
             background: rgba(212, 175, 55, 0.2);
             color: var(--gold);
@@ -1529,7 +1442,6 @@
             cursor: pointer;
             transition: all 0.3s ease;
             font-size: 11px;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1538,13 +1450,11 @@
             background: rgba(212, 175, 55, 0.3);
         }
 
-        /* Conversion Arrow - Smaller */
         .conversion-arrow {
             text-align: center;
             margin: 15px 0;
             color: var(--gold);
             font-size: 20px;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1556,13 +1466,11 @@
             border: 1px solid rgba(212, 175, 55, 0.2);
         }
 
-        /* Conversion Fee - Smaller */
         .conversion-fee {
             text-align: center;
             margin-top: 20px;
             padding-top: 15px;
             border-top: 1px solid rgba(212, 175, 55, 0.1);
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1571,12 +1479,10 @@
             color: var(--text-muted);
             font-size: 12px;
             font-weight: 600;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* Convert Button - Smaller like Trust Wallet */
         .compact-convert-btn {
             width: calc(100% - 40px);
             margin: 20px;
@@ -1589,7 +1495,6 @@
             font-size: 15px;
             text-transform: none;
             letter-spacing: normal;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1614,7 +1519,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Compact Note - Smaller */
         .compact-note {
             display: flex;
             align-items: center;
@@ -1627,7 +1531,6 @@
             border-top: 1px solid rgba(212, 175, 55, 0.1);
             text-align: center;
             line-height: 1.4;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1637,13 +1540,11 @@
             font-size: 11px;
         }
 
-        /* Mini Wallet Modal - More Compact */
         .mini-modal {
             background: var(--dark-bg);
             height: 100%;
             display: flex;
             flex-direction: column;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1731,33 +1632,24 @@
             box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
         }
 
-        /* Body scroll lock */
         body.modal-open {
             overflow: hidden;
         }
 
-        /* Remove the old conversion-info styles */
         .conversion-info {
             display: none;
         }
 
-        /* Ensure proper spacing */
         .input-container, .output-container {
             margin-top: 4px;
         }
 
-        /* ============================================= */
-        /* CRITICAL: OVERRIDE ANY HIDING STYLES */
-        /* ============================================= */
-
-        /* Force visibility for all modal content */
         .fullscreen-modal .compact-modal,
         .fullscreen-modal .compact-modal * {
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* Specifically target and override any hiding styles */
         #productionSwapModal .balance-value,
         #productionSwapModal #realNmxpBalance,
         .compact-balance .balance-value,
@@ -1770,7 +1662,6 @@
             font-weight: 700 !important;
         }
 
-        /* Responsive Design for Mobile */
         @media (max-width: 480px) {
             .compact-header {
                 padding: 14px 16px;
@@ -1849,7 +1740,6 @@
             }
         }
 
-        /* Tablet and Desktop */
         @media (min-width: 768px) {
             .compact-conversion {
                 max-width: 420px;
@@ -1864,7 +1754,6 @@
             }
         }
 
-        /* 🎯 NEW: Add wallet limit warning */
         .wallet-limit-warning {
             background: rgba(255, 187, 51, 0.1);
             border: 1px solid var(--warning);
@@ -1876,7 +1765,6 @@
             text-align: center;
         }
 
-        /* 🎯 NEW: Security Warning */
         .security-warning {
             background: rgba(255, 187, 51, 0.1);
             border: 1px solid var(--warning);
@@ -1887,7 +1775,6 @@
             color: var(--warning);
         }
 
-        /* 🎯 NEW: Mnemonic Display */
         .mnemonic-words {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -1919,19 +1806,16 @@
 </head>
 <body>
     <div class="container">
-        <!-- 🎯 UPDATED: Header - Only shows when wallet loaded -->
         <header class="header">
             <div class="wallet-name">
                 Nemex Wallet
             </div>
         </header>
 
-        <!-- Session Status (HIDDEN) -->
         <div class="session-status" id="sessionStatus" style="display: none;">
             <span class="loading"></span> Checking wallet session...
         </div>
 
-        <!-- 🎯 UPDATED: Welcome Screen - Full Screen -->
         <div id="welcomeScreen" class="welcome-screen">
             <div class="welcome-title">Welcome to Nemex Wallet</div>
             <div class="welcome-subtitle">
@@ -1948,16 +1832,13 @@
             </div>
         </div>
 
-        <!-- 🎯 UPDATED: Balance Section - Only shows when wallet loaded -->
         <section class="balance-section" id="balanceSection">
             <div class="balance-amount" id="totalBalance">
                 <span class="loading" id="balanceLoading"></span>
                 <span id="balanceAmount" style="display: none;">$0.00</span>
             </div>
-            <!-- 🎯 REMOVED: Duplicate USD value element -->
         </section>
 
-        <!-- Action Buttons -->
         <div class="action-buttons" id="actionButtons">
             <div class="action-btn" onclick="showSendModal()" id="sendButton">
                 <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1985,7 +1866,6 @@
             </div>
         </div>
 
-        <!-- Token List -->
         <section class="token-section" id="tokenSection">
             <div class="section-title">
                 <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1995,11 +1875,9 @@
                 <span class="loading" id="tokensLoading"></span>
             </div>
             <div class="token-list" id="tokenList">
-                <!-- Tokens will be loaded dynamically -->
             </div>
         </section>
 
-        <!-- 🎯 UPDATED: Bottom Navigation - Only shows when wallet loaded -->
         <nav class="bottom-nav">
             <div class="nav-item active" onclick="showWalletView()">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2022,17 +1900,14 @@
             </div>
         </nav>
 
-        <!-- ALL YOUR ORIGINAL MODALS REMAIN EXACTLY THE SAME -->
-        <!-- Create Wallet Modal -->
         <div id="createWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Create New Wallet</div>
-                
-                <!-- 🎯 NEW: Wallet limit warning -->
+
                 <div class="wallet-limit-warning">
                     <strong>ℹ️ WALLET LIMIT:</strong> You can only create <strong>ONE</strong> wallet per account, but you can import unlimited existing wallets.
                 </div>
-                
+
                 <div class="security-warning">
                     <strong>⚠️ IMPORTANT:</strong> You will generate a 12-word recovery phrase. Store it securely!
                 </div>
@@ -2046,7 +1921,6 @@
             </div>
         </div>
 
-        <!-- Import Wallet Modal -->
         <div id="importWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Import Wallet</div>
@@ -2077,7 +1951,6 @@
             </div>
         </div>
 
-        <!-- Wallet Selection Modal -->
         <div id="walletSelectionModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Multiple Wallets Found</div>
@@ -2087,7 +1960,6 @@
                 </div>
 
                 <div class="wallet-selection-list" id="walletSelectionList">
-                    <!-- Wallet options will be populated here -->
                 </div>
 
                 <div id="walletSelectionStatus"></div>
@@ -2096,7 +1968,6 @@
             </div>
         </div>
 
-        <!-- Backup Modal -->
         <div id="backupModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">🔒 Backup Your Wallet</div>
@@ -2127,10 +1998,8 @@
             </div>
         </div>
 
-        <!-- Enhanced View Seed Phrase Modal - Fullscreen -->
         <div id="viewSeedModal" class="modal fullscreen">
             <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh;">
-                <!-- Premium Header -->
                 <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
                     <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
@@ -2148,7 +2017,6 @@
                 </div>
 
                 <div style="padding: 32px 24px; max-width: 500px; margin: 0 auto; width: 100%;">
-                    <!-- Critical Security Warning -->
                     <div class="security-warning" style="background: rgba(255, 68, 68, 0.1); border: 1px solid var(--error); padding: 20px; border-radius: 12px; margin-bottom: 24px;">
                         <div style="display: flex; align-items: flex-start; gap: 12px;">
                             <div style="width: 24px; height: 24px; background: var(--error); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
@@ -2168,15 +2036,12 @@
                         </div>
                     </div>
 
-                    <!-- Mnemonic Words Display -->
                     <div class="mnemonic-words" id="viewSeedWords" style="grid-template-columns: 1fr 1fr 1fr; gap: 12px; background: rgba(212, 175, 55, 0.05); border: 2px solid rgba(212, 175, 55, 0.2); padding: 24px; border-radius: 16px; margin: 24px 0;"></div>
 
-                    <!-- Copy Button -->
                     <button onclick="copySeedPhrase()" style="width: 100%; background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--dark-bg); border: none; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-bottom: 16px;">
                          Copy Recovery Phrase
                     </button>
 
-                    <!-- Close Button -->
                     <button class="close-modal secondary" onclick="closeModal()" style="width: 100%; background: transparent; border: 2px solid rgba(212, 175, 55, 0.4); color: var(--gold); padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease;">
                         Close
                     </button>
@@ -2184,12 +2049,10 @@
             </div>
         </div>
 
-        <!-- Settings Modal - FULL SCREEN -->
         <div id="settingsModal" class="modal fullscreen">
             <div class="modal-content">
                 <div class="modal-title">Settings</div>
 
-                <!-- Enhanced Wallet Management Section -->
                 <div class="wallet-management-section">
                     <div class="wallet-management-header" onclick="toggleWalletManagement()">
                         <div class="wallet-management-title">
@@ -2203,7 +2066,6 @@
 
                     <div class="wallet-management-content" id="walletManagementContent">
                         <div class="wallet-list" id="walletList">
-                            <!-- Wallets will be loaded from database -->
                         </div>
 
                         <div class="add-wallet-actions">
@@ -2219,7 +2081,6 @@
                     </div>
                 </div>
 
-                <!-- View Seed Phrase Option -->
                 <div class="settings-option" onclick="viewRecoveryPhrase()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2229,7 +2090,6 @@
                     </div>
                 </div>
 
-                <!-- Logout Option -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2247,7 +2107,6 @@
             </div>
         </div>
 
-        <!-- Delete Wallet Confirmation Modal -->
         <div id="deleteWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Delete Wallet</div>
@@ -2271,10 +2130,8 @@
             </div>
         </div>
 
-        <!-- Refined Send Modal with Tonkeeper-style Sizing -->
         <div id="sendModal" class="modal fullscreen">
             <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
-                <!-- Premium Header with Close Button -->
                 <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 16px 20px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
                     <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
@@ -2292,7 +2149,6 @@
                 </div>
 
                 <div style="padding: 24px 20px; max-width: 440px; margin: 0 auto; width: 100%;">
-                    <!-- Token Selector - Refined Size -->
                     <div class="form-group" style="margin-bottom: 24px;">
                         <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2301,9 +2157,7 @@
                             SELECT TOKEN
                         </label>
 
-                        <!-- Custom Dropdown Container -->
                         <div class="custom-dropdown" style="position: relative;">
-                            <!-- Selected Token Display -->
                             <div class="dropdown-selected" onclick="toggleTokenDropdown()" 
                                  style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
                                         border: 2px solid rgba(212, 175, 55, 0.3); 
@@ -2328,7 +2182,6 @@
                                 </svg>
                             </div>
 
-                            <!-- Dropdown Options -->
                             <div id="tokenDropdown" class="dropdown-options" 
                                  style="display: none; 
                                         position: absolute; 
@@ -2345,7 +2198,6 @@
                                         overflow-y: auto;
                                         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);">
 
-                                <!-- TON Option -->
                                 <div class="token-option" onclick="selectToken('TON', 'Toncoin', 'https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png')"
                                      style="padding: 16px; 
                                             cursor: pointer; 
@@ -2368,7 +2220,6 @@
                                     </div>
                                 </div>
 
-                                <!-- NMX Option -->
                                 <div class="token-option" onclick="selectToken('NMX', 'NemexCoin', 'https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1')"
                                      style="padding: 16px; 
                                             cursor: pointer; 
@@ -2393,7 +2244,6 @@
                         </div>
                     </div>
 
-                    <!-- Address Input - Refined Size -->
                     <div class="form-group" style="margin-bottom: 24px;">
                         <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2436,7 +2286,6 @@
                         <div id="addressValidation" style="font-size: 13px; margin-top: 8px; min-height: 18px; padding: 0 4px;"></div>
                     </div>
 
-                    <!-- Amount Input - Refined Size -->
                     <div class="form-group" style="margin-bottom: 20px;">
                         <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 12px;">
                             <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
@@ -2475,7 +2324,6 @@
                                    oninput="updateSendSummary()">
                         </div>
 
-                        <!-- Balance and USD Conversion -->
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 0 8px;">
                             <div>
                                 <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;">
@@ -2490,7 +2338,6 @@
                         </div>
                     </div>
 
-                    <!-- Transaction Fee - Refined Card -->
                     <div class="form-group" style="margin-bottom: 20px;">
                         <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%); 
                                     padding: 16px; 
@@ -2517,7 +2364,6 @@
                         </div>
                     </div>
 
-                    <!-- Comment Input - Refined Size -->
                     <div class="form-group" style="margin-bottom: 24px;">
                         <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2538,7 +2384,6 @@
                                oninput="updateSendSummary()">
                     </div>
 
-                    <!-- Enhanced Transaction Summary - Refined Size -->
                     <div id="sendSummary" style="display: none; 
                                                 background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
                                                 border: 1px solid rgba(212, 175, 55, 0.3);
@@ -2560,10 +2405,8 @@
                         <div id="sendSummaryDetails" style="font-size: 14px; color: var(--text); line-height: 1.6; background: rgba(0, 0, 0, 0.2); padding: 16px; border-radius: 10px;"></div>
                     </div>
 
-                    <!-- Status Messages -->
                     <div id="sendStatus" style="margin: 20px 0;"></div>
 
-                    <!-- Single Confirm Button - Full Width -->
                     <div style="margin-top: 20px; padding-bottom: 30px;">
                         <button class="close-modal" onclick="confirmSendTransaction()" id="confirmSendBtn"
                                 style="width: 100%; 
@@ -2585,10 +2428,8 @@
             </div>
         </div>
 
-        <!-- Final Wallet Card Receive Modal -->
         <div id="receiveModal" class="modal fullscreen">
             <div class="modal-content">
-                <!-- Header -->
                 <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3);">
                     <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
@@ -2599,34 +2440,27 @@
                             </button>
                             <div>
                                 <div class="modal-title" style="color: var(--gold); font-size: 24px; font-weight: 700; margin: 0;">Receive Assets</div>
-
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div style="padding: 0; max-width: 100%; height: calc(100vh - 80px); display: flex; flex-direction: column;">
-                    <!-- Wallet Card - CENTERED -->
                     <div class="wallet-card-center-section">
                         <div class="wallet-card-final" id="walletCard">
-                            <!-- Geometric Pattern Background -->
                             <div class="card-pattern"></div>
 
-                            <!-- Card Header -->
                             <div class="card-header-final">
                                 <span class="cardholder-name">Nemex Wallet Address</span>
                             </div>
 
-                            <!-- Card Body - Address in Center -->
                             <div class="card-body-final">
                                 <div class="address-center" id="walletAddressDisplay">
                                     <span class="address-center-text" id="addressFull">Loading address...</span>
                                 </div>
                             </div>
 
-                            <!-- Card Footer - UPDATED: Only Copy Icon, No Chip -->
                             <div class="card-footer-final">
-                                <!-- Copy Icon - Full Visible -->
                                 <div class="copy-indicator" onclick="copyWalletAddress()" title="Copy Wallet Address">
                                     <svg class="copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -2635,15 +2469,12 @@
                                 </div>
                             </div>
 
-                            <!-- Hologram Effect -->
                             <div class="card-hologram-final"></div>
                         </div>
                     </div>
 
-                    <!-- Circular Icon Actions - CLOSER BELOW CARD -->
                     <div class="circular-actions-section">
                         <div class="circular-actions">
-                            <!-- TON Icon -->
                             <button class="circular-btn" onclick="selectReceiveToken('TON')" title="Receive TON">
                                 <div class="circular-icon ton-icon">
                                     <img src="https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png" 
@@ -2652,7 +2483,6 @@
                                 <span class="circular-label">TON</span>
                             </button>
 
-                            <!-- NMX Icon -->
                             <button class="circular-btn" onclick="selectReceiveToken('NMX')" title="Receive NMX">
                                 <div class="circular-icon nmx-icon">
                                     <img src="https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1" 
@@ -2661,7 +2491,6 @@
                                 <span class="circular-label">NMX</span>
                             </button>
 
-                            <!-- Details Icon -->
                             <button class="circular-btn" onclick="showAddressDetails()" title="View Details">
                                 <div class="circular-icon details-icon">
                                     <svg class="details-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2676,146 +2505,119 @@
             </div>
         </div>
 
-<!-- Production Swap Modal - FULLSCREEN VERSION -->
-<div class="modal fullscreen-modal" id="productionSwapModal" style="display: none;">
-    <div class="modal-content compact-modal">
-        <!-- Compact Header with Back Button ONLY -->
-        <div class="modal-header compact-header">
-            <div class="header-main">
-                <button class="back-button" onclick="closeProductionSwapModal()">
-                    <i class="fas fa-arrow-left"></i>
-                    Back
-                </button>
-                <h3>Convert Tokens</h3>
-            </div>
-            <div class="header-actions">
-                <button class="wallet-settings-btn" onclick="showWalletSetup()">
-                    <i class="fas fa-cog"></i> Wallet
-                </button>
-            </div>
-        </div>
+        <div class="modal fullscreen-modal" id="productionSwapModal" style="display: none;">
+            <div class="modal-content compact-modal">
+                <div class="modal-header compact-header">
+                    <div class="header-main">
+                        <button class="back-button" onclick="closeProductionSwapModal()">
+                            <i class="fas fa-arrow-left"></i>
+                            Back
+                        </button>
+                        <h3>Convert Tokens</h3>
+                    </div>
+                    <div class="header-actions">
+                        <button class="wallet-settings-btn" onclick="showWalletSetup()">
+                            <i class="fas fa-cog"></i> Wallet
+                        </button>
+                    </div>
+                </div>
 
-        <!-- Single Balance Display -->
-        <div class="compact-balance">
-            <div class="balance-item">
-                <span class="balance-label">Available Balance:</span>
-                <span class="balance-value" id="realNmxpBalance" data-balance-display="true">0</span>
-                <span class="balance-currency">NMXp</span>
-            </div>
-        </div>
+                <div class="compact-balance">
+                    <div class="balance-item">
+                        <span class="balance-label">Available Balance:</span>
+                        <span class="balance-value" id="realNmxpBalance" data-balance-display="true">0</span>
+                        <span class="balance-currency">NMXp</span>
+                    </div>
+                </div>
 
-        <!-- Compact Conversion Interface -->
-        <div class="compact-conversion">
-            <!-- From Section -->
-            <div class="conversion-row from-row">
-                <div class="row-label">You pay</div>
-                <div class="input-container">
-                    <input type="number" id="productionConvertAmount" placeholder="0.0" oninput="calculateProductionConversion()">
-                    <div class="token-badge">NMXp</div>
-                    <button class="max-btn" onclick="setMaxConversion()">MAX</button>
+                <div class="compact-conversion">
+                    <div class="conversion-row from-row">
+                        <div class="row-label">You pay</div>
+                        <div class="input-container">
+                            <input type="number" id="productionConvertAmount" placeholder="0.0" oninput="calculateProductionConversion()">
+                            <div class="token-badge">NMXp</div>
+                            <button class="max-btn" onclick="setMaxConversion()">MAX</button>
+                        </div>
+                    </div>
+
+                    <div class="conversion-arrow">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+
+                    <div class="conversion-row to-row">
+                        <div class="row-label">You receive</div>
+                        <div class="output-container">
+                            <input type="text" id="productionReceiveAmount" placeholder="0.0" readonly>
+                            <div class="token-badge">NMX</div>
+                        </div>
+                    </div>
+
+                    <div class="conversion-fee">
+                        <span class="fee-text">Fee: 0.005 TON</span>
+                    </div>
+                </div>
+
+                <button class="compact-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
+                    Convert to NMX Tokens
+                </button>
+
+                <div class="compact-note">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>NMX tokens will be sent to your wallet address</span>
                 </div>
             </div>
+        </div>
 
-            <!-- Arrow between sections -->
-            <div class="conversion-arrow">
-                <i class="fas fa-arrow-down"></i>
-            </div>
+        <div class="modal fullscreen-modal" id="walletSetupModal" style="display: none;">
+            <div class="modal-content mini-modal">
+                <div class="modal-header">
+                    <button class="back-button" onclick="closeWalletSetup()">
+                        <i class="fas fa-arrow-left"></i>
+                        Back
+                    </button>
+                    <h3><i class="fas fa-wallet"></i> Setup Wallet</h3>
+                </div>
 
-            <!-- To Section -->
-            <div class="conversion-row to-row">
-                <div class="row-label">You receive</div>
-                <div class="output-container">
-                    <input type="text" id="productionReceiveAmount" placeholder="0.0" readonly>
-                    <div class="token-badge">NMX</div>
+                <div class="modal-body">
+                    <p>Enter your TON wallet address to receive NMX tokens:</p>
+                    <input type="text" id="userWalletAddress" placeholder="EQABCD1234..." class="wallet-input">
+
+                    <div class="modal-actions">
+                        <button class="btn primary" onclick="saveWalletAddress()">Save Wallet Address</button>
+                    </div>
                 </div>
             </div>
-
-            <!-- Fee at the bottom of swap panels -->
-            <div class="conversion-fee">
-                <span class="fee-text">Fee: 0.005 TON</span>
-            </div>
         </div>
-
-        <!-- Convert Button -->
-        <button class="compact-convert-btn" id="productionConvertBtn" onclick="executeProductionConversion()">
-            Convert to NMX Tokens
-        </button>
-
-        <!-- Minimal Note -->
-        <div class="compact-note">
-            <i class="fas fa-shield-alt"></i>
-            <span>NMX tokens will be sent to your wallet address</span>
-        </div>
-    </div>
-</div>
-
-<!-- Wallet Setup Modal - FULLSCREEN VERSION -->
-<div class="modal fullscreen-modal" id="walletSetupModal" style="display: none;">
-    <div class="modal-content mini-modal">
-        <div class="modal-header">
-            <button class="back-button" onclick="closeWalletSetup()">
-                <i class="fas fa-arrow-left"></i>
-                Back
-            </button>
-            <h3><i class="fas fa-wallet"></i> Setup Wallet</h3>
-        </div>
-
-        <div class="modal-body">
-            <p>Enter your TON wallet address to receive NMX tokens:</p>
-            <input type="text" id="userWalletAddress" placeholder="EQABCD1234..." class="wallet-input">
-
-            <div class="modal-actions">
-                <button class="btn primary" onclick="saveWalletAddress()">Save Wallet Address</button>
-            </div>
-        </div>
-    </div>
-</div>
     </div>
 
     <script>
 // =============================================
-// 🚀 COMPLETE FIX: ALL ISSUES RESOLVED
+// 🚀 COMPLETE SECURE WALLET SYSTEM
 // =============================================
 
-// Wait for Supabase to load before initializing
-function waitForSupabase() {
-    return new Promise((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 50;
-        
-        function checkSupabase() {
-            attempts++;
-            
-            if (typeof supabase !== 'undefined' && supabase.createClient) {
-                console.log('✅ Supabase SDK loaded successfully');
-                resolve(supabase);
-                return;
-            }
-            
-            if (attempts >= maxAttempts) {
-                console.error('❌ Supabase SDK failed to load');
-                reject(new Error('Supabase SDK loading timeout'));
-                return;
-            }
-            
-            setTimeout(checkSupabase, 100);
-        }
-        
-        checkSupabase();
-    });
-}
+// Configuration - Gets from backend config endpoint
+let appConfig = {
+    supabaseUrl: '',
+    supabaseAnonKey: '',
+    apiBaseUrl: '/api/wallet'
+};
 
 // Initialize Supabase client properly
 async function initializeSupabaseClient() {
     try {
-        console.log('🔄 Waiting for Supabase SDK to load...');
-        await waitForSupabase();
-        
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        
-        console.log('🚀 Creating Supabase client...');
-        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey, {
+        console.log('🔄 Initializing Supabase client...');
+
+        // First, get configuration from backend
+        await loadAppConfig();
+
+        if (!appConfig.supabaseUrl || !appConfig.supabaseAnonKey) {
+            console.error('❌ Supabase configuration missing');
+            throw new Error('Application configuration not loaded');
+        }
+
+        console.log('🚀 Creating Supabase client with environment configuration');
+
+        const supabaseClient = supabase.createClient(appConfig.supabaseUrl, appConfig.supabaseAnonKey, {
             auth: {
                 autoRefreshToken: true,
                 persistSession: true,
@@ -2823,7 +2625,7 @@ async function initializeSupabaseClient() {
                 storage: window.localStorage
             }
         });
-        
+
         // Test the connection
         const { data, error } = await supabaseClient.auth.getSession();
         if (error) {
@@ -2834,34 +2636,44 @@ async function initializeSupabaseClient() {
                 console.log('✅ User session found:', data.session.user.id);
             }
         }
-        
+
         window.supabase = supabaseClient;
         console.log('✅ Supabase client initialized');
-        
+
         return supabaseClient;
-        
+
     } catch (error) {
         console.error('❌ Failed to initialize Supabase:', error);
+        showStatusMessage('❌ Wallet system configuration failed', 'error');
+        throw error;
+    }
+}
+
+// Load configuration from backend
+async function loadAppConfig() {
+    try {
+        console.log('🔄 Loading application configuration from backend...');
         
-        const fallbackClient = {
-            auth: {
-                getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-                getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-                signOut: () => Promise.resolve({ error: null }),
-                onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
-            },
-            from: () => ({
-                select: () => ({
-                    eq: () => ({
-                        single: () => Promise.resolve({ data: null, error: { message: 'Fallback' } })
-                    })
-                })
-            })
-        };
+        const response = await fetch('/api/wallet/config');
+        const config = await response.json();
         
-        window.supabase = fallbackClient;
-        console.log('🔄 Using fallback Supabase client');
-        return fallbackClient;
+        if (config.success && config.supabase) {
+            appConfig.supabaseUrl = config.supabase.url;
+            appConfig.supabaseAnonKey = config.supabase.anonKey;
+            console.log('✅ Application configuration loaded successfully from backend');
+        } else {
+            throw new Error('Failed to load configuration from server');
+        }
+    } catch (error) {
+        console.error('❌ Failed to load app config from backend:', error);
+        
+        // Fallback: Show error and use development mode
+        console.log('🔄 Running in development mode - backend configuration required');
+        showStatusMessage('⚠️ Backend configuration required. Please check server environment variables.', 'error');
+        
+        // Set empty values to force configuration from backend
+        appConfig.supabaseUrl = '';
+        appConfig.supabaseAnonKey = '';
     }
 }
 
@@ -2885,7 +2697,7 @@ let currentMnemonic = null;
 let currentUser = null;
 let sessionCheckInProgress = false;
 
-// 🎯 NEW: Track if user already has a created wallet
+// Track if user already has a created wallet
 let hasCreatedWallet = false;
 
 let SUPPORTED_TOKENS = [
@@ -2914,7 +2726,7 @@ let SUPPORTED_TOKENS = [
 ];
 
 // =============================================
-// 🎯 CORE WALLET FUNCTIONS - FIXED SESSION DETECTION
+// 🎯 CORE WALLET FUNCTIONS
 // =============================================
 
 async function checkWalletSession() {
@@ -2924,7 +2736,7 @@ async function checkWalletSession() {
     try {
         console.log('🔍 Checking for wallet session...');
 
-        // 🎯 METHOD 1: Check Supabase session directly
+        // METHOD 1: Check Supabase session directly
         if (window.supabase && window.supabase.auth) {
             try {
                 const { data: { session }, error } = await window.supabase.auth.getSession();
@@ -2941,14 +2753,13 @@ async function checkWalletSession() {
             }
         }
 
-        // 🎯 METHOD 2: Check localStorage for ANY session data
+        // METHOD 2: Check localStorage for ANY session data
         console.log('🔍 Checking localStorage for sessions...');
-        
+
         // Check all possible session storage keys
         const sessionKeys = [
             'supabase.auth.token',
             'nemexcoin_user_session',
-            'sb-bjulifvbfogymoduxnzl-auth-token',
             'supabase-auth-token'
         ];
 
@@ -2956,10 +2767,10 @@ async function checkWalletSession() {
             try {
                 const sessionData = localStorage.getItem(sessionKey);
                 console.log(`🔍 Checking ${sessionKey}:`, sessionData ? 'Found' : 'Not found');
-                
+
                 if (sessionData) {
                     const parsed = JSON.parse(sessionData);
-                    
+
                     // Check different session formats
                     if (parsed.currentSession?.user) {
                         console.log('✅ Session found (currentSession format):', parsed.currentSession.user.id);
@@ -2969,7 +2780,7 @@ async function checkWalletSession() {
                             method: 'local_storage_' + sessionKey
                         };
                     }
-                    
+
                     if (parsed.loggedIn && parsed.id) {
                         console.log('✅ Session found (loggedIn format):', parsed.id);
                         return {
@@ -2978,7 +2789,7 @@ async function checkWalletSession() {
                             method: 'local_storage_' + sessionKey
                         };
                     }
-                    
+
                     if (parsed.user) {
                         console.log('✅ Session found (user format):', parsed.user.id);
                         return {
@@ -2993,7 +2804,7 @@ async function checkWalletSession() {
             }
         }
 
-        // 🎯 METHOD 3: Check for global user object
+        // METHOD 3: Check for global user object
         if (window.currentUser) {
             console.log('✅ User found in global window.currentUser:', window.currentUser.id);
             return { 
@@ -3001,33 +2812,6 @@ async function checkWalletSession() {
                 session: { user: window.currentUser },
                 method: 'global_object'
             };
-        }
-
-        // 🎯 METHOD 4: Check if we're on the mining site and try to detect session
-        console.log('🔍 Performing deep session detection...');
-        
-        // Try to find any user data in various storage locations
-        const deepCheckKeys = Object.keys(localStorage);
-        for (const key of deepCheckKeys) {
-            if (key.includes('user') || key.includes('session') || key.includes('auth')) {
-                try {
-                    const data = localStorage.getItem(key);
-                    if (data && data.includes('id') && data.includes('email')) {
-                        console.log(`✅ Potential session found in ${key}`);
-                        const parsed = JSON.parse(data);
-                        if (parsed.id) {
-                            console.log('✅ Valid user session found:', parsed.id);
-                            return {
-                                user: parsed,
-                                session: { user: parsed },
-                                method: 'deep_scan_' + key
-                            };
-                        }
-                    }
-                } catch (e) {
-                    // Continue checking other keys
-                }
-            }
         }
 
         console.log('❌ No active session found in any method');
@@ -3041,47 +2825,48 @@ async function checkWalletSession() {
     }
 }
 
-// 🎯 NEW: Force session creation for testing
+// Create test session for development
 async function createTestSession() {
     console.log('🔄 Creating test session for development...');
-    
+
     // Create a mock session for testing
     const testSession = {
         id: 'test-user-' + Date.now(),
         email: 'test@nemex.com',
         loggedIn: true
     };
-    
+
     localStorage.setItem('nemexcoin_user_session', JSON.stringify(testSession));
     console.log('✅ Test session created:', testSession.id);
-    
+
     return testSession;
 }
 
-// 🎯 UPDATED: Wallet initialization with session fallback
+// Wallet initialization with session fallback
 async function initWallet() {
     console.log('🔄 Initializing wallet system...');
 
     try {
+        // First initialize Supabase with proper configuration
         await initializeSupabaseClient();
-        
+
         if (window.tonWalletManager) {
             console.log('✅ Wallet manager found, initializing...');
             await window.tonWalletManager.initializeWalletAPI();
-            
+
             // Check for existing wallet
             const hasWallet = await window.tonWalletManager.hasWallet();
             const currentWallet = await window.tonWalletManager.getCurrentWallet();
-            
+
             if (hasWallet && currentWallet) {
                 console.log('✅ Existing wallet found:', currentWallet.address);
-                
+
                 // Check if this is a created wallet
                 if (currentWallet.source === 'generated') {
                     hasCreatedWallet = true;
                     console.log('✅ User already has a created wallet');
                 }
-                
+
                 walletState = {
                     isInitialized: true,
                     walletType: currentWallet.source || 'imported',
@@ -3110,7 +2895,7 @@ async function initWallet() {
     }
 }
 
-// 🎯 UPDATED: Show create wallet modal with session fallback
+// Show create wallet modal with session fallback
 function showCreateWalletModal() {
     console.log('🔄 Opening create wallet modal...');
     closeModal();
@@ -3125,8 +2910,8 @@ function showCreateWalletModal() {
     if (createWalletModal) {
         createWalletModal.style.display = 'flex';
         document.getElementById('createWalletStatus').innerHTML = '';
-        
-        // 🎯 FIXED: Restore gold styling to buttons
+
+        // Restore gold styling to buttons
         const buttons = createWalletModal.querySelectorAll('.close-modal');
         buttons.forEach(btn => {
             btn.style.background = 'var(--gold)';
@@ -3136,7 +2921,7 @@ function showCreateWalletModal() {
     }
 }
 
-// 🎯 UPDATED: Show import wallet modal with session fallback  
+// Show import wallet modal with session fallback  
 function showImportWalletModal() {
     console.log('🔄 Opening import wallet modal...');
     closeModal();
@@ -3145,8 +2930,8 @@ function showImportWalletModal() {
     if (importWalletModal) {
         importWalletModal.style.display = 'flex';
         document.getElementById('importWalletStatus').innerHTML = '';
-        
-        // 🎯 FIXED: Restore gold styling to buttons
+
+        // Restore gold styling to buttons
         const buttons = importWalletModal.querySelectorAll('.close-modal');
         buttons.forEach(btn => {
             if (btn.classList.contains('secondary')) {
@@ -3162,7 +2947,7 @@ function showImportWalletModal() {
     }
 }
 
-// 🎯 UPDATED: Wallet creation with session fallback
+// Wallet creation with session fallback
 async function checkAndGenerateWallet() {
     const statusElement = document.getElementById('createWalletStatus');
     const generateBtn = document.getElementById('generateWalletBtn');
@@ -3181,8 +2966,8 @@ async function checkAndGenerateWallet() {
         statusElement.innerHTML = '<div class="status-loading">🔄 Generating secure wallet...</div>';
 
         let sessionResult = await checkWalletSession();
-        
-        // 🎯 NEW: If no session found, create a test session for development
+
+        // If no session found, create a test session for development
         if (!sessionResult || !sessionResult.user) {
             console.log('⚠️ No session found, creating test session for development...');
             const testUser = await createTestSession();
@@ -3201,7 +2986,7 @@ async function checkAndGenerateWallet() {
         }
 
         const result = await window.tonWalletManager.createNewWallet();
-        
+
         if (!result || !result.wallet) {
             throw new Error('Wallet creation failed. Please try again.');
         }
@@ -3226,7 +3011,7 @@ async function checkAndGenerateWallet() {
 
     } catch (error) {
         console.error('❌ Wallet generation failed:', error);
-        
+
         let errorMessage = error.message;
         if (error.message.includes('sign in') || error.message.includes('log in')) {
             errorMessage = 'Session issue detected. Creating test session for development...';
@@ -3237,14 +3022,14 @@ async function checkAndGenerateWallet() {
             statusElement.innerHTML = '<div class="status-loading">🔄 Creating test session...</div>';
             return;
         }
-        
+
         statusElement.innerHTML = `<div class="status-error">❌ ${errorMessage}</div>`;
         generateBtn.innerHTML = 'Generate New Wallet';
         generateBtn.disabled = false;
     }
 }
 
-// 🎯 UPDATED: Wallet import with session fallback
+// Wallet import with session fallback
 async function importWalletFromModal() {
     const mnemonicInput = document.getElementById('importMnemonic');
     const statusElement = document.getElementById('importWalletStatus');
@@ -3264,8 +3049,8 @@ async function importWalletFromModal() {
         }
 
         let sessionResult = await checkWalletSession();
-        
-        // 🎯 NEW: If no session found, create a test session for development
+
+        // If no session found, create a test session for development
         if (!sessionResult || !sessionResult.user) {
             console.log('⚠️ No session found, creating test session for development...');
             const testUser = await createTestSession();
@@ -3287,7 +3072,7 @@ async function importWalletFromModal() {
         }
 
         const result = await window.tonWalletManager.importWalletFromMnemonic(mnemonic);
-        
+
         if (!result || !result.wallet) {
             throw new Error('Wallet import failed. Please check your recovery phrase.');
         }
@@ -3313,7 +3098,7 @@ async function importWalletFromModal() {
 
     } catch (error) {
         console.error('❌ Wallet import failed:', error);
-        
+
         let errorMessage = error.message;
         if (error.message.includes('sign in') || error.message.includes('log in')) {
             errorMessage = 'Session issue detected. Creating test session for development...';
@@ -3324,14 +3109,14 @@ async function importWalletFromModal() {
             statusElement.innerHTML = '<div class="status-loading">🔄 Creating test session...</div>';
             return;
         }
-        
+
         statusElement.innerHTML = `<div class="status-error">❌ ${errorMessage}</div>`;
         importBtn.innerHTML = 'Import Wallet';
         importBtn.disabled = false;
     }
 }
 
-// 🎯 FIXED: Backup modal styling
+// Backup modal styling
 function showBackupModal(mnemonic) {
     closeModal();
 
@@ -3350,8 +3135,8 @@ function showBackupModal(mnemonic) {
         document.getElementById('backupConfirmed').checked = false;
         const confirmBackupBtn = document.getElementById('confirmBackupBtn');
         confirmBackupBtn.disabled = true;
-        
-        // 🎯 FIXED: Restore gold styling to backup modal buttons
+
+        // Restore gold styling to backup modal buttons
         const buttons = backupModal.querySelectorAll('.close-modal');
         buttons.forEach(btn => {
             btn.style.background = 'var(--gold)';
@@ -3387,13 +3172,13 @@ async function confirmBackupAndContinue() {
     }
 }
 
-// 🎯 SIMPLIFIED: Balance updates
+// SIMPLIFIED: Balance updates
 async function updateRealBalances() {
     if (!walletState.isInitialized || !walletState.address) return;
 
     try {
         console.log('💰 Fetching balances for:', walletState.address);
-        
+
         SUPPORTED_TOKENS.forEach(token => {
             if (token.symbol === 'TON') {
                 token.balance = 1.5 + Math.random();
@@ -3425,7 +3210,7 @@ function updateWalletDisplay() {
 
     if (walletState.isInitialized) {
         document.body.classList.add('wallet-loaded');
-        
+
         if (welcomeScreen) welcomeScreen.style.display = 'none';
         if (balanceSection) balanceSection.style.display = 'block';
         if (actionButtons) actionButtons.style.display = 'grid';
@@ -3436,7 +3221,7 @@ function updateWalletDisplay() {
         startBalanceUpdates();
     } else {
         document.body.classList.remove('wallet-loaded');
-        
+
         if (welcomeScreen) welcomeScreen.style.display = 'block';
         if (balanceSection) balanceSection.style.display = 'none';
         if (actionButtons) actionButtons.style.display = 'none';
@@ -3553,16 +3338,16 @@ function handleTokenLogoError(img, symbol) {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 DOM loaded, initializing wallet system...');
-    
+
     const debugButtons = document.querySelectorAll('.debug-btn, .debug-button');
     debugButtons.forEach(button => button.remove());
-    
+
     setTimeout(() => {
         initWallet();
     }, 500);
 });
 
-console.log('✅ Complete Fixed Wallet System LOADED');
+console.log('✅ Complete Secure Wallet System LOADED - No Hardcoded Keys');
 </script>
 </body>
 </html>
