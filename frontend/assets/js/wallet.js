@@ -5,31 +5,72 @@ class NemexWalletManager {
     constructor() {
         this.apiBaseUrl = '/api/wallet';
         this.currentWallet = null;
-        this.userId = null;
+        this.supabaseClient = null;
         console.log('✅ Nemex Wallet Manager initialized');
     }
 
-    // Set user ID from website session
-    setCurrentUser(userId) {
-        console.log('👤 Setting current user:', userId);
-        this.userId = userId;
+    // Initialize Supabase client
+    initializeSupabase() {
+        if (window.supabase) {
+            const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+            
+            this.supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('✅ Supabase client initialized');
+        }
+    }
+
+    // Get current user from Supabase session
+    async getCurrentUser() {
+        try {
+            if (!this.supabaseClient) {
+                this.initializeSupabase();
+            }
+
+            const { data: { session }, error } = await this.supabaseClient.auth.getSession();
+            
+            if (error) {
+                console.error('❌ Session error:', error);
+                return null;
+            }
+
+            if (!session?.user) {
+                console.log('❌ No user session found');
+                return null;
+            }
+
+            console.log('✅ User session found:', session.user.id);
+            return {
+                id: session.user.id,
+                email: session.user.email
+            };
+        } catch (error) {
+            console.error('❌ Get current user failed:', error);
+            return null;
+        }
     }
 
     // Initialize wallet for current user
     async initialize() {
-        console.log('🚀 Initializing wallet for user:', this.userId);
-        
-        if (!this.userId) {
-            console.log('⚠️ No user ID set - user might not be logged in');
-            return {
-                success: false,
-                requiresLogin: true
-            };
-        }
+        console.log('🚀 Initializing wallet for current user...');
 
         try {
+            // Get current user from Supabase
+            const currentUser = await this.getCurrentUser();
+            
+            if (!currentUser) {
+                console.log('⚠️ No user logged in - redirecting to login');
+                return {
+                    success: false,
+                    requiresLogin: true,
+                    redirectUrl: 'login.html'
+                };
+            }
+
+            console.log('✅ User logged in:', currentUser.id);
+
             // Get user's wallet
-            const result = await this.getUserWallet(this.userId);
+            const result = await this.getUserWallet(currentUser.id);
             
             if (result.success && result.wallet) {
                 this.currentWallet = result.wallet;
@@ -37,14 +78,16 @@ class NemexWalletManager {
                 return {
                     success: true,
                     hasWallet: true,
-                    wallet: result.wallet
+                    wallet: result.wallet,
+                    user: currentUser
                 };
             } else {
                 console.log('ℹ️ No wallet found for user');
                 return {
                     success: true,
                     hasWallet: false,
-                    message: 'No wallet found'
+                    message: 'No wallet found',
+                    user: currentUser
                 };
             }
         } catch (error) {
@@ -93,18 +136,14 @@ class NemexWalletManager {
     }
 
     // Create wallet for current user
-    async createWallet() {
-        if (!this.userId) {
-            throw new Error('User must be logged in');
-        }
-
+    async createWallet(userId) {
         try {
             const response = await fetch(`${this.apiBaseUrl}/create-wallet`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ userId: this.userId })
+                body: JSON.stringify({ userId: userId })
             });
 
             const result = await response.json();
@@ -122,11 +161,7 @@ class NemexWalletManager {
     }
 
     // Import wallet with seed phrase
-    async importWallet(mnemonic) {
-        if (!this.userId) {
-            throw new Error('User must be logged in');
-        }
-
+    async importWallet(userId, mnemonic) {
         try {
             const response = await fetch(`${this.apiBaseUrl}/import-wallet`, {
                 method: 'POST',
@@ -134,7 +169,7 @@ class NemexWalletManager {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.userId,
+                    userId: userId,
                     mnemonic: mnemonic
                 })
             });
@@ -165,11 +200,7 @@ class NemexWalletManager {
     }
 
     // Send TON transaction
-    async sendTON(fromAddress, toAddress, amount, memo = '') {
-        if (!this.userId || !this.currentWallet) {
-            throw new Error('User must have a wallet');
-        }
-
+    async sendTON(userId, fromAddress, toAddress, amount, memo = '') {
         try {
             const response = await fetch(`${this.apiBaseUrl}/send-ton`, {
                 method: 'POST',
@@ -177,7 +208,7 @@ class NemexWalletManager {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: this.userId,
+                    userId: userId,
                     fromAddress: fromAddress,
                     toAddress: toAddress,
                     amount: amount,
@@ -239,11 +270,18 @@ class NemexWalletManager {
     getBounceableAddress() {
         return this.currentWallet ? (this.currentWallet.addressBounceable || this.currentWallet.address) : null;
     }
+
+    // Check if user is logged in via Supabase
+    async isLoggedIn() {
+        const user = await this.getCurrentUser();
+        return user !== null;
+    }
 }
 
 // Initialize global instance
 console.log('🔧 Creating Nemex Wallet Manager...');
 window.walletManager = new NemexWalletManager();
+window.walletManager.initializeSupabase(); // Initialize Supabase client
 
 // Export for module systems
 if (typeof module !== 'undefined' && module.exports) {
