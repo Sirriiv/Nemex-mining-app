@@ -925,7 +925,7 @@
             <!-- Balance Section -->
             <section class="balance-section">
                 <div class="balance-amount" id="totalBalance">
-                    <span class="loading" id="balanceLoading"></span>
+                    <span class="loading" id="balanceLoading" style="display: none;"></span>
                     <span id="balanceAmount">$0.00</span>
                 </div>
             </section>
@@ -948,7 +948,7 @@
                     <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
                     </svg>
-                    <div class="action-label">Convert NMXp</div>
+                    <div class="action-label">Swap</div>
                 </div>
                 <div class="action-btn" onclick="showBuyModal()" id="buyButton">
                     <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1000,9 +1000,15 @@
             <div class="modal-content">
                 <div class="modal-title">Create New Wallet</div>
                 <div class="security-warning">
-                    <strong>⚠️ IMPORTANT:</strong> You will generate a 12-word recovery phrase. Store it securely!
+                    <strong>⚠️ IMPORTANT:</strong> You will generate a 24-word recovery phrase. Store it securely!
                 </div>
                 <div id="createWalletStatus"></div>
+                <div class="form-group" style="margin: 20px 0;">
+                    <label class="form-label" style="text-align: center;">
+                        <input type="checkbox" id="replaceExistingCheckbox" style="margin-right: 8px;">
+                        Replace existing wallet (You already have one)
+                    </label>
+                </div>
                 <button class="close-modal" onclick="showPasswordModalForCreation()" id="generateWalletBtn">
                     Generate New Wallet
                 </button>
@@ -1020,8 +1026,14 @@
                     <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
                               class="form-textarea" rows="4"></textarea>
                 </div>
+                <div class="form-group" style="margin: 20px 0;">
+                    <label class="form-label" style="text-align: center;">
+                        <input type="checkbox" id="importReplaceExistingCheckbox" style="margin-right: 8px;">
+                        Replace existing wallet
+                    </label>
+                </div>
                 <div id="importWalletStatus"></div>
-                <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
+                <button class="close-modal" onclick="showPasswordModalForImport()" id="importWalletBtn">
                     Import Wallet
                 </button>
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
@@ -1032,7 +1044,7 @@
             <div class="modal-content">
                 <div class="modal-title">🔒 Backup Your Wallet</div>
                 <div class="security-warning">
-                    <strong>⚠️ CRITICAL:</strong> Write down these 12 words and store them securely. Never share them!
+                    <strong>⚠️ CRITICAL:</strong> Write down these 24 words and store them securely. Never share them!
                 </div>
                 <div class="mnemonic-words" id="mnemonicWords"></div>
                 <div class="backup-confirmation">
@@ -1068,7 +1080,7 @@
         <div id="settingsModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Settings</div>
-                
+
                 <!-- View Recovery Phrase -->
                 <div class="settings-option" onclick="showPasswordModalForSeedView()">
                     <div class="settings-option-content">
@@ -1099,6 +1111,16 @@
                     </div>
                 </div>
 
+                <!-- Delete Wallet -->
+                <div class="settings-option" onclick="showDeleteWalletModal()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        <div style="color: var(--error);">Delete Wallet</div>
+                    </div>
+                </div>
+
                 <!-- Logout -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
@@ -1117,33 +1139,129 @@
             </div>
         </div>
 
-        <!-- Send Modal (simplified) -->
+        <!-- Send Modal -->
         <div id="sendModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Send Tokens</div>
+                <div class="modal-title">Send TON</div>
+                
                 <div class="form-group">
-                    <label class="form-label">Recipient Address</label>
-                    <input type="text" id="sendToAddress" class="form-input" placeholder="EQ...">
+                    <label class="form-label">From</label>
+                    <input type="text" class="form-input" id="sendFromAddress" readonly 
+                           style="background: rgba(255,255,255,0.03);">
                 </div>
+                
                 <div class="form-group">
-                    <label class="form-label">Amount</label>
-                    <input type="number" id="sendAmount" class="form-input" placeholder="0.00" step="0.000001">
+                    <label class="form-label">To Address</label>
+                    <input type="text" id="sendToAddress" class="form-input" placeholder="EQ... or UQ...">
                 </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Amount (TON)</label>
+                    <input type="number" id="sendAmount" class="form-input" placeholder="0.00" step="0.000001" min="0.000001">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                        Available: <span id="availableTON">0.0000 TON</span>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Memo (Optional)</label>
+                    <input type="text" id="sendMemo" class="form-input" placeholder="Add a note">
+                </div>
+                
                 <div id="sendStatus"></div>
-                <button class="close-modal" onclick="sendTransaction()">Send</button>
-                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="close-modal" style="flex: 1;" onclick="sendTransaction()" id="sendTransactionBtn">
+                        Send
+                    </button>
+                    <button class="close-modal secondary" style="flex: 1;" onclick="closeModal()">
+                        Cancel
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Receive Modal (simplified) -->
+        <!-- Receive Modal -->
         <div id="receiveModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Receive Tokens</div>
-                <div class="address-display" id="receiveAddress">
+                <div class="modal-title">Receive TON</div>
+                
+                <div style="text-align: center; margin: 20px 0;">
+                    <div id="qrCode" style="margin: 0 auto 20px; width: 200px; height: 200px; 
+                                           background: #fff; border-radius: 10px; padding: 10px;">
+                        <!-- QR Code will be generated here -->
+                        <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #000;">
+                            <div class="loading" style="width: 40px; height: 40px; border-color: #000; border-top-color: var(--gold);"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="address-display" id="receiveAddress" style="cursor: pointer; user-select: all;">
                     Loading address...
                 </div>
-                <button class="close-modal" onclick="copyAddress()">Copy Address</button>
-                <button class="close-modal secondary" onclick="closeModal()">Close</button>
+                
+                <div style="margin: 20px 0;">
+                    <div class="security-warning">
+                        <strong>ℹ️</strong> Send only TON to this address. Sending other tokens may result in permanent loss.
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="close-modal" style="flex: 1;" onclick="copyAddress()">
+                        <i class="fas fa-copy"></i> Copy Address
+                    </button>
+                    <button class="close-modal secondary" style="flex: 1;" onclick="shareAddress()">
+                        <i class="fas fa-share-alt"></i> Share
+                    </button>
+                </div>
+                <button class="close-modal secondary" style="margin-top: 10px;" onclick="closeModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+
+        <!-- Delete Wallet Confirmation Modal -->
+        <div id="deleteWalletModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title" style="color: var(--error);">⚠️ Delete Wallet</div>
+                
+                <div class="security-warning" style="border-color: var(--error);">
+                    <strong>🚨 DANGER:</strong> This will permanently delete your wallet from our database!
+                </div>
+                
+                <div style="margin: 20px 0; padding: 15px; background: rgba(255,68,68,0.1); border-radius: 10px;">
+                    <p style="margin-bottom: 10px; color: var(--text);">
+                        <strong>You will lose access to:</strong>
+                    </p>
+                    <ul style="text-align: left; margin-left: 20px; color: var(--text-muted);">
+                        <li>Your wallet address and balance</li>
+                        <li>All transaction history</li>
+                        <li>Wallet configuration</li>
+                    </ul>
+                    
+                    <p style="margin-top: 15px; color: var(--warning);">
+                        <strong>⚠️ IMPORTANT:</strong> Make sure you have backed up your 24-word recovery phrase before deleting!
+                    </p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" style="text-align: center;">
+                        <input type="checkbox" id="deleteConfirmation" style="margin-right: 8px;">
+                        I have backed up my recovery phrase and understand this action cannot be undone
+                    </label>
+                </div>
+                
+                <div id="deleteWalletStatus"></div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="close-modal" style="flex: 1; background: var(--error);" 
+                            onclick="deleteWallet()" id="deleteWalletBtn" disabled>
+                        Delete Wallet
+                    </button>
+                    <button class="close-modal secondary" style="flex: 1;" onclick="closeDeleteWalletModal()">
+                        Cancel
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1187,16 +1305,22 @@ let SUPPORTED_TOKENS = [
 ];
 
 // =============================================
-// 🎯 PASSWORD MODALS (HYBRID SYSTEM)
+// 🎯 PASSWORD MODALS (UPDATED WITH REPLACE OPTION)
 // =============================================
 
 function showPasswordModalForCreation() {
+    const replaceExisting = document.getElementById('replaceExistingCheckbox')?.checked || false;
+    
     const modalHtml = `
         <div class="modal-overlay" id="passwordModal">
             <div class="modal-content" style="max-width: 380px;">
-                <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">🔐 Wallet Security</h3>
+                <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">
+                    ${replaceExisting ? '🔄 Replace Wallet' : '🔐 Create Wallet'}
+                </h3>
                 <p style="color: var(--muted); margin-bottom: 20px; text-align: center;">
-                    Enter your account password to create a secure wallet.
+                    ${replaceExisting 
+                        ? 'Enter your account password to create a new wallet (old wallet will be deleted).' 
+                        : 'Enter your account password to create a secure wallet.'}
                     <br><small>Your password will encrypt your seed phrase.</small>
                 </p>
                 
@@ -1208,9 +1332,17 @@ function showPasswordModalForCreation() {
                     <div id="strengthIndicator" class="password-strength"></div>
                 </div>
                 
+                ${replaceExisting ? `
+                    <div class="security-warning" style="margin: 15px 0;">
+                        <strong>⚠️ WARNING:</strong> Your existing wallet will be permanently deleted!
+                    </div>
+                ` : ''}
+                
                 <div class="modal-actions">
                     <button class="modal-btn secondary" onclick="closePasswordModal()">Cancel</button>
-                    <button class="modal-btn primary" onclick="createWalletWithPassword()">Create Wallet</button>
+                    <button class="modal-btn primary" onclick="createWalletWithPassword(${replaceExisting})">
+                        ${replaceExisting ? 'Replace Wallet' : 'Create Wallet'}
+                    </button>
                 </div>
                 
                 <div style="margin-top: 15px; font-size: 12px; color: var(--muted); text-align: center;">
@@ -1219,7 +1351,51 @@ function showPasswordModalForCreation() {
             </div>
         </div>
     `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function showPasswordModalForImport() {
+    const mnemonic = document.getElementById('importMnemonic')?.value.trim();
+    const replaceExisting = document.getElementById('importReplaceExistingCheckbox')?.checked || false;
     
+    if (!mnemonic) {
+        showMessage('❌ Please enter your recovery phrase first', 'error');
+        return;
+    }
+    
+    const modalHtml = `
+        <div class="modal-overlay" id="importPasswordModal">
+            <div class="modal-content" style="max-width: 380px;">
+                <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">
+                    ${replaceExisting ? '🔄 Import & Replace Wallet' : '🔐 Import Wallet'}
+                </h3>
+                <p style="color: var(--muted); margin-bottom: 20px; text-align: center;">
+                    Enter your account password to encrypt the imported wallet.
+                </p>
+                
+                <div class="form-group">
+                    <label class="form-label">Account Password</label>
+                    <input type="password" class="form-input" id="importWalletPassword" 
+                           placeholder="Enter your account password" autocomplete="off">
+                </div>
+                
+                ${replaceExisting ? `
+                    <div class="security-warning" style="margin: 15px 0;">
+                        <strong>⚠️ WARNING:</strong> Your existing wallet will be permanently deleted!
+                    </div>
+                ` : ''}
+                
+                <div class="modal-actions">
+                    <button class="modal-btn secondary" onclick="closeImportPasswordModal()">Cancel</button>
+                    <button class="modal-btn primary" onclick="importWalletWithPassword('${mnemonic.replace(/'/g, "\\'")}', ${replaceExisting})">
+                        ${replaceExisting ? 'Import & Replace' : 'Import Wallet'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
@@ -1228,7 +1404,7 @@ function showPasswordModalForSeedView() {
         showMessage('❌ You need a wallet to view seed phrase', 'error');
         return;
     }
-    
+
     const modalHtml = `
         <div class="modal-overlay" id="seedPasswordModal">
             <div class="modal-content" style="max-width: 380px;">
@@ -1254,7 +1430,7 @@ function showPasswordModalForSeedView() {
             </div>
         </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
@@ -1291,8 +1467,26 @@ function showChangePasswordModal() {
             </div>
         </div>
     `;
-    
+
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function showDeleteWalletModal() {
+    if (!walletState.hasWallet) {
+        showMessage('❌ You don\'t have a wallet to delete', 'error');
+        return;
+    }
+
+    document.getElementById('deleteWalletModal').style.display = 'flex';
+    
+    // Enable/disable delete button based on confirmation
+    document.getElementById('deleteConfirmation').addEventListener('change', function() {
+        document.getElementById('deleteWalletBtn').disabled = !this.checked;
+    });
+}
+
+function closeDeleteWalletModal() {
+    document.getElementById('deleteWalletModal').style.display = 'none';
 }
 
 async function showBackupStatus() {
@@ -1300,10 +1494,10 @@ async function showBackupStatus() {
         showMessage('❌ You need to be logged in', 'error');
         return;
     }
-    
+
     try {
         const result = await window.walletManager.getBackupStatus(walletState.currentUser.id);
-        
+
         if (result.success && result.status) {
             const status = result.status;
             const modalHtml = `
@@ -1313,12 +1507,20 @@ async function showBackupStatus() {
                         
                         <div style="background: rgba(212, 175, 55, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: var(--muted);">Address:</span>
+                                <span style="color: var(--gold); font-weight: 600; font-size: 12px;">${status.address || 'N/A'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                                 <span style="color: var(--muted);">Backup Method:</span>
                                 <span style="color: var(--gold); font-weight: 600;">${status.backupMethod || 'Unknown'}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                                 <span style="color: var(--muted);">First Viewed:</span>
                                 <span style="color: ${status.firstViewed ? 'var(--success)' : 'var(--warning)'};">${status.firstViewed ? 'Yes' : 'No'}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                                <span style="color: var(--muted);">Last Viewed:</span>
+                                <span style="color: var(--muted);">${status.lastSeedAccess || 'Never'}</span>
                             </div>
                             <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
                                 <span style="color: var(--muted);">Can Recover:</span>
@@ -1335,7 +1537,9 @@ async function showBackupStatus() {
                         </div>
                         
                         <div style="color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 20px;">
-                            ${result.recommendations || ''}
+                            ${Array.isArray(result.recommendations) 
+                                ? result.recommendations.map(rec => `<p>${rec}</p>`).join('')
+                                : (result.recommendations || '')}
                         </div>
                         
                         <div class="modal-actions">
@@ -1344,7 +1548,7 @@ async function showBackupStatus() {
                     </div>
                 </div>
             `;
-            
+
             document.body.insertAdjacentHTML('beforeend', modalHtml);
         } else {
             throw new Error(result.error || 'Failed to get backup status');
@@ -1356,6 +1560,11 @@ async function showBackupStatus() {
 
 function closePasswordModal() {
     const modal = document.getElementById('passwordModal');
+    if (modal) modal.remove();
+}
+
+function closeImportPasswordModal() {
+    const modal = document.getElementById('importPasswordModal');
     if (modal) modal.remove();
 }
 
@@ -1375,43 +1584,52 @@ function closeBackupStatusModal() {
 }
 
 // =============================================
-// 🎯 WALLET OPERATIONS WITH PASSWORD
+// 🎯 WALLET OPERATIONS WITH PASSWORD (UPDATED)
 // =============================================
 
-async function createWalletWithPassword() {
+async function createWalletWithPassword(replaceExisting = false) {
     const password = document.getElementById('walletPassword')?.value;
-    
+
     if (!password) {
         showMessage('❌ Password is required', 'error');
         return;
     }
-    
+
     if (!walletState.currentUser?.id) {
         showMessage('❌ You need to be logged in', 'error');
         return;
     }
-    
+
     try {
-        showLoading('Creating secure wallet...');
-        
+        showLoading(replaceExisting ? 'Replacing wallet...' : 'Creating secure wallet...');
+
         const result = await window.walletManager.createWallet(
             walletState.currentUser.id, 
-            password
+            password,
+            replaceExisting
         );
-        
+
         if (result.success) {
             closePasswordModal();
-            
+            closeModalById('createWalletModal');
+
             // Show seed phrase in backup modal
             showBackupModal(result.mnemonic);
-            
+
             // Update wallet state
             walletState.hasWallet = true;
             walletState.wallet = result.wallet;
-            
-            showMessage('✅ Wallet created successfully!', 'success');
+
+            showMessage(`✅ Wallet ${replaceExisting ? 'replaced' : 'created'} successfully!`, 'success');
         } else {
-            throw new Error(result.error || 'Failed to create wallet');
+            if (result.hasExistingWallet && !replaceExisting) {
+                // Show create wallet modal with replace option
+                closePasswordModal();
+                showCreateWalletModal();
+                showMessage('⚠️ You already have a wallet. Check "Replace existing wallet" to create a new one.', 'warning');
+            } else {
+                throw new Error(result.error || 'Failed to create wallet');
+            }
         }
     } catch (error) {
         console.error('❌ Create wallet failed:', error);
@@ -1421,27 +1639,81 @@ async function createWalletWithPassword() {
     }
 }
 
-async function viewSeedPhraseWithPassword() {
-    const password = document.getElementById('seedViewPassword')?.value;
-    
+async function importWalletWithPassword(mnemonic, replaceExisting = false) {
+    const password = document.getElementById('importWalletPassword')?.value;
+
     if (!password) {
         showMessage('❌ Password is required', 'error');
         return;
     }
-    
+
     if (!walletState.currentUser?.id) {
         showMessage('❌ You need to be logged in', 'error');
         return;
     }
-    
+
+    try {
+        showLoading(replaceExisting ? 'Replacing with imported wallet...' : 'Importing wallet...');
+
+        const result = await window.walletManager.importWallet(
+            walletState.currentUser.id,
+            mnemonic,
+            password,
+            replaceExisting
+        );
+
+        if (result.success) {
+            closeImportPasswordModal();
+            closeModalById('importWalletModal');
+
+            // Update wallet state
+            walletState.hasWallet = true;
+            walletState.wallet = result.wallet;
+
+            // Switch to wallet interface
+            showWalletInterface();
+            await loadWalletData();
+
+            showMessage(`✅ Wallet ${replaceExisting ? 'replaced' : 'imported'} successfully!`, 'success');
+        } else {
+            if (result.hasExistingWallet && !replaceExisting) {
+                // Show import modal with replace option
+                closeImportPasswordModal();
+                showImportWalletModal();
+                showMessage('⚠️ You already have a wallet. Check "Replace existing wallet" to import a new one.', 'warning');
+            } else {
+                throw new Error(result.error || 'Failed to import wallet');
+            }
+        }
+    } catch (error) {
+        console.error('❌ Import wallet failed:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function viewSeedPhraseWithPassword() {
+    const password = document.getElementById('seedViewPassword')?.value;
+
+    if (!password) {
+        showMessage('❌ Password is required', 'error');
+        return;
+    }
+
+    if (!walletState.currentUser?.id) {
+        showMessage('❌ You need to be logged in', 'error');
+        return;
+    }
+
     try {
         showLoading('Verifying password...');
-        
+
         const result = await window.walletManager.viewSeedPhrase(
             walletState.currentUser.id, 
             password
         );
-        
+
         if (result.success) {
             closeSeedPasswordModal();
             showSeedPhraseModal(result.seedPhrase);
@@ -1460,31 +1732,31 @@ async function changeEncryptionPassword() {
     const currentPassword = document.getElementById('currentPassword')?.value;
     const newPassword = document.getElementById('newPassword')?.value;
     const confirmPassword = document.getElementById('confirmNewPassword')?.value;
-    
+
     if (!currentPassword || !newPassword || !confirmPassword) {
         showMessage('❌ All password fields are required', 'error');
         return;
     }
-    
+
     if (newPassword !== confirmPassword) {
         showMessage('❌ New passwords do not match', 'error');
         return;
     }
-    
+
     if (!walletState.currentUser?.id) {
         showMessage('❌ You need to be logged in', 'error');
         return;
     }
-    
+
     try {
         showLoading('Changing encryption password...');
-        
+
         const result = await window.walletManager.changeSeedPassword(
             walletState.currentUser.id,
             currentPassword,
             newPassword
         );
-        
+
         if (result.success) {
             closeChangePasswordModal();
             showMessage('✅ Encryption password changed successfully!', 'success');
@@ -1499,10 +1771,47 @@ async function changeEncryptionPassword() {
     }
 }
 
+async function deleteWallet() {
+    if (!walletState.currentUser?.id) {
+        showMessage('❌ You need to be logged in', 'error');
+        return;
+    }
+
+    try {
+        showLoading('Deleting wallet...');
+
+        const result = await window.walletManager.deleteWallet(
+            walletState.currentUser.id,
+            true // confirm parameter
+        );
+
+        if (result.success) {
+            closeDeleteWalletModal();
+            
+            // Reset wallet state
+            walletState.hasWallet = false;
+            walletState.wallet = null;
+            walletState.balances = {};
+            
+            // Show welcome screen
+            showWelcomeScreen();
+            
+            showMessage('✅ Wallet deleted successfully!', 'success');
+        } else {
+            throw new Error(result.error || 'Failed to delete wallet');
+        }
+    } catch (error) {
+        console.error('❌ Delete wallet failed:', error);
+        showMessage(`❌ ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
 function checkPasswordStrength(password, indicatorId) {
     const indicator = document.getElementById(indicatorId);
     if (!password || !indicator) return;
-    
+
     const result = window.walletManager.validatePasswordStrength(password);
     indicator.textContent = result.message;
     indicator.className = 'password-strength ' + 
@@ -1520,7 +1829,7 @@ async function initWallet() {
     try {
         // Initialize wallet manager
         const result = await window.walletManager.initialize();
-        
+
         if (result.success) {
             if (result.hasWallet) {
                 // User has a wallet - show wallet interface
@@ -1528,7 +1837,7 @@ async function initWallet() {
                 walletState.wallet = result.wallet;
                 walletState.currentUser = result.user;
                 console.log('✅ Wallet loaded for user:', result.wallet.address);
-                
+
                 showWalletInterface();
                 await loadWalletData();
             } else {
@@ -1590,6 +1899,8 @@ async function loadWalletData() {
         const balanceResult = await window.walletManager.getBalance(walletState.wallet.address);
         if (balanceResult.success) {
             SUPPORTED_TOKENS[0].balance = balanceResult.balance;
+            // Update available balance in send modal
+            document.getElementById('availableTON').textContent = `${balanceResult.balance.toFixed(4)} TON`;
         }
 
         // Load prices
@@ -1612,7 +1923,7 @@ function updateWalletDisplay() {
     const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
         return sum + (token.balance * token.price);
     }, 0);
-    
+
     const balanceElement = document.getElementById('balanceAmount');
     if (balanceElement) {
         balanceElement.textContent = `$${totalUSD.toFixed(2)}`;
@@ -1653,16 +1964,32 @@ function updateWalletDisplay() {
 
 function showCreateWalletModal() {
     document.getElementById('createWalletModal').style.display = 'flex';
+    
+    // Show replace checkbox if user already has a wallet
+    const replaceCheckbox = document.getElementById('replaceExistingCheckbox');
+    if (replaceCheckbox && walletState.hasWallet) {
+        replaceCheckbox.parentElement.style.display = 'block';
+    } else if (replaceCheckbox) {
+        replaceCheckbox.parentElement.style.display = 'none';
+    }
 }
 
 function showImportWalletModal() {
     document.getElementById('importWalletModal').style.display = 'flex';
+    
+    // Show replace checkbox if user already has a wallet
+    const replaceCheckbox = document.getElementById('importReplaceExistingCheckbox');
+    if (replaceCheckbox && walletState.hasWallet) {
+        replaceCheckbox.parentElement.style.display = 'block';
+    } else if (replaceCheckbox) {
+        replaceCheckbox.parentElement.style.display = 'none';
+    }
 }
 
 function showBackupModal(mnemonic) {
     const words = mnemonic.split(' ');
     const mnemonicWords = document.getElementById('mnemonicWords');
-    
+
     if (mnemonicWords) {
         mnemonicWords.innerHTML = words.map((word, index) => `
             <div class="mnemonic-word">
@@ -1671,25 +1998,25 @@ function showBackupModal(mnemonic) {
             </div>
         `).join('');
     }
-    
+
     // Reset confirmation checkbox
     const backupConfirmed = document.getElementById('backupConfirmed');
     if (backupConfirmed) {
         backupConfirmed.checked = false;
     }
-    
+
     const confirmBackupBtn = document.getElementById('confirmBackupBtn');
     if (confirmBackupBtn) {
         confirmBackupBtn.disabled = true;
     }
-    
+
     document.getElementById('backupModal').style.display = 'flex';
 }
 
 function showSeedPhraseModal(seedPhrase) {
     const words = seedPhrase.split(' ');
     const mnemonicWords = document.getElementById('viewSeedWords');
-    
+
     if (mnemonicWords) {
         mnemonicWords.innerHTML = words.map((word, index) => `
             <div class="mnemonic-word">
@@ -1698,7 +2025,7 @@ function showSeedPhraseModal(seedPhrase) {
             </div>
         `).join('');
     }
-    
+
     document.getElementById('viewSeedModal').style.display = 'flex';
 }
 
@@ -1711,6 +2038,25 @@ function showSendModal() {
         showMessage('❌ You need a wallet to send tokens', 'error');
         return;
     }
+    
+    // Update from address
+    const fromAddress = document.getElementById('sendFromAddress');
+    if (fromAddress && walletState.wallet) {
+        fromAddress.value = walletState.wallet.address;
+    }
+    
+    // Update available balance
+    const availableTON = document.getElementById('availableTON');
+    if (availableTON) {
+        availableTON.textContent = `${SUPPORTED_TOKENS[0].balance.toFixed(4)} TON`;
+    }
+    
+    // Clear previous inputs
+    document.getElementById('sendToAddress').value = '';
+    document.getElementById('sendAmount').value = '';
+    document.getElementById('sendMemo').value = '';
+    document.getElementById('sendStatus').innerHTML = '';
+    
     document.getElementById('sendModal').style.display = 'flex';
 }
 
@@ -1719,12 +2065,16 @@ function showReceiveModal() {
         showMessage('❌ You need a wallet to receive tokens', 'error');
         return;
     }
-    document.getElementById('receiveModal').style.display = 'flex';
     
+    document.getElementById('receiveModal').style.display = 'flex';
+
     // Update receive address
     const addressElement = document.getElementById('receiveAddress');
     if (addressElement && walletState.wallet) {
         addressElement.textContent = walletState.wallet.address;
+        
+        // Generate QR code
+        generateQRCode(walletState.wallet.address);
     }
 }
 
@@ -1750,62 +2100,49 @@ function closeModalById(id) {
 }
 
 // =============================================
-// 🎯 WALLET OPERATIONS
+// 🎯 QR CODE GENERATION
 // =============================================
 
-async function importWalletFromModal() {
-    const mnemonicInput = document.getElementById('importMnemonic');
-    const statusElement = document.getElementById('importWalletStatus');
-    const importBtn = document.getElementById('importWalletBtn');
-
-    if (!walletState.currentUser?.id) {
-        showMessage('❌ You need to be logged in to import a wallet', 'error');
-        return;
-    }
-
-    try {
-        const mnemonic = mnemonicInput.value.trim();
-        if (!mnemonic) {
-            throw new Error('Please enter your recovery phrase');
-        }
-
-        const words = mnemonic.split(' ').filter(word => word.trim().length > 0);
-        if (words.length !== 12 && words.length !== 24) {
-            throw new Error('Seed phrase must be 12 or 24 words');
-        }
-
-        importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Importing...';
-        importBtn.disabled = true;
-
-        statusElement.innerHTML = '<div class="status-loading">🔄 Importing wallet...</div>';
-
-        // Import wallet for current user
-        const result = await window.walletManager.importWallet(walletState.currentUser.id, mnemonic);
-
-        if (result.success && result.wallet) {
-            console.log('✅ Wallet imported for user:', result.wallet.address);
-            
-            // Update wallet state
-            walletState.hasWallet = true;
-            walletState.wallet = result.wallet;
-            
-            // Switch to wallet interface
-            showWalletInterface();
-            await loadWalletData();
-            closeModal();
-            
-            statusElement.innerHTML = '<div class="status-success">✅ Wallet imported successfully!</div>';
-            showMessage('✅ Wallet imported successfully!', 'success');
-        } else {
-            throw new Error(result.error || 'Failed to import wallet');
-        }
-    } catch (error) {
-        console.error('❌ Import wallet failed:', error);
-        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
-        importBtn.innerHTML = 'Import Wallet';
-        importBtn.disabled = false;
-    }
+function generateQRCode(address) {
+    const qrContainer = document.getElementById('qrCode');
+    if (!qrContainer) return;
+    
+    // Clear previous QR code
+    qrContainer.innerHTML = '';
+    
+    // Generate QR code using simple method (in production, use a QR library)
+    const qrSize = 180;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(address)}`;
+    
+    const img = document.createElement('img');
+    img.src = qrUrl;
+    img.alt = 'TON Address QR Code';
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.borderRadius = '5px';
+    
+    img.onload = () => {
+        qrContainer.innerHTML = '';
+        qrContainer.appendChild(img);
+    };
+    
+    img.onerror = () => {
+        // Fallback to text display
+        qrContainer.innerHTML = `
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                <div style="font-size: 14px; color: #000; text-align: center; padding: 10px;">
+                    ${address.substring(0, 20)}...
+                    <br>
+                    ${address.substring(address.length - 20)}
+                </div>
+            </div>
+        `;
+    };
 }
+
+// =============================================
+// 🎯 WALLET OPERATIONS
+// =============================================
 
 function confirmBackupAndContinue() {
     // User has confirmed they backed up their seed phrase
@@ -1832,42 +2169,70 @@ async function sendTransaction() {
 
     const toAddress = document.getElementById('sendToAddress')?.value.trim();
     const amount = document.getElementById('sendAmount')?.value;
+    const memo = document.getElementById('sendMemo')?.value || '';
+    const sendBtn = document.getElementById('sendTransactionBtn');
+    const statusElement = document.getElementById('sendStatus');
 
     if (!toAddress || !amount) {
         showMessage('❌ Please fill all required fields', 'error');
         return;
     }
 
-    if (parseFloat(amount) <= 0) {
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
         showMessage('❌ Amount must be greater than 0', 'error');
         return;
     }
 
+    if (amountNum > SUPPORTED_TOKENS[0].balance) {
+        showMessage(`❌ Insufficient balance. Available: ${SUPPORTED_TOKENS[0].balance.toFixed(4)} TON`, 'error');
+        return;
+    }
+
+    // Basic TON address validation
+    if (!toAddress.startsWith('EQ') && !toAddress.startsWith('UQ') && !toAddress.startsWith('0:')) {
+        showMessage('❌ Invalid TON address format', 'error');
+        return;
+    }
+
     try {
-        showLoading('Sending transaction...');
+        // Disable send button and show loading
+        sendBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Sending...';
+        sendBtn.disabled = true;
         
-        const result = await window.walletManager.sendTON(
+        statusElement.innerHTML = '<div class="status-loading">🔄 Processing transaction...</div>';
+
+        // Send transaction
+        const result = await window.walletManager.sendTransaction(
             walletState.currentUser.id,
-            walletState.wallet.address,
             toAddress,
-            amount
+            amountNum.toString(),
+            memo
         );
-        
+
         if (result.success) {
-            console.log('✅ Transaction sent:', result.transaction?.hash);
-            showMessage(`✅ Sent ${amount} TON successfully!`, 'success');
-            closeModal();
+            statusElement.innerHTML = '<div class="status-success">✅ Transaction sent successfully!</div>';
+            showMessage(`✅ Sent ${amountNum} TON to ${toAddress.substring(0, 12)}...`, 'success');
             
-            // Refresh balances
-            await loadWalletData();
+            // Close modal after delay
+            setTimeout(() => {
+                closeModal();
+                // Refresh balances
+                loadWalletData();
+            }, 2000);
         } else {
             throw new Error(result.error || 'Transaction failed');
         }
     } catch (error) {
         console.error('❌ Send transaction failed:', error);
+        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
         showMessage(`❌ ${error.message}`, 'error');
     } finally {
-        hideLoading();
+        // Reset send button
+        if (sendBtn) {
+            sendBtn.innerHTML = 'Send';
+            sendBtn.disabled = false;
+        }
     }
 }
 
@@ -1876,7 +2241,7 @@ function copyAddress() {
         showMessage('❌ No wallet address available', 'error');
         return;
     }
-    
+
     navigator.clipboard.writeText(walletState.wallet.address)
         .then(() => {
             showMessage('✅ Address copied to clipboard!', 'success');
@@ -1887,16 +2252,37 @@ function copyAddress() {
         });
 }
 
+function shareAddress() {
+    if (!walletState.wallet?.address) {
+        showMessage('❌ No wallet address available', 'error');
+        return;
+    }
+
+    if (navigator.share) {
+        navigator.share({
+            title: 'My TON Wallet Address',
+            text: `Send TON to my Nemex Wallet: ${walletState.wallet.address}`,
+            url: window.location.href
+        })
+        .catch(err => {
+            console.error('❌ Share failed:', err);
+            copyAddress(); // Fallback to copy
+        });
+    } else {
+        copyAddress(); // Fallback to copy
+    }
+}
+
 function copySeedPhrase() {
     const seedPhrase = Array.from(document.querySelectorAll('#viewSeedWords .word-text'))
         .map(span => span.textContent)
         .join(' ');
-    
+
     if (!seedPhrase) {
         showMessage('❌ No seed phrase to copy', 'error');
         return;
     }
-    
+
     navigator.clipboard.writeText(seedPhrase)
         .then(() => {
             showMessage('✅ Seed phrase copied to clipboard!', 'success');
@@ -1926,7 +2312,7 @@ function updateNavItems() {
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
     });
-    
+
     if (walletState.currentView === 'wallet') {
         document.querySelectorAll('.nav-item')[0]?.classList.add('active');
     } else if (walletState.currentView === 'history') {
@@ -1940,15 +2326,15 @@ function updateNavItems() {
 
 function showMessage(message, type = 'info') {
     console.log(`📢 ${message}`);
-    
+
     const messageDiv = document.createElement('div');
     messageDiv.className = `message message-${type}`;
     messageDiv.innerHTML = type === 'error' ? `❌ ${message}` : 
                           type === 'success' ? `✅ ${message}` : 
                           type === 'warning' ? `⚠️ ${message}` : `ℹ️ ${message}`;
-    
+
     document.body.appendChild(messageDiv);
-    
+
     setTimeout(() => {
         if (messageDiv.parentNode) {
             messageDiv.parentNode.removeChild(messageDiv);
@@ -1964,11 +2350,11 @@ function showLoading(message = 'Loading...') {
     walletState.isLoading = true;
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingMessage = document.getElementById('loadingMessage');
-    
+
     if (loadingOverlay) {
         loadingOverlay.style.display = 'flex';
     }
-    
+
     if (loadingMessage) {
         loadingMessage.textContent = message;
     }
@@ -1977,7 +2363,7 @@ function showLoading(message = 'Loading...') {
 function hideLoading() {
     walletState.isLoading = false;
     const loadingOverlay = document.getElementById('loadingOverlay');
-    
+
     if (loadingOverlay) {
         loadingOverlay.style.display = 'none';
     }
@@ -2016,11 +2402,18 @@ function logout() {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Nemex Wallet page loaded - initializing...');
-    
+
     // Initialize wallet after page loads
     setTimeout(() => {
         initWallet();
     }, 500);
+    
+    // Close modals when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+        }
+    });
 });
 
 console.log('✅ Nemex Hybrid Wallet System loaded');
