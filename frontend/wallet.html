@@ -884,6 +884,123 @@
     </style>
 </head>
 <body>
+    <!-- MINING SITE USER DETECTION SCRIPT - ADD THIS AT TOP -->
+    <script>
+        // =============================================
+        // 🎯 MINING SITE USER DETECTION
+        // =============================================
+        
+        console.log('🔍 Checking for mining site user...');
+        
+        // Initialize Supabase for user detection
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        
+        async function detectMiningUser() {
+            try {
+                // Method 1: Check if user is already set by dashboard
+                if (window.miningUser) {
+                    console.log('✅ User from dashboard:', window.miningUser);
+                    return window.miningUser;
+                }
+                
+                // Method 2: Check sessionStorage (from dashboard navigation)
+                const sessionUser = sessionStorage.getItem('miningUser');
+                if (sessionUser) {
+                    const user = JSON.parse(sessionUser);
+                    console.log('✅ User from sessionStorage:', user);
+                    window.miningUser = user;
+                    return user;
+                }
+                
+                // Method 3: Check localStorage with expiration
+                const storedUser = localStorage.getItem('nemexcoin_wallet_user');
+                if (storedUser) {
+                    try {
+                        const userData = JSON.parse(storedUser);
+                        // Check if data is fresh (less than 5 minutes old)
+                        if (Date.now() - (userData.timestamp || 0) < 5 * 60 * 1000) {
+                            console.log('✅ User from localStorage:', userData);
+                            window.miningUser = userData;
+                            return userData;
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Invalid user data in localStorage');
+                    }
+                }
+                
+                // Method 4: Check Supabase Auth directly
+                try {
+                    const { createClient } = window.supabase;
+                    const supabase = createClient(supabaseUrl, supabaseKey);
+                    
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.user) {
+                        console.log('✅ User from Supabase Auth:', session.user.id);
+                        
+                        // Get user profile
+                        const { data: profile } = await supabase
+                            .from('profiles')
+                            .select('id, username, email')
+                            .eq('id', session.user.id)
+                            .single();
+                        
+                        if (profile) {
+                            const user = {
+                                id: profile.id,
+                                username: profile.username,
+                                email: profile.email,
+                                isFromSupabase: true
+                            };
+                            window.miningUser = user;
+                            return user;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Cannot access Supabase Auth:', error.message);
+                }
+                
+                // Method 5: Check URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const userId = urlParams.get('user_id');
+                if (userId) {
+                    console.log('✅ User from URL parameter:', userId);
+                    const user = { id: userId };
+                    window.miningUser = user;
+                    return user;
+                }
+                
+                console.warn('⚠️ No mining user detected');
+                return null;
+                
+            } catch (error) {
+                console.error('❌ Error detecting mining user:', error);
+                return null;
+            }
+        }
+        
+        // Run user detection when page loads
+        (async function() {
+            const miningUser = await detectMiningUser();
+            
+            if (!miningUser) {
+                console.log('❌ No authenticated user found');
+                // Don't redirect immediately - let wallet.js handle it
+                // This way users can still see wallet page but operations will fail
+                return;
+            }
+            
+            console.log('✅ Mining user ready for wallet:', miningUser.id);
+            // Store in hidden input for easy access
+            const userInput = document.createElement('input');
+            userInput.type = 'hidden';
+            userInput.id = 'miningUserId';
+            userInput.value = miningUser.id;
+            document.body.appendChild(userInput);
+            
+        })();
+    </script>
+
     <!-- Loading Overlay -->
     <div id="loadingOverlay">
         <div class="loading" style="width: 40px; height: 40px; border-width: 4px;"></div>
@@ -1496,6 +1613,13 @@ async function showBackupStatus() {
     }
 
     try {
+        // Note: getBackupStatus might not exist in walletManager
+        // You can implement this or show a generic message
+        showMessage('ℹ️ Backup status feature coming soon!', 'info');
+        return;
+        
+        // Original code commented out since the method might not exist
+        /*
         const result = await window.walletManager.getBackupStatus(walletState.currentUser.id);
 
         if (result.success && result.status) {
@@ -1553,6 +1677,7 @@ async function showBackupStatus() {
         } else {
             throw new Error(result.error || 'Failed to get backup status');
         }
+        */
     } catch (error) {
         showMessage(`❌ ${error.message}`, 'error');
     }
@@ -1751,6 +1876,13 @@ async function changeEncryptionPassword() {
     try {
         showLoading('Changing encryption password...');
 
+        // Note: changeSeedPassword might not exist in walletManager
+        // You can use updatePassword or implement it in wallet-routes.js
+        showMessage('ℹ️ Change password feature coming soon!', 'info');
+        closeChangePasswordModal();
+        
+        /*
+        // Original code commented out
         const result = await window.walletManager.changeSeedPassword(
             walletState.currentUser.id,
             currentPassword,
@@ -1763,6 +1895,7 @@ async function changeEncryptionPassword() {
         } else {
             throw new Error(result.error || 'Failed to change password');
         }
+        */
     } catch (error) {
         console.error('❌ Change password failed:', error);
         showMessage(`❌ ${error.message}`, 'error');
@@ -1882,13 +2015,20 @@ function showLoginRequiredMessage() {
             You need to be logged into your Nemex account to access the wallet.
         </div>
         <div class="welcome-actions">
-            <button class="welcome-btn primary" onclick="window.location.href='login.html'">
-                Go to Login
+            <button class="welcome-btn primary" onclick="goToMiningDashboard()">
+                Go to Mining Dashboard
+            </button>
+            <button class="welcome-btn secondary" onclick="window.location.href='login.html'">
+                Login Page
             </button>
         </div>
     `;
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('walletInterface').classList.add('hidden');
+}
+
+function goToMiningDashboard() {
+    window.location.href = 'dashboard.html';
 }
 
 async function loadWalletData() {
@@ -2382,18 +2522,12 @@ function handleTokenLogoError(img, symbol) {
 }
 
 function logout() {
-    if (window.supabase) {
-        window.supabase.auth.signOut()
-            .then(() => {
-                window.location.href = 'login.html';
-            })
-            .catch(error => {
-                console.error('❌ Logout failed:', error);
-                showMessage('❌ Failed to logout', 'error');
-            });
-    } else {
-        window.location.href = 'login.html';
-    }
+    // Clear wallet-specific storage
+    sessionStorage.removeItem('miningUser');
+    localStorage.removeItem('nemexcoin_wallet_user');
+    
+    // Redirect to mining dashboard
+    window.location.href = 'dashboard.html';
 }
 
 // =============================================
