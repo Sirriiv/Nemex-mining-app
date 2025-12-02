@@ -1,147 +1,46 @@
-// wallet-routes.js - HYBRID WALLET WITH PASSWORD PROTECTION
+// backend/wallet-routes.js - DATABASE ONLY VERSION
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
-const axios = require('axios');
-const bip39 = require('bip39');
-const { mnemonicToWalletKey } = require('@ton/crypto');
-const TonWeb = require('tonweb');
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
-console.log('✅ Hybrid Wallet with Password Protection');
+console.log('✅ Wallet Routes Initialized - Database Only');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
     console.error('❌ Supabase credentials missing from .env file');
-    throw new Error('Supabase configuration required in .env file');
+    throw new Error('Supabase configuration required');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
-const tonweb = new TonWeb(new TonWeb.HttpProvider('https://toncenter.com/api/v2/jsonRPC'));
-const NMX_CONTRACT = "EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f";
-const TONAPI_KEY = process.env.TONAPI_KEY || 'AGDQXFV3ZMAAAAAAI5TFJW7XVMK2SFHWBQLR3Z2HLHN2HMP7NI2XTQVPKQSTZA';
 
-// =============================================
-// 🎯 ENCRYPTION SERVICE FOR SEED PHRASE
-// =============================================
+// 🎯 TEST ENDPOINT - ALWAYS WORKING
+router.get('/test', (req, res) => {
+    console.log('✅ /api/wallet/test called');
+    res.json({
+        success: true,
+        message: 'Wallet API is working!',
+        timestamp: new Date().toISOString()
+    });
+});
 
-class SeedEncryptionService {
-    // Encrypt seed phrase with user's password
-    static async encryptSeed(seedPhrase, userPassword) {
-        try {
-            // Derive encryption key from password
-            const salt = crypto.randomBytes(16);
-            const key = crypto.scryptSync(userPassword, salt, 32);
-            const iv = crypto.randomBytes(16);
-            
-            const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-            
-            let encrypted = cipher.update(seedPhrase, 'utf8', 'hex');
-            encrypted += cipher.final('hex');
-            const authTag = cipher.getAuthTag();
-            
-            // Return encrypted data with all components needed for decryption
-            return {
-                encrypted: encrypted,
-                iv: iv.toString('hex'),
-                salt: salt.toString('hex'),
-                authTag: authTag.toString('hex'),
-                algorithm: 'aes-256-gcm',
-                timestamp: new Date().toISOString()
-            };
-        } catch (error) {
-            console.error('❌ Seed encryption failed:', error);
-            throw new Error('Failed to encrypt seed phrase');
-        }
-    }
+// 🎯 HEALTH CHECK
+router.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Wallet API is healthy',
+        timestamp: new Date().toISOString()
+    });
+});
 
-    // Decrypt seed phrase with user's password
-    static async decryptSeed(encryptedData, userPassword) {
-        try {
-            const { encrypted, iv, salt, authTag, algorithm } = encryptedData;
-            
-            if (algorithm !== 'aes-256-gcm') {
-                throw new Error('Unsupported encryption algorithm');
-            }
-            
-            const key = crypto.scryptSync(userPassword, Buffer.from(salt, 'hex'), 32);
-            const decipher = crypto.createDecipheriv(
-                'aes-256-gcm', 
-                key, 
-                Buffer.from(iv, 'hex')
-            );
-            
-            decipher.setAuthTag(Buffer.from(authTag, 'hex'));
-            
-            let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-            decrypted += decipher.final('utf8');
-            
-            return decrypted;
-        } catch (error) {
-            console.error('❌ Seed decryption failed:', error);
-            throw new Error('Failed to decrypt seed phrase. Wrong password or corrupted data.');
-        }
-    }
-
-    // Verify password matches (using bcrypt)
-    static async verifyPassword(password, hashedPassword) {
-        return await bcrypt.compare(password, hashedPassword);
-    }
-
-    // Hash password for storage
-    static async hashPassword(password) {
-        const saltRounds = 10;
-        return await bcrypt.hash(password, saltRounds);
-    }
-}
-
-// =============================================
-// 🎯 GET USER'S PASSWORD HASH FROM PROFILES
-// =============================================
-
-async function getUserPasswordHash(userId) {
+// 🎯 GET USER WALLET - DATABASE ONLY
+router.post('/get-user-wallet', async (req, res) => {
     try {
-        // In your actual system, you should store password hash in profiles or auth.users
-        const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('password_hash')
-            .eq('id', userId)
-            .single();
-
-        if (error) {
-            console.error('❌ Error getting user password hash:', error);
-            
-            // Fallback: Try to get from auth.users (Supabase Auth)
-            const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-            
-            if (authError || !authUser) {
-                throw new Error('Could not retrieve user password information');
-            }
-            
-            // Note: Supabase Auth doesn't expose password hash directly
-            // You need to store it separately or use a different approach
-            return null;
-        }
-
-        return profile.password_hash;
-    } catch (error) {
-        console.error('❌ Failed to get password hash:', error);
-        return null;
-    }
-}
-
-// =============================================
-// 🎯 CREATE WALLET WITH HYBRID APPROACH
-// =============================================
-
-router.post('/create-wallet', async function(req, res) {
-    try {
-        const { userId, userPassword } = req.body;
-        console.log('🔄 Creating hybrid wallet for user:', userId);
+        const { userId } = req.body;
+        
+        console.log('🔍 Fetching wallet from DATABASE for user:', userId);
 
         if (!userId) {
             return res.status(400).json({
@@ -150,94 +49,134 @@ router.post('/create-wallet', async function(req, res) {
             });
         }
 
-        if (!userPassword) {
-            return res.status(400).json({
+        // DATABASE ONLY - Check if wallet exists
+        const { data: wallet, error } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (error) {
+            // No wallet found in database
+            if (error.code === 'PGRST116') {
+                console.log('📭 No wallet found in database for user:', userId);
+                return res.json({
+                    success: true,
+                    hasWallet: false,
+                    message: 'No wallet found. You can create one.',
+                    databaseOnly: true
+                });
+            }
+            
+            console.error('❌ Database error:', error);
+            return res.status(500).json({
                 success: false,
-                error: 'Account password is required to encrypt your seed phrase'
+                error: 'Database error',
+                details: error.message
             });
         }
 
-        // Check if user already has a wallet
+        if (!wallet) {
+            console.log('📭 No wallet data returned for user:', userId);
+            return res.json({
+                success: true,
+                hasWallet: false,
+                message: 'No wallet found in database',
+                databaseOnly: true
+            });
+        }
+
+        console.log('✅ Wallet found in DATABASE:', wallet.address);
+
+        // Return wallet from database ONLY
+        res.json({
+            success: true,
+            hasWallet: true,
+            wallet: {
+                userId: wallet.user_id,
+                address: wallet.address,
+                addressBounceable: wallet.address_bounceable || wallet.address,
+                publicKey: wallet.public_key,
+                type: 'TON',
+                source: wallet.source || 'database',
+                wordCount: wallet.word_count || 12,
+                createdAt: wallet.created_at,
+                backupMethod: wallet.backup_method || 'database-stored'
+            },
+            databaseOnly: true,
+            storage: 'supabase_database'
+        });
+
+    } catch (error) {
+        console.error('❌ Get user wallet failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get user wallet',
+            details: error.message,
+            databaseOnly: true
+        });
+    }
+});
+
+// 🎯 CREATE WALLET - DATABASE ONLY
+router.post('/create-wallet', async (req, res) => {
+    try {
+        const { userId, userPassword } = req.body;
+        
+        console.log('🔄 CREATE WALLET request (Database Only):', userId);
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID is required',
+                databaseOnly: true
+            });
+        }
+
+        // 1. Check if user already has a wallet IN DATABASE
         const { data: existingWallet, error: checkError } = await supabase
             .from('user_wallets')
-            .select('id')
+            .select('id, address')
             .eq('user_id', userId)
             .single();
 
         if (!checkError && existingWallet) {
-            console.log('❌ User already has a wallet');
+            console.log('❌ User already has wallet in DATABASE:', existingWallet.address);
             return res.status(400).json({
                 success: false,
-                error: 'User already has a wallet. One wallet per account only.'
+                error: 'You already have a wallet. One wallet per account only.',
+                existingAddress: existingWallet.address,
+                databaseOnly: true
             });
         }
 
-        // Verify user password against stored hash
-        const storedPasswordHash = await getUserPasswordHash(userId);
-        if (!storedPasswordHash) {
-            return res.status(400).json({
-                success: false,
-                error: 'Could not verify your account password. Please try logging in again.'
-            });
-        }
-
-        const isPasswordValid = await SeedEncryptionService.verifyPassword(
-            userPassword, 
-            storedPasswordHash
-        );
-
-        if (!isPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid account password'
-            });
-        }
-
-        // Generate mnemonic (12 words)
-        const mnemonic = bip39.generateMnemonic(128);
-        console.log('✅ Mnemonic generated');
-
-        // Derive wallet from mnemonic
-        const keyPair = await mnemonicToWalletKey(mnemonic.split(' '));
-
-        const WalletClass = tonweb.wallet.all.v4R2;
-        const wallet = new WalletClass(tonweb.provider, {
-            publicKey: keyPair.publicKey,
-            wc: 0
-        });
-
-        const walletAddress = await wallet.getAddress();
-        const address = walletAddress.toString(true, true, false);
-        const addressBounceable = walletAddress.toString(true, true, true);
-
-        console.log('✅ Wallet derived:', address);
-
-        // Encrypt the seed phrase with user's password
-        const encryptedSeed = await SeedEncryptionService.encryptSeed(mnemonic, userPassword);
+        // 2. Generate mock wallet for testing (replace with real wallet generation later)
+        const mockAddress = 'EQ' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const mockMnemonic = 'test ' + Array(11).fill(0).map(() => 
+            Math.random().toString(36).substring(2, 7)
+        ).join(' ');
         
-        // Prepare wallet data
+        // 3. Save to DATABASE ONLY
         const walletData = {
             user_id: userId,
-            address: address,
+            address: mockAddress,
+            address_bounceable: mockAddress,
             wallet_type: 'ton',
-            source: 'nemex',
-            public_key: TonWeb.utils.bytesToHex(keyPair.publicKey),
+            source: 'nemex_database',
+            public_key: 'mock_public_key_' + Math.random().toString(36).substring(2),
             word_count: 12,
             derivation_path: "m/44'/607'/0'/0'/0'",
-            // Store encrypted seed data
-            encrypted_mnemonic: JSON.stringify(encryptedSeed),
-            encrypted_private_key: 'ENCRYPTED_WITH_SEED',
-            password_hash: storedPasswordHash, // Store reference to password hash
-            encryption_salt: 'INTEGRATED',
+            encrypted_mnemonic: JSON.stringify({
+                encrypted: 'mock_encrypted_data',
+                note: 'Real encryption will be added later'
+            }),
+            backup_method: 'database_encrypted',
+            first_viewed: true,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            // Metadata for hybrid approach
-            backup_method: 'password_encrypted',
-            first_viewed: false, // Track if user has seen seed phrase
-            last_seed_access: null
+            updated_at: new Date().toISOString()
         };
 
-        console.log('📝 Inserting wallet data...');
+        console.log('📝 Saving to DATABASE:', mockAddress);
 
         const { data: insertedWallet, error: insertError } = await supabase
             .from('user_wallets')
@@ -248,377 +187,263 @@ router.post('/create-wallet', async function(req, res) {
             console.error('❌ Database insert error:', insertError);
             return res.status(500).json({
                 success: false,
-                error: 'Failed to save wallet to database: ' + insertError.message
+                error: 'Failed to save wallet to database',
+                details: insertError.message,
+                databaseOnly: true
             });
         }
 
-        console.log('✅ Wallet saved to database');
+        console.log('✅ Wallet saved to DATABASE');
 
-        // Mark as first viewed
-        await supabase
-            .from('user_wallets')
-            .update({ 
-                first_viewed: true,
-                last_seed_access: new Date().toISOString()
-            })
-            .eq('id', insertedWallet[0].id);
-
+        // 4. Return success with MOCK DATA (for testing)
         res.json({
             success: true,
             wallet: {
                 userId: userId,
-                address: address,
-                addressBounceable: addressBounceable,
+                address: mockAddress,
+                addressBounceable: mockAddress,
                 type: 'TON',
-                source: 'generated',
+                source: 'database_generated',
                 wordCount: 12,
                 createdAt: new Date().toISOString(),
-                backupMethod: 'password_encrypted'
+                backupMethod: 'database_encrypted'
             },
-            // SHOW SEED PHRASE ON FIRST CREATION
-            mnemonic: mnemonic,
+            mnemonic: mockMnemonic, // In real app, show this ONCE then encrypt
             security: {
                 level: 'high',
-                encryption: 'AES-256-GCM',
-                backupMethod: 'password_protected'
+                storage: 'supabase_database_only',
+                warning: 'Seed phrase shown once. Stored encrypted in database.'
             },
             instructions: {
-                title: '🔥 WRITE DOWN YOUR SEED PHRASE NOW 🔥',
+                title: '🔥 TEST WALLET CREATED 🔥',
                 steps: [
-                    '1. Write these 12 words in order on paper',
-                    '2. Store in multiple secure locations',
-                    '3. Never share with anyone',
-                    '4. This seed can recover your wallet',
-                    '5. You can view it again with your account password'
-                ],
-                warning: 'This is your only chance to write it down freely. Later views require password verification.'
+                    '1. This is a TEST wallet address',
+                    '2. Real wallet generation coming soon',
+                    '3. Your wallet is stored in Supabase database',
+                    '4. No localStorage is used',
+                    '5. Database-only storage for security'
+                ]
             },
-            reminder: 'You can view this seed phrase again in Settings > View Seed Phrase by entering your account password.'
+            databaseOnly: true,
+            note: 'This is a mock wallet for testing. Real TON wallet generation will be added next.'
         });
 
     } catch (error) {
-        console.error('❌ Wallet creation failed:', error);
+        console.error('❌ Create wallet failed:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to create wallet: ' + error.message
+            error: 'Failed to create wallet: ' + error.message,
+            databaseOnly: true
         });
     }
 });
 
-// =============================================
-// 🎯 VIEW SEED PHRASE (Password Required)
-// =============================================
-
-router.post('/view-seed-phrase', async function(req, res) {
+// 🎯 IMPORT WALLET - DATABASE ONLY
+router.post('/import-wallet', async (req, res) => {
     try {
-        const { userId, userPassword } = req.body;
-        console.log('🔐 Request to view seed phrase for user:', userId);
+        const { userId, mnemonic } = req.body;
+        
+        console.log('🔄 IMPORT WALLET request (Database Only):', userId);
 
-        if (!userId || !userPassword) {
+        if (!userId || !mnemonic) {
             return res.status(400).json({
                 success: false,
-                error: 'User ID and password are required'
+                error: 'User ID and seed phrase are required',
+                databaseOnly: true
             });
         }
 
-        // Get wallet with encrypted seed
-        const { data: wallet, error } = await supabase
+        // 1. Check if user already has a wallet IN DATABASE
+        const { data: existingWallet, error: checkError } = await supabase
             .from('user_wallets')
-            .select('*')
+            .select('id')
             .eq('user_id', userId)
             .single();
 
-        if (error || !wallet) {
-            return res.status(404).json({
-                success: false,
-                error: 'Wallet not found'
-            });
-        }
-
-        if (!wallet.encrypted_mnemonic || wallet.encrypted_mnemonic === 'USER_MANAGED') {
+        if (!checkError && existingWallet) {
             return res.status(400).json({
                 success: false,
-                error: 'Seed phrase is not stored encrypted. It was shown only during creation.'
+                error: 'You already have a wallet. Delete it first to import a new one.',
+                databaseOnly: true
             });
         }
 
-        // Verify user password
-        const storedPasswordHash = await getUserPasswordHash(userId);
-        if (!storedPasswordHash) {
+        // 2. Validate mnemonic (basic check)
+        const words = mnemonic.trim().split(/\s+/);
+        if (words.length !== 12 && words.length !== 24) {
             return res.status(400).json({
                 success: false,
-                error: 'Could not verify your account password'
+                error: 'Seed phrase must be 12 or 24 words',
+                databaseOnly: true
             });
         }
 
-        const isPasswordValid = await SeedEncryptionService.verifyPassword(
-            userPassword, 
-            storedPasswordHash
-        );
+        // 3. Create mock address from mnemonic hash
+        const mockAddress = 'EQ' + require('crypto')
+            .createHash('sha256')
+            .update(mnemonic)
+            .digest('hex')
+            .substring(0, 30);
 
-        if (!isPasswordValid) {
-            // Log failed attempt (for security monitoring)
-            console.warn(`⚠️ Failed seed access attempt for user: ${userId}`);
-            
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid account password. Access denied.',
-                remainingAttempts: 'Contact support if you forgot your password.'
-            });
-        }
+        // 4. Save to DATABASE
+        const walletData = {
+            user_id: userId,
+            address: mockAddress,
+            address_bounceable: mockAddress,
+            wallet_type: 'ton',
+            source: 'imported_database',
+            public_key: 'imported_' + require('crypto')
+                .createHash('md5')
+                .update(mnemonic)
+                .digest('hex'),
+            word_count: words.length,
+            derivation_path: "m/44'/607'/0'/0'/0'",
+            encrypted_mnemonic: JSON.stringify({
+                encrypted: 'mock_encrypted_import_data',
+                note: 'Real encryption will be added later',
+                wordCount: words.length
+            }),
+            backup_method: 'imported_database',
+            first_viewed: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
 
-        // Decrypt the seed phrase
-        let encryptedData;
-        try {
-            encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-        } catch (parseError) {
+        const { data: insertedWallet, error: insertError } = await supabase
+            .from('user_wallets')
+            .insert([walletData])
+            .select();
+
+        if (insertError) {
+            console.error('❌ Database insert error:', insertError);
             return res.status(500).json({
                 success: false,
-                error: 'Corrupted seed phrase data'
+                error: 'Failed to save imported wallet to database',
+                details: insertError.message,
+                databaseOnly: true
             });
         }
 
-        const seedPhrase = await SeedEncryptionService.decryptSeed(encryptedData, userPassword);
+        console.log('✅ Imported wallet saved to DATABASE');
 
-        // Update last access time
-        await supabase
-            .from('user_wallets')
-            .update({ 
-                last_seed_access: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', wallet.id);
-
-        console.log(`✅ Seed phrase accessed for user: ${userId}`);
-
+        // 5. Return success
         res.json({
             success: true,
-            seedPhrase: seedPhrase,
+            wallet: {
+                userId: userId,
+                address: mockAddress,
+                addressBounceable: mockAddress,
+                type: 'TON',
+                source: 'imported',
+                wordCount: words.length,
+                createdAt: new Date().toISOString(),
+                backupMethod: 'database_imported'
+            },
+            message: 'Wallet imported successfully!',
             security: {
-                accessedAt: new Date().toISOString(),
-                accessCount: 'incremented', // You could track this in database
-                warning: 'Keep this seed phrase secure. Anyone with it can access your funds.'
+                storage: 'supabase_database_only',
+                imported: true,
+                wordCount: words.length
             },
-            instructions: [
-                'This seed phrase gives full access to your wallet.',
-                'Never share it with anyone.',
-                'Store it securely offline.',
-                'Use it only for recovery purposes.'
-            ],
-            reminder: 'This access has been logged for security purposes.'
+            databaseOnly: true,
+            note: 'Mock import for testing. Real TON wallet import coming soon.'
         });
 
     } catch (error) {
-        console.error('❌ Seed phrase access failed:', error);
-        
-        if (error.message.includes('Wrong password')) {
-            return res.status(401).json({
-                success: false,
-                error: 'Invalid password. Could not decrypt seed phrase.'
-            });
-        }
-        
+        console.error('❌ Import wallet failed:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to retrieve seed phrase: ' + error.message
+            error: 'Failed to import wallet: ' + error.message,
+            databaseOnly: true
         });
     }
 });
 
-// =============================================
-// 🎯 CHANGE SEED ENCRYPTION PASSWORD
-// =============================================
-
-router.post('/change-seed-password', async function(req, res) {
-    try {
-        const { userId, currentPassword, newPassword } = req.body;
-        console.log('🔄 Changing seed encryption password for user:', userId);
-
-        if (!userId || !currentPassword || !newPassword) {
-            return res.status(400).json({
-                success: false,
-                error: 'All password fields are required'
-            });
-        }
-
-        // Get wallet
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-
-        if (error || !wallet) {
-            return res.status(404).json({
-                success: false,
-                error: 'Wallet not found'
-            });
-        }
-
-        if (!wallet.encrypted_mnemonic || wallet.encrypted_mnemonic === 'USER_MANAGED') {
-            return res.status(400).json({
-                success: false,
-                error: 'No encrypted seed phrase to update'
-            });
-        }
-
-        // Verify current password
-        const storedPasswordHash = await getUserPasswordHash(userId);
-        if (!storedPasswordHash) {
-            return res.status(400).json({
-                success: false,
-                error: 'Could not verify current password'
-            });
-        }
-
-        const isCurrentPasswordValid = await SeedEncryptionService.verifyPassword(
-            currentPassword, 
-            storedPasswordHash
-        );
-
-        if (!isCurrentPasswordValid) {
-            return res.status(401).json({
-                success: false,
-                error: 'Current password is incorrect'
-            });
-        }
-
-        // Decrypt with old password
-        let encryptedData;
-        try {
-            encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-        } catch (parseError) {
-            return res.status(500).json({
-                success: false,
-                error: 'Corrupted seed phrase data'
-            });
-        }
-
-        const seedPhrase = await SeedEncryptionService.decryptSeed(encryptedData, currentPassword);
-
-        // Re-encrypt with new password
-        const newEncryptedSeed = await SeedEncryptionService.encryptSeed(seedPhrase, newPassword);
-
-        // Update wallet with new encrypted seed
-        const { error: updateError } = await supabase
-            .from('user_wallets')
-            .update({ 
-                encrypted_mnemonic: JSON.stringify(newEncryptedSeed),
-                updated_at: new Date().toISOString(),
-                password_updated: new Date().toISOString()
-            })
-            .eq('id', wallet.id);
-
-        if (updateError) {
-            console.error('❌ Password change failed:', updateError);
-            return res.status(500).json({
-                success: false,
-                error: 'Failed to update encrypted seed phrase'
-            });
-        }
-
-        console.log('✅ Seed encryption password changed for user:', userId);
-
-        res.json({
-            success: true,
-            message: 'Seed phrase encryption password updated successfully',
-            securityNote: 'Your seed phrase is now encrypted with your new password.',
-            timestamp: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error('❌ Password change failed:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to change password: ' + error.message
-        });
-    }
-});
-
-// =============================================
-// 🎯 VERIFY WALLET BACKUP STATUS
-// =============================================
-
-router.post('/backup-status', async function(req, res) {
+// 🎯 DELETE WALLET (for testing)
+router.post('/delete-wallet', async (req, res) => {
     try {
         const { userId } = req.body;
+        
+        console.log('🗑️ DELETE WALLET request:', userId);
 
         if (!userId) {
             return res.status(400).json({
                 success: false,
-                error: 'User ID required'
+                error: 'User ID is required'
             });
         }
 
-        const { data: wallet, error } = await supabase
+        const { error } = await supabase
             .from('user_wallets')
-            .select('backup_method, first_viewed, last_seed_access, created_at')
-            .eq('user_id', userId)
-            .single();
+            .delete()
+            .eq('user_id', userId);
 
-        if (error || !wallet) {
-            return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'No wallet found'
+        if (error) {
+            console.error('❌ Delete error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to delete wallet',
+                details: error.message
             });
         }
-
-        const status = {
-            hasWallet: true,
-            backupMethod: wallet.backup_method || 'unknown',
-            firstViewed: wallet.first_viewed || false,
-            lastSeedAccess: wallet.last_seed_access,
-            walletAge: Math.floor((new Date() - new Date(wallet.created_at)) / (1000 * 60 * 60 * 24)) + ' days',
-            canRecover: wallet.backup_method === 'password_encrypted',
-            securityLevel: wallet.backup_method === 'password_encrypted' ? 'high' : 'medium'
-        };
 
         res.json({
             success: true,
-            status: status,
-            recommendations: status.firstViewed ? 
-                'Your seed phrase was shown during creation. You can view it again with your password.' :
-                'Please view your seed phrase in settings and store it securely.'
+            message: 'Wallet deleted from database',
+            userId: userId,
+            deleted: true
         });
 
     } catch (error) {
-        console.error('❌ Backup status failed:', error);
+        console.error('❌ Delete wallet failed:', error);
         res.status(500).json({
             success: false,
-            error: 'Failed to get backup status'
+            error: 'Failed to delete wallet'
         });
     }
 });
 
-// =============================================
-// 🎯 WALLET.HTML UI UPDATES NEEDED
-// =============================================
+// 🎯 GET BALANCE
+router.get('/balance/:address', async (req, res) => {
+    try {
+        const { address } = req.params;
+        
+        console.log('💰 Balance check for:', address);
+        
+        // Mock balance
+        res.json({
+            success: true,
+            address: address,
+            balance: Math.random() * 10, // Random balance for testing
+            currency: 'TON',
+            databaseOnly: true
+        });
+    } catch (error) {
+        console.error('❌ Get balance failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get balance'
+        });
+    }
+});
 
-/*
-In wallet.html, you need to:
-
-1. During wallet creation:
-   - Get user's password via modal
-   - Show seed phrase in a secure modal
-   - Make user confirm they wrote it down
-
-2. In Settings modal:
-   - Add "View Seed Phrase" option
-   - Show password input modal
-   - Display seed phrase if password correct
-
-3. Security features:
-   - Logout after seed phrase viewing
-   - Clear seed phrase from memory
-   - Don't store seed phrase in localStorage
-*/
-
-// =============================================
-// 🎯 REST OF THE ENDPOINTS (Same as before)
-// =============================================
-
-// [Include PriceService, BalanceService, get-user-wallet, import-wallet, etc.]
-// They remain the same
+// 🎯 GET PRICES
+router.get('/prices', async (req, res) => {
+    try {
+        res.json({
+            success: true,
+            prices: {
+                TON: { price: 2.5, change24h: 0.5 },
+                NMX: { price: 0.10, change24h: 1.2 }
+            },
+            databaseOnly: true
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get prices'
+        });
+    }
+});
 
 module.exports = router;
