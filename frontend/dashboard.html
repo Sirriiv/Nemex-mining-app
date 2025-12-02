@@ -2577,6 +2577,75 @@
 
         // Add click event to claim button
         document.getElementById('claimButton').addEventListener('click', claimMiningReward);
+
+// 🔐 WALLET INTEGRATION FUNCTION FOR DASHBOARD
+// This function opens the wallet and passes the current mining user
+async function openWalletWithUser() {
+    try {
+        console.log('🔗 Opening wallet with mining user...');
+        
+        // Get current user from Supabase session
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (!session || !session.user) {
+            console.error('❌ No user session found');
+            showError('Please login to access wallet');
+            return;
+        }
+        
+        // Get user profile data
+        const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('id, username, email')
+            .eq('id', session.user.id)
+            .single();
+        
+        if (!profile) {
+            console.error('❌ No profile found');
+            showError('User profile not found');
+            return;
+        }
+        
+        console.log('✅ User found for wallet:', profile.id);
+        
+        // Create user object to pass to wallet
+        const miningUser = {
+            id: profile.id,
+            username: profile.username,
+            email: profile.email,
+            // Add any other relevant data
+        };
+        
+        // Store in sessionStorage (temporary)
+        sessionStorage.setItem('miningUser', JSON.stringify(miningUser));
+        
+        // Also store in localStorage with expiration (optional)
+        localStorage.setItem('nemexcoin_wallet_user', JSON.stringify({
+            ...miningUser,
+            timestamp: Date.now()
+        }));
+        
+        // Navigate to wallet with loading screen
+        showLoadingScreen('wallet.html', 'Loading Wallet...');
+        
+    } catch (error) {
+        console.error('❌ Error opening wallet:', error);
+        showError('Failed to open wallet');
+    }
+}
+
+// Update the wallet nav item click handler
+document.addEventListener('DOMContentLoaded', function() {
+    // Find the wallet nav item and update its onclick
+    const walletNavItem = document.querySelector('.nav-item[onclick*="wallet.html"]');
+    if (walletNavItem) {
+        // Replace the old onclick with new function
+        walletNavItem.setAttribute('onclick', '');
+        walletNavItem.addEventListener('click', openWalletWithUser);
+        
+        console.log('✅ Wallet navigation updated');
+    }
+});
     </script>
 </body>
 </html>
