@@ -1,98 +1,30 @@
-{
-  "name": "nemex-wallet",
-  "version": "2.0.0",
-  "description": "Nemex Wallet - Production Ready TON & NMX Wallet",
-  "main": "server.js",
-  "scripts": {
-    "start": "NODE_ENV=production node server.js",
-    "dev": "NODE_ENV=development nodemon server.js",
-    "dev-windows": "set NODE_ENV=development&& nodemon server.js",
-    "test": "jest --verbose",
-    "test:api": "node test/api-test.js",
-    "setup": "node scripts/setup-database.js",
-    "lint": "eslint .",
-    "format": "prettier --write '**/*.{js,json,html,css}'",
-    "docker:build": "docker build -t nemex-wallet .",
-    "docker:run": "docker run -p 3000:3000 nemex-wallet",
-    "deploy": "npm run lint && npm test && npm run build",
-    "seed": "node scripts/seed-database.js",
-    "backup": "node scripts/backup-database.js",
-    "monitor": "node scripts/monitor.js",
-    "clean": "rm -rf node_modules package-lock.json && npm install"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "bcryptjs": "^2.4.3",
-    "dotenv": "^16.3.1",
-    "@supabase/supabase-js": "^2.38.0",
-    "axios": "^1.6.0",
-    "crypto": "^1.0.1",
-    "helmet": "^7.1.0",
-    "compression": "^1.7.4",
-    "morgan": "^1.10.0",
-    "winston": "^3.11.0",
-    "rate-limiter-flexible": "^4.2.1",
-    "joi": "^17.11.0",
-    "jsonwebtoken": "^9.0.2",
-    "uuid": "^9.0.1",
-    "node-cron": "^3.0.3",
-    "ton": "^13.10.0",
-    "ton-crypto": "^3.2.0",
-    "ton-core": "^0.54.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2",
-    "jest": "^29.7.0",
-    "supertest": "^6.3.3",
-    "eslint": "^8.56.0",
-    "prettier": "^3.1.1",
-    "@types/node": "^20.10.5",
-    "@types/express": "^4.17.21",
-    "@types/cors": "^2.8.17",
-    "concurrently": "^8.2.2"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=9.0.0"
-  },
-  "keywords": [
-    "ton",
-    "blockchain",
-    "wallet",
-    "crypto",
-    "nemex",
-    "toncoin",
-    "cryptocurrency",
-    "web3"
-  ],
-  "author": "Nemex Team <support@nemexcoin.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/nemexcoin/nemex-wallet"
-  },
-  "bugs": {
-    "url": "https://github.com/nemexcoin/nemex-wallet/issues"
-  },
-  "homepage": "https://nemexcoin.com/wallet",
-  "funding": {
-    "type": "patreon",
-    "url": "https://patreon.com/nemexcoin"
-  },
-  "private": true,
-  "files": [
-    "server.js",
-    "backend/",
-    "frontend/",
-    "scripts/",
-    "config/",
-    "tests/",
-    "docs/",
-    "LICENSE",
-    "README.md"
-  ],
-  "volta": {
-    "node": "18.18.2"
-  }
-}
+"dependencies": {
+  "express": "^4.18.2",
+  "cors": "^2.8.5",
+  "bcryptjs": "^2.4.3",
+  "dotenv": "^16.3.1",
+  "@supabase/supabase-js": "^2.38.0",
+  "axios": "^1.6.0",
+  "crypto": "^1.0.1",
+  "helmet": "^7.1.0",
+  "compression": "^1.7.4",
+  "morgan": "^1.10.0",
+  "winston": "^3.11.0",
+  "rate-limiter-flexible": "^4.2.1",
+  "joi": "^17.11.0",
+  "jsonwebtoken": "^9.0.2",
+  "uuid": "^9.0.1",
+  "node-cron": "^3.0.3",
+  
+  // TON WALLET DEPENDENCIES - ADD THESE!
+  "tonweb": "^0.0.60",
+  "tonweb-mnemonic": "^0.0.10",
+  "crypto-js": "^4.1.1",
+  "bip39": "^3.1.0",
+  "node-fetch": "^2.6.9",
+  
+  // Optional: Remove these if not used
+  "ton": "^13.10.0",
+  "ton-crypto": "^3.2.0",
+  "ton-core": "^0.54.0"
+},
