@@ -17,7 +17,9 @@
     "@ton/crypto": "^3.2.1",
     "@ton/core": "^0.49.1",
     "tonweb": "^0.0.60",
-    "bip39": "^3.1.0"
+    "bip39": "^3.1.0",
+    "node-cache": "^5.1.2",  // ADD THIS
+    "@ton/ton": "^13.10.0"   // ADD THIS (compatible with @ton/core)
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
