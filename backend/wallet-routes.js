@@ -3,9 +3,10 @@ const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
+const axios = require('axios'); // Add axios for API calls
 require('dotenv').config();
 
-console.log('✅ Wallet Routes Initialized - REAL TON Wallets');
+console.log('✅ Wallet Routes Initialized - REAL TON WALLETS');
 
 // =============================================
 // 🎯 TON WALLET IMPORTS
@@ -194,6 +195,73 @@ class TONWalletService {
 }
 
 // =============================================
+// 🎯 PRICE SERVICE
+// =============================================
+
+class PriceService {
+    static async getTONPrice() {
+        try {
+            // Try to get real price from CoinGecko API
+            const response = await axios.get('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true', {
+                timeout: 5000
+            });
+            
+            if (response.data && response.data['the-open-network']) {
+                return {
+                    price: response.data['the-open-network'].usd,
+                    change24h: response.data['the-open-network'].usd_24h_change,
+                    currency: 'USD',
+                    source: 'coingecko',
+                    timestamp: new Date().toISOString()
+                };
+            }
+        } catch (error) {
+            console.warn('⚠️ CoinGecko API failed, using fallback prices:', error.message);
+        }
+        
+        // Fallback: Realistic mock prices
+        const currentTime = new Date();
+        const hour = currentTime.getHours();
+        const fluctuation = Math.sin(hour / 6) * 0.1;
+        const baseTONPrice = 2.5;
+        
+        return {
+            price: parseFloat((baseTONPrice * (1 + fluctuation)).toFixed(4)),
+            change24h: parseFloat((fluctuation * 100).toFixed(2)),
+            currency: 'USD',
+            source: 'nemex_fallback',
+            timestamp: currentTime.toISOString()
+        };
+    }
+
+    static async getNMXPrice() {
+        try {
+            // For NMX (Nemex Coin), we'll use a mock price since it's not listed
+            const currentTime = new Date();
+            const hour = currentTime.getHours();
+            const fluctuation = Math.sin(hour / 8) * 0.15; // Different fluctuation pattern
+            
+            return {
+                price: parseFloat((0.10 * (1 + fluctuation)).toFixed(4)),
+                change24h: parseFloat((fluctuation * 150).toFixed(2)),
+                currency: 'USD',
+                source: 'nemex_mock',
+                timestamp: currentTime.toISOString()
+            };
+        } catch (error) {
+            console.error('❌ NMX price fetch failed:', error);
+            return {
+                price: 0.10,
+                change24h: 0,
+                currency: 'USD',
+                source: 'nemex_fallback',
+                timestamp: new Date().toISOString()
+            };
+        }
+    }
+}
+
+// =============================================
 // 🎯 BASIC TEST ENDPOINTS
 // =============================================
 
@@ -326,14 +394,14 @@ router.post('/get-user-wallet', async (req, res) => {
 });
 
 // =============================================
-// 🎯 CREATE REAL TON WALLET - DATABASE ONLY
+// 🎯 CREATE REAL TON WALLET - DATABASE ONLY (FIXED DUPLICATE CHECK)
 // =============================================
 
 router.post('/create-wallet', async (req, res) => {
     try {
-        const { userId, userPassword } = req.body;
+        const { userId, userPassword, replaceExisting = false } = req.body;
 
-        console.log('🔄 CREATE REAL TON WALLET request for user:', userId);
+        console.log('🔄 CREATE REAL TON WALLET request for user:', userId, 'replaceExisting:', replaceExisting);
 
         if (!userId) {
             return res.status(400).json({
@@ -343,27 +411,51 @@ router.post('/create-wallet', async (req, res) => {
             });
         }
 
-        // ✅ FIXED: Check if user already has a wallet - CORRECT QUERY
+        // Check if user already has a wallet
         const { data: existingWallets, error: checkError } = await supabaseAdmin
             .from('user_wallets')
-            .select('id, address, user_id')
+            .select('id, address, user_id, created_at')
             .eq('user_id', userId);
 
         console.log('📊 Existing wallet check:', {
             count: existingWallets ? existingWallets.length : 0,
-            error: checkError?.message,
-            userId: userId
+            userId: userId,
+            existingAddress: existingWallets && existingWallets.length > 0 ? existingWallets[0].address : 'none'
         });
 
-        // Check if we got any wallets for this user
-        if (existingWallets && existingWallets.length > 0) {
-            console.log('❌ User already has wallet:', existingWallets[0].address);
+        // If user has existing wallet and doesn't want to replace it
+        if (existingWallets && existingWallets.length > 0 && !replaceExisting) {
+            console.log('ℹ️ User already has wallet:', existingWallets[0].address);
             return res.status(400).json({
                 success: false,
-                error: 'You already have a wallet. One wallet per account only.',
+                error: 'You already have a wallet. Set replaceExisting=true to create a new one.',
                 existingAddress: existingWallets[0].address,
+                hasExistingWallet: true,
+                existingWallet: {
+                    address: existingWallets[0].address,
+                    createdAt: existingWallets[0].created_at
+                },
                 security: 'database_only'
             });
+        }
+
+        // If replaceExisting is true, delete the old wallet first
+        if (existingWallets && existingWallets.length > 0 && replaceExisting) {
+            console.log('🗑️ Deleting existing wallet before creating new one...');
+            const { error: deleteError } = await supabaseAdmin
+                .from('user_wallets')
+                .delete()
+                .eq('user_id', userId);
+            
+            if (deleteError) {
+                console.error('❌ Failed to delete existing wallet:', deleteError);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to delete existing wallet: ' + deleteError.message,
+                    security: 'database_only'
+                });
+            }
+            console.log('✅ Existing wallet deleted');
         }
 
         if (!userPassword) {
@@ -507,7 +599,8 @@ router.post('/create-wallet', async (req, res) => {
                 ],
                 warning: '⚠️ WRITE DOWN YOUR SEED PHRASE NOW! ⚠️\nYou will NOT see it again unless you use "View Seed Phrase" with your password.'
             },
-            note: '✅ This is a REAL TON-compatible wallet on the TON blockchain'
+            note: '✅ This is a REAL TON-compatible wallet on the TON blockchain',
+            replacedExisting: replaceExisting && existingWallets && existingWallets.length > 0
         });
 
     } catch (error) {
@@ -526,7 +619,7 @@ router.post('/create-wallet', async (req, res) => {
 
 router.post('/import-wallet', async (req, res) => {
     try {
-        const { userId, mnemonic, userPassword } = req.body;
+        const { userId, mnemonic, userPassword, replaceExisting = false } = req.body;
 
         console.log('🔄 IMPORT TON WALLET request for user:', userId);
 
@@ -557,18 +650,40 @@ router.post('/import-wallet', async (req, res) => {
             });
         }
 
-        // ✅ FIXED: Check if user already has a wallet
+        // Check if user already has a wallet
         const { data: existingWallets, error: checkError } = await supabaseAdmin
             .from('user_wallets')
-            .select('id')
+            .select('id, address')
             .eq('user_id', userId);
 
-        if (existingWallets && existingWallets.length > 0) {
+        // If user has existing wallet and doesn't want to replace it
+        if (existingWallets && existingWallets.length > 0 && !replaceExisting) {
             return res.status(400).json({
                 success: false,
-                error: 'You already have a wallet. Delete it first to import a new one.',
+                error: 'You already have a wallet. Set replaceExisting=true to import a new one.',
+                existingAddress: existingWallets[0].address,
+                hasExistingWallet: true,
                 security: 'database_only'
             });
+        }
+
+        // If replaceExisting is true, delete the old wallet first
+        if (existingWallets && existingWallets.length > 0 && replaceExisting) {
+            console.log('🗑️ Deleting existing wallet before importing new one...');
+            const { error: deleteError } = await supabaseAdmin
+                .from('user_wallets')
+                .delete()
+                .eq('user_id', userId);
+            
+            if (deleteError) {
+                console.error('❌ Failed to delete existing wallet:', deleteError);
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to delete existing wallet: ' + deleteError.message,
+                    security: 'database_only'
+                });
+            }
+            console.log('✅ Existing wallet deleted');
         }
 
         console.log('🎯 Importing TON wallet with', words.length, 'words...');
@@ -666,7 +781,8 @@ router.post('/import-wallet', async (req, res) => {
                     '2. You can view your seed phrase anytime with your password',
                     '3. All future operations will use this imported wallet'
                 ]
-            }
+            },
+            replacedExisting: replaceExisting && existingWallets && existingWallets.length > 0
         });
 
     } catch (error) {
@@ -802,7 +918,7 @@ router.post('/view-seed-phrase', async (req, res) => {
 
 router.post('/delete-wallet', async (req, res) => {
     try {
-        const { userId } = req.body;
+        const { userId, confirm = false } = req.body;
 
         console.log('🗑️ DELETE WALLET request for user:', userId);
 
@@ -814,10 +930,19 @@ router.post('/delete-wallet', async (req, res) => {
             });
         }
 
+        if (!confirm) {
+            return res.status(400).json({
+                success: false,
+                error: 'Confirm parameter must be set to true',
+                message: 'Add confirm=true to confirm wallet deletion',
+                security: 'database_only'
+            });
+        }
+
         // Check if wallet exists
         const { data: wallet, error: checkError } = await supabaseAdmin
             .from('user_wallets')
-            .select('address')
+            .select('address, created_at, word_count')
             .eq('user_id', userId)
             .single();
 
@@ -850,7 +975,12 @@ router.post('/delete-wallet', async (req, res) => {
             success: true,
             message: 'Wallet deleted successfully',
             userId: userId,
-            deletedAddress: wallet?.address,
+            deletedWallet: {
+                address: wallet?.address,
+                wordCount: wallet?.word_count,
+                createdAt: wallet?.created_at
+            },
+            warning: 'This action cannot be undone. All funds associated with this wallet will be lost unless you have the seed phrase backed up.',
             security: 'database_only'
         });
 
@@ -908,53 +1038,56 @@ router.get('/balance/:address', async (req, res) => {
 });
 
 // =============================================
-// 🎯 GET REAL PRICES FROM API
+// 🎯 GET REAL PRICES FROM API (FIXED)
 // =============================================
 
 router.get('/prices', async (req, res) => {
     try {
         console.log('📈 REAL Price check requested');
 
-        // In production, fetch from real API
-        // For now, use realistic prices
-        const currentTime = new Date();
-        const hour = currentTime.getHours();
-        
-        // Simulate price fluctuations
-        const baseTONPrice = 2.5;
-        const baseNMXPrice = 0.10;
-        const fluctuation = Math.sin(hour / 6) * 0.1; // Simulate daily fluctuation
-        
-        const tonPrice = baseTONPrice * (1 + fluctuation);
-        const nmxPrice = baseNMXPrice * (1 + fluctuation * 2);
+        // Get both prices concurrently
+        const [tonPrice, nmxPrice] = await Promise.all([
+            PriceService.getTONPrice(),
+            PriceService.getNMXPrice()
+        ]);
 
         res.json({
             success: true,
             prices: {
-                TON: { 
-                    price: parseFloat(tonPrice.toFixed(4)), 
-                    change24h: parseFloat((fluctuation * 100).toFixed(2)),
-                    currency: 'USD',
-                    marketCap: '$10.2B',
-                    volume24h: '$450M'
-                },
-                NMX: { 
-                    price: parseFloat(nmxPrice.toFixed(4)), 
-                    change24h: parseFloat((fluctuation * 200).toFixed(2)),
-                    currency: 'USD',
-                    marketCap: '$50M',
-                    volume24h: '$5M'
-                }
+                TON: tonPrice,
+                NMX: nmxPrice
             },
-            timestamp: currentTime.toISOString(),
-            source: 'nemex_price_feed',
+            timestamp: new Date().toISOString(),
+            source: 'nemex_price_service',
             security: 'database_only'
         });
     } catch (error) {
         console.error('❌ Get prices failed:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to get prices',
+        // Return fallback prices even if API fails
+        const currentTime = new Date();
+        const hour = currentTime.getHours();
+        const fluctuation = Math.sin(hour / 6) * 0.1;
+        
+        res.json({
+            success: true,
+            prices: {
+                TON: {
+                    price: parseFloat((2.5 * (1 + fluctuation)).toFixed(4)),
+                    change24h: parseFloat((fluctuation * 100).toFixed(2)),
+                    currency: 'USD',
+                    source: 'fallback',
+                    timestamp: currentTime.toISOString()
+                },
+                NMX: {
+                    price: parseFloat((0.10 * (1 + fluctuation * 2)).toFixed(4)),
+                    change24h: parseFloat((fluctuation * 150).toFixed(2)),
+                    currency: 'USD',
+                    source: 'fallback',
+                    timestamp: currentTime.toISOString()
+                }
+            },
+            timestamp: currentTime.toISOString(),
+            note: 'Using fallback prices due to API error',
             security: 'database_only'
         });
     }
@@ -1151,6 +1284,66 @@ router.get('/transactions/:userId', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to get transaction history',
+            security: 'database_only'
+        });
+    }
+});
+
+// =============================================
+// 🎯 GET WALLET STATS
+// =============================================
+
+router.get('/stats/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        console.log('📊 Wallet stats request for user:', userId);
+
+        // Get wallet info
+        const { data: wallet, error } = await supabaseAdmin
+            .from('user_wallets')
+            .select('address, created_at, word_count, wallet_type')
+            .eq('user_id', userId)
+            .single();
+
+        if (error || !wallet) {
+            return res.status(404).json({
+                success: false,
+                error: 'Wallet not found',
+                security: 'database_only'
+            });
+        }
+
+        // Get mock balance
+        const balanceInfo = await TONWalletService.getRealBalance(wallet.address);
+
+        // Calculate wallet age
+        const createdDate = new Date(wallet.created_at);
+        const now = new Date();
+        const ageInDays = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+
+        res.json({
+            success: true,
+            stats: {
+                address: wallet.address,
+                walletType: wallet.wallet_type || 'TON',
+                wordCount: wallet.word_count || 24,
+                created: wallet.created_at,
+                ageInDays: ageInDays,
+                balance: parseFloat(balanceInfo.balance),
+                currency: 'TON',
+                isRealTON: wallet.address?.startsWith('EQ'),
+                securityLevel: 'high'
+            },
+            timestamp: new Date().toISOString(),
+            security: 'database_only'
+        });
+
+    } catch (error) {
+        console.error('❌ Get wallet stats failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get wallet stats',
             security: 'database_only'
         });
     }
