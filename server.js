@@ -20,8 +20,81 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static files from frontend directory
-app.use(express.static(path.join(__dirname, 'frontend')));
+// =============================================
+// 🎯 ENVIRONMENT VARIABLE INJECTION MIDDLEWARE
+// =============================================
+
+app.use((req, res, next) => {
+    // Only inject for HTML files
+    if (req.path.endsWith('.html')) {
+        // Get environment variables
+        const supabaseUrl = process.env.SUPABASE_URL || '';
+        const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+        const nodeEnv = process.env.NODE_ENV || 'development';
+        
+        // Create injection script with environment variables
+        const injectionScript = `
+            <script>
+                // 🔐 Environment variables injected by server
+                // DO NOT MODIFY - These are set from server .env file
+                window.SUPABASE_URL = "${supabaseUrl}";
+                window.SUPABASE_ANON_KEY = "${supabaseAnonKey}";
+                window.NODE_ENV = "${nodeEnv}";
+                window.API_BASE_URL = "/api";
+                
+                // Log environment status (development only)
+                if (window.NODE_ENV === 'development') {
+                    console.log('🌍 Environment:', window.NODE_ENV);
+                    console.log('📁 Supabase URL configured:', window.SUPABASE_URL ? '✅' : '❌');
+                    console.log('🔑 Supabase Anon Key configured:', window.SUPABASE_ANON_KEY ? '✅' : '❌');
+                }
+            </script>
+        `;
+        
+        // Store injection for later use
+        req.envInjection = injectionScript;
+    }
+    next();
+});
+
+// Custom static file handler for HTML files
+const serveStaticWithInjection = (req, res, next) => {
+    // Check if this is an HTML file that needs injection
+    if (req.path.endsWith('.html') && req.envInjection) {
+        const filePath = path.join(__dirname, 'frontend', req.path);
+        
+        // Check if file exists
+        if (fs.existsSync(filePath)) {
+            fs.readFile(filePath, 'utf8', (err, htmlContent) => {
+                if (err) {
+                    console.error('❌ Error reading HTML file:', err);
+                    return next(err);
+                }
+                
+                // Inject environment variables before closing </head> tag
+                const injectedHtml = htmlContent.replace(
+                    '</head>',
+                    `${req.envInjection}\n</head>`
+                );
+                
+                // Send the modified HTML
+                res.setHeader('Content-Type', 'text/html');
+                res.send(injectedHtml);
+                
+                console.log(`✅ Served ${req.path} with environment injection`);
+            });
+        } else {
+            // File doesn't exist, continue to next middleware
+            next();
+        }
+    } else {
+        // Not an HTML file or no injection needed, serve normally
+        express.static(path.join(__dirname, 'frontend'))(req, res, next);
+    }
+};
+
+// Use custom static handler
+app.use(serveStaticWithInjection);
 
 // In-memory storage (replace with database later)
 let users = [
@@ -65,36 +138,30 @@ const authenticate = (req, res, next) => {
     next();
 };
 
-// Frontend Routes
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
-});
-
-app.get('/login', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'login.html'));
-});
-
-app.get('/register', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'register.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html'));
-});
-
 // ✅ ADDED: Debug route to check file serving
 app.get('/api/debug', (req, res) => {
     try {
         const frontendPath = path.join(__dirname, 'frontend');
         const files = fs.existsSync(frontendPath) ? fs.readdirSync(frontendPath) : ['Directory not found'];
-        
+
+        // Check environment variables (masked for security)
+        const envStatus = {
+            SUPABASE_URL: process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing',
+            SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✅ Set (masked)' : '❌ Missing',
+            SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? '✅ Set (masked)' : '❌ Missing',
+            NODE_ENV: process.env.NODE_ENV || 'development',
+            PORT: process.env.PORT || 3000
+        };
+
         res.json({
             success: true,
             message: 'Server debug information',
             frontendPath: frontendPath,
             files: files,
+            environment: envStatus,
             isProduction: process.env.NODE_ENV === 'production',
             httpsRedirect: req.headers['x-forwarded-proto'] || 'not-set',
+            injectionActive: !!req.envInjection,
             timestamp: new Date().toISOString()
         });
     } catch (error) {
@@ -106,13 +173,34 @@ app.get('/api/debug', (req, res) => {
     }
 });
 
+// ✅ ADDED: Environment variable test endpoint
+app.get('/api/env-test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Environment variables check',
+        environment: {
+            NODE_ENV: process.env.NODE_ENV || 'development',
+            hasSupabaseUrl: !!process.env.SUPABASE_URL,
+            hasSupabaseAnonKey: !!process.env.SUPABASE_ANON_KEY,
+            hasSupabaseServiceKey: !!process.env.SUPABASE_SERVICE_KEY,
+            // Don't expose actual values for security
+        },
+        injection: {
+            active: true,
+            note: 'Environment variables are injected into HTML files'
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
 // API Routes
 app.get('/api/health', (req, res) => {
     res.json({ 
         success: true, 
         message: 'NemexCoin API is running!',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        version: '1.0.0'
     });
 });
 
@@ -276,14 +364,80 @@ app.post('/api/stop-mining', authenticate, (req, res) => {
 // =============================================
 // 🎯 WALLET API ROUTES ADDED HERE
 // =============================================
-const walletRoutes = require('./backend/wallet-routes');
-app.use('/api/wallet', walletRoutes);
 
+// Load wallet routes with error handling
+let walletRoutes;
+try {
+    console.log('🔄 Loading wallet routes...');
+    walletRoutes = require('./backend/wallet-routes');
+    console.log('✅ Wallet routes loaded successfully');
+} catch (error) {
+    console.error('❌ ERROR loading wallet routes:', error.message);
+    console.error('💡 Make sure:');
+    console.error('   1. backend/wallet-routes.js exists');
+    console.error('   2. All dependencies are installed (npm install)');
+    console.error('   3. .env file has SUPABASE_URL and SUPABASE_SERVICE_KEY');
+    
+    // Create a simple router as fallback
+    const express = require('express');
+    walletRoutes = express.Router();
+    
+    walletRoutes.get('/test', (req, res) => {
+        res.json({ 
+            success: true, 
+            message: 'Wallet API fallback route',
+            note: 'Wallet routes failed to load. Check server logs.'
+        });
+    });
+    
+    walletRoutes.post('/get-user-wallet', (req, res) => {
+        res.json({ 
+            success: true, 
+            hasWallet: false, 
+            message: 'Fallback: Wallet routes not loaded',
+            error: 'Check server configuration'
+        });
+    });
+}
+
+app.use('/api/wallet', walletRoutes);
 console.log('✅ Wallet API routes mounted at /api/wallet');
 
 // Catch-all handler for SPA routing
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+    const filePath = path.join(__dirname, 'frontend', 'index.html');
+    
+    if (fs.existsSync(filePath)) {
+        // Inject environment variables for index.html too
+        const supabaseUrl = process.env.SUPABASE_URL || '';
+        const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '';
+        const nodeEnv = process.env.NODE_ENV || 'development';
+        
+        const injectionScript = `
+            <script>
+                window.SUPABASE_URL = "${supabaseUrl}";
+                window.SUPABASE_ANON_KEY = "${supabaseAnonKey}";
+                window.NODE_ENV = "${nodeEnv}";
+            </script>
+        `;
+        
+        fs.readFile(filePath, 'utf8', (err, htmlContent) => {
+            if (err) {
+                console.error('❌ Error reading index.html:', err);
+                return res.status(500).send('Server error');
+            }
+            
+            const injectedHtml = htmlContent.replace(
+                '</head>',
+                `${injectionScript}\n</head>`
+            );
+            
+            res.setHeader('Content-Type', 'text/html');
+            res.send(injectedHtml);
+        });
+    } else {
+        res.status(404).send('Page not found');
+    }
 });
 
 app.listen(PORT, () => {
@@ -292,11 +446,18 @@ app.listen(PORT, () => {
     console.log(`🔑 Login: http://localhost:${PORT}/login`);
     console.log(`📝 Register: http://localhost:${PORT}/register`);
     console.log(`📊 Dashboard: http://localhost:${PORT}/dashboard`);
+    console.log(`👛 Wallet: http://localhost:${PORT}/wallet`);
     console.log(`🩺 API Health: http://localhost:${PORT}/api/health`);
     console.log(`🐛 Debug: http://localhost:${PORT}/api/debug`);
-    console.log(`👛 Wallet API: http://localhost:${PORT}/api/wallet/test`);
+    console.log(`🔧 Env Test: http://localhost:${PORT}/api/env-test`);
+    console.log(`👛 Wallet API Test: http://localhost:${PORT}/api/wallet/test`);
     console.log(`📧 Demo account: test@nemexcoin.com / 123456`);
-    console.log(`✅ Frontend folder: ${path.join(__dirname, 'frontend')}`);
     console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔒 HTTPS Redirect: ${process.env.NODE_ENV === 'production' ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`🔐 Environment Injection: ✅ ACTIVE for HTML files`);
+    console.log(`💡 Environment variables required:`);
+    console.log(`   - SUPABASE_URL: ${process.env.SUPABASE_URL ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   - SUPABASE_ANON_KEY: ${process.env.SUPABASE_ANON_KEY ? '✅ Set' : '❌ Missing'}`);
+    console.log(`   - SUPABASE_SERVICE_KEY: ${process.env.SUPABASE_SERVICE_KEY ? '✅ Set' : '❌ Missing'}`);
+    console.log(`\n⚠️  IMPORTANT: Make sure your .env file has all required variables!`);
 });
