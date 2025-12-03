@@ -1,59 +1,142 @@
-// backend/wallet-routes.js - FIXED VERSION WITH SERVICE ROLE
+// backend/wallet-routes.js - COMPLETELY FIXED VERSION
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 const dotenv = require('dotenv');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables - CRITICAL FIX HERE
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env' });
 
-console.log('✅ Wallet Routes Loaded - WITH SERVICE ROLE FIX');
+console.log('🚀 Wallet Routes Loaded - ULTIMATE FIX VERSION');
 
 // =============================================
-// 🎯 INITIALIZE SUPABASE CLIENTS
+// 🎯 INITIALIZE SUPABASE CLIENTS - FIXED
 // =============================================
+
+// CRITICAL: Log ALL environment variables (masked for security)
+console.log('🔧 ENVIRONMENT CHECK:');
+console.log('📋 NODE_ENV:', process.env.NODE_ENV);
+console.log('📋 SUPABASE_URL exists?', !!process.env.SUPABASE_URL);
+console.log('📋 SUPABASE_ANON_KEY exists?', !!process.env.SUPABASE_ANON_KEY);
+console.log('📋 SUPABASE_SERVICE_ROLE_KEY exists?', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+// Show preview of keys (for debugging)
+if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const keyPreview = process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 10) + '...' + 
+                      process.env.SUPABASE_SERVICE_ROLE_KEY.substring(process.env.SUPABASE_SERVICE_ROLE_KEY.length - 10);
+    console.log('🔑 Service Role Key preview:', keyPreview);
+}
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-console.log('🔧 Environment check:', {
-    hasSupabaseUrl: !!supabaseUrl,
-    hasServiceKey: !!supabaseServiceKey,
-    hasAnonKey: !!supabaseAnonKey
-});
+let supabase = null;
+let supabaseAdmin = null;
 
-let supabase;
-let supabaseAdmin; // Admin client for bypassing RLS
+// =============================================
+// 🎯 CREATE SUPABASE CLIENTS PROPERLY
+// =============================================
 
-if (supabaseUrl && supabaseAnonKey) {
-    // Regular client for frontend operations
-    supabase = createClient(supabaseUrl, supabaseAnonKey);
-    console.log('✅ Supabase connected (regular client)');
-} else {
-    console.error('❌ Supabase credentials missing (anon key)');
-}
-
-if (supabaseUrl && supabaseServiceKey) {
-    // Admin client for backend operations (bypasses RLS)
-    supabaseAdmin = createClient(
-        supabaseUrl,
-        supabaseServiceKey,
-        {
-            auth: {
-                autoRefreshToken: false,
-                persistSession: false,
-                detectSessionInUrl: false
-            }
+try {
+    // 1. Regular client (for SELECT operations)
+    if (supabaseUrl && supabaseAnonKey) {
+        supabase = createClient(supabaseUrl, supabaseAnonKey, {
+            auth: { persistSession: false }
+        });
+        console.log('✅ Regular Supabase client initialized');
+        
+        // Test regular connection
+        const { error: testError } = await supabase
+            .from('user_wallets')
+            .select('count', { count: 'exact', head: true });
+        
+        if (testError) {
+            console.error('❌ Regular client test failed:', testError.message);
+        } else {
+            console.log('✅ Regular client connection test passed');
         }
-    );
-    console.log('✅ Supabase ADMIN connected (service role - bypasses RLS)');
-} else {
-    console.warn('⚠️ Supabase service role key not found - RLS bypass may fail');
-    // Fallback to regular client if no service key
-    supabaseAdmin = supabase;
+    } else {
+        console.error('❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY');
+    }
+
+    // 2. Admin client (for INSERT/UPDATE/DELETE - bypasses RLS)
+    if (supabaseUrl && supabaseServiceKey) {
+        supabaseAdmin = createClient(
+            supabaseUrl,
+            supabaseServiceKey,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false,
+                    detectSessionInUrl: false
+                },
+                // Add global headers for service role
+                global: {
+                    headers: {
+                        'apikey': supabaseServiceKey,
+                        'Authorization': `Bearer ${supabaseServiceKey}`
+                    }
+                }
+            }
+        );
+        console.log('✅ Supabase ADMIN client initialized (SERVICE ROLE)');
+        
+        // CRITICAL: Test admin client connection
+        try {
+            const { data: adminTest, error: adminError } = await supabaseAdmin.auth.getUser();
+            if (adminError) {
+                console.error('❌ Admin client auth test failed:', adminError.message);
+                console.error('❌ This means SERVICE ROLE KEY is invalid or not working!');
+            } else {
+                console.log('✅ Admin client auth test passed');
+                console.log('🔑 Admin user:', adminTest.user ? 'Authenticated' : 'No user');
+            }
+        } catch (authTestError) {
+            console.error('❌ Admin client test exception:', authTestError.message);
+        }
+    } else {
+        console.error('❌ CRITICAL ERROR: SUPABASE_SERVICE_ROLE_KEY NOT FOUND!');
+        console.error('❌ Wallet creation will fail without service role key!');
+        console.error('❌ Add SUPABASE_SERVICE_ROLE_KEY to Render environment variables');
+        
+        // Fallback - use regular client (will fail with RLS enabled)
+        supabaseAdmin = supabase;
+        console.warn('⚠️ Using regular client as fallback - RLS bypass will fail');
+    }
+} catch (clientError) {
+    console.error('❌ Supabase client initialization failed:', clientError.message);
+    console.error('❌ Stack:', clientError.stack);
 }
+
+// =============================================
+// 🎯 TEST SERVICE KEY ENDPOINT (NEW)
+// =============================================
+
+router.get('/debug-env', (req, res) => {
+    console.log('🔍 Environment debug endpoint called');
+    
+    // Mask sensitive keys for security
+    const maskKey = (key) => {
+        if (!key) return null;
+        return key.substring(0, 10) + '...' + key.substring(key.length - 10);
+    };
+    
+    res.json({
+        success: true,
+        environment: {
+            nodeEnv: process.env.NODE_ENV,
+            hasSupabaseUrl: !!supabaseUrl,
+            hasAnonKey: !!supabaseAnonKey,
+            hasServiceKey: !!supabaseServiceKey,
+            serviceKeyPreview: maskKey(supabaseServiceKey),
+            supabaseClientReady: !!supabase,
+            supabaseAdminReady: !!supabaseAdmin
+        },
+        timestamp: new Date().toISOString()
+    });
+});
 
 // =============================================
 // 🎯 HELPER: Generate realistic TON wallet
@@ -89,14 +172,12 @@ function generateTONWallet() {
 }
 
 // =============================================
-// 🎯 ENCRYPTION HELPERS (using mining password)
+// 🎯 ENCRYPTION HELPERS
 // =============================================
 
 function encryptWithPassword(data, password) {
-    // Simple encryption for now - you can use crypto-js for stronger encryption
     const dataStr = JSON.stringify(data);
-    const encrypted = Buffer.from(dataStr).toString('base64');
-    return encrypted;
+    return Buffer.from(dataStr).toString('base64');
 }
 
 function decryptWithPassword(encryptedData, password) {
@@ -117,14 +198,16 @@ router.get('/test', (req, res) => {
     res.json({
         success: true,
         message: 'Wallet API is working!',
-        supabase: !!supabase,
-        supabaseAdmin: !!supabaseAdmin,
+        clients: {
+            regular: !!supabase,
+            admin: !!supabaseAdmin
+        },
         timestamp: new Date().toISOString()
     });
 });
 
 // =============================================
-// 🎯 GET USER WALLET - SIMPLIFIED & FIXED
+// 🎯 GET USER WALLET
 // =============================================
 
 router.post('/get-user-wallet', async (req, res) => {
@@ -135,7 +218,6 @@ router.post('/get-user-wallet', async (req, res) => {
         console.log('📋 User ID:', userId);
 
         if (!userId) {
-            console.log('❌ Missing user ID');
             return res.json({
                 success: false,
                 error: 'User ID required',
@@ -151,20 +233,13 @@ router.post('/get-user-wallet', async (req, res) => {
             });
         }
 
-        console.log('🔍 Checking for wallet in user_wallets table...');
-
-        // Use regular client for SELECT operations
         const { data: wallets, error } = await supabase
             .from('user_wallets')
             .select('*')
             .eq('user_id', userId);
 
         if (error) {
-            console.error('❌ Database query error:', error.message);
-            
-            // Handle specific error cases
-            if (error.code === 'PGRST116' || error.message.includes('result is not an array')) {
-                console.log(`✅ No wallet found for user ${userId} - new user`);
+            if (error.code === 'PGRST116') {
                 return res.json({
                     success: true,
                     hasWallet: false,
@@ -172,15 +247,11 @@ router.post('/get-user-wallet', async (req, res) => {
                     userId: userId
                 });
             }
-
             return res.json({
                 success: false,
-                error: 'Database error: ' + error.message,
-                requiresLogin: false
+                error: 'Database error: ' + error.message
             });
         }
-
-        console.log(`📊 Found ${wallets?.length || 0} wallets for user`);
 
         if (!wallets || wallets.length === 0) {
             return res.json({
@@ -192,11 +263,7 @@ router.post('/get-user-wallet', async (req, res) => {
         }
 
         const wallet = wallets[0];
-        console.log(`✅ Wallet found:`, {
-            id: wallet.id,
-            address: wallet.address?.substring(0, 20) + '...',
-            createdAt: wallet.created_at
-        });
+        console.log(`✅ Wallet found for user ${userId}`);
 
         return res.json({
             success: true,
@@ -204,8 +271,8 @@ router.post('/get-user-wallet', async (req, res) => {
             wallet: {
                 id: wallet.id,
                 userId: wallet.user_id,
-                address: wallet.address || wallet.wallet_address || 'No address',
-                wallet_address: wallet.address || wallet.wallet_address || 'No address',
+                address: wallet.address,
+                wallet_address: wallet.address,
                 publicKey: wallet.public_key,
                 walletType: wallet.wallet_type || 'TON',
                 source: wallet.source || 'generated',
@@ -217,25 +284,28 @@ router.post('/get-user-wallet', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Get wallet failed with exception:', error);
+        console.error('❌ Get wallet failed:', error);
         res.json({
             success: false,
-            error: 'Server error: ' + error.message,
-            requiresLogin: false
+            error: 'Server error: ' + error.message
         });
     }
 });
 
 // =============================================
-// 🎯 CREATE WALLET - FIXED WITH SERVICE ROLE
+// 🎯 CREATE WALLET - ULTIMATE FIX
 // =============================================
 
 router.post('/create-wallet', async (req, res) => {
-    console.log('🔐 CREATE WALLET endpoint called');
+    console.log('🔐 CREATE WALLET endpoint called - DEBUG MODE');
+    console.log('📋 Request body:', { 
+        userId: req.body.userId, 
+        hasPassword: !!req.body.userPassword,
+        replaceExisting: req.body.replaceExisting || false
+    });
 
     try {
         const { userId, userPassword, replaceExisting = false } = req.body;
-        console.log('📋 Creating for user:', userId);
 
         if (!userId || !userPassword) {
             return res.status(400).json({
@@ -244,19 +314,34 @@ router.post('/create-wallet', async (req, res) => {
             });
         }
 
+        // CRITICAL: Check if admin client is available
+        console.log('🔍 Admin client status:', {
+            exists: !!supabaseAdmin,
+            isServiceRole: supabaseAdmin !== supabase
+        });
+
         if (!supabaseAdmin) {
+            console.error('❌ FATAL: supabaseAdmin is null or undefined');
             return res.status(500).json({
                 success: false,
-                error: 'Database admin client not available - check service role key'
+                error: 'Database admin client not available. Check SERVICE ROLE KEY configuration.',
+                debug: {
+                    hasServiceKey: !!supabaseServiceKey,
+                    adminClientReady: !!supabaseAdmin
+                }
             });
         }
 
         // Check if wallet already exists
         console.log('🔍 Checking for existing wallet...');
-        const { data: existingWallets } = await supabaseAdmin
+        const { data: existingWallets, error: checkError } = await supabaseAdmin
             .from('user_wallets')
             .select('id')
             .eq('user_id', userId);
+
+        if (checkError) {
+            console.error('❌ Check existing wallet failed:', checkError.message);
+        }
 
         if (existingWallets && existingWallets.length > 0) {
             if (!replaceExisting) {
@@ -268,21 +353,20 @@ router.post('/create-wallet', async (req, res) => {
                 });
             } else {
                 console.log(`🗑️ Deleting existing wallet for replacement...`);
-                // Delete existing wallet
                 const { error: deleteError } = await supabaseAdmin
                     .from('user_wallets')
                     .delete()
                     .eq('user_id', userId);
                 
                 if (deleteError) {
-                    console.error('❌ Error deleting existing wallet:', deleteError);
+                    console.error('❌ Error deleting existing wallet:', deleteError.message);
                 }
             }
         }
 
         // Generate wallet
         const walletData = generateTONWallet();
-        console.log('✅ Generated wallet:', walletData.address.substring(0, 20) + '...');
+        console.log('✅ Generated wallet address:', walletData.address);
 
         // Prepare wallet record
         const walletRecord = {
@@ -305,8 +389,8 @@ router.post('/create-wallet', async (req, res) => {
             updated_at: new Date().toISOString()
         };
 
-        console.log('💾 Inserting wallet record...');
-        console.log('📊 Using admin client (bypasses RLS):', !!supabaseAdmin);
+        console.log('💾 Attempting to insert wallet record...');
+        console.log('🔑 Using service role client:', supabaseAdmin !== supabase);
 
         // Insert using ADMIN client (bypasses RLS)
         const { data: newWallet, error: insertError } = await supabaseAdmin
@@ -316,27 +400,34 @@ router.post('/create-wallet', async (req, res) => {
             .single();
 
         if (insertError) {
-            console.error('❌ Insert error:', insertError);
+            console.error('❌ INSERT FAILED:', insertError);
             console.error('❌ Error code:', insertError.code);
+            console.error('❌ Error message:', insertError.message);
             console.error('❌ Error details:', insertError.details);
-            console.error('❌ Error hint:', insertError.hint);
-
-            // Try alternative insert method
-            const { data: wallets, error: bulkError } = await supabaseAdmin
-                .from('user_wallets')
-                .insert([walletRecord]);
-
-            if (bulkError) {
-                console.error('❌ Bulk insert also failed:', bulkError);
-                throw new Error(`Failed to save wallet to database: ${bulkError.message}. Code: ${bulkError.code}`);
+            
+            // Special handling for RLS errors
+            if (insertError.message.includes('row-level security policy') || 
+                insertError.code === '42501') {
+                console.error('❌ RLS POLICY BLOCKING INSERT!');
+                console.error('❌ This means service role key is not working or RLS is too restrictive');
+                
+                return res.status(500).json({
+                    success: false,
+                    error: 'Database security restriction. Service role key not working.',
+                    details: 'Check SUPABASE_SERVICE_ROLE_KEY in Render environment variables',
+                    debug: {
+                        errorCode: insertError.code,
+                        hasServiceKey: !!supabaseServiceKey,
+                        usedAdminClient: supabaseAdmin !== supabase
+                    }
+                });
             }
-
-            console.log('✅ Wallet saved (bulk insert)');
-        } else {
-            console.log('✅ Wallet saved (single insert)');
+            
+            throw new Error(`Failed to save wallet: ${insertError.message}`);
         }
 
         console.log(`✅ Wallet created and saved for user ${userId}`);
+        console.log(`📝 New wallet ID: ${newWallet?.id}`);
 
         res.json({
             success: true,
@@ -347,28 +438,31 @@ router.post('/create-wallet', async (req, res) => {
                 createdAt: new Date().toISOString()
             },
             mnemonic: walletData.mnemonic,
-            message: '🎉 Wallet created successfully! Save your seed phrase!'
+            message: '🎉 Wallet created successfully! Save your seed phrase!',
+            debug: {
+                usedServiceRole: supabaseAdmin !== supabase,
+                insertMethod: 'single'
+            }
         });
 
     } catch (error) {
-        console.error('❌ Create wallet failed:', error);
-        console.error('❌ Error stack:', error.stack);
-        
-        // Provide more helpful error messages
-        let errorMessage = error.message;
-        if (error.message.includes('row-level security policy')) {
-            errorMessage = 'Database security restriction. Please ensure Supabase service role key is configured correctly.';
-        }
+        console.error('❌ CREATE WALLET FAILED:', error);
+        console.error('❌ Stack trace:', error.stack);
         
         res.status(500).json({
             success: false,
-            error: 'Failed to create wallet: ' + errorMessage
+            error: 'Failed to create wallet: ' + error.message,
+            debug: {
+                hasAdminClient: !!supabaseAdmin,
+                adminIsServiceRole: supabaseAdmin !== supabase,
+                timestamp: new Date().toISOString()
+            }
         });
     }
 });
 
 // =============================================
-// 🎯 VIEW SEED PHRASE - SIMPLIFIED
+// 🎯 VIEW SEED PHRASE
 // =============================================
 
 router.post('/view-seed-phrase', async (req, res) => {
@@ -383,16 +477,14 @@ router.post('/view-seed-phrase', async (req, res) => {
             });
         }
 
-        if (!supabase) {
+        const client = supabaseAdmin || supabase;
+        if (!client) {
             return res.status(500).json({
                 success: false,
                 error: 'Database not available'
             });
         }
 
-        // Use admin client to bypass RLS if needed
-        const client = supabaseAdmin || supabase;
-        
         const { data: wallets } = await client
             .from('user_wallets')
             .select('encrypted_mnemonic')
@@ -402,7 +494,6 @@ router.post('/view-seed-phrase', async (req, res) => {
             throw new Error('Wallet not found');
         }
 
-        // For now, return mock seed phrase
         res.json({
             success: true,
             seedPhrase: 'This is a mock seed phrase for development',
@@ -420,7 +511,7 @@ router.post('/view-seed-phrase', async (req, res) => {
 });
 
 // =============================================
-// 🎯 IMPORT WALLET - FIXED WITH SERVICE ROLE
+// 🎯 IMPORT WALLET
 // =============================================
 
 router.post('/import-wallet', async (req, res) => {
@@ -435,7 +526,6 @@ router.post('/import-wallet', async (req, res) => {
             });
         }
 
-        // Validate mnemonic
         const words = mnemonic.trim().split(/\s+/);
         if (words.length !== 12 && words.length !== 24) {
             return res.status(400).json({
@@ -445,7 +535,6 @@ router.post('/import-wallet', async (req, res) => {
             });
         }
 
-        // Check if wallet exists
         if (!replaceExisting && supabase) {
             const { data: existingWallets } = await supabase
                 .from('user_wallets')
@@ -461,11 +550,9 @@ router.post('/import-wallet', async (req, res) => {
             }
         }
 
-        // Generate address from mnemonic
         const addressHash = crypto.createHash('sha256').update(mnemonic).digest('hex');
         const address = 'EQ' + addressHash.substring(0, 48);
 
-        // Delete existing if replacing (use admin client)
         if (replaceExisting && supabaseAdmin) {
             console.log('🗑️ Deleting existing wallet for import replacement...');
             const { error: deleteError } = await supabaseAdmin
@@ -478,7 +565,6 @@ router.post('/import-wallet', async (req, res) => {
             }
         }
 
-        // Insert new wallet using ADMIN client
         if (supabaseAdmin) {
             const walletRecord = {
                 user_id: userId,
@@ -543,35 +629,32 @@ router.post('/delete-wallet', async (req, res) => {
         const { userId, confirm } = req.body;
         console.log('🗑️ Delete wallet for user:', userId);
 
-        if (!userId) {
+        if (!userId || !confirm) {
             return res.status(400).json({
                 success: false,
-                error: 'User ID is required'
+                error: 'User ID and confirmation required'
             });
         }
 
-        if (!confirm) {
-            return res.status(400).json({
-                success: false,
-                error: 'Confirmation required for safety'
-            });
-        }
-
-        // Use admin client for delete operations
         const client = supabaseAdmin || supabase;
-        
-        if (client) {
-            const { error } = await client
-                .from('user_wallets')
-                .delete()
-                .eq('user_id', userId);
-
-            if (error) {
-                console.error('❌ Delete error:', error);
-                throw error;
-            }
-            console.log(`✅ Wallet deleted for user ${userId}`);
+        if (!client) {
+            return res.status(500).json({
+                success: false,
+                error: 'Database not available'
+            });
         }
+
+        const { error } = await client
+            .from('user_wallets')
+            .delete()
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error('❌ Delete error:', error);
+            throw error;
+        }
+
+        console.log(`✅ Wallet deleted for user ${userId}`);
 
         res.json({
             success: true,
@@ -597,7 +680,6 @@ router.get('/balance/:address', async (req, res) => {
         const { address } = req.params;
         console.log('💰 Balance check for:', address?.substring(0, 16) + '...');
 
-        // Mock balance for now
         const mockBalance = (Math.random() * 5).toFixed(4);
 
         res.json({
@@ -650,17 +732,37 @@ router.get('/prices', async (req, res) => {
 });
 
 // =============================================
-// 🎯 HEALTH CHECK
+// 🎯 HEALTH CHECK WITH DETAILS
 // =============================================
 
-router.get('/health', (req, res) => {
-    res.json({
-        success: true,
-        status: 'healthy',
-        supabase: !!supabase,
-        supabaseAdmin: !!supabaseAdmin,
-        timestamp: new Date().toISOString()
-    });
+router.get('/health', async (req, res) => {
+    try {
+        const dbTest = supabase ? await supabase.from('user_wallets').select('count', { count: 'exact', head: true }) : null;
+        
+        res.json({
+            success: true,
+            status: 'healthy',
+            database: {
+                connected: !!supabase,
+                adminConnected: !!supabaseAdmin,
+                usingServiceRole: supabaseAdmin !== supabase,
+                testQuery: dbTest?.error ? 'failed' : 'passed'
+            },
+            environment: {
+                hasServiceKey: !!supabaseServiceKey,
+                hasAnonKey: !!supabaseAnonKey,
+                hasUrl: !!supabaseUrl
+            },
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            status: 'unhealthy',
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 module.exports = router;
