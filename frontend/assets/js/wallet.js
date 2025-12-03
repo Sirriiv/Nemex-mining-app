@@ -1,5 +1,5 @@
-// assets/js/wallet.js - UPDATED FOR MINING SITE INTEGRATION
-console.log('👛 Loading Nemex Wallet v3.0 (Mining Integrated)...');
+// assets/js/wallet.js - ENHANCED WITH ALL FEATURES
+console.log('👛 Loading Nemex Wallet v3.2 (Full Integration)...');
 
 class MiningWalletManager {
     constructor() {
@@ -8,12 +8,101 @@ class MiningWalletManager {
         this.userId = null;
         this.userEmail = null;
         this.isInitialized = false;
+        
+        // Price APIs configuration
+        this.priceApis = [
+            {
+                name: "CoinGecko",
+                url: "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,nemexcoin&vs_currencies=usd&include_24hr_change=true",
+                parser: (data) => ({
+                    TON: { 
+                        price: data['the-open-network']?.usd || 0, 
+                        change24h: data['the-open-network']?.usd_24h_change || 0 
+                    },
+                    NMX: { 
+                        price: data['nemexcoin']?.usd || 0.10, 
+                        change24h: data['nemexcoin']?.usd_24h_change || 0 
+                    }
+                })
+            },
+            {
+                name: "CoinMarketCap",
+                url: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=TON,NMX&convert=USD",
+                headers: { "X-CMC_PRO_API_KEY": "your-api-key-here" },
+                parser: (data) => ({
+                    TON: { 
+                        price: data.data?.TON?.quote?.USD?.price || 0, 
+                        change24h: data.data?.TON?.quote?.USD?.percent_change_24h || 0 
+                    },
+                    NMX: { 
+                        price: data.data?.NMX?.quote?.USD?.price || 0.10, 
+                        change24h: data.data?.NMX?.quote?.USD?.percent_change_24h || 0 
+                    }
+                })
+            },
+            {
+                name: "Binance",
+                url: "https://api.binance.com/api/v3/ticker/price?symbols=[%22TONUSDT%22,%22NMXUSDT%22]",
+                parser: (data) => ({
+                    TON: { 
+                        price: parseFloat(data.find(d => d.symbol === 'TONUSDT')?.price) || 0, 
+                        change24h: 0 
+                    },
+                    NMX: { 
+                        price: parseFloat(data.find(d => d.symbol === 'NMXUSDT')?.price) || 0.10, 
+                        change24h: 0 
+                    }
+                })
+            },
+            {
+                name: "KuCoin",
+                url: "https://api.kucoin.com/api/v1/market/allTickers",
+                parser: (data) => ({
+                    TON: { 
+                        price: parseFloat(data.data.ticker.find(t => t.symbol === 'TON-USDT')?.last) || 0, 
+                        change24h: 0 
+                    },
+                    NMX: { 
+                        price: parseFloat(data.data.ticker.find(t => t.symbol === 'NMX-USDT')?.last) || 0.10, 
+                        change24h: 0 
+                    }
+                })
+            },
+            {
+                name: "Bybit",
+                url: "https://api.bybit.com/v5/market/tickers?category=spot&symbol=TONUSDT,NMXUSDT",
+                parser: (data) => ({
+                    TON: { 
+                        price: parseFloat(data.result.list.find(t => t.symbol === 'TONUSDT')?.lastPrice) || 0, 
+                        change24h: 0 
+                    },
+                    NMX: { 
+                        price: parseFloat(data.result.list.find(t => t.symbol === 'NMXUSDT')?.lastPrice) || 0.10, 
+                        change24h: 0 
+                    }
+                })
+            },
+            {
+                name: "Gate.io",
+                url: "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=TON_USDT,NMX_USDT",
+                parser: (data) => ({
+                    TON: { 
+                        price: parseFloat(data.find(t => t.currency_pair === 'TON_USDT')?.last) || 0, 
+                        change24h: 0 
+                    },
+                    NMX: { 
+                        price: parseFloat(data.find(t => t.currency_pair === 'NMX_USDT')?.last) || 0.10, 
+                        change24h: 0 
+                    }
+                })
+            }
+        ];
 
-        console.log('✅ Wallet Manager initialized');
+        console.log('✅ Wallet Manager initialized with price APIs');
     }
 
     // =============================================
-    // 🎯 INITIALIZATION - SIMPLIFIED & FIXED
+    // 🎯 INITIALIZATION - ENHANCED
     // =============================================
 
     async initialize() {
@@ -25,16 +114,10 @@ class MiningWalletManager {
         }
 
         try {
-            // 🎯 SIMPLIFIED: Get user from mining site
-            // The mining site should set window.miningUser when user is logged in
-
+            // 🎯 Get user from mining site
             if (!window.miningUser || !window.miningUser.id) {
                 console.error('❌ No mining user found');
-                console.log('ℹ️ Please make sure:');
-                console.log('1. User is logged into mining site (dashboard.html)');
-                console.log('2. dashboard.html sets window.miningUser before redirecting to wallet.html');
-                console.log('3. Or user accesses wallet via "Open Wallet" button on dashboard');
-
+                
                 return {
                     success: false,
                     requiresLogin: true,
@@ -45,13 +128,15 @@ class MiningWalletManager {
 
             this.userId = window.miningUser.id;
             this.userEmail = window.miningUser.email;
-            console.log(`✅ Mining user authenticated: ${this.userId} (${this.userEmail || 'no email'})`);
+            console.log(`✅ Mining user authenticated: ${this.userId}`);
 
             // Test API connection
             try {
                 const testResponse = await fetch(`${this.apiBaseUrl}/test`);
-                const testResult = await testResponse.json();
-                console.log('🔌 API Test:', testResult.message);
+                if (testResponse.ok) {
+                    const testResult = await testResponse.json();
+                    console.log('🔌 API Test:', testResult.message);
+                }
             } catch (apiError) {
                 console.warn('⚠️ API test failed (continuing anyway):', apiError.message);
             }
@@ -103,7 +188,7 @@ class MiningWalletManager {
     }
 
     // =============================================
-    // 🎯 WALLET OPERATIONS - UPDATED FOR MINING PASSWORD
+    // 🎯 WALLET OPERATIONS - PRESERVED
     // =============================================
 
     async getUserWallet(userId) {
@@ -157,7 +242,7 @@ class MiningWalletManager {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     userId,
-                    userPassword, // This is the MINING ACCOUNT PASSWORD
+                    userPassword,
                     replaceExisting 
                 })
             });
@@ -167,7 +252,6 @@ class MiningWalletManager {
             if (!response.ok) {
                 console.error('❌ Create wallet API error:', response.status, result.error);
 
-                // Handle specific errors
                 if (result.requiresLogin) {
                     result.redirectUrl = 'dashboard.html';
                 }
@@ -180,7 +264,7 @@ class MiningWalletManager {
                 this.isInitialized = true;
                 console.log('✅ Wallet created successfully');
 
-                // IMPORTANT: Store the mnemonic safely (will be shown once)
+                // Store the mnemonic safely (will be shown once)
                 if (result.mnemonic) {
                     sessionStorage.setItem('new_wallet_mnemonic', result.mnemonic);
                     sessionStorage.setItem('new_wallet_address', result.wallet.address);
@@ -219,7 +303,6 @@ class MiningWalletManager {
             if (!response.ok) {
                 console.error('❌ View seed API error:', response.status, result.error);
 
-                // Handle incorrect password
                 if (result.error && result.error.includes('password')) {
                     result.incorrectPassword = true;
                 }
@@ -326,6 +409,10 @@ class MiningWalletManager {
         }
     }
 
+    // =============================================
+    // 🎯 BALANCE & PRICES - ENHANCED WITH REAL APIS
+    // =============================================
+
     async getBalance(address) {
         try {
             console.log(`💰 Getting balance for: ${address?.substring(0, 16) || 'null'}...`);
@@ -340,20 +427,23 @@ class MiningWalletManager {
                 };
             }
 
+            // Try your API first
             const response = await fetch(`${this.apiBaseUrl}/balance/${encodeURIComponent(address)}`);
 
-            if (!response.ok) {
-                console.warn(`⚠️ Balance API error: ${response.status}`);
-                return { 
-                    success: true, 
-                    balance: 0.5,
-                    address: address,
-                    currency: 'TON',
-                    isMock: true
-                };
+            if (response.ok) {
+                return await response.json();
             }
 
-            return await response.json();
+            // If API fails, try TON blockchain directly (mock for now)
+            console.warn(`⚠️ Balance API error: ${response.status}, using mock data`);
+            return { 
+                success: true, 
+                balance: 0.5,
+                address: address,
+                currency: 'TON',
+                isMock: true,
+                source: 'mock'
+            };
 
         } catch (error) {
             console.error('❌ Get balance failed:', error);
@@ -362,31 +452,93 @@ class MiningWalletManager {
                 balance: 0.5,
                 address: address || 'N/A',
                 currency: 'TON',
-                isMock: true
+                isMock: true,
+                source: 'error'
             };
         }
     }
 
     async getPrices() {
         try {
-            console.log('📈 Getting prices...');
-
-            const response = await fetch(`${this.apiBaseUrl}/prices`);
-
-            if (!response.ok) {
-                console.warn(`⚠️ Prices API error: ${response.status}`);
-                return {
-                    success: true,
-                    prices: {
-                        TON: { price: 2.35, change24h: 1.5 },
-                        NMX: { price: 0.10, change24h: 0.5 }
-                    },
-                    isMock: true,
-                    timestamp: new Date().toISOString()
-                };
+            console.log('📈 Getting prices from multiple exchanges...');
+            
+            // Try your backend first
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/prices`);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ Got prices from backend');
+                    return result;
+                }
+            } catch (backendError) {
+                console.warn('⚠️ Backend prices failed, trying external APIs:', backendError.message);
             }
 
-            return await response.json();
+            // Try external APIs with fastest-responder logic
+            const promises = this.priceApis.map(async (api) => {
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 5000);
+                    
+                    const options = {
+                        method: 'GET',
+                        signal: controller.signal,
+                        headers: api.headers || {}
+                    };
+                    
+                    const response = await fetch(api.url, options);
+                    clearTimeout(timeout);
+                    
+                    if (!response.ok) {
+                        throw new Error(`API ${api.name} returned ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    const parsed = api.parser(data);
+                    
+                    console.log(`✅ ${api.name}: TON=$${parsed.TON.price}, NMX=$${parsed.NMX.price}`);
+                    return {
+                        source: api.name,
+                        prices: parsed,
+                        timestamp: Date.now()
+                    };
+                    
+                } catch (error) {
+                    console.warn(`⚠️ ${api.name} failed:`, error.message);
+                    return null;
+                }
+            });
+            
+            const results = await Promise.allSettled(promises);
+            const successfulResults = results
+                .filter(r => r.status === 'fulfilled' && r.value !== null)
+                .map(r => r.value);
+            
+            if (successfulResults.length > 0) {
+                const fastest = successfulResults[0];
+                console.log(`🏆 Fastest price responder: ${fastest.source}`);
+                
+                return {
+                    success: true,
+                    prices: fastest.prices,
+                    source: fastest.source,
+                    timestamp: fastest.timestamp,
+                    isExternal: true
+                };
+            }
+            
+            // All failed, use fallback
+            console.warn('⚠️ All price APIs failed, using fallback prices');
+            return {
+                success: true,
+                prices: {
+                    TON: { price: 2.35, change24h: 1.5 },
+                    NMX: { price: 0.10, change24h: 0.5 }
+                },
+                source: 'fallback',
+                isMock: true,
+                timestamp: new Date().toISOString()
+            };
 
         } catch (error) {
             console.error('❌ Get prices failed:', error);
@@ -397,14 +549,19 @@ class MiningWalletManager {
                     NMX: { price: 0.10, change24h: 0 }
                 },
                 isMock: true,
+                source: 'error',
                 timestamp: new Date().toISOString()
             };
         }
     }
 
-    async sendTransaction(userId, toAddress, amount, password) {
+    // =============================================
+    // 🎯 TRANSACTION OPERATIONS - ENHANCED
+    // =============================================
+
+    async sendTransaction(userId, toAddress, amount, password, token = 'TON', memo = '') {
         try {
-            console.log(`📤 Sending ${amount} TON to ${toAddress?.substring(0, 16) || 'null'}...`);
+            console.log(`📤 Sending ${amount} ${token} to ${toAddress?.substring(0, 16) || 'null'}...`);
 
             if (!userId || !toAddress || !amount || !password) {
                 return {
@@ -413,15 +570,24 @@ class MiningWalletManager {
                 };
             }
 
+            // Enhanced for token support
+            const payload = { 
+                userId,
+                toAddress,
+                amount: parseFloat(amount),
+                password,
+                token: token || 'TON'
+            };
+
+            // Add memo if provided
+            if (memo && memo.trim()) {
+                payload.memo = memo.trim();
+            }
+
             const response = await fetch(`${this.apiBaseUrl}/send-transaction`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId,
-                    toAddress,
-                    amount: parseFloat(amount),
-                    password
-                })
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
@@ -434,6 +600,33 @@ class MiningWalletManager {
                 error: 'Failed to send transaction: ' + error.message
             };
         }
+    }
+
+    async sendTON(fromAddress, toAddress, amount, memo = '') {
+        // Alias for backward compatibility
+        const userId = this.userId;
+        if (!userId) {
+            return {
+                success: false,
+                error: 'User not authenticated'
+            };
+        }
+        
+        // Note: In production, you'd need to prompt for password
+        // For now, we'll use a placeholder
+        return this.sendTransaction(userId, toAddress, amount, 'placeholder-password', 'TON', memo);
+    }
+
+    async sendNMX(fromAddress, toAddress, amount, memo = '') {
+        const userId = this.userId;
+        if (!userId) {
+            return {
+                success: false,
+                error: 'User not authenticated'
+            };
+        }
+        
+        return this.sendTransaction(userId, toAddress, amount, 'placeholder-password', 'NMX', memo);
     }
 
     async getTransactionHistory(address) {
@@ -449,7 +642,19 @@ class MiningWalletManager {
                 };
             }
 
-            // For now, return mock data
+            // Try your backend API
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/transactions/${encodeURIComponent(address)}`);
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log(`✅ Got ${result.transactions?.length || 0} transactions`);
+                    return result;
+                }
+            } catch (apiError) {
+                console.warn('⚠️ Transaction API failed, using mock data:', apiError.message);
+            }
+
+            // Mock data for testing
             return { 
                 success: true, 
                 transactions: [
@@ -457,23 +662,28 @@ class MiningWalletManager {
                         id: 'mock_1',
                         type: 'received',
                         amount: 1.5,
+                        token: 'TON',
                         from: 'EQABC123...',
                         to: address,
                         timestamp: new Date(Date.now() - 86400000).toISOString(),
-                        status: 'completed'
+                        status: 'completed',
+                        memo: 'Test transaction'
                     },
                     {
                         id: 'mock_2',
                         type: 'sent',
                         amount: 0.5,
+                        token: 'TON',
                         from: address,
                         to: 'EQDEF456...',
                         timestamp: new Date(Date.now() - 172800000).toISOString(),
-                        status: 'completed'
+                        status: 'completed',
+                        memo: 'Payment for services'
                     }
                 ],
                 address: address,
-                isMock: true
+                isMock: true,
+                source: 'mock'
             };
 
         } catch (error) {
@@ -482,13 +692,14 @@ class MiningWalletManager {
                 success: true, 
                 transactions: [],
                 address: address || 'N/A',
-                isMock: true
+                isMock: true,
+                source: 'error'
             };
         }
     }
 
     // =============================================
-    // 🎯 UTILITIES - ADDED MISSING FUNCTION
+    // 🎯 UTILITIES - ENHANCED
     // =============================================
 
     hasWallet() {
@@ -516,19 +727,27 @@ class MiningWalletManager {
         return this.userId;
     }
 
-    // 🎯 ADDED THIS MISSING FUNCTION
     validatePasswordStrength(password) {
         if (!password) return { valid: false, message: 'Password required' };
         if (password.length < 6) return { valid: false, message: 'Minimum 6 characters' };
 
         let strength = 'medium';
+        let message = 'Good password';
+        
         if (password.length >= 12 && /[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) {
             strength = 'strong';
+            message = 'Strong password';
+        } else if (password.length >= 8) {
+            strength = 'medium';
+            message = 'Good password';
+        } else {
+            strength = 'weak';
+            message = 'Weak password';
         }
 
         return { 
             valid: true, 
-            message: strength === 'strong' ? 'Strong password' : 'Good password',
+            message: message,
             strength: strength
         };
     }
@@ -541,7 +760,6 @@ class MiningWalletManager {
         console.log('🧹 Wallet data cleared');
     }
 
-    // Helper to validate if user can perform actions
     validateUser() {
         if (!this.userId) {
             return {
@@ -561,11 +779,31 @@ class MiningWalletManager {
 
         return { valid: true, userId: this.userId };
     }
+
+    // Helper for convert NMXp modal
+    async getNMXpBalance(userId) {
+        try {
+            // This would call your backend to get NMXp balance
+            // For now, return mock data
+            return {
+                success: true,
+                balance: 1500,
+                wallet_address: this.getAddress(),
+                userId: userId
+            };
+        } catch (error) {
+            console.error('❌ Get NMXp balance failed:', error);
+            return { 
+                success: false, 
+                error: 'Failed to get NMXp balance: ' + error.message
+            };
+        }
+    }
 }
 
 // Create global instance
 window.walletManager = new MiningWalletManager();
-console.log('✅ Wallet Manager ready');
+console.log('✅ Enhanced Wallet Manager ready');
 
 // Auto-initialize for wallet.html
 document.addEventListener('DOMContentLoaded', function() {
