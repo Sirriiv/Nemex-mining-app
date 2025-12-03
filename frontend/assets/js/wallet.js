@@ -27,14 +27,14 @@ class MiningWalletManager {
         try {
             // 🎯 SIMPLIFIED: Get user from mining site
             // The mining site should set window.miningUser when user is logged in
-            
+
             if (!window.miningUser || !window.miningUser.id) {
                 console.error('❌ No mining user found');
                 console.log('ℹ️ Please make sure:');
                 console.log('1. User is logged into mining site (dashboard.html)');
                 console.log('2. dashboard.html sets window.miningUser before redirecting to wallet.html');
                 console.log('3. Or user accesses wallet via "Open Wallet" button on dashboard');
-                
+
                 return {
                     success: false,
                     requiresLogin: true,
@@ -63,7 +63,7 @@ class MiningWalletManager {
                 if (result.hasWallet) {
                     this.currentWallet = result.wallet;
                     this.isInitialized = true;
-                    
+
                     console.log('✅ Wallet loaded:', {
                         address: result.wallet.address?.substring(0, 16) + '...',
                         userId: this.userId
@@ -117,7 +117,7 @@ class MiningWalletManager {
             });
 
             const result = await response.json();
-            
+
             if (!response.ok) {
                 console.error('❌ API Error:', response.status, result.error);
                 return result;
@@ -143,6 +143,15 @@ class MiningWalletManager {
                 throw new Error('User ID and mining account password are required');
             }
 
+            // Validate password strength
+            const passwordCheck = this.validatePasswordStrength(userPassword);
+            if (!passwordCheck.valid) {
+                return {
+                    success: false,
+                    error: passwordCheck.message
+                };
+            }
+
             const response = await fetch(`${this.apiBaseUrl}/create-wallet`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -154,15 +163,15 @@ class MiningWalletManager {
             });
 
             const result = await response.json();
-            
+
             if (!response.ok) {
                 console.error('❌ Create wallet API error:', response.status, result.error);
-                
+
                 // Handle specific errors
                 if (result.requiresLogin) {
                     result.redirectUrl = 'dashboard.html';
                 }
-                
+
                 return result;
             }
 
@@ -170,7 +179,7 @@ class MiningWalletManager {
                 this.currentWallet = result.wallet;
                 this.isInitialized = true;
                 console.log('✅ Wallet created successfully');
-                
+
                 // IMPORTANT: Store the mnemonic safely (will be shown once)
                 if (result.mnemonic) {
                     sessionStorage.setItem('new_wallet_mnemonic', result.mnemonic);
@@ -206,15 +215,15 @@ class MiningWalletManager {
             });
 
             const result = await response.json();
-            
+
             if (!response.ok) {
                 console.error('❌ View seed API error:', response.status, result.error);
-                
+
                 // Handle incorrect password
                 if (result.error && result.error.includes('password')) {
                     result.incorrectPassword = true;
                 }
-                
+
                 return result;
             }
 
@@ -259,7 +268,7 @@ class MiningWalletManager {
             });
 
             const result = await response.json();
-            
+
             if (result.success) {
                 this.currentWallet = result.wallet;
                 this.isInitialized = true;
@@ -299,7 +308,7 @@ class MiningWalletManager {
             });
 
             const result = await response.json();
-            
+
             if (result.success) {
                 this.currentWallet = null;
                 this.isInitialized = false;
@@ -332,7 +341,7 @@ class MiningWalletManager {
             }
 
             const response = await fetch(`${this.apiBaseUrl}/balance/${encodeURIComponent(address)}`);
-            
+
             if (!response.ok) {
                 console.warn(`⚠️ Balance API error: ${response.status}`);
                 return { 
@@ -363,7 +372,7 @@ class MiningWalletManager {
             console.log('📈 Getting prices...');
 
             const response = await fetch(`${this.apiBaseUrl}/prices`);
-            
+
             if (!response.ok) {
                 console.warn(`⚠️ Prices API error: ${response.status}`);
                 return {
@@ -479,7 +488,7 @@ class MiningWalletManager {
     }
 
     // =============================================
-    // 🎯 UTILITIES
+    // 🎯 UTILITIES - ADDED MISSING FUNCTION
     // =============================================
 
     hasWallet() {
@@ -507,6 +516,23 @@ class MiningWalletManager {
         return this.userId;
     }
 
+    // 🎯 ADDED THIS MISSING FUNCTION
+    validatePasswordStrength(password) {
+        if (!password) return { valid: false, message: 'Password required' };
+        if (password.length < 6) return { valid: false, message: 'Minimum 6 characters' };
+
+        let strength = 'medium';
+        if (password.length >= 12 && /[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) {
+            strength = 'strong';
+        }
+
+        return { 
+            valid: true, 
+            message: strength === 'strong' ? 'Strong password' : 'Good password',
+            strength: strength
+        };
+    }
+
     clearData() {
         this.currentWallet = null;
         this.userId = null;
@@ -524,7 +550,7 @@ class MiningWalletManager {
                 requiresLogin: true
             };
         }
-        
+
         if (!this.currentWallet) {
             return {
                 valid: false,
@@ -532,7 +558,7 @@ class MiningWalletManager {
                 requiresWallet: true
             };
         }
-        
+
         return { valid: true, userId: this.userId };
     }
 }
@@ -545,15 +571,15 @@ console.log('✅ Wallet Manager ready');
 document.addEventListener('DOMContentLoaded', function() {
     if (window.location.pathname.includes('wallet.html')) {
         console.log('🎯 Auto-initializing wallet...');
-        
+
         // Give time for window.miningUser to be set by mining site
         setTimeout(async () => {
             try {
                 const result = await window.walletManager.initialize();
-                
+
                 if (result.requiresLogin) {
                     console.warn('⚠️ User needs to login to mining site');
-                    
+
                     // Show message after a short delay
                     setTimeout(() => {
                         if (typeof showMessage === 'function') {
