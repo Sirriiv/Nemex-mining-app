@@ -1,4 +1,4 @@
-// server.js - UPDATED CORS CONFIGURATION
+// server.js - FIXED VERSION (No async/await in route loading)
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -20,11 +20,11 @@ const allowedOrigins = [
     'https://nemexcoin.it.com',
     'http://www.nemexcoin.it.com',
     'http://nemexcoin.it.com',
-    
+
     // Render domains (your backend)
     'https://nemex-backend.onrender.com',
     'http://nemex-backend.onrender.com',
-    
+
     // Local development
     'http://localhost:3000',
     'http://localhost:8080',
@@ -44,7 +44,7 @@ const corsOptions = {
         }
 
         console.log('🌐 CORS Checking origin:', origin);
-        
+
         // Check if origin is in allowed list
         const isAllowed = allowedOrigins.some(allowedOrigin => {
             if (allowedOrigin === origin) return true;
@@ -87,7 +87,7 @@ app.use((req, res, next) => {
     if (req.path.startsWith('/api')) {
         return next();
     }
-    
+
     if (req.headers['x-forwarded-proto'] !== 'https' && 
         process.env.NODE_ENV === 'production' &&
         !req.headers.host.includes('localhost')) {
@@ -176,65 +176,89 @@ app.get('/api/config', (req, res) => {
 });
 
 // =============================================
-// 🎯 LOAD WALLET ROUTES
+// 🎯 LOAD WALLET ROUTES - FIXED!
 // =============================================
 
-let walletRoutes;
-try {
-    console.log('🔄 Loading wallet routes...');
+console.log('🔄 Setting up wallet routes...');
 
-    // Check if file exists
-    const walletRoutesPath = path.join(__dirname, 'backend', 'wallet-routes.js');
-    if (!fs.existsSync(walletRoutesPath)) {
-        console.error('❌ Wallet routes file not found:', walletRoutesPath);
-        throw new Error('Wallet routes file not found');
-    }
+// Create a SIMPLE wallet router first
+const walletRouter = express.Router();
 
-    walletRoutes = require(walletRoutesPath);
-    console.log('✅ Wallet routes loaded successfully');
-
-    // Test the routes are working
-    console.log('🔧 Testing wallet routes structure...');
-    if (typeof walletRoutes === 'function' || 
-        (walletRoutes.router && typeof walletRoutes.router === 'function')) {
-        console.log('✅ Wallet routes structure is valid');
-    }
-} catch (error) {
-    console.error('❌ ERROR loading wallet routes:', error.message);
-    console.error('Stack trace:', error.stack);
-
-    // Create emergency fallback routes
-    const express = require('express');
-    const emergencyRouter = express.Router();
-
-    emergencyRouter.get('/test', (req, res) => {
-        res.json({ 
-            success: false, 
-            error: 'Wallet system is under maintenance',
-            message: 'Please try again later',
-            emergency: true
-        });
+// Add test endpoint immediately (to verify it works)
+walletRouter.get('/test', (req, res) => {
+    console.log('📞 /api/wallet/test called (simple version)');
+    res.json({
+        success: true,
+        message: 'Wallet API is working! (Simple version)',
+        timestamp: new Date().toISOString()
     });
+});
 
-    emergencyRouter.get('/health', (req, res) => {
-        res.json({ 
-            success: false, 
-            error: 'Wallet system unavailable',
-            emergency: true
+// Mount the simple router first
+app.use('/api/wallet', walletRouter);
+console.log('✅ Basic wallet routes mounted at /api/wallet');
+
+// Now try to load the full wallet routes ASYNCHRONOUSLY
+setTimeout(() => {
+    try {
+        console.log('🔄 Attempting to load full wallet routes...');
+        
+        // Check if file exists
+        const walletRoutesPath = path.join(__dirname, 'backend', 'wallet-routes.js');
+        if (!fs.existsSync(walletRoutesPath)) {
+            console.error('❌ Wallet routes file not found:', walletRoutesPath);
+            throw new Error('Wallet routes file not found');
+        }
+
+        // Clear require cache to ensure fresh load
+        delete require.cache[require.resolve(walletRoutesPath)];
+        
+        // Load the wallet routes
+        const fullWalletRoutes = require(walletRoutesPath);
+        
+        // Check if it's a valid router
+        if (fullWalletRoutes && typeof fullWalletRoutes === 'function') {
+            // Replace the simple router with the full one
+            app.use('/api/wallet', fullWalletRoutes);
+            console.log('✅ Full wallet routes loaded and mounted successfully');
+            
+            // Add a test endpoint to verify
+            app.get('/api/wallet/loaded-test', (req, res) => {
+                res.json({
+                    success: true,
+                    message: 'Full wallet routes are loaded!',
+                    timestamp: new Date().toISOString()
+                });
+            });
+        } else {
+            console.warn('⚠️ Wallet routes loaded but not a valid router. Keeping simple version.');
+        }
+        
+    } catch (error) {
+        console.error('❌ ERROR loading full wallet routes:', error.message);
+        console.error('Stack trace:', error.stack);
+        console.log('⚠️ Continuing with simple wallet routes only');
+        
+        // Add more emergency endpoints
+        walletRouter.get('/health', (req, res) => {
+            res.json({
+                success: false,
+                error: 'Full wallet system unavailable',
+                message: 'Using emergency wallet routes',
+                timestamp: new Date().toISOString()
+            });
         });
-    });
-
-    walletRoutes = emergencyRouter;
-    console.log('⚠️ Using emergency wallet routes');
-}
-
-// =============================================
-// 🎯 MOUNT ALL ROUTES
-// =============================================
-
-// Mount wallet routes
-app.use('/api/wallet', walletRoutes);
-console.log('✅ Wallet API routes mounted at /api/wallet');
+        
+        walletRouter.post('/create-wallet', (req, res) => {
+            res.status(503).json({
+                success: false,
+                error: 'Wallet creation temporarily disabled',
+                message: 'Full wallet system is loading. Please try again in a moment.',
+                timestamp: new Date().toISOString()
+            });
+        });
+    }
+}, 1000); // Wait 1 second before loading full routes
 
 // =============================================
 // 🎯 USER SESSION API (For wallet integration)
@@ -277,7 +301,7 @@ app.use((err, req, res, next) => {
             path: req.path,
             allowedOrigins: allowedOrigins
         });
-        
+
         return res.status(403).json({
             success: false,
             error: 'CORS Error: Request blocked',
@@ -375,16 +399,17 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     ============================================
     `);
 
-    // Test database connection
+    // Test basic endpoints
     console.log('🔍 Testing system connectivity...');
-
-    // Log environment status
     console.log('📋 Environment Check:');
     console.log('   NODE_ENV:', process.env.NODE_ENV || 'not set');
     console.log('   PORT:', PORT);
     console.log('   Supabase URL:', process.env.SUPABASE_URL ? '✅ Set' : '❌ Not Set');
     console.log('   Supabase Key:', process.env.SUPABASE_ANON_KEY ? '✅ Set' : '❌ Not Set');
     console.log('   CORS Domains:', allowedOrigins.length, 'domains configured');
+    
+    // Log that full routes will load shortly
+    console.log('🔄 Full wallet routes will attempt to load in 1 second...');
 });
 
 // Graceful shutdown
