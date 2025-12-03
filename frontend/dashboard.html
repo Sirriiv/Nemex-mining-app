@@ -1076,35 +1076,35 @@
             .nmx-admin-overlay {
                 padding: 10px;
             }
-            
+
             .admin-title-section {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
+
             .admin-actions {
                 width: 100%;
                 justify-content: center;
             }
-            
+
             .admin-stats-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             .admin-tabs {
                 flex-direction: column;
             }
-            
+
             .tab-header {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
+
             .conversion-item {
                 flex-direction: column;
                 align-items: flex-start;
             }
-            
+
             .conversion-actions {
                 width: 100%;
                 justify-content: center;
@@ -1342,7 +1342,8 @@
                 </svg>
                 <span class="nav-text">REFERRALS</span>
             </a>
-            <a class="nav-item" onclick="showLoadingScreen('wallet.html', 'Loading Wallet...')">
+            <!-- UPDATED: WALLET NAV ITEM - Uses new openWalletWithUser function -->
+            <a class="nav-item" onclick="openWalletWithUser()">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                 </svg>
@@ -1360,6 +1361,90 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
 
         const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // =============================================
+        // 🔐 WALLET INTEGRATION - UPDATED
+        // =============================================
+
+        /**
+         * 🎯 FUNCTION: Open Wallet with Mining User Authentication
+         * This is the CRITICAL function that connects mining site to wallet
+         */
+        async function openWalletWithUser() {
+            console.log('🚀 Opening wallet with mining user authentication...');
+
+            try {
+                // Show loading screen immediately
+                document.getElementById('loadingText').textContent = 'Loading Wallet...';
+                document.getElementById('loadingOverlay').style.display = 'flex';
+
+                // Check Supabase authentication
+                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+
+                if (sessionError) {
+                    console.error('❌ Session error:', sessionError);
+                    showError('Authentication error. Please login again.');
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    return;
+                }
+
+                if (!session || !session.user) {
+                    console.error('❌ No user session found');
+                    showError('Please login to access wallet');
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    return;
+                }
+
+                // Get user profile from database
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('id, username, email, balance')
+                    .eq('id', session.user.id)
+                    .single();
+
+                if (profileError || !profile) {
+                    console.error('❌ Profile error:', profileError);
+                    showError('User profile not found');
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    return;
+                }
+
+                console.log('✅ User authenticated for wallet:', {
+                    id: profile.id,
+                    username: profile.username,
+                    email: profile.email
+                });
+
+                // 🎯 CRITICAL: Create window.miningUser object for wallet.js to use
+                window.miningUser = {
+                    id: profile.id,
+                    username: profile.username || 'User',
+                    email: profile.email || '',
+                    miningBalance: profile.balance || 0
+                };
+
+                // Store in sessionStorage (temporary for wallet page)
+                sessionStorage.setItem('miningUser', JSON.stringify(window.miningUser));
+
+                // Also store in localStorage with timestamp
+                localStorage.setItem('nemexcoin_wallet_user', JSON.stringify({
+                    ...window.miningUser,
+                    timestamp: Date.now()
+                }));
+
+                console.log('✅ User data prepared for wallet:', window.miningUser);
+
+                // Wait a moment to ensure data is stored, then redirect
+                setTimeout(() => {
+                    window.location.href = 'wallet.html';
+                }, 500);
+
+            } catch (error) {
+                console.error('❌ Error opening wallet:', error);
+                showError('Failed to open wallet. Please try again.');
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
 
         // NMX Admin Panel Functions
         let currentAdminTab = 'overview';
@@ -1612,26 +1697,26 @@
             document.querySelectorAll('.tab-pane').forEach(pane => {
                 pane.classList.remove('active');
             });
-            
+
             // Remove active class from all tab buttons
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.remove('active');
             });
-            
+
             // Show selected tab pane
             const tabElement = document.getElementById(tabName + 'Tab');
             if (tabElement) {
                 tabElement.classList.add('active');
             }
-            
+
             // Activate selected tab button
             const buttonElement = document.querySelector(`[onclick="switchAdminTab('${tabName}')"]`);
             if (buttonElement) {
                 buttonElement.classList.add('active');
             }
-            
+
             currentAdminTab = tabName;
-            
+
             // Load data for the selected tab
             if (tabName === 'pending') {
                 loadPendingConversions();
@@ -1648,7 +1733,7 @@
         async function loadPendingConversions() {
             try {
                 console.log('🔄 Loading pending conversions...');
-                
+
                 // Fetch pending conversions from Supabase
                 const { data: conversions, error } = await supabaseClient
                     .from('conversions')
@@ -1661,7 +1746,7 @@
                 allConversions = conversions || [];
                 updateAdminStats();
                 renderPendingConversions(conversions || []);
-                
+
             } catch (error) {
                 console.error('❌ Error loading pending conversions:', error);
                 showToast('Error loading conversions', 'error');
@@ -1679,7 +1764,7 @@
 
                 if (error) throw error;
                 renderAcceptedConversions(conversions || []);
-                
+
             } catch (error) {
                 console.error('❌ Error loading accepted conversions:', error);
             }
@@ -1696,7 +1781,7 @@
 
                 if (error) throw error;
                 renderRejectedConversions(conversions || []);
-                
+
             } catch (error) {
                 console.error('❌ Error loading rejected conversions:', error);
             }
@@ -1712,7 +1797,7 @@
 
                 if (error) throw error;
                 renderAllConversions(conversions || []);
-                
+
             } catch (error) {
                 console.error('❌ Error loading all conversions:', error);
             }
@@ -1725,35 +1810,35 @@
             const rejected = allConversions.filter(c => c.status === 'rejected').length;
             const totalNmxp = allConversions.reduce((sum, conv) => sum + (conv.nmxp_amount || 0), 0);
             const totalNmx = allConversions.reduce((sum, conv) => sum + (conv.nmx_amount || 0), 0);
-            
+
             // Update stat cards
             document.getElementById('pendingCount').textContent = pending;
             document.getElementById('totalAccepted').textContent = accepted;
             document.getElementById('totalRejected').textContent = rejected;
             document.getElementById('totalNmxpConverted').textContent = formatNumber(totalNmxp);
             document.getElementById('totalNMXSend').textContent = formatNumber(totalNmx) + ' NMX';
-            
+
             // Update tab badges
             document.getElementById('pendingBadge').textContent = pending;
             document.getElementById('acceptedBadge').textContent = accepted;
             document.getElementById('rejectedBadge').textContent = rejected;
-            
+
             // Update chart
             const total = pending + accepted + rejected;
             if (total > 0) {
                 const pendingPercent = (pending / total) * 100;
                 const acceptedPercent = (accepted / total) * 100;
                 const rejectedPercent = (rejected / total) * 100;
-                
+
                 document.getElementById('chartPending').style.width = pendingPercent + '%';
                 document.getElementById('chartAccepted').style.width = acceptedPercent + '%';
                 document.getElementById('chartRejected').style.width = rejectedPercent + '%';
-                
+
                 document.getElementById('chartPendingText').textContent = pendingPercent.toFixed(1) + '%';
                 document.getElementById('chartAcceptedText').textContent = acceptedPercent.toFixed(1) + '%';
                 document.getElementById('chartRejectedText').textContent = rejectedPercent.toFixed(1) + '%';
             }
-            
+
             // Update system info
             document.getElementById('totalConversions').textContent = total;
             document.getElementById('successRate').textContent = total > 0 ? ((accepted / total) * 100).toFixed(1) + '%' : '0%';
@@ -1764,12 +1849,12 @@
         function renderPendingConversions(conversions) {
             const container = document.getElementById('pendingConversionsList');
             if (!container) return;
-            
+
             if (conversions.length === 0) {
                 container.innerHTML = '<div class="empty-state">No pending conversions</div>';
                 return;
             }
-            
+
             container.innerHTML = conversions.map(conversion => `
                 <div class="conversion-item" data-id="${conversion.id}">
                     <div class="conversion-info">
@@ -1798,15 +1883,15 @@
         function renderAcceptedConversions(conversions) {
             const container = document.getElementById('acceptedConversionsList');
             if (!container) return;
-            
+
             const totalNmx = conversions.reduce((sum, conv) => sum + (conv.nmx_amount || 0), 0);
             document.getElementById('acceptedNmxTotal').textContent = formatNumber(totalNmx) + ' NMX';
-            
+
             if (conversions.length === 0) {
                 container.innerHTML = '<div class="empty-state">No accepted conversions</div>';
                 return;
             }
-            
+
             container.innerHTML = conversions.map(conversion => `
                 <div class="conversion-item">
                     <div class="conversion-info">
@@ -1826,15 +1911,15 @@
         function renderRejectedConversions(conversions) {
             const container = document.getElementById('rejectedConversionsList');
             if (!container) return;
-            
+
             const totalNmxp = conversions.reduce((sum, conv) => sum + (conv.nmxp_amount || 0), 0);
             document.getElementById('rejectedNmxpTotal').textContent = formatNumber(totalNmxp) + ' NMXp';
-            
+
             if (conversions.length === 0) {
                 container.innerHTML = '<div class="empty-state">No rejected conversions</div>';
                 return;
             }
-            
+
             container.innerHTML = conversions.map(conversion => `
                 <div class="conversion-item">
                     <div class="conversion-info">
@@ -1854,12 +1939,12 @@
         function renderAllConversions(conversions) {
             const container = document.getElementById('allConversionsList');
             if (!container) return;
-            
+
             if (conversions.length === 0) {
                 container.innerHTML = '<div class="empty-state">No conversions found</div>';
                 return;
             }
-            
+
             container.innerHTML = conversions.map(conversion => `
                 <div class="conversion-item">
                     <div class="conversion-info">
@@ -1889,7 +1974,7 @@
         async function processConversion(conversionId, action) {
             try {
                 console.log(`🔄 Processing conversion ${conversionId} as ${action}`);
-                
+
                 const { error } = await supabaseClient
                     .from('conversions')
                     .update({ 
@@ -1901,10 +1986,10 @@
                 if (error) throw error;
 
                 showToast(`Conversion ${action} successfully!`, 'success');
-                
+
                 // Reload data
                 loadPendingConversions();
-                
+
             } catch (error) {
                 console.error('❌ Error processing conversion:', error);
                 showToast('Error processing conversion', 'error');
@@ -1915,7 +2000,7 @@
         async function processAllPending() {
             try {
                 console.log('🔄 Processing all pending conversions...');
-                
+
                 const { data: pendingConversions, error } = await supabaseClient
                     .from('conversions')
                     .select('*')
@@ -1934,7 +2019,7 @@
                 }
 
                 showToast(`Processed ${pendingConversions.length} conversions`, 'success');
-                
+
             } catch (error) {
                 console.error('❌ Error processing all conversions:', error);
                 showToast('Error processing conversions', 'error');
@@ -1969,7 +2054,7 @@
             a.download = `conversions-${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
-            
+
             showToast('CSV exported successfully', 'success');
         }
 
@@ -1977,7 +2062,7 @@
         function filterConversions() {
             const statusFilter = document.getElementById('statusFilter').value;
             const dateFilter = document.getElementById('dateFilter').value;
-            
+
             // This would filter the existing allConversions array
             // Implementation depends on your data structure
         }
@@ -1996,7 +2081,6 @@
             alert(`${type.toUpperCase()}: ${message}`);
         }
 
-        // ... [REST OF YOUR EXISTING DASHBOARD JAVASCRIPT CODE] ...
         // Loading Screen Function
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
@@ -2182,7 +2266,7 @@
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Dashboard...');
-            
+
             // Show loading screen initially
             setTimeout(() => {
                 document.getElementById('loadingOverlay').style.display = 'none';
@@ -2577,75 +2661,6 @@
 
         // Add click event to claim button
         document.getElementById('claimButton').addEventListener('click', claimMiningReward);
-
-// 🔐 WALLET INTEGRATION FUNCTION FOR DASHBOARD
-// This function opens the wallet and passes the current mining user
-async function openWalletWithUser() {
-    try {
-        console.log('🔗 Opening wallet with mining user...');
-        
-        // Get current user from Supabase session
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        
-        if (!session || !session.user) {
-            console.error('❌ No user session found');
-            showError('Please login to access wallet');
-            return;
-        }
-        
-        // Get user profile data
-        const { data: profile } = await supabaseClient
-            .from('profiles')
-            .select('id, username, email')
-            .eq('id', session.user.id)
-            .single();
-        
-        if (!profile) {
-            console.error('❌ No profile found');
-            showError('User profile not found');
-            return;
-        }
-        
-        console.log('✅ User found for wallet:', profile.id);
-        
-        // Create user object to pass to wallet
-        const miningUser = {
-            id: profile.id,
-            username: profile.username,
-            email: profile.email,
-            // Add any other relevant data
-        };
-        
-        // Store in sessionStorage (temporary)
-        sessionStorage.setItem('miningUser', JSON.stringify(miningUser));
-        
-        // Also store in localStorage with expiration (optional)
-        localStorage.setItem('nemexcoin_wallet_user', JSON.stringify({
-            ...miningUser,
-            timestamp: Date.now()
-        }));
-        
-        // Navigate to wallet with loading screen
-        showLoadingScreen('wallet.html', 'Loading Wallet...');
-        
-    } catch (error) {
-        console.error('❌ Error opening wallet:', error);
-        showError('Failed to open wallet');
-    }
-}
-
-// Update the wallet nav item click handler
-document.addEventListener('DOMContentLoaded', function() {
-    // Find the wallet nav item and update its onclick
-    const walletNavItem = document.querySelector('.nav-item[onclick*="wallet.html"]');
-    if (walletNavItem) {
-        // Replace the old onclick with new function
-        walletNavItem.setAttribute('onclick', '');
-        walletNavItem.addEventListener('click', openWalletWithUser);
-        
-        console.log('✅ Wallet navigation updated');
-    }
-});
     </script>
 </body>
 </html>
