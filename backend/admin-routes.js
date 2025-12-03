@@ -63,7 +63,7 @@ router.get('/users', checkAdmin, async (req, res) => {
             totalUsers: processedUsers.length,
             withReferrals: processedUsers.filter(u => u.hasReferral).length,
             withoutReferrals: processedUsers.filter(u => !u.hasReferral).length,
-            totalNMX: processedUsers.reduce((sum, user) => sum + user.balance, 0),
+            totalNMXp: processedUsers.reduce((sum, user) => sum + user.balance, 0),
             totalReferralEarnings: processedUsers.reduce((sum, user) => sum + (user.totalEarnedFromRefs || 0), 0)
         };
 
