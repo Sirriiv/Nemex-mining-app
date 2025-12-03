@@ -1,5 +1,5 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION
-console.log('👛 Loading Nemex Wallet for Mining Site v2.0...');
+// assets/js/wallet.js - UPDATED FOR MINING SITE INTEGRATION
+console.log('👛 Loading Nemex Wallet v3.0 (Mining Integrated)...');
 
 class MiningWalletManager {
     constructor() {
@@ -8,237 +8,129 @@ class MiningWalletManager {
         this.userId = null;
         this.userEmail = null;
         this.isInitialized = false;
-        
+
         console.log('✅ Wallet Manager initialized');
     }
 
     // =============================================
-    // 🎯 INITIALIZATION (FOR MINING SITE) - FIXED
+    // 🎯 INITIALIZATION - SIMPLIFIED & FIXED
     // =============================================
 
     async initialize() {
-        console.log('🚀 DEBUG: Wallet initialization starting...');
-        
+        console.log('🚀 Initializing wallet...');
+
         if (this.isInitialized) {
             console.log('ℹ️ Wallet already initialized');
             return { success: true, wallet: this.currentWallet };
         }
 
-        // 🔍 DEBUG: Check ALL user sources
-        console.log('🔍 DEBUG: Checking user sources:');
-        console.log('1. window.miningUser:', window.miningUser);
-        console.log('2. sessionStorage:', sessionStorage.getItem('miningUser'));
-        console.log('3. localStorage:', localStorage.getItem('nemexcoin_wallet_user'));
-        console.log('4. URL params:', window.location.search);
-        console.log('5. hidden input:', document.getElementById('miningUserId')?.value);
-
         try {
-            // Method 1: Get from window.miningUser (set by dashboard or detection script)
-            if (window.miningUser && window.miningUser.id) {
-                this.userId = window.miningUser.id;
-                this.userEmail = window.miningUser.email;
-                console.log('✅ DEBUG: Got user from window.miningUser:', this.userId);
-            }
-            // Method 2: Get from URL parameters (passed from dashboard)
-            else if (window.location.search.includes('user_id')) {
-                const urlParams = new URLSearchParams(window.location.search);
-                const userId = urlParams.get('user_id');
-                if (userId) {
-                    this.userId = userId;
-                    console.log('✅ DEBUG: Got user from URL parameter:', this.userId);
-                    
-                    // Store for future use
-                    window.miningUser = { id: userId };
-                    sessionStorage.setItem('miningUser', JSON.stringify(window.miningUser));
-                }
-            }
-            // Method 3: Get from sessionStorage (from dashboard)
-            else if (sessionStorage.getItem('miningUser')) {
-                try {
-                    const user = JSON.parse(sessionStorage.getItem('miningUser'));
-                    this.userId = user.id;
-                    this.userEmail = user.email;
-                    window.miningUser = user; // Set for consistency
-                    console.log('✅ DEBUG: Got user from sessionStorage:', this.userId);
-                } catch (e) {
-                    console.error('❌ DEBUG: Failed to parse sessionStorage user:', e);
-                }
-            }
-            // Method 4: Get from hidden input (wallet.html adds this)
-            else if (document.getElementById('miningUserId')) {
-                const userIdInput = document.getElementById('miningUserId');
-                if (userIdInput && userIdInput.value) {
-                    this.userId = userIdInput.value;
-                    console.log('✅ DEBUG: Got user from hidden input:', this.userId);
-                    
-                    // Store for consistency
-                    window.miningUser = { id: this.userId };
-                }
-            }
-            // Method 5: Get from localStorage
-            else if (localStorage.getItem('nemexcoin_wallet_user')) {
-                try {
-                    const userData = JSON.parse(localStorage.getItem('nemexcoin_wallet_user'));
-                    this.userId = userData.id;
-                    this.userEmail = userData.email;
-                    window.miningUser = userData;
-                    console.log('✅ DEBUG: Got user from localStorage:', this.userId);
-                } catch (e) {
-                    console.error('❌ DEBUG: Failed to parse localStorage user:', e);
-                }
-            }
-            // Method 6: Fallback - try Supabase Auth
-            else if (typeof supabase !== 'undefined') {
-                try {
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (session?.user) {
-                        this.userId = session.user.id;
-                        this.userEmail = session.user.email;
-                        console.log('⚠️ DEBUG: Got user from Supabase Auth (fallback):', this.userId);
-                    }
-                } catch (e) {
-                    console.warn('⚠️ DEBUG: Supabase Auth failed:', e.message);
-                }
-            }
-
-            // 🚨 CRITICAL: Check if we got a user ID
-            if (!this.userId) {
-                console.error('❌ DEBUG: NO USER ID FOUND! All methods failed.');
-                console.error('❌ User must login through mining dashboard first');
-                
-                // Show user-friendly message
-                if (typeof showMessage === 'function') {
-                    showMessage('❌ Please login to your mining account first, then access wallet from dashboard', 'error');
-                }
+            // 🎯 SIMPLIFIED: Get user from mining site
+            // The mining site should set window.miningUser when user is logged in
+            
+            if (!window.miningUser || !window.miningUser.id) {
+                console.error('❌ No mining user found');
+                console.log('ℹ️ Please make sure:');
+                console.log('1. User is logged into mining site (dashboard.html)');
+                console.log('2. dashboard.html sets window.miningUser before redirecting to wallet.html');
+                console.log('3. Or user accesses wallet via "Open Wallet" button on dashboard');
                 
                 return {
                     success: false,
                     requiresLogin: true,
                     message: 'Please login to your mining account first',
-                    redirectUrl: 'dashboard.html',
-                    debug: {
-                        windowMiningUser: !!window.miningUser,
-                        sessionStorage: !!sessionStorage.getItem('miningUser'),
-                        localStorage: !!localStorage.getItem('nemexcoin_wallet_user'),
-                        urlParams: window.location.search
-                    }
+                    redirectUrl: 'dashboard.html'
                 };
             }
 
-            console.log(`✅ DEBUG: User authenticated for wallet: ${this.userId} (${this.userEmail || 'no email'})`);
+            this.userId = window.miningUser.id;
+            this.userEmail = window.miningUser.email;
+            console.log(`✅ Mining user authenticated: ${this.userId} (${this.userEmail || 'no email'})`);
 
-            // Test API connection first
-            console.log('🔌 DEBUG: Testing API connection...');
+            // Test API connection
             try {
                 const testResponse = await fetch(`${this.apiBaseUrl}/test`);
                 const testResult = await testResponse.json();
-                console.log('✅ DEBUG: API connection:', testResult.success ? 'OK' : 'FAILED');
+                console.log('🔌 API Test:', testResult.message);
             } catch (apiError) {
-                console.error('❌ DEBUG: API connection failed:', apiError.message);
+                console.warn('⚠️ API test failed (continuing anyway):', apiError.message);
             }
 
             // Get wallet from database
-            console.log('📡 DEBUG: Fetching wallet from database...');
             const result = await this.getUserWallet(this.userId);
 
-            if (result.success && result.wallet) {
-                this.currentWallet = result.wallet;
-                this.isInitialized = true;
-                console.log('✅ DEBUG: Wallet loaded successfully');
-                console.log('📋 Wallet details:', {
-                    address: result.wallet.address.substring(0, 12) + '...',
-                    hasPrivateKey: !!result.wallet.encryptedPrivateKey,
-                    userId: this.userId
-                });
-                
-                return {
-                    success: true,
-                    hasWallet: true,
-                    wallet: result.wallet,
-                    userId: this.userId,
-                    userEmail: this.userEmail,
-                    storageType: 'database'
-                };
-            } else if (result.success) {
-                console.log('ℹ️ DEBUG: No wallet found for user');
-                return {
-                    success: true,
-                    hasWallet: false,
-                    message: 'Create your first wallet',
-                    userId: this.userId,
-                    userEmail: this.userEmail,
-                    storageType: 'database'
-                };
+            if (result.success) {
+                if (result.hasWallet) {
+                    this.currentWallet = result.wallet;
+                    this.isInitialized = true;
+                    
+                    console.log('✅ Wallet loaded:', {
+                        address: result.wallet.address?.substring(0, 16) + '...',
+                        userId: this.userId
+                    });
+
+                    return {
+                        success: true,
+                        hasWallet: true,
+                        wallet: result.wallet,
+                        userId: this.userId,
+                        userEmail: this.userEmail
+                    };
+                } else {
+                    // No wallet yet - this is normal for new users
+                    console.log('ℹ️ No wallet found for user (ready to create)');
+                    return {
+                        success: true,
+                        hasWallet: false,
+                        message: 'No wallet found. Create your first wallet.',
+                        userId: this.userId,
+                        userEmail: this.userEmail
+                    };
+                }
             } else {
-                console.error('❌ DEBUG: Failed to fetch wallet:', result.error);
-                return {
-                    success: false,
-                    error: result.error || 'Failed to load wallet',
-                    userId: this.userId,
-                    requiresLogin: result.requiresLogin || false
-                };
+                console.error('❌ Failed to fetch wallet:', result.error);
+                return result;
             }
 
         } catch (error) {
-            console.error('❌ DEBUG: Wallet initialization failed:', error);
-            
+            console.error('❌ Wallet initialization failed:', error);
             return {
                 success: false,
                 error: 'Failed to initialize wallet: ' + error.message,
-                requiresLogin: true,
-                redirectUrl: 'dashboard.html'
+                requiresLogin: true
             };
         }
     }
 
     // =============================================
-    // 🎯 WALLET OPERATIONS
+    // 🎯 WALLET OPERATIONS - UPDATED FOR MINING PASSWORD
     // =============================================
 
     async getUserWallet(userId) {
         try {
             console.log(`📡 Fetching wallet for user: ${userId}`);
-            
+
             const response = await fetch(`${this.apiBaseUrl}/get-user-wallet`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-User-ID': userId // Add user ID in header for debugging
-                },
-                body: JSON.stringify({ 
-                    userId: userId
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
             });
 
+            const result = await response.json();
+            
             if (!response.ok) {
-                console.error(`❌ API error: ${response.status} ${response.statusText}`);
-                const errorText = await response.text();
-                console.error('❌ API error response:', errorText);
-                
-                // Check if it's an authentication error
-                if (response.status === 401 || response.status === 403) {
-                    return { 
-                        success: false, 
-                        error: 'Authentication failed',
-                        requiresLogin: true
-                    };
-                }
-                
-                throw new Error(`API error: ${response.status}`);
+                console.error('❌ API Error:', response.status, result.error);
+                return result;
             }
 
-            const result = await response.json();
-            console.log('📦 Wallet fetch result:', result.success ? 'SUCCESS' : 'FAILED');
-            
+            console.log('📦 Wallet fetch:', result.success ? 'SUCCESS' : 'FAILED');
             return result;
 
         } catch (error) {
             console.error('❌ Get wallet failed:', error);
-            
             return { 
                 success: false, 
-                error: 'Failed to fetch wallet: ' + error.message,
-                userId: userId
+                error: 'Failed to fetch wallet: ' + error.message
             };
         }
     }
@@ -246,35 +138,44 @@ class MiningWalletManager {
     async createWallet(userId, userPassword, replaceExisting = false) {
         try {
             console.log(`🔐 Creating wallet for user: ${userId}`);
-            
-            if (!userId || !userPassword) {
-                throw new Error('User ID and password are required');
-            }
 
-            if (userPassword.length < 6) {
-                throw new Error('Password must be at least 6 characters');
+            if (!userId || !userPassword) {
+                throw new Error('User ID and mining account password are required');
             }
 
             const response = await fetch(`${this.apiBaseUrl}/create-wallet`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-User-ID': userId
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    userId: userId,
-                    userPassword: userPassword,
-                    replaceExisting: replaceExisting
+                    userId,
+                    userPassword, // This is the MINING ACCOUNT PASSWORD
+                    replaceExisting 
                 })
             });
 
             const result = await response.json();
-            console.log('📦 Create wallet result:', result.success ? 'SUCCESS' : 'FAILED');
+            
+            if (!response.ok) {
+                console.error('❌ Create wallet API error:', response.status, result.error);
+                
+                // Handle specific errors
+                if (result.requiresLogin) {
+                    result.redirectUrl = 'dashboard.html';
+                }
+                
+                return result;
+            }
 
             if (result.success) {
                 this.currentWallet = result.wallet;
                 this.isInitialized = true;
                 console.log('✅ Wallet created successfully');
+                
+                // IMPORTANT: Store the mnemonic safely (will be shown once)
+                if (result.mnemonic) {
+                    sessionStorage.setItem('new_wallet_mnemonic', result.mnemonic);
+                    sessionStorage.setItem('new_wallet_address', result.wallet.address);
+                }
             } else {
                 console.error('❌ Create wallet failed:', result.error);
             }
@@ -283,11 +184,9 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Create wallet failed:', error);
-            
             return { 
                 success: false, 
-                error: 'Failed to create wallet: ' + error.message,
-                userId: userId
+                error: 'Failed to create wallet: ' + error.message
             };
         }
     }
@@ -295,35 +194,37 @@ class MiningWalletManager {
     async viewSeedPhrase(userId, userPassword) {
         try {
             console.log(`🔑 Viewing seed phrase for user: ${userId}`);
-            
+
             if (!userId || !userPassword) {
-                throw new Error('User ID and password are required');
+                throw new Error('User ID and mining account password are required');
             }
 
             const response = await fetch(`${this.apiBaseUrl}/view-seed-phrase`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-User-ID': userId
-                },
-                body: JSON.stringify({ 
-                    userId: userId,
-                    userPassword: userPassword
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, userPassword })
             });
 
             const result = await response.json();
-            console.log('📦 View seed result:', result.success ? 'SUCCESS' : 'FAILED');
             
+            if (!response.ok) {
+                console.error('❌ View seed API error:', response.status, result.error);
+                
+                // Handle incorrect password
+                if (result.error && result.error.includes('password')) {
+                    result.incorrectPassword = true;
+                }
+                
+                return result;
+            }
+
             return result;
 
         } catch (error) {
             console.error('❌ View seed phrase failed:', error);
-            
             return { 
                 success: false, 
-                error: 'Failed to retrieve seed phrase: ' + error.message,
-                userId: userId
+                error: 'Failed to retrieve seed phrase: ' + error.message
             };
         }
     }
@@ -331,28 +232,34 @@ class MiningWalletManager {
     async importWallet(userId, mnemonic, userPassword, replaceExisting = false) {
         try {
             console.log(`📥 Importing wallet for user: ${userId}`);
-            
+
             if (!userId || !mnemonic || !userPassword) {
-                throw new Error('User ID, seed phrase, and password are required');
+                throw new Error('User ID, seed phrase, and mining account password are required');
+            }
+
+            // Validate mnemonic
+            const words = mnemonic.trim().split(/\s+/);
+            if (words.length !== 12 && words.length !== 24) {
+                return {
+                    success: false,
+                    error: 'Seed phrase must be 12 or 24 words',
+                    receivedWords: words.length
+                };
             }
 
             const response = await fetch(`${this.apiBaseUrl}/import-wallet`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-User-ID': userId
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    userId: userId,
-                    mnemonic: mnemonic,
-                    userPassword: userPassword,
-                    replaceExisting: replaceExisting
+                    userId,
+                    mnemonic: mnemonic.trim(),
+                    userPassword,
+                    replaceExisting 
                 })
             });
 
             const result = await response.json();
-            console.log('📦 Import wallet result:', result.success ? 'SUCCESS' : 'FAILED');
-
+            
             if (result.success) {
                 this.currentWallet = result.wallet;
                 this.isInitialized = true;
@@ -363,11 +270,9 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Import wallet failed:', error);
-            
             return { 
                 success: false, 
-                error: 'Failed to import wallet: ' + error.message,
-                userId: userId
+                error: 'Failed to import wallet: ' + error.message
             };
         }
     }
@@ -375,26 +280,26 @@ class MiningWalletManager {
     async deleteWallet(userId, confirm = true) {
         try {
             console.log(`🗑️ Deleting wallet for user: ${userId}`);
-            
+
             if (!userId) {
                 throw new Error('User ID is required');
             }
 
+            if (!confirm) {
+                return {
+                    success: false,
+                    error: 'Confirmation required for safety'
+                };
+            }
+
             const response = await fetch(`${this.apiBaseUrl}/delete-wallet`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-User-ID': userId
-                },
-                body: JSON.stringify({ 
-                    userId: userId,
-                    confirm: confirm
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, confirm: true })
             });
 
             const result = await response.json();
-            console.log('📦 Delete wallet result:', result.success ? 'SUCCESS' : 'FAILED');
-
+            
             if (result.success) {
                 this.currentWallet = null;
                 this.isInitialized = false;
@@ -405,24 +310,31 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Delete wallet failed:', error);
-            
             return { 
                 success: false, 
-                error: 'Failed to delete wallet: ' + error.message,
-                userId: userId
+                error: 'Failed to delete wallet: ' + error.message
             };
         }
     }
 
     async getBalance(address) {
         try {
-            console.log(`💰 Getting balance for: ${address.substring(0, 16)}...`);
-            
+            console.log(`💰 Getting balance for: ${address?.substring(0, 16) || 'null'}...`);
+
+            if (!address) {
+                return { 
+                    success: true, 
+                    balance: 0,
+                    address: 'N/A',
+                    currency: 'TON',
+                    isMock: true
+                };
+            }
+
             const response = await fetch(`${this.apiBaseUrl}/balance/${encodeURIComponent(address)}`);
             
             if (!response.ok) {
                 console.warn(`⚠️ Balance API error: ${response.status}`);
-                // Return mock balance for now
                 return { 
                     success: true, 
                     balance: 0.5,
@@ -431,19 +343,17 @@ class MiningWalletManager {
                     isMock: true
                 };
             }
-            
+
             return await response.json();
-            
+
         } catch (error) {
             console.error('❌ Get balance failed:', error);
-            
             return { 
-                success: true, // Return success with mock data for now
+                success: true,
                 balance: 0.5,
-                address: address,
+                address: address || 'N/A',
                 currency: 'TON',
-                isMock: true,
-                error: error.message
+                isMock: true
             };
         }
     }
@@ -451,12 +361,11 @@ class MiningWalletManager {
     async getPrices() {
         try {
             console.log('📈 Getting prices...');
-            
+
             const response = await fetch(`${this.apiBaseUrl}/prices`);
             
             if (!response.ok) {
                 console.warn(`⚠️ Prices API error: ${response.status}`);
-                // Return mock prices
                 return {
                     success: true,
                     prices: {
@@ -467,12 +376,11 @@ class MiningWalletManager {
                     timestamp: new Date().toISOString()
                 };
             }
-            
+
             return await response.json();
-            
+
         } catch (error) {
             console.error('❌ Get prices failed:', error);
-            
             return {
                 success: true,
                 prices: {
@@ -487,63 +395,84 @@ class MiningWalletManager {
 
     async sendTransaction(userId, toAddress, amount, password) {
         try {
-            console.log(`📤 Sending ${amount} TON to ${toAddress.substring(0, 16)}...`);
-            
+            console.log(`📤 Sending ${amount} TON to ${toAddress?.substring(0, 16) || 'null'}...`);
+
+            if (!userId || !toAddress || !amount || !password) {
+                return {
+                    success: false,
+                    error: 'All fields are required: user ID, recipient address, amount, and password'
+                };
+            }
+
             const response = await fetch(`${this.apiBaseUrl}/send-transaction`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'X-User-ID': userId
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    userId: userId,
-                    toAddress: toAddress,
-                    amount: amount,
-                    password: password
+                    userId,
+                    toAddress,
+                    amount: parseFloat(amount),
+                    password
                 })
             });
 
             const result = await response.json();
-            console.log('📦 Send transaction result:', result.success ? 'SUCCESS' : 'FAILED');
-            
             return result;
 
         } catch (error) {
             console.error('❌ Send transaction failed:', error);
-            
             return { 
                 success: false, 
-                error: 'Failed to send transaction: ' + error.message,
-                userId: userId
+                error: 'Failed to send transaction: ' + error.message
             };
         }
     }
 
     async getTransactionHistory(address) {
         try {
-            console.log(`📜 Getting transaction history for: ${address.substring(0, 16)}...`);
-            
-            const response = await fetch(`${this.apiBaseUrl}/transactions/${encodeURIComponent(address)}`);
-            
-            if (!response.ok) {
-                console.warn(`⚠️ Transaction history API error: ${response.status}`);
+            console.log(`📜 Getting transaction history for: ${address?.substring(0, 16) || 'null'}...`);
+
+            if (!address) {
                 return { 
                     success: true, 
                     transactions: [],
-                    address: address,
+                    address: 'N/A',
                     isMock: true
                 };
             }
-            
-            return await response.json();
-            
+
+            // For now, return mock data
+            return { 
+                success: true, 
+                transactions: [
+                    {
+                        id: 'mock_1',
+                        type: 'received',
+                        amount: 1.5,
+                        from: 'EQABC123...',
+                        to: address,
+                        timestamp: new Date(Date.now() - 86400000).toISOString(),
+                        status: 'completed'
+                    },
+                    {
+                        id: 'mock_2',
+                        type: 'sent',
+                        amount: 0.5,
+                        from: address,
+                        to: 'EQDEF456...',
+                        timestamp: new Date(Date.now() - 172800000).toISOString(),
+                        status: 'completed'
+                    }
+                ],
+                address: address,
+                isMock: true
+            };
+
         } catch (error) {
             console.error('❌ Get transaction history failed:', error);
-            
             return { 
                 success: true, 
                 transactions: [],
-                address: address,
+                address: address || 'N/A',
                 isMock: true
             };
         }
@@ -562,7 +491,9 @@ class MiningWalletManager {
     }
 
     getAddress() {
-        return this.currentWallet ? this.currentWallet.address : null;
+        return this.currentWallet ? 
+            (this.currentWallet.address || this.currentWallet.wallet_address) : 
+            null;
     }
 
     getShortAddress() {
@@ -576,22 +507,6 @@ class MiningWalletManager {
         return this.userId;
     }
 
-    validatePasswordStrength(password) {
-        if (!password) return { valid: false, message: 'Password required' };
-        if (password.length < 6) return { valid: false, message: 'Minimum 6 characters' };
-        
-        let strength = 'medium';
-        if (password.length >= 12 && /[A-Z]/.test(password) && /[0-9]/.test(password) && /[^A-Za-z0-9]/.test(password)) {
-            strength = 'strong';
-        }
-        
-        return { 
-            valid: true, 
-            message: strength === 'strong' ? 'Strong password' : 'Good password',
-            strength: strength
-        };
-    }
-
     clearData() {
         this.currentWallet = null;
         this.userId = null;
@@ -600,18 +515,25 @@ class MiningWalletManager {
         console.log('🧹 Wallet data cleared');
     }
 
-    // Debug function to show current state
-    debugState() {
-        return {
-            userId: this.userId,
-            hasWallet: this.hasWallet(),
-            walletAddress: this.getAddress(),
-            isInitialized: this.isInitialized,
-            apiBaseUrl: this.apiBaseUrl,
-            windowMiningUser: window.miningUser,
-            sessionStorage: sessionStorage.getItem('miningUser'),
-            localStorage: localStorage.getItem('nemexcoin_wallet_user')
-        };
+    // Helper to validate if user can perform actions
+    validateUser() {
+        if (!this.userId) {
+            return {
+                valid: false,
+                message: 'Not logged in',
+                requiresLogin: true
+            };
+        }
+        
+        if (!this.currentWallet) {
+            return {
+                valid: false,
+                message: 'No wallet found',
+                requiresWallet: true
+            };
+        }
+        
+        return { valid: true, userId: this.userId };
     }
 }
 
@@ -619,53 +541,31 @@ class MiningWalletManager {
 window.walletManager = new MiningWalletManager();
 console.log('✅ Wallet Manager ready');
 
-// Auto-initialize when DOM loads (for wallet.html)
+// Auto-initialize for wallet.html
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 DOM loaded, checking for auto-initialization...');
-    
-    // Only auto-init if we're on wallet.html
     if (window.location.pathname.includes('wallet.html')) {
-        console.log('🎯 Auto-initializing wallet for wallet.html...');
+        console.log('🎯 Auto-initializing wallet...');
         
-        // Small delay to ensure everything is loaded
+        // Give time for window.miningUser to be set by mining site
         setTimeout(async () => {
             try {
-                console.log('⏳ Starting wallet initialization...');
                 const result = await window.walletManager.initialize();
                 
-                console.log('🔧 Initialization result:', {
-                    success: result.success,
-                    hasWallet: result.hasWallet,
-                    requiresLogin: result.requiresLogin,
-                    userId: result.userId
-                });
-                
                 if (result.requiresLogin) {
-                    console.warn('⚠️ User needs to login to mining site first');
+                    console.warn('⚠️ User needs to login to mining site');
                     
-                    // Show user-friendly message
+                    // Show message after a short delay
                     setTimeout(() => {
                         if (typeof showMessage === 'function') {
                             showMessage('Please login to mining dashboard first', 'error');
-                        } else {
+                        } else if (typeof alert === 'function') {
                             alert('Please login to your mining account first from the dashboard.');
                         }
-                    }, 1000);
+                    }, 500);
                 }
             } catch (error) {
-                console.error('❌ Auto-initialization error:', error);
+                console.error('❌ Auto-initialization failed:', error);
             }
-        }, 1000);
+        }, 300);
     }
 });
-
-// Debug helper for browser console
-window.debugWallet = function() {
-    console.log('🔧 Wallet Debug Information:');
-    console.log('============================');
-    console.log('Current State:', window.walletManager.debugState());
-    console.log('Session Storage:', sessionStorage.getItem('miningUser'));
-    console.log('Window.miningUser:', window.miningUser);
-    console.log('API Base URL:', window.walletManager.apiBaseUrl);
-    console.log('============================');
-};
