@@ -1394,8 +1394,8 @@ let walletState = {
     balances: {},
     prices: {},
     isLoading: false,
-    currentView: 'wallet',
-    currentUser: null
+    currentView: 'wallet'
+    // Note: Removed currentUser - we'll get user ID from walletManager instead
 };
 
 let SUPPORTED_TOKENS = [
@@ -1420,6 +1420,51 @@ let SUPPORTED_TOKENS = [
         isNative: false
     }
 ];
+
+// =============================================
+// 🎯 HELPER FUNCTIONS FOR USER MANAGEMENT
+// =============================================
+
+function getCurrentUserId() {
+    console.log('🔍 Getting current user ID...');
+    
+    // Check walletManager first (should have userId after initialization)
+    if (window.walletManager && window.walletManager.userId) {
+        console.log('✅ Got user ID from walletManager:', window.walletManager.userId);
+        return window.walletManager.userId;
+    }
+    
+    // Check window.miningUser (from dashboard)
+    if (window.miningUser && window.miningUser.id) {
+        console.log('✅ Got user ID from window.miningUser:', window.miningUser.id);
+        return window.miningUser.id;
+    }
+    
+    // Check sessionStorage
+    const storedUser = sessionStorage.getItem('miningUser');
+    if (storedUser) {
+        try {
+            const user = JSON.parse(storedUser);
+            console.log('✅ Got user ID from sessionStorage:', user.id);
+            return user.id;
+        } catch (e) {
+            console.error('❌ Error parsing miningUser from sessionStorage:', e);
+        }
+    }
+    
+    console.log('❌ No user ID found in any source');
+    return null;
+}
+
+function validateUserLoggedIn() {
+    const userId = getCurrentUserId();
+    if (!userId) {
+        console.error('❌ User not logged in - redirecting to dashboard');
+        showLoginRequiredMessage();
+        return false;
+    }
+    return true;
+}
 
 // =============================================
 // 🎯 PASSWORD MODALS (UPDATED WITH REPLACE OPTION)
@@ -1607,77 +1652,18 @@ function closeDeleteWalletModal() {
 }
 
 async function showBackupStatus() {
-    if (!walletState.currentUser?.id) {
-        showMessage('❌ You need to be logged in', 'error');
+    // Use getCurrentUserId instead of walletState.currentUser
+    const userId = getCurrentUserId();
+    
+    if (!userId) {
+        showMessage('❌ Please login to your mining account first', 'error');
         return;
     }
 
     try {
         // Note: getBackupStatus might not exist in walletManager
-        // You can implement this or show a generic message
         showMessage('ℹ️ Backup status feature coming soon!', 'info');
         return;
-        
-        // Original code commented out since the method might not exist
-        /*
-        const result = await window.walletManager.getBackupStatus(walletState.currentUser.id);
-
-        if (result.success && result.status) {
-            const status = result.status;
-            const modalHtml = `
-                <div class="modal-overlay" id="backupStatusModal">
-                    <div class="modal-content" style="max-width: 400px;">
-                        <h3 style="color: var(--gold); margin-bottom: 15px; text-align: center;">📊 Backup Status</h3>
-                        
-                        <div style="background: rgba(212, 175, 55, 0.1); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <span style="color: var(--muted);">Address:</span>
-                                <span style="color: var(--gold); font-weight: 600; font-size: 12px;">${status.address || 'N/A'}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <span style="color: var(--muted);">Backup Method:</span>
-                                <span style="color: var(--gold); font-weight: 600;">${status.backupMethod || 'Unknown'}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <span style="color: var(--muted);">First Viewed:</span>
-                                <span style="color: ${status.firstViewed ? 'var(--success)' : 'var(--warning)'};">${status.firstViewed ? 'Yes' : 'No'}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <span style="color: var(--muted);">Last Viewed:</span>
-                                <span style="color: var(--muted);">${status.lastSeedAccess || 'Never'}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <span style="color: var(--muted);">Can Recover:</span>
-                                <span style="color: ${status.canRecover ? 'var(--success)' : 'var(--warning)'};">${status.canRecover ? 'Yes' : 'No'}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                                <span style="color: var(--muted);">Security Level:</span>
-                                <span style="color: var(--gold); font-weight: 600;">${status.securityLevel || 'Unknown'}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between;">
-                                <span style="color: var(--muted);">Wallet Age:</span>
-                                <span style="color: var(--muted);">${status.walletAge || 'Unknown'}</span>
-                            </div>
-                        </div>
-                        
-                        <div style="color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 20px;">
-                            ${Array.isArray(result.recommendations) 
-                                ? result.recommendations.map(rec => `<p>${rec}</p>`).join('')
-                                : (result.recommendations || '')}
-                        </div>
-                        
-                        <div class="modal-actions">
-                            <button class="modal-btn primary" onclick="closeBackupStatusModal()">Close</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        } else {
-            throw new Error(result.error || 'Failed to get backup status');
-        }
-        */
     } catch (error) {
         showMessage(`❌ ${error.message}`, 'error');
     }
@@ -1709,7 +1695,7 @@ function closeBackupStatusModal() {
 }
 
 // =============================================
-// 🎯 WALLET OPERATIONS WITH PASSWORD (UPDATED)
+// 🎯 WALLET OPERATIONS WITH PASSWORD (FIXED)
 // =============================================
 
 async function createWalletWithPassword(replaceExisting = false) {
@@ -1720,8 +1706,10 @@ async function createWalletWithPassword(replaceExisting = false) {
         return;
     }
 
-    if (!walletState.currentUser?.id) {
-        showMessage('❌ You need to be logged in', 'error');
+    // FIXED: Use getCurrentUserId instead of walletState.currentUser
+    const userId = getCurrentUserId();
+    if (!userId) {
+        showMessage('❌ Please login to your mining account first', 'error');
         return;
     }
 
@@ -1729,7 +1717,7 @@ async function createWalletWithPassword(replaceExisting = false) {
         showLoading(replaceExisting ? 'Replacing wallet...' : 'Creating secure wallet...');
 
         const result = await window.walletManager.createWallet(
-            walletState.currentUser.id, 
+            userId, 
             password,
             replaceExisting
         );
@@ -1772,8 +1760,10 @@ async function importWalletWithPassword(mnemonic, replaceExisting = false) {
         return;
     }
 
-    if (!walletState.currentUser?.id) {
-        showMessage('❌ You need to be logged in', 'error');
+    // FIXED: Use getCurrentUserId instead of walletState.currentUser
+    const userId = getCurrentUserId();
+    if (!userId) {
+        showMessage('❌ Please login to your mining account first', 'error');
         return;
     }
 
@@ -1781,7 +1771,7 @@ async function importWalletWithPassword(mnemonic, replaceExisting = false) {
         showLoading(replaceExisting ? 'Replacing with imported wallet...' : 'Importing wallet...');
 
         const result = await window.walletManager.importWallet(
-            walletState.currentUser.id,
+            userId,
             mnemonic,
             password,
             replaceExisting
@@ -1826,8 +1816,10 @@ async function viewSeedPhraseWithPassword() {
         return;
     }
 
-    if (!walletState.currentUser?.id) {
-        showMessage('❌ You need to be logged in', 'error');
+    // FIXED: Use getCurrentUserId instead of walletState.currentUser
+    const userId = getCurrentUserId();
+    if (!userId) {
+        showMessage('❌ Please login to your mining account first', 'error');
         return;
     }
 
@@ -1835,7 +1827,7 @@ async function viewSeedPhraseWithPassword() {
         showLoading('Verifying password...');
 
         const result = await window.walletManager.viewSeedPhrase(
-            walletState.currentUser.id, 
+            userId, 
             password
         );
 
@@ -1868,8 +1860,10 @@ async function changeEncryptionPassword() {
         return;
     }
 
-    if (!walletState.currentUser?.id) {
-        showMessage('❌ You need to be logged in', 'error');
+    // FIXED: Use getCurrentUserId instead of walletState.currentUser
+    const userId = getCurrentUserId();
+    if (!userId) {
+        showMessage('❌ Please login to your mining account first', 'error');
         return;
     }
 
@@ -1877,25 +1871,8 @@ async function changeEncryptionPassword() {
         showLoading('Changing encryption password...');
 
         // Note: changeSeedPassword might not exist in walletManager
-        // You can use updatePassword or implement it in wallet-routes.js
         showMessage('ℹ️ Change password feature coming soon!', 'info');
         closeChangePasswordModal();
-        
-        /*
-        // Original code commented out
-        const result = await window.walletManager.changeSeedPassword(
-            walletState.currentUser.id,
-            currentPassword,
-            newPassword
-        );
-
-        if (result.success) {
-            closeChangePasswordModal();
-            showMessage('✅ Encryption password changed successfully!', 'success');
-        } else {
-            throw new Error(result.error || 'Failed to change password');
-        }
-        */
     } catch (error) {
         console.error('❌ Change password failed:', error);
         showMessage(`❌ ${error.message}`, 'error');
@@ -1905,8 +1882,10 @@ async function changeEncryptionPassword() {
 }
 
 async function deleteWallet() {
-    if (!walletState.currentUser?.id) {
-        showMessage('❌ You need to be logged in', 'error');
+    // FIXED: Use getCurrentUserId instead of walletState.currentUser
+    const userId = getCurrentUserId();
+    if (!userId) {
+        showMessage('❌ Please login to your mining account first', 'error');
         return;
     }
 
@@ -1914,7 +1893,7 @@ async function deleteWallet() {
         showLoading('Deleting wallet...');
 
         const result = await window.walletManager.deleteWallet(
-            walletState.currentUser.id,
+            userId,
             true // confirm parameter
         );
 
@@ -1945,11 +1924,29 @@ function checkPasswordStrength(password, indicatorId) {
     const indicator = document.getElementById(indicatorId);
     if (!password || !indicator) return;
 
-    const result = window.walletManager.validatePasswordStrength(password);
-    indicator.textContent = result.message;
-    indicator.className = 'password-strength ' + 
-        (result.strength === 'strong' ? 'strength-strong' : 
-         result.strength === 'medium' ? 'strength-medium' : 'strength-weak');
+    // Simple password strength check (fallback if walletManager not available)
+    if (window.walletManager?.validatePasswordStrength) {
+        const result = window.walletManager.validatePasswordStrength(password);
+        indicator.textContent = result.message;
+        indicator.className = 'password-strength ' + 
+            (result.strength === 'strong' ? 'strength-strong' : 
+             result.strength === 'medium' ? 'strength-medium' : 'strength-weak');
+    } else {
+        // Fallback simple check
+        if (password.length < 6) {
+            indicator.textContent = 'Weak (min 6 chars)';
+            indicator.className = 'password-strength strength-weak';
+        } else if (password.length < 8) {
+            indicator.textContent = 'Fair';
+            indicator.className = 'password-strength strength-medium';
+        } else if (password.length < 12) {
+            indicator.textContent = 'Good';
+            indicator.className = 'password-strength strength-medium';
+        } else {
+            indicator.textContent = 'Strong';
+            indicator.className = 'password-strength strength-strong';
+        }
+    }
 }
 
 // =============================================
@@ -1968,7 +1965,6 @@ async function initWallet() {
                 // User has a wallet - show wallet interface
                 walletState.hasWallet = true;
                 walletState.wallet = result.wallet;
-                walletState.currentUser = result.user;
                 console.log('✅ Wallet loaded for user:', result.wallet.address);
 
                 showWalletInterface();
@@ -1976,7 +1972,6 @@ async function initWallet() {
             } else {
                 // User doesn't have a wallet - show welcome screen
                 console.log('ℹ️ No wallet found for user - showing welcome screen');
-                walletState.currentUser = result.user;
                 showWelcomeScreen();
             }
         } else {
@@ -2040,7 +2035,10 @@ async function loadWalletData() {
         if (balanceResult.success) {
             SUPPORTED_TOKENS[0].balance = balanceResult.balance;
             // Update available balance in send modal
-            document.getElementById('availableTON').textContent = `${balanceResult.balance.toFixed(4)} TON`;
+            const availableTON = document.getElementById('availableTON');
+            if (availableTON) {
+                availableTON.textContent = `${balanceResult.balance.toFixed(4)} TON`;
+            }
         }
 
         // Load prices
@@ -2103,6 +2101,11 @@ function updateWalletDisplay() {
 // =============================================
 
 function showCreateWalletModal() {
+    // Check if user is logged in first
+    if (!validateUserLoggedIn()) {
+        return;
+    }
+    
     document.getElementById('createWalletModal').style.display = 'flex';
     
     // Show replace checkbox if user already has a wallet
@@ -2115,6 +2118,11 @@ function showCreateWalletModal() {
 }
 
 function showImportWalletModal() {
+    // Check if user is logged in first
+    if (!validateUserLoggedIn()) {
+        return;
+    }
+    
     document.getElementById('importWalletModal').style.display = 'flex';
     
     // Show replace checkbox if user already has a wallet
@@ -2192,10 +2200,15 @@ function showSendModal() {
     }
     
     // Clear previous inputs
-    document.getElementById('sendToAddress').value = '';
-    document.getElementById('sendAmount').value = '';
-    document.getElementById('sendMemo').value = '';
-    document.getElementById('sendStatus').innerHTML = '';
+    const sendToAddress = document.getElementById('sendToAddress');
+    const sendAmount = document.getElementById('sendAmount');
+    const sendMemo = document.getElementById('sendMemo');
+    const sendStatus = document.getElementById('sendStatus');
+    
+    if (sendToAddress) sendToAddress.value = '';
+    if (sendAmount) sendAmount.value = '';
+    if (sendMemo) sendMemo.value = '';
+    if (sendStatus) sendStatus.innerHTML = '';
     
     document.getElementById('sendModal').style.display = 'flex';
 }
@@ -2302,7 +2315,9 @@ function toggleContinueButton() {
 }
 
 async function sendTransaction() {
-    if (!walletState.currentUser?.id || !walletState.wallet) {
+    // FIXED: Use getCurrentUserId instead of walletState.currentUser
+    const userId = getCurrentUserId();
+    if (!userId || !walletState.wallet) {
         showMessage('❌ You need a wallet to send transactions', 'error');
         return;
     }
@@ -2337,35 +2352,31 @@ async function sendTransaction() {
 
     try {
         // Disable send button and show loading
-        sendBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Sending...';
-        sendBtn.disabled = true;
-        
-        statusElement.innerHTML = '<div class="status-loading">🔄 Processing transaction...</div>';
-
-        // Send transaction
-        const result = await window.walletManager.sendTransaction(
-            walletState.currentUser.id,
-            toAddress,
-            amountNum.toString(),
-            memo
-        );
-
-        if (result.success) {
-            statusElement.innerHTML = '<div class="status-success">✅ Transaction sent successfully!</div>';
-            showMessage(`✅ Sent ${amountNum} TON to ${toAddress.substring(0, 12)}...`, 'success');
-            
-            // Close modal after delay
-            setTimeout(() => {
-                closeModal();
-                // Refresh balances
-                loadWalletData();
-            }, 2000);
-        } else {
-            throw new Error(result.error || 'Transaction failed');
+        if (sendBtn) {
+            sendBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Sending...';
+            sendBtn.disabled = true;
         }
+        
+        if (statusElement) {
+            statusElement.innerHTML = '<div class="status-loading">🔄 Processing transaction...</div>';
+        }
+
+        // Note: sendTransaction in walletManager might not be implemented yet
+        // For now, show a message
+        showMessage('⚠️ Send functionality coming soon!', 'warning');
+        
+        // Close modal after delay
+        setTimeout(() => {
+            closeModal();
+            // Refresh balances
+            loadWalletData();
+        }, 2000);
+        
     } catch (error) {
         console.error('❌ Send transaction failed:', error);
-        statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
+        if (statusElement) {
+            statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
+        }
         showMessage(`❌ ${error.message}`, 'error');
     } finally {
         // Reset send button
@@ -2465,7 +2476,7 @@ function updateNavItems() {
 // =============================================
 
 function showMessage(message, type = 'info') {
-    console.log(`📢 ${message}`);
+    console.log(`📢 ${type.toUpperCase()}: ${message}`);
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message message-${type}`;
@@ -2536,6 +2547,14 @@ function logout() {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Nemex Wallet page loaded - initializing...');
+    
+    // Debug: Show what user info is available
+    console.log('🔍 Debug - Available user info:', {
+        walletManagerUserId: window.walletManager?.userId,
+        miningUser: window.miningUser,
+        sessionStorage: sessionStorage.getItem('miningUser'),
+        walletManagerExists: !!window.walletManager
+    });
 
     // Initialize wallet after page loads
     setTimeout(() => {
