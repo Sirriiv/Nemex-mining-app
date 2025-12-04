@@ -9,6 +9,10 @@ class MiningWalletManager {
         this.userEmail = null;
         this.isInitialized = false;
 
+        // 🚨 CRITICAL FIX: Remove hardcoded Supabase variables
+        // These should come from environment variables in wallet.html
+        this.supabaseClient = null;
+
         // Price APIs configuration
         this.priceApis = [
             {
@@ -107,7 +111,7 @@ class MiningWalletManager {
 
     getCurrentUserId() {
         console.log('🔍 getCurrentUserId() called');
-        
+
         // Check multiple sources for user ID
         if (this.userId) {
             console.log('✅ Using cached userId:', this.userId);
@@ -156,13 +160,31 @@ class MiningWalletManager {
     }
 
     // =============================================
+    // 🎯 NEW FUNCTION: getSupabaseClient() - Uses wallet.html's function
+    // =============================================
+
+    async getSupabaseClient() {
+        // Use wallet.html's getSupabaseClient function
+        if (typeof window.getSupabaseClient === 'function') {
+            return await window.getSupabaseClient();
+        }
+        
+        console.warn('⚠️ getSupabaseClient not found in window, using fallback');
+        return null;
+    }
+
+    // =============================================
     // 🎯 NEW FUNCTION: initializeSupabase()
     // =============================================
 
     async initializeSupabase() {
         console.log('🔄 initializeSupabase() called');
-        // This would initialize Supabase if needed
-        // For now, just log and return success
+        // Use wallet.html's implementation
+        if (typeof window.initializeSupabase === 'function') {
+            return await window.initializeSupabase();
+        }
+        
+        console.warn('⚠️ initializeSupabase not found in window');
         return { success: true };
     }
 
@@ -172,7 +194,7 @@ class MiningWalletManager {
 
     async checkExistingWallet() {
         console.log('🔍 checkExistingWallet() called');
-        
+
         try {
             const userId = this.getCurrentUserId();
             if (!userId) {
@@ -198,7 +220,7 @@ class MiningWalletManager {
 
     async createNewWallet(userId = null) {
         console.log('🎯 createNewWallet() called with userId:', userId);
-        
+
         try {
             // Get userId if not provided
             if (!userId) {
@@ -238,13 +260,13 @@ class MiningWalletManager {
 
     generateMnemonic(wordCount = 12) {
         console.log(`🎯 Generating ${wordCount}-word mnemonic`);
-        
+
         // Use the BIP-39 wordlist from wallet.html
         // Note: In production, this should use a cryptographically secure method
         // For now, we'll use a simple random selection
-        
+
         let bip39Wordlist = [];
-        
+
         // Try to get the wordlist from the global scope if available
         if (window.BIP39_WORDLIST && Array.isArray(window.BIP39_WORDLIST)) {
             bip39Wordlist = window.BIP39_WORDLIST;
@@ -274,7 +296,7 @@ class MiningWalletManager {
 
         const mnemonic = words.join(' ');
         console.log('✅ Generated mnemonic (first few words):', mnemonic.split(' ').slice(0, 3).join(' ') + '...');
-        
+
         return mnemonic;
     }
 
@@ -331,12 +353,12 @@ class MiningWalletManager {
                     sessionStorage.setItem('new_wallet_mnemonic', result.mnemonic);
                     sessionStorage.setItem('new_wallet_address', result.wallet.address);
                     sessionStorage.setItem('new_wallet_timestamp', Date.now());
-                    
+
                     console.log('💾 Mnemonic stored in sessionStorage for backup');
                 }
             } else {
                 console.error('❌ Create wallet failed:', result.error);
-                
+
                 // Check if user already has a wallet
                 if (result.error && result.error.includes('already have')) {
                     result.hasExistingWallet = true;
@@ -400,7 +422,7 @@ class MiningWalletManager {
                 this.currentWallet = result.wallet;
                 this.isInitialized = true;
                 console.log('✅ Wallet imported successfully:', result.wallet.address);
-                
+
                 // If multiple wallets found
                 if (result.multipleWallets && result.wallets) {
                     result.hasMultipleWallets = true;
@@ -408,7 +430,7 @@ class MiningWalletManager {
                 }
             } else {
                 console.error('❌ Import wallet failed:', result.error);
-                
+
                 // Check if user already has a wallet
                 if (result.error && result.error.includes('already have')) {
                     result.hasExistingWallet = true;
@@ -473,7 +495,7 @@ class MiningWalletManager {
 
     async getSeedPhrase() {
         console.log('🔑 getSeedPhrase() called');
-        
+
         const userId = this.getCurrentUserId();
         if (!userId) {
             return {
@@ -1052,6 +1074,82 @@ class MiningWalletManager {
 
 // Create global instance
 window.walletManager = new MiningWalletManager();
+
+// =============================================
+// 🎯 EXPORT WALLET FUNCTIONS TO GLOBAL SCOPE
+// =============================================
+
+// Export wallet functions to global scope for wallet.html
+window.showCreateWalletModal = function() {
+    console.log('🎯 showCreateWalletModal called');
+    
+    const userId = window.walletManager.getCurrentUserId();
+    if (!userId) {
+        console.error('❌ User not logged in');
+        if (typeof window.showMessage === 'function') {
+            window.showMessage('Please login to your mining account first', 'error');
+        }
+        return;
+    }
+
+    // Close any open modals
+    if (typeof window.closeModal === 'function') {
+        window.closeModal();
+    }
+
+    // Show create wallet modal
+    const createModal = document.getElementById('createWalletModal');
+    if (createModal) {
+        createModal.style.display = 'flex';
+        console.log('✅ Create wallet modal opened');
+    } else {
+        console.error('❌ Create wallet modal not found');
+    }
+};
+
+window.showImportWalletModal = function() {
+    console.log('🎯 showImportWalletModal called');
+    
+    const userId = window.walletManager.getCurrentUserId();
+    if (!userId) {
+        console.error('❌ User not logged in');
+        if (typeof window.showMessage === 'function') {
+            window.showMessage('Please login to your mining account first', 'error');
+        }
+        return;
+    }
+
+    // Close any open modals
+    if (typeof window.closeModal === 'function') {
+        window.closeModal();
+    }
+
+    // Show import wallet modal
+    const importModal = document.getElementById('importWalletModal');
+    if (importModal) {
+        importModal.style.display = 'flex';
+        console.log('✅ Import wallet modal opened');
+    } else {
+        console.error('❌ Import wallet modal not found');
+    }
+};
+
+// Export other common functions
+window.getCurrentUserId = function() {
+    return window.walletManager.getCurrentUserId();
+};
+
+window.validateUserLoggedIn = function() {
+    const userId = window.walletManager.getCurrentUserId();
+    if (!userId) {
+        if (typeof window.showLoginRequiredMessage === 'function') {
+            window.showLoginRequiredMessage();
+        }
+        return false;
+    }
+    return true;
+};
+
 console.log('✅ Enhanced Wallet Manager ready with all fixes');
 
 // Auto-initialize for wallet.html
@@ -1070,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         hasWallet: result.hasWallet,
                         userId: result.userId
                     });
-                    
+
                     // If wallet loaded, show success message
                     if (result.hasWallet) {
                         console.log('🎉 Wallet loaded successfully!');
@@ -1080,8 +1178,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Show message after a short delay
                     setTimeout(() => {
-                        if (typeof showMessage === 'function') {
-                            showMessage('Please login to mining dashboard first', 'error');
+                        if (typeof window.showMessage === 'function') {
+                            window.showMessage('Please login to mining dashboard first', 'error');
                         } else if (typeof alert === 'function') {
                             alert('Please login to your mining account first from the dashboard.');
                         }
