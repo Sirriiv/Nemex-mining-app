@@ -8,180 +8,53 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <!-- ============================================= -->
-    <!-- 🎯 DASHBOARD-WALLET CONNECTION BRIDGE -->
+    <!-- 🎯 SIMPLE DASHBOARD CONNECTION -->
     <!-- ============================================= -->
     <script>
-    // =============================================
-    // 🎯 WALLET USER DATA BRIDGE - FIXES DASHBOARD CONNECTION
-    // =============================================
-    console.log('🔗 Initializing wallet user data bridge...');
-
-    // Function to get user data from URL parameters (from dashboard)
-    function getUserDataFromURL() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userParam = urlParams.get('user');
-        
-        if (userParam) {
-            try {
-                const userData = JSON.parse(decodeURIComponent(userParam));
-                console.log('✅ Got user data from URL parameters:', userData);
-                return userData;
-            } catch (error) {
-                console.error('❌ Error parsing user data from URL:', error);
-            }
-        }
-        return null;
-    }
-
-    // Main function to setup wallet user on page load
-    function setupWalletUserOnLoad() {
-        console.log('🔍 Setting up wallet user authentication...');
-        
-        // 1. First try URL parameters (from dashboard redirect)
-        let userData = getUserDataFromURL();
-        
-        // 2. If no URL data, check sessionStorage (from dashboard)
-        if (!userData) {
-            const sessionUser = sessionStorage.getItem('miningUser');
-            if (sessionUser) {
-                try {
-                    userData = JSON.parse(sessionUser);
-                    console.log('✅ Got user data from sessionStorage:', userData);
-                } catch (error) {
-                    console.error('❌ Error parsing sessionStorage user:', error);
-                }
-            }
-        }
-        
-        // 3. If still no user, check localStorage (from dashboard)
-        if (!userData) {
-            const localUser = localStorage.getItem('nemexcoin_wallet_user');
-            if (localUser) {
-                try {
-                    userData = JSON.parse(localUser);
-                    console.log('✅ Got user data from localStorage:', userData);
-                } catch (error) {
-                    console.error('❌ Error parsing localStorage user:', error);
-                }
-            }
-        }
-        
-        // 🎯 SUCCESS: We have user data!
-        if (userData && userData.id) {
-            console.log('✅ Wallet user authenticated:', userData.id);
-            
-            // Set the global window.miningUser object for wallet.js to use
-            window.miningUser = userData;
-            
-            // Also store in sessionStorage for persistence
-            sessionStorage.setItem('miningUser', JSON.stringify(userData));
-            
-            // Update last session timestamp
-            localStorage.setItem('nemexcoin_last_session', Date.now().toString());
-            
-            return userData;
-        }
-        
-        // ❌ No user found
-        console.warn('⚠️ No authenticated user found');
-        
-        // Check if we have a recent session timestamp
-        const lastSession = localStorage.getItem('nemexcoin_last_session');
-        const now = Date.now();
-        
-        // If user had a session within last 5 minutes, show redirect prompt
-        if (lastSession && (now - parseInt(lastSession) < 5 * 60 * 1000)) {
-            setTimeout(() => {
-                if (typeof window.showMessage === 'function') {
-                    window.showMessage('Please access wallet from dashboard menu', 'error');
-                }
-            }, 1000);
-        }
-        
-        return null;
-    }
-
-    // Auto-setup when page loads (before wallet.js runs)
+    console.log('🔗 Simple dashboard connection setup...');
+    
+    // Quick check for user data on page load
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Wallet page loaded - setting up user authentication');
-        
-        // Give a small delay for any redirects to complete
-        setTimeout(() => {
-            const userData = setupWalletUserOnLoad();
+        setTimeout(function() {
+            // Check URL for user data first
+            const urlParams = new URLSearchParams(window.location.search);
+            const userParam = urlParams.get('user');
             
-            if (userData) {
-                console.log('✅ Wallet user ready. Wallet.js can now initialize.');
-                
-                // Show success indicator
-                const username = userData.username || userData.email || 'User';
-                setTimeout(() => {
-                    if (typeof window.showMessage === 'function') {
-                        window.showMessage(`Welcome to Nemex Wallet, ${username}!`, 'success');
-                    }
-                }, 1000);
-                
-                // Show user info in UI if function exists
-                if (typeof window.updateWalletUserInfo === 'function') {
-                    window.updateWalletUserInfo(username, userData.id);
+            if (userParam) {
+                try {
+                    const userData = JSON.parse(decodeURIComponent(userParam));
+                    console.log('✅ Got user from URL:', userData);
+                    window.miningUser = userData;
+                    sessionStorage.setItem('miningUser', JSON.stringify(userData));
+                } catch(e) {
+                    console.error('Error parsing user:', e);
                 }
             }
-        }, 500);
-    });
-
-    // Function to update user info in UI
-    window.updateWalletUserInfo = function(username, userId) {
-        // Find or create user info element
-        let userInfoElement = document.getElementById('walletUserInfo');
-        
-        if (!userInfoElement) {
-            // Try to insert after header
-            const header = document.querySelector('header');
-            if (header) {
-                userInfoElement = document.createElement('div');
-                userInfoElement.id = 'walletUserInfo';
-                userInfoElement.style.cssText = `
-                    padding: 10px 20px;
-                    background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05));
-                    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                `;
-                header.insertAdjacentElement('afterend', userInfoElement);
+            
+            // If no URL data, check sessionStorage
+            if (!window.miningUser) {
+                try {
+                    const sessionUser = sessionStorage.getItem('miningUser');
+                    if (sessionUser) {
+                        window.miningUser = JSON.parse(sessionUser);
+                        console.log('✅ Got user from sessionStorage');
+                    }
+                } catch(e) {
+                    console.error('Error getting session user:', e);
+                }
             }
-        }
-        
-        if (userInfoElement) {
-            userInfoElement.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
-                    <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #d4af37, #b8941f); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                        <span style="color: #080808; font-weight: bold; font-size: 14px;">${username.charAt(0).toUpperCase()}</span>
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; color: #f5f5f5;">${username}</div>
-                        <div style="font-size: 12px; color: #aaa;">Connected to Mining Dashboard</div>
-                    </div>
-                    <button onclick="goToDashboard()" style="background: rgba(212, 175, 55, 0.2); border: 1px solid #d4af37; color: #d4af37; padding: 5px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">
-                        Dashboard
-                    </button>
-                </div>
-            `;
-        }
-    };
-
-    // Function to redirect to dashboard
-    window.goToDashboard = function() {
-        window.location.href = 'dashboard.html';
-    };
-
-    // Make function globally available
-    window.setupWalletUserOnLoad = setupWalletUserOnLoad;
+            
+            // Log what we found
+            if (window.miningUser) {
+                console.log('✅ User ready for wallet.js:', window.miningUser.id);
+            } else {
+                console.warn('⚠️ No user data found');
+            }
+        }, 300);
+    });
     </script>
     
-    <!-- ============================================= -->
-    <!-- 🎯 NOW LOAD THE FIXED WALLET.JS -->
-    <!-- ============================================= -->
-    <script src="assets/js/wallet.js></script>
+    <script src="assets/js/wallet.js?v=3.1"></script>
 
     <style>
         :root {
