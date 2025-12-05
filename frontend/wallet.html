@@ -131,6 +131,234 @@ window.closeModal = closeModal;
 window.showModal = showModal;
 </script>
 
+<script>
+// =============================================
+// 🎯 DEBUG SCRIPT - FIND THE ISSUE
+// =============================================
+
+console.log('🔍 [DEBUG] Starting wallet debug...');
+
+// 1. Check if all required functions exist
+function checkRequiredFunctions() {
+    console.log('🔍 [DEBUG] Checking required functions:');
+    
+    const functions = [
+        'generateNewWallet',
+        'getCurrentUserId', 
+        'WalletCrypto',
+        'showPasswordModalForEncryption',
+        'closeModal',
+        'showCreateWalletModal'
+    ];
+    
+    functions.forEach(funcName => {
+        if (typeof window[funcName] === 'function') {
+            console.log(`✅ ${funcName} exists`);
+        } else {
+            console.error(`❌ ${funcName} is MISSING or not a function`);
+        }
+    });
+}
+
+// 2. Check button and modal
+function checkButtonAndModal() {
+    console.log('🔍 [DEBUG] Checking UI elements:');
+    
+    // Check modal
+    const modal = document.getElementById('createWalletModal');
+    console.log(`✅ createWalletModal found: ${!!modal}`);
+    
+    if (modal) {
+        console.log(`✅ Modal display: ${modal.style.display}`);
+        console.log(`✅ Modal HTML length: ${modal.innerHTML.length}`);
+    }
+    
+    // Check button
+    const button = document.getElementById('generateWalletBtn');
+    console.log(`✅ generateWalletBtn found: ${!!button}`);
+    
+    if (button) {
+        console.log(`✅ Button text: ${button.textContent}`);
+        console.log(`✅ Button onclick: ${button.onclick}`);
+        console.log(`✅ Button HTML:`, button.outerHTML);
+        
+        // Add visual indicator
+        button.style.border = '3px solid #ff4444';
+        button.style.boxShadow = '0 0 10px #ff4444';
+    }
+}
+
+// 3. Test button click manually
+function addTestButton() {
+    console.log('🔍 [DEBUG] Adding test button...');
+    
+    const testDiv = document.createElement('div');
+    testDiv.id = 'debugTestDiv';
+    testDiv.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: #1a1a1a;
+        border: 2px solid #ff4444;
+        padding: 15px;
+        border-radius: 10px;
+        z-index: 99999;
+        color: white;
+        font-family: monospace;
+    `;
+    
+    testDiv.innerHTML = `
+        <h3 style="color: #ff4444; margin: 0 0 10px 0;">🔧 DEBUG PANEL</h3>
+        <button onclick="runDebugTests()" style="background: #ff4444; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 10px;">
+            🚨 RUN ALL TESTS
+        </button>
+        <button onclick="testGenerateButton()" style="background: #00ff00; color: black; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 5px;">
+            🎯 TEST GENERATE BUTTON
+        </button>
+        <button onclick="showCreateWalletModal()" style="background: #0088ff; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; margin-bottom: 5px;">
+            🔄 OPEN CREATE MODAL
+        </button>
+        <div id="debugResults" style="margin-top: 10px; padding: 10px; background: #333; border-radius: 5px; font-size: 12px; max-height: 200px; overflow-y: auto;"></div>
+    `;
+    
+    document.body.appendChild(testDiv);
+}
+
+// 4. Run all debug tests
+function runDebugTests() {
+    console.log('🔍 [DEBUG] Running all tests...');
+    const resultsDiv = document.getElementById('debugResults');
+    resultsDiv.innerHTML = '<strong>Running tests...</strong><br>';
+    
+    setTimeout(() => {
+        checkRequiredFunctions();
+        checkButtonAndModal();
+        
+        // Test the actual function
+        if (typeof generateNewWallet === 'function') {
+            resultsDiv.innerHTML += '✅ generateNewWallet function exists<br>';
+            
+            // Try calling it with a small test
+            try {
+                const userId = getCurrentUserId();
+                resultsDiv.innerHTML += `✅ User ID: ${userId}<br>`;
+                
+                if (userId) {
+                    resultsDiv.innerHTML += '✅ User authenticated<br>';
+                } else {
+                    resultsDiv.innerHTML += '❌ No user ID found<br>';
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `❌ Error: ${error.message}<br>`;
+            }
+        } else {
+            resultsDiv.innerHTML += '❌ generateNewWallet function NOT FOUND<br>';
+        }
+        
+        resultsDiv.innerHTML += '<br><strong>Tests completed!</strong>';
+    }, 100);
+}
+
+// 5. Test the generate button directly
+function testGenerateButton() {
+    console.log('🎯 [DEBUG] Testing generate button...');
+    const resultsDiv = document.getElementById('debugResults');
+    resultsDiv.innerHTML = '<strong>Testing generate button...</strong><br>';
+    
+    // Check if we can find the button
+    const button = document.getElementById('generateWalletBtn');
+    
+    if (button) {
+        resultsDiv.innerHTML += '✅ Button found in DOM<br>';
+        
+        // Simulate click
+        button.click();
+        resultsDiv.innerHTML += '✅ Button click simulated<br>';
+        
+        // Check if function was called
+        setTimeout(() => {
+            if (button.innerHTML.includes('Generating')) {
+                resultsDiv.innerHTML += '✅ Button state changed (loading)<br>';
+            } else {
+                resultsDiv.innerHTML += '❌ Button state NOT changed<br>';
+            }
+        }, 500);
+    } else {
+        resultsDiv.innerHTML += '❌ Button NOT found in DOM<br>';
+    }
+}
+
+// 6. Monkey-patch the original function to see if it's called
+const originalGenerateNewWallet = window.generateNewWallet;
+if (originalGenerateNewWallet) {
+    window.generateNewWallet = function() {
+        console.log('🎯 [DEBUG] generateNewWallet WAS CALLED!');
+        console.trace('Stack trace:'); // Show where it was called from
+        
+        const resultsDiv = document.getElementById('debugResults');
+        if (resultsDiv) {
+            resultsDiv.innerHTML += '✅ generateNewWallet function WAS CALLED!<br>';
+        }
+        
+        // Call the original function
+        return originalGenerateNewWallet.apply(this, arguments);
+    };
+    console.log('✅ [DEBUG] Monkey-patched generateNewWallet');
+}
+
+// 7. Add click listener to the button
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔍 [DEBUG] DOM loaded, setting up debug...');
+    
+    // Wait for page to fully load
+    setTimeout(() => {
+        // Add debug panel
+        addTestButton();
+        
+        // Run initial checks
+        checkRequiredFunctions();
+        checkButtonAndModal();
+        
+        // Add click listener to the actual button
+        const button = document.getElementById('generateWalletBtn');
+        if (button) {
+            console.log('✅ [DEBUG] Adding click listener to button');
+            
+            const originalOnClick = button.onclick;
+            button.onclick = function(e) {
+                console.log('🎯 [DEBUG] Button was CLICKED via onclick');
+                console.log('Event:', e);
+                
+                // Call original handler
+                if (originalOnClick) {
+                    return originalOnClick.call(this, e);
+                }
+            };
+            
+            // Also add event listener
+            button.addEventListener('click', function(e) {
+                console.log('🎯 [DEBUG] Button was CLICKED via event listener');
+            });
+        }
+        
+        console.log('✅ [DEBUG] Setup complete');
+    }, 2000);
+});
+
+// 8. Check for errors
+window.addEventListener('error', function(event) {
+    console.error('❌ [DEBUG] Global error caught:', event.error);
+    console.error('❌ [DEBUG] Error at:', event.filename, event.lineno, event.colno);
+    
+    const resultsDiv = document.getElementById('debugResults');
+    if (resultsDiv) {
+        resultsDiv.innerHTML += `<span style="color: #ff4444">❌ Error: ${event.message}</span><br>`;
+    }
+});
+
+console.log('✅ [DEBUG] Debug script loaded');
+</script>
+
   <style>
         :root {
             --dark-bg: #0A0A0A;
