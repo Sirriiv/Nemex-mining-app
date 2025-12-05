@@ -55,8 +55,83 @@
     </script>
     
     <script src="assets/js/wallet.js?v=3.1"></script>
+  
+<script>
+// =============================================
+// 🎯 MODAL FUNCTIONS - ADD THIS AFTER wallet.js
+// =============================================
 
-    <style>
+// Function to close any open modal
+function closeModal() {
+    console.log('🔒 Closing modal...');
+    
+    // Close all modals
+    const modals = document.querySelectorAll('.modal, [id$="Modal"], [class*="modal"]');
+    modals.forEach(modal => {
+        if (modal.style.display === 'flex' || modal.style.display === 'block') {
+            modal.style.display = 'none';
+            console.log('✅ Modal closed:', modal.id || 'unnamed modal');
+        }
+    });
+    
+    // Remove any active classes
+    document.querySelectorAll('.modal-backdrop, .modal-open').forEach(el => {
+        el.remove();
+    });
+    
+    // Re-enable body scroll
+    document.body.style.overflow = 'auto';
+}
+
+// Function to show a specific modal
+function showModal(modalId) {
+    console.log('🎯 Opening modal:', modalId);
+    
+    // Close any open modals first
+    closeModal();
+    
+    // Show the requested modal
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        
+        // Add backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop';
+        backdrop.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999;
+        `;
+        backdrop.onclick = closeModal;
+        document.body.appendChild(backdrop);
+        
+        // Disable body scroll
+        document.body.style.overflow = 'hidden';
+        
+        console.log('✅ Modal opened:', modalId);
+    } else {
+        console.error('❌ Modal not found:', modalId);
+    }
+}
+
+// Close modal when pressing Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+
+// Make functions globally available
+window.closeModal = closeModal;
+window.showModal = showModal;
+</script>
+
+  <style>
         :root {
             --dark-bg: #0A0A0A;
             --darker-bg: #080808;
