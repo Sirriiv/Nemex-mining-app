@@ -2292,66 +2292,66 @@
         </div>
 
         <div id="settingsModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Settings</div>
+    <div class="modal-content">
+        <div class="modal-title">Settings</div>
 
-                <!-- View Recovery Phrase -->
-                <div class="settings-option" onclick="viewRecoveryPhrase()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                        </svg>
-                        <div>View Recovery Phrase</div>
-                    </div>
-                </div>
-
-                <!-- Change Encryption Password -->
-                <div class="settings-option" onclick="showChangePasswordModal()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                        </svg>
-                        <div>Change Encryption Password</div>
-                    </div>
-                </div>
-
-                <!-- Backup Status -->
-                <div class="settings-option" onclick="showBackupStatus()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div>Backup Status</div>
-                    </div>
-                </div>
-
-                <!-- Delete Wallet -->
-                <div class="settings-option" onclick="showDeleteWalletModal()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        <div style="color: var(--error);">Delete Wallet</div>
-                    </div>
-                </div>
-
-                <!-- Logout -->
-                <div class="settings-option" onclick="logout()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                        </svg>
-                        <div>Logout</div>
-                    </div>
-                </div>
-
-                <div class="security-warning">
-                    <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
-                </div>
-
-                <button class="close-modal" onclick="closeModal()">Close Settings</button>
+        <!-- 🎯 VIEW RECOVERY PHRASE -->
+        <div class="settings-option" onclick="viewRecoveryPhrase()">
+            <div class="settings-option-content">
+                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                </svg>
+                <div>View Recovery Phrase</div>
             </div>
         </div>
+
+        <!-- CHANGE PASSWORD -->
+        <div class="settings-option" onclick="showChangePasswordModal()">
+            <div class="settings-option-content">
+                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                </svg>
+                <div>Change Encryption Password</div>
+            </div>
+        </div>
+
+        <!-- BACKUP STATUS -->
+        <div class="settings-option" onclick="showBackupStatus()">
+            <div class="settings-option-content">
+                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>Backup Status</div>
+            </div>
+        </div>
+
+        <!-- DELETE WALLET -->
+        <div class="settings-option" onclick="showDeleteWalletModal()">
+            <div class="settings-option-content">
+                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                <div style="color: var(--error);">Delete Wallet</div>
+            </div>
+        </div>
+
+        <!-- LOGOUT -->
+        <div class="settings-option" onclick="logout()">
+            <div class="settings-option-content">
+                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                <div>Logout</div>
+            </div>
+        </div>
+
+        <div class="security-warning">
+            <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
+        </div>
+
+        <button class="close-modal" onclick="closeModal()">Close Settings</button>
+    </div>
+</div>
 
         <!-- NEW SEND MODAL -->
         <div id="sendModal" class="modal fullscreen">
