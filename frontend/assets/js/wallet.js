@@ -1,5 +1,5 @@
-// assets/js/wallet.js - PRODUCTION READY WITH BROWSER-SIDE ENCRYPTION
-console.log('👛 Loading Nemex Wallet v4.0 (Secure Browser Encryption)...');
+// assets/js/wallet.js - FIXED VERSION WITH DASHBOARD INTEGRATION
+console.log('👛 Loading Nemex Wallet v4.0 (Fixed Dashboard Connection)...');
 
 class MiningWalletManager {
     constructor() {
@@ -8,6 +8,9 @@ class MiningWalletManager {
         this.userId = null;
         this.userEmail = null;
         this.isInitialized = false;
+
+        // 🎯 NEW: Store user data from dashboard
+        this.miningUser = null;
 
         // 🚨 CRITICAL: Browser-side encryption only
         // Backend NEVER sees plain mnemonics
@@ -250,30 +253,56 @@ class MiningWalletManager {
     }
 
     // =============================================
-    // 🎯 UPDATED: getCurrentUserId()
+    // 🎯 FIXED: getCurrentUserId() - DASHBOARD CONNECTION
     // =============================================
 
     getCurrentUserId() {
-        console.log('🔍 getCurrentUserId() called');
+        console.log('🔍 [FIXED] getCurrentUserId() called - Checking all sources...');
 
-        // Check multiple sources for user ID
+        // 1. First check if we already have it cached
         if (this.userId) {
+            console.log('✅ Using cached userId:', this.userId);
             return this.userId;
         }
 
-        // Check window.miningUser
+        // 2. Check URL parameters (from dashboard redirect)
+        const urlParams = new URLSearchParams(window.location.search);
+        const userParam = urlParams.get('user');
+        
+        if (userParam) {
+            try {
+                const userData = JSON.parse(decodeURIComponent(userParam));
+                if (userData && userData.id) {
+                    console.log('✅ Got userId from URL parameters:', userData.id);
+                    this.userId = userData.id;
+                    // Store the full user data
+                    this.miningUser = userData;
+                    window.miningUser = userData;
+                    return this.userId;
+                }
+            } catch (e) {
+                console.warn('⚠️ Error parsing URL user param:', e);
+            }
+        }
+
+        // 3. Check window.miningUser (set by dashboard)
         if (window.miningUser && window.miningUser.id) {
+            console.log('✅ Got userId from window.miningUser:', window.miningUser.id);
             this.userId = window.miningUser.id;
+            this.miningUser = window.miningUser;
             return this.userId;
         }
 
-        // Check sessionStorage
+        // 4. Check sessionStorage (from dashboard)
         const sessionUser = sessionStorage.getItem('miningUser');
         if (sessionUser) {
             try {
-                const user = JSON.parse(sessionUser);
-                if (user && user.id) {
-                    this.userId = user.id;
+                const userData = JSON.parse(sessionUser);
+                if (userData && userData.id) {
+                    console.log('✅ Got userId from sessionStorage:', userData.id);
+                    this.userId = userData.id;
+                    this.miningUser = userData;
+                    window.miningUser = userData;
                     return this.userId;
                 }
             } catch (e) {
@@ -281,17 +310,78 @@ class MiningWalletManager {
             }
         }
 
-        console.warn('❌ No user ID found');
+        // 5. Check localStorage (from dashboard)
+        const localUser = localStorage.getItem('nemexcoin_wallet_user');
+        if (localUser) {
+            try {
+                const userData = JSON.parse(localUser);
+                if (userData && userData.id) {
+                    console.log('✅ Got userId from localStorage:', userData.id);
+                    this.userId = userData.id;
+                    this.miningUser = userData;
+                    window.miningUser = userData;
+                    return this.userId;
+                }
+            } catch (e) {
+                console.warn('⚠️ Error parsing localStorage user:', e);
+            }
+        }
+
+        // 6. Check if we have source=dashboard parameter (means user came from dashboard)
+        const source = urlParams.get('source');
+        if (source === 'dashboard') {
+            console.warn('⚠️ User came from dashboard but no user data found. Redirecting back...');
+            setTimeout(() => {
+                if (typeof window.showMessage === 'function') {
+                    window.showMessage('Please access wallet from dashboard', 'error');
+                }
+                // Redirect back to dashboard after 2 seconds
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html?redirect=wallet';
+                }, 2000);
+            }, 100);
+        }
+
+        console.warn('❌ No user ID found from any source');
         return null;
     }
 
     // =============================================
-    // 🎯 UPDATED: createNewWallet() - SIMPLIFIED
+    // 🎯 NEW: getMiningUserData() - GET FULL USER INFO
+    // =============================================
+
+    getMiningUserData() {
+        if (this.miningUser) {
+            return this.miningUser;
+        }
+
+        // Try to get from window
+        if (window.miningUser) {
+            this.miningUser = window.miningUser;
+            return this.miningUser;
+        }
+
+        // Try to get from sessionStorage
+        try {
+            const sessionUser = sessionStorage.getItem('miningUser');
+            if (sessionUser) {
+                this.miningUser = JSON.parse(sessionUser);
+                return this.miningUser;
+            }
+        } catch (e) {
+            console.warn('⚠️ Error getting mining user from sessionStorage:', e);
+        }
+
+        return null;
+    }
+
+    // =============================================
+    // 🎯 UPDATED: createNewWallet() - WITH USER VALIDATION
     // =============================================
 
     async createNewWallet(userId = null) {
-        console.log('🎯 createNewWallet() called - Browser-side generation only');
-        
+        console.log('🎯 [FIXED] createNewWallet() called');
+
         try {
             // Get userId if not provided
             if (!userId) {
@@ -299,19 +389,26 @@ class MiningWalletManager {
                 if (!userId) {
                     return {
                         success: false,
-                        error: 'Please login to your mining account first'
+                        error: 'Please login to your mining account first',
+                        requiresLogin: true,
+                        redirectUrl: 'dashboard.html'
                     };
                 }
             }
 
-            console.log(`🎯 Ready to create wallet for user: ${userId}`);
-            
-            // Just return success - wallet.html will handle browser-side generation
+            // Get user data for display
+            const userData = this.getMiningUserData();
+            const username = userData?.username || userData?.email || 'User';
+
+            console.log(`✅ Ready to create wallet for: ${username} (${userId})`);
+
             return {
                 success: true,
-                message: 'Ready for browser-side wallet generation',
+                message: `Ready to create wallet for ${username}`,
                 requiresBrowserEncryption: true,
-                userId: userId
+                userId: userId,
+                username: username,
+                miningBalance: userData?.miningBalance || 0
             };
 
         } catch (error) {
@@ -333,17 +430,17 @@ class MiningWalletManager {
         // Use cryptographically secure random numbers
         const words = [];
         const randomBuffer = new Uint32Array(wordCount);
-        
+
         try {
             crypto.getRandomValues(randomBuffer);
-            
+
             for (let i = 0; i < wordCount; i++) {
                 const randomIndex = randomBuffer[i] % this.BIP39_WORDLIST.length;
                 words.push(this.BIP39_WORDLIST[randomIndex]);
             }
 
             const mnemonic = words.join(' ');
-            
+
             if (mnemonic.split(' ').length !== wordCount) {
                 throw new Error('Invalid mnemonic generated');
             }
@@ -353,7 +450,7 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Secure mnemonic generation failed:', error);
-            
+
             // Fallback (less secure but works)
             console.warn('⚠️ Using fallback mnemonic generation');
             const fallbackWords = [];
@@ -371,11 +468,11 @@ class MiningWalletManager {
 
     async createWallet(userId, userPassword, replaceExisting = false) {
         console.log(`📦 Backend storage for user: ${userId}`);
-        
+
         try {
             // This is called AFTER frontend encrypts the mnemonic
             // Frontend should call /api/wallet/store-encrypted directly
-            
+
             return {
                 success: true,
                 message: 'Wallet should be stored via /api/wallet/store-encrypted endpoint',
@@ -399,7 +496,7 @@ class MiningWalletManager {
 
     async viewSeedPhrase(userId, userPassword) {
         console.log(`🔐 Requesting encrypted wallet for user: ${userId}`);
-        
+
         try {
             if (!userId) {
                 return {
@@ -410,7 +507,7 @@ class MiningWalletManager {
 
             // Note: The actual decryption happens in wallet.html
             // This function just returns encrypted data
-            
+
             return {
                 success: true,
                 message: 'Encrypted data retrieved. Decryption happens in browser.',
@@ -433,7 +530,7 @@ class MiningWalletManager {
 
     async getEncryptedWallet(userId) {
         console.log(`📥 Getting encrypted wallet for user: ${userId}`);
-        
+
         try {
             // Call backend API to get encrypted mnemonic
             const response = await fetch(`${this.apiBaseUrl}/get-encrypted`, {
@@ -443,7 +540,7 @@ class MiningWalletManager {
             });
 
             const result = await response.json();
-            
+
             if (!response.ok) {
                 console.error('❌ API Error:', response.status, result.error);
                 return result;
@@ -466,7 +563,7 @@ class MiningWalletManager {
 
     async importWallet(userId, mnemonic, userPassword, replaceExisting = false, targetAddress = null) {
         console.log(`📥 Import wallet for user: ${userId}`);
-        
+
         try {
             if (!userId || !mnemonic) {
                 throw new Error('User ID and mnemonic required');
@@ -474,7 +571,7 @@ class MiningWalletManager {
 
             // Note: Frontend should encrypt mnemonic before calling backend
             // This function is for reference only
-            
+
             return {
                 success: true,
                 message: 'Import should use /api/wallet/store-encrypted endpoint',
@@ -504,7 +601,8 @@ class MiningWalletManager {
             if (!userId) {
                 return {
                     success: false,
-                    error: 'No user ID found'
+                    error: 'No user ID found',
+                    requiresLogin: true
                 };
             }
 
@@ -537,11 +635,11 @@ class MiningWalletManager {
     }
 
     // =============================================
-    // 🎯 INITIALIZATION - SIMPLIFIED
+    // 🎯 FIXED: INITIALIZATION - WITH DASHBOARD INTEGRATION
     // =============================================
 
     async initialize() {
-        console.log('🚀 WalletManager.initialize() called');
+        console.log('🚀 [FIXED] WalletManager.initialize() called');
 
         if (this.isInitialized && this.currentWallet) {
             console.log('ℹ️ Wallet already initialized');
@@ -553,19 +651,32 @@ class MiningWalletManager {
         }
 
         try {
-            // Get user from mining site
+            // Get user from dashboard
             const userId = this.getCurrentUserId();
             if (!userId) {
+                console.log('❌ No user ID found - showing login required');
+                
                 return {
                     success: false,
                     requiresLogin: true,
-                    error: 'Please login to your mining account first',
-                    redirectUrl: 'dashboard.html'
+                    error: 'Please login to your mining dashboard first',
+                    redirectUrl: 'dashboard.html',
+                    showMessage: 'Access wallet from dashboard menu'
                 };
             }
 
             this.userId = userId;
-            console.log(`✅ Mining user authenticated: ${this.userId}`);
+            
+            // Get user info
+            const userData = this.getMiningUserData();
+            const username = userData?.username || userData?.email || 'User';
+            
+            console.log(`✅ Mining user authenticated: ${username} (${this.userId})`);
+
+            // Show welcome message
+            if (typeof window.showWalletWelcome === 'function') {
+                window.showWalletWelcome(username);
+            }
 
             // Test API connection
             try {
@@ -581,17 +692,19 @@ class MiningWalletManager {
             if (result.success && result.hasWallet) {
                 this.currentWallet = result.wallet;
                 this.isInitialized = true;
-                
+
                 console.log('✅ Wallet loaded:', {
                     userId: this.userId,
-                    hasWallet: true
+                    hasWallet: true,
+                    username: username
                 });
 
                 return {
                     success: true,
                     hasWallet: true,
                     wallet: result.wallet,
-                    userId: this.userId
+                    userId: this.userId,
+                    username: username
                 };
             } else {
                 // No wallet yet
@@ -600,7 +713,8 @@ class MiningWalletManager {
                     success: true,
                     hasWallet: false,
                     message: 'No wallet found. Create your first wallet.',
-                    userId: this.userId
+                    userId: this.userId,
+                    username: username
                 };
             }
 
@@ -609,7 +723,8 @@ class MiningWalletManager {
             return {
                 success: false,
                 error: 'Failed to initialize wallet: ' + error.message,
-                requiresLogin: true
+                requiresLogin: true,
+                redirectUrl: 'dashboard.html'
             };
         }
     }
@@ -872,7 +987,7 @@ class MiningWalletManager {
     }
 
     // =============================================
-    // 🎯 UTILITIES (UNCHANGED)
+    // 🎯 UTILITIES (UPDATED WITH DASHBOARD INTEGRATION)
     // =============================================
 
     hasWallet() {
@@ -898,6 +1013,11 @@ class MiningWalletManager {
 
     getUserId() {
         return this.userId;
+    }
+
+    // 🎯 NEW: Get mining user info
+    getMiningUserInfo() {
+        return this.getMiningUserData();
     }
 
     validatePasswordStrength(password) {
@@ -929,6 +1049,7 @@ class MiningWalletManager {
         this.currentWallet = null;
         this.userId = null;
         this.userEmail = null;
+        this.miningUser = null;
         this.isInitialized = false;
         console.log('🧹 Wallet data cleared');
     }
@@ -955,12 +1076,16 @@ class MiningWalletManager {
 
     async getNMXpBalance(userId) {
         try {
-            // Mock data
+            // Get user data to show mining balance
+            const userData = this.getMiningUserData();
+            const miningBalance = userData?.miningBalance || 0;
+            
             return {
                 success: true,
-                balance: 1500,
+                balance: miningBalance,
                 wallet_address: this.getAddress(),
-                userId: userId
+                userId: userId,
+                source: 'miningDashboard'
             };
         } catch (error) {
             console.error('❌ Get NMXp balance failed:', error);
@@ -975,21 +1100,40 @@ class MiningWalletManager {
 // Create global instance
 window.walletManager = new MiningWalletManager();
 
-// Export functions to global scope
+// =============================================
+// 🎯 FIXED: GLOBAL FUNCTIONS WITH DASHBOARD INTEGRATION
+// =============================================
+
 window.showCreateWalletModal = function() {
     console.log('🎯 showCreateWalletModal called');
 
     const userId = window.walletManager.getCurrentUserId();
     if (!userId) {
         console.error('❌ User not logged in');
+        
+        // Get user data to show better error
+        const userData = window.walletManager.getMiningUserData();
+        const username = userData?.username || userData?.email;
+        
         if (typeof window.showMessage === 'function') {
-            window.showMessage('Please login to your mining account first', 'error');
+            window.showMessage(username ? 
+                `Welcome ${username}! Please access wallet from dashboard menu.` : 
+                'Please login to your mining account first', 
+                'error'
+            );
         }
+        
+        // Show redirect option
+        setTimeout(() => {
+            if (confirm('Go back to mining dashboard?')) {
+                window.location.href = 'dashboard.html';
+            }
+        }, 1000);
         return;
     }
 
     closeModal();
-    
+
     const createModal = document.getElementById('createWalletModal');
     if (createModal) {
         createModal.style.display = 'flex';
@@ -1010,7 +1154,7 @@ window.showImportWalletModal = function() {
     }
 
     closeModal();
-    
+
     const importModal = document.getElementById('importWalletModal');
     if (importModal) {
         importModal.style.display = 'flex';
@@ -1033,13 +1177,80 @@ window.validateUserLoggedIn = function() {
     return true;
 };
 
-console.log('✅ Secure Wallet Manager ready with browser-side encryption');
+// 🎯 NEW: Function to show wallet welcome message
+window.showWalletWelcome = function(username) {
+    console.log(`🎉 Welcome to wallet, ${username}!`);
+    
+    // You can add a welcome toast/notification here
+    if (typeof window.showMessage === 'function') {
+        window.showMessage(`Welcome to Nemex Wallet, ${username}!`, 'success');
+    }
+};
 
-// Auto-initialize for wallet.html
+// 🎯 NEW: Function to check if user came from dashboard
+window.checkDashboardConnection = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const source = urlParams.get('source');
+    const userParam = urlParams.get('user');
+    
+    if (source === 'dashboard' && userParam) {
+        console.log('✅ Connected from dashboard successfully');
+        return true;
+    }
+    
+    // Check if we have any user data
+    const hasUserData = !!window.walletManager.getCurrentUserId();
+    if (!hasUserData) {
+        console.warn('⚠️ No dashboard connection found');
+        
+        // Check if we should show a connection prompt
+        const lastTry = localStorage.getItem('lastWalletAccessTry');
+        const now = Date.now();
+        
+        if (!lastTry || (now - parseInt(lastTry)) > 3600000) { // 1 hour
+            if (confirm('Wallet needs connection to mining dashboard. Go to dashboard?')) {
+                window.location.href = 'dashboard.html?redirect=wallet';
+            }
+            localStorage.setItem('lastWalletAccessTry', now.toString());
+        }
+    }
+    
+    return hasUserData;
+};
+
+console.log('✅ Secure Wallet Manager ready with dashboard integration');
+
+// =============================================
+// 🎯 FIXED: AUTO-INITIALIZATION WITH DASHBOARD CHECK
+// =============================================
+
 document.addEventListener('DOMContentLoaded', function() {
     if (window.location.pathname.includes('wallet.html')) {
-        console.log('🎯 Auto-initializing secure wallet system...');
+        console.log('🎯 [FIXED] Auto-initializing secure wallet system...');
 
+        // First check dashboard connection
+        setTimeout(() => {
+            const hasConnection = window.checkDashboardConnection();
+            
+            if (!hasConnection) {
+                console.warn('⚠️ No dashboard connection found on page load');
+                
+                // Check URL for redirect hints
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect');
+                
+                if (redirect === 'dashboard') {
+                    // We just came from dashboard but connection failed
+                    console.log('🔄 Attempting to reconnect to dashboard...');
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html?redirect=wallet';
+                    }, 1500);
+                }
+                return;
+            }
+        }, 500);
+
+        // Then initialize wallet
         setTimeout(async () => {
             try {
                 console.log('🔄 Starting secure initialization...');
@@ -1048,20 +1259,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result.success) {
                     console.log('✅ Secure initialization successful:', {
                         hasWallet: result.hasWallet,
-                        userId: result.userId
+                        userId: result.userId,
+                        username: result.username
                     });
+                    
+                    // Show user info in UI if available
+                    if (result.username && typeof window.updateWalletUserInfo === 'function') {
+                        window.updateWalletUserInfo(result.username, result.userId);
+                    }
+                    
                 } else if (result.requiresLogin) {
                     console.warn('⚠️ User needs to login to mining site');
-                    
+
                     setTimeout(() => {
                         if (typeof window.showMessage === 'function') {
-                            window.showMessage('Please login to mining dashboard first', 'error');
+                            window.showMessage('Please access wallet from mining dashboard menu', 'error');
                         }
                     }, 500);
                 }
             } catch (error) {
                 console.error('❌ Secure initialization failed:', error);
             }
-        }, 300);
+        }, 1000);
     }
 });
