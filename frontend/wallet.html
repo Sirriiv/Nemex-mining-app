@@ -6,20 +6,20 @@
     <title>Nemex Wallet - Secure TON Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
+
     <!-- ============================================= -->
     <!-- 🎯 SIMPLE DASHBOARD CONNECTION -->
     <!-- ============================================= -->
     <script>
     console.log('🔗 Simple dashboard connection setup...');
-    
+
     // Quick check for user data on page load
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             // Check URL for user data first
             const urlParams = new URLSearchParams(window.location.search);
             const userParam = urlParams.get('user');
-            
+
             if (userParam) {
                 try {
                     const userData = JSON.parse(decodeURIComponent(userParam));
@@ -30,7 +30,7 @@
                     console.error('Error parsing user:', e);
                 }
             }
-            
+
             // If no URL data, check sessionStorage
             if (!window.miningUser) {
                 try {
@@ -43,7 +43,7 @@
                     console.error('Error getting session user:', e);
                 }
             }
-            
+
             // Log what we found
             if (window.miningUser) {
                 console.log('✅ User ready for wallet.js:', window.miningUser.id);
@@ -53,9 +53,9 @@
         }, 300);
     });
     </script>
-    
+
     <script src="assets/js/wallet.js?v=3.1"></script>
-  
+
 <script>
 // =============================================
 // 🎯 MODAL FUNCTIONS - ADD THIS AFTER wallet.js
@@ -64,7 +64,7 @@
 // Function to close any open modal
 function closeModal() {
     console.log('🔒 Closing modal...');
-    
+
     // Close all modals
     const modals = document.querySelectorAll('.modal, [id$="Modal"], [class*="modal"]');
     modals.forEach(modal => {
@@ -73,12 +73,12 @@ function closeModal() {
             console.log('✅ Modal closed:', modal.id || 'unnamed modal');
         }
     });
-    
+
     // Remove any active classes
     document.querySelectorAll('.modal-backdrop, .modal-open').forEach(el => {
         el.remove();
     });
-    
+
     // Re-enable body scroll
     document.body.style.overflow = 'auto';
 }
@@ -86,15 +86,15 @@ function closeModal() {
 // Function to show a specific modal
 function showModal(modalId) {
     console.log('🎯 Opening modal:', modalId);
-    
+
     // Close any open modals first
     closeModal();
-    
+
     // Show the requested modal
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'flex';
-        
+
         // Add backdrop
         const backdrop = document.createElement('div');
         backdrop.className = 'modal-backdrop';
@@ -109,10 +109,10 @@ function showModal(modalId) {
         `;
         backdrop.onclick = closeModal;
         document.body.appendChild(backdrop);
-        
+
         // Disable body scroll
         document.body.style.overflow = 'hidden';
-        
+
         console.log('✅ Modal opened:', modalId);
     } else {
         console.error('❌ Modal not found:', modalId);
@@ -2070,7 +2070,7 @@ window.showModal = showModal;
                 // Method 4: Check Supabase Auth directly
                 try {
                     const client = await getSupabaseClient();
-                    
+
                     const { data: { session } } = await client.auth.getSession();
                     if (session?.user) {
                         console.log('✅ User from Supabase Auth:', session.user.id);
@@ -2261,7 +2261,8 @@ window.showModal = showModal;
 
                 <div id="createWalletStatus"></div>
 
-                <button class="close-modal" onclick="checkAndGenerateWallet()" id="generateWalletBtn">
+                <!-- FIXED: Changed from checkAndGenerateWallet() to generateNewWallet() -->
+                <button class="close-modal" onclick="generateNewWallet()" id="generateWalletBtn">
                     Generate New Wallet
                 </button>
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
@@ -3023,6 +3024,66 @@ window.showModal = showModal;
 
     <script>
 // =============================================
+// 🎯 GENERATE NEW WALLET FUNCTION - FIXED VERSION
+// =============================================
+
+async function generateNewWallet() {
+    console.log('🎯 Generate New Wallet button clicked!');
+
+    const generateBtn = document.getElementById('generateWalletBtn');
+    const statusElement = document.getElementById('createWalletStatus');
+
+    try {
+        // Show loading state
+        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
+        generateBtn.disabled = true;
+
+        showStatusMessage('Generating secure wallet...', 'loading', statusElement);
+
+        // Check if user is logged in
+        const userId = getCurrentUserId();
+        if (!userId) {
+            throw new Error('Please login to your mining account first');
+        }
+
+        console.log('🔐 Creating wallet for user:', userId);
+
+        // Step 1: Generate mnemonic IN BROWSER (secure)
+        console.log('🔑 Generating secure mnemonic...');
+        const mnemonic = WalletCrypto.generateMnemonic();
+
+        if (!mnemonic) {
+            throw new Error('Failed to generate recovery phrase');
+        }
+
+        // Validate mnemonic
+        const validation = WalletCrypto.validateMnemonic(mnemonic);
+        if (!validation.valid) {
+            throw new Error(validation.error);
+        }
+
+        console.log('✅ Secure mnemonic generated (12 words)');
+
+        // Store temporarily in memory (not localStorage)
+        currentMnemonic = mnemonic;
+        pendingWalletCreation = { userId, mnemonic };
+
+        // Step 2: Ask for encryption password
+        showPasswordModalForEncryption(userId, mnemonic);
+
+    } catch (error) {
+        console.error('❌ Wallet generation failed:', error);
+        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
+
+        // Reset button
+        if (generateBtn) {
+            generateBtn.innerHTML = 'Generate New Wallet';
+            generateBtn.disabled = false;
+        }
+    }
+}
+
+// =============================================
 // 🎯 PRODUCTION-READY CRYPTO UTILITIES
 // =============================================
 
@@ -3032,49 +3093,49 @@ class WalletCrypto {
         if (!window.walletManager || !window.walletManager.BIP39_WORDLIST) {
             throw new Error('Wallet system not loaded');
         }
-        
+
         const wordlist = window.walletManager.BIP39_WORDLIST;
         if (wordlist.length !== 2048) {
             throw new Error('Invalid BIP-39 wordlist');
         }
-        
+
         // Use cryptographically secure random numbers
         const words = [];
         const randomBuffer = new Uint32Array(wordCount);
         crypto.getRandomValues(randomBuffer);
-        
+
         for (let i = 0; i < wordCount; i++) {
             const randomIndex = randomBuffer[i] % wordlist.length;
             words.push(wordlist[randomIndex]);
         }
-        
+
         // Verify we have valid BIP-39 words
         const mnemonic = words.join(' ');
         if (mnemonic.split(' ').length !== wordCount) {
             throw new Error('Failed to generate valid mnemonic');
         }
-        
+
         return mnemonic;
     }
-    
+
     // Production-ready encryption using Web Crypto API (AES-GCM)
     static async encrypt(text, password) {
         if (!password || password.length < 8) {
             throw new Error('Password must be at least 8 characters');
         }
-        
+
         if (!text) {
             throw new Error('No data to encrypt');
         }
-        
+
         try {
             // Convert password to key using PBKDF2
             const encoder = new TextEncoder();
             const passwordBuffer = encoder.encode(password);
-            
+
             // Generate salt
             const salt = crypto.getRandomValues(new Uint8Array(16));
-            
+
             // Import password as key material
             const keyMaterial = await crypto.subtle.importKey(
                 'raw',
@@ -3083,7 +3144,7 @@ class WalletCrypto {
                 false,
                 ['deriveBits', 'deriveKey']
             );
-            
+
             // Derive key using PBKDF2
             const key = await crypto.subtle.deriveKey(
                 {
@@ -3097,11 +3158,11 @@ class WalletCrypto {
                 false,
                 ['encrypt']
             );
-            
+
             // Generate random IV
             const iv = crypto.getRandomValues(new Uint8Array(12));
             const data = encoder.encode(text);
-            
+
             // Encrypt the data
             const encrypted = await crypto.subtle.encrypt(
                 {
@@ -3111,47 +3172,47 @@ class WalletCrypto {
                 key,
                 data
             );
-            
+
             // Combine salt + IV + encrypted data
             const encryptedArray = new Uint8Array(encrypted);
             const result = new Uint8Array(salt.length + iv.length + encryptedArray.length);
             result.set(salt);
             result.set(iv, salt.length);
             result.set(encryptedArray, salt.length + iv.length);
-            
+
             // Return as base64
             return btoa(String.fromCharCode.apply(null, result));
-            
+
         } catch (error) {
             console.error('Encryption error:', error);
             throw new Error('Failed to encrypt data securely');
         }
     }
-    
+
     // Production-ready decryption
     static async decrypt(encryptedBase64, password) {
         if (!password) {
             throw new Error('Password required');
         }
-        
+
         if (!encryptedBase64 || !encryptedBase64.startsWith('ENCv1:')) {
             throw new Error('Invalid encrypted data format');
         }
-        
+
         try {
             // Remove prefix and decode
             const encryptedData = encryptedBase64.substring(6);
             const encryptedBytes = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
-            
+
             // Extract components
             const salt = encryptedBytes.slice(0, 16);
             const iv = encryptedBytes.slice(16, 28);
             const encrypted = encryptedBytes.slice(28);
-            
+
             // Convert password to key
             const encoder = new TextEncoder();
             const passwordBuffer = encoder.encode(password);
-            
+
             // Import password as key material
             const keyMaterial = await crypto.subtle.importKey(
                 'raw',
@@ -3160,7 +3221,7 @@ class WalletCrypto {
                 false,
                 ['deriveKey']
             );
-            
+
             // Derive key using same parameters
             const key = await crypto.subtle.deriveKey(
                 {
@@ -3174,7 +3235,7 @@ class WalletCrypto {
                 false,
                 ['decrypt']
             );
-            
+
             // Decrypt the data
             const decrypted = await crypto.subtle.decrypt(
                 {
@@ -3184,10 +3245,10 @@ class WalletCrypto {
                 key,
                 encrypted
             );
-            
+
             // Convert back to text
             return new TextDecoder().decode(decrypted);
-            
+
         } catch (error) {
             console.error('Decryption error:', error);
             if (error.name === 'OperationError') {
@@ -3196,7 +3257,7 @@ class WalletCrypto {
             throw new Error('Failed to decrypt data: ' + error.message);
         }
     }
-    
+
     // Generate TON wallet address (placeholder - integrate with tonweb later)
     static async generateAddressFromMnemonic(mnemonic) {
         try {
@@ -3210,7 +3271,7 @@ class WalletCrypto {
             throw new Error('Failed to generate wallet address');
         }
     }
-    
+
     // SHA-256 helper
     static async sha256(text) {
         const encoder = new TextEncoder();
@@ -3219,28 +3280,28 @@ class WalletCrypto {
         const hashArray = Array.from(new Uint8Array(hashBuffer));
         return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     }
-    
+
     // Validate mnemonic
     static validateMnemonic(mnemonic) {
         const words = mnemonic.trim().split(/\s+/);
-        
+
         if (words.length !== 12 && words.length !== 24) {
             return {
                 valid: false,
                 error: `Seed phrase must be 12 or 24 words (got ${words.length})`
             };
         }
-        
+
         // Check if all words are in BIP-39 list
         const wordlist = window.walletManager?.BIP39_WORDLIST || [];
         const invalidWords = [];
-        
+
         for (const word of words) {
             if (!wordlist.includes(word.toLowerCase())) {
                 invalidWords.push(word);
             }
         }
-        
+
         if (invalidWords.length > 0) {
             return {
                 valid: false,
@@ -3248,7 +3309,7 @@ class WalletCrypto {
                 invalidWords: invalidWords
             };
         }
-        
+
         return { valid: true, wordCount: words.length };
     }
 }
@@ -3307,67 +3368,11 @@ let pendingWalletCreation = null;
 // 🎯 SECURE WALLET CREATION FLOW
 // =============================================
 
-async function checkAndGenerateWallet() {
-    console.log('🎯 Generate New Wallet button clicked!');
-    
-    const generateBtn = document.getElementById('generateWalletBtn');
-    const statusElement = document.getElementById('createWalletStatus');
-    
-    try {
-        // Show loading state
-        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
-        generateBtn.disabled = true;
-        
-        showStatusMessage('Generating secure wallet...', 'loading', statusElement);
-        
-        // Check if user is logged in
-        const userId = getCurrentUserId();
-        if (!userId) {
-            throw new Error('Please login to your mining account first');
-        }
-        
-        console.log('🔐 Creating wallet for user:', userId);
-        
-        // Step 1: Generate mnemonic IN BROWSER (secure)
-        console.log('🔑 Generating secure mnemonic...');
-        const mnemonic = WalletCrypto.generateMnemonic();
-        
-        if (!mnemonic) {
-            throw new Error('Failed to generate recovery phrase');
-        }
-        
-        // Validate mnemonic
-        const validation = WalletCrypto.validateMnemonic(mnemonic);
-        if (!validation.valid) {
-            throw new Error(validation.error);
-        }
-        
-        console.log('✅ Secure mnemonic generated (12 words)');
-        
-        // Store temporarily in memory (not localStorage)
-        currentMnemonic = mnemonic;
-        pendingWalletCreation = { userId, mnemonic };
-        
-        // Step 2: Ask for encryption password
-        showPasswordModalForEncryption(userId, mnemonic);
-        
-    } catch (error) {
-        console.error('❌ Wallet generation failed:', error);
-        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
-        
-        // Reset button
-        if (generateBtn) {
-            generateBtn.innerHTML = 'Generate New Wallet';
-            generateBtn.disabled = false;
-        }
-    }
-}
-
 function showPasswordModalForEncryption(userId, mnemonic) {
     console.log('🔐 Showing password modal for encryption');
-    
+
     closeModal();
-    
+
     const modalHTML = `
         <div id="encryptModal" class="modal-overlay" style="display: flex;">
             <div class="modal-content" style="max-width: 450px;">
@@ -3409,18 +3414,18 @@ function showPasswordModalForEncryption(userId, mnemonic) {
             </div>
         </div>
     `;
-    
+
     // Add modal to page
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHTML;
     document.body.appendChild(modalContainer);
-    
+
     // Focus on password input
     setTimeout(() => {
         const passwordInput = document.getElementById('walletPassword');
         if (passwordInput) {
             passwordInput.focus();
-            
+
             // Show password strength as user types
             passwordInput.addEventListener('input', function() {
                 checkPasswordStrength(this.value, 'passwordStrength');
@@ -3440,39 +3445,39 @@ function closePasswordModal() {
 
 async function encryptAndStoreWallet(userId) {
     console.log('🔐 Encrypting and storing wallet...');
-    
+
     const password = document.getElementById('walletPassword')?.value;
     const confirmPassword = document.getElementById('confirmPassword')?.value;
     const errorDiv = document.getElementById('passwordError');
     const encryptBtn = document.querySelector('#encryptModal .btn-primary');
-    
+
     // Reset error display
     if (errorDiv) errorDiv.style.display = 'none';
-    
+
     // Validate inputs
     if (!password || !confirmPassword) {
         showError('Please enter and confirm password', errorDiv);
         return;
     }
-    
+
     if (password !== confirmPassword) {
         showError('Passwords do not match', errorDiv);
         return;
     }
-    
+
     if (password.length < 8) {
         showError('Password must be at least 8 characters', errorDiv);
         return;
     }
-    
+
     // Get mnemonic from pending creation
     if (!pendingWalletCreation || pendingWalletCreation.userId !== userId) {
         showError('Session expired. Please try again.', errorDiv);
         return;
     }
-    
+
     const mnemonic = pendingWalletCreation.mnemonic;
-    
+
     try {
         // Show loading state
         if (encryptBtn) {
@@ -3480,15 +3485,15 @@ async function encryptAndStoreWallet(userId) {
             const btnText = document.getElementById('encryptBtnText');
             if (btnText) btnText.textContent = 'Encrypting...';
         }
-        
+
         // Step 1: Generate wallet address
         showToast('🔐 Generating wallet address...', 'info');
         const walletAddress = await WalletCrypto.generateAddressFromMnemonic(mnemonic);
-        
+
         // Step 2: Encrypt mnemonic IN BROWSER (secure)
         showToast('🔐 Encrypting seed phrase...', 'info');
         const encryptedMnemonic = 'ENCv1:' + await WalletCrypto.encrypt(mnemonic, password);
-        
+
         // Step 3: Send encrypted data to backend
         showToast('📦 Storing wallet securely...', 'info');
         const response = await fetch('/api/wallet/store-encrypted', {
@@ -3506,31 +3511,31 @@ async function encryptAndStoreWallet(userId) {
                 createdAt: new Date().toISOString()
             })
         });
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             console.log('✅ Wallet stored securely in database!');
-            
+
             // Close password modal
             closePasswordModal();
-            
+
             // Show backup modal with the mnemonic
             showBackupModal(mnemonic, walletAddress);
-            
+
         } else {
             throw new Error(result.error || 'Failed to store wallet in database');
         }
-        
+
     } catch (error) {
         console.error('❌ Failed to store wallet:', error);
         showError('Failed: ' + error.message, errorDiv);
-        
+
         // Re-enable button
         if (encryptBtn) {
             encryptBtn.disabled = false;
@@ -3542,7 +3547,7 @@ async function encryptAndStoreWallet(userId) {
 
 function showBackupModal(mnemonic, walletAddress) {
     console.log('📝 Showing backup modal');
-    
+
     const words = mnemonic.split(' ');
     const modalHTML = `
         <div id="backupModal" class="modal-overlay" style="display: flex;">
@@ -3607,12 +3612,12 @@ function showBackupModal(mnemonic, walletAddress) {
             </div>
         </div>
     `;
-    
+
     // Add modal to page
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHTML;
     document.body.appendChild(modalContainer);
-    
+
     // Enable confirm button when checkbox is checked
     const checkbox = document.getElementById('backupConfirmed');
     if (checkbox) {
@@ -3634,27 +3639,27 @@ function closeBackupModal() {
 
 async function finalizeWalletCreation() {
     console.log('✅ Finalizing wallet creation');
-    
+
     try {
         // Clear any temporary data
         currentMnemonic = null;
         pendingWalletCreation = null;
-        
+
         // Close modal
         closeBackupModal();
-        
+
         // Show success message
         showToast('🎉 Wallet created successfully! You can now send and receive tokens.', 'success');
-        
+
         // Refresh wallet display
         if (window.initWallet) {
             console.log('🔄 Refreshing wallet display...');
             await window.initWallet();
         }
-        
+
         // IMPORTANT: Wallet is now stored encrypted in database
         // Users can view seed phrase later with password
-        
+
     } catch (error) {
         console.error('❌ Finalize wallet creation failed:', error);
         showToast('❌ Error: ' + error.message, 'error');
@@ -3667,21 +3672,21 @@ async function finalizeWalletCreation() {
 
 async function viewRecoveryPhrase() {
     console.log('🔑 View recovery phrase clicked');
-    
+
     try {
         if (!walletState.hasWallet || !walletState.isInitialized) {
             showStatusMessage('Please create or import a wallet first', 'error');
             return;
         }
-        
+
         const userId = getCurrentUserId();
         if (!userId) {
             throw new Error('Please login to your mining account first');
         }
-        
+
         // Step 1: Get encrypted wallet from backend
         showToast('🔐 Retrieving wallet data...', 'info');
-        
+
         const response = await fetch('/api/wallet/get-encrypted', {
             method: 'POST',
             headers: { 
@@ -3690,20 +3695,20 @@ async function viewRecoveryPhrase() {
             },
             body: JSON.stringify({ userId: userId })
         });
-        
+
         if (!response.ok) {
             throw new Error(`Server error: ${response.status}`);
         }
-        
+
         const result = await response.json();
-        
+
         if (!result.success) {
             throw new Error(result.error || 'No wallet found');
         }
-        
+
         // Step 2: Ask for password to decrypt
         showPasswordModalForDecryption(userId, result.encryptedMnemonic);
-        
+
     } catch (error) {
         console.error('❌ Failed to view seed phrase:', error);
         showStatusMessage(`❌ Error: ${error.message}`, 'error');
@@ -3712,7 +3717,7 @@ async function viewRecoveryPhrase() {
 
 function showPasswordModalForDecryption(userId, encryptedMnemonic) {
     console.log('🔐 Password modal for decryption');
-    
+
     const modalHTML = `
         <div id="decryptModal" class="modal-overlay" style="display: flex;">
             <div class="modal-content" style="max-width: 400px;">
@@ -3744,11 +3749,11 @@ function showPasswordModalForDecryption(userId, encryptedMnemonic) {
             </div>
         </div>
     `;
-    
+
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHTML;
     document.body.appendChild(modalContainer);
-    
+
     setTimeout(() => {
         const passwordInput = document.getElementById('decryptPassword');
         if (passwordInput) passwordInput.focus();
@@ -3764,16 +3769,16 @@ function closeDecryptModal() {
 
 async function decryptAndShowSeed(userId, encryptedMnemonic) {
     console.log('🔐 Decrypting seed phrase...');
-    
+
     const password = document.getElementById('decryptPassword')?.value;
     const errorDiv = document.getElementById('decryptError');
     const decryptBtn = document.querySelector('#decryptModal .btn-primary');
-    
+
     if (!password) {
         showError('Please enter your password', errorDiv);
         return;
     }
-    
+
     try {
         // Show loading
         if (decryptBtn) {
@@ -3781,31 +3786,31 @@ async function decryptAndShowSeed(userId, encryptedMnemonic) {
             const btnText = document.getElementById('decryptBtnText');
             if (btnText) btnText.textContent = 'Decrypting...';
         }
-        
+
         // Decrypt IN BROWSER (secure)
         const mnemonic = await WalletCrypto.decrypt(encryptedMnemonic, password);
-        
+
         // Verify it's a valid mnemonic
         const validation = WalletCrypto.validateMnemonic(mnemonic);
         if (!validation.valid) {
             throw new Error('Decrypted data is not a valid seed phrase');
         }
-        
+
         // Close password modal
         closeDecryptModal();
-        
+
         // Show the seed phrase
         showViewSeedModal(mnemonic);
-        
+
     } catch (error) {
         console.error('❌ Decryption failed:', error);
-        
+
         if (error.message.includes('Incorrect password') || error.message.includes('OperationError')) {
             showError('Incorrect password. Please try again.', errorDiv);
         } else {
             showError('Failed to decrypt: ' + error.message, errorDiv);
         }
-        
+
         // Re-enable button
         if (decryptBtn) {
             decryptBtn.disabled = false;
@@ -3854,7 +3859,7 @@ function showViewSeedModal(mnemonic) {
             </div>
         </div>
     `;
-    
+
     const modalContainer = document.createElement('div');
     modalContainer.innerHTML = modalHTML;
     document.body.appendChild(modalContainer);
@@ -3865,7 +3870,7 @@ function copySeedPhrase() {
         const wordElements = document.querySelectorAll('#viewSeedModal .mnemonic-word div:nth-child(2)');
         const words = Array.from(wordElements).map(div => div.textContent.trim());
         const mnemonic = words.join(' ');
-        
+
         navigator.clipboard.writeText(mnemonic).then(() => {
             showToast('✅ Seed phrase copied to clipboard!', 'success');
         }).catch(err => {
@@ -3906,35 +3911,35 @@ async function importWalletFromModal() {
     const targetAddress = document.getElementById('targetAddress').value.trim();
     const importBtn = document.getElementById('importWalletBtn');
     const statusElement = document.getElementById('importWalletStatus');
-    
+
     if (!mnemonic) {
         showStatusMessage('Please enter your recovery phrase', 'error', statusElement);
         return;
     }
-    
+
     try {
         importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Validating...';
         importBtn.disabled = true;
-        
+
         showStatusMessage('Validating seed phrase...', 'loading', statusElement);
-        
+
         // Validate mnemonic
         const validation = WalletCrypto.validateMnemonic(mnemonic);
         if (!validation.valid) {
             throw new Error(validation.error);
         }
-        
+
         const userId = getCurrentUserId();
         if (!userId) {
             throw new Error('Please login to your mining account first');
         }
-        
+
         // Store for password encryption step
         pendingWalletCreation = { userId, mnemonic, isImport: true, targetAddress };
-        
+
         // Ask for encryption password
         showPasswordModalForEncryption(userId, mnemonic);
-        
+
     } catch (error) {
         console.error('❌ Wallet import failed:', error);
         showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
@@ -4046,7 +4051,7 @@ function closeModal() {
             modal.style.display = 'none';
         }
     });
-    
+
     document.querySelectorAll('[style*="display: flex"]').forEach(el => {
         if (el.id && el.id.includes('Modal')) {
             el.style.display = 'none';
@@ -4067,25 +4072,25 @@ function showCreateWalletModal() {
 function checkPasswordStrength(password, elementId) {
     const element = document.getElementById(elementId);
     if (!element) return;
-    
+
     if (!password) {
         element.textContent = '';
         return;
     }
-    
+
     let strength = 0;
     let message = '';
     let color = '#ff4444';
-    
+
     // Length check
     if (password.length >= 8) strength++;
     if (password.length >= 12) strength++;
-    
+
     // Complexity checks
     if (/[A-Z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
-    
+
     // Determine strength level
     if (strength <= 2) {
         message = 'Weak';
@@ -4097,7 +4102,7 @@ function checkPasswordStrength(password, elementId) {
         message = 'Strong';
         color = '#00C851';
     }
-    
+
     element.textContent = `${message}`;
     element.style.color = color;
     element.style.fontWeight = 'bold';
@@ -4111,22 +4116,6 @@ function copyToClipboard(text) {
         showToast('❌ Failed to copy', 'error');
     });
 }
-
-// Initialize when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Wallet system initialized with secure encryption');
-    
-    // Check if user is logged in
-    setTimeout(() => {
-        const userId = getCurrentUserId();
-        if (userId) {
-            console.log('✅ User authenticated:', userId);
-        } else {
-            console.warn('⚠️ No user authenticated - wallet features limited');
-        }
-    }, 1000);
-});
-
 
 // =============================================
 // 🎯 SEND FUNCTIONALITY
@@ -4653,7 +4642,7 @@ function closeProductionSwapModal() {
 async function checkAuth() {
     try {
         const client = await getSupabaseClient();
-        
+
         const { data: { session }, error } = await client.auth.getSession();
 
         if (error) {
