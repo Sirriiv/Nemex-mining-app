@@ -3337,7 +3337,7 @@ console.log('✅ [DEBUG] Debug script loaded');
 
     <script>
 // =============================================
-// 🎯 UTILITY FUNCTIONS - ADD THESE FIRST!
+// 🎯 UTILITY FUNCTIONS
 // =============================================
 
 // Status message display
@@ -3469,46 +3469,12 @@ function checkPasswordStrength(password, elementId) {
 
 // Get current user ID
 function getCurrentUserId() {
-    console.log('🔍 Getting user ID...');
-    
-    // Check window.miningUser first
-    if (window.miningUser && window.miningUser.id) {
-        console.log('✅ Found user ID in window.miningUser:', window.miningUser.id);
-        return window.miningUser.id;
+    // Use the walletManager function
+    if (window.walletManager && window.walletManager.getCurrentUserId) {
+        return window.walletManager.getCurrentUserId();
     }
     
-    // Check window.walletManager
-    if (window.walletManager && window.walletManager.userId) {
-        console.log('✅ Found user ID in walletManager:', window.walletManager.userId);
-        return window.walletManager.userId;
-    }
-    
-    // Check sessionStorage
-    try {
-        const sessionUser = sessionStorage.getItem('miningUser');
-        if (sessionUser) {
-            const user = JSON.parse(sessionUser);
-            console.log('✅ Found user ID in sessionStorage:', user.id);
-            return user.id;
-        }
-    } catch (e) {
-        console.error('Error getting user from session:', e);
-    }
-    
-    // Check URL parameters
-    try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userParam = urlParams.get('user');
-        if (userParam) {
-            const userData = JSON.parse(decodeURIComponent(userParam));
-            console.log('✅ Found user ID in URL:', userData.id);
-            return userData.id;
-        }
-    } catch (e) {
-        console.error('Error getting user from URL:', e);
-    }
-    
-    console.warn('⚠️ No user ID found');
+    console.warn('⚠️ walletManager.getCurrentUserId not available');
     return null;
 }
 
@@ -3532,7 +3498,7 @@ function showError(message, errorDiv) {
     }
 }
 
-// Modal close function (if not defined elsewhere)
+// Modal close function
 function closeModal() {
     const modals = document.querySelectorAll('.modal-overlay');
     modals.forEach(modal => {
@@ -3543,7 +3509,7 @@ function closeModal() {
 }
 
 // =============================================
-// 🎯 GENERATE NEW WALLET FUNCTION - FIXED
+// 🎯 GENERATE NEW WALLET FUNCTION - FIXED TO USE walletManager
 // =============================================
 
 async function generateNewWallet() {
@@ -3567,23 +3533,25 @@ async function generateNewWallet() {
 
         console.log('🔐 Creating wallet for user:', userId);
 
-        // Check if WalletCrypto is available
-        if (typeof WalletCrypto === 'undefined') {
-            throw new Error('Wallet encryption system not loaded. Please refresh the page.');
+        // Check if walletManager is available
+        if (!window.walletManager || !window.walletManager.generateMnemonic) {
+            throw new Error('Wallet system not loaded. Please refresh the page.');
         }
 
-        // Step 1: Generate mnemonic IN BROWSER (secure)
+        // Step 1: Generate mnemonic using walletManager
         console.log('🔑 Generating secure mnemonic...');
-        const mnemonic = WalletCrypto.generateMnemonic();
+        const mnemonic = window.walletManager.generateMnemonic();
 
         if (!mnemonic) {
             throw new Error('Failed to generate recovery phrase');
         }
 
-        // Validate mnemonic
-        const validation = WalletCrypto.validateMnemonic(mnemonic);
-        if (!validation.valid) {
-            throw new Error(validation.error);
+        // Validate mnemonic using walletManager
+        if (window.walletManager.validateMnemonic) {
+            const validation = window.walletManager.validateMnemonic(mnemonic);
+            if (!validation.valid) {
+                throw new Error(validation.error);
+            }
         }
 
         console.log('✅ Secure mnemonic generated (12 words)');
@@ -3606,253 +3574,6 @@ async function generateNewWallet() {
         }
     }
 }
-
-// =============================================
-// 🎯 PRODUCTION-READY CRYPTO UTILITIES
-// =============================================
-
-class WalletCrypto {
-    // Generate secure mnemonic using crypto.getRandomValues
-    static generateMnemonic(wordCount = 12) {
-        console.log('🔑 Generating mnemonic...');
-        
-        // Create a fallback BIP-39 wordlist if walletManager doesn't exist
-        const FALLBACK_WORDLIST = [
-            'abandon', 'ability', 'able', 'about', 'above', 'absent', 'absorb', 'abstract', 'absurd', 'accept',
-            'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action',
-            // ... (truncated, in real implementation include all 2048 words)
-        ];
-        
-        const wordlist = window.walletManager?.BIP39_WORDLIST || FALLBACK_WORDLIST;
-        
-        if (wordlist.length < 100) {
-            console.warn('⚠️ Using small wordlist, mnemonic may not be secure');
-        }
-
-        // Use cryptographically secure random numbers
-        const words = [];
-        const randomBuffer = new Uint32Array(wordCount);
-        crypto.getRandomValues(randomBuffer);
-
-        for (let i = 0; i < wordCount; i++) {
-            const randomIndex = randomBuffer[i] % wordlist.length;
-            words.push(wordlist[randomIndex]);
-        }
-
-        // Verify we have valid mnemonic
-        const mnemonic = words.join(' ');
-        if (mnemonic.split(' ').length !== wordCount) {
-            throw new Error('Failed to generate valid mnemonic');
-        }
-
-        return mnemonic;
-    }
-
-    // Production-ready encryption using Web Crypto API (AES-GCM)
-    static async encrypt(text, password) {
-        console.log('🔐 Encrypting data...');
-        
-        if (!password || password.length < 8) {
-            throw new Error('Password must be at least 8 characters');
-        }
-
-        if (!text) {
-            throw new Error('No data to encrypt');
-        }
-
-        try {
-            // Convert password to key using PBKDF2
-            const encoder = new TextEncoder();
-            const passwordBuffer = encoder.encode(password);
-
-            // Generate salt
-            const salt = crypto.getRandomValues(new Uint8Array(16));
-
-            // Import password as key material
-            const keyMaterial = await crypto.subtle.importKey(
-                'raw',
-                passwordBuffer,
-                'PBKDF2',
-                false,
-                ['deriveBits', 'deriveKey']
-            );
-
-            // Derive key using PBKDF2
-            const key = await crypto.subtle.deriveKey(
-                {
-                    name: 'PBKDF2',
-                    salt: salt,
-                    iterations: 100000,
-                    hash: 'SHA-256'
-                },
-                keyMaterial,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['encrypt']
-            );
-
-            // Generate random IV
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            const data = encoder.encode(text);
-
-            // Encrypt the data
-            const encrypted = await crypto.subtle.encrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
-                key,
-                data
-            );
-
-            // Combine salt + IV + encrypted data
-            const encryptedArray = new Uint8Array(encrypted);
-            const result = new Uint8Array(salt.length + iv.length + encryptedArray.length);
-            result.set(salt);
-            result.set(iv, salt.length);
-            result.set(encryptedArray, salt.length + iv.length);
-
-            // Return as base64
-            return btoa(String.fromCharCode.apply(null, result));
-
-        } catch (error) {
-            console.error('Encryption error:', error);
-            throw new Error('Failed to encrypt data securely');
-        }
-    }
-
-    // Production-ready decryption
-    static async decrypt(encryptedBase64, password) {
-        console.log('🔐 Decrypting data...');
-        
-        if (!password) {
-            throw new Error('Password required');
-        }
-
-        if (!encryptedBase64 || !encryptedBase64.startsWith('ENCv1:')) {
-            throw new Error('Invalid encrypted data format');
-        }
-
-        try {
-            // Remove prefix and decode
-            const encryptedData = encryptedBase64.substring(6);
-            const encryptedBytes = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
-
-            // Extract components
-            const salt = encryptedBytes.slice(0, 16);
-            const iv = encryptedBytes.slice(16, 28);
-            const encrypted = encryptedBytes.slice(28);
-
-            // Convert password to key
-            const encoder = new TextEncoder();
-            const passwordBuffer = encoder.encode(password);
-
-            // Import password as key material
-            const keyMaterial = await crypto.subtle.importKey(
-                'raw',
-                passwordBuffer,
-                'PBKDF2',
-                false,
-                ['deriveKey']
-            );
-
-            // Derive key using same parameters
-            const key = await crypto.subtle.deriveKey(
-                {
-                    name: 'PBKDF2',
-                    salt: salt,
-                    iterations: 100000,
-                    hash: 'SHA-256'
-                },
-                keyMaterial,
-                { name: 'AES-GCM', length: 256 },
-                false,
-                ['decrypt']
-            );
-
-            // Decrypt the data
-            const decrypted = await crypto.subtle.decrypt(
-                {
-                    name: 'AES-GCM',
-                    iv: iv
-                },
-                key,
-                encrypted
-            );
-
-            // Convert back to text
-            return new TextDecoder().decode(decrypted);
-
-        } catch (error) {
-            console.error('Decryption error:', error);
-            if (error.name === 'OperationError') {
-                throw new Error('Incorrect password or corrupted data');
-            }
-            throw new Error('Failed to decrypt data: ' + error.message);
-        }
-    }
-
-    // Generate TON wallet address (placeholder - integrate with tonweb later)
-    static async generateAddressFromMnemonic(mnemonic) {
-        console.log('📍 Generating wallet address...');
-        
-        try {
-            // In production, use: import { mnemonicToWalletKey } from 'tonweb-mnemonic';
-            // For now, generate deterministic mock address
-            const hash = await this.sha256(mnemonic + '::TON');
-            const address = 'EQA' + hash.substring(0, 44).toUpperCase() + '_' + Date.now().toString(36);
-            return address;
-        } catch (error) {
-            console.error('Address generation error:', error);
-            throw new Error('Failed to generate wallet address');
-        }
-    }
-
-    // SHA-256 helper
-    static async sha256(text) {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    // Validate mnemonic
-    static validateMnemonic(mnemonic) {
-        const words = mnemonic.trim().split(/\s+/);
-
-        if (words.length !== 12 && words.length !== 24) {
-            return {
-                valid: false,
-                error: `Seed phrase must be 12 or 24 words (got ${words.length})`
-            };
-        }
-
-        // Simple validation - in production use full BIP-39 validation
-        const wordlist = window.walletManager?.BIP39_WORDLIST || [];
-        if (wordlist.length > 100) {
-            const invalidWords = [];
-            for (const word of words) {
-                if (!wordlist.includes(word.toLowerCase())) {
-                    invalidWords.push(word);
-                }
-            }
-
-            if (invalidWords.length > 0) {
-                return {
-                    valid: false,
-                    error: `Invalid words: ${invalidWords.slice(0, 3).join(', ')}${invalidWords.length > 3 ? '...' : ''}`,
-                    invalidWords: invalidWords
-                };
-            }
-        }
-
-        return { valid: true, wordCount: words.length };
-    }
-}
-
-// Make globally available
-window.WalletCrypto = WalletCrypto;
 
 // =============================================
 // 🎯 WALLET STATE AND CONFIGURATION
@@ -3902,7 +3623,7 @@ let supabaseClient = null;
 let pendingWalletCreation = null;
 
 // =============================================
-// 🎯 SECURE WALLET CREATION FLOW
+// 🎯 SECURE WALLET CREATION FLOW - FIXED TO USE walletManager
 // =============================================
 
 function showPasswordModalForEncryption(userId, mnemonic) {
@@ -4023,13 +3744,13 @@ async function encryptAndStoreWallet(userId) {
             if (btnText) btnText.textContent = 'Encrypting...';
         }
 
-        // Step 1: Generate wallet address
+        // Step 1: Generate wallet address using walletManager
         showToast('🔐 Generating wallet address...', 'info');
-        const walletAddress = await WalletCrypto.generateAddressFromMnemonic(mnemonic);
+        const walletAddress = await window.walletManager.generateAddressFromMnemonic(mnemonic);
 
-        // Step 2: Encrypt mnemonic IN BROWSER (secure)
+        // Step 2: Encrypt mnemonic using walletManager
         showToast('🔐 Encrypting seed phrase...', 'info');
-        const encryptedMnemonic = 'ENCv1:' + await WalletCrypto.encrypt(mnemonic, password);
+        const encryptedMnemonic = 'ENCv1:' + await window.walletManager.encrypt(mnemonic, password);
 
         // Step 3: Send encrypted data to backend
         showToast('📦 Storing wallet securely...', 'info');
@@ -4220,8 +3941,12 @@ window.showToast = showToast;
 
 // Initialize check
 console.log('✅ Wallet creation module loaded successfully');
-console.log('✅ WalletCrypto available:', typeof WalletCrypto);
+console.log('✅ walletManager available:', typeof window.walletManager);
+console.log('✅ walletManager.generateMnemonic:', typeof (window.walletManager?.generateMnemonic));
+console.log('✅ walletManager.encrypt:', typeof (window.walletManager?.encrypt));
 console.log('✅ generateNewWallet available:', typeof window.generateNewWallet);
+
+</script>
 
 
 // =============================================
