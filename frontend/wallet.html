@@ -56,85 +56,7 @@
 
     <script src="assets/js/wallet.js?v=3.1"></script>
 
-<script>
-// =============================================
-// 🎯 MODAL FUNCTIONS - ADD THIS AFTER wallet.js
-// =============================================
-
-// Function to close any open modal
-function closeModal() {
-    console.log('🔒 Closing modal...');
-
-    // Close all modals
-    const modals = document.querySelectorAll('.modal, [id$="Modal"], [class*="modal"]');
-    modals.forEach(modal => {
-        if (modal.style.display === 'flex' || modal.style.display === 'block') {
-            modal.style.display = 'none';
-            console.log('✅ Modal closed:', modal.id || 'unnamed modal');
-        }
-    });
-
-    // Remove any active classes
-    document.querySelectorAll('.modal-backdrop, .modal-open').forEach(el => {
-        el.remove();
-    });
-
-    // Re-enable body scroll
-    document.body.style.overflow = 'auto';
-}
-
-// Function to show a specific modal
-function showModal(modalId) {
-    console.log('🎯 Opening modal:', modalId);
-
-    // Close any open modals first
-    closeModal();
-
-    // Show the requested modal
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'flex';
-
-        // Add backdrop
-        const backdrop = document.createElement('div');
-        backdrop.className = 'modal-backdrop';
-        backdrop.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 999;
-        `;
-        backdrop.onclick = closeModal;
-        document.body.appendChild(backdrop);
-
-        // Disable body scroll
-        document.body.style.overflow = 'hidden';
-
-        console.log('✅ Modal opened:', modalId);
-    } else {
-        console.error('❌ Modal not found:', modalId);
-    }
-}
-
-// Close modal when pressing Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeModal();
-    }
-});
-
-// Make functions globally available
-window.closeModal = closeModal;
-window.showModal = showModal;
-
-console.log('✅ Modal functions loaded (clean version)');
-
-</script>
-
-  <style>
+    <style>
         :root {
             --dark-bg: #0A0A0A;
             --darker-bg: #080808;
@@ -2026,121 +1948,6 @@ console.log('✅ Modal functions loaded (clean version)');
     </style>
 </head>
 <body>
-    <!-- MINING SITE USER DETECTION SCRIPT - UPDATED -->
-    <script>
-        // =============================================
-        // 🎯 MINING SITE USER DETECTION
-        // =============================================
-
-        console.log('🔍 Checking for mining site user...');
-
-        // Supabase will be initialized from environment variables when needed
-        let supabaseClient = null;
-
-        async function detectMiningUser() {
-            try {
-                // Method 1: Check if user is already set by dashboard
-                if (window.miningUser) {
-                    console.log('✅ User from dashboard:', window.miningUser);
-                    return window.miningUser;
-                }
-
-                // Method 2: Check sessionStorage (from dashboard navigation)
-                const sessionUser = sessionStorage.getItem('miningUser');
-                if (sessionUser) {
-                    const user = JSON.parse(sessionUser);
-                    console.log('✅ User from sessionStorage:', user);
-                    window.miningUser = user;
-                    return user;
-                }
-
-                // Method 3: Check localStorage with expiration
-                const storedUser = localStorage.getItem('nemexcoin_wallet_user');
-                if (storedUser) {
-                    try {
-                        const userData = JSON.parse(storedUser);
-                        // Check if data is fresh (less than 5 minutes old)
-                        if (Date.now() - (userData.timestamp || 0) < 5 * 60 * 1000) {
-                            console.log('✅ User from localStorage:', userData);
-                            window.miningUser = userData;
-                            return userData;
-                        }
-                    } catch (e) {
-                        console.warn('⚠️ Invalid user data in localStorage');
-                    }
-                }
-
-                // Method 4: Check Supabase Auth directly
-                try {
-                    const client = await getSupabaseClient();
-
-                    const { data: { session } } = await client.auth.getSession();
-                    if (session?.user) {
-                        console.log('✅ User from Supabase Auth:', session.user.id);
-
-                        // Get user profile
-                        const { data: profile } = await client
-                            .from('profiles')
-                            .select('id, username, email')
-                            .eq('id', session.user.id)
-                            .single();
-
-                        if (profile) {
-                            const user = {
-                                id: profile.id,
-                                username: profile.username,
-                                email: profile.email,
-                                isFromSupabase: true
-                            };
-                            window.miningUser = user;
-                            return user;
-                        }
-                    }
-                } catch (error) {
-                    console.warn('⚠️ Cannot access Supabase Auth:', error.message);
-                }
-
-                // Method 5: Check URL parameters
-                const urlParams = new URLSearchParams(window.location.search);
-                const userId = urlParams.get('user_id');
-                if (userId) {
-                    console.log('✅ User from URL parameter:', userId);
-                    const user = { id: userId };
-                    window.miningUser = user;
-                    return user;
-                }
-
-                console.warn('⚠️ No mining user detected');
-                return null;
-
-            } catch (error) {
-                console.error('❌ Error detecting mining user:', error);
-                return null;
-            }
-        }
-
-        // Run user detection when page loads
-        (async function() {
-            const miningUser = await detectMiningUser();
-
-            if (!miningUser) {
-                console.log('❌ No authenticated user found');
-                // Don't redirect immediately - let wallet.js handle it
-                // This way users can still see wallet page but operations will fail
-                return;
-            }
-
-            console.log('✅ Mining user ready for wallet:', miningUser.id);
-            // Store in hidden input for easy access
-            const userInput = document.createElement('input');
-            userInput.type = 'hidden';
-            userInput.id = 'miningUserId';
-            userInput.value = miningUser.id;
-            document.body.appendChild(userInput);
-
-        })();
-    </script>
-
     <!-- Loading Overlay -->
     <div id="loadingOverlay">
         <div class="loading" style="width: 40px; height: 40px; border-width: 4px;"></div>
@@ -2264,44 +2071,10 @@ console.log('✅ Modal functions loaded (clean version)');
 
                 <div id="createWalletStatus"></div>
 
-                <!-- FIXED: Changed from checkAndGenerateWallet() to generateNewWallet() -->
                 <button class="close-modal" onclick="generateNewWallet()" id="generateWalletBtn">
                     Generate New Wallet
                 </button>
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
-            </div>
-        </div>
-
-        <!-- ============================================= -->
-        <!-- BACKUP MODAL -->
-        <!-- ============================================= -->
-        <div id="backupModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">🔒 Backup Your Wallet</div>
-                <div class="security-warning">
-                    <strong>⚠️ CRITICAL:</strong> Write down these 12 words and store them securely. Never share them!
-                </div>
-
-                <div class="mnemonic-words" id="mnemonicWords"></div>
-
-                <div class="backup-confirmation">
-                    <div class="confirmation-checkbox">
-                        <input type="checkbox" id="backupConfirmed" onchange="toggleContinueButton()">
-                        <label for="backupConfirmed"> I have written down my recovery phrase and stored it securely</label>
-                    </div>
-                    <div class="security-warning">
-                        <strong>⚠️ WARNING:</strong> You will NOT be able to recover your funds without this phrase!
-                        We don't store your recovery phrase and cannot recover it for you.
-                    </div>
-                </div>
-
-                <button class="close-modal" id="confirmBackupBtn" onclick="confirmBackupAndContinue()" disabled>
-                     Continue to Dashboard
-                </button>
-
-                <div class="security-warning" style="margin-top: 15px; text-align: center;">
-                    <strong>🔒 Your wallet is not active until you confirm backup</strong>
-                </div>
             </div>
         </div>
 
@@ -2334,27 +2107,6 @@ console.log('✅ Modal functions loaded (clean version)');
                 <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
                     Import Wallet
                 </button>
-                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
-            </div>
-        </div>
-
-        <!-- ============================================= -->
-        <!-- WALLET SELECTION MODAL -->
-        <!-- ============================================= -->
-        <div id="walletSelectionModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Multiple Wallets Found</div>
-                <div class="security-warning">
-                    <strong>🔍 We found multiple wallets from your recovery phrase.</strong><br>
-                    Please select the one that matches your Tonkeeper wallet:
-                </div>
-
-                <div class="wallet-selection-list" id="walletSelectionList">
-                    <!-- Wallet options will be populated here -->
-                </div>
-
-                <div id="walletSelectionStatus"></div>
-
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
             </div>
         </div>
@@ -2418,69 +2170,74 @@ console.log('✅ Modal functions loaded (clean version)');
             </div>
         </div>
 
+        <!-- ============================================= -->
+        <!-- SETTINGS MODAL -->
+        <!-- ============================================= -->
         <div id="settingsModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-title">Settings</div>
+            <div class="modal-content">
+                <div class="modal-title">Settings</div>
 
-        <!-- 🎯 VIEW RECOVERY PHRASE -->
-        <div class="settings-option" onclick="viewRecoveryPhrase()">
-            <div class="settings-option-content">
-                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                </svg>
-                <div>View Recovery Phrase</div>
+                <!-- 🎯 VIEW RECOVERY PHRASE -->
+                <div class="settings-option" onclick="viewRecoveryPhrase()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        <div>View Recovery Phrase</div>
+                    </div>
+                </div>
+
+                <!-- CHANGE PASSWORD -->
+                <div class="settings-option" onclick="showChangePasswordModal()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+                        </svg>
+                        <div>Change Encryption Password</div>
+                    </div>
+                </div>
+
+                <!-- BACKUP STATUS -->
+                <div class="settings-option" onclick="showBackupStatus()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div>Backup Status</div>
+                    </div>
+                </div>
+
+                <!-- DELETE WALLET -->
+                <div class="settings-option" onclick="showDeleteWalletModal()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        <div style="color: var(--error);">Delete Wallet</div>
+                    </div>
+                </div>
+
+                <!-- LOGOUT -->
+                <div class="settings-option" onclick="logout()">
+                    <div class="settings-option-content">
+                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                        </svg>
+                        <div>Logout</div>
+                    </div>
+                </div>
+
+                <div class="security-warning">
+                    <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
+                </div>
+
+                <button class="close-modal" onclick="closeModal()">Close Settings</button>
             </div>
         </div>
 
-        <!-- CHANGE PASSWORD -->
-        <div class="settings-option" onclick="showChangePasswordModal()">
-            <div class="settings-option-content">
-                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                </svg>
-                <div>Change Encryption Password</div>
-            </div>
-        </div>
-
-        <!-- BACKUP STATUS -->
-        <div class="settings-option" onclick="showBackupStatus()">
-            <div class="settings-option-content">
-                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <div>Backup Status</div>
-            </div>
-        </div>
-
-        <!-- DELETE WALLET -->
-        <div class="settings-option" onclick="showDeleteWalletModal()">
-            <div class="settings-option-content">
-                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                </svg>
-                <div style="color: var(--error);">Delete Wallet</div>
-            </div>
-        </div>
-
-        <!-- LOGOUT -->
-        <div class="settings-option" onclick="logout()">
-            <div class="settings-option-content">
-                <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                </svg>
-                <div>Logout</div>
-            </div>
-        </div>
-
-        <div class="security-warning">
-            <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
-        </div>
-
-        <button class="close-modal" onclick="closeModal()">Close Settings</button>
-    </div>
-</div>
-
-        <!-- NEW SEND MODAL -->
+        <!-- ============================================= -->
+        <!-- SEND MODAL -->
+        <!-- ============================================= -->
         <div id="sendModal" class="modal fullscreen">
             <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
                 <!-- Premium Header with Close Button -->
@@ -2501,7 +2258,7 @@ console.log('✅ Modal functions loaded (clean version)');
                 </div>
 
                 <div style="padding: 24px 20px; max-width: 440px; margin: 0 auto; width: 100%;">
-                    <!-- Token Selector - Refined Size -->
+                    <!-- Token Selector -->
                     <div class="form-group" style="margin-bottom: 24px;">
                         <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2602,7 +2359,7 @@ console.log('✅ Modal functions loaded (clean version)');
                         </div>
                     </div>
 
-                    <!-- Address Input - Refined Size -->
+                    <!-- Address Input -->
                     <div class="form-group" style="margin-bottom: 24px;">
                         <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2645,7 +2402,7 @@ console.log('✅ Modal functions loaded (clean version)');
                         <div id="addressValidation" style="font-size: 13px; margin-top: 8px; min-height: 18px; padding: 0 4px;"></div>
                     </div>
 
-                    <!-- Amount Input - Refined Size -->
+                    <!-- Amount Input -->
                     <div class="form-group" style="margin-bottom: 20px;">
                         <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 12px;">
                             <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
@@ -2699,7 +2456,7 @@ console.log('✅ Modal functions loaded (clean version)');
                         </div>
                     </div>
 
-                    <!-- Transaction Fee - Refined Card -->
+                    <!-- Transaction Fee -->
                     <div class="form-group" style="margin-bottom: 20px;">
                         <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%); 
                                     padding: 16px; 
@@ -2726,7 +2483,7 @@ console.log('✅ Modal functions loaded (clean version)');
                         </div>
                     </div>
 
-                    <!-- Comment Input - Refined Size -->
+                    <!-- Comment Input -->
                     <div class="form-group" style="margin-bottom: 24px;">
                         <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
                             <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2747,7 +2504,7 @@ console.log('✅ Modal functions loaded (clean version)');
                                oninput="updateSendSummary()">
                     </div>
 
-                    <!-- Enhanced Transaction Summary - Refined Size -->
+                    <!-- Transaction Summary -->
                     <div id="sendSummary" style="display: none; 
                                                 background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
                                                 border: 1px solid rgba(212, 175, 55, 0.3);
@@ -2772,7 +2529,7 @@ console.log('✅ Modal functions loaded (clean version)');
                     <!-- Status Messages -->
                     <div id="sendStatus" style="margin: 20px 0;"></div>
 
-                    <!-- Single Confirm Button - Full Width -->
+                    <!-- Single Confirm Button -->
                     <div style="margin-top: 20px; padding-bottom: 30px;">
                         <button class="close-modal" onclick="confirmSendTransaction()" id="confirmSendBtn"
                                 style="width: 100%; 
@@ -2794,7 +2551,9 @@ console.log('✅ Modal functions loaded (clean version)');
             </div>
         </div>
 
-        <!-- NEW RECEIVE MODAL -->
+        <!-- ============================================= -->
+        <!-- RECEIVE MODAL -->
+        <!-- ============================================= -->
         <div id="receiveModal" class="modal fullscreen">
             <div class="modal-content">
                 <!-- Header -->
@@ -2832,9 +2591,9 @@ console.log('✅ Modal functions loaded (clean version)');
                                 </div>
                             </div>
 
-                            <!-- Card Footer - UPDATED: Only Copy Icon, No Chip -->
+                            <!-- Card Footer -->
                             <div class="card-footer-final">
-                                <!-- Copy Icon - Full Visible -->
+                                <!-- Copy Icon -->
                                 <div class="copy-indicator" onclick="copyWalletAddress()" title="Copy Wallet Address">
                                     <svg class="copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -2848,7 +2607,7 @@ console.log('✅ Modal functions loaded (clean version)');
                         </div>
                     </div>
 
-                    <!-- Circular Icon Actions - CLOSER BELOW CARD -->
+                    <!-- Circular Icon Actions -->
                     <div class="circular-actions-section">
                         <div class="circular-actions">
                             <!-- TON Icon -->
@@ -2884,7 +2643,9 @@ console.log('✅ Modal functions loaded (clean version)');
             </div>
         </div>
 
+        <!-- ============================================= -->
         <!-- CONVERT NMXp MODAL -->
+        <!-- ============================================= -->
         <div class="modal fullscreen-modal" id="productionSwapModal" style="display: none;">
             <div class="modal-content compact-modal">
                 <!-- Compact Header with Back Button ONLY -->
@@ -2920,7 +2681,7 @@ console.log('✅ Modal functions loaded (clean version)');
                         <div class="input-container">
                             <input type="number" id="productionConvertAmount" placeholder="0.0" oninput="calculateProductionConversion()">
                             <div class="token-badge">NMXp</div>
-                            <button class="max-btn">MAX</button>
+                            <button class="max-btn" onclick="setMaxConversion()">MAX</button>
                         </div>
                     </div>
 
@@ -2957,7 +2718,9 @@ console.log('✅ Modal functions loaded (clean version)');
             </div>
         </div>
 
-        <!-- Wallet Setup Modal - FULLSCREEN VERSION -->
+        <!-- ============================================= -->
+        <!-- WALLET SETUP MODAL -->
+        <!-- ============================================= -->
         <div class="modal fullscreen-modal" id="walletSetupModal" style="display: none;">
             <div class="modal-content mini-modal">
                 <div class="modal-header">
@@ -2979,7 +2742,9 @@ console.log('✅ Modal functions loaded (clean version)');
             </div>
         </div>
 
-        <!-- Delete Wallet Confirmation Modal -->
+        <!-- ============================================= -->
+        <!-- DELETE WALLET MODAL -->
+        <!-- ============================================= -->
         <div id="deleteWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title" style="color: var(--error);">⚠️ Delete Wallet</div>
@@ -3027,246 +2792,13 @@ console.log('✅ Modal functions loaded (clean version)');
 
     <script>
 // =============================================
-// 🎯 UTILITY FUNCTIONS
+// 🎯 MAIN WALLET APPLICATION CODE
 // =============================================
 
-// Status message display
-function showStatusMessage(message, type = 'info', element) {
-    if (!element) return;
-    
-    const colors = {
-        loading: '#007bff',
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        info: '#17a2b8'
-    };
-    
-    const icon = {
-        loading: '🔄',
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
-    };
-    
-    element.innerHTML = `
-        <div style="color: ${colors[type] || colors.info}; padding: 10px; border-radius: 5px; background: ${colors[type]}10; margin: 10px 0;">
-            ${icon[type] || ''} ${message}
-        </div>
-    `;
-}
-
-// Toast notification
-function showToast(message, type = 'info') {
-    console.log(`📢 ${type}: ${message}`);
-    
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px 20px;
-        border-radius: 8px;
-        color: white;
-        z-index: 99999;
-        font-weight: bold;
-        min-width: 300px;
-        max-width: 400px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        animation: slideIn 0.3s ease;
-    `;
-    
-    // Set colors based on type
-    const colors = {
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        info: '#17a2b8'
-    };
-    
-    toast.style.background = colors[type] || colors.info;
-    toast.textContent = message;
-    
-    // Add to page
-    document.body.appendChild(toast);
-    
-    // Remove after 5 seconds
-    setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-    }, 5000);
-    
-    // Add CSS animations
-    if (!document.getElementById('toast-animations')) {
-        const style = document.createElement('style');
-        style.id = 'toast-animations';
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-}
-
-// Password strength checker
-function checkPasswordStrength(password, elementId) {
-    const element = document.getElementById(elementId);
-    if (!element || !password) return;
-    
-    let strength = 0;
-    let message = '';
-    let color = '#dc3545';
-    
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-    
-    if (strength === 0) {
-        message = 'Very Weak';
-        color = '#dc3545';
-    } else if (strength === 1) {
-        message = 'Weak';
-        color = '#ff6b6b';
-    } else if (strength === 2) {
-        message = 'Fair';
-        color = '#ffc107';
-    } else if (strength === 3) {
-        message = 'Good';
-        color = '#28a745';
-    } else {
-        message = 'Strong';
-        color = '#20c997';
-    }
-    
-    element.innerHTML = `
-        <div style="margin-top: 5px; font-size: 14px;">
-            <span style="color: ${color}; font-weight: bold;">${message}</span>
-            <div style="height: 4px; background: #e9ecef; margin-top: 5px; border-radius: 2px;">
-                <div style="width: ${strength * 25}%; height: 100%; background: ${color}; border-radius: 2px;"></div>
-            </div>
-        </div>
-    `;
-}
-
-// Get current user ID
-function getCurrentUserId() {
-    // Use the walletManager function
-    if (window.walletManager && window.walletManager.getCurrentUserId) {
-        return window.walletManager.getCurrentUserId();
-    }
-    
-    console.warn('⚠️ walletManager.getCurrentUserId not available');
-    return null;
-}
-
-// Copy to clipboard
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('✅ Copied to clipboard!', 'success');
-    }).catch(err => {
-        console.error('Failed to copy:', err);
-        showToast('❌ Failed to copy', 'error');
-    });
-}
-
-// Show error in modal
-function showError(message, errorDiv) {
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-    } else {
-        showToast(message, 'error');
-    }
-}
-
-// Modal close function
-function closeModal() {
-    const modals = document.querySelectorAll('.modal-overlay');
-    modals.forEach(modal => {
-        if (modal.parentNode) {
-            modal.parentNode.remove();
-        }
-    });
-}
+console.log('🚀 Nemex Wallet Application Starting...');
 
 // =============================================
-// 🎯 GENERATE NEW WALLET FUNCTION - FIXED TO USE walletManager
-// =============================================
-
-async function generateNewWallet() {
-    console.log('🎯 Generate New Wallet button clicked!');
-
-    const generateBtn = document.getElementById('generateWalletBtn');
-    const statusElement = document.getElementById('createWalletStatus');
-
-    try {
-        // Show loading state
-        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
-        generateBtn.disabled = true;
-
-        showStatusMessage('Generating secure wallet...', 'loading', statusElement);
-
-        // Check if user is logged in
-        const userId = getCurrentUserId();
-        if (!userId) {
-            throw new Error('Please login to your mining account first');
-        }
-
-        console.log('🔐 Creating wallet for user:', userId);
-
-        // Check if walletManager is available
-        if (!window.walletManager || !window.walletManager.generateMnemonic) {
-            throw new Error('Wallet system not loaded. Please refresh the page.');
-        }
-
-        // Step 1: Generate mnemonic using walletManager
-        console.log('🔑 Generating secure mnemonic...');
-        const mnemonic = window.walletManager.generateMnemonic();
-
-        if (!mnemonic) {
-            throw new Error('Failed to generate recovery phrase');
-        }
-
-        // Validate mnemonic using walletManager
-        if (window.walletManager.validateMnemonic) {
-            const validation = window.walletManager.validateMnemonic(mnemonic);
-            if (!validation.valid) {
-                throw new Error(validation.error);
-            }
-        }
-
-        console.log('✅ Secure mnemonic generated (12 words)');
-
-        // Store temporarily in memory (not localStorage)
-        currentMnemonic = mnemonic;
-        pendingWalletCreation = { userId, mnemonic };
-
-        // Step 2: Ask for encryption password
-        showPasswordModalForEncryption(userId, mnemonic);
-
-    } catch (error) {
-        console.error('❌ Wallet generation failed:', error);
-        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
-
-        // Reset button
-        if (generateBtn) {
-            generateBtn.innerHTML = 'Generate New Wallet';
-            generateBtn.disabled = false;
-        }
-    }
-}
-
-// =============================================
-// 🎯 WALLET STATE AND CONFIGURATION
+// 🎯 GLOBAL STATE MANAGEMENT
 // =============================================
 
 let walletState = {
@@ -3304,421 +2836,129 @@ let SUPPORTED_TOKENS = [
     }
 ];
 
-// =============================================
-// 🎯 GLOBAL VARIABLES
-// =============================================
-
 let currentMnemonic = null;
 let supabaseClient = null;
 let pendingWalletCreation = null;
+let currentSendToken = 'TON';
+let currentTokenBalance = 0;
+let currentTokenPrice = 0;
+const TRANSACTION_FEE = 0.001;
+const PRODUCTION_CONFIG = {
+    CONVERSION_RATE: 1/30,
+    MIN_CONVERSION: 30,
+    MAX_CONVERSION: 1000000
+};
+let currentReceiveToken = 'TON';
 
 // =============================================
-// 🎯 SECURE WALLET CREATION FLOW - FIXED TO USE walletManager
+// 🎯 UTILITY FUNCTIONS
 // =============================================
 
-function showPasswordModalForEncryption(userId, mnemonic) {
-    console.log('🔐 Showing password modal for encryption');
+function showToast(message, type = 'info') {
+    console.log(`📢 ${type}: ${message}`);
 
-    closeModal();
-
-    const modalHTML = `
-        <div id="encryptModal" class="modal-overlay" style="display: flex;">
-            <div class="modal-content" style="max-width: 450px;">
-                <div class="modal-header">
-                    <h3>🔐 Set Wallet Encryption Password</h3>
-                    <button class="modal-close" onclick="closePasswordModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="security-info" style="margin-bottom: 15px;">
-                        <strong>🔒 IMPORTANT:</strong> This password encrypts your seed phrase locally.
-                        We never see your password or unencrypted seed phrase.
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="walletPassword">
-                            <strong>Encryption Password</strong> (min 8 characters)
-                        </label>
-                        <input type="password" id="walletPassword" class="form-control" 
-                               placeholder="Enter a strong password" autocomplete="new-password"
-                               minlength="8" required>
-                        <div class="password-strength" id="passwordStrength"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="confirmPassword"><strong>Confirm Password</strong></label>
-                        <input type="password" id="confirmPassword" class="form-control" 
-                               placeholder="Confirm your password" autocomplete="new-password"
-                               minlength="8" required>
-                    </div>
-                    
-                    <div id="passwordError" class="alert alert-danger" style="display: none; margin-top: 15px;"></div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closePasswordModal()">Cancel</button>
-                    <button class="btn btn-primary" onclick="encryptAndStoreWallet('${userId}')">
-                        <span id="encryptBtnText">Encrypt & Create Wallet</span>
-                    </button>
-                </div>
-            </div>
-        </div>
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 8px;
+        color: white;
+        z-index: 99999;
+        font-weight: bold;
+        min-width: 300px;
+        max-width: 400px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease;
     `;
 
-    // Add modal to page
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHTML;
-    document.body.appendChild(modalContainer);
+    // Set colors based on type
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
 
-    // Focus on password input
+    toast.style.background = colors[type] || colors.info;
+    toast.textContent = message;
+
+    // Add to page
+    document.body.appendChild(toast);
+
+    // Remove after 5 seconds
     setTimeout(() => {
-        const passwordInput = document.getElementById('walletPassword');
-        if (passwordInput) {
-            passwordInput.focus();
+        toast.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 5000);
 
-            // Show password strength as user types
-            passwordInput.addEventListener('input', function() {
-                checkPasswordStrength(this.value, 'passwordStrength');
-            });
-        }
-    }, 100);
-}
-
-function closePasswordModal() {
-    const modal = document.getElementById('encryptModal');
-    if (modal && modal.parentNode) {
-        modal.parentNode.remove();
-    }
-    currentMnemonic = null;
-    pendingWalletCreation = null;
-}
-
-async function encryptAndStoreWallet(userId) {
-    console.log('🔐 Encrypting and storing wallet...');
-
-    const password = document.getElementById('walletPassword')?.value;
-    const confirmPassword = document.getElementById('confirmPassword')?.value;
-    const errorDiv = document.getElementById('passwordError');
-    const encryptBtn = document.querySelector('#encryptModal .btn-primary');
-
-    // Reset error display
-    if (errorDiv) errorDiv.style.display = 'none';
-
-    // Validate inputs
-    if (!password || !confirmPassword) {
-        showError('Please enter and confirm password', errorDiv);
-        return;
-    }
-
-    if (password !== confirmPassword) {
-        showError('Passwords do not match', errorDiv);
-        return;
-    }
-
-    if (password.length < 8) {
-        showError('Password must be at least 8 characters', errorDiv);
-        return;
-    }
-
-    // Get mnemonic from pending creation
-    if (!pendingWalletCreation || pendingWalletCreation.userId !== userId) {
-        showError('Session expired. Please try again.', errorDiv);
-        return;
-    }
-
-    const mnemonic = pendingWalletCreation.mnemonic;
-
-    try {
-        // Show loading state
-        if (encryptBtn) {
-            encryptBtn.disabled = true;
-            const btnText = document.getElementById('encryptBtnText');
-            if (btnText) btnText.textContent = 'Encrypting...';
-        }
-
-        // Step 1: Generate wallet address using walletManager
-        showToast('🔐 Generating wallet address...', 'info');
-        const walletAddress = await window.walletManager.generateAddressFromMnemonic(mnemonic);
-
-        // Step 2: Encrypt mnemonic using walletManager
-        showToast('🔐 Encrypting seed phrase...', 'info');
-        const encryptedMnemonic = 'ENCv1:' + await window.walletManager.encrypt(mnemonic, password);
-
-        // Step 3: Send encrypted data to backend
-        showToast('📦 Storing wallet securely...', 'info');
-        const response = await fetch('/api/wallet/store-encrypted', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                userId: userId,
-                walletAddress: walletAddress,
-                encryptedMnemonic: encryptedMnemonic,
-                publicKey: '', // Would be generated with tonweb
-                network: 'ton-mainnet',
-                createdAt: new Date().toISOString()
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error: ${response.status} - ${errorText}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success) {
-            console.log('✅ Wallet stored securely in database!');
-
-            // Close password modal
-            closePasswordModal();
-
-            // Show backup modal with the mnemonic
-            showBackupModal(mnemonic, walletAddress);
-
-        } else {
-            throw new Error(result.error || 'Failed to store wallet in database');
-        }
-
-    } catch (error) {
-        console.error('❌ Failed to store wallet:', error);
-        showError('Failed: ' + error.message, errorDiv);
-
-        // Re-enable button
-        if (encryptBtn) {
-            encryptBtn.disabled = false;
-            const btnText = document.getElementById('encryptBtnText');
-            if (btnText) btnText.textContent = 'Encrypt & Create Wallet';
-        }
+    // Add CSS animations
+    if (!document.getElementById('toast-animations')) {
+        const style = document.createElement('style');
+        style.id = 'toast-animations';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
     }
 }
 
-function showBackupModal(mnemonic, walletAddress) {
-    console.log('📝 Showing backup modal');
+function showStatusMessage(message, type = 'info', element) {
+    if (!element) {
+        showToast(message, type);
+        return;
+    }
 
-    const words = mnemonic.split(' ');
-    const modalHTML = `
-        <div id="backupModal" class="modal-overlay" style="display: flex;">
-            <div class="modal-content" style="max-width: 650px;">
-                <div class="modal-header">
-                    <h3>⚠️ CRITICAL: Backup Your Seed Phrase</h3>
-                    <button class="modal-close" onclick="closeBackupModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-success" style="margin-bottom: 20px;">
-                        <strong>✅ WALLET CREATED SUCCESSFULLY!</strong><br>
-                        Your wallet is now securely stored and encrypted.
-                    </div>
-                    
-                    <div class="wallet-info" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4>Your Wallet Address:</h4>
-                        <div class="address-display" style="font-family: monospace; background: white; padding: 12px; border-radius: 4px; word-break: break-all; font-size: 14px; margin: 10px 0;">
-                            ${walletAddress}
-                        </div>
-                        <button onclick="copyToClipboard('${walletAddress}')" class="btn btn-sm btn-outline" style="margin-top: 5px;">
-                            📋 Copy Address
-                        </button>
-                    </div>
-                    
-                    <div class="seed-phrase-section" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
-                        <h4>Your 12-Word Seed Phrase:</h4>
-                        <div class="mnemonic-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0;">
-                            ${words.map((word, index) => `
-                                <div class="mnemonic-word" style="background: white; padding: 12px; border-radius: 6px; border: 2px solid #e9ecef; text-align: center;">
-                                    <div style="font-size: 12px; color: #6c757d; margin-bottom: 4px;">${index + 1}</div>
-                                    <div style="font-weight: 600; font-size: 16px;">${word}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div class="security-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 6px; margin-top: 20px;">
-                            <h5 style="color: #856404; margin-top: 0;">⚠️ SECURITY WARNINGS:</h5>
-                            <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #856404;">
-                                <li><strong>Write down on paper</strong> - Never store digitally</li>
-                                <li><strong>Keep in a secure location</strong> - Fireproof safe recommended</li>
-                                <li><strong>Never share with anyone</strong> - We will never ask for it</li>
-                                <li><strong>This is your ONLY backup</strong> - Lost seed = Lost funds forever</li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="confirmation-section" style="margin-top: 25px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div class="form-check">
-                            <input type="checkbox" id="backupConfirmed" class="form-check-input">
-                            <label for="backupConfirmed" class="form-check-label">
-                                <strong>I have written down my seed phrase and stored it securely</strong>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeBackupModal()">Cancel</button>
-                    <button id="confirmBackupBtn" class="btn btn-success" onclick="finalizeWalletCreation()" disabled>
-                        ✅ I've Securely Backed Up My Seed Phrase
-                    </button>
-                </div>
-            </div>
+    const colors = {
+        loading: '#007bff',
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+
+    const icon = {
+        loading: '🔄',
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    element.innerHTML = `
+        <div style="color: ${colors[type] || colors.info}; padding: 10px; border-radius: 5px; background: ${colors[type]}10; margin: 10px 0;">
+            ${icon[type] || ''} ${message}
         </div>
     `;
-
-    // Add modal to page
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHTML;
-    document.body.appendChild(modalContainer);
-
-    // Enable confirm button when checkbox is checked
-    const checkbox = document.getElementById('backupConfirmed');
-    if (checkbox) {
-        checkbox.addEventListener('change', function() {
-            const btn = document.getElementById('confirmBackupBtn');
-            if (btn) btn.disabled = !this.checked;
-        });
-    }
 }
-
-function closeBackupModal() {
-    const modal = document.getElementById('backupModal');
-    if (modal && modal.parentNode) {
-        modal.parentNode.remove();
-    }
-    currentMnemonic = null;
-    pendingWalletCreation = null;
-}
-
-async function finalizeWalletCreation() {
-    console.log('✅ Finalizing wallet creation');
-
-    try {
-        // Clear any temporary data
-        currentMnemonic = null;
-        pendingWalletCreation = null;
-
-        // Close modal
-        closeBackupModal();
-
-        // Show success message
-        showToast('🎉 Wallet created successfully! You can now send and receive tokens.', 'success');
-
-        // Refresh wallet display
-        if (window.initWallet) {
-            console.log('🔄 Refreshing wallet display...');
-            await window.initWallet();
-        }
-
-        // IMPORTANT: Wallet is now stored encrypted in database
-        // Users can view seed phrase later with password
-
-    } catch (error) {
-        console.error('❌ Finalize wallet creation failed:', error);
-        showToast('❌ Error: ' + error.message, 'error');
-    }
-}
-
-// =============================================
-// 🎯 MAKE FUNCTIONS GLOBALLY AVAILABLE
-// =============================================
-
-// Make sure all critical functions are available globally
-window.generateNewWallet = generateNewWallet;
-window.showPasswordModalForEncryption = showPasswordModalForEncryption;
-window.closePasswordModal = closePasswordModal;
-window.encryptAndStoreWallet = encryptAndStoreWallet;
-window.showBackupModal = showBackupModal;
-window.closeBackupModal = closeBackupModal;
-window.finalizeWalletCreation = finalizeWalletCreation;
-window.getCurrentUserId = getCurrentUserId;
-window.showToast = showToast;
-
-// Initialize check
-console.log('✅ Wallet creation module loaded successfully');
-console.log('✅ walletManager available:', typeof window.walletManager);
-console.log('✅ walletManager.generateMnemonic:', typeof (window.walletManager?.generateMnemonic));
-console.log('✅ walletManager.encrypt:', typeof (window.walletManager?.encrypt));
-console.log('✅ generateNewWallet available:', typeof window.generateNewWallet);
-
-</script>
-
-
-// =============================================
-// 🎯 IMPORT WALLET FUNCTIONS (UPDATED)
-// =============================================
-
-async function showImportWalletModal() {
-    if (!validateUserLoggedIn()) {
-        return;
-    }
-
-    closeModal();
-    const importModal = document.getElementById('importWalletModal');
-    if (importModal) {
-        importModal.style.display = 'flex';
-        document.getElementById('importMnemonic').value = '';
-        document.getElementById('targetAddress').value = '';
-        document.getElementById('importWalletStatus').innerHTML = '';
-    }
-}
-
-async function importWalletFromModal() {
-    const mnemonic = document.getElementById('importMnemonic').value.trim();
-    const targetAddress = document.getElementById('targetAddress').value.trim();
-    const importBtn = document.getElementById('importWalletBtn');
-    const statusElement = document.getElementById('importWalletStatus');
-
-    if (!mnemonic) {
-        showStatusMessage('Please enter your recovery phrase', 'error', statusElement);
-        return;
-    }
-
-    try {
-        importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Validating...';
-        importBtn.disabled = true;
-
-        showStatusMessage('Validating seed phrase...', 'loading', statusElement);
-
-        // Validate mnemonic
-        const validation = WalletCrypto.validateMnemonic(mnemonic);
-        if (!validation.valid) {
-            throw new Error(validation.error);
-        }
-
-        const userId = getCurrentUserId();
-        if (!userId) {
-            throw new Error('Please login to your mining account first');
-        }
-
-        // Store for password encryption step
-        pendingWalletCreation = { userId, mnemonic, isImport: true, targetAddress };
-
-        // Ask for encryption password
-        showPasswordModalForEncryption(userId, mnemonic);
-
-    } catch (error) {
-        console.error('❌ Wallet import failed:', error);
-        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
-        importBtn.innerHTML = 'Import Wallet';
-        importBtn.disabled = false;
-    }
-}
-
-// =============================================
-// 🎯 HELPER FUNCTIONS (KEEP YOUR EXISTING ONES)
-// =============================================
 
 function getCurrentUserId() {
     console.log('🔍 Getting current user ID...');
 
+    // Check walletManager first
     if (window.walletManager && window.walletManager.userId) {
         console.log('✅ Got user ID from walletManager:', window.walletManager.userId);
         walletState.userId = window.walletManager.userId;
         return window.walletManager.userId;
     }
 
+    // Check window.miningUser
     if (window.miningUser && window.miningUser.id) {
         console.log('✅ Got user ID from window.miningUser:', window.miningUser.id);
         walletState.userId = window.miningUser.id;
         return window.miningUser.id;
     }
 
+    // Check sessionStorage
     const storedUser = sessionStorage.getItem('miningUser');
     if (storedUser) {
         try {
@@ -3745,80 +2985,27 @@ function validateUserLoggedIn() {
     return true;
 }
 
-function showError(message, errorDiv) {
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-    } else {
-        showToast('❌ ' + message, 'error');
-    }
-}
-
-function showToast(message, type = 'info') {
-    let toast = document.getElementById('globalToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'globalToast';
-        toast.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            z-index: 10000;
-            transition: all 0.3s ease;
-            max-width: 90%;
-            text-align: center;
-            background: ${type === 'success' ? '#00C851' : 
-                        type === 'error' ? '#ff4444' : 
-                        type === 'warning' ? '#ffbb33' : '#33b5e5'};
-        `;
-        document.body.appendChild(toast);
-    }
-
-    toast.textContent = message;
-    toast.style.display = 'block';
-
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 3000);
-}
-
-function showStatusMessage(message, type = 'info', element = null) {
-    console.log(`📢 Status (${type}): ${message}`);
-
-    if (element) {
-        element.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
-    } else {
-        showToast(message, type);
-    }
-}
-
-function closeModal() {
-    document.querySelectorAll('.modal-overlay, .modal').forEach(modal => {
-        if (modal && modal.style) {
-            modal.style.display = 'none';
-        }
-    });
-
-    document.querySelectorAll('[style*="display: flex"]').forEach(el => {
-        if (el.id && el.id.includes('Modal')) {
-            el.style.display = 'none';
-        }
+function formatTokenBalance(balance) {
+    return parseFloat(balance).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6
     });
 }
 
-function showCreateWalletModal() {
-    if (!validateUserLoggedIn()) {
-        return;
-    }
+function formatNumber(num) {
+    return parseFloat(num).toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    });
+}
 
-    closeModal();
-    const createModal = document.getElementById('createWalletModal');
-    if (createModal) createModal.style.display = 'flex';
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('✅ Copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        showToast('❌ Failed to copy', 'error');
+    });
 }
 
 function checkPasswordStrength(password, elementId) {
@@ -3860,27 +3047,484 @@ function checkPasswordStrength(password, elementId) {
     element.style.fontWeight = 'bold';
 }
 
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('✅ Copied to clipboard!', 'success');
-    }).catch(err => {
-        console.error('Failed to copy:', err);
-        showToast('❌ Failed to copy', 'error');
+function handleTokenLogoError(img, symbol) {
+    console.warn(`⚠️ Failed to load logo for ${symbol}`);
+    img.src = `https://ui-avatars.com/api/?name=${symbol}&background=random&color=fff&size=128`;
+    img.onerror = null; // Prevent infinite loop
+}
+
+// =============================================
+// 🎯 MODAL FUNCTIONS
+// =============================================
+
+function closeModal() {
+    console.log('🔒 Closing all modals...');
+    
+    const modals = document.querySelectorAll('.modal, .fullscreen-modal');
+    modals.forEach(modal => {
+        if (modal && modal.style) {
+            modal.style.display = 'none';
+        }
     });
+    
+    document.body.style.overflow = 'auto';
+    document.body.classList.remove('modal-open');
+}
+
+function showModal(modalId) {
+    console.log('🎯 Opening modal:', modalId);
+    
+    // Close any open modals first
+    closeModal();
+    
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('modal-open');
+        console.log('✅ Modal opened:', modalId);
+    } else {
+        console.error('❌ Modal not found:', modalId);
+    }
+}
+
+// =============================================
+// 🎯 WALLET CREATION FUNCTIONS
+// =============================================
+
+function showCreateWalletModal() {
+    if (!validateUserLoggedIn()) {
+        return;
+    }
+
+    closeModal();
+    const createModal = document.getElementById('createWalletModal');
+    if (createModal) createModal.style.display = 'flex';
+}
+
+async function generateNewWallet() {
+    console.log('🎯 Generate New Wallet button clicked!');
+
+    const generateBtn = document.getElementById('generateWalletBtn');
+    const statusElement = document.getElementById('createWalletStatus');
+
+    try {
+        // Show loading state
+        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
+        generateBtn.disabled = true;
+
+        showStatusMessage('Generating secure wallet...', 'loading', statusElement);
+
+        // Check if user is logged in
+        const userId = getCurrentUserId();
+        if (!userId) {
+            throw new Error('Please login to your mining account first');
+        }
+
+        console.log('🔐 Creating wallet for user:', userId);
+
+        // Check if walletManager is available
+        if (!window.walletManager || !window.walletManager.generateMnemonic) {
+            throw new Error('Wallet system not loaded. Please refresh the page.');
+        }
+
+        // Generate mnemonic using walletManager
+        const mnemonic = window.walletManager.generateMnemonic();
+
+        if (!mnemonic) {
+            throw new Error('Failed to generate recovery phrase');
+        }
+
+        // Store temporarily
+        currentMnemonic = mnemonic;
+        pendingWalletCreation = { userId, mnemonic };
+
+        // Ask for encryption password
+        showPasswordModalForEncryption(userId, mnemonic);
+
+    } catch (error) {
+        console.error('❌ Wallet generation failed:', error);
+        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
+
+        // Reset button
+        if (generateBtn) {
+            generateBtn.innerHTML = 'Generate New Wallet';
+            generateBtn.disabled = false;
+        }
+    }
+}
+
+function showPasswordModalForEncryption(userId, mnemonic) {
+    console.log('🔐 Showing password modal for encryption');
+    closeModal();
+
+    const modalHTML = `
+        <div class="modal-overlay" style="display: flex;">
+            <div class="modal-content" style="max-width: 450px; background: var(--card-bg); padding: 24px; border-radius: 16px;">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--gold); margin-bottom: 10px;">🔐 Set Wallet Encryption Password</h3>
+                    <div class="security-warning" style="margin-bottom: 15px;">
+                        <strong>🔒 IMPORTANT:</strong> This password encrypts your seed phrase locally.
+                        We never see your password or unencrypted seed phrase.
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text);">
+                        <strong>Encryption Password</strong> (min 8 characters)
+                    </label>
+                    <input type="password" id="walletPassword" class="form-input" 
+                           placeholder="Enter a strong password" autocomplete="new-password"
+                           minlength="8" required>
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text);">
+                        <strong>Confirm Password</strong>
+                    </label>
+                    <input type="password" id="confirmPassword" class="form-input" 
+                           placeholder="Confirm your password" autocomplete="new-password"
+                           minlength="8" required>
+                </div>
+                
+                <div id="passwordError" style="display: none; margin: 15px 0; padding: 10px; background: rgba(255,68,68,0.1); border-radius: 8px; color: var(--error);"></div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="close-modal secondary" style="flex: 1;" onclick="closePasswordModal()">Cancel</button>
+                    <button class="close-modal" style="flex: 1;" onclick="encryptAndStoreWallet('${userId}')" id="encryptBtn">
+                        <span id="encryptBtnText">Encrypt & Create Wallet</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to page
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    modalContainer.id = 'encryptModal';
+    document.body.appendChild(modalContainer);
+
+    // Focus on password input
+    setTimeout(() => {
+        const passwordInput = document.getElementById('walletPassword');
+        if (passwordInput) {
+            passwordInput.focus();
+
+            // Show password strength as user types
+            passwordInput.addEventListener('input', function() {
+                checkPasswordStrength(this.value, 'passwordStrength');
+            });
+        }
+    }, 100);
+}
+
+function closePasswordModal() {
+    const modal = document.getElementById('encryptModal');
+    if (modal && modal.parentNode) {
+        modal.parentNode.remove();
+    }
+    currentMnemonic = null;
+    pendingWalletCreation = null;
+}
+
+async function encryptAndStoreWallet(userId) {
+    console.log('🔐 Encrypting and storing wallet...');
+
+    const password = document.getElementById('walletPassword')?.value;
+    const confirmPassword = document.getElementById('confirmPassword')?.value;
+    const errorDiv = document.getElementById('passwordError');
+    const encryptBtn = document.getElementById('encryptBtn');
+
+    // Reset error display
+    if (errorDiv) errorDiv.style.display = 'none';
+
+    // Validate inputs
+    if (!password || !confirmPassword) {
+        showError('Please enter and confirm password', errorDiv);
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showError('Passwords do not match', errorDiv);
+        return;
+    }
+
+    if (password.length < 8) {
+        showError('Password must be at least 8 characters', errorDiv);
+        return;
+    }
+
+    // Get mnemonic from pending creation
+    if (!pendingWalletCreation || pendingWalletCreation.userId !== userId) {
+        showError('Session expired. Please try again.', errorDiv);
+        return;
+    }
+
+    const mnemonic = pendingWalletCreation.mnemonic;
+
+    try {
+        // Show loading state
+        if (encryptBtn) {
+            encryptBtn.disabled = true;
+            const btnText = document.getElementById('encryptBtnText');
+            if (btnText) btnText.textContent = 'Encrypting...';
+        }
+
+        // Generate wallet address using walletManager
+        showToast('🔐 Generating wallet address...', 'info');
+        const walletAddress = await window.walletManager.generateAddressFromMnemonic(mnemonic);
+
+        // Encrypt mnemonic using walletManager
+        showToast('🔐 Encrypting seed phrase...', 'info');
+        const encryptedMnemonic = 'ENCv1:' + await window.walletManager.encrypt(mnemonic, password);
+
+        // Send encrypted data to backend
+        showToast('📦 Storing wallet securely...', 'info');
+        const response = await fetch('/api/wallet/store-encrypted', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                userId: userId,
+                walletAddress: walletAddress,
+                encryptedMnemonic: encryptedMnemonic,
+                publicKey: '',
+                network: 'ton-mainnet',
+                createdAt: new Date().toISOString()
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success) {
+            console.log('✅ Wallet stored securely in database!');
+            closePasswordModal();
+            showBackupModal(mnemonic, walletAddress);
+        } else {
+            throw new Error(result.error || 'Failed to store wallet in database');
+        }
+
+    } catch (error) {
+        console.error('❌ Failed to store wallet:', error);
+        showError('Failed: ' + error.message, errorDiv);
+
+        // Re-enable button
+        if (encryptBtn) {
+            encryptBtn.disabled = false;
+            const btnText = document.getElementById('encryptBtnText');
+            if (btnText) btnText.textContent = 'Encrypt & Create Wallet';
+        }
+    }
+}
+
+function showBackupModal(mnemonic, walletAddress) {
+    console.log('📝 Showing backup modal');
+
+    const words = mnemonic.split(' ');
+    const modalHTML = `
+        <div class="modal-overlay" style="display: flex;">
+            <div class="modal-content" style="max-width: 650px; background: var(--card-bg); padding: 24px; border-radius: 16px;">
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: var(--gold); margin-bottom: 10px;">⚠️ CRITICAL: Backup Your Seed Phrase</h3>
+                    <div class="status-success" style="margin-bottom: 20px;">
+                        <strong>✅ WALLET CREATED SUCCESSFULLY!</strong><br>
+                        Your wallet is now securely stored and encrypted.
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text); margin-bottom: 10px;">Your Wallet Address:</h4>
+                    <div class="address-display" style="font-family: monospace; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 4px; word-break: break-all; font-size: 14px; margin: 10px 0;">
+                        ${walletAddress}
+                    </div>
+                    <button onclick="copyToClipboard('${walletAddress}')" class="close-modal secondary" style="margin-top: 5px; padding: 8px 16px;">
+                        📋 Copy Address
+                    </button>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="color: var(--text); margin-bottom: 15px;">Your 12-Word Seed Phrase:</h4>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0;">
+                        ${words.map((word, index) => `
+                            <div style="background: rgba(212,175,55,0.1); padding: 12px; border-radius: 6px; border: 2px solid rgba(212,175,55,0.3); text-align: center;">
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">${index + 1}</div>
+                                <div style="font-weight: 600; font-size: 16px; color: var(--text);">${word}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="security-warning" style="margin-top: 20px; padding: 15px;">
+                        <h5 style="color: var(--warning); margin-top: 0;">⚠️ SECURITY WARNINGS:</h5>
+                        <ul style="margin: 10px 0 0 0; padding-left: 20px; color: var(--warning);">
+                            <li><strong>Write down on paper</strong> - Never store digitally</li>
+                            <li><strong>Keep in a secure location</strong> - Fireproof safe recommended</li>
+                            <li><strong>Never share with anyone</strong> - We will never ask for it</li>
+                            <li><strong>This is your ONLY backup</strong> - Lost seed = Lost funds forever</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="checkbox" id="backupConfirmed" style="width: 18px; height: 18px;">
+                        <label for="backupConfirmed" style="font-weight: 600; color: var(--text);">
+                            <strong>I have written down my seed phrase and stored it securely</strong>
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button class="close-modal secondary" style="flex: 1;" onclick="closeBackupModal()">Cancel</button>
+                    <button id="confirmBackupBtn" class="close-modal" style="flex: 1;" onclick="finalizeWalletCreation()" disabled>
+                        ✅ I've Securely Backed Up My Seed Phrase
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to page
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    modalContainer.id = 'backupModal';
+    document.body.appendChild(modalContainer);
+
+    // Enable confirm button when checkbox is checked
+    const checkbox = document.getElementById('backupConfirmed');
+    if (checkbox) {
+        checkbox.addEventListener('change', function() {
+            const btn = document.getElementById('confirmBackupBtn');
+            if (btn) btn.disabled = !this.checked;
+        });
+    }
+}
+
+function closeBackupModal() {
+    const modal = document.getElementById('backupModal');
+    if (modal && modal.parentNode) {
+        modal.parentNode.remove();
+    }
+    currentMnemonic = null;
+    pendingWalletCreation = null;
+}
+
+async function finalizeWalletCreation() {
+    console.log('✅ Finalizing wallet creation');
+
+    try {
+        // Clear any temporary data
+        currentMnemonic = null;
+        pendingWalletCreation = null;
+
+        // Close modal
+        closeBackupModal();
+
+        // Show success message
+        showToast('🎉 Wallet created successfully! You can now send and receive tokens.', 'success');
+
+        // Refresh wallet display
+        if (window.initWallet) {
+            console.log('🔄 Refreshing wallet display...');
+            await window.initWallet();
+        }
+
+    } catch (error) {
+        console.error('❌ Finalize wallet creation failed:', error);
+        showToast('❌ Error: ' + error.message, 'error');
+    }
+}
+
+function showError(message, errorDiv) {
+    if (errorDiv) {
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+    } else {
+        showToast('❌ ' + message, 'error');
+    }
+}
+
+// =============================================
+// 🎯 IMPORT WALLET FUNCTIONS
+// =============================================
+
+function showImportWalletModal() {
+    if (!validateUserLoggedIn()) {
+        return;
+    }
+
+    closeModal();
+    const importModal = document.getElementById('importWalletModal');
+    if (importModal) {
+        importModal.style.display = 'flex';
+        document.getElementById('importMnemonic').value = '';
+        document.getElementById('targetAddress').value = '';
+        document.getElementById('importWalletStatus').innerHTML = '';
+    }
+}
+
+async function importWalletFromModal() {
+    const mnemonic = document.getElementById('importMnemonic').value.trim();
+    const targetAddress = document.getElementById('targetAddress').value.trim();
+    const importBtn = document.getElementById('importWalletBtn');
+    const statusElement = document.getElementById('importWalletStatus');
+
+    if (!mnemonic) {
+        showStatusMessage('Please enter your recovery phrase', 'error', statusElement);
+        return;
+    }
+
+    try {
+        importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Validating...';
+        importBtn.disabled = true;
+
+        showStatusMessage('Validating seed phrase...', 'loading', statusElement);
+
+        // Check if walletManager has validateMnemonic method
+        if (!window.walletManager || !window.walletManager.validateMnemonic) {
+            throw new Error('Wallet system not loaded. Please refresh the page.');
+        }
+
+        // Validate mnemonic
+        const validation = window.walletManager.validateMnemonic(mnemonic);
+        if (!validation.valid) {
+            throw new Error(validation.error);
+        }
+
+        const userId = getCurrentUserId();
+        if (!userId) {
+            throw new Error('Please login to your mining account first');
+        }
+
+        // Store for password encryption step
+        pendingWalletCreation = { userId, mnemonic, isImport: true, targetAddress };
+
+        // Ask for encryption password
+        showPasswordModalForEncryption(userId, mnemonic);
+
+    } catch (error) {
+        console.error('❌ Wallet import failed:', error);
+        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
+        importBtn.innerHTML = 'Import Wallet';
+        importBtn.disabled = false;
+    }
 }
 
 // =============================================
 // 🎯 SEND FUNCTIONALITY
 // =============================================
 
-let currentSendToken = 'TON';
-let currentTokenBalance = 0;
-let currentTokenPrice = 0;
-const TRANSACTION_FEE = 0.001;
-
 function showSendModal() {
     if (!walletState.hasWallet) {
-        showMessage('❌ You need a wallet to send tokens', 'error');
+        showToast('❌ You need a wallet to send tokens', 'error');
         return;
     }
 
@@ -4121,13 +3765,13 @@ function updateSendSummary() {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px;">
                 <div style="color: var(--text-muted);">Token:</div>
                 <div style="text-align: right; font-weight: 600; color: var(--gold);">${currentSendToken}</div>
-                
+
                 <div style="color: var(--text-muted);">Amount:</div>
                 <div style="text-align: right; font-weight: 600;">${amount} ${currentSendToken}</div>
-                
+
                 <div style="color: var(--text-muted);">Value:</div>
                 <div style="text-align: right; font-weight: 600;">$${usdValue} USD</div>
-                
+
                 <div style="color: var(--text-muted);">Network Fee:</div>
                 <div style="text-align: right; font-weight: 600;">${TRANSACTION_FEE} TON</div>
             </div>
@@ -4222,7 +3866,7 @@ async function confirmSendTransaction() {
         if (statusElement) {
             statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
         }
-        showMessage(`❌ ${error.message}`, 'error');
+        showToast(`❌ ${error.message}`, 'error');
     } finally {
         // Reset send button
         if (confirmBtn) {
@@ -4237,11 +3881,9 @@ async function confirmSendTransaction() {
 // 🎯 RECEIVE FUNCTIONALITY
 // =============================================
 
-let currentReceiveToken = 'TON';
-
 function showReceiveModal() {
     if (!walletState.hasWallet) {
-        showMessage('❌ You need a wallet to receive tokens', 'error');
+        showToast('❌ You need a wallet to receive tokens', 'error');
         return;
     }
 
@@ -4296,12 +3938,12 @@ function selectReceiveToken(token) {
 function copyWalletAddress() {
     const address = walletState.wallet?.address;
     if (!address) {
-        showMessage('No wallet address available', 'error');
+        showToast('No wallet address available', 'error');
         return;
     }
 
     navigator.clipboard.writeText(address).then(() => {
-        showMessage(`✅ ${currentReceiveToken} address copied!`, 'success');
+        showToast(`✅ ${currentReceiveToken} address copied!`, 'success');
 
         const card = document.getElementById('walletCard');
         if (card) {
@@ -4314,14 +3956,14 @@ function copyWalletAddress() {
         }
     }).catch(err => {
         console.error('Failed to copy address:', err);
-        showMessage('❌ Failed to copy address', 'error');
+        showToast('❌ Failed to copy address', 'error');
     });
 }
 
 function showAddressDetails() {
     const address = walletState.wallet?.address;
     if (!address) {
-        showMessage('No wallet address available', 'error');
+        showToast('No wallet address available', 'error');
         return;
     }
 
@@ -4353,22 +3995,14 @@ This single address can receive all supported TON blockchain tokens.
 // 🎯 CONVERT NMXp FUNCTIONALITY
 // =============================================
 
-const PRODUCTION_CONFIG = {
-    CONVERSION_RATE: 1/30,
-    MIN_CONVERSION: 30,
-    MAX_CONVERSION: 1000000
-};
-
 function showSwapModal() {
     if (!walletState.isInitialized) {
-        showMessage('Please create or import a wallet first', 'error');
+        showToast('Please create or import a wallet first', 'error');
         return;
     }
 
     console.log('🔄 Opening swap modal');
     closeModal();
-
-    // Use the production swap modal
     openProductionSwapModal();
 }
 
@@ -4391,10 +4025,25 @@ function closeProductionSwapModal() {
     document.body.classList.remove('modal-open');
 }
 
+async function getSupabaseClient() {
+    if (supabaseClient) return supabaseClient;
+
+    try {
+        // Create Supabase client with environment variables
+        supabaseClient = window.supabase.createClient(
+            'https://your-supabase-url.supabase.co',
+            'your-supabase-anon-key'
+        );
+        return supabaseClient;
+    } catch (error) {
+        console.error('❌ Failed to create Supabase client:', error);
+        throw error;
+    }
+}
+
 async function checkAuth() {
     try {
         const client = await getSupabaseClient();
-
         const { data: { session }, error } = await client.auth.getSession();
 
         if (error) {
@@ -4765,16 +4414,28 @@ function updateWalletAddressDisplay(walletAddress) {
 }
 
 // =============================================
-// 🎯 PASSWORD MODALS (KEEPING FOR COMPATIBILITY)
+// 🎯 SETTINGS FUNCTIONS
 // =============================================
 
+function showSettingsModal() {
+    document.getElementById('settingsModal').style.display = 'flex';
+}
+
+function viewRecoveryPhrase() {
+    showToast('⚠️ View recovery phrase functionality coming soon!', 'warning');
+}
+
 function showChangePasswordModal() {
-    showMessage('ℹ️ Change password functionality coming soon!', 'info');
+    showToast('⚠️ Change password functionality coming soon!', 'warning');
+}
+
+function showBackupStatus() {
+    showToast('⚠️ Backup status functionality coming soon!', 'warning');
 }
 
 function showDeleteWalletModal() {
     if (!walletState.hasWallet) {
-        showMessage('❌ You don\'t have a wallet to delete', 'error');
+        showToast('❌ You don\'t have a wallet to delete', 'error');
         return;
     }
 
@@ -4790,22 +4451,10 @@ function closeDeleteWalletModal() {
     document.getElementById('deleteWalletModal').style.display = 'none';
 }
 
-async function showBackupStatus() {
-    const userId = getCurrentUserId();
-
-    if (!userId) {
-        showMessage('❌ Please login to your mining account first', 'error');
-        return;
-    }
-
-    showMessage('ℹ️ Backup status feature coming soon!', 'info');
-    return;
-}
-
 async function deleteWallet() {
     const userId = getCurrentUserId();
     if (!userId) {
-        showMessage('❌ Please login to your mining account first', 'error');
+        showToast('❌ Please login to your mining account first', 'error');
         return;
     }
 
@@ -4829,7 +4478,7 @@ async function deleteWallet() {
                 // Show welcome screen
                 showWelcomeScreen();
 
-                showMessage('✅ Wallet deleted successfully!', 'success');
+                showToast('✅ Wallet deleted successfully!', 'success');
             } else {
                 throw new Error(result.error || 'Failed to delete wallet');
             }
@@ -4838,34 +4487,14 @@ async function deleteWallet() {
         }
     } catch (error) {
         console.error('❌ Delete wallet failed:', error);
-        showMessage(`❌ ${error.message}`, 'error');
+        showToast(`❌ ${error.message}`, 'error');
     } finally {
         hideLoading();
     }
 }
 
-function checkPasswordStrength(password, indicatorId) {
-    const indicator = document.getElementById(indicatorId);
-    if (!password || !indicator) return;
-
-    // Simple password strength check
-    if (password.length < 6) {
-        indicator.textContent = 'Weak (min 6 chars)';
-        indicator.className = 'password-strength strength-weak';
-    } else if (password.length < 8) {
-        indicator.textContent = 'Fair';
-        indicator.className = 'password-strength strength-medium';
-    } else if (password.length < 12) {
-        indicator.textContent = 'Good';
-        indicator.className = 'password-strength strength-medium';
-    } else {
-        indicator.textContent = 'Strong';
-        indicator.className = 'password-strength strength-strong';
-    }
-}
-
 // =============================================
-// 🎯 INITIALIZATION
+// 🎯 INITIALIZATION FUNCTIONS
 // =============================================
 
 async function initWallet() {
@@ -4875,7 +4504,7 @@ async function initWallet() {
         // Check if walletManager is available
         if (!window.walletManager) {
             console.error('❌ Wallet manager not loaded');
-            showErrorMessage('Wallet system not loaded. Please refresh the page.');
+            showToast('Wallet system not loaded. Please refresh the page.', 'error');
             return;
         }
 
@@ -4904,18 +4533,14 @@ async function initWallet() {
                 showLoginRequiredMessage();
             } else {
                 console.error('❌ Wallet init failed:', result.error);
-                showErrorMessage('Failed to load wallet');
+                showToast('Failed to load wallet', 'error');
             }
         }
     } catch (error) {
         console.error('❌ Wallet initialization failed:', error);
-        showErrorMessage('Wallet system error');
+        showToast('Wallet system error', 'error');
     }
 }
-
-// =============================================
-// 🎯 UI MANAGEMENT
-// =============================================
 
 function showWelcomeScreen() {
     document.getElementById('welcomeScreen').classList.remove('hidden');
@@ -4944,10 +4569,6 @@ function showLoginRequiredMessage() {
     `;
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('walletInterface').classList.add('hidden');
-}
-
-function goToMiningDashboard() {
-    window.location.href = 'dashboard.html';
 }
 
 async function loadWalletData() {
@@ -5015,18 +4636,14 @@ function updateWalletDisplay() {
     }
 }
 
-function showSettingsModal() {
-    document.getElementById('settingsModal').style.display = 'flex';
-}
-
 function showBuyModal() {
-    showMessage('⚠️ Buy functionality coming soon!', 'warning');
+    showToast('⚠️ Buy functionality coming soon!', 'warning');
 }
 
 function showHistoryView() {
     walletState.currentView = 'history';
     updateNavItems();
-    showMessage('⚠️ Transaction history coming soon!', 'warning');
+    showToast('⚠️ Transaction history coming soon!', 'warning');
 }
 
 function showWalletView() {
@@ -5069,10 +4686,6 @@ function hideLoading() {
     }
 }
 
-function showErrorMessage(message) {
-    showMessage(message, 'error');
-}
-
 function logout() {
     // Clear wallet-specific storage
     sessionStorage.removeItem('miningUser');
@@ -5082,8 +4695,12 @@ function logout() {
     window.location.href = 'dashboard.html';
 }
 
+function goToMiningDashboard() {
+    window.location.href = 'dashboard.html';
+}
+
 // =============================================
-// 🎯 PRICE API INTEGRATION (6 EXCHANGERS)
+// 🎯 PRICE API INTEGRATION
 // =============================================
 
 const PRICE_APIS = [
@@ -5103,38 +4720,6 @@ const PRICE_APIS = [
             TON: { price: data.data?.TON?.quote?.USD?.price || 0, change24h: data.data?.TON?.quote?.USD?.percent_change_24h || 0 },
             NMX: { price: data.data?.NMX?.quote?.USD?.price || 0.10, change24h: data.data?.NMX?.quote?.USD?.percent_change_24h || 0 }
         })
-    },
-    {
-        name: "Binance",
-        url: "https://api.binance.com/api/v3/ticker/price?symbols=[%22TONUSDT%22,%22NMXUSDT%22]",
-        parser: (data) => ({
-            TON: { price: parseFloat(data.find(d => d.symbol === 'TONUSDT')?.price) || 0, change24h: 0 },
-            NMX: { price: parseFloat(data.find(d => d.symbol === 'NMXUSDT')?.price) || 0.10, change24h: 0 }
-        })
-    },
-    {
-        name: "KuCoin",
-        url: "https://api.kucoin.com/api/v1/market/allTickers",
-        parser: (data) => ({
-            TON: { price: parseFloat(data.data.ticker.find(t => t.symbol === 'TON-USDT')?.last) || 0, change24h: 0 },
-            NMX: { price: parseFloat(data.data.ticker.find(t => t.symbol === 'NMX-USDT')?.last) || 0.10, change24h: 0 }
-        })
-    },
-    {
-        name: "Bybit",
-        url: "https://api.bybit.com/v5/market/tickers?category=spot&symbol=TONUSDT,NMXUSDT",
-        parser: (data) => ({
-            TON: { price: parseFloat(data.result.list.find(t => t.symbol === 'TONUSDT')?.lastPrice) || 0, change24h: 0 },
-            NMX: { price: parseFloat(data.result.list.find(t => t.symbol === 'NMXUSDT')?.lastPrice) || 0.10, change24h: 0 }
-        })
-    },
-    {
-        name: "Gate.io",
-        url: "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=TON_USDT,NMX_USDT",
-        parser: (data) => ({
-            TON: { price: parseFloat(data.find(t => t.currency_pair === 'TON_USDT')?.last) || 0, change24h: 0 },
-            NMX: { price: parseFloat(data.find(t => t.currency_pair === 'NMX_USDT')?.last) || 0.10, change24h: 0 }
-        })
     }
 ];
 
@@ -5144,7 +4729,7 @@ async function fetchPricesWithFastestAPI() {
     const promises = PRICE_APIS.map(async (api) => {
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            const timeout = setTimeout(() => controller.abort(), 5000);
 
             const options = {
                 method: 'GET',
@@ -5176,14 +4761,12 @@ async function fetchPricesWithFastestAPI() {
     });
 
     try {
-        // Use Promise.any to get the fastest successful response
         const results = await Promise.allSettled(promises);
         const successfulResults = results
             .filter(r => r.status === 'fulfilled' && r.value !== null)
             .map(r => r.value);
 
         if (successfulResults.length > 0) {
-            // Get the fastest result (first one that resolved)
             const fastest = successfulResults[0];
             console.log(`🏆 Fastest responder: ${fastest.source}`);
 
@@ -5246,6 +4829,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {
             event.target.style.display = 'none';
+            document.body.style.overflow = 'auto';
         }
     });
 
@@ -5256,18 +4840,15 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Convert amount listener attached');
     }
 
-    const maxButton = document.querySelector('.max-btn');
-    if (maxButton) {
-        maxButton.addEventListener('click', setMaxConversion);
-        console.log('✅ MAX button listener attached');
-    }
-
     // Close modals with Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
             closeProductionSwapModal();
-            closeWalletSetup();
+            const walletSetupModal = document.getElementById('walletSetupModal');
+            if (walletSetupModal && walletSetupModal.style.display === 'block') {
+                walletSetupModal.style.display = 'none';
+            }
         }
     });
 
