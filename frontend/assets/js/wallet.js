@@ -1,5 +1,5 @@
-// assets/js/wallet.js - MINIMAL DEPENDENCY VERSION
-console.log('🚀 PRODUCTION Wallet Manager v8.0 (Minimal Dependencies)');
+// assets/js/wallet.js - UPDATED FOR PASSWORD-BASED WALLETS
+console.log('🚀 PRODUCTION Wallet Manager v8.1 (Password-Based System)');
 
 class MiningWalletManager {
     constructor() {
@@ -498,6 +498,58 @@ class MiningWalletManager {
     }
 
     // =============================================
+    // 🔥 CREATE AUTO WALLET (PASSWORD-BASED SYSTEM)
+    // =============================================
+
+    async createAutoWallet(userId, password) {
+        console.log('🎯 Creating auto wallet for user:', userId);
+
+        try {
+            if (!userId) {
+                throw new Error('User ID required');
+            }
+
+            if (!password || password.length < 8) {
+                throw new Error('Password must be at least 8 characters');
+            }
+
+            // 1. Generate mnemonic (but don't show to user)
+            console.log('🔐 Generating secure mnemonic...');
+            const mnemonic = this.generateMnemonic(12);
+
+            // 2. Generate TON address from mnemonic
+            console.log('📍 Generating TON address...');
+            const walletAddress = await this.generateAddressFromMnemonic(mnemonic);
+
+            // 3. Encrypt the mnemonic with user's password
+            console.log('🔐 Encrypting mnemonic...');
+            const encryptedMnemonic = await this.encrypt(mnemonic, password);
+
+            // 4. Store wallet to backend
+            console.log('📦 Storing wallet to database...');
+            const storeResult = await this.storeWallet(userId, walletAddress, encryptedMnemonic, password, false);
+
+            if (!storeResult.success) {
+                throw new Error(storeResult.error || 'Failed to store wallet');
+            }
+
+            console.log('✅ Auto wallet created successfully');
+            return {
+                success: true,
+                address: walletAddress,
+                message: 'Wallet created successfully'
+            };
+
+        } catch (error) {
+            console.error('❌ Create auto wallet failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    // =============================================
     // 🔥 STORE WALLET (PRODUCTION READY)
     // =============================================
 
@@ -670,6 +722,38 @@ class MiningWalletManager {
     }
 
     // =============================================
+    // 🔥 GET PRICES
+    // =============================================
+
+    async getPrices() {
+        try {
+            console.log('💰 Getting token prices...');
+            
+            const response = await fetch(`${this.apiBaseUrl}/prices`);
+            
+            if (!response.ok) {
+                throw new Error(`Price API error: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch prices');
+            }
+            
+            console.log('✅ Prices fetched successfully');
+            return result;
+            
+        } catch (error) {
+            console.error('❌ Get prices failed:', error);
+            return {
+                success: false,
+                error: 'Failed to fetch prices: ' + error.message
+            };
+        }
+    }
+
+    // =============================================
     // 🔥 GET TRANSACTION HISTORY
     // =============================================
 
@@ -763,6 +847,42 @@ class MiningWalletManager {
             return {
                 success: false,
                 error: 'Failed to send transaction: ' + error.message
+            };
+        }
+    }
+
+    // =============================================
+    // 🔥 DELETE WALLET
+    // =============================================
+
+    async deleteWallet(userId, requirePassword = false) {
+        try {
+            console.log(`🗑️ Deleting wallet for user: ${userId}`);
+
+            if (!userId) {
+                throw new Error('User ID required');
+            }
+
+            const response = await fetch(`${this.apiBaseUrl}/delete-wallet`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to delete wallet');
+            }
+
+            console.log('✅ Wallet deleted successfully');
+            return result;
+
+        } catch (error) {
+            console.error('❌ Delete wallet failed:', error);
+            return {
+                success: false,
+                error: 'Failed to delete wallet: ' + error.message
             };
         }
     }
@@ -981,28 +1101,6 @@ window.showCreateWalletModal = function() {
     }
 };
 
-window.showImportWalletModal = function() {
-    console.log('🎯 showImportWalletModal called');
-
-    const userId = window.walletManager.getCurrentUserId();
-    if (!userId) {
-        console.error('❌ User not logged in');
-        if (typeof window.showMessage === 'function') {
-            window.showMessage('Please login to your mining account first', 'error');
-        }
-        return;
-    }
-
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => modal.style.display = 'none');
-
-    const importModal = document.getElementById('importWalletModal');
-    if (importModal) {
-        importModal.style.display = 'flex';
-        console.log('✅ Import wallet modal opened');
-    }
-};
-
 // =============================================
 // 🎯 AUTO-INITIALIZATION
 // =============================================
@@ -1036,9 +1134,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('✅ MINIMAL Wallet Manager ready!');
+console.log('✅ PASSWORD-BASED Wallet Manager ready!');
 console.log('📋 Features:');
-console.log('   • Client-side TON wallet generation');
-console.log('   • FULL BIP-39 wordlist (2048 words)');
+console.log('   • Password-based wallet creation');
+console.log('   • No seed phrase exposure to users');
 console.log('   • AES-256-GCM encryption');
-console.log('   • Backend API integration');
+console.log('   • Real TON blockchain integration');
+console.log('   • Database-backed wallet storage');
