@@ -227,7 +227,7 @@ class MiningWalletManager {
     // =============================================
 
     async generateAddressFromMnemonic(mnemonic) {
-        console.log('📍 Generating TON wallet address...');
+        console.log('📍 Generating REAL TON wallet address with @ton/ton...');
 
         try {
             const mnemonicArray = mnemonic.trim().split(/\s+/);
@@ -236,50 +236,22 @@ class MiningWalletManager {
                 throw new Error('Mnemonic must be 12 or 24 words');
             }
 
-            // Try using window.Ton library (from ton@13.11.2 CDN)
-            if (typeof window.Ton !== 'undefined') {
-                console.log('🔑 Using ton@13.11.2 library...');
-                
-                // Create mnemonic string
-                const mnemonicPhrase = mnemonicArray.join(' ');
-                
-                // Use the library's mnemonicToSeed if available
-                if (window.Ton.utils && typeof window.Ton.utils.mnemonicToSeed === 'function') {
-                    const seed = await window.Ton.utils.mnemonicToSeed(mnemonicPhrase);
-                    
-                    // Create key pair from seed
-                    const keyPair = window.Ton.utils.keyPairFromSeed(seed);
-                    
-                    // Create wallet contract (V4)
-                    const wallet = window.Ton.WalletContractV4.create({
-                        workchain: 0,
-                        publicKey: keyPair.publicKey
-                    });
-                    
-                    const address = wallet.address.toString();
-                    console.log('✅ TON address generated:', address.substring(0, 20) + '...');
-                    return address;
-                }
-                // Fallback to using @ton/crypto if available
-                else if (typeof window.mnemonicToSeedSync !== 'undefined') {
-                    console.log('🔑 Using @ton/crypto via window.mnemonicToSeedSync...');
-                    const seed = window.mnemonicToSeedSync(mnemonicPhrase);
-                    const keyPair = window.keyPairFromSeed(seed);
-                    
-                    const wallet = window.WalletContractV4.create({
-                        workchain: 0,
-                        publicKey: keyPair.publicKey
-                    });
-                    
-                    const address = wallet.address.toString();
-                    console.log('✅ TON address generated via @ton/crypto:', address.substring(0, 20) + '...');
-                    return address;
-                }
-            }
+            if (typeof window.mnemonicToWalletKey !== 'undefined' && typeof window.WalletContractV4 !== 'undefined') {
+                console.log('✅ Using @ton/ton library...');
 
-            // Fallback: Generate deterministic TON-like address
-            console.log('⚠️ Using fallback address generation');
-            return this.generateDeterministicAddress(mnemonic);
+                const keyPair = await window.mnemonicToWalletKey(mnemonicArray);
+                const wallet = window.WalletContractV4.create({
+                    workchain: 0,
+                    publicKey: keyPair.publicKey
+                });
+
+                const address = wallet.address.toString();
+                console.log('✅ TON address generated:', address.substring(0, 20) + '...');
+                return address;
+            } else {
+                console.warn('⚠️ @ton/ton library not loaded, using fallback');
+                return this.generateDeterministicAddress(mnemonic);
+            }
 
         } catch (error) {
             console.error('❌ TON address generation error:', error);
@@ -289,7 +261,6 @@ class MiningWalletManager {
 
     generateDeterministicAddress(mnemonic) {
         try {
-            // Create a deterministic TON-like address from mnemonic
             const encoder = new TextEncoder();
             const data = encoder.encode(mnemonic + '::TON::' + Date.now());
 
@@ -298,7 +269,6 @@ class MiningWalletManager {
                 hash += data[i].toString(16).padStart(2, '0');
             }
 
-            // TON addresses start with EQ (mainnet) or kQ (testnet)
             const address = 'EQA' + hash.substring(0, 44).toUpperCase();
             console.log('📝 Generated deterministic address:', address);
             return address;
@@ -321,7 +291,6 @@ class MiningWalletManager {
         }
 
         try {
-            // Generate cryptographically secure random words
             const words = [];
             const randomBuffer = new Uint32Array(wordCount);
 
@@ -334,7 +303,6 @@ class MiningWalletManager {
 
             const mnemonic = words.join(' ');
 
-            // Validate the generated mnemonic
             const validation = this.validateMnemonic(mnemonic);
             if (!validation.valid) {
                 throw new Error('Generated invalid mnemonic: ' + validation.error);
@@ -370,7 +338,6 @@ class MiningWalletManager {
             };
         }
 
-        // Check all words are in BIP-39 wordlist
         const invalidWords = [];
         for (const word of words) {
             if (!this.BIP39_WORDLIST.includes(word.toLowerCase())) {
@@ -386,14 +353,13 @@ class MiningWalletManager {
             };
         }
 
-        // Check for duplicate words (warning only)
         const uniqueWords = new Set(words.map(w => w.toLowerCase()));
         if (uniqueWords.size < words.length) {
             console.warn('⚠️ Mnemonic contains duplicate words (still valid but less secure)');
         }
 
-        return { 
-            valid: true, 
+        return {
+            valid: true,
             wordCount: wordCount,
             is12Word: wordCount === 12,
             is24Word: wordCount === 24
@@ -418,12 +384,10 @@ class MiningWalletManager {
         try {
             const encoder = new TextEncoder();
 
-            // Generate random salt and IV
             const salt = crypto.getRandomValues(new Uint8Array(16));
             const iv = crypto.getRandomValues(new Uint8Array(12));
             const passwordBuffer = encoder.encode(password);
 
-            // Derive encryption key from password
             const keyMaterial = await crypto.subtle.importKey(
                 'raw',
                 passwordBuffer,
@@ -445,7 +409,6 @@ class MiningWalletManager {
                 ['encrypt']
             );
 
-            // Encrypt the data
             const data = encoder.encode(text);
             const encrypted = await crypto.subtle.encrypt(
                 {
@@ -456,14 +419,12 @@ class MiningWalletManager {
                 data
             );
 
-            // Combine salt + iv + encrypted data
             const encryptedArray = new Uint8Array(encrypted);
             const result = new Uint8Array(salt.length + iv.length + encryptedArray.length);
             result.set(salt);
             result.set(iv, salt.length);
             result.set(encryptedArray, salt.length + iv.length);
 
-            // Return as base64 string with version prefix
             const encryptedBase64 = btoa(String.fromCharCode.apply(null, result));
             return 'ENCv1:' + encryptedBase64;
 
@@ -485,7 +446,6 @@ class MiningWalletManager {
         }
 
         try {
-            // Extract and decode data
             const encryptedData = encryptedBase64.substring(6);
             const encryptedBytes = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
 
@@ -493,7 +453,6 @@ class MiningWalletManager {
             const iv = encryptedBytes.slice(16, 28);
             const encrypted = encryptedBytes.slice(28);
 
-            // Derive key from password
             const encoder = new TextEncoder();
             const passwordBuffer = encoder.encode(password);
 
@@ -518,7 +477,6 @@ class MiningWalletManager {
                 ['decrypt']
             );
 
-            // Decrypt the data
             const decrypted = await crypto.subtle.decrypt(
                 {
                     name: 'AES-GCM',
@@ -551,12 +509,10 @@ class MiningWalletManager {
                 throw new Error('All fields required: userId, address, encrypted mnemonic');
             }
 
-            // Validate TON address format
             if (!walletAddress.startsWith('EQ') && !walletAddress.startsWith('kQ')) {
                 console.warn('⚠️ Address format may not be valid TON');
             }
 
-            // Prepare payload matching your backend
             const payload = {
                 userId: userId,
                 walletAddress: walletAddress,
@@ -567,10 +523,9 @@ class MiningWalletManager {
 
             console.log('📤 Sending to backend...');
 
-            // Send to your backend
             const response = await fetch(`${this.apiBaseUrl}/store-encrypted`, {
                 method: 'POST',
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
@@ -592,8 +547,8 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Store wallet failed:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: 'Failed to store wallet: ' + error.message
             };
         }
@@ -667,8 +622,8 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Get encrypted wallet failed:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: 'Failed to retrieve encrypted wallet: ' + error.message
             };
         }
@@ -683,8 +638,8 @@ class MiningWalletManager {
             console.log(`💰 Getting REAL balance for: ${address?.substring(0, 16) || 'null'}...`);
 
             if (!address) {
-                return { 
-                    success: false, 
+                return {
+                    success: false,
                     error: 'Wallet address required'
                 };
             }
@@ -707,8 +662,8 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Get REAL balance failed:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: 'Failed to fetch balance: ' + error.message
             };
         }
@@ -723,8 +678,8 @@ class MiningWalletManager {
             console.log(`📜 Getting transaction history for: ${address?.substring(0, 16) || 'null'}...`);
 
             if (!address) {
-                return { 
-                    success: false, 
+                return {
+                    success: false,
                     error: 'Address required'
                 };
             }
@@ -746,8 +701,8 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Get transaction history failed:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: 'Failed to fetch transactions: ' + error.message,
                 transactions: []
             };
@@ -769,14 +724,12 @@ class MiningWalletManager {
                 };
             }
 
-            // Get encrypted wallet first
             const walletData = await this.getEncryptedWallet(userId);
             if (!walletData.success) {
                 throw new Error('Failed to get wallet: ' + walletData.error);
             }
 
-            // Prepare transaction
-            const payload = { 
+            const payload = {
                 userId,
                 toAddress,
                 amount: parseFloat(amount),
@@ -807,8 +760,8 @@ class MiningWalletManager {
 
         } catch (error) {
             console.error('❌ Send transaction failed:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: 'Failed to send transaction: ' + error.message
             };
         }
@@ -825,7 +778,6 @@ class MiningWalletManager {
             return this.userId;
         }
 
-        // Check URL parameters
         const urlParams = new URLSearchParams(window.location.search);
         const userParam = urlParams.get('user');
 
@@ -843,14 +795,12 @@ class MiningWalletManager {
             }
         }
 
-        // Check window.miningUser
         if (window.miningUser && window.miningUser.id) {
             this.userId = window.miningUser.id;
             this.miningUser = window.miningUser;
             return this.userId;
         }
 
-        // Check sessionStorage
         const sessionUser = sessionStorage.getItem('miningUser');
         if (sessionUser) {
             try {
@@ -878,10 +828,10 @@ class MiningWalletManager {
         console.log('🚀 WalletManager.initialize() called');
 
         if (this.isInitialized && this.currentWallet) {
-            return { 
-                success: true, 
+            return {
+                success: true,
                 wallet: this.currentWallet,
-                hasWallet: true 
+                hasWallet: true
             };
         }
 
@@ -897,7 +847,6 @@ class MiningWalletManager {
 
             this.userId = userId;
 
-            // Check for existing wallet
             const result = await this.checkExistingWallet();
 
             if (result.success && result.hasWallet) {
@@ -976,8 +925,8 @@ class MiningWalletManager {
             message = 'Weak password';
         }
 
-        return { 
-            valid: true, 
+        return {
+            valid: true,
             message: message,
             strength: strength
         };
@@ -986,7 +935,6 @@ class MiningWalletManager {
     validateTONAddress(address) {
         if (!address) return { valid: false, error: 'Address required' };
 
-        // Basic TON address validation
         const isValidFormat = address.startsWith('EQ') || address.startsWith('UQ') || address.startsWith('0:');
         const isValidLength = address.length >= 48 && address.length <= 66;
 
@@ -1074,7 +1022,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         userId: result.userId
                     });
 
-                    // Trigger UI update
                     if (result.hasWallet && typeof window.initWallet === 'function') {
                         setTimeout(() => window.initWallet(), 500);
                     }
@@ -1090,9 +1037,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 console.log('✅ FIXED PRODUCTION Wallet Manager ready!');
-console.log('📋 Features:');
-console.log('   • Compatible with ton@13.11.2');
-console.log('   • FULL BIP-39 wordlist (2048 words)');
-console.log('   • Fixed TON wallet generation');
-console.log('   • AES-256-GCM encryption');
-console.log('   • Backend API integration');
