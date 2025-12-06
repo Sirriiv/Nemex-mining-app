@@ -304,7 +304,7 @@
             transform: scale(1.1);
         }
 
-        /* QR CODE STYLES */
+        /* QR CODE STYLES - WHITE CONTAINER WITH BLACK PATTERN */
         .qr-code-container {
             text-align: center;
             margin: 20px 0;
@@ -314,13 +314,14 @@
         }
 
         .qr-code {
-            width: 200px;
-            height: 200px;
+            width: 220px;
+            height: 220px;
             margin: 0 auto;
-            background: #000000 !important;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
+            background: #ffffff !important;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid var(--gold);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .qr-code canvas {
@@ -1193,15 +1194,15 @@
             const toast = document.getElementById('toast');
             toast.textContent = message;
             toast.className = 'toast';
-            
+
             if (type === 'error') {
                 toast.classList.add('error');
             } else if (type === 'info') {
                 toast.classList.add('info');
             }
-            
+
             toast.style.display = 'block';
-            
+
             setTimeout(() => {
                 toast.style.display = 'none';
             }, 3000);
@@ -1275,11 +1276,11 @@
                 }
 
                 console.log('✅ User authenticated:', user.email);
-                
+
                 // Hide loading screen and show main content
                 document.getElementById('loadingOverlay').style.display = 'none';
                 document.getElementById('mainContent').style.display = 'flex';
-                
+
                 return user;
             } catch (error) {
                 console.error('❌ Auth check error:', error);
@@ -1622,7 +1623,7 @@
             currentSecretKey = '';
         }
 
-        // FIXED: QR Code generation with proper error handling
+        // FIXED: QR Code generation with WHITE CONTAINER & BLACK PATTERN
         async function generateQRCodeWithSecret(secretKey, userEmail) {
             const issuer = "NemexCoin";
             const otpAuthUri = `otpauth://totp/${issuer}:${userEmail}?secret=${secretKey}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
@@ -1636,20 +1637,20 @@
                     throw new Error('QRCode library not loaded');
                 }
 
-                // Create proper QR code with gold dots on black background
+                // Create proper QR code with BLACK dots on WHITE background (like wallet)
                 QRCode.toCanvas(qrCodeElement, otpAuthUri, {
-                    width: 200,
-                    height: 200,
+                    width: 180,
+                    height: 180,
                     margin: 1,
-                    colorDark: "#d4af37",  // GOLD dots
-                    colorLight: "#000000", // BLACK background
+                    colorDark: "#000000",  // BLACK dots (like wallet pattern)
+                    colorLight: "#ffffff", // WHITE background (like wallet container)
                     correctLevel: QRCode.CorrectLevel.H
                 }, function(error) {
                     if (error) {
                         console.error('QR Code generation error:', error);
                         createFallbackQRCode();
                     } else {
-                        console.log('✅ QR Code generated successfully');
+                        console.log('✅ QR Code generated successfully (white container with black pattern)');
                     }
                 });
             } catch (error) {
@@ -1684,32 +1685,33 @@
             });
         }
 
+        // UPDATED: Fallback QR code with WHITE BACKGROUND and BLACK PATTERN
         function createFallbackQRCode() {
             const qrCodeElement = document.getElementById('qrCode');
             qrCodeElement.innerHTML = '';
 
             const canvas = document.createElement('canvas');
-            canvas.width = 200;
-            canvas.height = 200;
+            canvas.width = 180;
+            canvas.height = 180;
             const ctx = canvas.getContext('2d');
 
-            // Black background
+            // WHITE background (like wallet)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 180, 180);
+
+            // BLACK dots (like wallet pattern)
             ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 0, 200, 200);
 
-            // Gold dots
-            ctx.fillStyle = '#d4af37';
+            // Position markers (black squares on white)
+            ctx.fillRect(20, 20, 30, 30);
+            ctx.fillRect(130, 20, 30, 30);
+            ctx.fillRect(20, 130, 30, 30);
 
-            // Position markers
-            ctx.fillRect(20, 20, 40, 40);
-            ctx.fillRect(140, 20, 40, 40);
-            ctx.fillRect(20, 140, 40, 40);
-
-            // Pattern
-            for (let i = 0; i < 12; i++) {
-                for (let j = 0; j < 12; j++) {
+            // QR pattern (black dots on white)
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
                     if ((i + j) % 3 === 0 || (i * j) % 5 === 0) {
-                        ctx.fillRect(30 + i * 12, 30 + j * 12, 8, 8);
+                        ctx.fillRect(30 + i * 12, 30 + j * 12, 6, 6);
                     }
                 }
             }
@@ -2021,7 +2023,7 @@
             });
         });
 
-        console.log('🔧 Security page loaded - All fixes applied + Delete Account feature + Loading Screen + Notifications');
+        console.log('🔧 Security page loaded - QR code fixed to white container with black pattern');
     </script>
 </body>
 </html>
