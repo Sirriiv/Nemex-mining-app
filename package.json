@@ -17,8 +17,10 @@
     "bcryptjs": "^2.4.3",
     "crypto-js": "^4.1.1",
     "tonweb": "^0.0.60",
-    "bip39": "^3.1.0",
-    "node-fetch": "^2.6.9"
+    "tonweb-mnemonic": "^0.0.4",     // ← ADD THIS
+    "ton-crypto": "^3.2.0",          // ← ADD THIS
+    "bip39": "^3.1.0"
+    // REMOVE: "node-fetch": "^2.6.9" - Not needed with Node 18+
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
