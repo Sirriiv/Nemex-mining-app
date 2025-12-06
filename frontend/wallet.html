@@ -6,18 +6,14 @@
     <title>Nemex Wallet - Secure TON Wallet</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <!-- Client-side TON library only -->
-<script src="https://unpkg.com/@ton/ton@13.10.1/dist/index.min.js"></script> ============================================= -->
-    <!-- 🎯 SIMPLE DASHBOARD CONNECTION -->
-    <!-- ============================================= -->
+    <script src="https://unpkg.com/@ton/ton@13.10.1/dist/index.min.js"></script>
+    
+    <!-- Dashboard Connection -->
     <script>
     console.log('🔗 Simple dashboard connection setup...');
 
-    // Quick check for user data on page load
     document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
-            // Check URL for user data first
             const urlParams = new URLSearchParams(window.location.search);
             const userParam = urlParams.get('user');
 
@@ -32,7 +28,6 @@
                 }
             }
 
-            // If no URL data, check sessionStorage
             if (!window.miningUser) {
                 try {
                     const sessionUser = sessionStorage.getItem('miningUser');
@@ -45,7 +40,6 @@
                 }
             }
 
-            // Log what we found
             if (window.miningUser) {
                 console.log('✅ User ready for wallet.js:', window.miningUser.id);
             } else {
@@ -674,31 +668,14 @@
             color: var(--warning);
         }
 
-        .mnemonic-words {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin: 16px 0;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(212, 175, 55, 0.3);
-        }
-
-        .mnemonic-word {
-            padding: 8px;
-            background: rgba(212, 175, 55, 0.1);
-            border-radius: 4px;
-            font-family: monospace;
-            display: flex;
-            align-items: center;
-        }
-
-        .word-index {
-            color: var(--gold);
-            font-weight: bold;
-            margin-right: 8px;
-            font-size: 12px;
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--gold);
+            animation: spin 1s ease-in-out infinite;
         }
 
         /* Settings Modal Styles */
@@ -793,79 +770,6 @@
         .strength-weak { color: var(--error); }
         .strength-medium { color: var(--warning); }
         .strength-strong { color: var(--success); }
-
-        /* Wallet Management */
-        .wallet-management-section {
-            margin: 20px 0;
-        }
-
-        .wallet-management-header {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: var(--border-radius-sm);
-            padding: 16px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .wallet-management-title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        .wallet-management-arrow {
-            color: var(--gold);
-            transition: transform 0.3s ease;
-        }
-
-        .wallet-management-content {
-            display: none;
-            margin-top: 10px;
-        }
-
-        .wallet-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .wallet-item {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 12px;
-        }
-
-        .add-wallet-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .add-wallet-btn {
-            background: rgba(212, 175, 55, 0.1);
-            border: 1px solid var(--gold);
-            color: var(--gold);
-            padding: 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .add-wallet-btn:hover {
-            background: rgba(212, 175, 55, 0.2);
-        }
 
         /* Message Styles */
         .message {
@@ -1056,7 +960,6 @@
         }
 
         /* ===== RECEIVE MODAL WALLET CARD STYLES ===== */
-        /* Wallet Card Center Section */
         .wallet-card-center-section {
             flex: 1;
             display: flex;
@@ -1337,7 +1240,6 @@
             background: var(--dark-bg);
             max-width: 100%;
             padding: 0;
-            /* CRITICAL: Ensure entire modal is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1420,7 +1322,6 @@
             background: rgba(212, 175, 55, 0.03);
             border-bottom: 1px solid rgba(212, 175, 55, 0.1);
             margin: 0;
-            /* CRITICAL: Ensure container is visible */
             opacity: 1 !important;
             visibility: visible !important;
             display: block !important;
@@ -1432,7 +1333,6 @@
             gap: 8px;
             flex-wrap: wrap;
             justify-content: center;
-            /* CRITICAL: Ensure item is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1441,32 +1341,25 @@
             color: var(--text-muted);
             font-size: 14px;
             font-weight: 600;
-            /* CRITICAL: Ensure label is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
 
-        /* CRITICAL FIX: Balance value visibility */
         .balance-value {
-            color: var(--gold) !important; /* Force gold color */
-            font-size: 20px !important; /* Force font size */
-            font-weight: 700 !important; /* Force font weight */
-            /* CRITICAL: Ensure value is visible */
+            color: var(--gold) !important;
+            font-size: 20px !important;
+            font-weight: 700 !important;
             opacity: 1 !important;
             visibility: visible !important;
             display: inline !important;
-            /* Prevent any text hiding */
             text-transform: none !important;
             font-family: inherit !important;
-            /* Ensure proper contrast */
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-            /* Force specific styles */
             background: transparent !important;
             border: none !important;
             outline: none !important;
         }
 
-        /* Specific fix for the balance number element */
         #realNmxpBalance {
             color: var(--gold) !important;
             font-size: 20px !important;
@@ -1489,7 +1382,6 @@
             background: rgba(212, 175, 55, 0.08);
             padding: 4px 8px;
             border-radius: 6px;
-            /* CRITICAL: Ensure currency is visible */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1504,7 +1396,6 @@
             margin: 0 auto;
             width: 100%;
             padding: 20px;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1520,7 +1411,6 @@
             margin-bottom: 8px;
             display: block;
             text-align: left;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1536,7 +1426,6 @@
             padding: 16px;
             transition: all 0.3s ease;
             position: relative;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1556,7 +1445,6 @@
             outline: none;
             text-align: left;
             min-width: 0;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1581,7 +1469,6 @@
             border: 1px solid rgba(212, 175, 55, 0.3);
             min-width: 60px;
             text-align: center;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1597,7 +1484,6 @@
             cursor: pointer;
             transition: all 0.3s ease;
             font-size: 11px;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1612,7 +1498,6 @@
             margin: 15px 0;
             color: var(--gold);
             font-size: 20px;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1630,7 +1515,6 @@
             margin-top: 20px;
             padding-top: 15px;
             border-top: 1px solid rgba(212, 175, 55, 0.1);
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1639,7 +1523,6 @@
             color: var(--text-muted);
             font-size: 12px;
             font-weight: 600;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1657,7 +1540,6 @@
             font-size: 15px;
             text-transform: none;
             letter-spacing: normal;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1695,7 +1577,6 @@
             border-top: 1px solid rgba(212, 175, 55, 0.1);
             text-align: center;
             line-height: 1.4;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1711,7 +1592,6 @@
             height: 100%;
             display: flex;
             flex-direction: column;
-            /* Ensure visibility */
             opacity: 1 !important;
             visibility: visible !important;
         }
@@ -1798,63 +1678,17 @@
             overflow: hidden;
         }
 
-        /* Additional styles for Import/Export modals */
-        .security-warning.critical {
-            background: rgba(255, 68, 68, 0.1);
-            border: 1px solid var(--error);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 24px;
+        .wallet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .mnemonic-words.three-column {
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            background: rgba(212, 175, 55, 0.05);
-            border: 2px solid rgba(212, 175, 55, 0.2);
-            padding: 24px;
-            border-radius: 16px;
-        }
-
-        .wallet-selection-list {
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 16px 0;
+        .wallet-item {
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: var(--border-radius-sm);
-        }
-
-        .wallet-option {
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .wallet-option:hover {
-            background: rgba(212, 175, 55, 0.1);
-        }
-
-        .wallet-option:last-child {
-            border-bottom: none;
-        }
-
-        .wallet-path {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-
-        .wallet-address-display {
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            word-break: break-all;
-        }
-
-        .wallet-description {
-            font-size: 11px;
-            color: var(--gold);
-            margin-top: 4px;
+            border-radius: 8px;
+            padding: 12px;
         }
 
         /* Responsive Design */
@@ -1973,14 +1807,11 @@
             <div class="welcome-title">Welcome to Nemex Wallet</div>
             <div class="welcome-subtitle">
                 Secure, non-custodial wallet for TON and NemexCoin. 
-                Create your personal wallet or import an existing one to get started.
+                Create your personal wallet to get started.
             </div>
             <div class="welcome-actions">
                 <button class="welcome-btn primary" onclick="showCreateWalletModal()">
                     Create New Wallet
-                </button>
-                <button class="welcome-btn secondary" onclick="showImportWalletModal()">
-                    Import Existing Wallet
                 </button>
             </div>
         </div>
@@ -2060,133 +1891,38 @@
             </div>
         </nav>
 
-        <!-- ============================================= -->
-        <!-- CREATE WALLET MODAL - PRODUCTION READY -->
-        <!-- ============================================= -->
+        <!-- CREATE WALLET MODAL - SIMPLIFIED -->
         <div id="createWalletModal" class="modal">
             <div class="modal-content">
-                <div class="modal-title">Create New Wallet</div>
+                <div class="modal-title">Create Your Nemex Wallet</div>
                 <div class="security-warning">
-                    <strong>⚠️ IMPORTANT:</strong> You will generate a 12-word recovery phrase. Store it securely!
+                    <strong>🔒 Secure Wallet:</strong> Your personal wallet will be automatically created and linked to your mining account.
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Create Password (8+ characters):</label>
+                    <input type="password" id="walletPassword" class="form-input" placeholder="Enter password" minlength="8">
+                    <div class="password-strength" id="passwordStrength"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm Password:</label>
+                    <input type="password" id="confirmWalletPassword" class="form-input" placeholder="Confirm password" minlength="8">
                 </div>
 
                 <div id="createWalletStatus"></div>
 
-                <button class="close-modal" onclick="generateNewWallet()" id="generateWalletBtn">
-                    Generate New Wallet
+                <button class="close-modal" onclick="createAutoWallet()" id="createWalletBtn">
+                    Create Wallet
                 </button>
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
             </div>
         </div>
 
-        <!-- ============================================= -->
-        <!-- IMPORT WALLET MODAL - PRODUCTION READY -->
-        <!-- ============================================= -->
-        <div id="importWalletModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title">Import Wallet</div>
-                <div class="security-warning">
-                    <strong>🔑 Enter your 12 or 24-word recovery phrase:</strong>
-                </div>
-
-                <div class="form-group">
-                    <textarea id="importMnemonic" placeholder="Enter your recovery phrase separated by spaces" 
-                              class="form-textarea" rows="4"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Target Wallet Address (Optional)</label>
-                    <input type="text" id="targetAddress" class="form-input" 
-                           placeholder="EQ... (if you know which address to import)">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
-                        If you know your Tonkeeper address, enter it here for automatic detection
-                    </div>
-                </div>
-
-                <div id="importWalletStatus"></div>
-
-                <button class="close-modal" onclick="importWalletFromModal()" id="importWalletBtn">
-                    Import Wallet
-                </button>
-                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
-            </div>
-        </div>
-
-        <!-- ============================================= -->
-        <!-- VIEW SEED PHRASE MODAL -->
-        <!-- ============================================= -->
-        <div id="viewSeedModal" class="modal fullscreen">
-            <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh;">
-                <!-- Premium Header -->
-                <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
-                    <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
-                        <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
-                            <button onclick="closeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
-                                <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                            <div>
-                                <div class="modal-title" style="color: var(--gold); font-size: 24px; font-weight: 700; margin: 0;">Recovery Phrase</div>
-                                <div style="font-size: 14px; color: var(--text-muted); margin-top: 4px;">Your wallet's secret backup phrase</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div style="padding: 32px 24px; max-width: 500px; margin: 0 auto; width: 100%;">
-                    <!-- Critical Security Warning -->
-                    <div class="security-warning critical">
-                        <div style="display: flex; align-items: flex-start; gap: 12px;">
-                            <div style="width: 24px; height: 24px; background: var(--error); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <svg style="width: 14px; height: 14px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <div style="font-size: 16px; color: var(--error); font-weight: 700; margin-bottom: 8px;">CRITICAL SECURITY WARNING</div>
-                                <div style="font-size: 14px; color: var(--text); line-height: 1.5;">
-                                    • <strong>Never share</strong> your recovery phrase with anyone<br>
-                                    • <strong>Never enter</strong> it on any website or app<br>
-                                    • <strong>Store securely</strong> offline - we cannot recover it for you<br>
-                                    • Anyone with these words can access your funds
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Mnemonic Words Display -->
-                    <div class="mnemonic-words three-column" id="viewSeedWords"></div>
-
-                    <!-- Copy Button -->
-                    <button onclick="copySeedPhrase()" style="width: 100%; background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%); color: var(--dark-bg); border: none; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease; margin-bottom: 16px;">
-                         Copy Recovery Phrase
-                    </button>
-
-                    <!-- Close Button -->
-                    <button class="close-modal secondary" onclick="closeModal()" style="width: 100%; background: transparent; border: 2px solid rgba(212, 175, 55, 0.4); color: var(--gold); padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s ease;">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- ============================================= -->
         <!-- SETTINGS MODAL -->
-        <!-- ============================================= -->
         <div id="settingsModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Settings</div>
-
-                <!-- 🎯 VIEW RECOVERY PHRASE -->
-                <div class="settings-option" onclick="viewRecoveryPhrase()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
-                        </svg>
-                        <div>View Recovery Phrase</div>
-                    </div>
-                </div>
 
                 <!-- CHANGE PASSWORD -->
                 <div class="settings-option" onclick="showChangePasswordModal()">
@@ -2194,7 +1930,7 @@
                         <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                         </svg>
-                        <div>Change Encryption Password</div>
+                        <div>Change Wallet Password</div>
                     </div>
                 </div>
 
@@ -2228,17 +1964,11 @@
                     </div>
                 </div>
 
-                <div class="security-warning">
-                    <strong>🔒 Non-Custodial:</strong> You control your keys. We never access your funds.
-                </div>
-
                 <button class="close-modal" onclick="closeModal()">Close Settings</button>
             </div>
         </div>
 
-        <!-- ============================================= -->
         <!-- SEND MODAL -->
-        <!-- ============================================= -->
         <div id="sendModal" class="modal fullscreen">
             <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
                 <!-- Premium Header with Close Button -->
@@ -2552,9 +2282,7 @@
             </div>
         </div>
 
-        <!-- ============================================= -->
         <!-- RECEIVE MODAL -->
-        <!-- ============================================= -->
         <div id="receiveModal" class="modal fullscreen">
             <div class="modal-content">
                 <!-- Header -->
@@ -2644,9 +2372,7 @@
             </div>
         </div>
 
-        <!-- ============================================= -->
         <!-- CONVERT NMXp MODAL -->
-        <!-- ============================================= -->
         <div class="modal fullscreen-modal" id="productionSwapModal" style="display: none;">
             <div class="modal-content compact-modal">
                 <!-- Compact Header with Back Button ONLY -->
@@ -2719,9 +2445,7 @@
             </div>
         </div>
 
-        <!-- ============================================= -->
         <!-- WALLET SETUP MODAL -->
-        <!-- ============================================= -->
         <div class="modal fullscreen-modal" id="walletSetupModal" style="display: none;">
             <div class="modal-content mini-modal">
                 <div class="modal-header">
@@ -2743,9 +2467,7 @@
             </div>
         </div>
 
-        <!-- ============================================= -->
         <!-- DELETE WALLET MODAL -->
-        <!-- ============================================= -->
         <div id="deleteWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title" style="color: var(--error);">⚠️ Delete Wallet</div>
@@ -2793,10 +2515,10 @@
 
     <script>
 // =============================================
-// 🎯 MAIN WALLET APPLICATION CODE - PRODUCTION READY
+// 🎯 MAIN WALLET APPLICATION CODE - NO SEED PHRASES
 // =============================================
 
-console.log('🚀 Nemex Wallet Application Starting (Production Ready)...');
+console.log('🚀 Nemex Wallet Application Starting...');
 
 // =============================================
 // 🎯 GLOBAL STATE MANAGEMENT
@@ -2837,8 +2559,6 @@ let SUPPORTED_TOKENS = [
     }
 ];
 
-let currentMnemonic = null;
-let pendingWalletCreation = null;
 let currentSendToken = 'TON';
 let currentTokenBalance = 0;
 let currentTokenPrice = 0;
@@ -3076,7 +2796,7 @@ function showModal(modalId) {
 }
 
 // =============================================
-// 🎯 WALLET CREATION FUNCTIONS - PRODUCTION READY
+// 🎯 WALLET CREATION FUNCTIONS - SIMPLIFIED
 // =============================================
 
 function showCreateWalletModal() {
@@ -3089,398 +2809,70 @@ function showCreateWalletModal() {
     if (createModal) createModal.style.display = 'flex';
 }
 
-async function generateNewWallet() {
-    console.log('🎯 Generate New Wallet button clicked!');
-
-    const generateBtn = document.getElementById('generateWalletBtn');
-    const statusElement = document.getElementById('createWalletStatus');
-
-    try {
-        generateBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Generating...';
-        generateBtn.disabled = true;
-
-        showStatusMessage('Generating secure wallet...', 'loading', statusElement);
-
-        const userId = getCurrentUserId();
-        if (!userId) {
-            throw new Error('Please login to your mining account first');
-        }
-
-        console.log('🔐 Creating wallet for user:', userId);
-
-        if (!window.walletManager || !window.walletManager.generateMnemonic) {
-            throw new Error('Wallet system not loaded. Please refresh the page.');
-        }
-
-        const mnemonic = window.walletManager.generateMnemonic();
-
-        if (!mnemonic) {
-            throw new Error('Failed to generate recovery phrase');
-        }
-
-        currentMnemonic = mnemonic;
-        pendingWalletCreation = { userId, mnemonic };
-
-        showPasswordModalForEncryption(userId, mnemonic);
-
-    } catch (error) {
-        console.error('❌ Wallet generation failed:', error);
-        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
-
-        if (generateBtn) {
-            generateBtn.innerHTML = 'Generate New Wallet';
-            generateBtn.disabled = false;
-        }
-    }
-}
-
-function showPasswordModalForEncryption(userId, mnemonic) {
-    console.log('🔐 Showing password modal for encryption');
-    closeModal();
-
-    const modalHTML = `
-        <div class="modal-overlay" style="display: flex;">
-            <div class="modal-content" style="max-width: 450px; background: var(--card-bg); padding: 24px; border-radius: 16px;">
-                <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--gold); margin-bottom: 10px;">🔐 Set Wallet Encryption Password</h3>
-                    <div class="security-warning" style="margin-bottom: 15px;">
-                        <strong>🔒 IMPORTANT:</strong> This password encrypts your seed phrase locally.
-                        We never see your password or unencrypted seed phrase.
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text);">
-                        <strong>Encryption Password</strong> (min 8 characters)
-                    </label>
-                    <input type="password" id="walletPassword" class="form-input" 
-                           placeholder="Enter a strong password" autocomplete="new-password"
-                           minlength="8" required>
-                    <div class="password-strength" id="passwordStrength"></div>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text);">
-                        <strong>Confirm Password</strong>
-                    </label>
-                    <input type="password" id="confirmPassword" class="form-input" 
-                           placeholder="Confirm your password" autocomplete="new-password"
-                           minlength="8" required>
-                </div>
-                
-                <div id="passwordError" style="display: none; margin: 15px 0; padding: 10px; background: rgba(255,68,68,0.1); border-radius: 8px; color: var(--error);"></div>
-                
-                <div style="display: flex; gap: 10px;">
-                    <button class="close-modal secondary" style="flex: 1;" onclick="closePasswordModal()">Cancel</button>
-                    <button class="close-modal" style="flex: 1;" onclick="encryptAndStoreWallet('${userId}')" id="encryptBtn">
-                        <span id="encryptBtnText">Encrypt & Create Wallet</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHTML;
-    modalContainer.id = 'encryptModal';
-    document.body.appendChild(modalContainer);
-
-    setTimeout(() => {
-        const passwordInput = document.getElementById('walletPassword');
-        if (passwordInput) {
-            passwordInput.focus();
-            passwordInput.addEventListener('input', function() {
-                checkPasswordStrength(this.value, 'passwordStrength');
-            });
-        }
-    }, 100);
-}
-
-function closePasswordModal() {
-    const modal = document.getElementById('encryptModal');
-    if (modal && modal.parentNode) {
-        modal.parentNode.remove();
-    }
-    currentMnemonic = null;
-    pendingWalletCreation = null;
-}
-
-async function encryptAndStoreWallet(userId) {
-    console.log('🔐 Encrypting and storing wallet...');
+async function createAutoWallet() {
+    console.log('🎯 Creating auto wallet...');
 
     const password = document.getElementById('walletPassword')?.value;
-    const confirmPassword = document.getElementById('confirmPassword')?.value;
-    const errorDiv = document.getElementById('passwordError');
-    const encryptBtn = document.getElementById('encryptBtn');
-
-    if (errorDiv) errorDiv.style.display = 'none';
-
-    if (!password || !confirmPassword) {
-        showError('Please enter and confirm password', errorDiv);
-        return;
-    }
-
-    if (password !== confirmPassword) {
-        showError('Passwords do not match', errorDiv);
-        return;
-    }
-
-    if (password.length < 8) {
-        showError('Password must be at least 8 characters', errorDiv);
-        return;
-    }
-
-    if (!pendingWalletCreation || pendingWalletCreation.userId !== userId) {
-        showError('Session expired. Please try again.', errorDiv);
-        return;
-    }
-
-    const mnemonic = pendingWalletCreation.mnemonic;
+    const confirmPassword = document.getElementById('confirmWalletPassword')?.value;
+    const statusElement = document.getElementById('createWalletStatus');
+    const createBtn = document.getElementById('createWalletBtn');
 
     try {
-        if (encryptBtn) {
-            encryptBtn.disabled = true;
-            const btnText = document.getElementById('encryptBtnText');
-            if (btnText) btnText.textContent = 'Encrypting...';
+        if (!password || !confirmPassword) {
+            showStatusMessage('Please enter and confirm password', 'error', statusElement);
+            return;
         }
 
-        showToast('🔐 Generating wallet address...', 'info');
-        
-        // Use walletManager to generate address from mnemonic
-        const walletAddress = await window.walletManager.generateAddressFromMnemonic(mnemonic);
-
-        showToast('🔐 Encrypting seed phrase...', 'info');
-        const encryptedMnemonic = await window.walletManager.encrypt(mnemonic, password);
-
-        showToast('📦 Storing wallet securely...', 'info');
-        
-        // Send to backend with correct field names
-        const response = await fetch('/api/wallet/store-encrypted', {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                userId: userId,
-                walletAddress: walletAddress,
-                encryptedMnemonic: encryptedMnemonic,
-                wordCount: 12,
-                isImport: pendingWalletCreation.isImport || false
-            })
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        if (password !== confirmPassword) {
+            showStatusMessage('Passwords do not match', 'error', statusElement);
+            return;
         }
 
-        const result = await response.json();
-
-        if (result.success) {
-            console.log('✅ Wallet stored securely in database!');
-            closePasswordModal();
-            showBackupModal(mnemonic, walletAddress);
-        } else {
-            throw new Error(result.error || 'Failed to store wallet in database');
+        if (password.length < 8) {
+            showStatusMessage('Password must be at least 8 characters', 'error', statusElement);
+            return;
         }
 
-    } catch (error) {
-        console.error('❌ Failed to store wallet:', error);
-        showError('Failed: ' + error.message, errorDiv);
+        createBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Creating...';
+        createBtn.disabled = true;
 
-        if (encryptBtn) {
-            encryptBtn.disabled = false;
-            const btnText = document.getElementById('encryptBtnText');
-            if (btnText) btnText.textContent = 'Encrypt & Create Wallet';
-        }
-    }
-}
-
-function showBackupModal(mnemonic, walletAddress) {
-    console.log('📝 Showing backup modal');
-
-    const words = mnemonic.split(' ');
-    const modalHTML = `
-        <div class="modal-overlay" style="display: flex;">
-            <div class="modal-content" style="max-width: 650px; background: var(--card-bg); padding: 24px; border-radius: 16px;">
-                <div style="margin-bottom: 20px;">
-                    <h3 style="color: var(--gold); margin-bottom: 10px;">⚠️ CRITICAL: Backup Your Seed Phrase</h3>
-                    <div class="status-success" style="margin-bottom: 20px;">
-                        <strong>✅ WALLET CREATED SUCCESSFULLY!</strong><br>
-                        Your wallet is now securely stored and encrypted.
-                    </div>
-                </div>
-                
-                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h4 style="color: var(--text); margin-bottom: 10px;">Your Wallet Address:</h4>
-                    <div class="address-display" style="font-family: monospace; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 4px; word-break: break-all; font-size: 14px; margin: 10px 0;">
-                        ${walletAddress}
-                    </div>
-                    <button onclick="copyToClipboard('${walletAddress}')" class="close-modal secondary" style="margin-top: 5px; padding: 8px 16px;">
-                        📋 Copy Address
-                    </button>
-                </div>
-                
-                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                    <h4 style="color: var(--text); margin-bottom: 15px;">Your 12-Word Seed Phrase:</h4>
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0;">
-                        ${words.map((word, index) => `
-                            <div style="background: rgba(212,175,55,0.1); padding: 12px; border-radius: 6px; border: 2px solid rgba(212,175,55,0.3); text-align: center;">
-                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">${index + 1}</div>
-                                <div style="font-weight: 600; font-size: 16px; color: var(--text);">${word}</div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="security-warning" style="margin-top: 20px; padding: 15px;">
-                        <h5 style="color: var(--warning); margin-top: 0;">⚠️ SECURITY WARNINGS:</h5>
-                        <ul style="margin: 10px 0 0 0; padding-left: 20px; color: var(--warning);">
-                            <li><strong>Write down on paper</strong> - Never store digitally</li>
-                            <li><strong>Keep in a secure location</strong> - Fireproof safe recommended</li>
-                            <li><strong>Never share with anyone</strong> - We will never ask for it</li>
-                            <li><strong>This is your ONLY backup</strong> - Lost seed = Lost funds forever</li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div style="padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 20px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <input type="checkbox" id="backupConfirmed" style="width: 18px; height: 18px;">
-                        <label for="backupConfirmed" style="font-weight: 600; color: var(--text);">
-                            <strong>I have written down my seed phrase and stored it securely</strong>
-                        </label>
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 10px;">
-                    <button class="close-modal secondary" style="flex: 1;" onclick="closeBackupModal()">Cancel</button>
-                    <button id="confirmBackupBtn" class="close-modal" style="flex: 1;" onclick="finalizeWalletCreation()" disabled>
-                        ✅ I've Securely Backed Up My Seed Phrase
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHTML;
-    modalContainer.id = 'backupModal';
-    document.body.appendChild(modalContainer);
-
-    const checkbox = document.getElementById('backupConfirmed');
-    if (checkbox) {
-        checkbox.addEventListener('change', function() {
-            const btn = document.getElementById('confirmBackupBtn');
-            if (btn) btn.disabled = !this.checked;
-        });
-    }
-}
-
-function closeBackupModal() {
-    const modal = document.getElementById('backupModal');
-    if (modal && modal.parentNode) {
-        modal.parentNode.remove();
-    }
-    currentMnemonic = null;
-    pendingWalletCreation = null;
-}
-
-async function finalizeWalletCreation() {
-    console.log('✅ Finalizing wallet creation');
-
-    try {
-        currentMnemonic = null;
-        pendingWalletCreation = null;
-
-        closeBackupModal();
-
-        showToast('🎉 Wallet created successfully! You can now send and receive tokens.', 'success');
-
-        if (window.initWallet) {
-            console.log('🔄 Refreshing wallet display...');
-            await window.initWallet();
-        }
-
-    } catch (error) {
-        console.error('❌ Finalize wallet creation failed:', error);
-        showToast('❌ Error: ' + error.message, 'error');
-    }
-}
-
-function showError(message, errorDiv) {
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-    } else {
-        showToast('❌ ' + message, 'error');
-    }
-}
-
-// =============================================
-// 🎯 IMPORT WALLET FUNCTIONS - PRODUCTION READY
-// =============================================
-
-function showImportWalletModal() {
-    if (!validateUserLoggedIn()) {
-        return;
-    }
-
-    closeModal();
-    const importModal = document.getElementById('importWalletModal');
-    if (importModal) {
-        importModal.style.display = 'flex';
-        document.getElementById('importMnemonic').value = '';
-        document.getElementById('targetAddress').value = '';
-        document.getElementById('importWalletStatus').innerHTML = '';
-    }
-}
-
-async function importWalletFromModal() {
-    const mnemonic = document.getElementById('importMnemonic').value.trim();
-    const targetAddress = document.getElementById('targetAddress').value.trim();
-    const importBtn = document.getElementById('importWalletBtn');
-    const statusElement = document.getElementById('importWalletStatus');
-
-    if (!mnemonic) {
-        showStatusMessage('Please enter your recovery phrase', 'error', statusElement);
-        return;
-    }
-
-    try {
-        importBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Validating...';
-        importBtn.disabled = true;
-
-        showStatusMessage('Validating seed phrase...', 'loading', statusElement);
-
-        if (!window.walletManager || !window.walletManager.validateMnemonic) {
-            throw new Error('Wallet system not loaded. Please refresh the page.');
-        }
-
-        const validation = window.walletManager.validateMnemonic(mnemonic);
-        if (!validation.valid) {
-            throw new Error(validation.error);
-        }
+        showStatusMessage('Creating your wallet...', 'loading', statusElement);
 
         const userId = getCurrentUserId();
         if (!userId) {
             throw new Error('Please login to your mining account first');
         }
 
-        pendingWalletCreation = { userId, mnemonic, isImport: true, targetAddress };
-
-        showPasswordModalForEncryption(userId, mnemonic);
+        // Use walletManager to create auto wallet
+        if (window.walletManager && typeof window.walletManager.createAutoWallet === 'function') {
+            const result = await window.walletManager.createAutoWallet(userId, password);
+            
+            if (result.success) {
+                showStatusMessage('✅ Wallet created successfully!', 'success', statusElement);
+                setTimeout(() => {
+                    closeModal();
+                    initWallet();
+                }, 1500);
+            } else {
+                throw new Error(result.error || 'Failed to create wallet');
+            }
+        } else {
+            throw new Error('Wallet system not loaded properly');
+        }
 
     } catch (error) {
-        console.error('❌ Wallet import failed:', error);
+        console.error('❌ Wallet creation failed:', error);
         showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
-        importBtn.innerHTML = 'Import Wallet';
-        importBtn.disabled = false;
+
+        if (createBtn) {
+            createBtn.innerHTML = 'Create Wallet';
+            createBtn.disabled = false;
+        }
     }
 }
 
 // =============================================
-// 🎯 SEND FUNCTIONALITY (UNCHANGED)
+// 🎯 SEND FUNCTIONALITY
 // =============================================
 
 function showSendModal() {
@@ -3830,7 +3222,7 @@ async function confirmSendTransaction() {
 }
 
 // =============================================
-// 🎯 RECEIVE FUNCTIONALITY (UNCHANGED)
+// 🎯 RECEIVE FUNCTIONALITY
 // =============================================
 
 function showReceiveModal() {
@@ -3941,7 +3333,7 @@ This single address can receive all supported TON blockchain tokens.
 }
 
 // =============================================
-// 🎯 CONVERT NMXp FUNCTIONALITY (UNCHANGED)
+// 🎯 CONVERT NMXp FUNCTIONALITY
 // =============================================
 
 function showSwapModal() {
@@ -3975,14 +3367,12 @@ function closeProductionSwapModal() {
 }
 
 async function getSupabaseClient() {
-    // This function should be implemented with your actual Supabase credentials
     console.log('⚠️ getSupabaseClient: Implement with your Supabase credentials');
     return null;
 }
 
 async function checkAuth() {
     try {
-        // Implement actual auth check with your backend
         const userId = getCurrentUserId();
         if (!userId) {
             return null;
@@ -3999,7 +3389,6 @@ async function getUserNMXpBalance(userId) {
         console.log('💰 Fetching NMXp balance for user:', userId);
         
         // In production, this would fetch from your backend
-        // For now, return dummy data
         return {
             balance: 0,
             wallet_address: null
@@ -4256,15 +3645,11 @@ function updateWalletAddressDisplay(walletAddress) {
 }
 
 // =============================================
-// 🎯 SETTINGS FUNCTIONS (UNCHANGED)
+// 🎯 SETTINGS FUNCTIONS
 // =============================================
 
 function showSettingsModal() {
     document.getElementById('settingsModal').style.display = 'flex';
-}
-
-function viewRecoveryPhrase() {
-    showToast('⚠️ View recovery phrase functionality coming soon!', 'warning');
 }
 
 function showChangePasswordModal() {
@@ -4332,7 +3717,7 @@ async function deleteWallet() {
 }
 
 // =============================================
-// 🎯 INITIALIZATION FUNCTIONS (UNCHANGED)
+// 🎯 INITIALIZATION FUNCTIONS
 // =============================================
 
 async function initWallet() {
@@ -4528,7 +3913,7 @@ function goToMiningDashboard() {
 }
 
 // =============================================
-// 🎯 PRICE API INTEGRATION (UNCHANGED)
+// 🎯 PRICE API INTEGRATION
 // =============================================
 
 const PRICE_APIS = [
