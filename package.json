@@ -8,7 +8,8 @@
     "dev": "nodemon server.js",
     "build": "echo \"No build step required\"",
     "production": "NODE_ENV=production node server.js",
-    "test": "echo \"No tests specified\""
+    "test": "echo \"No tests specified\"",
+    "preinstall": "npm install --legacy-peer-deps"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -18,13 +19,10 @@
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "crypto-js": "^4.1.1",
-    "@ton/ton": "^13.10.1",
-    "@ton/crypto": "^3.2.0",
     "@ton/core": "^0.57.3",
-    "ton": "^13.9.0",
+    "@ton/crypto": "^3.2.0",
+    "ton": "^13.11.2",
     "bip39": "^3.1.0",
-    "tonweb": "^0.0.60",
-    "tonweb-mnemonic": "^0.0.4",
     "node-fetch": "^3.3.2",
     "helmet": "^7.1.0",
     "compression": "^1.7.4",
