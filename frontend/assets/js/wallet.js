@@ -1,5 +1,5 @@
-// assets/js/wallet.js - CORRECTED VERSION FOR COMPATIBLE TON LIBRARIES
-console.log('🚀 PRODUCTION Wallet Manager v7.0 (Fixed TON Compatibility)');
+// assets/js/wallet.js - MINIMAL DEPENDENCY VERSION
+console.log('🚀 PRODUCTION Wallet Manager v8.0 (Minimal Dependencies)');
 
 class MiningWalletManager {
     constructor() {
@@ -219,15 +219,15 @@ class MiningWalletManager {
             "zoo"
         ];
 
-        console.log('✅ Fixed Wallet Manager initialized with FULL BIP-39 wordlist');
+        console.log('✅ Wallet Manager initialized with FULL BIP-39 wordlist');
     }
 
     // =============================================
-    // 🔥 REAL TON WALLET GENERATION (FIXED)
+    // 🔥 REAL TON WALLET GENERATION (CLIENT-SIDE ONLY)
     // =============================================
 
     async generateAddressFromMnemonic(mnemonic) {
-        console.log('📍 Generating REAL TON wallet address with @ton/ton...');
+        console.log('📍 Generating TON wallet address...');
 
         try {
             const mnemonicArray = mnemonic.trim().split(/\s+/);
@@ -237,7 +237,7 @@ class MiningWalletManager {
             }
 
             if (typeof window.mnemonicToWalletKey !== 'undefined' && typeof window.WalletContractV4 !== 'undefined') {
-                console.log('✅ Using @ton/ton library...');
+                console.log('✅ Using @ton/ton library from CDN...');
 
                 const keyPair = await window.mnemonicToWalletKey(mnemonicArray);
                 const wallet = window.WalletContractV4.create({
@@ -249,7 +249,7 @@ class MiningWalletManager {
                 console.log('✅ TON address generated:', address.substring(0, 20) + '...');
                 return address;
             } else {
-                console.warn('⚠️ @ton/ton library not loaded, using fallback');
+                console.warn('⚠️ TON library not loaded, using deterministic address');
                 return this.generateDeterministicAddress(mnemonic);
             }
 
@@ -1036,4 +1036,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('✅ FIXED PRODUCTION Wallet Manager ready!');
+console.log('✅ MINIMAL Wallet Manager ready!');
+console.log('📋 Features:');
+console.log('   • Client-side TON wallet generation');
+console.log('   • FULL BIP-39 wordlist (2048 words)');
+console.log('   • AES-256-GCM encryption');
+console.log('   • Backend API integration');
