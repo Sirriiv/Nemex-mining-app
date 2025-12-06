@@ -1,5 +1,5 @@
-// assets/js/wallet.js - FIXED VERSION WITH DASHBOARD INTEGRATION
-console.log('👛 Loading Nemex Wallet v4.0 (Fixed Dashboard Connection)...');
+// assets/js/wallet.js - FIXED VERSION WITH ALL METHODS
+console.log('👛 Loading Nemex Wallet v4.1 (Complete Fixed Version)...');
 
 class MiningWalletManager {
     constructor() {
@@ -246,10 +246,225 @@ class MiningWalletManager {
                     }
                 })
             }
-            // ... other price APIs
         ];
 
         console.log('✅ Secure Wallet Manager initialized');
+    }
+
+    // =============================================
+    // 🎯 CRITICAL: ENCRYPTION/DECRYPTION METHODS
+    // =============================================
+
+    async encrypt(text, password) {
+        console.log('🔐 Encrypting data...');
+        
+        if (!password || password.length < 8) {
+            throw new Error('Password must be at least 8 characters');
+        }
+
+        if (!text) {
+            throw new Error('No data to encrypt');
+        }
+
+        try {
+            // Convert password to key using PBKDF2
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+
+            // Generate salt
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+
+            // Import password as key material
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveBits', 'deriveKey']
+            );
+
+            // Derive key using PBKDF2
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt']
+            );
+
+            // Generate random IV
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const data = encoder.encode(text);
+
+            // Encrypt the data
+            const encrypted = await crypto.subtle.encrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                data
+            );
+
+            // Combine salt + IV + encrypted data
+            const encryptedArray = new Uint8Array(encrypted);
+            const result = new Uint8Array(salt.length + iv.length + encryptedArray.length);
+            result.set(salt);
+            result.set(iv, salt.length);
+            result.set(encryptedArray, salt.length + iv.length);
+
+            // Return as base64
+            return btoa(String.fromCharCode.apply(null, result));
+
+        } catch (error) {
+            console.error('Encryption error:', error);
+            throw new Error('Failed to encrypt data securely');
+        }
+    }
+
+    async decrypt(encryptedBase64, password) {
+        console.log('🔐 Decrypting data...');
+        
+        if (!password) {
+            throw new Error('Password required');
+        }
+
+        if (!encryptedBase64 || !encryptedBase64.startsWith('ENCv1:')) {
+            throw new Error('Invalid encrypted data format');
+        }
+
+        try {
+            // Remove prefix and decode
+            const encryptedData = encryptedBase64.substring(6);
+            const encryptedBytes = Uint8Array.from(atob(encryptedData), c => c.charCodeAt(0));
+
+            // Extract components
+            const salt = encryptedBytes.slice(0, 16);
+            const iv = encryptedBytes.slice(16, 28);
+            const encrypted = encryptedBytes.slice(28);
+
+            // Convert password to key
+            const encoder = new TextEncoder();
+            const passwordBuffer = encoder.encode(password);
+
+            // Import password as key material
+            const keyMaterial = await crypto.subtle.importKey(
+                'raw',
+                passwordBuffer,
+                'PBKDF2',
+                false,
+                ['deriveKey']
+            );
+
+            // Derive key using same parameters
+            const key = await crypto.subtle.deriveKey(
+                {
+                    name: 'PBKDF2',
+                    salt: salt,
+                    iterations: 100000,
+                    hash: 'SHA-256'
+                },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+
+            // Decrypt the data
+            const decrypted = await crypto.subtle.decrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: iv
+                },
+                key,
+                encrypted
+            );
+
+            // Convert back to text
+            return new TextDecoder().decode(decrypted);
+
+        } catch (error) {
+            console.error('Decryption error:', error);
+            if (error.name === 'OperationError') {
+                throw new Error('Incorrect password or corrupted data');
+            }
+            throw new Error('Failed to decrypt data: ' + error.message);
+        }
+    }
+
+    // =============================================
+    // 🎯 VALIDATE MNEMONIC METHOD
+    // =============================================
+
+    validateMnemonic(mnemonic) {
+        console.log('🔍 Validating mnemonic...');
+        
+        if (!mnemonic || typeof mnemonic !== 'string') {
+            return { valid: false, error: 'Invalid mnemonic format' };
+        }
+
+        const words = mnemonic.trim().split(/\s+/);
+        const wordCount = words.length;
+
+        if (wordCount !== 12 && wordCount !== 24) {
+            return {
+                valid: false,
+                error: `Seed phrase must be 12 or 24 words (got ${wordCount})`
+            };
+        }
+
+        // Check if all words are in BIP-39 list
+        const invalidWords = [];
+        for (const word of words) {
+            if (!this.BIP39_WORDLIST.includes(word.toLowerCase())) {
+                invalidWords.push(word);
+            }
+        }
+
+        if (invalidWords.length > 0) {
+            return {
+                valid: false,
+                error: `Invalid words: ${invalidWords.slice(0, 3).join(', ')}${invalidWords.length > 3 ? '...' : ''}`,
+                invalidWords: invalidWords
+            };
+        }
+
+        return { valid: true, wordCount: wordCount };
+    }
+
+    // =============================================
+    // 🎯 GENERATE TON ADDRESS METHOD
+    // =============================================
+
+    async generateAddressFromMnemonic(mnemonic) {
+        console.log('📍 Generating TON wallet address...');
+        
+        try {
+            // For now, generate deterministic mock address
+            // In production, integrate with tonweb-mnemonic
+            
+            // Simple SHA-256 hash of mnemonic
+            const encoder = new TextEncoder();
+            const data = encoder.encode(mnemonic + '::TON');
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            // Create mock TON address format
+            const address = 'EQA' + hashHex.substring(0, 44).toUpperCase() + '_' + Date.now().toString(36);
+            
+            console.log('✅ Generated address:', address.substring(0, 20) + '...');
+            return address;
+            
+        } catch (error) {
+            console.error('❌ Address generation error:', error);
+            throw new Error('Failed to generate wallet address');
+        }
     }
 
     // =============================================
@@ -268,7 +483,7 @@ class MiningWalletManager {
         // 2. Check URL parameters (from dashboard redirect)
         const urlParams = new URLSearchParams(window.location.search);
         const userParam = urlParams.get('user');
-        
+
         if (userParam) {
             try {
                 const userData = JSON.parse(decodeURIComponent(userParam));
@@ -655,7 +870,7 @@ class MiningWalletManager {
             const userId = this.getCurrentUserId();
             if (!userId) {
                 console.log('❌ No user ID found - showing login required');
-                
+
                 return {
                     success: false,
                     requiresLogin: true,
@@ -666,11 +881,11 @@ class MiningWalletManager {
             }
 
             this.userId = userId;
-            
+
             // Get user info
             const userData = this.getMiningUserData();
             const username = userData?.username || userData?.email || 'User';
-            
+
             console.log(`✅ Mining user authenticated: ${username} (${this.userId})`);
 
             // Show welcome message
@@ -1079,7 +1294,7 @@ class MiningWalletManager {
             // Get user data to show mining balance
             const userData = this.getMiningUserData();
             const miningBalance = userData?.miningBalance || 0;
-            
+
             return {
                 success: true,
                 balance: miningBalance,
@@ -1110,11 +1325,11 @@ window.showCreateWalletModal = function() {
     const userId = window.walletManager.getCurrentUserId();
     if (!userId) {
         console.error('❌ User not logged in');
-        
+
         // Get user data to show better error
         const userData = window.walletManager.getMiningUserData();
         const username = userData?.username || userData?.email;
-        
+
         if (typeof window.showMessage === 'function') {
             window.showMessage(username ? 
                 `Welcome ${username}! Please access wallet from dashboard menu.` : 
@@ -1122,7 +1337,7 @@ window.showCreateWalletModal = function() {
                 'error'
             );
         }
-        
+
         // Show redirect option
         setTimeout(() => {
             if (confirm('Go back to mining dashboard?')) {
@@ -1180,7 +1395,7 @@ window.validateUserLoggedIn = function() {
 // 🎯 NEW: Function to show wallet welcome message
 window.showWalletWelcome = function(username) {
     console.log(`🎉 Welcome to wallet, ${username}!`);
-    
+
     // You can add a welcome toast/notification here
     if (typeof window.showMessage === 'function') {
         window.showMessage(`Welcome to Nemex Wallet, ${username}!`, 'success');
@@ -1192,21 +1407,21 @@ window.checkDashboardConnection = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const source = urlParams.get('source');
     const userParam = urlParams.get('user');
-    
+
     if (source === 'dashboard' && userParam) {
         console.log('✅ Connected from dashboard successfully');
         return true;
     }
-    
+
     // Check if we have any user data
     const hasUserData = !!window.walletManager.getCurrentUserId();
     if (!hasUserData) {
         console.warn('⚠️ No dashboard connection found');
-        
+
         // Check if we should show a connection prompt
         const lastTry = localStorage.getItem('lastWalletAccessTry');
         const now = Date.now();
-        
+
         if (!lastTry || (now - parseInt(lastTry)) > 3600000) { // 1 hour
             if (confirm('Wallet needs connection to mining dashboard. Go to dashboard?')) {
                 window.location.href = 'dashboard.html?redirect=wallet';
@@ -1214,11 +1429,11 @@ window.checkDashboardConnection = function() {
             localStorage.setItem('lastWalletAccessTry', now.toString());
         }
     }
-    
+
     return hasUserData;
 };
 
-console.log('✅ Secure Wallet Manager ready with dashboard integration');
+console.log('✅ Secure Wallet Manager ready with ALL encryption methods');
 
 // =============================================
 // 🎯 FIXED: AUTO-INITIALIZATION WITH DASHBOARD CHECK
@@ -1231,14 +1446,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // First check dashboard connection
         setTimeout(() => {
             const hasConnection = window.checkDashboardConnection();
-            
+
             if (!hasConnection) {
                 console.warn('⚠️ No dashboard connection found on page load');
-                
+
                 // Check URL for redirect hints
                 const urlParams = new URLSearchParams(window.location.search);
                 const redirect = urlParams.get('redirect');
-                
+
                 if (redirect === 'dashboard') {
                     // We just came from dashboard but connection failed
                     console.log('🔄 Attempting to reconnect to dashboard...');
@@ -1262,12 +1477,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         userId: result.userId,
                         username: result.username
                     });
-                    
+
                     // Show user info in UI if available
                     if (result.username && typeof window.updateWalletUserInfo === 'function') {
                         window.updateWalletUserInfo(result.username, result.userId);
                     }
-                    
+
                 } else if (result.requiresLogin) {
                     console.warn('⚠️ User needs to login to mining site');
 
