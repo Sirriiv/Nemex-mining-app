@@ -1,15 +1,16 @@
-// assets/js/wallet.js - UPDATED FOR PASSWORD-BASED WALLETS
-console.log('🚀 PRODUCTION Wallet Manager v8.1 (Password-Based System)');
+// assets/js/wallet.js - UPDATED FOR UQ FORMAT + SUPABASE AUTO-LOGIN
+console.log('🚀 PRODUCTION Wallet Manager v10.0 (UQ Format + Supabase Auto-LOGIN)');
 
 class MiningWalletManager {
     constructor() {
         this.apiBaseUrl = '/api/wallet';
         this.currentWallet = null;
         this.userId = null;
+        this.miningAccountId = null;
         this.isInitialized = false;
-        this.miningUser = null;
-
-        // FULL BIP-39 WORDLIST (2048 WORDS)
+        this.supabase = null;
+        
+        // BIP-39 wordlist - all 2048 words
         this.BIP39_WORDLIST = [
             "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse",
             "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act",
@@ -219,15 +220,117 @@ class MiningWalletManager {
             "zoo"
         ];
 
-        console.log('✅ Wallet Manager initialized with FULL BIP-39 wordlist');
+        console.log('✅ Wallet Manager initialized for UQ format + Auto-Login');
+        
+        this.initializeSupabase();
     }
 
-    // =============================================
-    // 🔥 REAL TON WALLET GENERATION (CLIENT-SIDE ONLY)
-    // =============================================
+    initializeSupabase() {
+        try {
+            const supabaseUrl = window.SUPABASE_URL || process.env.SUPABASE_URL;
+            const supabaseKey = window.SUPABASE_KEY || process.env.SUPABASE_KEY;
+            
+            if (!supabaseUrl || !supabaseKey) {
+                console.error('❌ Supabase environment variables not set');
+                return;
+            }
+            
+            this.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+            console.log('✅ Supabase initialized for wallet system');
+        } catch (error) {
+            console.error('❌ Failed to initialize Supabase:', error);
+        }
+    }
+
+    async getMiningAccountId() {
+        console.log('🔍 Getting mining account ID from Supabase...');
+        
+        try {
+            const { data: { session }, error: sessionError } = await this.supabase.auth.getSession();
+            
+            if (sessionError) {
+                console.error('❌ Supabase session error:', sessionError);
+                return null;
+            }
+            
+            if (session && session.user) {
+                console.log('✅ Got user from Supabase Auth:', session.user.id);
+                
+                const { data: profile, error: profileError } = await this.supabase
+                    .from('profiles')
+                    .select('id, username, email, balance')
+                    .eq('id', session.user.id)
+                    .single();
+                
+                if (profileError) {
+                    console.error('❌ Profile error:', profileError);
+                    return null;
+                }
+                
+                if (profile) {
+                    this.miningAccountId = profile.id;
+                    this.userId = profile.id;
+                    
+                    window.miningUser = {
+                        id: profile.id,
+                        username: profile.username || 'User',
+                        email: profile.email || '',
+                        miningBalance: profile.balance || 0
+                    };
+                    
+                    console.log('✅ Mining account ID set from Supabase:', this.miningAccountId);
+                    return this.miningAccountId;
+                }
+            }
+            
+            if (window.miningUser && window.miningUser.id) {
+                this.miningAccountId = window.miningUser.id;
+                this.userId = window.miningUser.id;
+                console.log('✅ Mining account ID from window.miningUser:', this.miningAccountId);
+                return this.miningAccountId;
+            }
+            
+            const sessionUser = sessionStorage.getItem('miningUser');
+            if (sessionUser) {
+                try {
+                    const userData = JSON.parse(sessionUser);
+                    if (userData && userData.id) {
+                        this.miningAccountId = userData.id;
+                        this.userId = userData.id;
+                        console.log('✅ Mining account ID from sessionStorage:', this.miningAccountId);
+                        return this.miningAccountId;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Error parsing sessionStorage user:', e);
+                }
+            }
+            
+            const localUser = localStorage.getItem('nemexcoin_wallet_user');
+            if (localUser) {
+                try {
+                    const userData = JSON.parse(localUser);
+                    if (userData && userData.id) {
+                        this.miningAccountId = userData.id;
+                        this.userId = userData.id;
+                        console.log('✅ Mining account ID from localStorage:', this.miningAccountId);
+                        return this.miningAccountId;
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Error parsing localStorage user:', e);
+                }
+            }
+            
+            console.warn('❌ No mining account ID found');
+            return null;
+            
+        } catch (error) {
+            console.error('❌ Error getting mining account ID:', error);
+            return null;
+        }
+    }
 
     async generateAddressFromMnemonic(mnemonic) {
-        console.log('📍 Generating TON wallet address...');
+        console.log('📍 Generating TON wallet address (UQ format)...');
 
         try {
             const mnemonicArray = mnemonic.trim().split(/\s+/);
@@ -247,9 +350,17 @@ class MiningWalletManager {
 
                 const address = wallet.address.toString();
                 console.log('✅ TON address generated:', address.substring(0, 20) + '...');
+                
+                // 🔥 FIX: Convert to UQ format if not already
+                if (address.startsWith('EQ')) {
+                    const uqAddress = 'UQ' + address.substring(2);
+                    console.log('🔄 Converted EQ to UQ format:', uqAddress.substring(0, 20) + '...');
+                    return uqAddress;
+                }
+                
                 return address;
             } else {
-                console.warn('⚠️ TON library not loaded, using deterministic address');
+                console.warn('⚠️ TON library not loaded, using deterministic UQ address');
                 return this.generateDeterministicAddress(mnemonic);
             }
 
@@ -269,8 +380,9 @@ class MiningWalletManager {
                 hash += data[i].toString(16).padStart(2, '0');
             }
 
-            const address = 'EQA' + hash.substring(0, 44).toUpperCase();
-            console.log('📝 Generated deterministic address:', address);
+            // 🔥 FIX: Generate UQ format address instead of EQ
+            const address = 'UQA' + hash.substring(0, 44).toUpperCase();
+            console.log('📝 Generated deterministic UQ address:', address);
             return address;
 
         } catch (error) {
@@ -278,10 +390,6 @@ class MiningWalletManager {
             throw new Error('Failed to generate wallet address');
         }
     }
-
-    // =============================================
-    // 🔥 REAL MNEMONIC GENERATION (COMPLETE BIP-39)
-    // =============================================
 
     generateMnemonic(wordCount = 12) {
         console.log(`🎯 Generating ${wordCount}-word BIP-39 mnemonic...`);
@@ -316,10 +424,6 @@ class MiningWalletManager {
             throw new Error('Failed to generate secure mnemonic: ' + error.message);
         }
     }
-
-    // =============================================
-    // 🔥 COMPLETE MNEMONIC VALIDATION
-    // =============================================
 
     validateMnemonic(mnemonic) {
         console.log('🔍 Validating mnemonic...');
@@ -365,10 +469,6 @@ class MiningWalletManager {
             is24Word: wordCount === 24
         };
     }
-
-    // =============================================
-    // 🔥 ENCRYPTION/DECRYPTION (PRODUCTION SECURE)
-    // =============================================
 
     async encrypt(text, password) {
         console.log('🔐 Encrypting data with AES-256-GCM...');
@@ -497,10 +597,6 @@ class MiningWalletManager {
         }
     }
 
-    // =============================================
-    // 🔥 CREATE AUTO WALLET (PASSWORD-BASED SYSTEM)
-    // =============================================
-
     async createAutoWallet(userId, password) {
         console.log('🎯 Creating auto wallet for user:', userId);
 
@@ -513,19 +609,15 @@ class MiningWalletManager {
                 throw new Error('Password must be at least 8 characters');
             }
 
-            // 1. Generate mnemonic (but don't show to user)
             console.log('🔐 Generating secure mnemonic...');
             const mnemonic = this.generateMnemonic(12);
 
-            // 2. Generate TON address from mnemonic
             console.log('📍 Generating TON address...');
             const walletAddress = await this.generateAddressFromMnemonic(mnemonic);
 
-            // 3. Encrypt the mnemonic with user's password
             console.log('🔐 Encrypting mnemonic...');
             const encryptedMnemonic = await this.encrypt(mnemonic, password);
 
-            // 4. Store wallet to backend
             console.log('📦 Storing wallet to database...');
             const storeResult = await this.storeWallet(userId, walletAddress, encryptedMnemonic, password, false);
 
@@ -549,10 +641,6 @@ class MiningWalletManager {
         }
     }
 
-    // =============================================
-    // 🔥 STORE WALLET (PRODUCTION READY)
-    // =============================================
-
     async storeWallet(userId, walletAddress, encryptedMnemonic, password, isImport = false) {
         console.log('📦 Storing wallet to backend...');
 
@@ -561,19 +649,34 @@ class MiningWalletManager {
                 throw new Error('All fields required: userId, address, encrypted mnemonic');
             }
 
-            if (!walletAddress.startsWith('EQ') && !walletAddress.startsWith('kQ')) {
-                console.warn('⚠️ Address format may not be valid TON');
+            // 🔥 FIX: Validate UQ format
+            if (!walletAddress.startsWith('UQ')) {
+                console.warn('⚠️ Address not in UQ format, converting...');
+                if (walletAddress.startsWith('EQ')) {
+                    walletAddress = 'UQ' + walletAddress.substring(2);
+                    console.log('🔄 Converted to UQ format:', walletAddress.substring(0, 20) + '...');
+                } else {
+                    console.warn('⚠️ Address format may not be valid TON UQ address');
+                }
             }
 
+            // Get mining account ID for linking
+            const miningAccountId = await this.getMiningAccountId();
+            
             const payload = {
                 userId: userId,
+                miningAccountId: miningAccountId || userId, // Link to mining account
                 walletAddress: walletAddress,
                 encryptedMnemonic: encryptedMnemonic,
                 isImport: isImport,
-                wordCount: encryptedMnemonic.includes(' ') ? encryptedMnemonic.split(' ').length : 12
+                wordCount: 12
             };
 
-            console.log('📤 Sending to backend...');
+            console.log('📤 Sending to backend...', {
+                userId: userId,
+                miningAccountId: miningAccountId,
+                address: walletAddress.substring(0, 20) + '...'
+            });
 
             const response = await fetch(`${this.apiBaseUrl}/store-encrypted`, {
                 method: 'POST',
@@ -594,7 +697,7 @@ class MiningWalletManager {
                 throw new Error(result.error || 'Failed to store wallet');
             }
 
-            console.log('✅ Wallet stored successfully');
+            console.log('✅ Wallet stored successfully with mining account link');
             return result;
 
         } catch (error) {
@@ -606,14 +709,34 @@ class MiningWalletManager {
         }
     }
 
-    // =============================================
-    // 🔥 CHECK WALLET EXISTS
-    // =============================================
-
     async checkExistingWallet() {
         console.log('🔍 Checking for existing wallet...');
 
         try {
+            // 🔥 NEW: Try auto-login with mining account first
+            const miningAccountId = await this.getMiningAccountId();
+            
+            if (miningAccountId) {
+                console.log('🎯 Attempting auto-login with mining account:', miningAccountId);
+                
+                // Try the auto-login endpoint that links by mining account
+                const autoLoginResponse = await fetch(`${this.apiBaseUrl}/auto-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ miningAccountId: miningAccountId })
+                });
+                
+                if (autoLoginResponse.ok) {
+                    const autoLoginResult = await autoLoginResponse.json();
+                    
+                    if (autoLoginResult.success && autoLoginResult.hasWallet) {
+                        console.log('✅ Auto-login successful!');
+                        return autoLoginResult;
+                    }
+                }
+            }
+            
+            // Fallback to original user ID check
             const userId = this.getCurrentUserId();
             if (!userId) {
                 return {
@@ -649,10 +772,6 @@ class MiningWalletManager {
         }
     }
 
-    // =============================================
-    // 🔥 GET ENCRYPTED WALLET
-    // =============================================
-
     async getEncryptedWallet(userId) {
         console.log(`📥 Getting encrypted wallet for user: ${userId}`);
 
@@ -680,10 +799,6 @@ class MiningWalletManager {
             };
         }
     }
-
-    // =============================================
-    // 🔥 GET BALANCE (REAL TON BLOCKCHAIN)
-    // =============================================
 
     async getBalance(address) {
         try {
@@ -721,29 +836,25 @@ class MiningWalletManager {
         }
     }
 
-    // =============================================
-    // 🔥 GET PRICES
-    // =============================================
-
     async getPrices() {
         try {
             console.log('💰 Getting token prices...');
-            
+
             const response = await fetch(`${this.apiBaseUrl}/prices`);
-            
+
             if (!response.ok) {
                 throw new Error(`Price API error: ${response.status}`);
             }
-            
+
             const result = await response.json();
-            
+
             if (!result.success) {
                 throw new Error(result.error || 'Failed to fetch prices');
             }
-            
+
             console.log('✅ Prices fetched successfully');
             return result;
-            
+
         } catch (error) {
             console.error('❌ Get prices failed:', error);
             return {
@@ -752,10 +863,6 @@ class MiningWalletManager {
             };
         }
     }
-
-    // =============================================
-    // 🔥 GET TRANSACTION HISTORY
-    // =============================================
 
     async getTransactionHistory(address) {
         try {
@@ -792,10 +899,6 @@ class MiningWalletManager {
             };
         }
     }
-
-    // =============================================
-    // 🔥 SEND TRANSACTION
-    // =============================================
 
     async sendTransaction(userId, toAddress, amount, password, token = 'TON', memo = '') {
         try {
@@ -851,10 +954,6 @@ class MiningWalletManager {
         }
     }
 
-    // =============================================
-    // 🔥 DELETE WALLET
-    // =============================================
-
     async deleteWallet(userId, requirePassword = false) {
         try {
             console.log(`🗑️ Deleting wallet for user: ${userId}`);
@@ -887,10 +986,6 @@ class MiningWalletManager {
         }
     }
 
-    // =============================================
-    // 🔥 USER MANAGEMENT
-    // =============================================
-
     getCurrentUserId() {
         console.log('🔍 getCurrentUserId() called');
 
@@ -906,7 +1001,6 @@ class MiningWalletManager {
                 const userData = JSON.parse(decodeURIComponent(userParam));
                 if (userData && userData.id) {
                     this.userId = userData.id;
-                    this.miningUser = userData;
                     window.miningUser = userData;
                     return this.userId;
                 }
@@ -917,7 +1011,6 @@ class MiningWalletManager {
 
         if (window.miningUser && window.miningUser.id) {
             this.userId = window.miningUser.id;
-            this.miningUser = window.miningUser;
             return this.userId;
         }
 
@@ -927,7 +1020,6 @@ class MiningWalletManager {
                 const userData = JSON.parse(sessionUser);
                 if (userData && userData.id) {
                     this.userId = userData.id;
-                    this.miningUser = userData;
                     window.miningUser = userData;
                     return this.userId;
                 }
@@ -940,12 +1032,8 @@ class MiningWalletManager {
         return null;
     }
 
-    // =============================================
-    // 🔥 INITIALIZATION
-    // =============================================
-
     async initialize() {
-        console.log('🚀 WalletManager.initialize() called');
+        console.log('🚀 WalletManager.initialize() called - WITH AUTO-LOGIN');
 
         if (this.isInitialized && this.currentWallet) {
             return {
@@ -956,6 +1044,48 @@ class MiningWalletManager {
         }
 
         try {
+            // 🔥 NEW: First try to auto-login with mining account
+            console.log('🎯 Attempting auto-login with mining account...');
+            const miningAccountId = await this.getMiningAccountId();
+            
+            if (miningAccountId) {
+                console.log('✅ Found mining account:', miningAccountId);
+                
+                // Try auto-login endpoint
+                const autoLoginResponse = await fetch(`${this.apiBaseUrl}/auto-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ miningAccountId: miningAccountId })
+                });
+                
+                if (autoLoginResponse.ok) {
+                    const autoLoginResult = await autoLoginResponse.json();
+                    
+                    if (autoLoginResult.success && autoLoginResult.hasWallet) {
+                        this.currentWallet = autoLoginResult.wallet;
+                        this.userId = miningAccountId;
+                        this.isInitialized = true;
+                        
+                        console.log('✅ AUTO-LOGIN SUCCESSFUL!');
+                        console.log('💰 Wallet loaded:', {
+                            address: this.currentWallet.address,
+                            balance: this.currentWallet.balance,
+                            autoLogin: true
+                        });
+                        
+                        return {
+                            success: true,
+                            hasWallet: true,
+                            wallet: this.currentWallet,
+                            userId: this.userId,
+                            autoLogin: true
+                        };
+                    }
+                }
+            }
+            
+            // Fallback to original initialization
+            console.log('🔄 Falling back to standard initialization...');
             const userId = this.getCurrentUserId();
             if (!userId) {
                 return {
@@ -973,7 +1103,7 @@ class MiningWalletManager {
                 this.currentWallet = result.wallet;
                 this.isInitialized = true;
 
-                console.log('✅ Wallet loaded:', {
+                console.log('✅ Wallet loaded via standard method:', {
                     userId: this.userId,
                     hasWallet: true,
                     address: this.currentWallet.address
@@ -1003,10 +1133,6 @@ class MiningWalletManager {
             };
         }
     }
-
-    // =============================================
-    // 🎯 UTILITY METHODS
-    // =============================================
 
     hasWallet() {
         return !!this.currentWallet;
@@ -1055,25 +1181,18 @@ class MiningWalletManager {
     validateTONAddress(address) {
         if (!address) return { valid: false, error: 'Address required' };
 
-        const isValidFormat = address.startsWith('EQ') || address.startsWith('UQ') || address.startsWith('0:');
+        // 🔥 FIX: Accept both UQ and EQ formats
+        const isValidFormat = address.startsWith('UQ') || address.startsWith('EQ') || address.startsWith('0:');
         const isValidLength = address.length >= 48 && address.length <= 66;
 
         return {
             valid: isValidFormat && isValidLength,
-            error: isValidFormat && isValidLength ? null : 'Invalid TON address format'
+            error: isValidFormat && isValidLength ? null : 'Invalid TON address format (must start with UQ or EQ)'
         };
     }
 }
 
-// =============================================
-// 🚀 CREATE GLOBAL INSTANCE
-// =============================================
-
 window.walletManager = new MiningWalletManager();
-
-// =============================================
-// 🎯 GLOBAL HELPER FUNCTIONS
-// =============================================
 
 window.getCurrentUserId = function() {
     return window.walletManager.getCurrentUserId();
@@ -1101,23 +1220,20 @@ window.showCreateWalletModal = function() {
     }
 };
 
-// =============================================
-// 🎯 AUTO-INITIALIZATION
-// =============================================
-
 document.addEventListener('DOMContentLoaded', function() {
     if (window.location.pathname.includes('wallet.html')) {
-        console.log('🎯 Auto-initializing wallet system...');
+        console.log('🎯 Auto-initializing wallet system with AUTO-LOGIN...');
 
         setTimeout(async () => {
             try {
-                console.log('🔄 Starting initialization...');
+                console.log('🔄 Starting initialization with auto-login...');
                 const result = await window.walletManager.initialize();
 
                 if (result.success) {
                     console.log('✅ Initialization successful:', {
                         hasWallet: result.hasWallet,
-                        userId: result.userId
+                        userId: result.userId,
+                        autoLogin: result.autoLogin || false
                     });
 
                     if (result.hasWallet && typeof window.initWallet === 'function') {
@@ -1134,10 +1250,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('✅ PASSWORD-BASED Wallet Manager ready!');
-console.log('📋 Features:');
-console.log('   • Password-based wallet creation');
-console.log('   • No seed phrase exposure to users');
-console.log('   • AES-256-GCM encryption');
-console.log('   • Real TON blockchain integration');
-console.log('   • Database-backed wallet storage');
+console.log('✅ UQ FORMAT + AUTO-LOGIN Wallet Manager ready!');
