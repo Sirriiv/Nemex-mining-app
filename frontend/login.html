@@ -1112,6 +1112,10 @@
         });
 
         console.log('✅ Login page ready with pure Supabase Auth');
-    </script>
+   
+// Make Supabase client globally available
+window.supabase = supabase;
+console.log('✅ Global Supabase client ready for wallet system');
+ </script>
 </body>
 </html>
