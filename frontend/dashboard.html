@@ -6,6 +6,9 @@
     <title>NemexCoin - Mining Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Environment Variables as Meta Tags -->
+    <meta name="supabase-url" content="https://bjulifvbfogymoduxnzl.supabase.co">
+    <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU">
     <style>
         /* YOUR EXACT ORIGINAL CSS - NO CHANGES */
         :root { 
@@ -1356,14 +1359,43 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // Initialize Supabase
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        // =============================================
+        // 🎯 FIXED: Initialize Supabase WITH GLOBAL SHARING USING ENVIRONMENT VARIABLES
+        // =============================================
+        
+        // Read from meta tags (environment variables)
+        const supabaseUrl = document.querySelector('meta[name="supabase-url"]')?.content || '';
+        const supabaseKey = document.querySelector('meta[name="supabase-key"]')?.content || '';
 
-        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Validate credentials
+        if (!supabaseUrl || !supabaseKey) {
+            console.error('❌ Supabase credentials not found in meta tags');
+            
+            // Show user-friendly error
+            document.getElementById('loadingText').textContent = 'Configuration Error';
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            // Optionally redirect to maintenance or show error modal
+            setTimeout(() => {
+                alert('System configuration error. Please contact support.');
+                window.location.href = 'maintenance.html'; // Create this page
+            }, 2000);
+        } else {
+            // 🔥 CRITICAL FIX: Create Supabase client AND make it globally available for wallet.js
+            window.supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+            const supabaseClient = window.supabase; // Keep for backward compatibility
+
+            // 🎯 ALSO store credentials globally for wallet.js to use if needed
+            window.SUPABASE_URL = supabaseUrl;
+            window.SUPABASE_KEY = supabaseKey;
+
+            console.log('✅ Supabase client created and made globally available for wallet system');
+            console.log('🔗 Supabase URL:', supabaseUrl);
+            console.log('🔑 Supabase Key (first 10 chars):', supabaseKey.substring(0, 10) + '...');
+        }
 
         // =============================================
-        // 🔐 WALLET INTEGRATION - UPDATED
+        // 🔐 WALLET INTEGRATION - UPDATED WITH ENHANCED ERROR HANDLING
         // =============================================
 
         /**
@@ -1374,12 +1406,19 @@
             console.log('🚀 Opening wallet with mining user authentication...');
 
             try {
+                // Validate Supabase is available
+                if (!window.supabase) {
+                    console.error('❌ Supabase client not available');
+                    showError('System error. Please refresh the page.');
+                    return;
+                }
+
                 // Show loading screen immediately
                 document.getElementById('loadingText').textContent = 'Loading Wallet...';
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
                 // Check Supabase authentication
-                const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
+                const { data: { session }, error: sessionError } = await window.supabase.auth.getSession();
 
                 if (sessionError) {
                     console.error('❌ Session error:', sessionError);
@@ -1396,7 +1435,7 @@
                 }
 
                 // Get user profile from database
-                const { data: profile, error: profileError } = await supabaseClient
+                const { data: profile, error: profileError } = await window.supabase
                     .from('profiles')
                     .select('id, username, email, balance')
                     .eq('id', session.user.id)
@@ -1420,13 +1459,27 @@
                     id: profile.id,
                     username: profile.username || 'User',
                     email: profile.email || '',
-                    miningBalance: profile.balance || 0
+                    miningBalance: profile.balance || 0,
+                    sessionToken: session.access_token // Add session token for wallet auth
                 };
+
+                // 🎯 ENSURE Supabase is globally available for wallet.js
+                if (!window.supabase) {
+                    console.warn('⚠️ Supabase not in window, recreating...');
+                    window.supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+                }
 
                 // Store in sessionStorage (temporary for wallet page)
                 sessionStorage.setItem('miningUser', JSON.stringify(window.miningUser));
+                
+                // Store Supabase credentials for wallet page
+                sessionStorage.setItem('supabase_credentials', JSON.stringify({
+                    url: window.SUPABASE_URL,
+                    key: window.SUPABASE_KEY,
+                    timestamp: Date.now()
+                }));
 
-                // Also store in localStorage with timestamp
+                // Also store in localStorage with timestamp (fallback)
                 localStorage.setItem('nemexcoin_wallet_user', JSON.stringify({
                     ...window.miningUser,
                     timestamp: Date.now()
@@ -1434,7 +1487,7 @@
 
                 console.log('✅ User data prepared for wallet:', window.miningUser);
 
-                // Wait a moment to ensure data is stored, then redirect
+                // 🔥 IMPORTANT: Give time for data to be stored, then redirect
                 setTimeout(() => {
                     window.location.href = 'wallet.html';
                 }, 500);
@@ -1481,7 +1534,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <!-- Stats Overview -->
                     <div class="admin-stats-grid">
                         <div class="stat-card">
@@ -1493,7 +1546,7 @@
                                 <strong class="stat-value" id="pendingCount">0</strong>
                             </div>
                         </div>
-                        
+
                         <div class="stat-card">
                             <div class="stat-icon accepted">
                                 <i class="fas fa-check-circle"></i>
@@ -1503,7 +1556,7 @@
                                 <strong class="stat-value" id="totalAccepted">0</strong>
                             </div>
                         </div>
-                        
+
                         <div class="stat-card">
                             <div class="stat-icon rejected">
                                 <i class="fas fa-times-circle"></i>
@@ -1513,7 +1566,7 @@
                                 <strong class="stat-value" id="totalRejected">0</strong>
                             </div>
                         </div>
-                        
+
                         <div class="stat-card">
                             <div class="stat-icon converted">
                                 <i class="fas fa-exchange-alt"></i>
@@ -1523,7 +1576,7 @@
                                 <strong class="stat-value" id="totalNmxpConverted">0</strong>
                             </div>
                         </div>
-                        
+
                         <div class="stat-card">
                             <div class="stat-icon nmx">
                                 <i class="fas fa-coins"></i>
@@ -1535,7 +1588,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Tab Navigation -->
                 <div class="admin-tabs">
                     <button class="tab-button active" onclick="switchAdminTab('overview')">
@@ -1557,7 +1610,7 @@
                         <i class="fas fa-list"></i> All Conversions
                     </button>
                 </div>
-                
+
                 <!-- Tab Content -->
                 <div class="admin-tab-content">
                     <!-- Overview Tab -->
@@ -1589,7 +1642,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="overview-card">
                                 <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
                                 <div class="quick-actions">
@@ -1607,7 +1660,7 @@
                                     </button>
                                 </div>
                             </div>
-                            
+
                             <div class="overview-card">
                                 <h3><i class="fas fa-info-circle"></i> System Info</h3>
                                 <div class="system-info">
@@ -1627,7 +1680,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Pending Review Tab -->
                     <div id="pendingTab" class="tab-pane">
                         <div class="tab-header">
@@ -1640,7 +1693,7 @@
                             <div class="empty-state">Loading pending conversions...</div>
                         </div>
                     </div>
-                    
+
                     <!-- Accepted Tab -->
                     <div id="acceptedTab" class="tab-pane">
                         <div class="tab-header">
@@ -1653,7 +1706,7 @@
                             <div class="empty-state">No accepted conversions</div>
                         </div>
                     </div>
-                    
+
                     <!-- Rejected Tab -->
                     <div id="rejectedTab" class="tab-pane">
                         <div class="tab-header">
@@ -1666,7 +1719,7 @@
                             <div class="empty-state">No rejected conversions</div>
                         </div>
                     </div>
-                    
+
                     <!-- All Conversions Tab -->
                     <div id="allTab" class="tab-pane">
                         <div class="tab-header">
@@ -1734,8 +1787,14 @@
             try {
                 console.log('🔄 Loading pending conversions...');
 
+                // Validate supabase is available
+                if (!window.supabase) {
+                    console.error('❌ Supabase client not available for loading conversions');
+                    return;
+                }
+
                 // Fetch pending conversions from Supabase
-                const { data: conversions, error } = await supabaseClient
+                const { data: conversions, error } = await window.supabase
                     .from('conversions')
                     .select('*')
                     .eq('status', 'pending')
@@ -1756,7 +1815,9 @@
         // Load accepted conversions
         async function loadAcceptedConversions() {
             try {
-                const { data: conversions, error } = await supabaseClient
+                if (!window.supabase) return;
+                
+                const { data: conversions, error } = await window.supabase
                     .from('conversions')
                     .select('*')
                     .eq('status', 'accepted')
@@ -1773,7 +1834,9 @@
         // Load rejected conversions
         async function loadRejectedConversions() {
             try {
-                const { data: conversions, error } = await supabaseClient
+                if (!window.supabase) return;
+                
+                const { data: conversions, error } = await window.supabase
                     .from('conversions')
                     .select('*')
                     .eq('status', 'rejected')
@@ -1790,7 +1853,9 @@
         // Load all conversions
         async function loadAllConversions() {
             try {
-                const { data: conversions, error } = await supabaseClient
+                if (!window.supabase) return;
+                
+                const { data: conversions, error } = await window.supabase
                     .from('conversions')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -1975,7 +2040,12 @@
             try {
                 console.log(`🔄 Processing conversion ${conversionId} as ${action}`);
 
-                const { error } = await supabaseClient
+                if (!window.supabase) {
+                    console.error('❌ Supabase not available');
+                    return;
+                }
+
+                const { error } = await window.supabase
                     .from('conversions')
                     .update({ 
                         status: action,
@@ -2001,7 +2071,12 @@
             try {
                 console.log('🔄 Processing all pending conversions...');
 
-                const { data: pendingConversions, error } = await supabaseClient
+                if (!window.supabase) {
+                    console.error('❌ Supabase not available');
+                    return;
+                }
+
+                const { data: pendingConversions, error } = await window.supabase
                     .from('conversions')
                     .select('*')
                     .eq('status', 'pending');
@@ -2109,7 +2184,14 @@
         // FIXED: Use Supabase Auth instead of localStorage
         async function checkAuth() {
             try {
-                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                // Check if Supabase is available
+                if (!window.supabase) {
+                    console.error('❌ Supabase client not available in checkAuth');
+                    window.location.href = 'login.html';
+                    return null;
+                }
+
+                const { data: { session }, error } = await window.supabase.auth.getSession();
 
                 if (error) {
                     console.error('Session error:', error);
@@ -2141,8 +2223,14 @@
                 const userSession = await checkAuth();
                 if (!userSession) return null;
 
+                // Check if Supabase is available
+                if (!window.supabase) {
+                    console.error('❌ Supabase not available in loadUserData');
+                    throw new Error('Database connection failed');
+                }
+
                 // Load profile data from profiles table
-                const { data: profile, error: profileError } = await supabaseClient
+                const { data: profile, error: profileError } = await window.supabase
                     .from('profiles')
                     .select('*')
                     .eq('id', userSession.id)
@@ -2153,7 +2241,7 @@
 
                     // If profile doesn't exist, sign out
                     if (profileError.code === 'PGRST116') {
-                        await supabaseClient.auth.signOut();
+                        await window.supabase.auth.signOut();
                         window.location.href = 'login.html';
                         return null;
                     }
@@ -2163,7 +2251,7 @@
 
                 if (!profile) {
                     // If profile doesn't exist, sign out
-                    await supabaseClient.auth.signOut();
+                    await window.supabase.auth.signOut();
                     window.location.href = 'login.html';
                     return null;
                 }
@@ -2211,8 +2299,14 @@
                 const userSession = await checkAuth();
                 if (!userSession) return;
 
+                // Check Supabase availability
+                if (!window.supabase) {
+                    console.error('❌ Supabase not available for refreshBalance');
+                    return;
+                }
+
                 // Load fresh balance from profiles table
-                const { data: profile, error } = await supabaseClient
+                const { data: profile, error } = await window.supabase
                     .from('profiles')
                     .select('balance')
                     .eq('id', userSession.id)
@@ -2234,8 +2328,14 @@
                 const userSession = await checkAuth();
                 if (!userSession) return;
 
+                // Check Supabase availability
+                if (!window.supabase) {
+                    console.error('❌ Supabase not available for loadNotificationCount');
+                    return;
+                }
+
                 // Fetch unread notifications count from database
-                const { data: notifications, error } = await supabaseClient
+                const { data: notifications, error } = await window.supabase
                     .from('notifications')
                     .select('id')
                     .eq('user_id', userSession.id)
@@ -2266,6 +2366,13 @@
         // Wait for DOM to load
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Initializing NemexCoin Dashboard...');
+
+            // Check if Supabase was initialized successfully
+            if (!window.supabase) {
+                console.error('❌ Supabase initialization failed - stopping dashboard');
+                document.getElementById('loadingText').textContent = 'Configuration Error';
+                return;
+            }
 
             // Show loading screen initially
             setTimeout(() => {
@@ -2317,8 +2424,10 @@
                     // Sign out from Supabase Auth in background
                     setTimeout(async () => {
                         try {
-                            const { error } = await supabaseClient.auth.signOut();
-                            if (error) throw error;
+                            if (window.supabase) {
+                                const { error } = await window.supabase.auth.signOut();
+                                if (error) throw error;
+                            }
 
                             // Clear any localStorage remnants (backward compatibility)
                             localStorage.removeItem('nemexcoin_user');
@@ -2354,7 +2463,12 @@
         // FIXED: Enhanced dashboard initialization with Supabase Auth
         async function initializeDashboard() {
             try {
-                // FIRST: Check authentication with Supabase Auth
+                // FIRST: Check if Supabase is available
+                if (!window.supabase) {
+                    throw new Error('Database connection failed. Please refresh the page.');
+                }
+
+                // Check authentication with Supabase Auth
                 const userSession = await checkAuth();
                 if (!userSession) return;
 
@@ -2407,8 +2521,14 @@
                 const userSession = await checkAuth();
                 if (!userSession) return;
 
+                // Check if Supabase is available
+                if (!window.supabase) {
+                    console.error('❌ Supabase not available for checkAdminAccess');
+                    return;
+                }
+
                 // Check admin_level from profiles table
-                const { data: profile, error } = await supabaseClient
+                const { data: profile, error } = await window.supabase
                     .from('profiles')
                     .select('admin_level, email')
                     .eq('id', userSession.id)
@@ -2583,6 +2703,11 @@
 
                 console.log('💰 Claiming mining reward...');
 
+                // Check Supabase availability
+                if (!window.supabase) {
+                    throw new Error('Database connection lost');
+                }
+
                 // Get current user ID from Supabase Auth
                 const userSession = await checkAuth();
                 if (!userSession) {
@@ -2593,7 +2718,7 @@
                 const newBalance = userBalance + CLAIM_AMOUNT;
 
                 // Update balance in profiles table
-                const { data: profileData, error: profileError } = await supabaseClient
+                const { data: profileData, error: profileError } = await window.supabase
                     .from('profiles')
                     .update({
                         balance: newBalance,
@@ -2630,6 +2755,12 @@
         // 🆕 NEW: Function to create mining notification
         async function createMiningNotification(userId, amount, claimTime) {
             try {
+                // Check Supabase availability
+                if (!window.supabase) {
+                    console.error('❌ Supabase not available for notification');
+                    return;
+                }
+
                 const notificationData = {
                     user_id: userId,
                     type: 'mining',
@@ -2639,7 +2770,7 @@
                     created_at: claimTime.toISOString()
                 };
 
-                const { data, error } = await supabaseClient
+                const { data, error } = await window.supabase
                     .from('notifications')
                     .insert([notificationData])
                     .select();
