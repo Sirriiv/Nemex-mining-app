@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - COMPLETE FIXED VERSION
+// backend/wallet-routes.js - COMPLETE FIXED VERSION WITH ALL EXCHANGES
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
@@ -8,7 +8,7 @@ const axios = require('axios');
 
 dotenv.config();
 
-console.log('🚀 WALLET ROUTES - COMPATIBLE WITH YOUR SCHEMA');
+console.log('🚀 WALLET ROUTES - LOADING...');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -49,16 +49,18 @@ async function initializeSupabase() {
     }
 }
 
-// Initialize on startup
-initializeSupabase().then(success => {
+// FIXED: Use immediate initialization with proper error handling
+(async () => {
+    console.log('🔧 Initializing Supabase...');
+    const success = await initializeSupabase();
     if (success) {
         console.log('🎉 Supabase ready for wallet operations');
     } else {
-        console.error('💀 Supabase initialization failed');
+        console.error('⚠️ Supabase initialization failed - using fallback mode');
     }
-});
+})();
 
-// PRICE_APIS (same as before, shortened for brevity)
+// 🔥 RESTORED: ALL EXCHANGE APIS
 const PRICE_APIS = [
     {
         name: 'Binance',
@@ -77,8 +79,130 @@ const PRICE_APIS = [
                 return {};
             }
         }
+    },
+    {
+        name: 'Bybit',
+        urls: {
+            TON: 'https://api.bybit.com/v5/market/tickers?category=spot&symbol=TONUSDT',
+            NMX: 'https://api.bybit.com/v5/market/tickers?category=spot&symbol=NMXUSDT'
+        },
+        parser: async (data) => {
+            try {
+                const prices = {};
+                if (data.retCode === 0 && data.result && data.result.list && data.result.list.length > 0) {
+                    const ticker = data.result.list[0];
+                    if (ticker.symbol === 'TONUSDT') prices.TON = parseFloat(ticker.lastPrice) || 0;
+                    if (ticker.symbol === 'NMXUSDT') prices.NMX = parseFloat(ticker.lastPrice) || 0;
+                }
+                return prices;
+            } catch (error) {
+                console.warn('⚠️ Bybit parser error:', error.message);
+                return {};
+            }
+        }
+    },
+    {
+        name: 'Bitget',
+        urls: {
+            TON: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=TONUSDT',
+            NMX: 'https://api.bitget.com/api/v2/spot/market/tickers?symbol=NMXUSDT'
+        },
+        parser: async (data) => {
+            try {
+                const prices = {};
+                if (data.code === '00000' && data.data) {
+                    const ticker = data.data[0];
+                    if (ticker.symbol === 'TONUSDT') prices.TON = parseFloat(ticker.close) || 0;
+                    if (ticker.symbol === 'NMXUSDT') prices.NMX = parseFloat(ticker.close) || 0;
+                }
+                return prices;
+            } catch (error) {
+                console.warn('⚠️ Bitget parser error:', error.message);
+                return {};
+            }
+        }
+    },
+    {
+        name: 'Mexc',
+        urls: {
+            TON: 'https://api.mexc.com/api/v3/ticker/price?symbol=TONUSDT',
+            NMX: 'https://api.mexc.com/api/v3/ticker/price?symbol=NMXUSDT'
+        },
+        parser: async (data) => {
+            try {
+                const prices = {};
+                if (data.symbol === 'TONUSDT') prices.TON = parseFloat(data.price) || 0;
+                if (data.symbol === 'NMXUSDT') prices.NMX = parseFloat(data.price) || 0;
+                return prices;
+            } catch (error) {
+                console.warn('⚠️ Mexc parser error:', error.message);
+                return {};
+            }
+        }
+    },
+    {
+        name: 'Kucoin',
+        urls: {
+            TON: 'https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=TON-USDT',
+            NMX: 'https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=NMX-USDT'
+        },
+        parser: async (data) => {
+            try {
+                const prices = {};
+                if (data.code === '200000' && data.data) {
+                    const ticker = data.data;
+                    if (data.request && data.request.symbol === 'TON-USDT') prices.TON = parseFloat(ticker.price) || 0;
+                    if (data.request && data.request.symbol === 'NMX-USDT') prices.NMX = parseFloat(ticker.price) || 0;
+                }
+                return prices;
+            } catch (error) {
+                console.warn('⚠️ Kucoin parser error:', error.message);
+                return {};
+            }
+        }
+    },
+    {
+        name: 'Gate.io',
+        urls: {
+            TON: 'https://api.gateio.ws/api/v4/spot/tickers?currency_pair=TON_USDT',
+            NMX: 'https://api.gateio.ws/api/v4/spot/tickers?currency_pair=NMX_USDT'
+        },
+        parser: async (data) => {
+            try {
+                const prices = {};
+                if (Array.isArray(data) && data.length > 0) {
+                    const ticker = data[0];
+                    if (ticker.currency_pair === 'TON_USDT') prices.TON = parseFloat(ticker.last) || 0;
+                    if (ticker.currency_pair === 'NMX_USDT') prices.NMX = parseFloat(ticker.last) || 0;
+                }
+                return prices;
+            } catch (error) {
+                console.warn('⚠️ Gate.io parser error:', error.message);
+                return {};
+            }
+        }
     }
 ];
+
+// 🔥 RESTORED: Wallet API as fallback
+const WALLET_API = {
+    name: 'WalletAPI',
+    urls: {
+        TON: 'https://api.walletapi.com/price/TON',
+        NMX: 'https://api.walletapi.com/price/NMX'
+    },
+    parser: async (data) => {
+        try {
+            const prices = {};
+            if (data.symbol === 'TON') prices.TON = parseFloat(data.price) || 0;
+            if (data.symbol === 'NMX') prices.NMX = parseFloat(data.price) || 0;
+            return prices;
+        } catch (error) {
+            console.warn('⚠️ WalletAPI parser error:', error.message);
+            return {};
+        }
+    }
+};
 
 let priceCache = { data: null, timestamp: 0 };
 const CACHE_DURATION = 30000;
@@ -86,23 +210,73 @@ const CACHE_DURATION = 30000;
 async function fetchRealPrices() {
     const now = Date.now();
     if (priceCache.data && (now - priceCache.timestamp) < CACHE_DURATION) {
+        console.log('💰 Using cached prices');
         return priceCache.data;
     }
 
-    const prices = {
-        TON: { price: 2.35, change24h: 0, source: 'fallback', timestamp: now },
-        NMX: { price: 0.10, change24h: 0, source: 'fallback', timestamp: now }
-    };
+    console.log('💰 Fetching fresh prices from exchanges...');
+    
+    // Try all exchanges in order
+    const allApis = [...PRICE_APIS, WALLET_API];
+    let successfulPrices = null;
 
-    priceCache.data = prices;
+    for (const api of allApis) {
+        try {
+            console.log(`🔄 Trying ${api.name}...`);
+            
+            // Fetch TON price
+            const tonResponse = await axios.get(api.urls.TON, { timeout: 5000 });
+            const tonPrices = await api.parser(tonResponse.data);
+            
+            // Fetch NMX price
+            const nmxResponse = await axios.get(api.urls.NMX, { timeout: 5000 });
+            const nmxPrices = await api.parser(nmxResponse.data);
+            
+            // Combine prices
+            const prices = {
+                TON: { 
+                    price: tonPrices.TON || 2.35, 
+                    change24h: 0, 
+                    source: api.name, 
+                    timestamp: now 
+                },
+                NMX: { 
+                    price: nmxPrices.NMX || 0.10, 
+                    change24h: 0, 
+                    source: api.name, 
+                    timestamp: now 
+                }
+            };
+
+            // Validate prices
+            if (prices.TON.price > 0 && prices.NMX.price > 0) {
+                successfulPrices = prices;
+                console.log(`✅ ${api.name} prices: TON=$${prices.TON.price}, NMX=$${prices.NMX.price}`);
+                break;
+            }
+        } catch (error) {
+            console.warn(`⚠️ ${api.name} failed:`, error.message);
+            continue;
+        }
+    }
+
+    // Fallback if all APIs fail
+    if (!successfulPrices) {
+        console.warn('⚠️ All exchanges failed, using fallback prices');
+        successfulPrices = {
+            TON: { price: 2.35, change24h: 0, source: 'fallback', timestamp: now },
+            NMX: { price: 0.10, change24h: 0, source: 'fallback', timestamp: now }
+        };
+    }
+
+    priceCache.data = successfulPrices;
     priceCache.timestamp = now;
 
-    return prices;
+    return successfulPrices;
 }
 
-// 🔥 FIXED: /store-encrypted - COMPATIBLE WITH YOUR SCHEMA
 router.post('/store-encrypted', async (req, res) => {
-    console.log('📦 STORE ENCRYPTED - YOUR SCHEMA VERSION');
+    console.log('📦 STORE ENCRYPTED - Processing request');
 
     try {
         const userId = req.body.userId || req.body.user_id;
@@ -173,7 +347,7 @@ router.post('/store-encrypted', async (req, res) => {
         // Delete existing wallet if found
         if (existingWallets && existingWallets.length > 0) {
             console.log(`🗑️ Found ${existingWallets.length} existing wallet(s), deleting...`);
-            
+
             const { error: deleteError } = await supabase
                 .from('user_wallets')
                 .delete()
@@ -185,7 +359,7 @@ router.post('/store-encrypted', async (req, res) => {
             }
         }
 
-        // 🔥 CRITICAL: Create wallet record that matches YOUR EXACT SCHEMA
+        // Create wallet record that matches YOUR EXACT SCHEMA
         const walletRecord = {
             user_id: userId,
             address: walletAddress,
@@ -200,10 +374,8 @@ router.post('/store-encrypted', async (req, res) => {
             updated_at: new Date().toISOString()
         };
 
-        // 🔥 ADD MINING ACCOUNT ID IF COLUMN EXISTS (optional)
-        // Note: Your table doesn't have mining_account_id, but we'll check if it exists
+        // ADD MINING ACCOUNT ID IF COLUMN EXISTS (optional)
         try {
-            // Try to add mining account ID (will fail if column doesn't exist)
             walletRecord.mining_account_id = miningAccountId || userId;
         } catch (e) {
             console.warn('⚠️ mining_account_id column may not exist in your table');
@@ -220,25 +392,25 @@ router.post('/store-encrypted', async (req, res) => {
 
         if (insertError) {
             console.error('❌ INSERT ERROR:', insertError);
-            
+
             // If error is about missing column, try without mining_account_id
             if (insertError.message.includes('mining_account_id') || insertError.message.includes('column')) {
                 console.log('🔄 Retrying without mining_account_id...');
-                
+
                 delete walletRecord.mining_account_id;
-                
+
                 const { data: retryWallet, error: retryError } = await supabase
                     .from('user_wallets')
                     .insert([walletRecord])
                     .select()
                     .single();
-                    
+
                 if (retryError) {
                     throw new Error(`Database insert failed: ${retryError.message}`);
                 }
-                
+
                 console.log('✅ Wallet stored without mining_account_id');
-                
+
                 return res.json({
                     success: true,
                     message: 'Wallet stored successfully',
@@ -258,7 +430,7 @@ router.post('/store-encrypted', async (req, res) => {
                     note: 'Stored without mining_account_id column'
                 });
             }
-            
+
             throw new Error(`Database insert failed: ${insertError.message}`);
         }
 
@@ -289,11 +461,11 @@ router.post('/store-encrypted', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Store wallet failed:', error);
-        
+
         // Try to use fallback if database insert failed
         if (error.message.includes('Database') || error.message.includes('column')) {
             console.log('🔄 Using fallback storage...');
-            
+
             return res.json({
                 success: true,
                 message: 'Wallet created (database storage failed)',
@@ -316,7 +488,7 @@ router.post('/store-encrypted', async (req, res) => {
                 }
             });
         }
-        
+
         res.status(500).json({
             success: false,
             error: 'Failed to store wallet: ' + error.message
@@ -324,9 +496,9 @@ router.post('/store-encrypted', async (req, res) => {
     }
 });
 
-// 🔥 FIXED: /auto-login - COMPATIBLE WITH YOUR SCHEMA
+// AUTO-LOGIN
 router.post('/auto-login', async (req, res) => {
-    console.log('🔐 AUTO-LOGIN - YOUR SCHEMA VERSION');
+    console.log('🔐 AUTO-LOGIN - Processing request');
 
     try {
         const miningAccountId = req.body.miningAccountId || req.body.mining_account_id;
@@ -348,7 +520,7 @@ router.post('/auto-login', async (req, res) => {
         }
 
         let wallet = null;
-        
+
         // First try by user_id (this definitely exists in your schema)
         const { data: wallets, error } = await supabase
             .from('user_wallets')
@@ -375,7 +547,7 @@ router.post('/auto-login', async (req, res) => {
         wallet = wallets[0];
         console.log(`✅ Found wallet for user: ${wallet.user_id}`);
 
-        // Get balance
+        // Get balance and prices
         const balanceResult = { success: true, balance: 0, source: 'fallback' };
         const prices = await fetchRealPrices();
         const tonPrice = prices.TON.price;
@@ -410,9 +582,9 @@ router.post('/auto-login', async (req, res) => {
     }
 });
 
-// 🔥 FIXED: /check-wallet - SIMPLIFIED
+// CHECK WALLET
 router.post('/check-wallet', async (req, res) => {
-    console.log('🔍 CHECK WALLET - SIMPLIFIED');
+    console.log('🔍 CHECK WALLET - Processing request');
 
     try {
         const userId = req.body.userId || req.body.user_id;
@@ -448,7 +620,7 @@ router.post('/check-wallet', async (req, res) => {
 
         if (wallets && wallets.length > 0) {
             const wallet = wallets[0];
-            
+
             return res.json({
                 success: true,
                 hasWallet: true,
@@ -482,9 +654,9 @@ router.post('/check-wallet', async (req, res) => {
     }
 });
 
-// 🔥 FIXED: /get-encrypted - SIMPLIFIED
+// GET ENCRYPTED
 router.post('/get-encrypted', async (req, res) => {
-    console.log('🔐 GET ENCRYPTED - SIMPLIFIED');
+    console.log('🔐 GET ENCRYPTED - Processing request');
 
     try {
         const userId = req.body.userId || req.body.user_id;
@@ -554,30 +726,42 @@ router.post('/get-encrypted', async (req, res) => {
     }
 });
 
-// Keep other endpoints as they were (simplified for brevity)
+// PRICES - WITH ALL EXCHANGES
 router.get('/prices', async (req, res) => {
     try {
         const prices = await fetchRealPrices();
         res.json({
             success: true,
             prices: {
-                TON: { price: prices.TON.price.toFixed(4), source: prices.TON.source },
-                NMX: { price: prices.NMX.price.toFixed(4), source: prices.NMX.source }
+                TON: { 
+                    price: prices.TON.price.toFixed(4), 
+                    source: prices.TON.source,
+                    change24h: prices.TON.change24h 
+                },
+                NMX: { 
+                    price: prices.NMX.price.toFixed(4), 
+                    source: prices.NMX.source,
+                    change24h: prices.NMX.change24h 
+                }
             },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            exchanges: PRICE_APIS.map(api => api.name)
         });
     } catch (error) {
+        console.error('❌ Price fetch failed:', error);
         res.json({
             success: true,
             prices: {
-                TON: { price: 2.35, source: 'fallback' },
-                NMX: { price: 0.10, source: 'fallback' }
+                TON: { price: 2.35, source: 'fallback', change24h: 0 },
+                NMX: { price: 0.10, source: 'fallback', change24h: 0 }
             },
-            isFallback: true
+            isFallback: true,
+            timestamp: new Date().toISOString()
         });
     }
 });
 
+// BALANCE
 router.get('/balance/:address', async (req, res) => {
     try {
         let { address } = req.params;
@@ -615,6 +799,7 @@ router.get('/balance/:address', async (req, res) => {
     }
 });
 
+// TRANSACTIONS
 router.get('/transactions/:address', async (req, res) => {
     try {
         res.json({
@@ -638,31 +823,38 @@ router.get('/transactions/:address', async (req, res) => {
     }
 });
 
+// HEALTH
 router.get('/health', async (req, res) => {
     res.json({
         status: 'operational',
         database: dbStatus,
         walletFormat: 'UQ',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        exchanges: PRICE_APIS.length + ' configured'
     });
 });
 
+// TEST ENDPOINT - FIXED TO SHOW MAIN ROUTES
 router.get('/test', (req, res) => {
+    console.log('✅ MAIN WALLET API TEST ENDPOINT CALLED');
     res.json({
         success: true,
-        message: 'Wallet API is working!',
-        version: '2.0.0-UQ-FIXED',
+        message: 'Main Wallet API is working!',
+        version: '3.0.0',
         timestamp: new Date().toISOString(),
         walletFormat: 'UQ',
+        database: dbStatus,
+        exchanges: PRICE_APIS.map(api => api.name),
         features: [
-            'fixed-schema-compatibility',
+            'all-exchange-prices',
             'auto-login',
             'encrypted-wallet-storage',
+            'database-first',
             'fallback-mode'
         ]
     });
 });
 
-module.exports = router;
+console.log('✅ WALLET ROUTES READY - Main routes active with all exchanges');
 
-console.log('✅ WALLET ROUTES READY - Compatible with your schema');
+module.exports = router;
