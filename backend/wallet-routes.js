@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - PRODUCTION READY (FIXED UQ VALIDATION)
+// backend/wallet-routes.js - PRODUCTION READY (WITH DEBUGGING)
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
@@ -8,7 +8,7 @@ const axios = require('axios');
 
 dotenv.config();
 
-console.log('🚀 PRODUCTION Wallet Routes Loaded - Fixed UQ Validation');
+console.log('🚀 DEBUG Wallet Routes Loaded - Enhanced Error Handling');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -18,14 +18,17 @@ let supabase = null;
 try {
     if (supabaseUrl && supabaseAnonKey) {
         supabase = createClient(supabaseUrl, supabaseAnonKey);
-        console.log('✅ Supabase client initialized');
+        console.log('✅ Supabase client initialized for wallet routes');
     } else {
         console.error('❌ Missing SUPABASE_URL or SUPABASE_ANON_KEY');
+        console.error('URL present:', !!supabaseUrl);
+        console.error('Key present:', !!supabaseAnonKey);
     }
 } catch (clientError) {
     console.error('❌ Supabase client initialization failed:', clientError.message);
 }
 
+// PRICE_APIS remains the same...
 const PRICE_APIS = [
     {
         name: 'Binance',
@@ -444,119 +447,19 @@ function validateUQAddress(address) {
     return false;
 }
 
-// 🔥 NEW: AUTO-LOGIN ENDPOINT
-router.post('/auto-login', async (req, res) => {
-    console.log('🔐 AUTO-LOGIN WALLET - PRODUCTION');
-
-    try {
-        const miningAccountId = req.body.miningAccountId || req.body.mining_account_id;
-        const userId = req.body.userId || req.body.user_id;
-
-        if (!miningAccountId && !userId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Mining account ID or User ID required',
-                requiresLogin: true
-            });
-        }
-
-        if (!supabase) {
-            return res.status(500).json({
-                success: false,
-                error: 'Database not available'
-            });
-        }
-
-        let wallet = null;
-        let searchField = '';
-        let searchValue = '';
-
-        if (miningAccountId) {
-            searchField = 'mining_account_id';
-            searchValue = miningAccountId;
-            console.log(`🔍 Looking for wallet with mining_account_id: ${miningAccountId}`);
-        } else {
-            searchField = 'user_id';
-            searchValue = userId;
-            console.log(`🔍 Looking for wallet with user_id: ${userId}`);
-        }
-
-        const { data: wallets, error } = await supabase
-            .from('user_wallets')
-            .select('id, address, created_at, source, word_count, public_key, mining_account_id, user_id')
-            .eq(searchField, searchValue);
-
-        if (error) {
-            console.error('❌ Database error:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Database error: ' + error.message
-            });
-        }
-
-        if (!wallets || wallets.length === 0) {
-            console.log('📭 No existing wallet found');
-            return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'No wallet found for this account',
-                miningAccountId: miningAccountId,
-                userId: userId
-            });
-        }
-
-        wallet = wallets[0];
-        console.log(`✅ Found existing wallet for ${searchField}: ${searchValue}`);
-
-        if (miningAccountId && !wallet.mining_account_id) {
-            console.log('🔄 Adding mining_account_id to existing wallet...');
-            await supabase
-                .from('user_wallets')
-                .update({ 
-                    mining_account_id: miningAccountId,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', wallet.id);
-        }
-
-        const balanceResult = await getRealTONBalance(wallet.address);
-        const prices = await fetchRealPrices();
-        const tonPrice = prices.TON.price;
-        const valueUSD = balanceResult.success ? (balanceResult.balance * tonPrice).toFixed(2) : '0.00';
-
-        res.json({
-            success: true,
-            hasWallet: true,
-            autoLogin: true,
-            wallet: {
-                id: wallet.id,
-                address: wallet.address,
-                format: 'UQ',
-                createdAt: wallet.created_at,
-                source: wallet.source,
-                wordCount: wallet.word_count,
-                miningAccountId: wallet.mining_account_id || miningAccountId,
-                balance: balanceResult.success ? balanceResult.balance.toFixed(4) : '0.0000',
-                valueUSD: valueUSD,
-                tonPrice: tonPrice,
-                network: 'TON Mainnet'
-            },
-            message: 'Auto-login successful. Wallet loaded from mining account.',
-            timestamp: new Date().toISOString()
-        });
-
-    } catch (error) {
-        console.error('❌ Auto-login failed:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Auto-login failed: ' + error.message
-        });
-    }
-});
-
-// 🔥 FIXED: STORE ENCRYPTED WALLET (RELAXED VALIDATION)
+// 🔥 ENHANCED: /store-encrypted WITH DETAILED DEBUGGING
 router.post('/store-encrypted', async (req, res) => {
-    console.log('📦 STORE ENCRYPTED WALLET - RELAXED UQ VALIDATION');
+    console.log('📦 ========= STORE ENCRYPTED WALLET - DEBUG MODE =========');
+    console.log('📦 Request received at:', new Date().toISOString());
+    console.log('📦 Headers:', JSON.stringify(req.headers, null, 2));
+    console.log('📦 Request body preview:', {
+        userId: req.body.userId,
+        addressPreview: req.body.walletAddress ? req.body.walletAddress.substring(0, 30) + '...' : 'MISSING',
+        encryptedMnemonic: req.body.encryptedMnemonic ? 'PRESENT (' + req.body.encryptedMnemonic.length + ' chars)' : 'MISSING',
+        miningAccountId: req.body.miningAccountId || 'NOT PROVIDED',
+        isImport: req.body.isImport || false,
+        wordCount: req.body.wordCount || 12
+    });
 
     try {
         const userId = req.body.userId || req.body.user_id;
@@ -568,21 +471,44 @@ router.post('/store-encrypted', async (req, res) => {
         const isImport = req.body.isImport || false;
         const miningAccountId = req.body.miningAccountId || req.body.mining_account_id;
 
-        console.log('🔐 Storing wallet for user:', userId);
-        console.log('📍 Received address:', walletAddress?.substring(0, 30) + '...');
-        console.log('📍 Address length:', walletAddress?.length);
+        console.log('📦 Processing parameters:');
+        console.log('   • userId:', userId);
+        console.log('   • walletAddress (raw):', walletAddress);
+        console.log('   • miningAccountId:', miningAccountId);
+        console.log('   • isImport:', isImport);
+        console.log('   • encryptedMnemonic length:', encryptedMnemonic ? encryptedMnemonic.length : 0);
 
-        // 🔥 RELAXED VALIDATION: Just ensure it's a string
-        if (!walletAddress || typeof walletAddress !== 'string') {
+        // 🔥 VALIDATION WITH BETTER ERROR MESSAGES
+        if (!userId) {
+            console.error('❌ VALIDATION ERROR: No userId');
             return res.status(400).json({
                 success: false,
-                error: 'Wallet address is required and must be a string',
-                received: walletAddress
+                error: 'User ID is required',
+                code: 'VALIDATION_ERROR_01'
+            });
+        }
+
+        if (!walletAddress) {
+            console.error('❌ VALIDATION ERROR: No walletAddress');
+            return res.status(400).json({
+                success: false,
+                error: 'Wallet address is required',
+                code: 'VALIDATION_ERROR_02'
+            });
+        }
+
+        if (!encryptedMnemonic) {
+            console.error('❌ VALIDATION ERROR: No encryptedMnemonic');
+            return res.status(400).json({
+                success: false,
+                error: 'Encrypted mnemonic is required',
+                code: 'VALIDATION_ERROR_03'
             });
         }
 
         // Normalize the address
         walletAddress = walletAddress.trim();
+        console.log('📦 Address after trim:', walletAddress.substring(0, 30) + '...');
         
         // Convert to UQ if it's another format
         if (walletAddress.startsWith('EQ')) {
@@ -597,64 +523,69 @@ router.post('/store-encrypted', async (req, res) => {
             walletAddress = 'UQ' + walletAddress;
         }
 
-        // 🔥 RELAXED VALIDATION: Just check it starts with UQ
+        // Validate UQ format
         if (!walletAddress.startsWith('UQ')) {
+            console.error('❌ FORMAT ERROR: Address must start with UQ');
             return res.status(400).json({
                 success: false,
-                error: 'Address must be in UQ format',
+                error: 'Address must be in UQ format (starts with "UQ")',
                 received: walletAddress.substring(0, 30),
-                help: 'Ensure the address starts with "UQ"'
+                code: 'FORMAT_ERROR_01'
             });
         }
 
-        console.log(`📍 Final UQ Address: ${walletAddress.substring(0, 25)}...`);
-        console.log(`📍 Length: ${walletAddress.length} chars`);
+        console.log(`📦 Final UQ Address: ${walletAddress.substring(0, 25)}...`);
+        console.log(`📦 Length: ${walletAddress.length} chars`);
 
-        if (!userId || !walletAddress || !encryptedMnemonic) {
-            return res.status(400).json({
-                success: false,
-                error: 'Missing required fields',
-                received: {
-                    userId: !!userId,
-                    walletAddress: !!walletAddress,
-                    encryptedMnemonic: !!encryptedMnemonic
-                }
-            });
-        }
-
+        // Check Supabase connection
         if (!supabase) {
+            console.error('❌ DATABASE ERROR: Supabase not initialized');
+            console.error('   • supabaseUrl present:', !!process.env.SUPABASE_URL);
+            console.error('   • supabaseKey present:', !!process.env.SUPABASE_ANON_KEY);
+            
             return res.status(500).json({
                 success: false,
-                error: 'Database not available'
+                error: 'Database connection failed',
+                code: 'DATABASE_ERROR_01',
+                details: 'Supabase client not initialized. Check environment variables.'
             });
         }
 
-        // Check for existing wallet
-        console.log('🔍 Checking for existing wallet...');
+        console.log('📦 Checking for existing wallet...');
         const { data: existingWallets, error: checkError } = await supabase
             .from('user_wallets')
             .select('id')
             .eq('user_id', userId);
 
         if (checkError) {
-            console.error('❌ Check error:', checkError);
+            console.error('❌ DATABASE CHECK ERROR:', checkError);
             return res.status(500).json({
                 success: false,
-                error: 'Database error: ' + checkError.message
+                error: 'Database error while checking existing wallets',
+                code: 'DATABASE_ERROR_02',
+                details: checkError.message,
+                hint: checkError.hint || 'Check if user_wallets table exists'
             });
         }
 
         // Delete existing wallet if found
         if (existingWallets && existingWallets.length > 0) {
-            console.log(`🗑️ Deleting ${existingWallets.length} existing wallet(s)...`);
+            console.log(`📦 Found ${existingWallets.length} existing wallet(s), deleting...`);
+            
             const { error: deleteError } = await supabase
                 .from('user_wallets')
                 .delete()
                 .eq('user_id', userId);
 
             if (deleteError) {
-                console.error('❌ Delete error:', deleteError.message);
+                console.error('❌ DATABASE DELETE ERROR:', deleteError);
+                // Don't fail, just log
+                console.warn('⚠️ Could not delete old wallet, continuing...');
+            } else {
+                console.log('✅ Old wallet(s) deleted');
             }
+        } else {
+            console.log('📦 No existing wallet found');
         }
 
         // Create wallet record - UQ FORMAT
@@ -668,14 +599,15 @@ router.post('/store-encrypted', async (req, res) => {
             source: isImport ? 'imported' : 'generated',
             word_count: wordCount,
             derivation_path: derivationPath,
-            mining_account_id: miningAccountId || userId, // Link to mining account
+            mining_account_id: miningAccountId || userId, // Use provided ID or fallback to userId
             encryption_salt: crypto.randomBytes(16).toString('hex'),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
 
-        console.log('📝 Inserting UQ wallet into database...');
-        console.log('🔗 Mining Account ID:', miningAccountId || userId);
+        console.log('📦 Inserting UQ wallet into database...');
+        console.log('   • Mining Account ID:', miningAccountId || userId);
+        console.log('   • Wallet Record Keys:', Object.keys(walletRecord));
 
         const { data: newWallet, error: insertError } = await supabase
             .from('user_wallets')
@@ -684,23 +616,67 @@ router.post('/store-encrypted', async (req, res) => {
             .single();
 
         if (insertError) {
-            console.error('❌ INSERT ERROR:', insertError);
+            console.error('❌ DATABASE INSERT ERROR:', insertError);
+            console.error('   • Code:', insertError.code);
+            console.error('   • Message:', insertError.message);
+            console.error('   • Details:', insertError.details);
+            console.error('   • Hint:', insertError.hint);
+            
+            // Check for common errors
+            if (insertError.code === '23505') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Wallet already exists for this user',
+                    code: 'DATABASE_ERROR_03',
+                    details: 'A wallet with this address or user ID already exists'
+                });
+            } else if (insertError.code === '23503') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Foreign key violation',
+                    code: 'DATABASE_ERROR_04',
+                    details: 'Referenced user does not exist'
+                });
+            } else if (insertError.code === '23514') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Check constraint violation',
+                    code: 'DATABASE_ERROR_05',
+                    details: 'Data violates database constraints'
+                });
+            }
+            
             return res.status(500).json({
                 success: false,
-                error: 'Failed to store wallet',
+                error: 'Failed to store wallet in database',
+                code: 'DATABASE_ERROR_06',
                 details: insertError.message,
-                help: 'Check if the address format is valid (UQ followed by alphanumeric characters)'
+                hint: 'Check the database schema and constraints'
             });
         }
 
-        console.log(`✅ UQ wallet stored! ID: ${newWallet.id}`);
+        console.log(`✅ UQ wallet stored successfully! ID: ${newWallet.id}`);
+        console.log('✅ Database response:', {
+            id: newWallet.id,
+            address: newWallet.address.substring(0, 25) + '...',
+            created_at: newWallet.created_at
+        });
 
         // Get real TON balance
+        console.log('📦 Fetching real TON balance...');
         const balanceResult = await getRealTONBalance(walletAddress);
+        console.log('📦 Balance result:', {
+            success: balanceResult.success,
+            balance: balanceResult.balance,
+            source: balanceResult.source
+        });
+
         const prices = await fetchRealPrices();
         const tonPrice = prices.TON.price;
         const valueUSD = balanceResult.success ? (balanceResult.balance * tonPrice).toFixed(2) : '0.00';
 
+        console.log('📦 ========= STORE SUCCESSFUL =========');
+        
         res.json({
             success: true,
             message: 'UQ wallet stored securely',
@@ -728,20 +704,177 @@ router.post('/store-encrypted', async (req, res) => {
                 format: 'UQ',
                 explorerLink: `https://tonscan.org/address/${walletAddress}`,
                 tonPrice: `$${tonPrice}`
+            },
+            debug: {
+                timestamp: new Date().toISOString(),
+                userId: userId,
+                addressFormat: 'UQ',
+                miningAccountIdLinked: !!miningAccountId
             }
         });
 
     } catch (error) {
-        console.error('❌ Store wallet failed:', error);
+        console.error('❌ ========= UNEXPECTED ERROR =========');
+        console.error('❌ Error:', error);
+        console.error('❌ Stack:', error.stack);
+        console.error('❌ Request body (partial):', {
+            userId: req.body.userId,
+            address: req.body.walletAddress ? req.body.walletAddress.substring(0, 30) + '...' : null
+        });
+        
         res.status(500).json({
             success: false,
-            error: 'Server error: ' + error.message,
-            help: 'Ensure the address is in proper UQ format (UQ followed by alphanumeric characters)'
+            error: 'Unexpected server error',
+            code: 'SERVER_ERROR_01',
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            help: 'Please check server logs for more details'
         });
     }
 });
 
-// Keep all other endpoints (they already work with UQ)
+// 🔥 ENHANCED: /auto-login WITH DEBUGGING
+router.post('/auto-login', async (req, res) => {
+    console.log('🔐 ========= AUTO-LOGIN WALLET - DEBUG MODE =========');
+    console.log('🔐 Request body:', req.body);
+
+    try {
+        const miningAccountId = req.body.miningAccountId || req.body.mining_account_id;
+        const userId = req.body.userId || req.body.user_id;
+
+        if (!miningAccountId && !userId) {
+            console.error('❌ No mining account ID or user ID provided');
+            return res.status(400).json({
+                success: false,
+                error: 'Mining account ID or User ID required',
+                requiresLogin: true,
+                code: 'AUTO_LOGIN_ERROR_01'
+            });
+        }
+
+        if (!supabase) {
+            console.error('❌ Supabase not initialized');
+            return res.status(500).json({
+                success: false,
+                error: 'Database not available',
+                code: 'DATABASE_ERROR_07'
+            });
+        }
+
+        let wallet = null;
+        let searchField = '';
+        let searchValue = '';
+
+        if (miningAccountId) {
+            searchField = 'mining_account_id';
+            searchValue = miningAccountId;
+            console.log(`🔍 Looking for wallet with mining_account_id: ${miningAccountId}`);
+        } else {
+            searchField = 'user_id';
+            searchValue = userId;
+            console.log(`🔍 Looking for wallet with user_id: ${userId}`);
+        }
+
+        console.log(`🔍 Querying database: ${searchField} = ${searchValue}`);
+        
+        const { data: wallets, error } = await supabase
+            .from('user_wallets')
+            .select('id, address, created_at, source, word_count, public_key, mining_account_id, user_id')
+            .eq(searchField, searchValue);
+
+        if (error) {
+            console.error('❌ Database query error:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Database error: ' + error.message,
+                code: 'DATABASE_ERROR_08'
+            });
+        }
+
+        console.log(`🔍 Found ${wallets ? wallets.length : 0} wallet(s)`);
+
+        if (!wallets || wallets.length === 0) {
+            console.log('📭 No existing wallet found for auto-login');
+            return res.json({
+                success: true,
+                hasWallet: false,
+                message: 'No wallet found for this account',
+                miningAccountId: miningAccountId,
+                userId: userId,
+                code: 'AUTO_LOGIN_INFO_01'
+            });
+        }
+
+        wallet = wallets[0];
+        console.log(`✅ Found existing wallet for ${searchField}: ${searchValue}`);
+        console.log('🔍 Wallet details:', {
+            id: wallet.id,
+            address: wallet.address.substring(0, 25) + '...',
+            source: wallet.source,
+            mining_account_id: wallet.mining_account_id
+        });
+
+        if (miningAccountId && !wallet.mining_account_id) {
+            console.log('🔄 Adding mining_account_id to existing wallet...');
+            const { error: updateError } = await supabase
+                .from('user_wallets')
+                .update({ 
+                    mining_account_id: miningAccountId,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', wallet.id);
+
+            if (updateError) {
+                console.warn('⚠️ Could not update mining account ID:', updateError.message);
+            } else {
+                console.log('✅ Mining account ID updated');
+            }
+        }
+
+        const balanceResult = await getRealTONBalance(wallet.address);
+        const prices = await fetchRealPrices();
+        const tonPrice = prices.TON.price;
+        const valueUSD = balanceResult.success ? (balanceResult.balance * tonPrice).toFixed(2) : '0.00';
+
+        console.log('✅ Auto-login successful');
+        
+        res.json({
+            success: true,
+            hasWallet: true,
+            autoLogin: true,
+            wallet: {
+                id: wallet.id,
+                address: wallet.address,
+                format: 'UQ',
+                createdAt: wallet.created_at,
+                source: wallet.source,
+                wordCount: wallet.word_count,
+                miningAccountId: wallet.mining_account_id || miningAccountId,
+                balance: balanceResult.success ? balanceResult.balance.toFixed(4) : '0.0000',
+                valueUSD: valueUSD,
+                tonPrice: tonPrice,
+                network: 'TON Mainnet'
+            },
+            message: 'Auto-login successful. Wallet loaded from mining account.',
+            timestamp: new Date().toISOString(),
+            debug: {
+                searchField: searchField,
+                searchValue: searchValue,
+                balanceSource: balanceResult.source
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Auto-login failed:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Auto-login failed: ' + error.message,
+            code: 'SERVER_ERROR_02'
+        });
+    }
+});
+
+// Other endpoints remain the same as before...
 router.get('/prices', async (req, res) => {
     try {
         console.log('📊 REAL PRICES - UQ Format Wallet');
@@ -1523,11 +1656,61 @@ router.get('/debug/status', async (req, res) => {
     }
 });
 
+router.get('/debug/check-table', async (req, res) => {
+    try {
+        if (!supabase) {
+            return res.json({
+                success: false,
+                error: 'Supabase not connected'
+            });
+        }
+
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .limit(5);
+
+        if (error) {
+            return res.json({
+                success: false,
+                error: error.message,
+                hint: error.hint,
+                code: error.code
+            });
+        }
+
+        const { data: tableInfo } = await supabase
+            .from('information_schema.columns')
+            .select('column_name, data_type, is_nullable')
+            .eq('table_name', 'user_wallets')
+            .eq('table_schema', 'public');
+
+        res.json({
+            success: true,
+            tableExists: true,
+            rowCount: data?.length || 0,
+            sampleData: data,
+            columns: tableInfo,
+            constraints: {
+                required: ['user_id', 'address', 'encrypted_mnemonic'],
+                unique: ['user_id', 'address'],
+                foreignKeys: ['user_id references auth.users?']
+            }
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 router.get('/test', (req, res) => {
     res.json({
         success: true,
         message: 'UQ FORMAT Wallet API is working!',
-        version: '2.0.0-UQ',
+        version: '2.0.0-UQ-DEBUG',
         timestamp: new Date().toISOString(),
         walletFormat: 'UQ (Non-bounceable)',
         features: [
@@ -1536,16 +1719,17 @@ router.get('/test', (req, res) => {
             'uq-format-wallets',
             'encrypted-wallet-storage',
             'transaction-history',
-            'production-ready'
+            'production-ready',
+            'debug-mode'
         ],
-        note: 'Using UQ format for real wallet addresses'
+        note: 'Enhanced debugging enabled'
     });
 });
 
 module.exports = router;
 
-console.log('✅ FIXED UQ VALIDATION Wallet Routes Loaded:');
-console.log('   • Relaxed UQ address validation ✅');
-console.log('   • Auto-login endpoint added ✅');
-console.log('   • All endpoints UQ compatible ✅');
-console.log('   • Ready for real TON addresses ✅');
+console.log('✅ DEBUG Wallet Routes Loaded:');
+console.log('   • Enhanced error logging ✅');
+console.log('   • Detailed debugging ✅');
+console.log('   • Error codes for each failure ✅');
+console.log('   • Database connection checking ✅');
