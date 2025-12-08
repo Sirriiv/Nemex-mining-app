@@ -1,5 +1,5 @@
-// assets/js/wallet.js - FIXED FOR 6-CHAR PASSWORD
-console.log('🚀 NEMEX WALLET v10.3 - 6-CHAR PASSWORD SUPPORT');
+// assets/js/wallet.js - FIXED WITH PROPER BUTTON RESET
+console.log('🚀 NEMEX WALLET v10.4 - BUTTON RESET FIX');
 
 class WalletManager {
     constructor() {
@@ -8,23 +8,21 @@ class WalletManager {
         this.userId = null;
         this.sessionToken = null;
         this.isInitialized = false;
-        this.passwordMinLength = 6; // ✅ CHANGED FROM 8 TO 6
+        this.passwordMinLength = 6;
 
-        console.log('✅ Wallet Manager initialized (6-char password support)');
+        console.log('✅ Wallet Manager initialized');
     }
 
-    // 🎯 GET CURRENT USER ID (UNCHANGED)
+    // 🎯 GET CURRENT USER ID
     getCurrentUserId() {
         if (this.userId) return this.userId;
         
-        // 1. Check window.miningUser
         if (window.miningUser && window.miningUser.id) {
             this.userId = window.miningUser.id;
             console.log('✅ User ID from window.miningUser:', this.userId);
             return this.userId;
         }
         
-        // 2. Check sessionStorage
         const sessionUser = sessionStorage.getItem('miningUser');
         if (sessionUser) {
             try {
@@ -44,7 +42,7 @@ class WalletManager {
         return null;
     }
 
-    // 🎯 CHECK IF WALLET EXISTS (UNCHANGED)
+    // 🎯 CHECK IF WALLET EXISTS
     async checkWalletExists() {
         const userId = this.getCurrentUserId();
         if (!userId) {
@@ -74,10 +72,11 @@ class WalletManager {
         }
     }
 
-    // 🎯 CREATE WALLET - FIXED FOR 6 CHARS
-    async createWallet(walletPassword) {
+    // 🎯 CREATE WALLET - WITH PROPER BUTTON RESET
+    async createWallet(walletPassword, buttonElement = null) {
         const userId = this.getCurrentUserId();
         if (!userId) {
+            this.resetButton(buttonElement);
             return { 
                 success: false, 
                 error: 'Please login to your mining account first' 
@@ -85,6 +84,7 @@ class WalletManager {
         }
 
         if (!walletPassword || walletPassword.length < this.passwordMinLength) {
+            this.resetButton(buttonElement);
             return { 
                 success: false, 
                 error: `Wallet password must be at least ${this.passwordMinLength} characters` 
@@ -94,7 +94,6 @@ class WalletManager {
         try {
             console.log('🎯 Creating wallet for user:', userId);
             
-            // 1. Create wallet
             const createResponse = await fetch(`${this.apiBaseUrl}/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -108,12 +107,11 @@ class WalletManager {
             console.log('📦 Create wallet result:', result);
 
             if (!result.success) {
-                // Try legacy endpoint
-                console.log('🔄 Trying legacy store-encrypted endpoint...');
-                return await this.legacyCreateWallet(userId, walletPassword);
+                console.log('🔄 Trying legacy endpoint...');
+                return await this.legacyCreateWallet(userId, walletPassword, buttonElement);
             }
 
-            // 2. Create database session
+            // Create session
             const session = await this.createDatabaseSession(result.wallet);
 
             if (session) {
@@ -123,16 +121,12 @@ class WalletManager {
 
                 console.log('✅ Wallet created with database session');
                 
-                // ✅ Call the UI callback
-                if (typeof window.onWalletCreated === 'function') {
-                    window.onWalletCreated(result.wallet);
-                }
-                
-                // ✅ Trigger wallet loaded event
-                this.triggerWalletLoaded();
+                // ✅ DIRECT UI UPDATE - Don't rely on callbacks
+                this.handleWalletCreationSuccess(buttonElement);
                 
                 return result;
             } else {
+                this.resetButton(buttonElement);
                 return {
                     success: false,
                     error: 'Failed to create session'
@@ -141,10 +135,59 @@ class WalletManager {
 
         } catch (error) {
             console.error('❌ Create wallet failed:', error);
+            this.resetButton(buttonElement);
             return { 
                 success: false, 
                 error: 'Failed to create wallet: ' + error.message 
             };
+        }
+    }
+
+    // 🎯 HANDLE WALLET CREATION SUCCESS (DIRECT UI UPDATE)
+    handleWalletCreationSuccess(buttonElement) {
+        console.log('🎯 Handling wallet creation success');
+        
+        // 1. Reset the button immediately
+        this.resetButton(buttonElement);
+        
+        // 2. Close the create modal
+        const createModal = document.getElementById('createWalletModal');
+        if (createModal) {
+            createModal.style.display = 'none';
+            console.log('✅ Create modal closed');
+        }
+        
+        // 3. Clear password fields
+        const passwordInputs = document.querySelectorAll('#createWalletModal input[type="password"]');
+        passwordInputs.forEach(input => input.value = '');
+        
+        // 4. Show success message
+        if (typeof window.showToast === 'function') {
+            window.showToast('✅ Wallet created successfully!', 'success');
+        } else if (typeof window.showMessage === 'function') {
+            window.showMessage('✅ Wallet created successfully!', 'success');
+        } else {
+            alert('✅ Wallet created successfully!');
+        }
+        
+        // 5. Trigger wallet reload
+        setTimeout(() => {
+            if (typeof window.initWallet === 'function') {
+                console.log('🔄 Calling initWallet()...');
+                window.initWallet();
+            } else {
+                console.log('🔄 Reloading page...');
+                window.location.reload();
+            }
+        }, 1500);
+    }
+
+    // 🎯 RESET BUTTON STATE
+    resetButton(buttonElement) {
+        if (buttonElement) {
+            buttonElement.textContent = 'Create Wallet';
+            buttonElement.disabled = false;
+            console.log('✅ Button reset to normal state');
         }
     }
 
@@ -191,7 +234,6 @@ class WalletManager {
         try {
             console.log('🔍 Checking database session...');
             
-            // Get any existing session token from localStorage
             const storedToken = localStorage.getItem('nemex_wallet_session');
             if (storedToken) {
                 this.sessionToken = storedToken;
@@ -213,10 +255,8 @@ class WalletManager {
                 this.sessionToken = result.session.token;
                 this.userId = result.session.user_id;
                 
-                // Store token for next time
                 localStorage.setItem('nemex_wallet_session', this.sessionToken);
                 
-                // Create wallet object from session data
                 this.currentWallet = {
                     id: `session_${Date.now()}`,
                     address: result.session.wallet_address || result.session.wallet?.address,
@@ -237,10 +277,11 @@ class WalletManager {
         }
     }
 
-    // 🎯 LOGIN TO WALLET - FIXED FOR 6 CHARS
-    async loginToWallet(walletPassword) {
+    // 🎯 LOGIN TO WALLET
+    async loginToWallet(walletPassword, buttonElement = null) {
         const userId = this.getCurrentUserId();
         if (!userId) {
+            this.resetButton(buttonElement);
             return { 
                 success: false, 
                 error: 'Please login to your mining account first' 
@@ -248,6 +289,7 @@ class WalletManager {
         }
 
         if (!walletPassword || walletPassword.length < this.passwordMinLength) {
+            this.resetButton(buttonElement);
             return { 
                 success: false, 
                 error: `Wallet password must be at least ${this.passwordMinLength} characters` 
@@ -257,7 +299,6 @@ class WalletManager {
         try {
             console.log('🔐 Logging into wallet for user:', userId);
             
-            // 1. Verify wallet password
             const loginResponse = await fetch(`${this.apiBaseUrl}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -271,13 +312,14 @@ class WalletManager {
             console.log('📦 Login result:', result);
 
             if (!result.success) {
+                this.resetButton(buttonElement);
                 return { 
                     success: false, 
                     error: result.error || 'Invalid wallet password' 
                 };
             }
 
-            // 2. Create database session
+            // Create session
             const session = await this.createDatabaseSession(result.wallet);
 
             if (session) {
@@ -286,18 +328,16 @@ class WalletManager {
                 this.isInitialized = true;
 
                 console.log('✅ Wallet login with database session');
-                this.triggerWalletLoaded();
                 
-                // ✅ Call the global login callback
-                if (typeof window.onWalletLoggedIn === 'function') {
-                    window.onWalletLoggedIn(result.wallet);
-                }
+                // ✅ DIRECT UI UPDATE
+                this.handleWalletLoginSuccess(buttonElement);
             }
 
             return result;
 
         } catch (error) {
             console.error('❌ Wallet login failed:', error);
+            this.resetButton(buttonElement);
             return { 
                 success: false, 
                 error: 'Login failed: ' + error.message 
@@ -305,8 +345,41 @@ class WalletManager {
         }
     }
 
-    // 🎯 LEGACY CREATE WALLET FOR COMPATIBILITY
-    async legacyCreateWallet(userId, walletPassword) {
+    // 🎯 HANDLE WALLET LOGIN SUCCESS
+    handleWalletLoginSuccess(buttonElement) {
+        console.log('🎯 Handling wallet login success');
+        
+        // 1. Reset the button
+        this.resetButton(buttonElement);
+        
+        // 2. Close the login modal
+        const loginModal = document.getElementById('walletLoginModal');
+        if (loginModal) {
+            loginModal.style.display = 'none';
+            console.log('✅ Login modal closed');
+        }
+        
+        // 3. Clear password field
+        const passwordInput = document.getElementById('walletPasswordLogin');
+        if (passwordInput) passwordInput.value = '';
+        
+        // 4. Show success message
+        if (typeof window.showToast === 'function') {
+            window.showToast('✅ Wallet login successful!', 'success');
+        }
+        
+        // 5. Trigger wallet reload
+        setTimeout(() => {
+            if (typeof window.initWallet === 'function') {
+                window.initWallet();
+            } else {
+                window.location.reload();
+            }
+        }, 1000);
+    }
+
+    // 🎯 LEGACY CREATE WALLET
+    async legacyCreateWallet(userId, walletPassword, buttonElement = null) {
         try {
             const response = await fetch(`${this.apiBaseUrl}/store-encrypted`, {
                 method: 'POST',
@@ -320,23 +393,22 @@ class WalletManager {
             const result = await response.json();
             
             if (result.success) {
-                // Create session with legacy data
+                // Create session
                 await this.createDatabaseSession(result.wallet);
                 this.currentWallet = result.wallet;
                 this.userId = userId;
                 this.isInitialized = true;
                 
-                // ✅ Call the UI callback
-                if (typeof window.onWalletCreated === 'function') {
-                    window.onWalletCreated(result.wallet);
-                }
-                
-                this.triggerWalletLoaded();
+                // ✅ DIRECT UI UPDATE
+                this.handleWalletCreationSuccess(buttonElement);
+            } else {
+                this.resetButton(buttonElement);
             }
             
             return result;
         } catch (error) {
             console.error('❌ Legacy create wallet failed:', error);
+            this.resetButton(buttonElement);
             return {
                 success: false,
                 error: 'Wallet creation failed'
@@ -349,7 +421,7 @@ class WalletManager {
         console.log('🔄 Initializing wallet system...');
         
         try {
-            // 1. Check for existing database session
+            // Check for existing session
             const session = await this.getDatabaseSession();
             
             if (session) {
@@ -364,7 +436,7 @@ class WalletManager {
                 };
             }
             
-            // 2. No session, check if wallet exists
+            // No session, check if wallet exists
             const userId = this.getCurrentUserId();
             if (!userId) {
                 console.log('❌ No user ID - requires login');
@@ -381,7 +453,7 @@ class WalletManager {
             console.log('📋 Wallet check result:', checkResult);
             
             if (checkResult.success && checkResult.hasWallet) {
-                // Wallet exists but no session - show login
+                // Wallet exists but no session
                 console.log('🔐 Wallet exists, showing password prompt');
                 return {
                     success: true,
@@ -390,7 +462,7 @@ class WalletManager {
                     showPasswordPrompt: true
                 };
             } else if (checkResult.success && !checkResult.hasWallet) {
-                // No wallet - show create form
+                // No wallet
                 console.log('📭 No wallet found, showing create form');
                 return {
                     success: true,
@@ -398,7 +470,7 @@ class WalletManager {
                     showCreateForm: true
                 };
             } else {
-                // Error occurred
+                // Error
                 console.error('❌ Wallet check failed:', checkResult.error);
                 return checkResult;
             }
@@ -451,84 +523,116 @@ class WalletManager {
 // 🚀 INITIALIZE GLOBAL INSTANCE
 window.walletManager = new WalletManager();
 
-// 🎯 GLOBAL CALLBACK FOR WALLET CREATION - ENHANCED
-window.onWalletCreated = function(walletData) {
-    console.log('🎯 Wallet created callback triggered:', walletData);
+// 🎯 GLOBAL HELPER FOR BUTTON CLICKS
+window.createWalletFromButton = async function(button) {
+    console.log('🎯 Create wallet button clicked');
     
-    // Hide all modals
-    const modals = document.querySelectorAll('.modal');
-    modals.forEach(modal => modal.style.display = 'none');
+    const password = document.getElementById('walletPassword')?.value;
+    const confirmPassword = document.getElementById('confirmWalletPassword')?.value;
+    const statusElement = document.getElementById('createWalletStatus');
     
-    // Reset any password inputs
-    const passwordInputs = document.querySelectorAll('input[type="password"]');
-    passwordInputs.forEach(input => input.value = '');
-    
-    // Reset any create wallet buttons
-    const createButtons = document.querySelectorAll('#createWalletBtn, .create-wallet-btn');
-    createButtons.forEach(btn => {
-        btn.textContent = 'Create Wallet';
-        btn.disabled = false;
-    });
-    
-    // Show success message
-    if (typeof window.showMessage === 'function') {
-        window.showMessage('✅ Wallet created successfully!', 'success');
-    } else {
-        alert('✅ Wallet created successfully!');
+    // Validate
+    if (!password || !confirmPassword) {
+        showStatusMessage('Please enter and confirm password', 'error', statusElement);
+        return;
+    }
+
+    if (password.length < 6) {
+        showStatusMessage('Password must be at least 6 characters', 'error', statusElement);
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showStatusMessage('Passwords do not match', 'error', statusElement);
+        return;
     }
     
-    console.log('🔄 Reloading wallet interface...');
+    // Set button to loading state
+    button.textContent = 'Creating...';
+    button.disabled = true;
     
-    // Trigger wallet reload
-    setTimeout(() => {
-        if (typeof window.initWallet === 'function') {
-            console.log('🎯 Calling initWallet()...');
-            window.initWallet();
-        } else {
-            console.warn('⚠️ initWallet() function not found');
-            // Force page reload as fallback
-            window.location.reload();
-        }
-    }, 1500);
+    // Clear previous status
+    if (statusElement) {
+        statusElement.innerHTML = '';
+    }
+    
+    // Create wallet
+    const result = await window.walletManager.createWallet(password, button);
+    
+    // Handle errors
+    if (!result.success) {
+        showStatusMessage(`❌ Error: ${result.error}`, 'error', statusElement);
+        button.textContent = 'Create Wallet';
+        button.disabled = false;
+    }
+    // Success is handled by handleWalletCreationSuccess()
 };
 
-// 🎯 GLOBAL WALLET LOGIN CALLBACK
-window.onWalletLoggedIn = function(walletData) {
-    console.log('🎯 Wallet login callback triggered:', walletData);
+// 🎯 GLOBAL HELPER FOR LOGIN BUTTON
+window.loginWalletFromButton = async function(button) {
+    console.log('🎯 Login wallet button clicked');
     
-    // Hide login modal
-    const passwordModal = document.getElementById('walletLoginModal');
-    if (passwordModal) {
-        passwordModal.style.display = 'none';
+    const password = document.getElementById('walletPasswordLogin')?.value;
+    const statusElement = document.getElementById('walletLoginStatus');
+    
+    // Validate
+    if (!password) {
+        showStatusMessage('Please enter wallet password', 'error', statusElement);
+        return;
+    }
+
+    if (password.length < 6) {
+        showStatusMessage('Password must be at least 6 characters', 'error', statusElement);
+        return;
     }
     
-    // Reset password input
-    const passwordInputs = document.querySelectorAll('input[type="password"]');
-    passwordInputs.forEach(input => input.value = '');
+    // Set button to loading state
+    button.textContent = 'Unlocking...';
+    button.disabled = true;
     
-    // Reset login buttons
-    const loginButtons = document.querySelectorAll('.login-wallet-btn, .submit-password-btn');
-    loginButtons.forEach(btn => {
-        if (btn) {
-            btn.textContent = 'Login';
-            btn.disabled = false;
-        }
-    });
-    
-    // Show success message
-    if (typeof window.showMessage === 'function') {
-        window.showMessage('✅ Wallet login successful!', 'success');
+    // Clear previous status
+    if (statusElement) {
+        statusElement.innerHTML = '';
     }
     
-    // Trigger wallet reload
-    setTimeout(() => {
-        if (typeof window.initWallet === 'function') {
-            window.initWallet();
-        } else {
-            window.location.reload();
-        }
-    }, 1000);
+    // Login to wallet
+    const result = await window.walletManager.loginToWallet(password, button);
+    
+    // Handle errors
+    if (!result.success) {
+        showStatusMessage(`❌ Error: ${result.error}`, 'error', statusElement);
+        button.textContent = 'Unlock Wallet';
+        button.disabled = false;
+    }
+    // Success is handled by handleWalletLoginSuccess()
 };
+
+// 🎯 SHOW STATUS MESSAGE FUNCTION
+function showStatusMessage(message, type = 'info', element) {
+    if (!element) return;
+    
+    const colors = {
+        loading: '#007bff',
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+
+    const icon = {
+        loading: '🔄',
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+    };
+
+    element.innerHTML = `
+        <div style="color: ${colors[type] || colors.info}; padding: 10px; border-radius: 5px; background: ${colors[type]}10; margin: 10px 0;">
+            ${icon[type] || ''} ${message}
+        </div>
+    `;
+}
 
 // 🎯 AUTO-INITIALIZE ON PAGE LOAD
 document.addEventListener('DOMContentLoaded', function() {
@@ -549,8 +653,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof window.initWallet === 'function') {
                 console.log('🔄 Calling initWallet() from wallet-loaded event');
                 setTimeout(() => window.initWallet(), 500);
-            } else {
-                console.warn('⚠️ initWallet() function not found');
             }
         });
         
@@ -570,14 +672,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     } else if (result.showPasswordPrompt) {
                         console.log('🔐 Showing password prompt');
-                        // Show wallet login modal
+                        // Show login modal
                         const loginModal = document.getElementById('walletLoginModal');
                         if (loginModal) {
                             loginModal.style.display = 'flex';
                         }
                     } else if (result.showCreateForm) {
                         console.log('📭 No wallet - showing create form');
-                        // Show create wallet modal
+                        // Show create modal
                         const createModal = document.getElementById('createWalletModal');
                         if (createModal) {
                             createModal.style.display = 'flex';
@@ -609,4 +711,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('✅ NEMEX WALLET READY - 6-char password support');
+console.log('✅ NEMEX WALLET READY - Fixed button reset issue');
