@@ -1,5 +1,5 @@
-// assets/js/wallet.js - DATABASE SESSION VERSION v10.1 - FIXED
-console.log('🚀 NEMEX WALLET v10.1 - FIXED DATABASE SESSIONS');
+// assets/js/wallet.js - DATABASE SESSION VERSION v10.2 - FULLY FIXED
+console.log('🚀 NEMEX WALLET v10.2 - FULLY FIXED WITH UI EVENTS');
 
 class WalletManager {
     constructor() {
@@ -231,7 +231,7 @@ class WalletManager {
         }
     }
 
-    // 🎯 CREATE WALLET WITH DATABASE SESSION - FIXED
+    // 🎯 CREATE WALLET WITH DATABASE SESSION - UPDATED WITH UI CALLBACK
     async createWallet(walletPassword) {
         const userId = this.getCurrentUserId();
         if (!userId) {
@@ -279,10 +279,22 @@ class WalletManager {
                 this.isInitialized = true;
 
                 console.log('✅ Wallet created with database session');
+                
+                // ✅ FIXED: Call the global callback
+                if (typeof window.onWalletCreated === 'function') {
+                    window.onWalletCreated(result.wallet);
+                }
+                
+                // ✅ FIXED: Also trigger the wallet loaded event
                 this.triggerWalletLoaded();
+                
+                return result;
+            } else {
+                return {
+                    success: false,
+                    error: 'Failed to create session'
+                };
             }
-
-            return result;
 
         } catch (error) {
             console.error('❌ Create wallet failed:', error);
@@ -313,6 +325,12 @@ class WalletManager {
                 this.currentWallet = result.wallet;
                 this.userId = userId;
                 this.isInitialized = true;
+                
+                // ✅ FIXED: Call the global callback
+                if (typeof window.onWalletCreated === 'function') {
+                    window.onWalletCreated(result.wallet);
+                }
+                
                 this.triggerWalletLoaded();
             }
             
@@ -326,7 +344,7 @@ class WalletManager {
         }
     }
 
-    // 🎯 LOGIN TO WALLET WITH DATABASE SESSION - FIXED
+    // 🎯 LOGIN TO WALLET WITH DATABASE SESSION - UPDATED
     async loginToWallet(walletPassword) {
         const userId = this.getCurrentUserId();
         if (!userId) {
@@ -375,6 +393,11 @@ class WalletManager {
 
                 console.log('✅ Wallet login with database session');
                 this.triggerWalletLoaded();
+                
+                // ✅ FIXED: Call the global login callback if it exists
+                if (typeof window.onWalletLoggedIn === 'function') {
+                    window.onWalletLoggedIn(result.wallet);
+                }
             }
 
             return result;
@@ -557,31 +580,110 @@ window.showCreateWalletModal = function() {
     if (createModal) {
         createModal.style.display = 'flex';
         console.log('✅ Create wallet modal opened');
+    } else {
+        console.warn('⚠️ No createWalletModal element found');
     }
 };
 
-// 🎯 GLOBAL CALLBACK FOR WALLET CREATION
+// 🎯 GLOBAL CALLBACK FOR WALLET CREATION - ENHANCED
 window.onWalletCreated = function(walletData) {
-    console.log('🎯 Wallet created callback:', walletData);
+    console.log('🎯 Wallet created callback triggered:', walletData);
     
+    // Hide all modals
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => modal.style.display = 'none');
+    
+    // Find and hide specific modals
     const createModal = document.getElementById('createWalletModal');
     if (createModal) {
         createModal.style.display = 'none';
     }
     
-    if (typeof window.showMessage === 'function') {
-        window.showMessage('✅ Wallet created successfully!', 'success');
+    const passwordModal = document.getElementById('passwordModal');
+    if (passwordModal) {
+        passwordModal.style.display = 'none';
     }
     
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    if (welcomeScreen) {
+        welcomeScreen.style.display = 'none';
+    }
+    
+    // Reset any password inputs
+    const passwordInputs = document.querySelectorAll('input[type="password"]');
+    passwordInputs.forEach(input => input.value = '');
+    
+    // Reset any create wallet buttons
+    const createButtons = document.querySelectorAll('#createWalletBtn, .create-wallet-btn');
+    createButtons.forEach(btn => {
+        btn.textContent = 'Create Wallet';
+        btn.disabled = false;
+    });
+    
+    // Show success message
+    if (typeof window.showMessage === 'function') {
+        window.showMessage('✅ Wallet created successfully!', 'success');
+    } else {
+        alert('✅ Wallet created successfully!');
+    }
+    
+    console.log('🔄 Reloading wallet interface...');
+    
+    // Trigger wallet reload
+    setTimeout(() => {
+        if (typeof window.initWallet === 'function') {
+            console.log('🎯 Calling initWallet()...');
+            window.initWallet();
+        } else {
+            console.warn('⚠️ initWallet() function not found');
+            // Force page reload as fallback
+            window.location.reload();
+        }
+    }, 1500);
+};
+
+// 🎯 ADDED: GLOBAL WALLET LOGIN CALLBACK
+window.onWalletLoggedIn = function(walletData) {
+    console.log('🎯 Wallet login callback triggered:', walletData);
+    
+    // Hide login modal
+    const passwordModal = document.getElementById('passwordModal');
+    if (passwordModal) {
+        passwordModal.style.display = 'none';
+    }
+    
+    // Reset password input
+    const passwordInputs = document.querySelectorAll('input[type="password"]');
+    passwordInputs.forEach(input => input.value = '');
+    
+    // Reset login buttons
+    const loginButtons = document.querySelectorAll('.login-wallet-btn, .submit-password-btn');
+    loginButtons.forEach(btn => {
+        if (btn) {
+            btn.textContent = 'Login';
+            btn.disabled = false;
+        }
+    });
+    
+    // Show success message
+    if (typeof window.showMessage === 'function') {
+        window.showMessage('✅ Wallet login successful!', 'success');
+    }
+    
+    // Trigger wallet reload
     setTimeout(() => {
         if (typeof window.initWallet === 'function') {
             window.initWallet();
+        } else {
+            window.location.reload();
         }
     }, 1000);
 };
 
-// 🎯 AUTO-INITIALIZE ON PAGE LOAD
+// 🎯 AUTO-INITIALIZE ON PAGE LOAD WITH BETTER EVENT HANDLING
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 DOM Content Loaded - Setting up wallet system v10.2');
+    
     // Check if we're on a wallet-related page
     const isWalletPage = window.location.pathname.includes('wallet.html') || 
                         window.location.pathname.includes('/wallet') ||
@@ -589,14 +691,23 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.location.pathname.endsWith('/');
     
     if (isWalletPage) {
-        console.log('🎯 Auto-initializing wallet system v10.1...');
+        console.log('🎯 Auto-initializing wallet system v10.2...');
         
         // Listen for wallet loaded events
         window.addEventListener('wallet-loaded', function(event) {
             console.log('🎯 Wallet loaded event received:', event.detail);
             if (typeof window.initWallet === 'function') {
+                console.log('🔄 Calling initWallet() from wallet-loaded event');
                 setTimeout(() => window.initWallet(), 500);
+            } else {
+                console.warn('⚠️ initWallet() function not found');
             }
+        });
+        
+        // Listen for wallet logged out events
+        window.addEventListener('wallet-logged-out', function(event) {
+            console.log('🎯 Wallet logged out event received');
+            window.location.reload();
         });
         
         // Initialize after a short delay
@@ -618,12 +729,24 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Show password input modal
                         if (typeof window.showWalletLoginModal === 'function') {
                             window.showWalletLoginModal();
+                        } else {
+                            console.warn('⚠️ showWalletLoginModal() not found');
+                            const passwordModal = document.getElementById('passwordModal');
+                            if (passwordModal) {
+                                passwordModal.style.display = 'flex';
+                            }
                         }
                     } else if (result.showCreateForm) {
                         console.log('📭 No wallet - showing create form');
                         // Show create wallet form
                         if (typeof window.showWelcomeScreen === 'function') {
                             window.showWelcomeScreen();
+                        } else {
+                            console.warn('⚠️ showWelcomeScreen() not found');
+                            const welcomeScreen = document.getElementById('welcomeScreen');
+                            if (welcomeScreen) {
+                                welcomeScreen.style.display = 'block';
+                            }
                         }
                     }
                 } else if (result.requiresLogin) {
@@ -635,17 +758,173 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (error) {
                 console.error('❌ Initialization failed:', error);
             }
-        }, 1500);
+        }, 1000);
     }
 });
 
-// 🎯 WALLET LOGIN MODAL HELPER (if not defined elsewhere)
+// 🎯 ADDED: UI MODAL MANAGEMENT FUNCTIONS
 if (typeof window.showWalletLoginModal === 'undefined') {
     window.showWalletLoginModal = function() {
         console.log('🔐 showWalletLoginModal called');
-        // You should implement this in your UI
-        alert('Please implement showWalletLoginModal() in your UI manager');
+        
+        // Hide all other modals
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => modal.style.display = 'none');
+        
+        // Show password modal
+        const passwordModal = document.getElementById('passwordModal');
+        if (passwordModal) {
+            passwordModal.style.display = 'flex';
+        } else {
+            console.warn('⚠️ No passwordModal element found');
+        }
     };
 }
 
-console.log('✅ NEMEX WALLET v10.1 READY - Fixed Database Sessions');
+if (typeof window.showWelcomeScreen === 'undefined') {
+    window.showWelcomeScreen = function() {
+        console.log('📭 showWelcomeScreen called');
+        
+        // Hide all other elements
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => modal.style.display = 'none');
+        
+        const walletInterface = document.getElementById('walletInterface');
+        if (walletInterface) {
+            walletInterface.style.display = 'none';
+        }
+        
+        // Show welcome screen
+        const welcomeScreen = document.getElementById('welcomeScreen');
+        if (welcomeScreen) {
+            welcomeScreen.style.display = 'block';
+        } else {
+            console.warn('⚠️ No welcomeScreen element found');
+        }
+    };
+}
+
+// 🎯 ADDED: CREATE WALLET BUTTON HANDLER (Attach to your HTML button)
+document.addEventListener('click', function(event) {
+    // Handle create wallet button clicks
+    if (event.target.matches('#createWalletBtn, .create-wallet-btn')) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const button = event.target;
+        const passwordInput = document.querySelector('#createWalletPassword');
+        
+        if (!passwordInput) {
+            console.error('❌ No password input found');
+            return;
+        }
+        
+        const password = passwordInput.value;
+        
+        if (!password || password.length < 8) {
+            if (typeof window.showMessage === 'function') {
+                window.showMessage('Password must be at least 8 characters', 'error');
+            } else {
+                alert('Password must be at least 8 characters');
+            }
+            return;
+        }
+        
+        // Show loading state
+        const originalText = button.textContent;
+        button.textContent = 'Creating...';
+        button.disabled = true;
+        
+        console.log('🎯 Creating wallet with password...');
+        
+        // Call wallet manager
+        window.walletManager.createWallet(password).then(result => {
+            console.log('📦 Wallet create result:', result);
+            
+            if (!result.success) {
+                // Reset button on error
+                button.textContent = originalText;
+                button.disabled = false;
+                
+                if (typeof window.showMessage === 'function') {
+                    window.showMessage(result.error || 'Failed to create wallet', 'error');
+                } else {
+                    alert(result.error || 'Failed to create wallet');
+                }
+            }
+            // If successful, onWalletCreated callback will handle the UI
+        }).catch(error => {
+            console.error('❌ Wallet creation error:', error);
+            button.textContent = originalText;
+            button.disabled = false;
+            
+            if (typeof window.showMessage === 'function') {
+                window.showMessage('Network error: ' + error.message, 'error');
+            } else {
+                alert('Network error: ' + error.message);
+            }
+        });
+    }
+    
+    // Handle login wallet button clicks
+    if (event.target.matches('.login-wallet-btn, .submit-password-btn')) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const button = event.target;
+        const passwordInput = document.querySelector('#walletPassword, #loginPassword');
+        
+        if (!passwordInput) {
+            console.error('❌ No password input found for login');
+            return;
+        }
+        
+        const password = passwordInput.value;
+        
+        if (!password) {
+            if (typeof window.showMessage === 'function') {
+                window.showMessage('Please enter wallet password', 'error');
+            } else {
+                alert('Please enter wallet password');
+            }
+            return;
+        }
+        
+        // Show loading state
+        const originalText = button.textContent;
+        button.textContent = 'Logging in...';
+        button.disabled = true;
+        
+        console.log('🔐 Logging into wallet...');
+        
+        // Call wallet manager
+        window.walletManager.loginToWallet(password).then(result => {
+            console.log('📦 Wallet login result:', result);
+            
+            if (!result.success) {
+                // Reset button on error
+                button.textContent = originalText;
+                button.disabled = false;
+                
+                if (typeof window.showMessage === 'function') {
+                    window.showMessage(result.error || 'Failed to login', 'error');
+                } else {
+                    alert(result.error || 'Failed to login');
+                }
+            }
+            // If successful, onWalletLoggedIn callback will handle the UI
+        }).catch(error => {
+            console.error('❌ Wallet login error:', error);
+            button.textContent = originalText;
+            button.disabled = false;
+            
+            if (typeof window.showMessage === 'function') {
+                window.showMessage('Network error: ' + error.message, 'error');
+            } else {
+                alert('Network error: ' + error.message);
+            }
+        });
+    }
+});
+
+console.log('✅ NEMEX WALLET v10.2 READY - Fully Fixed with UI Event Handling');
