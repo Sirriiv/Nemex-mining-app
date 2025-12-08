@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - FIXED WITH TON CRYPTO v4.0 (SIMPLIFIED)
+// backend/wallet-routes.js - COMPLETE FIXED VERSION WITH SESSIONS v5.0
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -8,9 +8,11 @@ const { mnemonicToSeedSync, generateMnemonic } = require('@ton/crypto');
 const bcrypt = require('bcrypt');
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v4.0 - LOADING WITH TON CRYPTO...');
+console.log('🚀 WALLET ROUTES v5.0 - COMPLETE WITH DATABASE SESSIONS');
 
-// Initialize Supabase
+// ============================================
+// 🎯 INITIALIZATION
+// ============================================
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 let supabase = null;
@@ -36,6 +38,10 @@ async function initializeSupabase() {
 
         console.log('✅ Supabase connected successfully!');
         dbStatus = 'connected';
+        
+        // Ensure sessions table exists
+        await ensureSessionsTable();
+        
         return true;
     } catch (error) {
         console.error('❌ Supabase initialization error:', error.message);
@@ -50,19 +56,94 @@ async function initializeSupabase() {
 })();
 
 // ============================================
-// 🎯 HELPER FUNCTIONS
+// 🎯 SESSION MANAGEMENT
+// ============================================
+
+// Create sessions table if not exists
+async function ensureSessionsTable() {
+    try {
+        // Check if table exists
+        const { error } = await supabase
+            .from('wallet_sessions')
+            .select('id')
+            .limit(1);
+            
+        if (error && error.code === '42P01') { // Table doesn't exist
+            console.log('📝 Creating wallet_sessions table...');
+            
+            // You need to run this SQL in Supabase dashboard first:
+            console.log(`
+            ⚠️ Please run this SQL in Supabase SQL Editor:
+            
+            CREATE TABLE wallet_sessions (
+                id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                wallet_id BIGINT NOT NULL,
+                session_token TEXT UNIQUE NOT NULL,
+                token_hash TEXT NOT NULL,
+                ip_address TEXT,
+                user_agent TEXT,
+                device_info JSONB DEFAULT '{}',
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+                last_accessed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                is_active BOOLEAN DEFAULT TRUE,
+                revocation_reason TEXT,
+                
+                CONSTRAINT fk_wallet_sessions_user 
+                    FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE,
+                CONSTRAINT fk_wallet_sessions_wallet 
+                    FOREIGN KEY (wallet_id) REFERENCES user_wallets(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX idx_wallet_sessions_user_id ON wallet_sessions(user_id);
+            CREATE INDEX idx_wallet_sessions_wallet_id ON wallet_sessions(wallet_id);
+            CREATE INDEX idx_wallet_sessions_token_hash ON wallet_sessions(token_hash);
+            CREATE INDEX idx_wallet_sessions_expires ON wallet_sessions(expires_at);
+            CREATE INDEX idx_wallet_sessions_active ON wallet_sessions(is_active);
+            `);
+        } else {
+            console.log('✅ wallet_sessions table exists');
+        }
+    } catch (error) {
+        console.warn('⚠️ Could not check sessions table:', error.message);
+    }
+}
+
+// Hash token for security
+function hashToken(token) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+// Clean expired sessions
+async function cleanupExpiredSessions() {
+    try {
+        const { error } = await supabase
+            .from('wallet_sessions')
+            .delete()
+            .lt('expires_at', new Date().toISOString())
+            .or('is_active.eq.false');
+            
+        if (error) console.warn('⚠️ Session cleanup error:', error.message);
+    } catch (error) {
+        // Ignore cleanup errors
+    }
+}
+
+// ============================================
+// 🎯 WALLET FUNCTIONS
 // ============================================
 
 // Generate TON wallet with UQ address
 async function generateTONWallet(wordCount = 12) {
     try {
-        // 1. Generate BIP-39 mnemonic using TON crypto
+        // Generate BIP-39 mnemonic using TON crypto
         const mnemonic = generateMnemonic(wordCount);
         
-        // 2. Convert to seed
+        // Convert to seed
         const seed = mnemonicToSeedSync(mnemonic);
         
-        // 3. Generate deterministic UQ address from seed
+        // Generate deterministic UQ address from seed
         const address = generateUQAddress(seed);
         
         return {
@@ -77,23 +158,19 @@ async function generateTONWallet(wordCount = 12) {
     }
 }
 
-// Generate UQ format address from seed
+// Generate UQ format address
 function generateUQAddress(seed) {
-    // Create SHA-256 hash of the seed
     const hash = crypto.createHash('sha256').update(seed).digest();
-    
-    // Convert to base64url (UQ format)
     const base64 = hash.toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
     
-    // Ensure it's exactly 48 chars (UQ + 46 chars)
     const base46 = base64.substring(0, 46);
     return 'UQ' + base46;
 }
 
-// Hash wallet password with bcrypt
+// Hash wallet password
 async function hashWalletPassword(password) {
     const saltRounds = 12;
     return await bcrypt.hash(password, saltRounds);
@@ -104,7 +181,7 @@ async function verifyWalletPassword(password, hash) {
     return await bcrypt.compare(password, hash);
 }
 
-// Simple AES encryption for mnemonic
+// Encrypt mnemonic
 function encryptMnemonic(mnemonic, password) {
     const algorithm = 'aes-256-gcm';
     const iv = crypto.randomBytes(16);
@@ -119,13 +196,14 @@ function encryptMnemonic(mnemonic, password) {
     return {
         iv: iv.toString('hex'),
         encrypted: encrypted,
-        authTag: authTag.toString('hex')
+        authTag: authTag.toString('hex'),
+        algorithm: algorithm
     };
 }
 
-// Simple AES decryption
+// Decrypt mnemonic
 function decryptMnemonic(encryptedData, password) {
-    const algorithm = 'aes-256-gcm';
+    const algorithm = encryptedData.algorithm || 'aes-256-gcm';
     const key = crypto.scryptSync(password, 'nemex-salt', 32);
     const iv = Buffer.from(encryptedData.iv, 'hex');
     const authTag = Buffer.from(encryptedData.authTag, 'hex');
@@ -140,7 +218,7 @@ function decryptMnemonic(encryptedData, password) {
 }
 
 // ============================================
-// 🎯 PRICE API (Keep your existing price APIs)
+// 🎯 PRICE API
 // ============================================
 
 const PRICE_APIS = [
@@ -157,7 +235,6 @@ const PRICE_APIS = [
                 if (data.symbol === 'NMXUSDT') prices.NMX = parseFloat(data.price) || 0;
                 return prices;
             } catch (error) {
-                console.warn('⚠️ Binance parser error:', error.message);
                 return {};
             }
         }
@@ -178,7 +255,6 @@ const PRICE_APIS = [
                 }
                 return prices;
             } catch (error) {
-                console.warn('⚠️ Bybit parser error:', error.message);
                 return {};
             }
         }
@@ -194,23 +270,18 @@ async function fetchRealPrices() {
         return priceCache.data;
     }
 
-    console.log('💰 Fetching fresh prices from exchanges...');
+    console.log('💰 Fetching prices...');
     
     let successfulPrices = null;
 
     for (const api of PRICE_APIS) {
         try {
-            console.log(`🔄 Trying ${api.name}...`);
-            
-            // Fetch TON price
             const tonResponse = await axios.get(api.urls.TON, { timeout: 5000 });
             const tonPrices = await api.parser(tonResponse.data);
             
-            // Fetch NMX price
             const nmxResponse = await axios.get(api.urls.NMX, { timeout: 5000 });
             const nmxPrices = await api.parser(nmxResponse.data);
             
-            // Combine prices
             const prices = {
                 TON: { 
                     price: tonPrices.TON || 2.35, 
@@ -226,21 +297,16 @@ async function fetchRealPrices() {
                 }
             };
 
-            // Validate prices
             if (prices.TON.price > 0 && prices.NMX.price > 0) {
                 successfulPrices = prices;
-                console.log(`✅ ${api.name} prices: TON=$${prices.TON.price}, NMX=$${prices.NMX.price}`);
                 break;
             }
         } catch (error) {
-            console.warn(`⚠️ ${api.name} failed:`, error.message);
             continue;
         }
     }
 
-    // Fallback if all APIs fail
     if (!successfulPrices) {
-        console.warn('⚠️ All exchanges failed, using fallback prices');
         successfulPrices = {
             TON: { price: 2.35, change24h: 0, source: 'fallback', timestamp: now },
             NMX: { price: 0.10, change24h: 0, source: 'fallback', timestamp: now }
@@ -254,12 +320,218 @@ async function fetchRealPrices() {
 }
 
 // ============================================
-// 🎯 API ROUTES
+// 🎯 SESSION ROUTES
 // ============================================
 
-// 🎯 CREATE WALLET (with separate wallet password)
+// Create session
+router.post('/session/create', async (req, res) => {
+    try {
+        const { userId, walletId, walletAddress } = req.body;
+        
+        if (!userId || !walletId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID and wallet ID required'
+            });
+        }
+        
+        // Generate secure session token
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const tokenHash = hashToken(sessionToken);
+        const userAgent = req.headers['user-agent'] || 'unknown';
+        const ip = req.ip || req.connection.remoteAddress || 'unknown';
+        
+        // Session expires in 30 days
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        
+        // Clean old sessions first
+        await cleanupExpiredSessions();
+        
+        // Create session record
+        const sessionRecord = {
+            user_id: userId,
+            wallet_id: walletId,
+            session_token: sessionToken,
+            token_hash: tokenHash,
+            ip_address: ip,
+            user_agent: userAgent,
+            device_info: {},
+            expires_at: expiresAt.toISOString(),
+            is_active: true
+        };
+        
+        // Try to insert
+        let data, error;
+        
+        if (supabase && dbStatus === 'connected') {
+            ({ data, error } = await supabase
+                .from('wallet_sessions')
+                .insert([sessionRecord])
+                .select()
+                .single());
+        } else {
+            throw new Error('Database not available');
+        }
+        
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            session: {
+                token: sessionToken,
+                user_id: userId,
+                wallet_id: walletId,
+                expires_at: data.expires_at,
+                wallet: {
+                    address: walletAddress,
+                    id: walletId
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Create session failed:', error);
+        res.json({
+            success: false,
+            error: 'Failed to create session'
+        });
+    }
+});
+
+// Check session
+router.post('/session/check', async (req, res) => {
+    try {
+        const sessionToken = req.headers['x-session-token'] || 
+                            req.body.sessionToken;
+        
+        if (!sessionToken) {
+            return res.json({
+                success: true,
+                hasSession: false,
+                message: 'No session token'
+            });
+        }
+        
+        const tokenHash = hashToken(sessionToken);
+        
+        if (!supabase || dbStatus !== 'connected') {
+            return res.json({
+                success: true,
+                hasSession: false,
+                message: 'Database not available'
+            });
+        }
+        
+        // Check session
+        const { data: session, error } = await supabase
+            .from('wallet_sessions')
+            .select(`
+                *,
+                user_wallets:wallet_id (
+                    address,
+                    source,
+                    created_at
+                )
+            `)
+            .eq('token_hash', tokenHash)
+            .eq('is_active', true)
+            .gt('expires_at', new Date().toISOString())
+            .single();
+            
+        if (error || !session) {
+            return res.json({
+                success: true,
+                hasSession: false,
+                message: 'Invalid or expired session'
+            });
+        }
+        
+        // Update last accessed
+        await supabase
+            .from('wallet_sessions')
+            .update({ last_accessed_at: new Date().toISOString() })
+            .eq('id', session.id);
+        
+        res.json({
+            success: true,
+            hasSession: true,
+            session: {
+                token: sessionToken,
+                user_id: session.user_id,
+                wallet_id: session.wallet_id,
+                expires_at: session.expires_at,
+                wallet: {
+                    id: session.wallet_id,
+                    address: session.user_wallets?.address,
+                    createdAt: session.user_wallets?.created_at,
+                    source: session.user_wallets?.source
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Check session failed:', error);
+        res.json({
+            success: false,
+            hasSession: false,
+            error: 'Session check failed'
+        });
+    }
+});
+
+// Destroy session
+router.post('/session/destroy', async (req, res) => {
+    try {
+        const { token } = req.body;
+        
+        if (!token) {
+            return res.json({
+                success: false,
+                error: 'Session token required'
+            });
+        }
+        
+        const tokenHash = hashToken(token);
+        
+        if (!supabase || dbStatus !== 'connected') {
+            return res.json({
+                success: true,
+                message: 'Database not available'
+            });
+        }
+        
+        // Mark session as inactive
+        const { error } = await supabase
+            .from('wallet_sessions')
+            .update({ 
+                is_active: false,
+                expires_at: new Date().toISOString()
+            })
+            .eq('token_hash', tokenHash);
+            
+        if (error) throw error;
+        
+        res.json({
+            success: true,
+            message: 'Session destroyed'
+        });
+        
+    } catch (error) {
+        console.error('❌ Destroy session failed:', error);
+        res.json({
+            success: false,
+            error: 'Failed to destroy session'
+        });
+    }
+});
+
+// ============================================
+// 🎯 WALLET ROUTES
+// ============================================
+
+// Create wallet
 router.post('/create', async (req, res) => {
-    console.log('🎯 CREATE WALLET - Processing request');
+    console.log('🎯 CREATE WALLET');
     
     try {
         const { userId, walletPassword } = req.body;
@@ -278,7 +550,7 @@ router.post('/create', async (req, res) => {
             });
         }
         
-        // 1. Check if wallet already exists
+        // Check if wallet already exists
         if (supabase && dbStatus === 'connected') {
             const { data: existingWallet } = await supabase
                 .from('user_wallets')
@@ -294,17 +566,16 @@ router.post('/create', async (req, res) => {
             }
         }
         
-        // 2. Generate TON wallet
-        console.log('🔐 Generating TON wallet...');
+        // Generate TON wallet
         const wallet = await generateTONWallet(12);
         
-        // 3. Hash wallet password
+        // Hash wallet password
         const passwordHash = await hashWalletPassword(walletPassword);
         
-        // 4. Encrypt mnemonic with wallet password
+        // Encrypt mnemonic
         const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
         
-        // 5. Store in database if available
+        // Store in database
         let walletId = null;
         if (supabase && dbStatus === 'connected') {
             const walletRecord = {
@@ -334,7 +605,6 @@ router.post('/create', async (req, res) => {
             console.log('✅ Wallet stored in database');
         }
         
-        // Success response
         res.json({
             success: true,
             message: 'TON wallet created successfully',
@@ -347,7 +617,7 @@ router.post('/create', async (req, res) => {
                 source: supabase ? 'database' : 'temporary',
                 wordCount: 12
             },
-            warning: !supabase ? 'Wallet stored temporarily. Save your recovery phrase!' : null
+            warning: !supabase ? 'Wallet stored temporarily' : null
         });
         
     } catch (error) {
@@ -359,9 +629,9 @@ router.post('/create', async (req, res) => {
     }
 });
 
-// 🎯 LOGIN TO WALLET
+// Login to wallet
 router.post('/login', async (req, res) => {
-    console.log('🔐 WALLET LOGIN - Processing request');
+    console.log('🔐 WALLET LOGIN');
     
     try {
         const { userId, walletPassword } = req.body;
@@ -380,7 +650,7 @@ router.post('/login', async (req, res) => {
             });
         }
         
-        // 1. Get wallet from database
+        // Get wallet from database
         const { data: wallet, error } = await supabase
             .from('user_wallets')
             .select('*')
@@ -394,7 +664,7 @@ router.post('/login', async (req, res) => {
             });
         }
         
-        // 2. Verify wallet password
+        // Verify wallet password
         const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
         if (!passwordValid) {
             return res.status(401).json({
@@ -403,7 +673,6 @@ router.post('/login', async (req, res) => {
             });
         }
         
-        // 3. Return wallet data (without mnemonic)
         res.json({
             success: true,
             message: 'Wallet login successful',
@@ -428,9 +697,9 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// 🎯 CHECK IF WALLET EXISTS
+// Check wallet
 router.post('/check', async (req, res) => {
-    console.log('🔍 CHECK WALLET - Processing request');
+    console.log('🔍 CHECK WALLET');
     
     try {
         const { userId } = req.body;
@@ -485,9 +754,13 @@ router.post('/check', async (req, res) => {
     }
 });
 
-// 🎯 GET ENCRYPTED MNEMONIC (for recovery/backup)
-router.post('/get-mnemonic', async (req, res) => {
-    console.log('🔐 GET MNEMONIC - Processing request');
+// ============================================
+// 🎯 COMPATIBILITY ROUTES
+// ============================================
+
+// Old store-encrypted endpoint
+router.post('/store-encrypted', async (req, res) => {
+    console.log('⚠️ Using old store-encrypted endpoint');
     
     try {
         const { userId, walletPassword } = req.body;
@@ -499,130 +772,15 @@ router.post('/get-mnemonic', async (req, res) => {
             });
         }
         
-        if (!supabase || dbStatus !== 'connected') {
-            return res.status(503).json({
-                success: false,
-                error: 'Database not available'
-            });
-        }
-        
-        // 1. Get wallet
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-            
-        if (error || !wallet) {
-            return res.status(404).json({
-                success: false,
-                error: 'No wallet found'
-            });
-        }
-        
-        // 2. Verify password
-        const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
-        if (!passwordValid) {
-            return res.status(401).json({
-                success: false,
-                error: 'Incorrect wallet password'
-            });
-        }
-        
-        // 3. Return encrypted mnemonic (client will decrypt)
-        const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-        
-        res.json({
-            success: true,
-            encryptedMnemonic: encryptedData,
-            address: wallet.address,
-            note: 'Decrypt this client-side with your wallet password'
+        // Forward to new create endpoint
+        const response = await fetch(`http://localhost${req.baseUrl}/create`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, walletPassword })
         });
         
-    } catch (error) {
-        console.error('❌ Get mnemonic failed:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to get mnemonic: ' + error.message
-        });
-    }
-});
-
-// ============================================
-// 🎯 COMPATIBILITY ROUTES (for existing frontend)
-// ============================================
-
-// Old endpoint for compatibility
-router.post('/store-encrypted', async (req, res) => {
-    console.log('⚠️ Using old store-encrypted endpoint');
-    
-    try {
-        const { userId, walletPassword, walletAddress } = req.body;
-        
-        if (!userId || !walletPassword) {
-            return res.status(400).json({
-                success: false,
-                error: 'User ID and wallet password required'
-            });
-        }
-        
-        // Check if wallet already exists
-        if (supabase && dbStatus === 'connected') {
-            const { data: existingWallet } = await supabase
-                .from('user_wallets')
-                .select('id')
-                .eq('user_id', userId)
-                .single();
-                
-            if (existingWallet) {
-                return res.json({
-                    success: false,
-                    error: 'Wallet already exists for this user'
-                });
-            }
-        }
-        
-        // Generate new wallet
-        const wallet = await generateTONWallet(12);
-        const passwordHash = await hashWalletPassword(walletPassword);
-        const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
-        
-        // Store in database
-        let walletId = null;
-        if (supabase && dbStatus === 'connected') {
-            const walletRecord = {
-                user_id: userId,
-                address: wallet.address,
-                encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
-                public_key: crypto.randomBytes(32).toString('hex'),
-                wallet_type: 'TON',
-                source: 'generated',
-                word_count: 12,
-                password_hash: passwordHash,
-                created_at: new Date().toISOString()
-            };
-            
-            const { data, error } = await supabase
-                .from('user_wallets')
-                .insert([walletRecord])
-                .select()
-                .single();
-                
-            if (error) throw error;
-            walletId = data.id;
-        }
-        
-        res.json({
-            success: true,
-            message: 'Wallet created via legacy endpoint',
-            wallet: {
-                id: walletId || `legacy_${Date.now()}`,
-                userId: userId,
-                address: wallet.address,
-                format: 'UQ',
-                createdAt: new Date().toISOString()
-            }
-        });
+        const result = await response.json();
+        res.json(result);
         
     } catch (error) {
         res.status(500).json({
@@ -634,6 +792,8 @@ router.post('/store-encrypted', async (req, res) => {
 
 // Old check-wallet endpoint
 router.post('/check-wallet', async (req, res) => {
+    console.log('⚠️ Using old check-wallet endpoint');
+    
     try {
         const { userId } = req.body;
         
@@ -644,39 +804,15 @@ router.post('/check-wallet', async (req, res) => {
             });
         }
         
-        if (!supabase || dbStatus !== 'connected') {
-            return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'Database not available'
-            });
-        }
-        
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('id, address, created_at, source')
-            .eq('user_id', userId)
-            .single();
-            
-        if (error || !wallet) {
-            return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'No wallet found'
-            });
-        }
-        
-        res.json({
-            success: true,
-            hasWallet: true,
-            wallet: {
-                id: wallet.id,
-                address: wallet.address,
-                format: 'UQ',
-                createdAt: wallet.created_at,
-                source: wallet.source
-            }
+        // Forward to new check endpoint
+        const response = await fetch(`http://localhost${req.baseUrl}/check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
         });
+        
+        const result = await response.json();
+        res.json(result);
         
     } catch (error) {
         res.json({
@@ -688,6 +824,8 @@ router.post('/check-wallet', async (req, res) => {
 
 // Old auto-login endpoint
 router.post('/auto-login', async (req, res) => {
+    console.log('⚠️ Using old auto-login endpoint');
+    
     try {
         const { userId } = req.body;
         
@@ -698,39 +836,15 @@ router.post('/auto-login', async (req, res) => {
             });
         }
         
-        if (!supabase || dbStatus !== 'connected') {
-            return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'Database not available'
-            });
-        }
-        
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('id, address, created_at, source')
-            .eq('user_id', userId)
-            .single();
-            
-        if (error || !wallet) {
-            return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'No wallet found'
-            });
-        }
-        
-        res.json({
-            success: true,
-            hasWallet: true,
-            wallet: {
-                id: wallet.id,
-                address: wallet.address,
-                format: 'UQ',
-                createdAt: wallet.created_at,
-                source: wallet.source
-            }
+        // Forward to check endpoint
+        const response = await fetch(`http://localhost${req.baseUrl}/check`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId })
         });
+        
+        const result = await response.json();
+        res.json(result);
         
     } catch (error) {
         res.json({
@@ -740,33 +854,152 @@ router.post('/auto-login', async (req, res) => {
     }
 });
 
-// Health endpoint
+// Get encrypted mnemonic
+router.post('/get-encrypted', async (req, res) => {
+    try {
+        const { userId } = req.body;
+        
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID required'
+            });
+        }
+        
+        if (!supabase || dbStatus !== 'connected') {
+            return res.status(500).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
+        
+        const { data: wallet, error } = await supabase
+            .from('user_wallets')
+            .select('encrypted_mnemonic, address, created_at')
+            .eq('user_id', userId)
+            .single();
+            
+        if (error || !wallet) {
+            return res.json({
+                success: false,
+                error: 'No wallet found'
+            });
+        }
+        
+        res.json({
+            success: true,
+            encryptedMnemonic: wallet.encrypted_mnemonic,
+            address: wallet.address,
+            createdAt: wallet.created_at
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ============================================
+// 🎯 OTHER ROUTES
+// ============================================
+
+// Prices
+router.get('/prices', async (req, res) => {
+    try {
+        const prices = await fetchRealPrices();
+        res.json({
+            success: true,
+            prices: {
+                TON: { 
+                    price: prices.TON.price.toFixed(4), 
+                    source: prices.TON.source,
+                    change24h: prices.TON.change24h 
+                },
+                NMX: { 
+                    price: prices.NMX.price.toFixed(4), 
+                    source: prices.NMX.source,
+                    change24h: prices.NMX.change24h 
+                }
+            },
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.json({
+            success: true,
+            prices: {
+                TON: { price: 2.35, source: 'fallback', change24h: 0 },
+                NMX: { price: 0.10, source: 'fallback', change24h: 0 }
+            },
+            isFallback: true,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Balance
+router.get('/balance/:address', async (req, res) => {
+    try {
+        let { address } = req.params;
+        
+        if (address.startsWith('EQ')) {
+            address = 'UQ' + address.substring(2);
+        }
+        
+        const prices = await fetchRealPrices();
+        const tonPrice = prices.TON.price;
+        
+        res.json({
+            success: true,
+            address: address,
+            format: 'UQ',
+            balance: "0.0000",
+            valueUSD: "0.00",
+            tonPrice: tonPrice,
+            source: 'simulation'
+        });
+        
+    } catch (error) {
+        res.json({
+            success: true,
+            address: req.params.address,
+            format: 'UQ',
+            balance: "0.0000",
+            valueUSD: "0.00",
+            tonPrice: 2.35,
+            source: 'error_fallback'
+        });
+    }
+});
+
+// Health
 router.get('/health', (req, res) => {
     res.json({
         status: 'operational',
-        version: '4.0.0',
-        tonCrypto: true,
+        version: '5.0.0',
         database: dbStatus,
+        sessions: 'enabled',
         timestamp: new Date().toISOString()
     });
 });
 
-// Test endpoint
+// Test
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'TON Crypto Wallet API v4.0',
+        message: 'Wallet API v5.0 with Database Sessions',
         features: [
-            'separate-wallet-password',
-            'ton-crypto-generation',
-            'bcrypt-password-hashing',
-            'aes-256-gcm-encryption',
-            'uq-address-format'
+            'database-sessions',
+            'ton-crypto-wallets',
+            'separate-wallet-passwords',
+            'bcrypt-hashing',
+            'aes-256-encryption'
         ],
         timestamp: new Date().toISOString()
     });
 });
 
-console.log('✅ WALLET ROUTES v4.0 READY - With TON Crypto & Separate Password System');
+console.log('✅ WALLET ROUTES v5.0 READY - With Database Sessions');
 
 module.exports = router;
