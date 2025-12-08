@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - REAL TON WALLETS v7.2 (FULL BIP-39)
+// backend/wallet-routes.js - REAL TON WALLETS v7.3 (FIXED SESSIONS)
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -14,7 +14,7 @@ const { mnemonicNew, mnemonicToWalletKey } = require('@ton/crypto');
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v7.2 - REAL TON WALLETS WITH BIP-39');
+console.log('🚀 WALLET ROUTES v7.3 - REAL TON WALLETS WITH FIXED SESSIONS');
 
 // ============================================
 // 🎯 INITIALIZATION
@@ -33,7 +33,7 @@ async function initializeSupabase() {
         }
 
         supabase = createClient(supabaseUrl, supabaseAnonKey);
-        
+
         // Test connection
         const { error } = await supabase
             .from('user_wallets')
@@ -48,7 +48,7 @@ async function initializeSupabase() {
 
         console.log('✅ Supabase connected successfully!');
         dbStatus = 'connected';
-        
+
         return true;
     } catch (error) {
         console.error('❌ Supabase initialization error:', error.message);
@@ -340,7 +340,7 @@ function generateBIP39Mnemonic(wordCount = 12) {
 function mnemonicToSeed(mnemonic, password = '') {
     const mnemonicBuffer = Buffer.from(mnemonic.normalize('NFKD'), 'utf8');
     const saltBuffer = Buffer.from('mnemonic' + password.normalize('NFKD'), 'utf8');
-    
+
     // Use PBKDF2 to derive seed (like BIP-39)
     const seed = crypto.pbkdf2Sync(mnemonicBuffer, saltBuffer, 2048, 64, 'sha512');
     return seed;
@@ -357,27 +357,27 @@ const tonweb = new TonWeb();
 async function generateRealTONWallet() {
     try {
         console.log('🔑 Generating REAL TON wallet...');
-        
+
         // Generate BIP-39 mnemonic
         const mnemonic = generateBIP39Mnemonic(12);
-        
+
         // Convert to seed
         const seed = mnemonicToSeed(mnemonic);
-        
+
         // Use first 32 bytes as private key
         const privateKey = seed.slice(0, 32);
-        
+
         // Generate public key from private key
         const publicKey = crypto.createHash('sha256').update(privateKey).digest();
-        
+
         // Generate valid TON address (48 chars)
         const address = generateTONAddress(publicKey);
-        
+
         console.log('✅ TON wallet generated:');
         console.log('   Address:', address);
         console.log('   Length:', address.length);
         console.log('   Format: UQ (non-bounceable)');
-        
+
         return {
             mnemonic,
             address,
@@ -386,7 +386,7 @@ async function generateRealTONWallet() {
             wordCount: 12,
             source: 'bip39'
         };
-        
+
     } catch (error) {
         console.error('❌ TON wallet generation failed:', error);
         throw error;
@@ -399,28 +399,28 @@ function generateTONAddress(publicKey) {
     // 1 byte flag: 0x11 (bounceable) or 0x51 (non-bounceable)
     // 1 byte workchain: 0x00 (basechain)
     // 32 bytes hash
-    
+
     // Create hash from public key
     const hash = crypto.createHash('sha256').update(publicKey).digest();
-    
+
     // Create address data (34 bytes)
     const addressData = Buffer.alloc(34);
-    
+
     // Flag: 0x51 for non-bounceable (UQ)
     addressData[0] = 0x51;
-    
+
     // Workchain: 0x00 for basechain
     addressData[1] = 0x00;
-    
+
     // Copy hash (32 bytes)
     hash.copy(addressData, 2);
-    
+
     // Convert to base64url
     let base64 = addressData.toString('base64')
         .replace(/\+/g, '-')
         .replace(/\//g, '_')
         .replace(/=/g, '');
-    
+
     // Ensure exactly 46 chars
     if (base64.length !== 46) {
         if (base64.length > 46) {
@@ -432,15 +432,15 @@ function generateTONAddress(publicKey) {
             }
         }
     }
-    
+
     const address = 'UQ' + base64;
-    
+
     // Final validation
     if (address.length !== 48) {
         console.error(`❌ Address length ${address.length}, forcing to 48`);
         return address.substring(0, 48).padEnd(48, 'A');
     }
-    
+
     return address;
 }
 
@@ -449,7 +449,7 @@ function validateTONAddress(address) {
     if (!address) {
         return { valid: false, error: 'Address is empty' };
     }
-    
+
     // Check length
     if (address.length !== 48) {
         return {
@@ -459,7 +459,7 @@ function validateTONAddress(address) {
             expectedLength: 48
         };
     }
-    
+
     // Check prefix
     if (!address.startsWith('EQ') && !address.startsWith('UQ')) {
         return {
@@ -468,11 +468,11 @@ function validateTONAddress(address) {
             prefix: address.substring(0, 2)
         };
     }
-    
+
     // Check characters
     const body = address.substring(2);
     const validRegex = /^[A-Za-z0-9\-_]+$/;
-    
+
     if (!validRegex.test(body)) {
         const invalid = body.replace(/[A-Za-z0-9\-_]/g, '');
         return {
@@ -481,7 +481,7 @@ function validateTONAddress(address) {
             invalidCharacters: invalid
         };
     }
-    
+
     return {
         valid: true,
         format: address.startsWith('EQ') ? 'bounceable' : 'non-bounceable',
@@ -510,13 +510,13 @@ function encryptMnemonic(mnemonic, password) {
     const algorithm = 'aes-256-gcm';
     const iv = crypto.randomBytes(16);
     const key = crypto.scryptSync(password, 'nemex-salt', 32);
-    
+
     const cipher = crypto.createCipheriv(algorithm, key, iv);
     let encrypted = cipher.update(mnemonic, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-    
+
     const authTag = cipher.getAuthTag();
-    
+
     return {
         iv: iv.toString('hex'),
         encrypted: encrypted,
@@ -531,13 +531,13 @@ function decryptMnemonic(encryptedData, password) {
     const key = crypto.scryptSync(password, 'nemex-salt', 32);
     const iv = Buffer.from(encryptedData.iv, 'hex');
     const authTag = Buffer.from(encryptedData.authTag, 'hex');
-    
+
     const decipher = crypto.createDecipheriv(algorithm, key, iv);
     decipher.setAuthTag(authTag);
-    
+
     let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
-    
+
     return decrypted;
 }
 
@@ -567,27 +567,27 @@ async function getRealBalance(address, network = 'mainnet') {
     try {
         const config = TON_API_CONFIG[network];
         const headers = {};
-        
+
         if (config.apiKey) {
             headers['X-API-Key'] = config.apiKey;
         }
-        
+
         // Convert to bounceable format if needed
         let queryAddress = address;
         if (queryAddress.startsWith('UQ')) {
             queryAddress = 'EQ' + queryAddress.substring(2);
         }
-        
+
         const response = await axios.get(`${config.endpoint}/getAddressInformation`, {
             headers,
             params: { address: queryAddress },
             timeout: 10000
         });
-        
+
         if (response.data && response.data.ok) {
             const balanceNano = response.data.result.balance;
             const balanceTON = parseInt(balanceNano) / 1_000_000_000;
-            
+
             return {
                 success: true,
                 balance: balanceTON.toFixed(4),
@@ -596,16 +596,16 @@ async function getRealBalance(address, network = 'mainnet') {
                 isActive: response.data.result.status === 'active'
             };
         }
-        
+
         return {
             success: false,
             balance: "0.0000",
             error: 'No balance data'
         };
-        
+
     } catch (error) {
         console.error('❌ Balance check failed:', error.message);
-        
+
         if (error.response?.status === 404) {
             return {
                 success: true,
@@ -614,7 +614,7 @@ async function getRealBalance(address, network = 'mainnet') {
                 status: 'uninitialized'
             };
         }
-        
+
         return {
             success: false,
             balance: "0.0000",
@@ -665,7 +665,7 @@ async function fetchRealTONPrice() {
     }
 
     console.log('💰 Fetching TON price...');
-    
+
     let tonPrice = 0;
     let source = 'none';
 
@@ -673,7 +673,7 @@ async function fetchRealTONPrice() {
         try {
             const response = await axios.get(api.url, { timeout: 5000 });
             const price = api.parser(response.data);
-            
+
             if (price > 0) {
                 tonPrice = price;
                 source = api.name;
@@ -698,38 +698,67 @@ async function fetchRealTONPrice() {
 }
 
 // ============================================
-// 🎯 SESSION ROUTES
+// 🎯 SESSION ROUTES - FIXED!
 // ============================================
 
-// Create session
+// ✅ FIXED: Create session - Use simple insert, handle errors properly
 router.post('/session/create', async (req, res) => {
+    console.log('📝 CREATE SESSION REQUEST:', req.body);
+    
     try {
-        const { userId, walletId, walletAddress } = req.body;
-        
+        const { userId, walletAddress } = req.body;
+
         if (!userId || !walletAddress) {
+            console.log('❌ Missing userId or walletAddress');
             return res.status(400).json({
                 success: false,
                 error: 'User ID and wallet address required'
             });
         }
-        
+
         // Generate secure session token
         const sessionToken = crypto.randomBytes(32).toString('hex');
         const tokenHash = hashToken(sessionToken);
         const userAgent = req.headers['user-agent'] || 'unknown';
         const ip = req.ip || req.connection.remoteAddress || 'unknown';
-        
+
         // Session expires in 30 days
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        
+
         if (!supabase || dbStatus !== 'connected') {
+            console.log('❌ Database not available');
             return res.status(503).json({
                 success: false,
                 error: 'Database not available'
             });
         }
-        
-        // Use user_sessions table
+
+        console.log('🔍 Creating session for user:', userId, 'with address:', walletAddress);
+
+        // ✅ FIX: First, check if session already exists for this user
+        const { data: existingSessions, error: checkError } = await supabase
+            .from('user_sessions')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('is_active', true);
+
+        if (checkError) {
+            console.error('❌ Error checking existing sessions:', checkError);
+        } else if (existingSessions && existingSessions.length > 0) {
+            console.log('⚠️ Active session exists, deactivating old ones...');
+            
+            // Deactivate old sessions
+            await supabase
+                .from('user_sessions')
+                .update({ 
+                    is_active: false,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('user_id', userId)
+                .eq('is_active', true);
+        }
+
+        // ✅ FIX: Create new session record
         const sessionData = {
             user_id: userId,
             active_wallet_address: walletAddress,
@@ -739,44 +768,73 @@ router.post('/session/create', async (req, res) => {
             user_agent: userAgent,
             expires_at: expiresAt.toISOString(),
             last_active: new Date().toISOString(),
+            created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             is_active: true
         };
-        
-        // Insert or update
+
+        console.log('📤 Inserting session data:', sessionData);
+
+        // ✅ FIX: Use simple insert
         const { data, error } = await supabase
             .from('user_sessions')
-            .upsert(sessionData, { onConflict: 'user_id' })
+            .insert([sessionData])
             .select()
             .single();
+
+        if (error) {
+            console.error('❌ Session insert error:', error);
+            // Try alternative approach - update if exists
+            console.log('🔄 Trying upsert approach...');
             
-        if (error) throw error;
-        
+            const { data: upsertData, error: upsertError } = await supabase
+                .from('user_sessions')
+                .upsert(sessionData, { 
+                    onConflict: 'user_id',
+                    ignoreDuplicates: false 
+                })
+                .select()
+                .single();
+
+            if (upsertError) {
+                console.error('❌ Session upsert also failed:', upsertError);
+                throw new Error(`Session creation failed: ${upsertError.message}`);
+            }
+            
+            data = upsertData;
+        }
+
+        console.log('✅ Session created successfully:', data);
+
         res.json({
             success: true,
             session: {
                 token: sessionToken,
                 user_id: userId,
                 wallet_address: walletAddress,
-                expires_at: data.expires_at || expiresAt.toISOString()
+                expires_at: expiresAt.toISOString()
             }
         });
-        
+
     } catch (error) {
         console.error('❌ Create session failed:', error);
-        res.json({
+        res.status(500).json({
             success: false,
-            error: 'Failed to create session'
+            error: 'Failed to create session: ' + error.message
         });
     }
 });
 
-// Check session
+// ✅ FIXED: Check session - Simplified and fixed
 router.post('/session/check', async (req, res) => {
+    console.log('🔍 CHECK SESSION REQUEST');
+    
     try {
         const sessionToken = req.headers['x-session-token'] || 
                             req.body.sessionToken;
-        
+
+        console.log('Session token present:', !!sessionToken);
+
         if (!sessionToken) {
             return res.json({
                 success: true,
@@ -784,26 +842,29 @@ router.post('/session/check', async (req, res) => {
                 message: 'No session token'
             });
         }
-        
+
         const tokenHash = hashToken(sessionToken);
-        
+        console.log('Token hash:', tokenHash);
+
         if (!supabase || dbStatus !== 'connected') {
+            console.log('Database not available');
             return res.json({
                 success: true,
                 hasSession: false,
                 message: 'Database not available'
             });
         }
-        
-        // Check session in user_sessions table
+
+        // ✅ FIX: Check session in user_sessions table
         const { data: session, error } = await supabase
             .from('user_sessions')
             .select('*')
             .eq('token_hash', tokenHash)
             .eq('is_active', true)
-            .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
             .single();
-            
+
+        console.log('Session query result:', session ? 'found' : 'not found', error ? 'error:' + error.message : '');
+
         if (error || !session) {
             return res.json({
                 success: true,
@@ -811,7 +872,26 @@ router.post('/session/check', async (req, res) => {
                 message: 'Invalid or expired session'
             });
         }
+
+        // Check if session expired
+        const now = new Date();
+        const expiresAt = new Date(session.expires_at);
         
+        if (expiresAt < now) {
+            console.log('Session expired');
+            // Mark as inactive
+            await supabase
+                .from('user_sessions')
+                .update({ is_active: false })
+                .eq('id', session.id);
+                
+            return res.json({
+                success: true,
+                hasSession: false,
+                message: 'Session expired'
+            });
+        }
+
         // Update last active
         await supabase
             .from('user_sessions')
@@ -819,8 +899,10 @@ router.post('/session/check', async (req, res) => {
                 last_active: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             })
-            .eq('user_id', session.user_id);
-        
+            .eq('id', session.id);
+
+        console.log('✅ Valid session found for user:', session.user_id);
+
         res.json({
             success: true,
             hasSession: true,
@@ -831,53 +913,60 @@ router.post('/session/check', async (req, res) => {
                 expires_at: session.expires_at
             }
         });
-        
+
     } catch (error) {
         console.error('❌ Check session failed:', error);
         res.json({
             success: false,
             hasSession: false,
-            error: 'Session check failed'
+            error: 'Session check failed: ' + error.message
         });
     }
 });
 
-// Destroy session
+// ✅ FIXED: Destroy session
 router.post('/session/destroy', async (req, res) => {
+    console.log('🗑️ DESTROY SESSION REQUEST:', req.body);
+    
     try {
         const { token } = req.body;
-        
+
         if (!token) {
             return res.json({
                 success: false,
                 error: 'Session token required'
             });
         }
-        
+
         const tokenHash = hashToken(token);
-        
+
         if (!supabase || dbStatus !== 'connected') {
             return res.json({
                 success: true,
                 message: 'Database not available'
             });
         }
-        
+
         // Deactivate session
-        await supabase
+        const { error } = await supabase
             .from('user_sessions')
             .update({ 
                 is_active: false,
-                expires_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             })
             .eq('token_hash', tokenHash);
-        
+
+        if (error) {
+            console.error('❌ Destroy session error:', error);
+        }
+
+        console.log('✅ Session destroyed');
+
         res.json({
             success: true,
             message: 'Session destroyed'
         });
-        
+
     } catch (error) {
         console.error('❌ Destroy session failed:', error);
         res.json({
@@ -894,31 +983,32 @@ router.post('/session/destroy', async (req, res) => {
 // Create wallet - FIXED: Properly handles no existing wallet
 router.post('/create', async (req, res) => {
     console.log('🎯 CREATE TON WALLET');
-    
+
     try {
         const { userId, walletPassword } = req.body;
-        
+
         if (!userId || !walletPassword) {
             return res.status(400).json({
                 success: false,
                 error: 'User ID and wallet password required'
             });
         }
-        
-        if (walletPassword.length < 8) {
+
+        // ✅ CHANGED: Accept 6 characters to match frontend
+        if (walletPassword.length < 6) {
             return res.status(400).json({
                 success: false,
-                error: 'Wallet password must be at least 8 characters'
+                error: 'Wallet password must be at least 6 characters'
             });
         }
-        
+
         // Check if wallet already exists - FIXED: Don't use .single() on possibly empty result
         if (supabase && dbStatus === 'connected') {
             const { data: existingWallets, error } = await supabase
                 .from('user_wallets')
                 .select('id')
                 .eq('user_id', userId);
-                
+
             if (error) {
                 console.error('❌ Database error checking existing wallet:', error);
                 // Continue anyway, don't block wallet creation
@@ -929,10 +1019,10 @@ router.post('/create', async (req, res) => {
                 });
             }
         }
-        
+
         // Generate TON wallet
         const wallet = await generateRealTONWallet();
-        
+
         // Validate the address
         const validation = validateTONAddress(wallet.address);
         if (!validation.valid) {
@@ -943,17 +1033,17 @@ router.post('/create', async (req, res) => {
                 validation: validation
             });
         }
-        
+
         console.log('✅ TON address generated:', wallet.address);
         console.log('   Length:', wallet.address.length);
         console.log('   Format:', validation.format);
-        
+
         // Hash wallet password
         const passwordHash = await hashWalletPassword(walletPassword);
-        
+
         // Encrypt mnemonic
         const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
-        
+
         // Store in database
         let walletId = null;
         if (supabase && dbStatus === 'connected') {
@@ -972,13 +1062,13 @@ router.post('/create', async (req, res) => {
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
             };
-            
+
             const { data, error } = await supabase
                 .from('user_wallets')
                 .insert([walletRecord])
                 .select()
                 .single();
-                
+
             if (error) {
                 console.error('❌ Database insert error:', error);
                 // Continue without storing in DB for now
@@ -987,10 +1077,10 @@ router.post('/create', async (req, res) => {
                 console.log('✅ Wallet stored in database');
             }
         }
-        
+
         // Get current TON price
         const tonPriceData = await fetchRealTONPrice();
-        
+
         res.json({
             success: true,
             message: 'TON wallet created successfully',
@@ -1009,7 +1099,7 @@ router.post('/create', async (req, res) => {
             explorerLink: `https://tonviewer.com/${wallet.address}`,
             warning: !supabase ? 'Wallet stored temporarily (database not connected)' : null
         });
-        
+
     } catch (error) {
         console.error('❌ Create wallet failed:', error);
         res.status(500).json({
@@ -1022,31 +1112,39 @@ router.post('/create', async (req, res) => {
 // Login to wallet - FIXED: Proper error handling
 router.post('/login', async (req, res) => {
     console.log('🔐 WALLET LOGIN');
-    
+
     try {
         const { userId, walletPassword } = req.body;
-        
+
         if (!userId || !walletPassword) {
             return res.status(400).json({
                 success: false,
                 error: 'User ID and wallet password required'
             });
         }
-        
+
+        // ✅ CHANGED: Accept 6 characters to match frontend
+        if (walletPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'Wallet password must be at least 6 characters'
+            });
+        }
+
         if (!supabase || dbStatus !== 'connected') {
             return res.status(503).json({
                 success: false,
                 error: 'Database not available'
             });
         }
-        
+
         // Get wallet from database - FIXED: Use .maybeSingle() or handle no results
         const { data: wallet, error } = await supabase
             .from('user_wallets')
             .select('*')
             .eq('user_id', userId)
             .maybeSingle(); // Use maybeSingle instead of single
-            
+
         if (error) {
             console.error('❌ Database error:', error);
             return res.status(500).json({
@@ -1054,14 +1152,14 @@ router.post('/login', async (req, res) => {
                 error: 'Database error: ' + error.message
             });
         }
-        
+
         if (!wallet) {
             return res.status(404).json({
                 success: false,
                 error: 'No wallet found for this user'
             });
         }
-        
+
         // Verify wallet password
         const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
         if (!passwordValid) {
@@ -1070,11 +1168,11 @@ router.post('/login', async (req, res) => {
                 error: 'Incorrect wallet password'
             });
         }
-        
+
         // Get balance from blockchain
         const balanceResult = await getRealBalance(wallet.address);
         const tonPrice = await fetchRealTONPrice();
-        
+
         res.json({
             success: true,
             message: 'Wallet login successful',
@@ -1092,7 +1190,7 @@ router.post('/login', async (req, res) => {
                 tonPrice: tonPrice.price
             }
         });
-        
+
     } catch (error) {
         console.error('❌ Wallet login failed:', error);
         res.status(500).json({
@@ -1105,17 +1203,17 @@ router.post('/login', async (req, res) => {
 // Check wallet - FIXED: Use maybeSingle
 router.post('/check', async (req, res) => {
     console.log('🔍 CHECK WALLET');
-    
+
     try {
         const { userId } = req.body;
-        
+
         if (!userId) {
             return res.json({
                 success: false,
                 error: 'User ID required'
             });
         }
-        
+
         if (!supabase || dbStatus !== 'connected') {
             return res.json({
                 success: true,
@@ -1123,13 +1221,13 @@ router.post('/check', async (req, res) => {
                 message: 'Database not available'
             });
         }
-        
+
         const { data: wallet, error } = await supabase
             .from('user_wallets')
             .select('id, address, created_at, source, word_count')
             .eq('user_id', userId)
             .maybeSingle();
-            
+
         if (error) {
             console.error('❌ Database error:', error);
             return res.json({
@@ -1137,7 +1235,7 @@ router.post('/check', async (req, res) => {
                 error: 'Database error: ' + error.message
             });
         }
-        
+
         if (!wallet) {
             return res.json({
                 success: true,
@@ -1145,10 +1243,10 @@ router.post('/check', async (req, res) => {
                 message: 'No wallet found'
             });
         }
-        
+
         // Validate address
         const validation = validateTONAddress(wallet.address);
-        
+
         res.json({
             success: true,
             hasWallet: true,
@@ -1162,7 +1260,7 @@ router.post('/check', async (req, res) => {
                 validation: validation
             }
         });
-        
+
     } catch (error) {
         console.error('❌ Check wallet failed:', error);
         res.json({
@@ -1179,22 +1277,22 @@ router.post('/check', async (req, res) => {
 // Legacy store-encrypted endpoint
 router.post('/store-encrypted', async (req, res) => {
     console.log('⚠️ Legacy store-encrypted called');
-    
+
     try {
         const { userId, walletPassword } = req.body;
-        
+
         if (!userId || !walletPassword) {
             return res.status(400).json({
                 success: false,
                 error: 'User ID and wallet password required'
             });
         }
-        
+
         // Use the new create endpoint logic
         req.baseUrl = req.baseUrl || '';
         const createResult = await router.handle(req, res);
         return createResult;
-        
+
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -1206,21 +1304,21 @@ router.post('/store-encrypted', async (req, res) => {
 // Legacy check-wallet endpoint
 router.post('/check-wallet', async (req, res) => {
     console.log('⚠️ Legacy check-wallet called');
-    
+
     try {
         const { userId } = req.body;
-        
+
         if (!userId) {
             return res.json({
                 success: false,
                 error: 'User ID required'
             });
         }
-        
+
         // Use the new check endpoint logic
         const checkResult = await router.handle(req, res);
         return checkResult;
-        
+
     } catch (error) {
         res.json({
             success: false,
@@ -1232,17 +1330,17 @@ router.post('/check-wallet', async (req, res) => {
 // Legacy auto-login endpoint - FIXED: Use maybeSingle
 router.post('/auto-login', async (req, res) => {
     console.log('⚠️ Legacy auto-login called');
-    
+
     try {
         const { userId } = req.body;
-        
+
         if (!userId) {
             return res.json({
                 success: false,
                 error: 'User ID required'
             });
         }
-        
+
         // Check if wallet exists
         if (!supabase || dbStatus !== 'connected') {
             return res.json({
@@ -1251,13 +1349,13 @@ router.post('/auto-login', async (req, res) => {
                 message: 'Database not available'
             });
         }
-        
+
         const { data: wallet, error } = await supabase
             .from('user_wallets')
             .select('id, address, created_at, source')
             .eq('user_id', userId)
             .maybeSingle();
-            
+
         if (error) {
             console.error('❌ Database error:', error);
             return res.json({
@@ -1265,7 +1363,7 @@ router.post('/auto-login', async (req, res) => {
                 error: 'Database error: ' + error.message
             });
         }
-        
+
         if (!wallet) {
             return res.json({
                 success: true,
@@ -1273,7 +1371,7 @@ router.post('/auto-login', async (req, res) => {
                 message: 'No wallet found'
             });
         }
-        
+
         res.json({
             success: true,
             hasWallet: true,
@@ -1285,7 +1383,7 @@ router.post('/auto-login', async (req, res) => {
                 source: wallet.source
             }
         });
-        
+
     } catch (error) {
         res.json({
             success: false,
@@ -1298,27 +1396,27 @@ router.post('/auto-login', async (req, res) => {
 router.post('/get-encrypted', async (req, res) => {
     try {
         const { userId } = req.body;
-        
+
         if (!userId) {
             return res.status(400).json({
                 success: false,
                 error: 'User ID required'
             });
         }
-        
+
         if (!supabase || dbStatus !== 'connected') {
             return res.status(500).json({
                 success: false,
                 error: 'Database not available'
             });
         }
-        
+
         const { data: wallet, error } = await supabase
             .from('user_wallets')
             .select('encrypted_mnemonic, address, created_at')
             .eq('user_id', userId)
             .maybeSingle();
-            
+
         if (error) {
             console.error('❌ Database error:', error);
             return res.status(500).json({
@@ -1326,21 +1424,21 @@ router.post('/get-encrypted', async (req, res) => {
                 error: 'Database error: ' + error.message
             });
         }
-        
+
         if (!wallet) {
             return res.json({
                 success: false,
                 error: 'No wallet found'
             });
         }
-        
+
         res.json({
             success: true,
             encryptedMnemonic: wallet.encrypted_mnemonic,
             address: wallet.address,
             createdAt: wallet.created_at
         });
-        
+
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -1358,9 +1456,9 @@ router.get('/balance/:address', async (req, res) => {
     try {
         let { address } = req.params;
         const { network = 'mainnet' } = req.query;
-        
+
         console.log(`💰 Checking balance for ${address} on ${network}`);
-        
+
         // Validate address first
         const validation = validateTONAddress(address);
         if (!validation.valid) {
@@ -1370,15 +1468,15 @@ router.get('/balance/:address', async (req, res) => {
                 validation: validation
             });
         }
-        
+
         // Get real balance from TON blockchain
         const balanceResult = await getRealBalance(address, network);
         const tonPrice = await fetchRealTONPrice();
-        
+
         // Calculate USD value
         const balance = parseFloat(balanceResult.balance || "0");
         const valueUSD = (balance * tonPrice.price).toFixed(2);
-        
+
         res.json({
             success: true,
             address: address,
@@ -1393,13 +1491,13 @@ router.get('/balance/:address', async (req, res) => {
             network: network,
             validation: validation
         });
-        
+
     } catch (error) {
         console.error('❌ Balance check failed:', error);
-        
+
         // Fallback
         const tonPrice = await fetchRealTONPrice();
-        
+
         res.json({
             success: true,
             address: req.params.address,
@@ -1419,7 +1517,7 @@ router.get('/balance/:address', async (req, res) => {
 router.get('/price/ton', async (req, res) => {
     try {
         const priceData = await fetchRealTONPrice();
-        
+
         res.json({
             success: true,
             symbol: 'TON',
@@ -1447,22 +1545,22 @@ router.get('/price/ton', async (req, res) => {
 router.post('/validate', (req, res) => {
     try {
         const { address } = req.body;
-        
+
         if (!address) {
             return res.json({
                 success: false,
                 error: 'Address is required'
             });
         }
-        
+
         const validation = validateTONAddress(address);
-        
+
         res.json({
             success: true,
             address: address,
             validation: validation
         });
-        
+
     } catch (error) {
         res.json({
             success: false,
@@ -1475,10 +1573,10 @@ router.post('/validate', (req, res) => {
 router.get('/test/generate', async (req, res) => {
     try {
         console.log('🧪 Testing TON wallet generation...');
-        
+
         const wallet = await generateRealTONWallet();
         const validation = validateTONAddress(wallet.address);
-        
+
         res.json({
             success: true,
             test: 'TON Wallet Generation Test',
@@ -1496,7 +1594,7 @@ router.get('/test/generate', async (req, res) => {
                 '3. New addresses need a small amount of TON to activate'
             ]
         });
-        
+
     } catch (error) {
         res.json({
             success: false,
@@ -1509,7 +1607,7 @@ router.get('/test/generate', async (req, res) => {
 router.get('/health', (req, res) => {
     res.json({
         status: 'operational',
-        version: '7.2.0',
+        version: '7.3.0',
         database: dbStatus,
         ton_wallets: 'active',
         balance_check: 'active',
@@ -1522,8 +1620,8 @@ router.get('/health', (req, res) => {
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'TON Wallet API v7.2 - Fully Functional',
-        version: '7.2.0',
+        message: 'TON Wallet API v7.3 - Fully Functional with Fixed Sessions',
+        version: '7.3.0',
         timestamp: new Date().toISOString(),
         features: [
             'real-ton-wallet-generation',
@@ -1532,13 +1630,15 @@ router.get('/test', (req, res) => {
             'ton-blockchain-balance',
             'real-price-data',
             'address-validation',
-            'session-management',
+            'session-management-fixed',
             'encrypted-storage'
         ],
         endpoints: {
             createWallet: 'POST /wallet/create',
             loginWallet: 'POST /wallet/login',
             checkWallet: 'POST /wallet/check',
+            createSession: 'POST /wallet/session/create',
+            checkSession: 'POST /wallet/session/check',
             getBalance: 'GET /wallet/balance/:address',
             getPrice: 'GET /wallet/price/ton',
             validateAddress: 'POST /wallet/validate',
@@ -1548,6 +1648,6 @@ router.get('/test', (req, res) => {
     });
 });
 
-console.log('✅ WALLET ROUTES v7.2 READY - REAL TON WALLETS WITH BIP-39');
+console.log('✅ WALLET ROUTES v7.3 READY - REAL TON WALLETS WITH FIXED SESSIONS');
 
 module.exports = router;
