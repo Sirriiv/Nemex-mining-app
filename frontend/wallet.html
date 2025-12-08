@@ -10,7 +10,10 @@
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <!-- TON Libraries -->
     <script src="https://unpkg.com/tonweb@0.0.60/dist/tonweb.js"></script>
+    <script src="https://unpkg.com/@ton/crypto@3.2.0/dist/crypto.js"></script>
+    <script src="https://unpkg.com/ton@14.1.2/dist/index.es.js"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -20,6 +23,8 @@
                 console.log('TonWeb.Mnemonic:', typeof window.TonWeb?.Mnemonic !== 'undefined');
                 console.log('TonWeb.utils:', typeof window.TonWeb?.utils !== 'undefined');
                 console.log('TonWeb.Wallet:', typeof window.TonWeb?.Wallet !== 'undefined');
+                console.log('TON Crypto:', typeof window.TonCrypto !== 'undefined');
+                console.log('TON:', typeof window.Ton !== 'undefined');
                 
                 if (typeof window.TonWeb === 'undefined') {
                     console.error('TonWeb NOT LOADED! Check CDN URL.');
@@ -34,9 +39,8 @@
     <script src="assets/js/ui-manager.js"></script>
     <script src="assets/js/mining-account.js"></script>
     
-    <script src="assets/js/wallet.js?v=8.0"></script>
-</body>
-</html>
+    <!-- Updated Wallet Manager -->
+    <script src="assets/js/wallet-v10.js"></script>
 
     <!-- Dashboard Connection -->
     <script>
@@ -78,8 +82,6 @@
         }, 300);
     });
     </script>
-
-    <script src="assets/js/wallet.js?v=7.0"></script>
 
     <style>
         :root {
@@ -1921,31 +1923,61 @@
             </div>
         </nav>
 
-        <!-- CREATE WALLET MODAL - SIMPLIFIED -->
+        <!-- WALLET PASSWORD LOGIN MODAL (NEW) -->
+        <div id="walletLoginModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">🔐 Enter Wallet Password</div>
+                <div class="security-warning">
+                    <strong>Secure Access:</strong> Enter your wallet password to unlock.
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Wallet Password:</label>
+                    <input type="password" id="walletPasswordLogin" class="form-input" placeholder="Enter your wallet password (6+ chars)" minlength="6">
+                </div>
+
+                <div id="walletLoginStatus"></div>
+
+                <button class="close-modal" onclick="loginToWallet()" id="walletLoginBtn">
+                    Unlock Wallet
+                </button>
+                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+                
+                <p style="margin-top: 20px; font-size: 0.9em; color: var(--text-muted);">
+                    <a href="#" onclick="showRecoveryOptions()" style="color: var(--gold);">Forgot password?</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- CREATE WALLET MODAL - UPDATED -->
         <div id="createWalletModal" class="modal">
             <div class="modal-content">
                 <div class="modal-title">Create Your Nemex Wallet</div>
                 <div class="security-warning">
-                    <strong>🔒 Secure Wallet:</strong> Your personal wallet will be automatically created and linked to your mining account.
+                    <strong>🔒 Secure Wallet:</strong> Create a password to protect your wallet (6+ characters).
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Create Password (8+ characters):</label>
-                    <input type="password" id="walletPassword" class="form-input" placeholder="Enter password" minlength="8">
+                    <label class="form-label">Wallet Password (6+ characters):</label>
+                    <input type="password" id="walletPassword" class="form-input" placeholder="Enter password" minlength="6">
                     <div class="password-strength" id="passwordStrength"></div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Confirm Password:</label>
-                    <input type="password" id="confirmWalletPassword" class="form-input" placeholder="Confirm password" minlength="8">
+                    <input type="password" id="confirmWalletPassword" class="form-input" placeholder="Confirm password" minlength="6">
                 </div>
 
                 <div id="createWalletStatus"></div>
 
-                <button class="close-modal" onclick="createAutoWallet()" id="createWalletBtn">
+                <button class="close-modal" onclick="createNewWallet()" id="createWalletBtn">
                     Create Wallet
                 </button>
                 <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+                
+                <p style="margin-top: 20px; font-size: 0.9em; color: var(--text-muted);">
+                    ⚠️ This password is only for your wallet. Keep it secure!
+                </p>
             </div>
         </div>
 
@@ -2545,10 +2577,10 @@
 
     <script>
 // =============================================
-// 🎯 MAIN WALLET APPLICATION CODE - NO SEED PHRASES
+// 🎯 MAIN WALLET APPLICATION CODE - WITH NEW PASSWORD SYSTEM
 // =============================================
 
-console.log('🚀 Nemex Wallet Application Starting...');
+console.log('🚀 Nemex Wallet Application Starting v10...');
 
 // =============================================
 // 🎯 GLOBAL STATE MANAGEMENT
@@ -2763,8 +2795,8 @@ function checkPasswordStrength(password, elementId) {
     let message = '';
     let color = '#ff4444';
 
+    if (password.length >= 6) strength++;
     if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
     if (/[A-Z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
@@ -2826,7 +2858,7 @@ function showModal(modalId) {
 }
 
 // =============================================
-// 🎯 WALLET CREATION FUNCTIONS - SIMPLIFIED
+// 🎯 WALLET PASSWORD SYSTEM FUNCTIONS
 // =============================================
 
 function showCreateWalletModal() {
@@ -2836,11 +2868,81 @@ function showCreateWalletModal() {
 
     closeModal();
     const createModal = document.getElementById('createWalletModal');
-    if (createModal) createModal.style.display = 'flex';
+    if (createModal) {
+        createModal.style.display = 'flex';
+        document.getElementById('walletPassword').value = '';
+        document.getElementById('confirmWalletPassword').value = '';
+        document.getElementById('passwordStrength').textContent = '';
+        document.getElementById('createWalletStatus').innerHTML = '';
+    }
 }
 
-async function createAutoWallet() {
-    console.log('🎯 Creating auto wallet...');
+function showWalletLoginModal() {
+    if (!validateUserLoggedIn()) {
+        return;
+    }
+
+    closeModal();
+    const loginModal = document.getElementById('walletLoginModal');
+    if (loginModal) {
+        loginModal.style.display = 'flex';
+        document.getElementById('walletPasswordLogin').value = '';
+        document.getElementById('walletLoginStatus').innerHTML = '';
+    }
+}
+
+async function loginToWallet() {
+    console.log('🔐 Logging into wallet...');
+
+    const password = document.getElementById('walletPasswordLogin')?.value;
+    const statusElement = document.getElementById('walletLoginStatus');
+    const loginBtn = document.getElementById('walletLoginBtn');
+
+    try {
+        if (!password) {
+            showStatusMessage('Please enter wallet password', 'error', statusElement);
+            return;
+        }
+
+        if (password.length < 6) {
+            showStatusMessage('Password must be at least 6 characters', 'error', statusElement);
+            return;
+        }
+
+        loginBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Unlocking...';
+        loginBtn.disabled = true;
+
+        showStatusMessage('Unlocking wallet...', 'loading', statusElement);
+
+        if (window.walletManager && typeof window.walletManager.loginToWallet === 'function') {
+            const result = await window.walletManager.loginToWallet(password);
+            
+            if (result.success) {
+                showStatusMessage('✅ Wallet unlocked successfully!', 'success', statusElement);
+                setTimeout(() => {
+                    closeModal();
+                    initWallet();
+                }, 1500);
+            } else {
+                throw new Error(result.error || 'Failed to unlock wallet');
+            }
+        } else {
+            throw new Error('Wallet system not loaded properly');
+        }
+
+    } catch (error) {
+        console.error('❌ Wallet login failed:', error);
+        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
+
+        if (loginBtn) {
+            loginBtn.innerHTML = 'Unlock Wallet';
+            loginBtn.disabled = false;
+        }
+    }
+}
+
+async function createNewWallet() {
+    console.log('🎯 Creating new wallet with password system...');
 
     const password = document.getElementById('walletPassword')?.value;
     const confirmPassword = document.getElementById('confirmWalletPassword')?.value;
@@ -2853,29 +2955,28 @@ async function createAutoWallet() {
             return;
         }
 
-        if (password !== confirmPassword) {
-            showStatusMessage('Passwords do not match', 'error', statusElement);
+        if (password.length < 6) {
+            showStatusMessage('Password must be at least 6 characters', 'error', statusElement);
             return;
         }
 
-        if (password.length < 8) {
-            showStatusMessage('Password must be at least 8 characters', 'error', statusElement);
+        if (password !== confirmPassword) {
+            showStatusMessage('Passwords do not match', 'error', statusElement);
             return;
         }
 
         createBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Creating...';
         createBtn.disabled = true;
 
-        showStatusMessage('Creating your wallet...', 'loading', statusElement);
+        showStatusMessage('Creating your secure wallet...', 'loading', statusElement);
 
         const userId = getCurrentUserId();
         if (!userId) {
             throw new Error('Please login to your mining account first');
         }
 
-        // Use walletManager to create auto wallet
-        if (window.walletManager && typeof window.walletManager.createAutoWallet === 'function') {
-            const result = await window.walletManager.createAutoWallet(userId, password);
+        if (window.walletManager && typeof window.walletManager.createWallet === 'function') {
+            const result = await window.walletManager.createWallet(password);
             
             if (result.success) {
                 showStatusMessage('✅ Wallet created successfully!', 'success', statusElement);
@@ -2901,8 +3002,92 @@ async function createAutoWallet() {
     }
 }
 
+function showRecoveryOptions() {
+    showToast('⚠️ Recovery options coming soon!', 'warning');
+}
+
 // =============================================
-// 🎯 SEND FUNCTIONALITY
+// 🎯 WALLET INITIALIZATION
+// =============================================
+
+async function initWallet() {
+    console.log('🔄 Initializing Nemex Hybrid wallet v10...');
+
+    try {
+        if (!window.walletManager) {
+            console.error('❌ Wallet manager not loaded');
+            showToast('Wallet system not loaded. Please refresh the page.', 'error');
+            return;
+        }
+
+        const result = await window.walletManager.initialize();
+
+        if (result.success) {
+            if (result.hasWallet) {
+                walletState.hasWallet = true;
+                walletState.wallet = result.wallet;
+                walletState.address = result.wallet.address;
+                walletState.isInitialized = true;
+                console.log('✅ Wallet loaded for user:', result.wallet.address);
+
+                showWalletInterface();
+                await loadWalletData();
+            } else if (result.showPasswordPrompt) {
+                console.log('🔐 Wallet exists, showing password prompt');
+                showWalletLoginModal();
+            } else if (result.showCreateForm) {
+                console.log('🆕 No wallet found - showing create form');
+                showCreateWalletModal();
+            } else {
+                console.log('📭 No wallet found - showing welcome screen');
+                showWelcomeScreen();
+            }
+        } else {
+            if (result.requiresLogin) {
+                console.log('⚠️ User not logged in - showing login message');
+                showLoginRequiredMessage();
+            } else {
+                console.error('❌ Wallet init failed:', result.error);
+                showToast('Failed to load wallet', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('❌ Wallet initialization failed:', error);
+        showToast('Wallet system error', 'error');
+    }
+}
+
+function showWelcomeScreen() {
+    document.getElementById('welcomeScreen').classList.remove('hidden');
+    document.getElementById('walletInterface').classList.add('hidden');
+}
+
+function showWalletInterface() {
+    document.getElementById('welcomeScreen').classList.add('hidden');
+    document.getElementById('walletInterface').classList.remove('hidden');
+}
+
+function showLoginRequiredMessage() {
+    document.getElementById('welcomeScreen').innerHTML = `
+        <div class="welcome-title">🔒 Please Log In</div>
+        <div class="welcome-subtitle">
+            You need to be logged into your Nemex account to access the wallet.
+        </div>
+        <div class="welcome-actions">
+            <button class="welcome-btn primary" onclick="goToMiningDashboard()">
+                Go to Mining Dashboard
+            </button>
+            <button class="welcome-btn secondary" onclick="window.location.href='login.html'">
+                Login Page
+            </button>
+        </div>
+    `;
+    document.getElementById('welcomeScreen').classList.remove('hidden');
+    document.getElementById('walletInterface').classList.add('hidden');
+}
+
+// =============================================
+// 🎯 SEND FUNCTIONALITY (UNCHANGED)
 // =============================================
 
 function showSendModal() {
@@ -3252,7 +3437,7 @@ async function confirmSendTransaction() {
 }
 
 // =============================================
-// 🎯 RECEIVE FUNCTIONALITY
+// 🎯 RECEIVE FUNCTIONALITY (UNCHANGED)
 // =============================================
 
 function showReceiveModal() {
@@ -3363,7 +3548,7 @@ This single address can receive all supported TON blockchain tokens.
 }
 
 // =============================================
-// 🎯 CONVERT NMXp FUNCTIONALITY
+// 🎯 CONVERT NMXp FUNCTIONALITY (UNCHANGED)
 // =============================================
 
 function showSwapModal() {
@@ -3675,7 +3860,7 @@ function updateWalletAddressDisplay(walletAddress) {
 }
 
 // =============================================
-// 🎯 SETTINGS FUNCTIONS
+// 🎯 SETTINGS FUNCTIONS (UNCHANGED)
 // =============================================
 
 function showSettingsModal() {
@@ -3747,78 +3932,8 @@ async function deleteWallet() {
 }
 
 // =============================================
-// 🎯 INITIALIZATION FUNCTIONS
+// 🎯 WALLET DATA LOADING (UNCHANGED)
 // =============================================
-
-async function initWallet() {
-    console.log('🔄 Initializing Nemex Hybrid wallet...');
-
-    try {
-        if (!window.walletManager) {
-            console.error('❌ Wallet manager not loaded');
-            showToast('Wallet system not loaded. Please refresh the page.', 'error');
-            return;
-        }
-
-        const result = await window.walletManager.initialize();
-
-        if (result.success) {
-            if (result.hasWallet) {
-                walletState.hasWallet = true;
-                walletState.wallet = result.wallet;
-                walletState.address = result.wallet.address;
-                walletState.isInitialized = true;
-                console.log('✅ Wallet loaded for user:', result.wallet.address);
-
-                showWalletInterface();
-                await loadWalletData();
-            } else {
-                console.log('ℹ️ No wallet found for user - showing welcome screen');
-                showWelcomeScreen();
-            }
-        } else {
-            if (result.requiresLogin) {
-                console.log('⚠️ User not logged in - showing login message');
-                showLoginRequiredMessage();
-            } else {
-                console.error('❌ Wallet init failed:', result.error);
-                showToast('Failed to load wallet', 'error');
-            }
-        }
-    } catch (error) {
-        console.error('❌ Wallet initialization failed:', error);
-        showToast('Wallet system error', 'error');
-    }
-}
-
-function showWelcomeScreen() {
-    document.getElementById('welcomeScreen').classList.remove('hidden');
-    document.getElementById('walletInterface').classList.add('hidden');
-}
-
-function showWalletInterface() {
-    document.getElementById('welcomeScreen').classList.add('hidden');
-    document.getElementById('walletInterface').classList.remove('hidden');
-}
-
-function showLoginRequiredMessage() {
-    document.getElementById('welcomeScreen').innerHTML = `
-        <div class="welcome-title">🔒 Please Log In</div>
-        <div class="welcome-subtitle">
-            You need to be logged into your Nemex account to access the wallet.
-        </div>
-        <div class="welcome-actions">
-            <button class="welcome-btn primary" onclick="goToMiningDashboard()">
-                Go to Mining Dashboard
-            </button>
-            <button class="welcome-btn secondary" onclick="window.location.href='login.html'">
-                Login Page
-            </button>
-        </div>
-    `;
-    document.getElementById('welcomeScreen').classList.remove('hidden');
-    document.getElementById('walletInterface').classList.add('hidden');
-}
 
 async function loadWalletData() {
     if (!walletState.hasWallet || !walletState.wallet) return;
@@ -3943,7 +4058,7 @@ function goToMiningDashboard() {
 }
 
 // =============================================
-// 🎯 PRICE API INTEGRATION
+// 🎯 PRICE API INTEGRATION (UNCHANGED)
 // =============================================
 
 const PRICE_APIS = [
@@ -4046,7 +4161,7 @@ async function fetchPricesWithFastestAPI() {
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Nemex Wallet page loaded - initializing...');
+    console.log('🎯 Nemex Wallet page loaded - initializing v10...');
 
     console.log('🔍 Debug - Available user info:', {
         walletManagerUserId: window.walletManager?.userId,
@@ -4076,6 +4191,14 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Convert amount listener attached');
     }
 
+    // Add password strength checker
+    const passwordInput = document.getElementById('walletPassword');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            checkPasswordStrength(this.value, 'passwordStrength');
+        });
+    }
+
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeModal();
@@ -4090,7 +4213,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ All event listeners initialized');
 });
 
-console.log('✅ Nemex Hybrid Wallet System loaded (Production Ready)');
+console.log('✅ Nemex Hybrid Wallet System v10 loaded (6+ password system)');
     </script>
 </body>
 </html>
