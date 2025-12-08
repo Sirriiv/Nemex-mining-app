@@ -1,20 +1,42 @@
 {
   "name": "nemex-mining",
-  "version": "2.0.0",
+  "version": "3.0.0",
+  "description": "NEMEX COIN Mining Platform with TON Wallet Integration",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "npm install --omit=dev"
+    "dev": "nodemon server.js",
+    "build": "npm install --omit=dev",
+    "test": "node -e \"console.log('Testing dependencies...'); require('@ton/crypto'); require('tonweb'); console.log('✅ All dependencies loaded successfully!');\""
   },
   "dependencies": {
     "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "@supabase/supabase-js": "^2.38.0",
-    "@ton/crypto": "^3.2.0"
+    "axios": "^1.6.8",
+    "@ton/crypto": "^3.2.0",
+    "@ton/core": "^0.57.3",
+    "tonweb": "^0.0.42",
+    "bip39": "^3.1.0",
+    "crypto-js": "^4.2.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "private": true
+  "private": true,
+  "keywords": [
+    "nemex",
+    "ton",
+    "blockchain",
+    "wallet",
+    "mining",
+    "cryptocurrency"
+  ],
+  "author": "Nemex Team",
+  "license": "MIT"
 }
