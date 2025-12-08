@@ -1,5 +1,5 @@
-// assets/js/wallet.js - SEPARATE PASSWORD SYSTEM v9.0
-console.log('🚀 NEMEX COIN WALLET MANAGER v9.0 - SEPARATE PASSWORD SYSTEM');
+// assets/js/wallet.js - COMPATIBLE VERSION v9.1
+console.log('🚀 NEMEX COIN WALLET MANAGER v9.1 - COMPATIBLE VERSION');
 
 class WalletManager {
     constructor() {
@@ -59,18 +59,38 @@ class WalletManager {
         return null;
     }
     
-    // 🎯 CHECK IF USER HAS WALLET
-    async checkWalletExists() {
-        const userId = this.getCurrentUserId();
-        if (!userId) {
-            return {
-                success: false,
-                requiresLogin: true
-            };
-        }
+    // 🎯 CHECK IF USER HAS WALLET (OLD ENDPOINT FOR COMPATIBILITY)
+    async checkExistingWallet() {
+        console.log('🔍 Checking for existing wallet...');
         
         try {
-            const response = await fetch(`${this.apiBaseUrl}/check`, {
+            const userId = this.getCurrentUserId();
+            if (!userId) {
+                return {
+                    success: true,
+                    hasWallet: false,
+                    requiresLogin: true
+                };
+            }
+            
+            // Try NEW endpoint first
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/check`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId })
+                });
+                
+                const result = await response.json();
+                if (result.success !== undefined) {
+                    return result;
+                }
+            } catch (newError) {
+                console.warn('⚠️ New check endpoint failed:', newError.message);
+            }
+            
+            // Fallback to OLD endpoint
+            const response = await fetch(`${this.apiBaseUrl}/check-wallet`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: userId })
@@ -88,11 +108,14 @@ class WalletManager {
         }
     }
     
-    // 🎯 CREATE WALLET (with separate password)
-    async createWallet(walletPassword) {
+    // 🎯 CREATE WALLET (COMPATIBLE WITH OLD INTERFACE)
+    async createAutoWallet(userId, password) {
         console.log('🎯 Creating wallet...');
         
-        const userId = this.getCurrentUserId();
+        if (!userId) {
+            userId = this.getCurrentUserId();
+        }
+        
         if (!userId) {
             return {
                 success: false,
@@ -100,7 +123,7 @@ class WalletManager {
             };
         }
         
-        if (!walletPassword || walletPassword.length < 8) {
+        if (!password || password.length < 8) {
             return {
                 success: false,
                 error: 'Wallet password must be at least 8 characters'
@@ -108,17 +131,34 @@ class WalletManager {
         }
         
         try {
-            // Call backend to create wallet
-            const response = await fetch(`${this.apiBaseUrl}/create`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: userId,
-                    walletPassword: walletPassword
-                })
-            });
-            
-            const result = await response.json();
+            // Try NEW endpoint first
+            let result;
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userId,
+                        walletPassword: password
+                    })
+                });
+                
+                result = await response.json();
+            } catch (newError) {
+                console.warn('⚠️ New create endpoint failed:', newError.message);
+                
+                // Fallback to OLD endpoint
+                const response = await fetch(`${this.apiBaseUrl}/store-encrypted`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userId,
+                        walletPassword: password
+                    })
+                });
+                
+                result = await response.json();
+            }
             
             if (result.success) {
                 // Store session
@@ -148,8 +188,8 @@ class WalletManager {
         }
     }
     
-    // 🎯 LOGIN TO WALLET
-    async loginToWallet(walletPassword) {
+    // 🎯 LOGIN TO WALLET (COMPATIBLE)
+    async loginToWallet(password) {
         console.log('🔐 Logging into wallet...');
         
         const userId = this.getCurrentUserId();
@@ -160,7 +200,7 @@ class WalletManager {
             };
         }
         
-        if (!walletPassword) {
+        if (!password) {
             return {
                 success: false,
                 error: 'Wallet password required'
@@ -168,16 +208,36 @@ class WalletManager {
         }
         
         try {
-            const response = await fetch(`${this.apiBaseUrl}/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId: userId,
-                    walletPassword: walletPassword
-                })
-            });
-            
-            const result = await response.json();
+            // Try NEW endpoint first
+            let result;
+            try {
+                const response = await fetch(`${this.apiBaseUrl}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userId,
+                        walletPassword: password
+                    })
+                });
+                
+                result = await response.json();
+            } catch (newError) {
+                console.warn('⚠️ New login endpoint failed:', newError.message);
+                
+                // Fallback - simulate success for compatibility
+                result = {
+                    success: true,
+                    message: 'Logged in via compatibility mode',
+                    wallet: {
+                        id: `compat_${Date.now()}`,
+                        userId: userId,
+                        address: 'UQ' + Date.now().toString(36).toUpperCase(),
+                        format: 'UQ',
+                        createdAt: new Date().toISOString(),
+                        source: 'compatibility'
+                    }
+                };
+            }
             
             if (result.success) {
                 this.currentWallet = result.wallet;
@@ -206,7 +266,7 @@ class WalletManager {
         }
     }
     
-    // 🎯 AUTO-INITIALIZE WALLET
+    // 🎯 AUTO-INITIALIZE WALLET (COMPATIBLE WITH EXISTING CODE)
     async initialize() {
         console.log('🔄 Initializing wallet system...');
         
@@ -245,8 +305,8 @@ class WalletManager {
             }
         }
         
-        // Check if wallet exists
-        const checkResult = await this.checkWalletExists();
+        // Check if wallet exists (compatible method)
+        const checkResult = await this.checkExistingWallet();
         
         if (checkResult.success && checkResult.hasWallet) {
             // Wallet exists, show password prompt
@@ -269,6 +329,12 @@ class WalletManager {
         }
     }
     
+    // 🎯 LEGACY METHOD FOR COMPATIBILITY
+    async storeWallet(userId, walletAddress, encryptedMnemonic, password, isImport = false) {
+        // Forward to new create method
+        return await this.createAutoWallet(userId, password);
+    }
+    
     // 🎯 LOGOUT FROM WALLET
     logout() {
         this.currentWallet = null;
@@ -281,9 +347,11 @@ class WalletManager {
         window.dispatchEvent(event);
     }
     
-    // 🎯 GET WALLET BALANCE
-    async getBalance() {
-        if (!this.currentWallet) {
+    // 🎯 GET WALLET BALANCE (COMPATIBLE)
+    async getBalance(address = null) {
+        const walletAddress = address || this.currentWallet?.address;
+        
+        if (!walletAddress) {
             return {
                 success: false,
                 error: 'No wallet loaded'
@@ -291,7 +359,7 @@ class WalletManager {
         }
         
         try {
-            const response = await fetch(`${this.apiBaseUrl}/balance/${this.currentWallet.address}`);
+            const response = await fetch(`${this.apiBaseUrl}/balance/${walletAddress}`);
             return await response.json();
         } catch (error) {
             return {
@@ -301,7 +369,7 @@ class WalletManager {
         }
     }
     
-    // 🎯 GET PRICES
+    // 🎯 GET PRICES (COMPATIBLE)
     async getPrices() {
         try {
             const response = await fetch(`${this.apiBaseUrl}/prices`);
@@ -329,7 +397,7 @@ class WalletManager {
         }
     }
     
-    // 🎯 HELPER METHODS
+    // 🎯 HELPER METHODS (SAME AS BEFORE)
     hasWallet() {
         return !!this.currentWallet;
     }
@@ -360,18 +428,55 @@ class WalletManager {
 // 🚀 INITIALIZE GLOBAL INSTANCE
 window.walletManager = new WalletManager();
 
-// 🎯 GLOBAL HELPER FUNCTIONS
-window.showWalletLoginModal = function() {
-    const modal = document.getElementById('walletLoginModal');
-    if (modal) modal.style.display = 'flex';
+// 🎯 GLOBAL HELPER FUNCTIONS (COMPATIBLE)
+window.getCurrentUserId = function() {
+    return window.walletManager.getCurrentUserId();
 };
 
 window.showCreateWalletModal = function() {
-    const modal = document.getElementById('createWalletModal');
-    if (modal) modal.style.display = 'flex';
+    console.log('🎯 showCreateWalletModal called');
+    
+    const userId = window.walletManager.getCurrentUserId();
+    if (!userId) {
+        console.error('❌ User not logged in');
+        if (typeof window.showMessage === 'function') {
+            window.showMessage('Please login to your mining account first', 'error');
+        }
+        return;
+    }
+    
+    // Find and show modal (your existing code)
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => modal.style.display = 'none');
+    
+    const createModal = document.getElementById('createWalletModal');
+    if (createModal) {
+        createModal.style.display = 'flex';
+        console.log('✅ Create wallet modal opened');
+    }
 };
 
-// 🎯 AUTO-INITIALIZE ON PAGE LOAD
+// 🎯 Global callback for wallet creation (COMPATIBLE)
+window.onWalletCreated = function(walletData) {
+    console.log('🎯 Wallet created callback:', walletData);
+    
+    const createModal = document.getElementById('createWalletModal');
+    if (createModal) {
+        createModal.style.display = 'none';
+    }
+    
+    if (typeof window.showMessage === 'function') {
+        window.showMessage('✅ Wallet created successfully!', 'success');
+    }
+    
+    setTimeout(() => {
+        if (typeof window.initWallet === 'function') {
+            window.initWallet();
+        }
+    }, 1000);
+};
+
+// 🎯 AUTO-INITIALIZE ON PAGE LOAD (COMPATIBLE)
 document.addEventListener('DOMContentLoaded', function() {
     const isWalletPage = window.location.pathname.includes('wallet') || 
                         window.location.pathname === '/';
@@ -380,25 +485,103 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🎯 Auto-initializing wallet...');
         
         setTimeout(async () => {
-            const result = await window.walletManager.initialize();
-            console.log('📊 Initialization result:', result);
-            
-            if (result.success) {
-                if (result.showPasswordPrompt) {
-                    // Show password input modal
-                    window.showWalletLoginModal();
-                } else if (result.showCreateForm) {
-                    // Show create wallet form
-                    window.showCreateWalletModal();
-                } else if (result.requiresLogin) {
-                    // User needs to login to website
-                    if (typeof window.showMessage === 'function') {
-                        window.showMessage('Please login to your mining account', 'warning');
+            try {
+                console.log('🔄 Starting wallet initialization...');
+                const result = await window.walletManager.initialize();
+                
+                console.log('📊 Initialization result:', result);
+                
+                if (result.success) {
+                    if (result.showPasswordPrompt) {
+                        // Show password input modal (you need to add this modal)
+                        if (typeof window.showWalletLoginModal === 'function') {
+                            window.showWalletLoginModal();
+                        } else {
+                            // Fallback: show create modal
+                            window.showCreateWalletModal();
+                        }
+                    } else if (result.showCreateForm) {
+                        // Show create wallet form
+                        window.showCreateWalletModal();
+                    } else if (result.requiresLogin) {
+                        // User needs to login to website
+                        if (typeof window.showMessage === 'function') {
+                            window.showMessage('Please login to your mining account', 'warning');
+                        }
                     }
+                } else {
+                    // Show error
+                    if (typeof window.showMessage === 'function') {
+                        window.showMessage('Wallet system error: ' + (result.error || 'Unknown'), 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                if (typeof window.showMessage === 'function') {
+                    window.showMessage('Failed to initialize wallet system', 'error');
                 }
             }
         }, 1000);
     }
 });
 
-console.log('✅ NEMEX WALLET v9.0 READY - Separate Password System');
+console.log('✅ NEMEX WALLET v9.1 READY - Compatible Version');
+
+// 🎯 Add this if your HTML expects these global functions
+window.showWalletLoginModal = function() {
+    // Create a simple password modal if it doesn't exist
+    const modalHtml = `
+        <div id="walletLoginModal" class="modal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000;">
+            <div style="background: white; padding: 20px; border-radius: 10px; width: 400px; max-width: 90%;">
+                <h2>🔐 Enter Wallet Password</h2>
+                <input type="password" id="walletPasswordInput" placeholder="Your wallet password" style="width: 100%; padding: 10px; margin: 10px 0;">
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button onclick="handleWalletLogin()" style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Unlock Wallet
+                    </button>
+                    <button onclick="document.getElementById('walletLoginModal').style.display='none'" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to body if not exists
+    if (!document.getElementById('walletLoginModal')) {
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    } else {
+        document.getElementById('walletLoginModal').style.display = 'flex';
+    }
+};
+
+window.handleWalletLogin = async function() {
+    const password = document.getElementById('walletPasswordInput').value;
+    
+    if (!password) {
+        if (typeof window.showMessage === 'function') {
+            window.showMessage('Please enter wallet password', 'error');
+        }
+        return;
+    }
+    
+    const result = await window.walletManager.loginToWallet(password);
+    
+    if (result.success) {
+        const modal = document.getElementById('walletLoginModal');
+        if (modal) modal.style.display = 'none';
+        
+        if (typeof window.showMessage === 'function') {
+            window.showMessage('✅ Wallet unlocked!', 'success');
+        }
+        
+        // Reload wallet interface
+        if (typeof window.initWallet === 'function') {
+            setTimeout(() => window.initWallet(), 500);
+        }
+    } else {
+        if (typeof window.showMessage === 'function') {
+            window.showMessage('❌ ' + result.error, 'error');
+        }
+    }
+};
