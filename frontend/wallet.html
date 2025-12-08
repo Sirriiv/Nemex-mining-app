@@ -4,41 +4,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nemex Wallet - Secure TON Wallet</title>
-    
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="assets/css/wallet.css?v=2.0">
-    
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- ✅ FIXED: CORRECT TON LIBRARIES -->
+    <!-- TonWeb (MAIN TON LIBRARY) -->
+    <script src="https://unpkg.com/tonweb@0.0.42/dist/tonweb.js"></script>
     
-    <!-- TON Libraries -->
-    <script src="https://unpkg.com/tonweb@0.0.60/dist/tonweb.js"></script>
-    <script src="https://unpkg.com/@ton/crypto@3.2.0/dist/crypto.js"></script>
-    <script src="https://unpkg.com/ton@14.1.2/dist/index.es.js"></script>
+    <!-- @ton/crypto (FOR MNEMONIC GENERATION) -->
+    <script src="https://unpkg.com/@ton/crypto@3.2.0/dist/crypto.min.js"></script>
     
+    <!-- REMOVED: ton@14.1.2 - NOT NEEDED AND CAUSING 404 -->
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
-                console.log('TON Library Check:');
+                console.log('✅ TON Library Check:');
                 console.log('TonWeb loaded:', typeof window.TonWeb !== 'undefined');
                 console.log('TonWeb.Mnemonic:', typeof window.TonWeb?.Mnemonic !== 'undefined');
                 console.log('TonWeb.utils:', typeof window.TonWeb?.utils !== 'undefined');
                 console.log('TonWeb.Wallet:', typeof window.TonWeb?.Wallet !== 'undefined');
-                console.log('TON Crypto:', typeof window.TonCrypto !== 'undefined');
-                console.log('TON:', typeof window.Ton !== 'undefined');
+                console.log('TON Crypto loaded:', typeof window.TonCrypto !== 'undefined');
                 
-                if (typeof window.TonWeb === 'undefined') {
-                    console.error('TonWeb NOT LOADED! Check CDN URL.');
+                // Test TON functionality
+                if (typeof window.TonWeb !== 'undefined') {
+                    console.log('🎉 TonWeb successfully loaded!');
+                    try {
+                        const tonweb = new window.TonWeb();
+                        console.log('✅ TonWeb instance created');
+                    } catch (e) {
+                        console.error('❌ TonWeb instance failed:', e);
+                    }
+                } else {
+                    console.error('❌ TonWeb NOT LOADED!');
                 }
-            }, 1000);
+                
+                if (typeof window.TonCrypto !== 'undefined') {
+                    console.log('✅ TON Crypto library loaded');
+                } else {
+                    console.warn('⚠️ TON Crypto not loaded (may be ok for basic operations)');
+                }
+            }, 1500);
         });
     </script>
 </head>
 <body>
-    
+
     <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/ui-manager.js"></script>
     <script src="assets/js/mining-account.js"></script>
-    
+
     <!-- Updated Wallet Manager -->
     <script src="assets/js/wallet-v10.js"></script>
 
