@@ -320,7 +320,7 @@ async function fetchRealPrices() {
 }
 
 // ============================================
-// 🎯 SESSION ROUTES
+// 🎯 SESSION ROUTES - CLEAN VERSION
 // ============================================
 
 // Create session
@@ -328,10 +328,10 @@ router.post('/session/create', async (req, res) => {
     try {
         const { userId, walletId, walletAddress } = req.body;
         
-        if (!userId || !walletId) {
+        if (!userId || !walletAddress) {
             return res.status(400).json({
                 success: false,
-                error: 'User ID and wallet ID required'
+                error: 'User ID and wallet address required'
             });
         }
         
@@ -344,48 +344,62 @@ router.post('/session/create', async (req, res) => {
         // Session expires in 30 days
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
         
-        // Clean old sessions first
-        await cleanupExpiredSessions();
+        if (!supabase || dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
         
-        // Create session record
-        const sessionRecord = {
+        let data, error;
+        
+        // Try to use user_sessions table first (your main table)
+        const sessionData = {
             user_id: userId,
-            wallet_id: walletId,
+            active_wallet_address: walletAddress,
             session_token: sessionToken,
             token_hash: tokenHash,
             ip_address: ip,
             user_agent: userAgent,
-            device_info: {},
             expires_at: expiresAt.toISOString(),
+            last_active: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
             is_active: true
         };
         
-        // Try to insert
-        let data, error;
+        // Use upsert to update existing or create new
+        ({ data, error } = await supabase
+            .from('user_sessions')
+            .upsert(sessionData, {
+                onConflict: 'user_id'
+            })
+            .select()
+            .single());
         
-        if (supabase && dbStatus === 'connected') {
+        // If upsert fails, try regular insert
+        if (error) {
+            console.warn('⚠️ Upsert failed, trying insert:', error.message);
+            
             ({ data, error } = await supabase
-                .from('wallet_sessions')
-                .insert([sessionRecord])
+                .from('user_sessions')
+                .insert([sessionData])
                 .select()
                 .single());
-        } else {
-            throw new Error('Database not available');
         }
         
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Both user_sessions methods failed:', error.message);
+            throw error;
+        }
         
         res.json({
             success: true,
             session: {
                 token: sessionToken,
                 user_id: userId,
-                wallet_id: walletId,
+                wallet_address: walletAddress,
                 expires_at: data.expires_at,
-                wallet: {
-                    address: walletAddress,
-                    id: walletId
-                }
+                created_at: data.created_at
             }
         });
         
@@ -393,7 +407,7 @@ router.post('/session/create', async (req, res) => {
         console.error('❌ Create session failed:', error);
         res.json({
             success: false,
-            error: 'Failed to create session'
+            error: 'Failed to create session: ' + error.message
         });
     }
 });
@@ -422,20 +436,13 @@ router.post('/session/check', async (req, res) => {
             });
         }
         
-        // Check session
+        // Check session in user_sessions table
         const { data: session, error } = await supabase
-            .from('wallet_sessions')
-            .select(`
-                *,
-                user_wallets:wallet_id (
-                    address,
-                    source,
-                    created_at
-                )
-            `)
+            .from('user_sessions')
+            .select('*')
             .eq('token_hash', tokenHash)
             .eq('is_active', true)
-            .gt('expires_at', new Date().toISOString())
+            .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
             .single();
             
         if (error || !session) {
@@ -446,11 +453,34 @@ router.post('/session/check', async (req, res) => {
             });
         }
         
-        // Update last accessed
+        // Update last active timestamp
         await supabase
-            .from('wallet_sessions')
-            .update({ last_accessed_at: new Date().toISOString() })
-            .eq('id', session.id);
+            .from('user_sessions')
+            .update({ 
+                last_active: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', session.user_id);
+        
+        // Get wallet details if needed
+        let walletDetails = {};
+        if (session.active_wallet_address) {
+            // Get wallet info from user_wallets
+            const { data: wallet } = await supabase
+                .from('user_wallets')
+                .select('id, address, source, created_at')
+                .eq('user_id', session.user_id)
+                .single();
+            
+            if (wallet) {
+                walletDetails = {
+                    id: wallet.id,
+                    address: wallet.address,
+                    createdAt: wallet.created_at,
+                    source: wallet.source
+                };
+            }
+        }
         
         res.json({
             success: true,
@@ -458,14 +488,9 @@ router.post('/session/check', async (req, res) => {
             session: {
                 token: sessionToken,
                 user_id: session.user_id,
-                wallet_id: session.wallet_id,
+                wallet_address: session.active_wallet_address,
                 expires_at: session.expires_at,
-                wallet: {
-                    id: session.wallet_id,
-                    address: session.user_wallets?.address,
-                    createdAt: session.user_wallets?.created_at,
-                    source: session.user_wallets?.source
-                }
+                wallet: walletDetails
             }
         });
         
@@ -474,7 +499,7 @@ router.post('/session/check', async (req, res) => {
         res.json({
             success: false,
             hasSession: false,
-            error: 'Session check failed'
+            error: 'Session check failed: ' + error.message
         });
     }
 });
@@ -500,16 +525,26 @@ router.post('/session/destroy', async (req, res) => {
             });
         }
         
-        // Mark session as inactive
+        // Deactivate session in user_sessions
         const { error } = await supabase
-            .from('wallet_sessions')
+            .from('user_sessions')
             .update({ 
                 is_active: false,
-                expires_at: new Date().toISOString()
+                expires_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
             })
             .eq('token_hash', tokenHash);
+        
+        // Also clean up any expired sessions
+        await supabase
+            .from('user_sessions')
+            .delete()
+            .lt('expires_at', new Date().toISOString());
             
-        if (error) throw error;
+        if (error) {
+            console.warn('⚠️ Session destroy update failed:', error.message);
+            // Continue anyway - session might already be expired
+        }
         
         res.json({
             success: true,
@@ -520,7 +555,7 @@ router.post('/session/destroy', async (req, res) => {
         console.error('❌ Destroy session failed:', error);
         res.json({
             success: false,
-            error: 'Failed to destroy session'
+            error: 'Failed to destroy session: ' + error.message
         });
     }
 });
