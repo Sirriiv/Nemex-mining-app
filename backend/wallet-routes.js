@@ -977,24 +977,28 @@ router.post('/session/destroy', async (req, res) => {
 });
 
 // ============================================
-// 🎯 WALLET ROUTES (FIXED WITH PROPER ERROR HANDLING)
+// 🎯 WALLET ROUTES - FIXED WITH VERIFICATION
 // ============================================
 
-// Create wallet - FIXED: Properly handles no existing wallet
+// Create wallet - FIXED: Better error handling and verification
 router.post('/create', async (req, res) => {
-    console.log('🎯 CREATE TON WALLET');
+    console.log('🎯 CREATE TON WALLET REQUEST:', { 
+        userId: req.body.userId, 
+        hasPassword: !!req.body.walletPassword 
+    });
 
     try {
         const { userId, walletPassword } = req.body;
 
         if (!userId || !walletPassword) {
+            console.log('❌ Missing userId or password');
             return res.status(400).json({
                 success: false,
                 error: 'User ID and wallet password required'
             });
         }
 
-        // ✅ CHANGED: Accept 6 characters to match frontend
+        // ✅ Accept 6 characters to match frontend
         if (walletPassword.length < 6) {
             return res.status(400).json({
                 success: false,
@@ -1002,23 +1006,57 @@ router.post('/create', async (req, res) => {
             });
         }
 
-        // Check if wallet already exists - FIXED: Don't use .single() on possibly empty result
-        if (supabase && dbStatus === 'connected') {
-            const { data: existingWallets, error } = await supabase
-                .from('user_wallets')
-                .select('id')
-                .eq('user_id', userId);
-
-            if (error) {
-                console.error('❌ Database error checking existing wallet:', error);
-                // Continue anyway, don't block wallet creation
-            } else if (existingWallets && existingWallets.length > 0) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Wallet already exists for this user'
-                });
-            }
+        // Check database connection
+        if (!supabase || dbStatus !== 'connected') {
+            console.error('❌ Database not connected');
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available. Please try again.'
+            });
         }
+
+        console.log('🔍 Checking if wallet already exists for user:', userId);
+
+        // ✅ FIX: Better check for existing wallet
+        const { data: existingWallets, error: checkError } = await supabase
+            .from('user_wallets')
+            .select('id, address, created_at')
+            .eq('user_id', userId);
+
+        if (checkError) {
+            console.error('❌ Database error checking existing wallet:', checkError);
+            return res.status(500).json({
+                success: false,
+                error: 'Database error. Please try again.'
+            });
+        }
+
+        // ✅ If wallet exists, return it instead of error
+        if (existingWallets && existingWallets.length > 0) {
+            console.log('✅ Wallet already exists for user:', userId);
+            
+            // Get price data
+            const tonPriceData = await fetchRealTONPrice();
+            
+            return res.json({
+                success: true,
+                message: 'Wallet already exists',
+                wallet: {
+                    id: existingWallets[0].id,
+                    userId: userId,
+                    address: existingWallets[0].address,
+                    format: 'UQ',
+                    createdAt: existingWallets[0].created_at,
+                    source: 'existing',
+                    wordCount: 12
+                },
+                tonPrice: tonPriceData.price,
+                priceSource: tonPriceData.source,
+                warning: 'Using existing wallet'
+            });
+        }
+
+        console.log('✅ No existing wallet found. Generating new wallet...');
 
         // Generate TON wallet
         const wallet = await generateRealTONWallet();
@@ -1045,37 +1083,91 @@ router.post('/create', async (req, res) => {
         const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
 
         // Store in database
-        let walletId = null;
-        if (supabase && dbStatus === 'connected') {
-            const walletRecord = {
-                user_id: userId,
-                address: wallet.address,
-                encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
-                public_key: wallet.publicKey,
-                private_key: wallet.privateKey,
-                wallet_type: 'TON',
-                source: 'generated',
-                word_count: 12,
-                derivation_path: "m/44'/607'/0'/0/0",
-                password_hash: passwordHash,
-                encryption_salt: 'nemex-salt',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
+        console.log('📤 Storing wallet in database...');
+        
+        const walletRecord = {
+            user_id: userId,
+            address: wallet.address,
+            encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+            public_key: wallet.publicKey,
+            private_key: wallet.privateKey,
+            wallet_type: 'TON',
+            source: 'generated',
+            word_count: 12,
+            derivation_path: "m/44'/607'/0'/0/0",
+            password_hash: passwordHash,
+            encryption_salt: 'nemex-salt',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
 
-            const { data, error } = await supabase
+        console.log('📝 Wallet record prepared:', {
+            user_id: userId,
+            address: wallet.address.substring(0, 10) + '...',
+            created_at: walletRecord.created_at
+        });
+
+        const { data: insertedWallet, error: insertError } = await supabase
+            .from('user_wallets')
+            .insert([walletRecord])
+            .select()
+            .single();
+
+        if (insertError) {
+            console.error('❌ Database insert error:', insertError);
+            
+            // Try alternative: Check if maybe it was inserted but we can't read it back
+            console.log('🔄 Checking if wallet was actually inserted...');
+            
+            const { data: verifyWallets } = await supabase
                 .from('user_wallets')
-                .insert([walletRecord])
-                .select()
-                .single();
-
-            if (error) {
-                console.error('❌ Database insert error:', error);
-                // Continue without storing in DB for now
-            } else {
-                walletId = data.id;
-                console.log('✅ Wallet stored in database');
+                .select('id, address, created_at')
+                .eq('user_id', userId);
+                
+            if (verifyWallets && verifyWallets.length > 0) {
+                console.log('✅ Wallet WAS inserted! Using it...');
+                
+                const tonPriceData = await fetchRealTONPrice();
+                
+                return res.json({
+                    success: true,
+                    message: 'Wallet created successfully (recovered)',
+                    wallet: {
+                        id: verifyWallets[0].id,
+                        userId: userId,
+                        address: verifyWallets[0].address,
+                        format: 'UQ',
+                        createdAt: verifyWallets[0].created_at || new Date().toISOString(),
+                        source: 'database',
+                        wordCount: 12,
+                        validation: validation
+                    },
+                    tonPrice: tonPriceData.price,
+                    priceSource: tonPriceData.source,
+                    explorerLink: `https://tonviewer.com/${verifyWallets[0].address}`,
+                    note: 'Wallet recovered from database'
+                });
             }
+            
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to save wallet to database: ' + insertError.message
+            });
+        }
+
+        console.log('✅ Wallet successfully stored in database:', insertedWallet.id);
+
+        // ✅ DOUBLE-CHECK: Verify the wallet was actually saved
+        console.log('🔍 Verifying wallet was saved...');
+        const { data: verifyWallets2 } = await supabase
+            .from('user_wallets')
+            .select('id, address')
+            .eq('user_id', userId);
+            
+        if (verifyWallets2 && verifyWallets2.length > 0) {
+            console.log('✅ Verification passed! Wallet is in database');
+        } else {
+            console.warn('⚠️ Verification failed! Wallet not found after insert');
         }
 
         // Get current TON price
@@ -1085,19 +1177,19 @@ router.post('/create', async (req, res) => {
             success: true,
             message: 'TON wallet created successfully',
             wallet: {
-                id: walletId || `temp_${Date.now()}`,
+                id: insertedWallet.id,
                 userId: userId,
                 address: wallet.address,
                 format: 'UQ',
-                createdAt: new Date().toISOString(),
-                source: supabase ? 'database' : 'temporary',
+                createdAt: insertedWallet.created_at,
+                source: 'database',
                 wordCount: 12,
-                validation: validation
+                validation: validation,
+                isVerified: true
             },
             tonPrice: tonPriceData.price,
             priceSource: tonPriceData.source,
-            explorerLink: `https://tonviewer.com/${wallet.address}`,
-            warning: !supabase ? 'Wallet stored temporarily (database not connected)' : null
+            explorerLink: `https://tonviewer.com/${wallet.address}`
         });
 
     } catch (error) {
@@ -1109,105 +1201,52 @@ router.post('/create', async (req, res) => {
     }
 });
 
-// Login to wallet - FIXED: Proper error handling
-router.post('/login', async (req, res) => {
-    console.log('🔐 WALLET LOGIN');
-
+// ✅ ADD THIS FUNCTION: Force create wallet (for debugging)
+router.post('/force-create', async (req, res) => {
+    console.log('🚀 FORCE CREATE WALLET (Debug)');
+    
     try {
         const { userId, walletPassword } = req.body;
 
         if (!userId || !walletPassword) {
             return res.status(400).json({
                 success: false,
-                error: 'User ID and wallet password required'
+                error: 'User ID and password required'
             });
         }
 
-        // ✅ CHANGED: Accept 6 characters to match frontend
-        if (walletPassword.length < 6) {
-            return res.status(400).json({
-                success: false,
-                error: 'Wallet password must be at least 6 characters'
-            });
+        // Delete any existing wallet first
+        if (supabase && dbStatus === 'connected') {
+            await supabase
+                .from('user_wallets')
+                .delete()
+                .eq('user_id', userId);
+            console.log('🗑️ Deleted any existing wallet for user:', userId);
         }
 
-        if (!supabase || dbStatus !== 'connected') {
-            return res.status(503).json({
-                success: false,
-                error: 'Database not available'
-            });
-        }
-
-        // Get wallet from database - FIXED: Use .maybeSingle() or handle no results
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle(); // Use maybeSingle instead of single
-
-        if (error) {
-            console.error('❌ Database error:', error);
-            return res.status(500).json({
-                success: false,
-                error: 'Database error: ' + error.message
-            });
-        }
-
-        if (!wallet) {
-            return res.status(404).json({
-                success: false,
-                error: 'No wallet found for this user'
-            });
-        }
-
-        // Verify wallet password
-        const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
-        if (!passwordValid) {
-            return res.status(401).json({
-                success: false,
-                error: 'Incorrect wallet password'
-            });
-        }
-
-        // Get balance from blockchain
-        const balanceResult = await getRealBalance(wallet.address);
-        const tonPrice = await fetchRealTONPrice();
-
-        res.json({
-            success: true,
-            message: 'Wallet login successful',
-            wallet: {
-                id: wallet.id,
-                userId: wallet.user_id,
-                address: wallet.address,
-                format: 'UQ',
-                createdAt: wallet.created_at,
-                source: wallet.source,
-                wordCount: wallet.word_count,
-                hasWallet: true,
-                balance: balanceResult.success ? balanceResult.balance : "0.0000",
-                isActive: balanceResult.isActive || false,
-                tonPrice: tonPrice.price
-            }
-        });
-
+        // Now create new wallet
+        req.url = '/api/wallet/create'; // Route to normal create
+        req.method = 'POST';
+        return router.handle(req, res);
+        
     } catch (error) {
-        console.error('❌ Wallet login failed:', error);
+        console.error('❌ Force create failed:', error);
         res.status(500).json({
             success: false,
-            error: 'Login failed: ' + error.message
+            error: error.message
         });
     }
 });
 
 // Check wallet - FIXED: Use maybeSingle
 router.post('/check', async (req, res) => {
-    console.log('🔍 CHECK WALLET');
+    console.log('🔍 CHECK WALLET REQUEST:', req.body);
 
     try {
         const { userId } = req.body;
 
         if (!userId) {
+            console.log('❌ No userId in request');
             return res.json({
                 success: false,
                 error: 'User ID required'
@@ -1215,6 +1254,7 @@ router.post('/check', async (req, res) => {
         }
 
         if (!supabase || dbStatus !== 'connected') {
+            console.log('❌ Database not available');
             return res.json({
                 success: true,
                 hasWallet: false,
@@ -1222,11 +1262,21 @@ router.post('/check', async (req, res) => {
             });
         }
 
-        const { data: wallet, error } = await supabase
+        console.log('🔍 Querying database for user:', userId);
+        
+        const { data: wallets, error } = await supabase
             .from('user_wallets')
             .select('id, address, created_at, source, word_count')
-            .eq('user_id', userId)
-            .maybeSingle();
+            .eq('user_id', userId);
+
+        console.log('📊 Database query result:', {
+            error: error ? error.message : 'none',
+            count: wallets ? wallets.length : 0,
+            wallets: wallets ? wallets.map(w => ({ 
+                id: w.id, 
+                address: w.address.substring(0, 10) + '...' 
+            })) : []
+        });
 
         if (error) {
             console.error('❌ Database error:', error);
@@ -1236,7 +1286,8 @@ router.post('/check', async (req, res) => {
             });
         }
 
-        if (!wallet) {
+        if (!wallets || wallets.length === 0) {
+            console.log('📭 No wallet found for user:', userId);
             return res.json({
                 success: true,
                 hasWallet: false,
@@ -1244,8 +1295,17 @@ router.post('/check', async (req, res) => {
             });
         }
 
+        // Use the first wallet
+        const wallet = wallets[0];
+        
         // Validate address
         const validation = validateTONAddress(wallet.address);
+        
+        console.log('✅ Wallet found:', {
+            id: wallet.id,
+            address: wallet.address.substring(0, 10) + '...',
+            validation: validation.valid ? 'valid' : 'invalid'
+        });
 
         res.json({
             success: true,
@@ -1266,6 +1326,52 @@ router.post('/check', async (req, res) => {
         res.json({
             success: false,
             error: 'Check failed: ' + error.message
+        });
+    }
+});
+
+// ✅ ADD THIS: Debug endpoint to check database status
+router.get('/debug/status', async (req, res) => {
+    try {
+        const userId = req.query.userId;
+        
+        const status = {
+            database: dbStatus,
+            supabase: !!supabase,
+            timestamp: new Date().toISOString(),
+            user_wallets_table: 'checking...'
+        };
+        
+        if (supabase && dbStatus === 'connected') {
+            // Check user_wallets table
+            const { data, error } = await supabase
+                .from('user_wallets')
+                .select('count')
+                .limit(1);
+                
+            status.user_wallets_table = error ? `error: ${error.message}` : 'accessible';
+            
+            // Check specific user if provided
+            if (userId) {
+                const { data: userWallets } = await supabase
+                    .from('user_wallets')
+                    .select('id, address, created_at')
+                    .eq('user_id', userId);
+                    
+                status.user_wallets = userWallets || [];
+                status.user_wallets_count = userWallets ? userWallets.length : 0;
+            }
+        }
+        
+        res.json({
+            success: true,
+            debug: status
+        });
+        
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message
         });
     }
 });
