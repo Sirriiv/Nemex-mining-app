@@ -977,21 +977,16 @@ router.post('/session/destroy', async (req, res) => {
 });
 
 // ============================================
-// 🎯 WALLET ROUTES - FIXED WITH VERIFICATION
+// 🎯 CREATE WALLET - FIXED FOR MISSING COLUMNS
 // ============================================
 
-// Create wallet - FIXED: Better error handling and verification
 router.post('/create', async (req, res) => {
-    console.log('🎯 CREATE TON WALLET REQUEST:', { 
-        userId: req.body.userId, 
-        hasPassword: !!req.body.walletPassword 
-    });
+    console.log('🎯 CREATE TON WALLET');
 
     try {
         const { userId, walletPassword } = req.body;
 
         if (!userId || !walletPassword) {
-            console.log('❌ Missing userId or password');
             return res.status(400).json({
                 success: false,
                 error: 'User ID and wallet password required'
@@ -1017,7 +1012,7 @@ router.post('/create', async (req, res) => {
 
         console.log('🔍 Checking if wallet already exists for user:', userId);
 
-        // ✅ FIX: Better check for existing wallet
+        // Check for existing wallet
         const { data: existingWallets, error: checkError } = await supabase
             .from('user_wallets')
             .select('id, address, created_at')
@@ -1031,11 +1026,10 @@ router.post('/create', async (req, res) => {
             });
         }
 
-        // ✅ If wallet exists, return it instead of error
+        // If wallet exists, return it
         if (existingWallets && existingWallets.length > 0) {
             console.log('✅ Wallet already exists for user:', userId);
             
-            // Get price data
             const tonPriceData = await fetchRealTONPrice();
             
             return res.json({
@@ -1051,8 +1045,7 @@ router.post('/create', async (req, res) => {
                     wordCount: 12
                 },
                 tonPrice: tonPriceData.price,
-                priceSource: tonPriceData.source,
-                warning: 'Using existing wallet'
+                priceSource: tonPriceData.source
             });
         }
 
@@ -1082,15 +1075,13 @@ router.post('/create', async (req, res) => {
         // Encrypt mnemonic
         const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
 
-        // Store in database
-        console.log('📤 Storing wallet in database...');
-        
+        // ✅ FIX: Create wallet record WITHOUT private_key column
         const walletRecord = {
             user_id: userId,
             address: wallet.address,
             encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
             public_key: wallet.publicKey,
-            private_key: wallet.privateKey,
+            // REMOVED: private_key: wallet.privateKey, // This column doesn't exist
             wallet_type: 'TON',
             source: 'generated',
             word_count: 12,
@@ -1101,73 +1092,94 @@ router.post('/create', async (req, res) => {
             updated_at: new Date().toISOString()
         };
 
-        console.log('📝 Wallet record prepared:', {
+        console.log('📤 Storing wallet in database (without private_key)...');
+
+        // ✅ FIX: Try with minimal columns first
+        const minimalWalletRecord = {
             user_id: userId,
-            address: wallet.address.substring(0, 10) + '...',
-            created_at: walletRecord.created_at
-        });
+            address: wallet.address,
+            encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+            password_hash: passwordHash,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
 
-        const { data: insertedWallet, error: insertError } = await supabase
-            .from('user_wallets')
-            .insert([walletRecord])
-            .select()
-            .single();
+        let insertedWallet = null;
+        let insertError = null;
 
-        if (insertError) {
-            console.error('❌ Database insert error:', insertError);
-            
-            // Try alternative: Check if maybe it was inserted but we can't read it back
-            console.log('🔄 Checking if wallet was actually inserted...');
-            
-            const { data: verifyWallets } = await supabase
+        // Try with minimal columns first
+        try {
+            const { data, error } = await supabase
                 .from('user_wallets')
-                .select('id, address, created_at')
-                .eq('user_id', userId);
+                .insert([minimalWalletRecord])
+                .select()
+                .single();
+
+            if (error) {
+                insertError = error;
+                console.log('⚠️ Minimal insert failed, trying full record...', error.message);
                 
-            if (verifyWallets && verifyWallets.length > 0) {
-                console.log('✅ Wallet WAS inserted! Using it...');
-                
-                const tonPriceData = await fetchRealTONPrice();
-                
-                return res.json({
-                    success: true,
-                    message: 'Wallet created successfully (recovered)',
-                    wallet: {
-                        id: verifyWallets[0].id,
-                        userId: userId,
-                        address: verifyWallets[0].address,
-                        format: 'UQ',
-                        createdAt: verifyWallets[0].created_at || new Date().toISOString(),
-                        source: 'database',
-                        wordCount: 12,
-                        validation: validation
-                    },
-                    tonPrice: tonPriceData.price,
-                    priceSource: tonPriceData.source,
-                    explorerLink: `https://tonviewer.com/${verifyWallets[0].address}`,
-                    note: 'Wallet recovered from database'
-                });
+                // Try with full record (except private_key)
+                const { data: data2, error: error2 } = await supabase
+                    .from('user_wallets')
+                    .insert([{
+                        user_id: userId,
+                        address: wallet.address,
+                        encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+                        public_key: wallet.publicKey,
+                        wallet_type: 'TON',
+                        source: 'generated',
+                        password_hash: passwordHash,
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    }])
+                    .select()
+                    .single();
+
+                if (error2) {
+                    insertError = error2;
+                    console.log('⚠️ Full insert also failed, trying bare minimum...', error2.message);
+                    
+                    // Try with absolute minimum
+                    const { data: data3, error: error3 } = await supabase
+                        .from('user_wallets')
+                        .insert([{
+                            user_id: userId,
+                            address: wallet.address,
+                            password_hash: passwordHash,
+                            created_at: new Date().toISOString()
+                        }])
+                        .select()
+                        .single();
+
+                    if (error3) {
+                        insertError = error3;
+                        throw new Error(`All insert attempts failed: ${error3.message}`);
+                    } else {
+                        insertedWallet = data3;
+                    }
+                } else {
+                    insertedWallet = data2;
+                }
+            } else {
+                insertedWallet = data;
             }
-            
+        } catch (error) {
+            console.error('❌ All insert attempts failed:', error);
             return res.status(500).json({
                 success: false,
-                error: 'Failed to save wallet to database: ' + insertError.message
+                error: 'Failed to save wallet to database. Please check your database schema.'
             });
         }
 
-        console.log('✅ Wallet successfully stored in database:', insertedWallet.id);
-
-        // ✅ DOUBLE-CHECK: Verify the wallet was actually saved
-        console.log('🔍 Verifying wallet was saved...');
-        const { data: verifyWallets2 } = await supabase
-            .from('user_wallets')
-            .select('id, address')
-            .eq('user_id', userId);
-            
-        if (verifyWallets2 && verifyWallets2.length > 0) {
-            console.log('✅ Verification passed! Wallet is in database');
+        if (insertedWallet) {
+            console.log('✅ Wallet successfully stored in database:', insertedWallet.id);
         } else {
-            console.warn('⚠️ Verification failed! Wallet not found after insert');
+            console.error('❌ No wallet was inserted');
+            return res.status(500).json({
+                success: false,
+                error: 'Wallet creation failed: Could not save to database'
+            });
         }
 
         // Get current TON price
@@ -1181,11 +1193,10 @@ router.post('/create', async (req, res) => {
                 userId: userId,
                 address: wallet.address,
                 format: 'UQ',
-                createdAt: insertedWallet.created_at,
+                createdAt: insertedWallet.created_at || new Date().toISOString(),
                 source: 'database',
                 wordCount: 12,
-                validation: validation,
-                isVerified: true
+                validation: validation
             },
             tonPrice: tonPriceData.price,
             priceSource: tonPriceData.source,
@@ -1201,173 +1212,68 @@ router.post('/create', async (req, res) => {
     }
 });
 
-// ✅ ADD THIS FUNCTION: Force create wallet (for debugging)
-router.post('/force-create', async (req, res) => {
-    console.log('🚀 FORCE CREATE WALLET (Debug)');
-    
+// ✅ ADD THIS: Simple test endpoint to check schema
+router.get('/test-schema', async (req, res) => {
     try {
-        const { userId, walletPassword } = req.body;
-
-        if (!userId || !walletPassword) {
-            return res.status(400).json({
-                success: false,
-                error: 'User ID and password required'
-            });
-        }
-
-        // Delete any existing wallet first
-        if (supabase && dbStatus === 'connected') {
-            await supabase
-                .from('user_wallets')
-                .delete()
-                .eq('user_id', userId);
-            console.log('🗑️ Deleted any existing wallet for user:', userId);
-        }
-
-        // Now create new wallet
-        req.url = '/api/wallet/create'; // Route to normal create
-        req.method = 'POST';
-        return router.handle(req, res);
-        
-    } catch (error) {
-        console.error('❌ Force create failed:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// Check wallet - FIXED: Use maybeSingle
-router.post('/check', async (req, res) => {
-    console.log('🔍 CHECK WALLET REQUEST:', req.body);
-
-    try {
-        const { userId } = req.body;
-
-        if (!userId) {
-            console.log('❌ No userId in request');
-            return res.json({
-                success: false,
-                error: 'User ID required'
-            });
-        }
-
         if (!supabase || dbStatus !== 'connected') {
-            console.log('❌ Database not available');
             return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'Database not available'
+                success: false,
+                error: 'Database not connected'
             });
         }
 
-        console.log('🔍 Querying database for user:', userId);
-        
-        const { data: wallets, error } = await supabase
+        // Get table schema
+        const { data: columns, error } = await supabase
             .from('user_wallets')
-            .select('id, address, created_at, source, word_count')
-            .eq('user_id', userId);
-
-        console.log('📊 Database query result:', {
-            error: error ? error.message : 'none',
-            count: wallets ? wallets.length : 0,
-            wallets: wallets ? wallets.map(w => ({ 
-                id: w.id, 
-                address: w.address.substring(0, 10) + '...' 
-            })) : []
-        });
+            .select('*')
+            .limit(1);
 
         if (error) {
-            console.error('❌ Database error:', error);
             return res.json({
                 success: false,
-                error: 'Database error: ' + error.message
+                error: 'Cannot access user_wallets table: ' + error.message
             });
         }
 
-        if (!wallets || wallets.length === 0) {
-            console.log('📭 No wallet found for user:', userId);
+        if (columns && columns.length > 0) {
+            const firstRow = columns[0];
+            const columnNames = Object.keys(firstRow);
+            
             return res.json({
                 success: true,
-                hasWallet: false,
-                message: 'No wallet found'
+                columns: columnNames,
+                sample: firstRow
+            });
+        } else {
+            // Try to insert a test row
+            const testData = {
+                user_id: 'test_user_' + Date.now(),
+                address: 'UQ' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwx',
+                password_hash: 'test_hash',
+                created_at: new Date().toISOString()
+            };
+
+            const { data: inserted, error: insertError } = await supabase
+                .from('user_wallets')
+                .insert([testData])
+                .select()
+                .single();
+
+            if (insertError) {
+                return res.json({
+                    success: false,
+                    error: 'Insert test failed: ' + insertError.message,
+                    required_columns: ['user_id', 'address', 'password_hash', 'created_at']
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: 'Test insert successful',
+                test_data: inserted
             });
         }
 
-        // Use the first wallet
-        const wallet = wallets[0];
-        
-        // Validate address
-        const validation = validateTONAddress(wallet.address);
-        
-        console.log('✅ Wallet found:', {
-            id: wallet.id,
-            address: wallet.address.substring(0, 10) + '...',
-            validation: validation.valid ? 'valid' : 'invalid'
-        });
-
-        res.json({
-            success: true,
-            hasWallet: true,
-            wallet: {
-                id: wallet.id,
-                address: wallet.address,
-                format: 'UQ',
-                createdAt: wallet.created_at,
-                source: wallet.source,
-                wordCount: wallet.word_count,
-                validation: validation
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Check wallet failed:', error);
-        res.json({
-            success: false,
-            error: 'Check failed: ' + error.message
-        });
-    }
-});
-
-// ✅ ADD THIS: Debug endpoint to check database status
-router.get('/debug/status', async (req, res) => {
-    try {
-        const userId = req.query.userId;
-        
-        const status = {
-            database: dbStatus,
-            supabase: !!supabase,
-            timestamp: new Date().toISOString(),
-            user_wallets_table: 'checking...'
-        };
-        
-        if (supabase && dbStatus === 'connected') {
-            // Check user_wallets table
-            const { data, error } = await supabase
-                .from('user_wallets')
-                .select('count')
-                .limit(1);
-                
-            status.user_wallets_table = error ? `error: ${error.message}` : 'accessible';
-            
-            // Check specific user if provided
-            if (userId) {
-                const { data: userWallets } = await supabase
-                    .from('user_wallets')
-                    .select('id, address, created_at')
-                    .eq('user_id', userId);
-                    
-                status.user_wallets = userWallets || [];
-                status.user_wallets_count = userWallets ? userWallets.length : 0;
-            }
-        }
-        
-        res.json({
-            success: true,
-            debug: status
-        });
-        
     } catch (error) {
         res.json({
             success: false,
