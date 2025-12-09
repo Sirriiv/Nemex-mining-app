@@ -346,22 +346,43 @@ async function generateRealTONWallet() {
         });
         
         let finalAddress = address;
-        if (address.startsWith('EQ')) {
-            finalAddress = 'UQ' + address.substring(2);
-        }
-        
-        if (finalAddress.length !== 48) {
-            console.log(`⚠️ Address length incorrect: ${finalAddress.length}, adjusting...`);
-            if (finalAddress.length > 48) {
-                finalAddress = finalAddress.substring(0, 48);
-            } else {
-                finalAddress = finalAddress.padEnd(48, 'A');
-            }
-        }
-        
-        if (!finalAddress.startsWith('UQ')) {
-            finalAddress = 'UQ' + finalAddress.substring(2);
-        }
+
+// Ensure it's non-bounceable (UQ format)
+if (finalAddress.startsWith('EQ')) {
+    finalAddress = 'UQ' + finalAddress.substring(2);
+} else if (finalAddress.startsWith('UQ')) {
+    // Already UQ format, make sure it doesn't have double UQ
+    if (finalAddress.substring(2, 4) === 'UQ') {
+        finalAddress = 'UQ' + finalAddress.substring(4);
+    }
+}
+
+// Ensure exactly 48 characters
+if (finalAddress.length !== 48) {
+    console.log(`⚠️ Address length incorrect: ${finalAddress.length}, adjusting...`);
+    if (finalAddress.length > 48) {
+        finalAddress = finalAddress.substring(0, 48);
+    } else {
+        finalAddress = finalAddress.padEnd(48, 'A');
+    }
+}
+
+// Final sanity check
+if (!finalAddress.startsWith('UQ')) {
+    finalAddress = 'UQ' + finalAddress.substring(2);
+}
+
+// One more check for double UQ
+if (finalAddress.startsWith('UQUQ')) {
+    finalAddress = 'UQ' + finalAddress.substring(4);
+}
+
+console.log('✅ Final address check:', {
+    address: finalAddress,
+    length: finalAddress.length,
+    startsWithUQ: finalAddress.startsWith('UQ'),
+    startsWithEQ: finalAddress.startsWith('EQ')
+});
         
         console.log('✅ Generated TON wallet:');
         console.log('   Address:', finalAddress);
