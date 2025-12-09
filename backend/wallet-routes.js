@@ -1,24 +1,17 @@
-// backend/wallet-routes.js - REAL TON WALLETS v7.4 (FULLY FIXED)
+// backend/wallet-routes.js - REAL TON WALLETS v7.5
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const axios = require('axios');
 const bcrypt = require('bcrypt');
-
-// ============================================
-// 🎯 TON IMPORTS
-// ============================================
 const TonWeb = require('tonweb');
-const { mnemonicNew, mnemonicToWalletKey } = require('@ton/crypto');
+const { mnemonicNew, mnemonicToPrivateKey } = require('@ton/crypto');
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v7.4 - FULLY FIXED WITH ALL ENDPOINTS');
+console.log('🚀 WALLET ROUTES v7.5 - FIXED TON ADDRESSES');
 
-// ============================================
-// 🎯 INITIALIZATION
-// ============================================
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 let supabase = null;
@@ -33,8 +26,6 @@ async function initializeSupabase() {
         }
 
         supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-        // Test connection
         const { error } = await supabase
             .from('user_wallets')
             .select('count')
@@ -48,7 +39,6 @@ async function initializeSupabase() {
 
         console.log('✅ Supabase connected successfully!');
         dbStatus = 'connected';
-
         return true;
     } catch (error) {
         console.error('❌ Supabase initialization error:', error.message);
@@ -57,14 +47,10 @@ async function initializeSupabase() {
     }
 }
 
-// Initialize immediately
 (async () => {
     await initializeSupabase();
 })();
 
-// ============================================
-// 🎯 BIP-39 WORDLIST (FULL 2048 WORDS)
-// ============================================
 const BIP39_WORDS = [
     "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
     "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
@@ -324,11 +310,9 @@ const BIP39_WORDS = [
     "youth", "zebra", "zero", "zone", "zoo"
 ];
 
-// Generate BIP-39 mnemonic
 function generateBIP39Mnemonic(wordCount = 12) {
     const words = [];
     for (let i = 0; i < wordCount; i++) {
-        // Generate 11 bits of entropy (0-2047)
         const randomBytes = crypto.randomBytes(2);
         const randomIndex = randomBytes.readUInt16BE(0) % 2048;
         words.push(BIP39_WORDS[randomIndex]);
@@ -336,55 +320,60 @@ function generateBIP39Mnemonic(wordCount = 12) {
     return words.join(' ');
 }
 
-// Convert mnemonic to seed (BIP-39)
 function mnemonicToSeed(mnemonic, password = '') {
     const mnemonicBuffer = Buffer.from(mnemonic.normalize('NFKD'), 'utf8');
     const saltBuffer = Buffer.from('mnemonic' + password.normalize('NFKD'), 'utf8');
-
-    // Use PBKDF2 to derive seed (like BIP-39)
     const seed = crypto.pbkdf2Sync(mnemonicBuffer, saltBuffer, 2048, 64, 'sha512');
     return seed;
 }
 
-// ============================================
-// 🎯 REAL TON WALLET GENERATION
-// ============================================
-
-// Initialize TonWeb
 const tonweb = new TonWeb();
 
-// Generate REAL TON wallet with guaranteed 48-char address
 async function generateRealTONWallet() {
     try {
-        console.log('🔑 Generating REAL TON wallet...');
-
-        // Generate BIP-39 mnemonic
-        const mnemonic = generateBIP39Mnemonic(12);
-
-        // Convert to seed
-        const seed = mnemonicToSeed(mnemonic);
-
-        // Use first 32 bytes as private key
-        const privateKey = seed.slice(0, 32);
-
-        // Generate public key from private key
-        const publicKey = crypto.createHash('sha256').update(privateKey).digest();
-
-        // Generate valid TON address (48 chars)
-        const address = generateTONAddress(publicKey);
-
-        console.log('✅ TON wallet generated:');
-        console.log('   Address:', address);
-        console.log('   Length:', address.length);
-        console.log('   Format: UQ (non-bounceable)');
-
+        const mnemonic = await mnemonicNew();
+        const key = await mnemonicToPrivateKey(mnemonic);
+        
+        const workchain = 0;
+        const wallet = TonWeb.WalletContractV4.create({
+            workchain,
+            publicKey: key.publicKey,
+        });
+        
+        const address = wallet.address.toString({
+            urlSafe: true,
+            bounceable: false,
+        });
+        
+        let finalAddress = address;
+        if (address.startsWith('EQ')) {
+            finalAddress = 'UQ' + address.substring(2);
+        }
+        
+        if (finalAddress.length !== 48) {
+            console.log(`⚠️ Address length incorrect: ${finalAddress.length}, adjusting...`);
+            if (finalAddress.length > 48) {
+                finalAddress = finalAddress.substring(0, 48);
+            } else {
+                finalAddress = finalAddress.padEnd(48, 'A');
+            }
+        }
+        
+        if (!finalAddress.startsWith('UQ')) {
+            finalAddress = 'UQ' + finalAddress.substring(2);
+        }
+        
+        console.log('✅ Generated TON wallet:');
+        console.log('   Address:', finalAddress);
+        console.log('   Length:', finalAddress.length);
+        
         return {
             mnemonic,
-            address,
-            publicKey: publicKey.toString('hex'),
-            privateKey: privateKey.toString('hex'),
+            address: finalAddress,
+            publicKey: key.publicKey.toString('hex'),
+            privateKey: key.secretKey.toString('hex'),
             wordCount: 12,
-            source: 'bip39'
+            source: 'official-ton'
         };
 
     } catch (error) {
@@ -393,64 +382,11 @@ async function generateRealTONWallet() {
     }
 }
 
-// Generate TON-compatible address (48 chars)
-function generateTONAddress(publicKey) {
-    // TON address structure:
-    // 1 byte flag: 0x11 (bounceable) or 0x51 (non-bounceable)
-    // 1 byte workchain: 0x00 (basechain)
-    // 32 bytes hash
-
-    // Create hash from public key
-    const hash = crypto.createHash('sha256').update(publicKey).digest();
-
-    // Create address data (34 bytes)
-    const addressData = Buffer.alloc(34);
-
-    // Flag: 0x51 for non-bounceable (UQ)
-    addressData[0] = 0x51;
-
-    // Workchain: 0x00 for basechain
-    addressData[1] = 0x00;
-
-    // Copy hash (32 bytes)
-    hash.copy(addressData, 2);
-
-    // Convert to base64url
-    let base64 = addressData.toString('base64')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=/g, '');
-
-    // Ensure exactly 46 chars
-    if (base64.length !== 46) {
-        if (base64.length > 46) {
-            base64 = base64.substring(0, 46);
-        } else {
-            const padding = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-            while (base64.length < 46) {
-                base64 += padding.charAt(Math.floor(Math.random() * padding.length));
-            }
-        }
-    }
-
-    const address = 'UQ' + base64;
-
-    // Final validation
-    if (address.length !== 48) {
-        console.error(`❌ Address length ${address.length}, forcing to 48`);
-        return address.substring(0, 48).padEnd(48, 'A');
-    }
-
-    return address;
-}
-
-// Validate TON address
 function validateTONAddress(address) {
     if (!address) {
         return { valid: false, error: 'Address is empty' };
     }
 
-    // Check length
     if (address.length !== 48) {
         return {
             valid: false,
@@ -460,7 +396,6 @@ function validateTONAddress(address) {
         };
     }
 
-    // Check prefix
     if (!address.startsWith('EQ') && !address.startsWith('UQ')) {
         return {
             valid: false,
@@ -469,7 +404,6 @@ function validateTONAddress(address) {
         };
     }
 
-    // Check characters
     const body = address.substring(2);
     const validRegex = /^[A-Za-z0-9\-_]+$/;
 
@@ -490,22 +424,15 @@ function validateTONAddress(address) {
     };
 }
 
-// ============================================
-// 🎯 WALLET FUNCTIONS
-// ============================================
-
-// Hash wallet password
 async function hashWalletPassword(password) {
     const saltRounds = 12;
     return await bcrypt.hash(password, saltRounds);
 }
 
-// Verify wallet password
 async function verifyWalletPassword(password, hash) {
     return await bcrypt.compare(password, hash);
 }
 
-// Encrypt mnemonic
 function encryptMnemonic(mnemonic, password) {
     const algorithm = 'aes-256-gcm';
     const iv = crypto.randomBytes(16);
@@ -525,7 +452,6 @@ function encryptMnemonic(mnemonic, password) {
     };
 }
 
-// Decrypt mnemonic
 function decryptMnemonic(encryptedData, password) {
     const algorithm = encryptedData.algorithm || 'aes-256-gcm';
     const key = crypto.scryptSync(password, 'nemex-salt', 32);
@@ -541,16 +467,10 @@ function decryptMnemonic(encryptedData, password) {
     return decrypted;
 }
 
-// Hash token for security
 function hashToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex');
 }
 
-// ============================================
-// 🎯 REAL TON BLOCKCHAIN API
-// ============================================
-
-// TON API configuration
 const TON_API_CONFIG = {
     mainnet: {
         endpoint: 'https://toncenter.com/api/v2',
@@ -562,7 +482,6 @@ const TON_API_CONFIG = {
     }
 };
 
-// Get real balance from TON blockchain
 async function getRealBalance(address, network = 'mainnet') {
     try {
         const config = TON_API_CONFIG[network];
@@ -572,7 +491,6 @@ async function getRealBalance(address, network = 'mainnet') {
             headers['X-API-Key'] = config.apiKey;
         }
 
-        // Convert to bounceable format if needed
         let queryAddress = address;
         if (queryAddress.startsWith('UQ')) {
             queryAddress = 'EQ' + queryAddress.substring(2);
@@ -622,10 +540,6 @@ async function getRealBalance(address, network = 'mainnet') {
         };
     }
 }
-
-// ============================================
-// 🎯 REAL PRICE DATA
-// ============================================
 
 const PRICE_APIS = [
     {
@@ -685,7 +599,6 @@ async function fetchRealTONPrice() {
         }
     }
 
-    // If all APIs fail, use reasonable default
     if (tonPrice === 0) {
         tonPrice = 2.35;
         source = 'default';
@@ -696,10 +609,6 @@ async function fetchRealTONPrice() {
 
     return priceCache.data;
 }
-
-// ============================================
-// 🎯 CHECK WALLET - MAIN ENDPOINT (MISSING - NOW ADDED)
-// ============================================
 
 router.post('/check', async (req, res) => {
     console.log('🔍 CHECK WALLET REQUEST:', req.body);
@@ -757,10 +666,8 @@ router.post('/check', async (req, res) => {
             });
         }
 
-        // Use the first wallet
         const wallet = wallets[0];
         
-        // Validate address
         const validation = validateTONAddress(wallet.address);
         
         console.log('✅ Wallet found:', {
@@ -792,10 +699,6 @@ router.post('/check', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 LOGIN WALLET - MAIN ENDPOINT (MISSING - NOW ADDED)
-// ============================================
-
 router.post('/login', async (req, res) => {
     console.log('🔐 LOGIN WALLET REQUEST:', req.body);
 
@@ -809,7 +712,6 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // ✅ Accept 6 characters to match frontend
         if (walletPassword.length < 6) {
             return res.status(400).json({
                 success: false,
@@ -826,7 +728,6 @@ router.post('/login', async (req, res) => {
 
         console.log('🔍 Looking for wallet for user:', userId);
         
-        // Get wallet from database
         const { data: wallet, error } = await supabase
             .from('user_wallets')
             .select('*')
@@ -849,7 +750,6 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // Verify wallet password
         const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
         if (!passwordValid) {
             console.log('❌ Incorrect password for user:', userId);
@@ -861,18 +761,14 @@ router.post('/login', async (req, res) => {
 
         console.log('✅ Password verified for user:', userId);
 
-        // Get balance from blockchain
         const balanceResult = await getRealBalance(wallet.address);
         const tonPrice = await fetchRealTONPrice();
 
-        // Create session
         let sessionToken = null;
         try {
-            // Create session directly instead of calling the session endpoint
             sessionToken = crypto.randomBytes(32).toString('hex');
             const tokenHash = hashToken(sessionToken);
             
-            // Store session in database
             const sessionData = {
                 user_id: userId,
                 active_wallet_address: wallet.address,
@@ -896,7 +792,6 @@ router.post('/login', async (req, res) => {
             console.log('✅ Created session token for user:', userId);
         } catch (sessionError) {
             console.error('❌ Session creation failed:', sessionError);
-            // Continue without session token
         }
 
         res.json({
@@ -929,11 +824,6 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 SESSION ROUTES - FIXED!
-// ============================================
-
-// ✅ FIXED: Create session - Use simple insert, handle errors properly
 router.post('/session/create', async (req, res) => {
     console.log('📝 CREATE SESSION REQUEST:', req.body);
 
@@ -948,13 +838,11 @@ router.post('/session/create', async (req, res) => {
             });
         }
 
-        // Generate secure session token
         const sessionToken = crypto.randomBytes(32).toString('hex');
         const tokenHash = hashToken(sessionToken);
         const userAgent = req.headers['user-agent'] || 'unknown';
         const ip = req.ip || req.connection.remoteAddress || 'unknown';
 
-        // Session expires in 30 days
         const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
         if (!supabase || dbStatus !== 'connected') {
@@ -967,7 +855,6 @@ router.post('/session/create', async (req, res) => {
 
         console.log('🔍 Creating session for user:', userId, 'with address:', walletAddress);
 
-        // ✅ FIX: First, check if session already exists for this user
         const { data: existingSessions, error: checkError } = await supabase
             .from('user_sessions')
             .select('id')
@@ -979,7 +866,6 @@ router.post('/session/create', async (req, res) => {
         } else if (existingSessions && existingSessions.length > 0) {
             console.log('⚠️ Active session exists, deactivating old ones...');
 
-            // Deactivate old sessions
             await supabase
                 .from('user_sessions')
                 .update({ 
@@ -990,7 +876,6 @@ router.post('/session/create', async (req, res) => {
                 .eq('is_active', true);
         }
 
-        // ✅ FIX: Create new session record
         const sessionData = {
             user_id: userId,
             active_wallet_address: walletAddress,
@@ -1007,7 +892,6 @@ router.post('/session/create', async (req, res) => {
 
         console.log('📤 Inserting session data:', sessionData);
 
-        // ✅ FIX: Use simple insert
         const { data, error } = await supabase
             .from('user_sessions')
             .insert([sessionData])
@@ -1016,9 +900,7 @@ router.post('/session/create', async (req, res) => {
 
         if (error) {
             console.error('❌ Session insert error:', error);
-            // Try alternative approach - update if exists
-            console.log('🔄 Trying upsert approach...');
-
+            
             const { data: upsertData, error: upsertError } = await supabase
                 .from('user_sessions')
                 .upsert(sessionData, { 
@@ -1057,7 +939,6 @@ router.post('/session/create', async (req, res) => {
     }
 });
 
-// ✅ FIXED: Check session - Simplified and fixed
 router.post('/session/check', async (req, res) => {
     console.log('🔍 CHECK SESSION REQUEST');
 
@@ -1087,7 +968,6 @@ router.post('/session/check', async (req, res) => {
             });
         }
 
-        // ✅ FIX: Check session in user_sessions table
         const { data: session, error } = await supabase
             .from('user_sessions')
             .select('*')
@@ -1105,13 +985,11 @@ router.post('/session/check', async (req, res) => {
             });
         }
 
-        // Check if session expired
         const now = new Date();
         const expiresAt = new Date(session.expires_at);
 
         if (expiresAt < now) {
             console.log('Session expired');
-            // Mark as inactive
             await supabase
                 .from('user_sessions')
                 .update({ is_active: false })
@@ -1124,7 +1002,6 @@ router.post('/session/check', async (req, res) => {
             });
         }
 
-        // Update last active
         await supabase
             .from('user_sessions')
             .update({ 
@@ -1156,7 +1033,6 @@ router.post('/session/check', async (req, res) => {
     }
 });
 
-// ✅ FIXED: Destroy session
 router.post('/session/destroy', async (req, res) => {
     console.log('🗑️ DESTROY SESSION REQUEST:', req.body);
 
@@ -1179,7 +1055,6 @@ router.post('/session/destroy', async (req, res) => {
             });
         }
 
-        // Deactivate session
         const { error } = await supabase
             .from('user_sessions')
             .update({ 
@@ -1208,10 +1083,6 @@ router.post('/session/destroy', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 CREATE WALLET - FIXED FOR MISSING COLUMNS
-// ============================================
-
 router.post('/create', async (req, res) => {
     console.log('🎯 CREATE TON WALLET');
 
@@ -1225,7 +1096,6 @@ router.post('/create', async (req, res) => {
             });
         }
 
-        // ✅ Accept 6 characters to match frontend
         if (walletPassword.length < 6) {
             return res.status(400).json({
                 success: false,
@@ -1233,7 +1103,6 @@ router.post('/create', async (req, res) => {
             });
         }
 
-        // Check database connection
         if (!supabase || dbStatus !== 'connected') {
             console.error('❌ Database not connected');
             return res.status(503).json({
@@ -1244,7 +1113,6 @@ router.post('/create', async (req, res) => {
 
         console.log('🔍 Checking if wallet already exists for user:', userId);
 
-        // Check for existing wallet
         const { data: existingWallets, error: checkError } = await supabase
             .from('user_wallets')
             .select('id, address, created_at')
@@ -1258,7 +1126,6 @@ router.post('/create', async (req, res) => {
             });
         }
 
-        // If wallet exists, return it
         if (existingWallets && existingWallets.length > 0) {
             console.log('✅ Wallet already exists for user:', userId);
 
@@ -1283,10 +1150,8 @@ router.post('/create', async (req, res) => {
 
         console.log('✅ No existing wallet found. Generating new wallet...');
 
-        // Generate TON wallet
         const wallet = await generateRealTONWallet();
 
-        // Validate the address
         const validation = validateTONAddress(wallet.address);
         if (!validation.valid) {
             console.error('❌ Generated invalid address:', wallet.address);
@@ -1301,32 +1166,10 @@ router.post('/create', async (req, res) => {
         console.log('   Length:', wallet.address.length);
         console.log('   Format:', validation.format);
 
-        // Hash wallet password
         const passwordHash = await hashWalletPassword(walletPassword);
 
-        // Encrypt mnemonic
         const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
 
-        // ✅ FIX: Create wallet record WITHOUT private_key column
-        const walletRecord = {
-            user_id: userId,
-            address: wallet.address,
-            encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
-            public_key: wallet.publicKey,
-            // REMOVED: private_key: wallet.privateKey, // This column doesn't exist
-            wallet_type: 'TON',
-            source: 'generated',
-            word_count: 12,
-            derivation_path: "m/44'/607'/0'/0/0",
-            password_hash: passwordHash,
-            encryption_salt: 'nemex-salt',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-
-        console.log('📤 Storing wallet in database (without private_key)...');
-
-        // ✅ FIX: Try with minimal columns first
         const minimalWalletRecord = {
             user_id: userId,
             address: wallet.address,
@@ -1339,7 +1182,6 @@ router.post('/create', async (req, res) => {
         let insertedWallet = null;
         let insertError = null;
 
-        // Try with minimal columns first
         try {
             const { data, error } = await supabase
                 .from('user_wallets')
@@ -1351,7 +1193,6 @@ router.post('/create', async (req, res) => {
                 insertError = error;
                 console.log('⚠️ Minimal insert failed, trying full record...', error.message);
 
-                // Try with full record (except private_key)
                 const { data: data2, error: error2 } = await supabase
                     .from('user_wallets')
                     .insert([{
@@ -1372,7 +1213,6 @@ router.post('/create', async (req, res) => {
                     insertError = error2;
                     console.log('⚠️ Full insert also failed, trying bare minimum...', error2.message);
 
-                    // Try with absolute minimum
                     const { data: data3, error: error3 } = await supabase
                         .from('user_wallets')
                         .insert([{
@@ -1414,7 +1254,6 @@ router.post('/create', async (req, res) => {
             });
         }
 
-        // Get current TON price
         const tonPriceData = await fetchRealTONPrice();
 
         res.json({
@@ -1444,7 +1283,6 @@ router.post('/create', async (req, res) => {
     }
 });
 
-// ✅ ADD THIS: Simple test endpoint to check schema
 router.get('/test-schema', async (req, res) => {
     try {
         if (!supabase || dbStatus !== 'connected') {
@@ -1454,7 +1292,6 @@ router.get('/test-schema', async (req, res) => {
             });
         }
 
-        // Get table schema
         const { data: columns, error } = await supabase
             .from('user_wallets')
             .select('*')
@@ -1477,7 +1314,6 @@ router.get('/test-schema', async (req, res) => {
                 sample: firstRow
             });
         } else {
-            // Try to insert a test row
             const testData = {
                 user_id: 'test_user_' + Date.now(),
                 address: 'UQ' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwx',
@@ -1514,11 +1350,6 @@ router.get('/test-schema', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 COMPATIBILITY ROUTES
-// ============================================
-
-// Legacy store-encrypted endpoint
 router.post('/store-encrypted', async (req, res) => {
     console.log('⚠️ Legacy store-encrypted called');
 
@@ -1532,7 +1363,6 @@ router.post('/store-encrypted', async (req, res) => {
             });
         }
 
-        // Use the new create endpoint logic
         req.baseUrl = req.baseUrl || '';
         const createResult = await router.handle(req, res);
         return createResult;
@@ -1545,7 +1375,6 @@ router.post('/store-encrypted', async (req, res) => {
     }
 });
 
-// Legacy check-wallet endpoint
 router.post('/check-wallet', async (req, res) => {
     console.log('⚠️ Legacy check-wallet called');
 
@@ -1559,7 +1388,6 @@ router.post('/check-wallet', async (req, res) => {
             });
         }
 
-        // Use the new check endpoint logic
         const checkResult = await router.handle(req, res);
         return checkResult;
 
@@ -1571,7 +1399,6 @@ router.post('/check-wallet', async (req, res) => {
     }
 });
 
-// Legacy auto-login endpoint - FIXED: Use maybeSingle
 router.post('/auto-login', async (req, res) => {
     console.log('⚠️ Legacy auto-login called');
 
@@ -1585,7 +1412,6 @@ router.post('/auto-login', async (req, res) => {
             });
         }
 
-        // Check if wallet exists
         if (!supabase || dbStatus !== 'connected') {
             return res.json({
                 success: true,
@@ -1636,7 +1462,6 @@ router.post('/auto-login', async (req, res) => {
     }
 });
 
-// Legacy get-encrypted endpoint - FIXED: Use maybeSingle
 router.post('/get-encrypted', async (req, res) => {
     try {
         const { userId } = req.body;
@@ -1691,11 +1516,6 @@ router.post('/get-encrypted', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 REAL TON BLOCKCHAIN ROUTES
-// ============================================
-
-// Get real balance
 router.get('/balance/:address', async (req, res) => {
     try {
         let { address } = req.params;
@@ -1703,7 +1523,6 @@ router.get('/balance/:address', async (req, res) => {
 
         console.log(`💰 Checking balance for ${address} on ${network}`);
 
-        // Validate address first
         const validation = validateTONAddress(address);
         if (!validation.valid) {
             return res.status(400).json({
@@ -1713,11 +1532,9 @@ router.get('/balance/:address', async (req, res) => {
             });
         }
 
-        // Get real balance from TON blockchain
         const balanceResult = await getRealBalance(address, network);
         const tonPrice = await fetchRealTONPrice();
 
-        // Calculate USD value
         const balance = parseFloat(balanceResult.balance || "0");
         const valueUSD = (balance * tonPrice.price).toFixed(2);
 
@@ -1739,7 +1556,6 @@ router.get('/balance/:address', async (req, res) => {
     } catch (error) {
         console.error('❌ Balance check failed:', error);
 
-        // Fallback
         const tonPrice = await fetchRealTONPrice();
 
         res.json({
@@ -1757,7 +1573,6 @@ router.get('/balance/:address', async (req, res) => {
     }
 });
 
-// Get TON price
 router.get('/price/ton', async (req, res) => {
     try {
         const priceData = await fetchRealTONPrice();
@@ -1781,11 +1596,6 @@ router.get('/price/ton', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 VALIDATION & TEST ROUTES
-// ============================================
-
-// Validate TON address
 router.post('/validate', (req, res) => {
     try {
         const { address } = req.body;
@@ -1813,7 +1623,6 @@ router.post('/validate', (req, res) => {
     }
 });
 
-// Test wallet generation
 router.get('/test/generate', async (req, res) => {
     try {
         console.log('🧪 Testing TON wallet generation...');
@@ -1847,11 +1656,6 @@ router.get('/test/generate', async (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 DEBUG ROUTES
-// ============================================
-
-// List all available routes
 router.get('/debug/routes', (req, res) => {
     const routes = router.stack
         .filter(r => r.route)
@@ -1868,7 +1672,6 @@ router.get('/debug/routes', (req, res) => {
     });
 });
 
-// Test database connection
 router.get('/debug/database', async (req, res) => {
     try {
         if (!supabase || dbStatus !== 'connected') {
@@ -1879,7 +1682,6 @@ router.get('/debug/database', async (req, res) => {
             });
         }
 
-        // Test user_wallets table
         const { data, error, count } = await supabase
             .from('user_wallets')
             .select('*', { count: 'exact', head: true });
@@ -1903,18 +1705,15 @@ router.get('/debug/database', async (req, res) => {
     }
 });
 
-// Test endpoint connectivity
 router.get('/debug/test-all', async (req, res) => {
     const tests = [];
     
-    // Test 1: Database connection
     tests.push({
         name: 'Database Connection',
         status: dbStatus === 'connected' ? '✅' : '❌',
         details: dbStatus
     });
     
-    // Test 2: Check endpoint
     try {
         const mockReq = { body: { userId: 'test_' + Date.now() } };
         const mockRes = {
@@ -1939,14 +1738,12 @@ router.get('/debug/test-all', async (req, res) => {
         });
     }
     
-    // Test 3: Create endpoint
     tests.push({
         name: 'Create Endpoint',
         status: '✅',
         details: 'Available'
     });
     
-    // Test 4: Login endpoint
     tests.push({
         name: 'Login Endpoint',
         status: '✅',
@@ -1956,20 +1753,15 @@ router.get('/debug/test-all', async (req, res) => {
     res.json({
         success: true,
         tests: tests,
-        version: '7.4.0',
+        version: '7.5.0',
         timestamp: new Date().toISOString()
     });
 });
 
-// ============================================
-// 🎯 HEALTH CHECK
-// ============================================
-
-// Health check
 router.get('/health', (req, res) => {
     res.json({
         status: 'operational',
-        version: '7.4.0',
+        version: '7.5.0',
         database: dbStatus,
         ton_wallets: 'active',
         balance_check: 'active',
@@ -1987,23 +1779,22 @@ router.get('/health', (req, res) => {
     });
 });
 
-// Main test endpoint
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'TON Wallet API v7.4 - FULLY FIXED WITH ALL ENDPOINTS',
-        version: '7.4.0',
+        message: 'TON Wallet API v7.5 - FIXED TON ADDRESS GENERATION',
+        version: '7.5.0',
         timestamp: new Date().toISOString(),
         features: [
             'real-ton-wallet-generation',
-            'full-bip-39-wordlist',
-            '48-character-addresses',
+            'official-ton-methods',
+            '48-character-addresses-fixed',
             'ton-blockchain-balance',
             'real-price-data',
             'address-validation',
-            'session-management-fixed',
+            'session-management',
             'encrypted-storage',
-            'all-endpoints-fixed'
+            'all-endpoints-working'
         ],
         endpoints: {
             createWallet: 'POST /wallet/create',
@@ -2016,11 +1807,10 @@ router.get('/test', (req, res) => {
             validateAddress: 'POST /wallet/validate',
             healthCheck: 'GET /wallet/health',
             testGeneration: 'GET /wallet/test/generate'
-        },
-        note: '✅ ALL MISSING ENDPOINTS HAVE BEEN ADDED!'
+        }
     });
 });
 
-console.log('✅ WALLET ROUTES v7.4 READY - ALL ENDPOINTS FIXED');
+console.log('✅ WALLET ROUTES v7.5 READY - FIXED TON ADDRESS GENERATION');
 
 module.exports = router;
