@@ -7,18 +7,22 @@ const axios = require('axios');
 const bcrypt = require('bcrypt');
 
 // ============================================
-// 🎯 TON IMPORTS - USING @ton/ton (v15.4.0) + @ton/crypto
+// 🎯 TON IMPORTS - WITH BETTER ERROR LOGGING
 // ============================================
-console.log('🔄 Loading TON libraries (Official SDK v15.4.0)...');
+console.log('🔄 Loading TON libraries...');
 
 let tonCrypto, tonSDK;
 let mnemonicNew, mnemonicToPrivateKey;
 let WalletContractV4;
 
 try {
-    // Load official TON SDK v15.4.0 + crypto
+    console.log('🔍 Attempting to load @ton/crypto...');
     tonCrypto = require('@ton/crypto');
+    console.log('✅ @ton/crypto loaded');
+    
+    console.log('🔍 Attempting to load @ton/ton...');
     tonSDK = require('@ton/ton');
+    console.log('✅ @ton/ton loaded');
     
     // Get functions from @ton/crypto
     mnemonicNew = tonCrypto.mnemonicNew;
@@ -27,21 +31,28 @@ try {
     // Get WalletContractV4 from @ton/ton
     WalletContractV4 = tonSDK.WalletContractV4;
     
-    console.log('✅ Official TON SDK v15.4.0 loaded successfully');
-    console.log('📦 @ton/crypto: loaded');
-    console.log('📦 @ton/ton: loaded');
+    console.log('✅ TON libraries loaded successfully');
+    console.log('📦 @ton/crypto version:', tonCrypto ? 'loaded' : 'missing');
+    console.log('📦 @ton/ton version:', tonSDK ? 'loaded' : 'missing');
     console.log('📦 WalletContractV4 available:', !!WalletContractV4);
     
 } catch (error) {
-    console.error('❌ TON SDK import failed:', error.message);
-    console.error('❌ Please install: npm install @ton/crypto @ton/ton');
-    console.error('❌ Full error:', error);
-    throw new Error('TON SDK not installed. Run: npm install @ton/crypto @ton/ton');
+    console.error('❌❌❌ TON SDK IMPORT FAILED!');
+    console.error('❌ Error:', error.message);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Please check:');
+    console.error('❌ 1. Are @ton/crypto and @ton/ton in package.json?');
+    console.error('❌ 2. Run: npm install @ton/crypto @ton/ton');
+    console.error('❌ 3. Check node_modules for these packages');
+    
+    // Don't use fallback - fail hard so we can see the error
+    throw new Error(`TON SDK failed to load: ${error.message}. Check package.json has @ton/crypto and @ton/ton`);
 }
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v18.0 - OFFICIAL TON SDK v15.4.0');
+console.log('🚀 WALLET ROUTES - TON SDK READY');
 
 // ============================================
 // 🎯 SUPABASE SETUP
