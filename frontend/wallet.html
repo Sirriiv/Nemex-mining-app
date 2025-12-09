@@ -2813,7 +2813,7 @@ function checkPasswordStrength(password, elementId) {
     let color = '#ff4444';
 
     if (password.length >= 6) strength++;
-    if (password.length >= 8) strength++;
+    if (password.length >= 6) strength++;
     if (/[A-Z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
@@ -3043,9 +3043,24 @@ async function initWallet() {
             if (result.hasWallet) {
                 walletState.hasWallet = true;
                 walletState.wallet = result.wallet;
-                walletState.address = result.wallet.address;
+                
+                // ✅ FIX: Clean the address when loading
+                let walletAddress = result.wallet.address;
+                console.log('🔍 Raw address from API:', walletAddress);
+                
+                // Clean double UQ if present
+                if (walletAddress && walletAddress.startsWith('UQUQ')) {
+                    console.warn('⚠️ Double UQ in loaded address! Fixing...');
+                    walletAddress = 'UQ' + walletAddress.substring(4);
+                    console.log('✅ Cleaned address:', walletAddress);
+                }
+                
+                walletState.address = walletAddress;
+                walletState.wallet.address = walletAddress; // Update the wallet object too
+                
                 walletState.isInitialized = true;
-                console.log('✅ Wallet loaded for user:', result.wallet.address);
+                console.log('✅ Wallet loaded for user (cleaned):', walletAddress);
+                console.log('📏 Address length:', walletAddress.length);
 
                 showWalletInterface();
                 await loadWalletData();
@@ -3409,7 +3424,7 @@ async function confirmSendTransaction() {
     if (currentSendToken === 'TON') {
         const totalCost = amount + TRANSACTION_FEE;
         if (totalCost > currentTokenBalance) {
-            showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(6)} TON (including fee)`, 'error', statusElement);
+            showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(2)} TON (including fee)`, 'error', statusElement);
             return;
         }
     } else {
@@ -3489,15 +3504,47 @@ function initializeWalletCard() {
         return;
     }
 
+    // ✅ FIX: Clean the address (remove double UQ if present)
+    let cleanAddress = address;
+    console.log('🔍 Raw address from walletState:', address);
+    console.log('📏 Length:', address.length);
+    console.log('🔤 First 4 chars:', address.substring(0, 4));
+    
+    // Check for double UQ and fix it
+    if (cleanAddress.startsWith('UQUQ')) {
+        console.warn('⚠️ Double UQ detected! Fixing...');
+        cleanAddress = 'UQ' + cleanAddress.substring(4);
+        console.log('✅ Cleaned address:', cleanAddress);
+    } else if (!cleanAddress.startsWith('UQ') && !cleanAddress.startsWith('EQ')) {
+        console.warn('⚠️ Address missing prefix! Adding UQ...');
+        cleanAddress = 'UQ' + cleanAddress;
+    }
+
+    // Ensure exactly 48 characters
+    if (cleanAddress.length !== 48) {
+        console.warn(`⚠️ Address length ${cleanAddress.length}, fixing to 48`);
+        if (cleanAddress.length > 48) {
+            cleanAddress = cleanAddress.substring(0, 48);
+        } else {
+            // Pad with valid base64url characters
+            const padding = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+            while (cleanAddress.length < 48) {
+                cleanAddress += padding.charAt(Math.floor(Math.random() * padding.length));
+            }
+        }
+    }
+
     const addressFull = document.getElementById('addressFull');
     if (addressFull) {
-        addressFull.textContent = address;
+        addressFull.textContent = cleanAddress;  // ✅ Use the CLEANED address
         addressFull.style.color = 'var(--gold)';
-        console.log('✅ Receive modal address set:', address);
+        console.log('✅ Receive modal address set (cleaned):', cleanAddress);
+        console.log('📏 Final length:', cleanAddress.length);
+        console.log('🔤 First 4 chars:', cleanAddress.substring(0, 4));
     }
 
     selectReceiveToken('TON');
-    console.log('✅ Wallet card initialized with real data:', address);
+    console.log('✅ Wallet card initialized with cleaned data');
 }
 
 function selectReceiveToken(token) {
