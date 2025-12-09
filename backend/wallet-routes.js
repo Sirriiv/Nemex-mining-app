@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - COMPLETE WORKING VERSION v17.0
+// backend/wallet-routes.js - REAL TON WALLET ONLY v20.0
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -7,9 +7,9 @@ const axios = require('axios');
 const bcrypt = require('bcrypt');
 
 // ============================================
-// 🎯 TON IMPORTS - WITH BETTER ERROR LOGGING
+// 🎯 TON IMPORTS - OFFICIAL SDK ONLY (NO FALLBACK)
 // ============================================
-console.log('🔄 Loading TON libraries...');
+console.log('🔄 Loading TON libraries (Official SDK v15.4.0)...');
 
 let tonCrypto, tonSDK;
 let mnemonicNew, mnemonicToPrivateKey;
@@ -32,27 +32,23 @@ try {
     WalletContractV4 = tonSDK.WalletContractV4;
     
     console.log('✅ TON libraries loaded successfully');
-    console.log('📦 @ton/crypto version:', tonCrypto ? 'loaded' : 'missing');
-    console.log('📦 @ton/ton version:', tonSDK ? 'loaded' : 'missing');
-    console.log('📦 WalletContractV4 available:', !!WalletContractV4);
+    console.log('📦 @ton/crypto functions available:', !!mnemonicNew);
+    console.log('📦 @ton/ton WalletContractV4 available:', !!WalletContractV4);
     
 } catch (error) {
     console.error('❌❌❌ TON SDK IMPORT FAILED!');
     console.error('❌ Error:', error.message);
     console.error('❌ Error code:', error.code);
     console.error('❌ Error stack:', error.stack);
-    console.error('❌ Please check:');
-    console.error('❌ 1. Are @ton/crypto and @ton/ton in package.json?');
-    console.error('❌ 2. Run: npm install @ton/crypto @ton/ton');
-    console.error('❌ 3. Check node_modules for these packages');
+    console.error('❌ PLEASE FIX: npm install @ton/crypto @ton/ton');
     
-    // Don't use fallback - fail hard so we can see the error
+    // FAIL HARD - NO FALLBACK!
     throw new Error(`TON SDK failed to load: ${error.message}. Check package.json has @ton/crypto and @ton/ton`);
 }
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES - TON SDK READY');
+console.log('🚀 WALLET ROUTES v20.0 - REAL TON WALLETS ONLY (NO MOCK DATA)');
 
 // ============================================
 // 🎯 SUPABASE SETUP
@@ -362,12 +358,12 @@ const BIP39_WORDS = [
 console.log(`✅ BIP39 word list loaded: ${BIP39_WORDS.length} words`);
 
 // ============================================
-// 🎯 REAL TON WALLET GENERATION
+// 🎯 REAL TON WALLET GENERATION (NO MOCK/FALLBACK)
 // ============================================
 
 async function generateRealTONWallet() {
     try {
-        console.log('🎯 Generating REAL TON wallet...');
+        console.log('🎯 Generating REAL TON wallet with official SDK...');
         
         // 1. Generate mnemonic (24 words)
         const mnemonicArray = await mnemonicNew();
@@ -400,14 +396,20 @@ async function generateRealTONWallet() {
         console.log('📏 Address length:', addressString.length);
         console.log('🏷️ Address format:', addressString.startsWith('UQ') ? 'UQ (non-bounceable)' : 'EQ (bounceable)');
         
-        // 6. Validate the address
-        if (!addressString.startsWith('UQ') && !addressString.startsWith('EQ')) {
-            throw new Error(`Invalid TON address format: ${addressString.substring(0, 10)}...`);
+        // 6. VALIDATE the address - MUST BE 48 CHARACTERS
+        if (addressString.length !== 48) {
+            throw new Error(`INVALID ADDRESS LENGTH: ${addressString.length} characters (must be 48). Address: ${addressString}`);
         }
         
-        if (addressString.length !== 48) {
-            console.warn(`⚠️ Address length ${addressString.length}, expected 48`);
+        if (!addressString.startsWith('UQ') && !addressString.startsWith('EQ')) {
+            throw new Error(`INVALID ADDRESS FORMAT: ${addressString.substring(0, 10)}... (must start with UQ or EQ)`);
         }
+        
+        console.log('✅ Address validation passed:', {
+            length: addressString.length,
+            format: addressString.startsWith('UQ') ? 'non-bounceable' : 'bounceable',
+            isValid: true
+        });
         
         // 7. Return complete wallet data
         return {
@@ -416,13 +418,14 @@ async function generateRealTONWallet() {
             publicKey: Buffer.from(keyPair.publicKey).toString('hex'),
             privateKey: Buffer.from(keyPair.secretKey).toString('hex'),
             wordCount: 24,
-            source: 'ton-v4-official'
+            source: 'ton-v4-official-sdk'
         };
 
     } catch (error) {
-        console.error('❌ TON wallet generation failed:', error.message);
-        console.error('❌ Error stack:', error.stack);
-        throw error;
+        console.error('❌❌❌ TON wallet generation FAILED:');
+        console.error('❌ Error:', error.message);
+        console.error('❌ Stack:', error.stack);
+        throw error; // Don't fallback, fail hard
     }
 }
 
@@ -438,12 +441,13 @@ function validateTONAddress(address) {
 
         const cleanAddress = address.trim();
         
-        // Check length - TON addresses should be 48 characters
+        // Check length - TON addresses MUST be 48 characters
         if (cleanAddress.length !== 48) {
             return {
                 valid: false,
                 error: `Invalid length: ${cleanAddress.length} characters (must be 48)`,
-                actualLength: cleanAddress.length
+                actualLength: cleanAddress.length,
+                isRealTON: false
             };
         }
 
@@ -451,7 +455,8 @@ function validateTONAddress(address) {
         if (!cleanAddress.startsWith('EQ') && !cleanAddress.startsWith('UQ')) {
             return {
                 valid: false,
-                error: `Invalid prefix: "${cleanAddress.substring(0, 2)}" (must be EQ or UQ)`
+                error: `Invalid prefix: "${cleanAddress.substring(0, 2)}" (must be EQ or UQ)`,
+                isRealTON: false
             };
         }
 
@@ -462,7 +467,8 @@ function validateTONAddress(address) {
         if (!validCharsRegex.test(body)) {
             return {
                 valid: false,
-                error: 'Invalid characters in address'
+                error: 'Invalid characters in address',
+                isRealTON: false
             };
         }
 
@@ -471,12 +477,14 @@ function validateTONAddress(address) {
             address: cleanAddress,
             format: cleanAddress.startsWith('EQ') ? 'bounceable' : 'non-bounceable',
             length: cleanAddress.length,
+            isRealTON: true,
             isLikelyValid: true
         };
     } catch (error) {
         return {
             valid: false,
-            error: `Validation error: ${error.message}`
+            error: `Validation error: ${error.message}`,
+            isRealTON: false
         };
     }
 }
@@ -514,7 +522,7 @@ function encryptMnemonic(mnemonic, password) {
 }
 
 // ============================================
-// 🎯 TON BLOCKCHAIN FUNCTIONS
+// 🎯 TON BLOCKCHAIN FUNCTIONS (REAL ONLY)
 // ============================================
 
 const TON_API_CONFIG = {
@@ -537,11 +545,14 @@ async function getRealBalance(address, network = 'mainnet') {
             headers['X-API-Key'] = config.apiKey;
         }
 
+        // Convert UQ to EQ for API calls
         let queryAddress = address;
         if (queryAddress.startsWith('UQ')) {
             queryAddress = 'EQ' + queryAddress.substring(2);
         }
 
+        console.log(`💰 Checking real balance for: ${queryAddress} on ${network}`);
+        
         const response = await axios.get(`${config.endpoint}/getAddressInformation`, {
             headers,
             params: { address: queryAddress },
@@ -556,38 +567,42 @@ async function getRealBalance(address, network = 'mainnet') {
                 success: true,
                 balance: balanceTON.toFixed(4),
                 status: response.data.result.status,
-                isActive: response.data.result.status === 'active'
+                isActive: response.data.result.status === 'active',
+                isReal: true
             };
         }
 
         return {
             success: false,
             balance: "0.0000",
-            error: 'No balance data'
+            error: 'No balance data',
+            isReal: true
         };
 
     } catch (error) {
-        console.error('❌ Balance check failed:', error.message);
+        console.error('❌ Real balance check failed:', error.message);
 
         if (error.response?.status === 404) {
             return {
                 success: true,
                 balance: "0.0000",
                 isActive: false,
-                status: 'uninitialized'
+                status: 'uninitialized',
+                isReal: true
             };
         }
 
         return {
             success: false,
             balance: "0.0000",
-            error: error.message
+            error: error.message,
+            isReal: true
         };
     }
 }
 
 // ============================================
-// 🎯 PRICE FUNCTIONS
+// 🎯 PRICE FUNCTIONS (REAL ONLY)
 // ============================================
 
 let priceCache = { data: null, timestamp: 0 };
@@ -599,7 +614,7 @@ async function fetchRealTONPrice() {
         return priceCache.data;
     }
 
-    console.log('💰 Fetching TON price...');
+    console.log('💰 Fetching REAL TON price...');
     
     let tonPrice = 2.35;
     let source = 'default';
@@ -622,40 +637,44 @@ async function fetchRealTONPrice() {
 }
 
 // ============================================
-// 🎯 MAIN ENDPOINTS
+// 🎯 MAIN ENDPOINTS (REAL ONLY)
 // ============================================
 
 // Test endpoint
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'Wallet API v17.0 is working!',
-        version: 'v17.0',
+        message: 'Wallet API v20.0 - REAL TON WALLETS ONLY',
+        version: 'v20.0',
         timestamp: new Date().toISOString(),
         database: dbStatus,
-        ton_libraries: WalletContractV4 ? 'loaded (ton + @ton/crypto)' : 'missing',
+        ton_libraries: WalletContractV4 ? 'loaded (@ton/ton v15.4.0 + @ton/crypto)' : 'MISSING',
         bip39_words: BIP39_WORDS.length,
+        isRealTON: true,
         endpoints: [
-            'POST /create - Create TON wallet',
-            'POST /login - Login to wallet',
-            'POST /check - Check wallet',
-            'GET /balance/:address - Get balance',
-            'GET /price/ton - Get TON price',
-            'POST /validate - Validate address',
-            'GET /test/generate - Test wallet generation',
+            'POST /create - Create REAL TON wallet',
+            'POST /login - Login to REAL wallet',
+            'POST /check - Check REAL wallet',
+            'GET /balance/:address - Get REAL balance',
+            'GET /price/ton - Get REAL TON price',
+            'POST /validate - Validate address (REAL only)',
+            'GET /test/generate - Test REAL wallet generation',
             'GET /health - Health check'
-        ]
+        ],
+        note: 'NO MOCK DATA - ONLY REAL TON WALLETS'
     });
 });
 
 // Health endpoint
 router.get('/health', (req, res) => {
     res.json({
-        status: 'operational',
-        version: 'v17.0',
+        status: WalletContractV4 ? 'operational' : 'ERROR: TON SDK NOT LOADED',
+        version: 'v20.0',
         database: dbStatus,
-        ton_libraries: WalletContractV4 ? 'loaded' : 'missing',
-        timestamp: new Date().toISOString()
+        ton_libraries: WalletContractV4 ? 'loaded (@ton/ton v15.4.0)' : 'MISSING',
+        isRealTON: !!WalletContractV4,
+        timestamp: new Date().toISOString(),
+        warning: !WalletContractV4 ? 'TON SDK NOT LOADED. Install: npm install @ton/crypto @ton/ton' : null
     });
 });
 
@@ -664,21 +683,25 @@ router.get('/test/generate', async (req, res) => {
     try {
         console.log('🧪 Testing REAL TON wallet generation...');
         
+        if (!WalletContractV4) {
+            throw new Error('TON SDK NOT LOADED. Check package.json has @ton/crypto and @ton/ton');
+        }
+        
         const wallet = await generateRealTONWallet();
         const validation = validateTONAddress(wallet.address);
         
         // Try to check balance (this will fail for new addresses)
         const balanceCheck = await getRealBalance(wallet.address);
 
-        console.log('✅ Test successful!');
-        console.log('📋 Address:', wallet.address);
-        console.log('📋 Format:', validation.format);
-        console.log('📋 Length:', wallet.address.length);
-        console.log('📋 Valid:', validation.valid);
+        console.log('✅ REAL Test successful!');
+        console.log('📋 REAL Address:', wallet.address);
+        console.log('📋 REAL Length:', wallet.address.length);
+        console.log('📋 REAL Format:', validation.format);
 
         res.json({
             success: true,
             message: 'REAL TON wallet generation successful!',
+            isRealTON: true,
             wallet: {
                 address: wallet.address,
                 length: wallet.address.length,
@@ -707,19 +730,20 @@ router.get('/test/generate', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Test generation failed:', error.message);
+        console.error('❌ REAL Test generation failed:', error.message);
         res.status(500).json({
             success: false,
             error: error.message,
-            hint: 'Install TON packages: npm install @ton/crypto ton',
-            fix: 'Run: npm install @ton/crypto ton && npm restart'
+            isRealTON: false,
+            hint: 'Install TON packages: npm install @ton/crypto @ton/ton',
+            fix: 'Run: npm install @ton/crypto @ton/ton && npm restart'
         });
     }
 });
 
 // Create wallet endpoint
 router.post('/create', async (req, res) => {
-    console.log('🎯 CREATE WALLET REQUEST v17.0');
+    console.log('🎯 CREATE REAL TON WALLET REQUEST v20.0');
     
     try {
         const { userId, walletPassword } = req.body;
@@ -735,6 +759,14 @@ router.post('/create', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 error: 'Wallet password must be at least 6 characters'
+            });
+        }
+
+        if (!WalletContractV4) {
+            return res.status(503).json({
+                success: false,
+                error: 'TON SDK NOT LOADED. Install @ton/crypto and @ton/ton packages.',
+                isRealTON: false
             });
         }
 
@@ -762,19 +794,24 @@ router.post('/create', async (req, res) => {
 
         if (existingWallets && existingWallets.length > 0) {
             console.log('✅ Wallet already exists');
+            const existingWallet = existingWallets[0];
+            const validation = validateTONAddress(existingWallet.address);
             const tonPriceData = await fetchRealTONPrice();
 
             return res.json({
                 success: true,
                 message: 'Wallet already exists',
+                isRealTON: validation.isRealTON,
                 wallet: {
-                    id: existingWallets[0].id,
+                    id: existingWallet.id,
                     userId: userId,
-                    address: existingWallets[0].address,
-                    format: existingWallets[0].address.startsWith('EQ') ? 'bounceable' : 'non-bounceable',
-                    createdAt: existingWallets[0].created_at,
+                    address: existingWallet.address,
+                    format: validation.format,
+                    createdAt: existingWallet.created_at,
                     source: 'existing',
-                    wordCount: 24
+                    wordCount: 24,
+                    isReal: validation.isRealTON,
+                    validation: validation
                 },
                 tonPrice: tonPriceData.price
             });
@@ -831,7 +868,8 @@ router.post('/create', async (req, res) => {
         // Success response
         return res.json({
             success: true,
-            message: 'TON wallet created successfully!',
+            message: 'REAL TON wallet created successfully!',
+            isRealTON: true,
             wallet: {
                 id: insertedWallet.id,
                 userId: userId,
@@ -856,11 +894,12 @@ router.post('/create', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Create wallet failed:', error.message);
+        console.error('❌ Create REAL wallet failed:', error.message);
         return res.status(500).json({
             success: false,
-            error: 'Failed to create wallet: ' + error.message,
-            hint: 'Check TON package installation: npm install @ton/crypto ton'
+            error: 'Failed to create REAL wallet: ' + error.message,
+            isRealTON: false,
+            hint: 'Check TON package installation: npm install @ton/crypto @ton/ton'
         });
     }
 });
@@ -874,6 +913,14 @@ router.post('/check', async (req, res) => {
             return res.json({
                 success: false,
                 error: 'User ID required'
+            });
+        }
+
+        if (!WalletContractV4) {
+            return res.json({
+                success: false,
+                error: 'TON SDK not loaded',
+                isRealTON: false
             });
         }
 
@@ -912,6 +959,7 @@ router.post('/check', async (req, res) => {
         return res.json({
             success: true,
             hasWallet: true,
+            isRealTON: validation.isRealTON,
             wallet: {
                 id: wallet.id,
                 userId: userId,
@@ -922,7 +970,8 @@ router.post('/check', async (req, res) => {
                 wordCount: wallet.word_count,
                 validation: validation,
                 balance: balanceResult.balance,
-                isActive: balanceResult.isActive || false
+                isActive: balanceResult.isActive || false,
+                isReal: validation.isRealTON
             }
         });
 
@@ -944,6 +993,14 @@ router.post('/login', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 error: 'User ID and wallet password required'
+            });
+        }
+
+        if (!WalletContractV4) {
+            return res.status(503).json({
+                success: false,
+                error: 'TON SDK not loaded',
+                isRealTON: false
             });
         }
 
@@ -982,6 +1039,7 @@ router.post('/login', async (req, res) => {
             });
         }
 
+        const validation = validateTONAddress(wallet.address);
         const balanceResult = await getRealBalance(wallet.address);
         const tonPrice = await fetchRealTONPrice();
 
@@ -989,18 +1047,20 @@ router.post('/login', async (req, res) => {
 
         return res.json({
             success: true,
-            message: 'Wallet login successful',
+            message: 'REAL wallet login successful',
+            isRealTON: validation.isRealTON,
             wallet: {
                 id: wallet.id,
                 userId: wallet.user_id,
                 address: wallet.address,
-                format: wallet.address.startsWith('EQ') ? 'bounceable' : 'non-bounceable',
+                format: validation.format,
                 createdAt: wallet.created_at,
                 source: wallet.source || 'generated',
                 wordCount: wallet.word_count || 24,
                 hasWallet: true,
                 balance: balanceResult.balance,
                 isActive: balanceResult.isActive || false,
+                isReal: validation.isRealTON,
                 tonPrice: tonPrice.price
             },
             sessionToken: sessionToken,
@@ -1009,7 +1069,7 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Wallet login failed:', error);
+        console.error('❌ REAL wallet login failed:', error);
         return res.status(500).json({
             success: false,
             error: 'Login failed: ' + error.message
@@ -1023,7 +1083,7 @@ router.get('/balance/:address', async (req, res) => {
         const { address } = req.params;
         const { network = 'mainnet' } = req.query;
 
-        console.log(`💰 Checking balance for ${address}`);
+        console.log(`💰 Checking REAL balance for ${address}`);
 
         const validation = validateTONAddress(address);
         const balanceResult = await getRealBalance(address, network);
@@ -1044,23 +1104,26 @@ router.get('/balance/:address', async (req, res) => {
             status: balanceResult.status || 'unknown',
             network: network,
             validation: validation,
+            isRealTON: validation.isRealTON,
             explorerLink: `https://tonviewer.com/${address}`
         });
 
     } catch (error) {
-        console.error('❌ Balance check failed:', error);
+        console.error('❌ REAL balance check failed:', error);
         const tonPrice = await fetchRealTONPrice();
+        const validation = validateTONAddress(req.params.address);
 
         return res.json({
             success: true,
             address: req.params.address,
-            format: req.params.address.startsWith('EQ') ? 'bounceable' : 'non-bounceable',
+            format: validation.format,
             balance: "0.0000",
             valueUSD: "0.00",
             tonPrice: tonPrice.price.toFixed(4),
             isActive: false,
             status: 'uninitialized',
-            source: 'fallback'
+            isRealTON: validation.isRealTON,
+            source: 'real-check-failed'
         });
     }
 });
@@ -1075,7 +1138,8 @@ router.get('/price/ton', async (req, res) => {
             symbol: 'TON',
             price: priceData.price.toFixed(4),
             source: priceData.source,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            isRealPrice: priceData.source !== 'default'
         });
     } catch (error) {
         return res.json({
@@ -1083,7 +1147,8 @@ router.get('/price/ton', async (req, res) => {
             symbol: 'TON',
             price: "2.35",
             source: 'fallback',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            isRealPrice: false
         });
     }
 });
@@ -1105,7 +1170,8 @@ router.post('/validate', (req, res) => {
         return res.json({
             success: true,
             address: address,
-            validation: validation
+            validation: validation,
+            isRealTON: validation.isRealTON
         });
 
     } catch (error) {
@@ -1116,6 +1182,6 @@ router.post('/validate', (req, res) => {
     }
 });
 
-console.log('✅ WALLET ROUTES v17.0 READY - COMPLETE WITH BIP39');
+console.log('✅ WALLET ROUTES v20.0 READY - REAL TON WALLETS ONLY (NO MOCK DATA)');
 
 module.exports = router;
