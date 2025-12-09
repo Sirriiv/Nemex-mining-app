@@ -1,11 +1,11 @@
 {
   "name": "nemex-mining",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "build": "npm install --omit=dev",
-    "test-ton": "node -e \"console.log('Testing TON packages...'); try { const c = require('@ton/crypto'); const t = require('@ton/ton'); console.log('✅ TON packages loaded! Crypto:', !!c, 'Ton:', !!t); } catch(e) { console.log('❌ Error:', e.message); }\""
+    "test-ton": "node -e \"console.log('Testing TON packages...'); try { const c = require('@ton/crypto'); const t = require('@ton/ton'); console.log('✅ TON packages loaded! Crypto:', !!c.mnemonicNew, 'Ton:', !!t.WalletContractV4); } catch(e) { console.log('❌ Error:', e.message); console.log('❌ Stack:', e.stack); }\""
   },
   "dependencies": {
     "express": "^4.18.2",
