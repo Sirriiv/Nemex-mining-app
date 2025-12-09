@@ -1,10 +1,11 @@
 {
   "name": "nemex-mining",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build": "npm install --omit=dev"
+    "build": "npm install --omit=dev",
+    "test": "node -e \"console.log('Testing TON packages...'); const crypto = require('@ton/crypto'); const ton = require('@ton/ton'); console.log('✅ TON packages loaded successfully!');\""
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -13,7 +14,7 @@
     "@supabase/supabase-js": "^2.38.0",
     "axios": "^1.6.8",
     "@ton/crypto": "^3.2.0",
-    "tonweb": "^0.0.42",
+    "@ton/ton": "^13.12.0",
     "bcrypt": "^5.1.1"
   },
   "engines": {
