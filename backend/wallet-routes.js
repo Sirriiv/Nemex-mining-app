@@ -7,39 +7,41 @@ const axios = require('axios');
 const bcrypt = require('bcrypt');
 
 // ============================================
-// 🎯 TON IMPORTS - USING ton + @ton/crypto
+// 🎯 TON IMPORTS - USING @ton/ton (v15.4.0) + @ton/crypto
 // ============================================
-console.log('🔄 Loading TON libraries...');
+console.log('🔄 Loading TON libraries (Official SDK v15.4.0)...');
 
-let tonCrypto, ton;
+let tonCrypto, tonSDK;
 let mnemonicNew, mnemonicToPrivateKey;
 let WalletContractV4;
 
 try {
-    // Load TON libraries
+    // Load official TON SDK v15.4.0 + crypto
     tonCrypto = require('@ton/crypto');
-    ton = require('ton');
+    tonSDK = require('@ton/ton');
     
-    // Get functions
+    // Get functions from @ton/crypto
     mnemonicNew = tonCrypto.mnemonicNew;
     mnemonicToPrivateKey = tonCrypto.mnemonicToPrivateKey;
-    WalletContractV4 = ton.WalletContractV4;
     
-    console.log('✅ TON libraries loaded successfully');
+    // Get WalletContractV4 from @ton/ton
+    WalletContractV4 = tonSDK.WalletContractV4;
+    
+    console.log('✅ Official TON SDK v15.4.0 loaded successfully');
     console.log('📦 @ton/crypto: loaded');
-    console.log('📦 ton: loaded');
+    console.log('📦 @ton/ton: loaded');
     console.log('📦 WalletContractV4 available:', !!WalletContractV4);
     
 } catch (error) {
-    console.error('❌ TON libraries import failed:', error.message);
-    console.error('❌ Please install: npm install @ton/crypto ton');
+    console.error('❌ TON SDK import failed:', error.message);
+    console.error('❌ Please install: npm install @ton/crypto @ton/ton');
     console.error('❌ Full error:', error);
-    throw new Error('TON libraries not installed. Run: npm install @ton/crypto ton');
+    throw new Error('TON SDK not installed. Run: npm install @ton/crypto @ton/ton');
 }
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v17.0 - COMPLETE WITH BIP39');
+console.log('🚀 WALLET ROUTES v18.0 - OFFICIAL TON SDK v15.4.0');
 
 // ============================================
 // 🎯 SUPABASE SETUP
