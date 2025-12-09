@@ -1,4 +1,4 @@
-// server.js - FIXED CORS VERSION
+// server.js - COMPLETE FIXED VERSION
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -9,20 +9,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // =============================================
-// 🎯 CORS SETUP - FIXED WITH YOUR DOMAINS
+// 🎯 CORS SETUP
 // =============================================
 const allowedOrigins = [
-    // Your production domains
     'https://nemexcoin.it.com',
     'https://www.nemexcoin.it.com',
     'http://nemexcoin.it.com',
     'http://www.nemexcoin.it.com',
-    
-    // Render backend
     'https://nemex-backend.onrender.com',
     'http://nemex-backend.onrender.com',
-    
-    // Local development
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:5000',
@@ -35,9 +30,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
-        
         if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
@@ -54,12 +47,9 @@ app.use(cors({
         'X-Session-Token',
         'Accept',
         'Origin'
-    ],
-    exposedHeaders: ['Content-Length', 'X-Response-Time'],
-    maxAge: 86400 // 24 hours
+    ]
 }));
 
-// Handle preflight requests
 app.options('*', cors());
 
 // Parse JSON
@@ -81,7 +71,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static files from frontend folder
+// Serve static files
 app.use(express.static(path.join(__dirname, 'frontend'), {
     setHeaders: (res, path) => {
         if (path.endsWith('.js') || path.endsWith('.css')) {
@@ -90,106 +80,102 @@ app.use(express.static(path.join(__dirname, 'frontend'), {
     }
 }));
 
-// Request logging with origin
+// Request logging
 app.use((req, res, next) => {
     console.log(`🌐 ${new Date().toLocaleTimeString()} ${req.method} ${req.path} [Origin: ${req.headers.origin || 'none'}]`);
     next();
 });
 
 // =============================================
-// 🎯 LOAD WALLET ROUTES
+// 🎯 LOAD AND MOUNT WALLET ROUTES
 // =============================================
 console.log('\n🔄 LOADING WALLET ROUTES...');
 
 const walletRoutesPath = path.join(__dirname, 'backend', 'wallet-routes.js');
-let walletRoutes = null;
 
 if (fs.existsSync(walletRoutesPath)) {
     try {
         console.log(`✅ Found wallet routes at: ${walletRoutesPath}`);
         
-        // Clear require cache
+        // Clear require cache to ensure fresh load
         const modulePath = require.resolve(walletRoutesPath);
-        delete require.cache[modulePath];
+        if (require.cache[modulePath]) {
+            delete require.cache[modulePath];
+        }
         
-        walletRoutes = require(walletRoutesPath);
+        // Load the wallet routes
+        const walletRoutes = require(walletRoutesPath);
         
-        // Mount the routes
+        // Mount the wallet routes
         app.use('/api/wallet', walletRoutes);
         console.log('✅ Wallet routes mounted at /api/wallet');
         
         console.log('\n📋 AVAILABLE WALLET ENDPOINTS:');
-        console.log('   POST   /api/wallet/create            - Create wallet');
+        console.log('   POST   /api/wallet/create            - Create TON wallet');
         console.log('   POST   /api/wallet/login             - Login to wallet');
-        console.log('   POST   /api/wallet/check             - Check wallet');
+        console.log('   POST   /api/wallet/check             - Check if wallet exists');
         console.log('   POST   /api/wallet/session/create    - Create session');
         console.log('   POST   /api/wallet/session/check     - Check session');
         console.log('   POST   /api/wallet/session/destroy   - Destroy session');
-        console.log('   POST   /api/wallet/store-encrypted   - Legacy: Store encrypted');
-        console.log('   POST   /api/wallet/check-wallet      - Legacy: Check wallet');
-        console.log('   GET    /api/wallet/prices            - Get token prices');
+        console.log('   GET    /api/wallet/balance/:address  - Get balance');
+        console.log('   GET    /api/wallet/price/ton         - Get TON price');
+        console.log('   POST   /api/wallet/validate          - Validate address');
+        console.log('   GET    /api/wallet/test/generate     - Test wallet generation');
         console.log('   GET    /api/wallet/health            - Health check');
         console.log('   GET    /api/wallet/test              - Test endpoint');
         
     } catch (error) {
         console.error('❌ FAILED to load wallet routes:', error.message);
         console.error('Stack trace:', error.stack);
-        walletRoutes = null;
+        
+        // Create emergency router
+        const emergencyRouter = express.Router();
+        
+        emergencyRouter.get('/health', (req, res) => {
+            res.json({
+                status: 'emergency-mode',
+                message: 'Wallet routes failed to load, using emergency mode',
+                timestamp: new Date().toISOString()
+            });
+        });
+        
+        emergencyRouter.get('/test', (req, res) => {
+            res.json({
+                success: false,
+                error: 'Wallet routes failed to load. Check server logs.',
+                timestamp: new Date().toISOString()
+            });
+        });
+        
+        app.use('/api/wallet', emergencyRouter);
+        console.log('⚠️ Emergency routes mounted at /api/wallet');
     }
-}
-
-// If wallet routes failed to load, create emergency routes
-if (!walletRoutes) {
-    console.log('\n⚠️ CREATING EMERGENCY WALLET ROUTES');
+} else {
+    console.error(`❌ Wallet routes file not found: ${walletRoutesPath}`);
     
+    // Create emergency router
     const emergencyRouter = express.Router();
     
-    emergencyRouter.get('/test', (req, res) => {
+    emergencyRouter.get('/health', (req, res) => {
         res.json({
-            success: true,
-            message: 'Emergency wallet API is working',
-            mode: 'emergency',
+            status: 'file-not-found',
+            message: 'wallet-routes.js file not found',
             timestamp: new Date().toISOString()
         });
     });
     
-    emergencyRouter.post('/create', (req, res) => {
-        res.json({
-            success: true,
-            message: 'Emergency mode - Wallet created',
-            wallet: {
-                id: `emergency_${Date.now()}`,
-                address: 'UQ' + Date.now().toString(36).toUpperCase(),
-                format: 'UQ',
-                createdAt: new Date().toISOString(),
-                source: 'emergency'
-            }
-        });
-    });
-    
-    emergencyRouter.post('/check', (req, res) => {
-        res.json({
-            success: true,
-            hasWallet: false,
-            message: 'Emergency mode - No wallet found'
-        });
-    });
-    
     app.use('/api/wallet', emergencyRouter);
-    console.log('⚠️ Emergency routes mounted at /api/wallet');
 }
 
 // =============================================
-// 🎯 API TEST ENDPOINTS
+// 🎯 TEST ENDPOINTS
 // =============================================
 app.get('/api/test', (req, res) => {
     res.json({
         success: true,
-        message: 'API is working!',
+        message: 'Main API is working!',
         serverTime: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        walletMode: walletRoutes ? 'normal' : 'emergency',
-        allowedOrigins: allowedOrigins
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
@@ -197,26 +183,22 @@ app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
-        walletRoutes: walletRoutes ? 'loaded' : 'emergency',
         server: 'NemexCoin Wallet API',
-        cors: 'enabled'
+        version: '1.0.0'
     });
 });
 
 // =============================================
-// 🎯 DEBUG CORS ENDPOINT
+// 🎯 CORS TEST ENDPOINT
 // =============================================
 app.get('/api/cors-test', (req, res) => {
-    console.log('🔍 CORS Test - Headers:', req.headers);
-    
     res.json({
         success: true,
         message: 'CORS test successful',
         origin: req.headers.origin,
         host: req.headers.host,
         timestamp: new Date().toISOString(),
-        yourIp: req.ip,
-        allowedOrigins: allowedOrigins
+        yourIp: req.ip
     });
 });
 
@@ -243,14 +225,15 @@ app.get('/login', (req, res) => {
 // 🎯 404 HANDLER
 // =============================================
 app.use((req, res) => {
-    console.log(`❌ 404: ${req.method} ${req.path} [Origin: ${req.headers.origin || 'none'}]`);
+    console.log(`❌ 404: ${req.method} ${req.path}`);
     
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({
             success: false,
             error: 'API endpoint not found',
             path: req.path,
-            method: req.method
+            method: req.method,
+            timestamp: new Date().toISOString()
         });
     }
     
@@ -263,13 +246,12 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     console.error('❌ Server error:', err.message);
     
-    // CORS errors
     if (err.message === 'Not allowed by CORS') {
         return res.status(403).json({
             success: false,
             error: 'CORS error: Origin not allowed',
             origin: req.headers.origin,
-            allowedOrigins: allowedOrigins
+            timestamp: new Date().toISOString()
         });
     }
     
@@ -287,33 +269,19 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
     ============================================
-    🚀 NEMEX COIN WALLET SERVER v4.0
+    🚀 NEMEX COIN WALLET SERVER - FIXED VERSION
     ============================================
     
     📍 Port: ${PORT}
     🔧 Environment: ${process.env.NODE_ENV || 'development'}
     🕐 Started: ${new Date().toLocaleString()}
     
-    ✅ Allowed Origins:
-       ${allowedOrigins.map(origin => `       • ${origin}`).join('\n')}
-    
-    ✅ Wallet System: ${walletRoutes ? 'NORMAL' : 'EMERGENCY'}
+    ✅ Wallet API: /api/wallet/*
+    ✅ Health Check: /api/health
+    ✅ CORS Test: /api/cors-test
     
     ============================================
     `);
-    
-    // Test endpoints
-    setTimeout(() => {
-        fetch(`http://localhost:${PORT}/api/health`)
-            .then(res => res.json())
-            .then(data => console.log('✅ Health check:', data.status))
-            .catch(err => console.log('❌ Health check failed:', err.message));
-            
-        fetch(`http://localhost:${PORT}/api/cors-test`)
-            .then(res => res.json())
-            .then(data => console.log('✅ CORS test:', data.message))
-            .catch(err => console.log('❌ CORS test failed:', err.message));
-    }, 1000);
 });
 
 // Graceful shutdown
