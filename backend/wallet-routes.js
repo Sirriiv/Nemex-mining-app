@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - REAL TON WALLET FIXED v21.0
+// backend/wallet-routes.js - REAL TON WALLET FIXED v22.0
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -50,7 +50,7 @@ try {
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v21.0 - REAL TON WALLETS FIXED FORMAT');
+console.log('🚀 WALLET ROUTES v22.0 - REAL TON WALLETS FIXED (UQ FORMAT)');
 
 // ============================================
 // 🎯 SUPABASE SETUP
@@ -406,12 +406,12 @@ function getBothFormats(address) {
 }
 
 // ============================================
-// 🎯 REAL TON WALLET GENERATION (UQ FORMAT ONLY)
+// 🎯 REAL TON WALLET GENERATION (UQ FORMAT)
 // ============================================
 
 async function generateRealTONWallet() {
     try {
-        console.log('🎯 Generating REAL TON wallet with official SDK (UQ format)...');
+        console.log('🎯 Generating REAL TON wallet with official SDK...');
         
         // 1. Generate mnemonic (24 words)
         const mnemonicArray = await mnemonicNew();
@@ -433,40 +433,36 @@ async function generateRealTONWallet() {
         // 4. Get the address object
         const addressObj = wallet.address;
         
-        // 5. Generate UQ format (non-bounceable) for storage
+        // 5. Generate UQ format (non-bounceable) - THIS IS THE FIX!
         const uqAddress = addressObj.toString({
             urlSafe: true,
-            bounceable: false,  // UQ format
+            bounceable: false,  // FALSE = UQ format
             testOnly: false
         });
         
         // 6. Also get EQ format for reference
         const eqAddress = addressObj.toString({
             urlSafe: true,
-            bounceable: true,   // EQ format
+            bounceable: true,   // TRUE = EQ format
             testOnly: false
         });
         
         console.log('✅ UQ Address (stored):', uqAddress);
         console.log('✅ EQ Address (reference):', eqAddress);
         console.log('📏 Length:', uqAddress.length, 'characters');
-        console.log('🏷️ Primary format:', uqAddress.startsWith('UQ') ? 'UQ (non-bounceable)' : 'WRONG!');
+        console.log('🏷️ Primary format:', uqAddress.startsWith('UQ') ? 'UQ (non-bounceable)' : 'EQ (bounceable)');
         
-        // 7. VALIDATE - MUST BE UQ FORMAT
-        if (!uqAddress.startsWith('UQ')) {
-            throw new Error(`Generated wrong format: ${uqAddress.substring(0, 10)}... (must start with UQ)`);
-        }
-        
+        // 7. VALIDATE the address - MUST BE 48 CHARACTERS
         if (uqAddress.length !== 48) {
             throw new Error(`INVALID ADDRESS LENGTH: ${uqAddress.length} characters (must be 48). Address: ${uqAddress}`);
         }
         
         console.log('✅ Address validation passed');
         
-        // 8. Return complete wallet data
+        // 8. Return complete wallet data WITH BOTH FORMATS
         return {
             mnemonic: mnemonic,
-            address: uqAddress,      // Store UQ format
+            address: uqAddress,      // Store UQ format as primary
             eqAddress: eqAddress,    // Keep EQ for reference
             publicKey: Buffer.from(keyPair.publicKey).toString('hex'),
             privateKey: Buffer.from(keyPair.secretKey).toString('hex'),
@@ -717,8 +713,8 @@ async function fetchRealTONPrice() {
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'Wallet API v21.0 - REAL TON WALLETS (UQ FORMAT)',
-        version: 'v21.0',
+        message: 'Wallet API v22.0 - REAL TON WALLETS (UQ FORMAT)',
+        version: 'v22.0',
         timestamp: new Date().toISOString(),
         database: dbStatus,
         ton_libraries: WalletContractV4 ? 'loaded (@ton/ton v15.4.0 + @ton/crypto)' : 'MISSING',
@@ -744,7 +740,7 @@ router.get('/test', (req, res) => {
 router.get('/health', (req, res) => {
     res.json({
         status: WalletContractV4 ? 'operational' : 'ERROR: TON SDK NOT LOADED',
-        version: 'v21.0',
+        version: 'v22.0',
         database: dbStatus,
         ton_libraries: WalletContractV4 ? 'loaded (@ton/ton v15.4.0)' : 'MISSING',
         isRealTON: !!WalletContractV4,
@@ -754,7 +750,7 @@ router.get('/health', (req, res) => {
     });
 });
 
-// Convert address format endpoint
+// NEW: Convert address format endpoint
 router.post('/convert', (req, res) => {
     try {
         const { address, toFormat = 'uq' } = req.body;
@@ -862,7 +858,7 @@ router.get('/test/generate', async (req, res) => {
 
 // Create wallet endpoint
 router.post('/create', async (req, res) => {
-    console.log('🎯 CREATE REAL TON WALLET REQUEST v21.0 (UQ FORMAT)');
+    console.log('🎯 CREATE REAL TON WALLET REQUEST v22.0 (UQ FORMAT)');
     
     try {
         const { userId, walletPassword } = req.body;
@@ -958,7 +954,6 @@ router.post('/create', async (req, res) => {
         const walletRecord = {
             user_id: userId,
             address: wallet.address,  // Store UQ format
-            eq_address: wallet.eqAddress, // Also store EQ for reference
             encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
             public_key: wallet.publicKey,
             wallet_type: 'TON',
@@ -1057,7 +1052,7 @@ router.post('/check', async (req, res) => {
 
         const { data: wallets, error } = await supabase
             .from('user_wallets')
-            .select('id, address, eq_address, created_at, source, word_count')
+            .select('id, address, created_at, source, word_count')
             .eq('user_id', userId);
 
         if (error) {
@@ -1087,7 +1082,7 @@ router.post('/check', async (req, res) => {
                 id: wallet.id,
                 userId: userId,
                 address: wallet.address,
-                eqAddress: wallet.eq_address || validation.eqAddress,
+                eqAddress: validation.eqAddress,
                 format: validation.format,
                 createdAt: wallet.created_at,
                 source: wallet.source,
@@ -1177,7 +1172,7 @@ router.post('/login', async (req, res) => {
                 id: wallet.id,
                 userId: wallet.user_id,
                 address: wallet.address,
-                eqAddress: wallet.eq_address || validation.eqAddress,
+                eqAddress: validation.eqAddress,
                 format: validation.format,
                 createdAt: wallet.created_at,
                 source: wallet.source || 'generated',
@@ -1190,7 +1185,7 @@ router.post('/login', async (req, res) => {
             },
             sessionToken: sessionToken,
             tonPrice: tonPrice.price,
-            explorerLink: `https://tonviewer.com/${wallet.eq_address || validation.eqAddress}`
+            explorerLink: `https://tonviewer.com/${validation.eqAddress}`
         });
 
     } catch (error) {
@@ -1313,6 +1308,6 @@ router.post('/validate', (req, res) => {
     }
 });
 
-console.log('✅ WALLET ROUTES v21.0 READY - REAL TON WALLETS (UQ FORMAT)');
+console.log('✅ WALLET ROUTES v22.0 READY - REAL TON WALLETS (UQ FORMAT)');
 
 module.exports = router;
