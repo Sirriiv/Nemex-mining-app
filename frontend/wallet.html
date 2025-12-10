@@ -3064,6 +3064,8 @@ async function initWallet() {
 
                 showWalletInterface();
                 await loadWalletData();
+                // ✅ ADDED: Start REAL balance updates
+                startRealBalanceUpdates();
             } else if (result.showPasswordPrompt) {
                 console.log('🔐 Wallet exists, showing password prompt');
                 showWalletLoginModal();
@@ -3086,6 +3088,83 @@ async function initWallet() {
     } catch (error) {
         console.error('❌ Wallet initialization failed:', error);
         showToast('Wallet system error', 'error');
+    }
+}
+
+// =============================================
+// 🎯 REAL BALANCE UPDATES (NEW - FIXED)
+// =============================================
+
+let balanceUpdateInterval = null;
+
+function startRealBalanceUpdates() {
+    console.log('🚀 Starting REAL balance updates...');
+    
+    // Clear any existing interval
+    if (balanceUpdateInterval) {
+        clearInterval(balanceUpdateInterval);
+    }
+    
+    // Run immediately
+    updateRealBalance();
+    
+    // Then run every 15 seconds
+    balanceUpdateInterval = setInterval(updateRealBalance, 15000);
+}
+
+async function updateRealBalance() {
+    try {
+        console.log('🔄 Checking REAL wallet balance...');
+        
+        if (!walletState.hasWallet || !walletState.wallet?.address) {
+            console.log('❌ No wallet or address available');
+            return;
+        }
+
+        const walletAddress = walletState.wallet.address;
+        console.log('💰 Checking balance for address:', walletAddress);
+
+        // Call your backend API directly
+        const response = await fetch(`/api/wallet/balance/${walletAddress}`);
+        const balanceData = await response.json();
+
+        console.log('💰 REAL Balance response:', balanceData);
+
+        if (balanceData.success) {
+            const tonBalance = parseFloat(balanceData.balance) || 0;
+            
+            // Update TON token balance
+            const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+            if (tonToken) {
+                const oldBalance = tonToken.balance;
+                tonToken.balance = tonBalance;
+                
+                // If balance changed, show notification
+                if (tonBalance > oldBalance && tonBalance > 0) {
+                    console.log('🎉 Balance increased!');
+                    showToast(`✅ Received ${tonBalance.toFixed(4)} TON!`, 'success');
+                }
+                
+                console.log('✅ Updated TON balance:', tonBalance);
+            }
+
+            // Update total balance display
+            updateWalletDisplay();
+
+            // Update send modal balances if it's open
+            updateSendBalances();
+            
+            // Update wallet status
+            if (tonBalance > 0) {
+                console.log('✅ Wallet is active with balance:', tonBalance);
+            }
+        } else {
+            console.warn('⚠️ Balance check failed:', balanceData.error);
+        }
+
+    } catch (error) {
+        console.error('❌ Error updating real balance:', error);
+        // Don't stop updates on error
     }
 }
 
@@ -3119,7 +3198,7 @@ function showLoginRequiredMessage() {
 }
 
 // =============================================
-// 🎯 SEND FUNCTIONALITY (UNCHANGED)
+// 🎯 SEND FUNCTIONALITY (UPDATED)
 // =============================================
 
 function showSendModal() {
@@ -3140,6 +3219,7 @@ function showSendModal() {
     document.getElementById('tokenDropdown').style.display = 'none';
     document.getElementById('dropdownArrow').style.transform = 'rotate(0deg)';
 
+    // ✅ FIXED: Always update balances when opening send modal
     updateSendBalances();
     updateFeeDisplay();
     updateDropdownBalances();
@@ -3147,7 +3227,7 @@ function showSendModal() {
     const sendModal = document.getElementById('sendModal');
     if (sendModal) {
         sendModal.style.display = 'flex';
-        console.log('✅ Send modal opened with balances updated');
+        console.log('✅ Send modal opened with REAL balances updated');
     }
 }
 
@@ -3469,7 +3549,7 @@ async function confirmSendTransaction() {
 }
 
 // =============================================
-// 🎯 RECEIVE FUNCTIONALITY (UNCHANGED)
+// 🎯 RECEIVE FUNCTIONALITY
 // =============================================
 
 function showReceiveModal() {
@@ -3612,7 +3692,7 @@ This single address can receive all supported TON blockchain tokens.
 }
 
 // =============================================
-// 🎯 CONVERT NMXp FUNCTIONALITY (UNCHANGED)
+// 🎯 CONVERT NMXp FUNCTIONALITY
 // =============================================
 
 function showSwapModal() {
@@ -3924,7 +4004,7 @@ function updateWalletAddressDisplay(walletAddress) {
 }
 
 // =============================================
-// 🎯 SETTINGS FUNCTIONS (UNCHANGED)
+// 🎯 SETTINGS FUNCTIONS
 // =============================================
 
 function showSettingsModal() {
@@ -3978,6 +4058,12 @@ async function deleteWallet() {
                 walletState.isInitialized = false;
                 walletState.address = null;
 
+                // Clear balance update interval
+                if (balanceUpdateInterval) {
+                    clearInterval(balanceUpdateInterval);
+                    balanceUpdateInterval = null;
+                }
+
                 showWelcomeScreen();
 
                 showToast('✅ Wallet deleted successfully!', 'success');
@@ -3996,18 +4082,14 @@ async function deleteWallet() {
 }
 
 // =============================================
-// 🎯 WALLET DATA LOADING (UNCHANGED)
+// 🎯 WALLET DATA LOADING (UPDATED)
 // =============================================
 
 async function loadWalletData() {
     if (!walletState.hasWallet || !walletState.wallet) return;
 
     try {
-        const balanceResult = await window.walletManager.getBalance(walletState.wallet.address);
-        if (balanceResult.success) {
-            SUPPORTED_TOKENS[0].balance = balanceResult.balance;
-        }
-
+        // Get TON price
         const priceResult = await window.walletManager.getPrices();
         if (priceResult.success && priceResult.prices) {
             SUPPORTED_TOKENS[0].price = priceResult.prices.TON?.price || 0;
@@ -4015,6 +4097,10 @@ async function loadWalletData() {
             SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0;
             SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
         }
+
+        // ✅ FIXED: Don't update balance here - let the updateRealBalance function handle it
+        // This prevents overwriting the real balance with 0
+        console.log('ℹ️ Skipping manual balance fetch - using real updates');
 
         updateWalletDisplay();
     } catch (error) {
@@ -4030,6 +4116,11 @@ function updateWalletDisplay() {
     const balanceElement = document.getElementById('balanceAmount');
     if (balanceElement) {
         balanceElement.textContent = `$${totalUSD.toFixed(2)}`;
+        // Add animation when balance changes
+        if (totalUSD > 0) {
+            balanceElement.style.color = 'var(--gold)';
+            balanceElement.style.textShadow = '0 2px 10px rgba(212, 175, 55, 0.5)';
+        }
     }
 
     const tokenList = document.getElementById('tokenList');
@@ -4114,6 +4205,12 @@ function logout() {
     sessionStorage.removeItem('miningUser');
     localStorage.removeItem('nemexcoin_wallet_user');
 
+    // Clear balance update interval
+    if (balanceUpdateInterval) {
+        clearInterval(balanceUpdateInterval);
+        balanceUpdateInterval = null;
+    }
+
     window.location.href = 'dashboard.html';
 }
 
@@ -4122,7 +4219,7 @@ function goToMiningDashboard() {
 }
 
 // =============================================
-// 🎯 PRICE API INTEGRATION (UNCHANGED)
+// 🎯 PRICE API INTEGRATION
 // =============================================
 
 const PRICE_APIS = [
