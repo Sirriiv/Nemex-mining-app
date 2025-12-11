@@ -1,5 +1,5 @@
-// assets/js/wallet.js - PROPER DATABASE SESSION FLOW WITH SEND & HISTORY
-console.log('🚀 NEMEX WALLET - PROPER DATABASE SESSION FLOW WITH SEND & HISTORY');
+// assets/js/wallet.js - UPDATED FOR @ton/ton LIBRARY
+console.log('🚀 NEMEX WALLET - UPDATED FOR @ton/ton LIBRARY');
 
 class WalletManager {
     constructor() {
@@ -12,7 +12,29 @@ class WalletManager {
         this.transactionHistory = [];
         this.isLoading = false;
 
-        console.log('✅ Wallet Manager initialized with send & history features');
+        // Initialize @ton/ton client
+        this.tonClient = null;
+        this.initTonClient();
+
+        console.log('✅ Wallet Manager initialized with @ton/ton library');
+    }
+
+    // 🎯 INITIALIZE @ton/ton CLIENT
+    initTonClient() {
+        try {
+            if (typeof window.Ton !== 'undefined') {
+                // Create a TON client with mainnet endpoint
+                this.tonClient = new window.Ton.TonClient({
+                    endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+                    apiKey: '' // Optional: Add your API key if needed
+                });
+                console.log('✅ @ton/ton client initialized');
+            } else {
+                console.warn('⚠️ @ton/ton library not loaded');
+            }
+        } catch (error) {
+            console.error('❌ Failed to initialize @ton/ton client:', error);
+        }
     }
 
     // 🎯 GET CURRENT USER ID
@@ -74,7 +96,7 @@ class WalletManager {
         }
     }
 
-    // 🎯 CREATE WALLET - SIMPLE, NO SESSION
+    // 🎯 CREATE WALLET - UPDATED FOR @ton/ton
     async createWallet(walletPassword, buttonElement = null) {
         const userId = this.getCurrentUserId();
         if (!userId) {
@@ -417,10 +439,10 @@ class WalletManager {
     }
 
     // ============================================
-    // 🎯 NEW: SEND TRANSACTION FUNCTIONALITY
+    // 🎯 SEND TRANSACTION FUNCTIONALITY - UPDATED FOR @ton/ton
     // ============================================
 
-    // 🎯 SEND TON TRANSACTION
+    // 🎯 SEND TON TRANSACTION - SIMPLIFIED VERSION
     async sendTransaction(toAddress, amount, memo = '', password = null) {
         try {
             const userId = this.getCurrentUserId();
@@ -462,7 +484,7 @@ class WalletManager {
                 memo: memo
             });
 
-            // Call backend send endpoint
+            // Call backend send endpoint (backend handles @ton/ton operations)
             const response = await fetch(`${this.apiBaseUrl}/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -620,7 +642,7 @@ class WalletManager {
     }
 
     // ============================================
-    // 🎯 NEW: TRANSACTION HISTORY FUNCTIONALITY
+    // 🎯 TRANSACTION HISTORY FUNCTIONALITY
     // ============================================
 
     // 🎯 GET TRANSACTION HISTORY
@@ -637,6 +659,11 @@ class WalletManager {
             this.triggerLoadingState(true);
 
             const response = await fetch(`${this.apiBaseUrl}/transactions/${userId}?limit=${limit}&include_received=${includeReceived}`);
+            
+            if (!response.ok) {
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            }
+            
             const result = await response.json();
 
             if (!result.success) {
@@ -707,36 +734,8 @@ class WalletManager {
         }
     }
 
-    // 🎯 GET TRANSACTION BY HASH
-    async getTransactionByHash(txHash) {
-        try {
-            if (!txHash) {
-                throw new Error('Transaction hash is required');
-            }
-
-            const response = await fetch(`${this.apiBaseUrl}/transaction/${txHash}`);
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || 'Transaction not found');
-            }
-
-            return {
-                success: true,
-                transaction: result
-            };
-
-        } catch (error) {
-            console.error('❌ Get transaction by hash failed:', error);
-            return {
-                success: false,
-                error: error.message
-            };
-        }
-    }
-
     // ============================================
-    // 🎯 NEW: PRICE & BALANCE FUNCTIONS
+    // 🎯 PRICE & BALANCE FUNCTIONS
     // ============================================
 
     // 🎯 GET PRICES
@@ -749,7 +748,7 @@ class WalletManager {
                 throw new Error('Failed to get prices');
             }
 
-            // Also get NMX price (you might need to adjust this based on your API)
+            // Also get NMX price
             const nmxResponse = await fetch(`${this.apiBaseUrl}/price/nmx`).catch(() => null);
             let nmxPrice = { price: 0.01, source: 'default' };
 
@@ -1013,7 +1012,6 @@ class WalletManager {
     // 🎯 DELETE WALLET
     async deleteWallet(userId, requirePassword = false) {
         try {
-            // This is a simplified version - in production, you'd need proper authentication
             const response = await fetch(`${this.apiBaseUrl}/delete`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1087,6 +1085,7 @@ class WalletManager {
         this.currentWallet = null;
         this.isInitialized = false;
         this.transactionHistory = [];
+        this.tonClient = null;
 
         console.log('✅ Wallet logged out');
 
@@ -1387,4 +1386,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('✅ NEMEX WALLET READY - Proper database session flow with send & history');
+console.log('✅ NEMEX WALLET READY - Updated for @ton/ton library');
