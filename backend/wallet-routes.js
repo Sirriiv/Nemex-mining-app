@@ -677,7 +677,7 @@ async function getRealBalance(address, network = 'mainnet') {
 }
 
 // ============================================
-// 🎯 SEND TON TRANSACTION FUNCTION (REAL) - FIXED!
+// 🎯 SEND TON TRANSACTION FUNCTION (REAL) - FIXED CORRECTLY!
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
@@ -774,8 +774,10 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${balanceTON} TON`);
         }
 
-        // 11. Get current seqno - FIXED: Use getWalletInfo instead of getSeqno
-        const { seqno } = await tonClient.getWalletInfo(senderAddress);
+        // 11. Get current seqno - FIXED CORRECTLY!
+        // First, get the contract state
+        const contractState = await tonClient.getContractState(senderAddress);
+        const seqno = contractState.seqno || 0;
         console.log(`📝 Current seqno: ${seqno}`);
 
         // 12. Prepare transfer
@@ -809,19 +811,22 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         
         console.log('✅ Transaction broadcasted:', sendResult);
 
-        // 15. Wait for confirmation - FIXED: Use getWalletInfo instead of getSeqno
+        // 15. Wait for confirmation - FIXED CORRECTLY!
         let attempts = 0;
         const maxAttempts = 30;
         
         while (attempts < maxAttempts) {
             try {
-                const { seqno: newSeqno } = await tonClient.getWalletInfo(senderAddress);
+                // Get updated contract state to check if seqno increased
+                const newContractState = await tonClient.getContractState(senderAddress);
+                const newSeqno = newContractState.seqno || 0;
+                
                 if (newSeqno > seqno) {
                     console.log('✅ Transaction confirmed! New seqno:', newSeqno);
                     break;
                 }
             } catch (error) {
-                console.log('⚠️ Error checking seqno:', error.message);
+                console.log('⚠️ Error checking contract state:', error.message);
             }
             
             attempts++;
