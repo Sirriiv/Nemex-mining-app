@@ -1651,19 +1651,28 @@ router.post('/validate', (req, res) => {
     }
 });
 
-// ============================================
-// 🎯 NEW SEND ENDPOINTS
-// ============================================
-
-// Send transaction endpoint
+// Send transaction endpoint - WITH BETTER ERROR LOGGING
 router.post('/send', async (req, res) => {
     try {
         const { userId, walletPassword, toAddress, amount, memo = '' } = req.body;
 
-        console.log('📨 SEND REQUEST RECEIVED:', { userId, toAddress, amount, memo });
+        console.log('📨 SEND REQUEST RECEIVED:', { 
+            userId, 
+            toAddress, 
+            amount, 
+            memo,
+            hasPassword: !!walletPassword 
+        });
 
         // Validate required fields
         if (!userId || !walletPassword || !toAddress || !amount) {
+            console.error('❌ Missing required fields:', { 
+                hasUserId: !!userId,
+                hasPassword: !!walletPassword,
+                hasToAddress: !!toAddress,
+                hasAmount: !!amount 
+            });
+            
             return res.status(400).json({
                 success: false,
                 error: 'Missing required fields: userId, walletPassword, toAddress, amount'
@@ -1673,6 +1682,7 @@ router.post('/send', async (req, res) => {
         // Validate amount
         const amountNum = parseFloat(amount);
         if (isNaN(amountNum) || amountNum <= 0) {
+            console.error('❌ Invalid amount:', amount);
             return res.status(400).json({
                 success: false,
                 error: 'Invalid amount. Must be a positive number'
@@ -1681,6 +1691,7 @@ router.post('/send', async (req, res) => {
 
         // Validate address format
         if (!toAddress.startsWith('EQ') && !toAddress.startsWith('UQ')) {
+            console.error('❌ Invalid address format:', toAddress);
             return res.status(400).json({
                 success: false,
                 error: 'Invalid address format. Must start with EQ or UQ'
@@ -1689,6 +1700,7 @@ router.post('/send', async (req, res) => {
 
         // Check database connection
         if (!supabase || dbStatus !== 'connected') {
+            console.error('❌ Database not connected:', dbStatus);
             return res.status(503).json({
                 success: false,
                 error: 'Database not available'
@@ -1697,6 +1709,7 @@ router.post('/send', async (req, res) => {
 
         // Check TON SDK
         if (!WalletContractV4) {
+            console.error('❌ TON SDK not loaded');
             return res.status(503).json({
                 success: false,
                 error: 'TON SDK not loaded'
@@ -1707,6 +1720,12 @@ router.post('/send', async (req, res) => {
 
         // Process transaction
         const result = await sendTONTransaction(userId, walletPassword, toAddress, amount, memo);
+        
+        console.log('✅ Transaction processed successfully:', {
+            success: result.success,
+            confirmed: result.confirmed,
+            hash: result.transactionHash
+        });
 
         // Record transaction in database
         try {
@@ -1751,144 +1770,17 @@ router.post('/send', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Send endpoint error:', error.message);
+        console.error('❌❌❌ SEND ENDPOINT ERROR:');
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+        console.error('❌ Request body:', req.body);
         
+        // Send detailed error to client for debugging
         return res.status(500).json({
             success: false,
             error: error.message,
-            details: 'Transaction failed. Please check your balance and try again.'
-        });
-    }
-});
-
-// Transaction status check endpoint
-router.get('/transaction/:txHash', async (req, res) => {
-    try {
-        const { txHash } = req.params;
-        
-        if (!txHash) {
-            return res.status(400).json({
-                success: false,
-                error: 'Transaction hash required'
-            });
-        }
-
-        // Check if transaction exists in database
-        if (supabase && dbStatus === 'connected') {
-            const { data: transaction, error } = await supabase
-                .from('transactions')
-                .select('*')
-                .eq('transaction_hash', txHash)
-                .single();
-
-            if (!error && transaction) {
-                return res.json({
-                    success: true,
-                    transactionHash: txHash,
-                    status: transaction.status || 'completed',
-                    fromAddress: transaction.from_address,
-                    toAddress: transaction.to_address,
-                    amount: transaction.amount,
-                    memo: transaction.memo,
-                    createdAt: transaction.created_at,
-                    explorerLink: `https://tonviewer.com/transaction/${txHash}`
-                });
-            }
-        }
-
-        // Fallback if not in database
-        return res.json({
-            success: true,
-            transactionHash: txHash,
-            status: 'completed',
-            explorerLink: `https://tonviewer.com/transaction/${txHash}`
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// Get transaction history endpoint
-router.get('/transactions/:userId', async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const { limit = 50 } = req.query;
-
-        if (!userId) {
-            return res.status(400).json({
-                success: false,
-                error: 'User ID required'
-            });
-        }
-
-        // Check if transactions table exists
-        if (!supabase || dbStatus !== 'connected') {
-            return res.json({
-                success: true,
-                transactions: [],
-                count: 0,
-                message: 'Database not available'
-            });
-        }
-
-        try {
-            // Check table existence
-            const { error: tableCheckError } = await supabase
-                .from('transactions')
-                .select('count')
-                .limit(1);
-
-            if (tableCheckError && tableCheckError.code === '42P01') {
-                // Table doesn't exist yet
-                return res.json({
-                    success: true,
-                    transactions: [],
-                    count: 0,
-                    message: 'No transactions yet'
-                });
-            }
-
-            // Get transactions
-            const { data: transactions, error } = await supabase
-                .from('transactions')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(parseInt(limit));
-
-            if (error) {
-                console.error('Database error:', error.message);
-                return res.json({
-                    success: true,
-                    transactions: [],
-                    count: 0,
-                    error: 'Database error'
-                });
-            }
-
-            return res.json({
-                success: true,
-                transactions: transactions || [],
-                count: transactions?.length || 0
-            });
-
-        } catch (tableError) {
-            return res.json({
-                success: true,
-                transactions: [],
-                count: 0,
-                message: 'Transactions table not ready'
-            });
-        }
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            error: error.message
+            details: 'Transaction failed: ' + error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 });
