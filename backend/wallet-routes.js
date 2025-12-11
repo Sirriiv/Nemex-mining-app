@@ -796,7 +796,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         const internalMsg = internal({
             to: recipientAddress,
             value: amountNano,
-            body: memo || 'Sent from Nemex Wallet',
+            body: memo || '',
             bounce: false
         });
 
