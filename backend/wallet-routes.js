@@ -677,183 +677,107 @@ async function getRealBalance(address, network = 'mainnet') {
 }
 
 // ============================================
-// 🎯 SEND TON TRANSACTION FUNCTION (REAL) - PROPERLY FIXED!
+// 🚀 SEND TON TRANSACTION (CLEAN + CORRECT)
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
     try {
-        console.log(`🚀 SEND REQUEST: ${amount} TON from user ${userId} to ${toAddress}`);
-
-        // 1. Get wallet from database
+        // 1. Load wallet
         const { data: wallet, error: walletError } = await supabase
             .from('user_wallets')
             .select('*')
             .eq('user_id', userId)
             .single();
 
-        if (walletError || !wallet) {
-            throw new Error('Wallet not found');
-        }
+        if (walletError || !wallet) throw new Error('Wallet not found');
 
-        // 2. Verify wallet password
+        // 2. Verify password
         const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
-        if (!passwordValid) {
-            throw new Error('Invalid wallet password');
-        }
+        if (!passwordValid) throw new Error('Invalid wallet password');
 
         // 3. Decrypt mnemonic
         const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
         const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
-        
+
         const decipher = crypto.createDecipheriv(
             encryptedData.algorithm,
             key,
             Buffer.from(encryptedData.iv, 'hex')
         );
-        
+
         decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
-        
+
         let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
-        
+
         const mnemonic = decrypted.split(' ');
-        
-        console.log('✅ Mnemonic decrypted successfully');
 
-        // 4. Derive private key from mnemonic
+        // 4. Derive keypair
         const keyPair = await mnemonicToPrivateKey(mnemonic);
-        console.log('✅ Key pair derived');
 
-        // 5. Get wallet contract
+        // 5. Build wallet contract (V4R2 recommended)
         const walletContract = WalletContractV4.create({
             workchain: 0,
             publicKey: keyPair.publicKey
         });
 
-        // 6. Initialize TON client
-        const endpoint = 'https://toncenter.com/api/v2/jsonRPC';
-        const apiKey = process.env.TONCENTER_API_KEY || '';
-        
-        const tonClient = new TonClient({
-            endpoint: endpoint,
-            apiKey: apiKey
-        });
-
-        console.log('✅ TON client initialized');
-
-        // 7. Get sender wallet state
         const senderAddress = walletContract.address;
-        const senderAddressString = senderAddress.toString({ 
-            urlSafe: true, 
-            bounceable: false, 
-            testOnly: false 
+
+        // 6. TON RPC Client
+        const tonClient = new TonClient({
+            endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+            apiKey: process.env.TONCENTER_API_KEY || ''
         });
 
-        console.log('📋 Sender address:', senderAddressString);
-        console.log('📋 Receiver address:', toAddress);
+        // 7. Parse receiver address
+        const recipientAddress = Address.parse(toAddress);
 
-        // 8. Validate recipient address
-        let recipientAddress;
-        try {
-            recipientAddress = Address.parse(toAddress);
-            console.log('✅ Recipient address parsed successfully');
-        } catch (error) {
-            throw new Error('Invalid recipient address: ' + error.message);
-        }
-
-        // 9. Convert amount to nanoton (1 TON = 1,000,000,000 nanoton)
+        // 8. Convert to nano
         const amountNano = toNano(amount.toString());
-        console.log(`💰 Amount: ${amount} TON (${amountNano} nanoton)`);
 
-        // 10. Get sender's balance
+        // 9. Check balance
         const balance = await tonClient.getBalance(senderAddress);
-        const balanceTON = parseFloat(fromNano(balance));
-        console.log(`💰 Sender balance: ${balanceTON} TON`);
-
-        if (balanceTON < parseFloat(amount) + 0.005) { // Include fee buffer
-            throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${balanceTON} TON`);
+        if (BigInt(balance) < amountNano + toNano('0.02')) { 
+            throw new Error('Insufficient balance for transaction + fees');
         }
 
-        // 11. Get current seqno - THE CORRECT WAY
-        // In @ton/ton, we need to get the wallet's seqno by calling a method on the contract
-        const seqno = await walletContract.getSeqno(tonClient);
-        console.log(`📝 Current seqno: ${seqno}`);
+        // 10. Get seqno
+        const seqno = await tonClient.getSeqno(senderAddress);
 
-        // 12. Send transaction directly using walletContract.sendTransfer
-        console.log("📤 Sending TON transaction...");
-
-        // Create the internal message
-        const internalMsg = internal({
-            to: recipientAddress,
-            value: amountNano,
-            body: memo || 'Sent from Nemex Wallet',
-            bounce: false
-        });
-
-        // Send the transfer
-        await walletContract.sendTransfer(tonClient, {
-            seqno: seqno,
+        // 11. Create transfer
+        const transfer = walletContract.createTransfer({
             secretKey: keyPair.secretKey,
-            messages: [internalMsg],
-            sendMode: 3
+            seqno,
+            messages: [
+                internal({
+                    to: recipientAddress,
+                    value: amountNano,
+                    body: memo || 'Sent from Nemex Wallet',
+                    bounce: false
+                })
+            ]
         });
 
-        console.log("✅ Transaction broadcasted successfully");
+        // 12. Open wallet instance (IMPORTANT)
+        const walletInstance = tonClient.open(walletContract);
 
-        // 13. Wait for confirmation
-        let attempts = 0;
-        const maxAttempts = 30;
-        let confirmed = false;
-        
-        console.log("⏳ Waiting for confirmation...");
-        
-        while (attempts < maxAttempts && !confirmed) {
-            try {
-                // Check if seqno increased
-                const newSeqno = await walletContract.getSeqno(tonClient);
-                
-                if (newSeqno > seqno) {
-                    console.log('✅ Transaction confirmed! New seqno:', newSeqno);
-                    confirmed = true;
-                    break;
-                }
-            } catch (error) {
-                console.log('⚠️ Error checking seqno:', error.message);
-            }
-            
-            attempts++;
-            console.log(`⏳ Waiting... (${attempts}/${maxAttempts})`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        // 13. Send
+        await walletInstance.send(transfer);
 
-        if (!confirmed) {
-            console.log('⚠️ Transaction broadcast but confirmation timeout');
-        }
-
-        // 14. Generate transaction hash
-        const txHash = crypto.createHash('sha256')
-            .update(senderAddressString + toAddress + amountNano.toString() + Date.now())
-            .digest('hex')
-            .substring(0, 64);
-
+        // 14. Return response
         return {
             success: true,
-            message: 'Transaction sent successfully',
-            transactionHash: txHash,
-            fromAddress: senderAddressString,
-            toAddress: toAddress,
-            amount: amount,
+            message: 'Transaction sent.',
+            fromAddress: senderAddress.toString({ bounceable: false, urlSafe: true }),
+            toAddress,
+            amount,
             amountNano: amountNano.toString(),
-            fee: '0.005',
-            memo: memo || '',
-            timestamp: new Date().toISOString(),
-            explorerLink: `https://tonviewer.com/${wallet.eqAddress}`,
-            confirmed: confirmed
+            memo,
+            timestamp: new Date().toISOString()
         };
 
     } catch (error) {
-        console.error('❌ Send transaction failed:', error.message);
-        console.error('Stack:', error.stack);
+        console.error("❌ Send failed:", error);
         throw error;
     }
 }
