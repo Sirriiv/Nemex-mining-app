@@ -677,7 +677,7 @@ async function getRealBalance(address, network = 'mainnet') {
 }
 
 // ============================================
-// 🎯 SEND TON TRANSACTION FUNCTION (REAL)
+// 🎯 SEND TON TRANSACTION FUNCTION (REAL) - FIXED!
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
@@ -774,8 +774,8 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${balanceTON} TON`);
         }
 
-        // 11. Get current seqno
-        const seqno = await tonClient.getSeqno(senderAddress);
+        // 11. Get current seqno - FIXED: Use getWalletInfo instead of getSeqno
+        const { seqno } = await tonClient.getWalletInfo(senderAddress);
         console.log(`📝 Current seqno: ${seqno}`);
 
         // 12. Prepare transfer
@@ -809,15 +809,19 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         
         console.log('✅ Transaction broadcasted:', sendResult);
 
-        // 15. Wait for confirmation
+        // 15. Wait for confirmation - FIXED: Use getWalletInfo instead of getSeqno
         let attempts = 0;
         const maxAttempts = 30;
         
         while (attempts < maxAttempts) {
-            const newSeqno = await tonClient.getSeqno(senderAddress);
-            if (newSeqno > seqno) {
-                console.log('✅ Transaction confirmed! New seqno:', newSeqno);
-                break;
+            try {
+                const { seqno: newSeqno } = await tonClient.getWalletInfo(senderAddress);
+                if (newSeqno > seqno) {
+                    console.log('✅ Transaction confirmed! New seqno:', newSeqno);
+                    break;
+                }
+            } catch (error) {
+                console.log('⚠️ Error checking seqno:', error.message);
             }
             
             attempts++;
