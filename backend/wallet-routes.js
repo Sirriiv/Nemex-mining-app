@@ -677,7 +677,7 @@ async function getRealBalance(address, network = 'mainnet') {
 }
 
 // ============================================
-// 🎯 SEND TON TRANSACTION FUNCTION (REAL) - FINALLY CORRECTED!
+// 🎯 SEND TON TRANSACTION FUNCTION (REAL) - PROPERLY FIXED!
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
@@ -774,47 +774,47 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${balanceTON} TON`);
         }
 
-        // 11. Get current seqno - CORRECTED!
-        const seqno = await tonClient.getSeqno(senderAddress);
+        // 11. Get current seqno - THE CORRECT WAY
+        // In @ton/ton, we need to get the wallet's seqno by calling a method on the contract
+        const seqno = await walletContract.getSeqno(tonClient);
         console.log(`📝 Current seqno: ${seqno}`);
 
-        // 12. Prepare transfer
-        const transfer = walletContract.createTransfer({
-            secretKey: keyPair.secretKey,
-            seqno: seqno,
-            messages: [internal({
-                to: recipientAddress,
-                value: amountNano,
-                body: memo || 'Sent from Nemex Wallet',
-                bounce: false
-            })],
-            sendMode: 3
+        // 12. Send transaction directly using walletContract.sendTransfer
+        console.log("📤 Sending TON transaction...");
+
+        // Create the internal message
+        const internalMsg = internal({
+            to: recipientAddress,
+            value: amountNano,
+            body: memo || 'Sent from Nemex Wallet',
+            bounce: false
         });
 
-        console.log('✅ Transfer prepared');
-
-        // 13. Send transaction using wallet.send() - CORRECTED!
-        console.log("📤 Sending TON transaction using wallet.send()...");
-
-        await walletContract.send(tonClient, {
-            seqno,
+        // Send the transfer
+        await walletContract.sendTransfer(tonClient, {
+            seqno: seqno,
             secretKey: keyPair.secretKey,
-            messages: transfer.messages,
-            sendMode: transfer.sendMode
+            messages: [internalMsg],
+            sendMode: 3
         });
 
         console.log("✅ Transaction broadcasted successfully");
 
-        // 14. Wait for confirmation - CORRECTED!
+        // 13. Wait for confirmation
         let attempts = 0;
         const maxAttempts = 30;
+        let confirmed = false;
         
-        while (attempts < maxAttempts) {
+        console.log("⏳ Waiting for confirmation...");
+        
+        while (attempts < maxAttempts && !confirmed) {
             try {
-                const newSeqno = await tonClient.getSeqno(senderAddress);
+                // Check if seqno increased
+                const newSeqno = await walletContract.getSeqno(tonClient);
                 
                 if (newSeqno > seqno) {
                     console.log('✅ Transaction confirmed! New seqno:', newSeqno);
+                    confirmed = true;
                     break;
                 }
             } catch (error) {
@@ -822,15 +822,15 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             }
             
             attempts++;
-            console.log(`⏳ Waiting for confirmation... (${attempts}/${maxAttempts})`);
+            console.log(`⏳ Waiting... (${attempts}/${maxAttempts})`);
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
 
-        if (attempts >= maxAttempts) {
+        if (!confirmed) {
             console.log('⚠️ Transaction broadcast but confirmation timeout');
         }
 
-        // 15. Generate transaction hash
+        // 14. Generate transaction hash
         const txHash = crypto.createHash('sha256')
             .update(senderAddressString + toAddress + amountNano.toString() + Date.now())
             .digest('hex')
@@ -847,7 +847,8 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             fee: '0.005',
             memo: memo || '',
             timestamp: new Date().toISOString(),
-            explorerLink: `https://tonviewer.com/${wallet.eqAddress}`
+            explorerLink: `https://tonviewer.com/${wallet.eqAddress}`,
+            confirmed: confirmed
         };
 
     } catch (error) {
