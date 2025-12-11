@@ -143,6 +143,7 @@
             padding-bottom: 80px;
         }
 
+        /* ✅ REMOVED: Header settings button removed (only bottom nav remains) */
         .header {
             display: flex;
             justify-content: space-between;
@@ -166,6 +167,7 @@
             gap: 12px;
         }
 
+        /* ✅ CHANGED: Removed settings button from header */
         .header-btn {
             background: rgba(212, 175, 55, 0.1);
             border: 1px solid var(--gold);
@@ -175,6 +177,7 @@
             font-size: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: none; /* ✅ HIDDEN - only bottom nav has settings */
         }
 
         .header-btn:hover {
@@ -1740,6 +1743,206 @@
             padding: 12px;
         }
 
+        /* ===== NEW: HISTORY VIEW STYLES ===== */
+        .history-section {
+            display: none; /* Hidden by default */
+            padding: 20px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .history-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .sync-history-btn {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .sync-history-btn:hover {
+            background: rgba(212, 175, 55, 0.2);
+        }
+
+        .sync-history-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-muted);
+        }
+
+        .history-empty-icon {
+            font-size: 48px;
+            color: var(--gold);
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .history-empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .history-empty-subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .transaction-item {
+            background: var(--card-bg);
+            border-radius: var(--border-radius-sm);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .transaction-item:hover {
+            background: rgba(212, 175, 55, 0.05);
+            transform: translateX(4px);
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .transaction-send .transaction-icon {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .transaction-receive .transaction-icon {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+        }
+
+        .transaction-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .transaction-type {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .transaction-send .transaction-type {
+            color: var(--error);
+        }
+
+        .transaction-receive .transaction-type {
+            color: var(--success);
+        }
+
+        .transaction-address {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .transaction-memo {
+            font-size: 12px;
+            color: var(--gold);
+            font-style: italic;
+        }
+
+        .transaction-date {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .transaction-amount {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .transaction-token {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .transaction-value {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .transaction-status {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .status-completed {
+            background: rgba(0, 200, 81, 0.1);
+            color: var(--success);
+        }
+
+        .status-pending {
+            background: rgba(255, 187, 51, 0.1);
+            color: var(--warning);
+        }
+
+        .status-failed {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        /* Transaction Loading */
+        .transaction-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            color: var(--gold);
+        }
+
         /* Responsive Design */
         @media (max-width: 480px) {
             .wallet-card-center-section {
@@ -1845,9 +2048,7 @@
                 Nemex Wallet
             </div>
             <div class="header-actions">
-                <button class="header-btn" onclick="showSettingsModal()">
-                    <i class="fas fa-cog"></i>
-                </button>
+                <!-- ✅ REMOVED: Settings button removed from header (kept in bottom nav only) -->
             </div>
         </header>
 
@@ -1867,54 +2068,80 @@
 
         <!-- Wallet Interface (shown when wallet exists) -->
         <div id="walletInterface" class="hidden">
-            <!-- Balance Section -->
-            <section class="balance-section">
-                <div class="balance-amount" id="totalBalance">
-                    <span class="loading" id="balanceLoading" style="display: none;"></span>
-                    <span id="balanceAmount">$0.00</span>
-                </div>
-            </section>
+            <!-- Wallet View (default) -->
+            <div id="walletView">
+                <!-- Balance Section -->
+                <section class="balance-section">
+                    <div class="balance-amount" id="totalBalance">
+                        <span class="loading" id="balanceLoading" style="display: none;"></span>
+                        <span id="balanceAmount">$0.00</span>
+                    </div>
+                </section>
 
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <div class="action-btn" onclick="showSendModal()" id="sendButton">
-                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                    </svg>
-                    <div class="action-label">Send</div>
+                <!-- Action Buttons -->
+                <div class="action-buttons">
+                    <div class="action-btn" onclick="showSendModal()" id="sendButton">
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                        </svg>
+                        <div class="action-label">Send</div>
+                    </div>
+                    <div class="action-btn" onclick="showReceiveModal()" id="receiveButton">
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                        </svg>
+                        <div class="action-label">Receive</div>
+                    </div>
+                    <div class="action-btn" onclick="showSwapModal()" id="swapButton">
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                        </svg>
+                        <div class="action-label">Convert NMXp</div>
+                    </div>
+                    <div class="action-btn" onclick="showBuyModal()" id="buyButton">
+                        <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                        <div class="action-label">Buy</div>
+                    </div>
                 </div>
-                <div class="action-btn" onclick="showReceiveModal()" id="receiveButton">
-                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
-                    </svg>
-                    <div class="action-label">Receive</div>
-                </div>
-                <div class="action-btn" onclick="showSwapModal()" id="swapButton">
-                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                    </svg>
-                    <div class="action-label">Convert NMXp</div>
-                </div>
-                <div class="action-btn" onclick="showBuyModal()" id="buyButton">
-                    <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                    <div class="action-label">Buy</div>
-                </div>
+
+                <!-- Token List -->
+                <section class="token-section">
+                    <div class="section-title">
+                        <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                        </svg>
+                        Your Assets
+                    </div>
+                    <div class="token-list" id="tokenList">
+                        <!-- Tokens will be loaded here -->
+                    </div>
+                </section>
             </div>
 
-            <!-- Token List -->
-            <section class="token-section">
-                <div class="section-title">
-                    <svg class="section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Your Assets
+            <!-- History View (hidden by default) -->
+            <div id="historyView" class="history-section">
+                <div class="history-header">
+                    <div class="history-title">Transaction History</div>
+                    <div class="history-actions">
+                        <button class="sync-history-btn" onclick="syncTransactionHistory()" id="syncHistoryBtn">
+                            <i class="fas fa-sync-alt"></i> Sync
+                        </button>
+                    </div>
                 </div>
-                <div class="token-list" id="tokenList">
-                    <!-- Tokens will be loaded here -->
+                
+                <div class="history-list" id="transactionHistoryList">
+                    <!-- Transactions will be loaded here -->
+                    <div class="history-empty" id="emptyHistory">
+                        <div class="history-empty-icon">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                        <div class="history-empty-title">No transactions yet</div>
+                        <div class="history-empty-subtitle">Your transaction history will appear here</div>
+                    </div>
                 </div>
-            </section>
+            </div>
         </div>
 
         <!-- Bottom Navigation -->
@@ -2594,10 +2821,10 @@
 
     <script>
 // =============================================
-// 🎯 MAIN WALLET APPLICATION CODE - WITH NEW PASSWORD SYSTEM
+// 🎯 MAIN WALLET APPLICATION CODE - WITH COMPLETE SEND & HISTORY
 // =============================================
 
-console.log('🚀 Nemex Wallet Application Starting v10...');
+console.log('🚀 Nemex Wallet Application Starting v11...');
 
 // =============================================
 // 🎯 GLOBAL STATE MANAGEMENT
@@ -2776,10 +3003,27 @@ function validateUserLoggedIn() {
     return true;
 }
 
+// ✅ FIXED: Token prices display with 2 decimal places ($0.00)
+function formatTokenPrice(price) {
+    return parseFloat(price).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+// ✅ FIXED: Token balances display with 4 decimal places (0.0000)
 function formatTokenBalance(balance) {
     return parseFloat(balance).toLocaleString('en-US', {
+        minimumFractionDigits: 4,
+        maximumFractionDigits: 4
+    });
+}
+
+// ✅ FIXED: USD value for token balances (2 decimal places)
+function formatTokenValue(value) {
+    return parseFloat(value).toLocaleString('en-US', {
         minimumFractionDigits: 2,
-        maximumFractionDigits: 6
+        maximumFractionDigits: 2
     });
 }
 
@@ -2908,127 +3152,12 @@ function showWalletLoginModal() {
     }
 }
 
-async function loginToWallet() {
-    console.log('🔐 Logging into wallet...');
-
-    const password = document.getElementById('walletPasswordLogin')?.value;
-    const statusElement = document.getElementById('walletLoginStatus');
-    const loginBtn = document.getElementById('walletLoginBtn');
-
-    try {
-        if (!password) {
-            showStatusMessage('Please enter wallet password', 'error', statusElement);
-            return;
-        }
-
-        if (password.length < 6) {
-            showStatusMessage('Password must be at least 6 characters', 'error', statusElement);
-            return;
-        }
-
-        loginBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Unlocking...';
-        loginBtn.disabled = true;
-
-        showStatusMessage('Unlocking wallet...', 'loading', statusElement);
-
-        if (window.walletManager && typeof window.walletManager.loginToWallet === 'function') {
-            const result = await window.walletManager.loginToWallet(password);
-            
-            if (result.success) {
-                showStatusMessage('✅ Wallet unlocked successfully!', 'success', statusElement);
-                setTimeout(() => {
-                    closeModal();
-                    initWallet();
-                }, 1500);
-            } else {
-                throw new Error(result.error || 'Failed to unlock wallet');
-            }
-        } else {
-            throw new Error('Wallet system not loaded properly');
-        }
-
-    } catch (error) {
-        console.error('❌ Wallet login failed:', error);
-        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
-
-        if (loginBtn) {
-            loginBtn.innerHTML = 'Unlock Wallet';
-            loginBtn.disabled = false;
-        }
-    }
-}
-
-async function createNewWallet() {
-    console.log('🎯 Creating new wallet with password system...');
-
-    const password = document.getElementById('walletPassword')?.value;
-    const confirmPassword = document.getElementById('confirmWalletPassword')?.value;
-    const statusElement = document.getElementById('createWalletStatus');
-    const createBtn = document.getElementById('createWalletBtn');
-
-    try {
-        if (!password || !confirmPassword) {
-            showStatusMessage('Please enter and confirm password', 'error', statusElement);
-            return;
-        }
-
-        if (password.length < 6) {
-            showStatusMessage('Password must be at least 6 characters', 'error', statusElement);
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            showStatusMessage('Passwords do not match', 'error', statusElement);
-            return;
-        }
-
-        createBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Creating...';
-        createBtn.disabled = true;
-
-        showStatusMessage('Creating your secure wallet...', 'loading', statusElement);
-
-        const userId = getCurrentUserId();
-        if (!userId) {
-            throw new Error('Please login to your mining account first');
-        }
-
-        if (window.walletManager && typeof window.walletManager.createWallet === 'function') {
-            const result = await window.walletManager.createWallet(password);
-            
-            if (result.success) {
-                showStatusMessage('✅ Wallet created successfully!', 'success', statusElement);
-                setTimeout(() => {
-                    closeModal();
-                    initWallet();
-                }, 1500);
-            } else {
-                throw new Error(result.error || 'Failed to create wallet');
-            }
-        } else {
-            throw new Error('Wallet system not loaded properly');
-        }
-
-    } catch (error) {
-        console.error('❌ Wallet creation failed:', error);
-        showStatusMessage(`❌ Error: ${error.message}`, 'error', statusElement);
-
-        if (createBtn) {
-            createBtn.innerHTML = 'Create Wallet';
-            createBtn.disabled = false;
-        }
-    }
-}
-
-function showRecoveryOptions() {
-    showToast('⚠️ Recovery options coming soon!', 'warning');
-}
-
 // =============================================
 // 🎯 WALLET INITIALIZATION
 // =============================================
 
 async function initWallet() {
-    console.log('🔄 Initializing Nemex Hybrid wallet v10...');
+    console.log('🔄 Initializing Nemex Hybrid wallet v11...');
 
     try {
         if (!window.walletManager) {
@@ -3060,12 +3189,13 @@ async function initWallet() {
                 
                 walletState.isInitialized = true;
                 console.log('✅ Wallet loaded for user (cleaned):', walletAddress);
-                console.log('📏 Address length:', walletAddress.length);
 
                 showWalletInterface();
                 await loadWalletData();
                 // ✅ ADDED: Start REAL balance updates
                 startRealBalanceUpdates();
+                // ✅ ADDED: Load transaction history
+                loadTransactionHistory();
             } else if (result.showPasswordPrompt) {
                 console.log('🔐 Wallet exists, showing password prompt');
                 showWalletLoginModal();
@@ -3198,7 +3328,421 @@ function showLoginRequiredMessage() {
 }
 
 // =============================================
-// 🎯 SEND FUNCTIONALITY (UPDATED)
+// 🎯 VIEW MANAGEMENT (Wallet/History)
+// =============================================
+
+function showWalletView() {
+    walletState.currentView = 'wallet';
+    updateNavItems();
+    
+    document.getElementById('walletView').style.display = 'block';
+    document.getElementById('historyView').style.display = 'none';
+}
+
+function showHistoryView() {
+    walletState.currentView = 'history';
+    updateNavItems();
+    
+    document.getElementById('walletView').style.display = 'none';
+    document.getElementById('historyView').style.display = 'block';
+    
+    // Load history if not already loaded
+    loadTransactionHistory();
+}
+
+function updateNavItems() {
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    if (walletState.currentView === 'wallet') {
+        document.querySelectorAll('.nav-item')[0]?.classList.add('active');
+    } else if (walletState.currentView === 'history') {
+        document.querySelectorAll('.nav-item')[1]?.classList.add('active');
+    }
+}
+
+// =============================================
+// 🎯 TRANSACTION HISTORY FUNCTIONS
+// =============================================
+
+async function loadTransactionHistory() {
+    try {
+        console.log('📜 Loading transaction history...');
+        
+        if (!window.walletManager || !walletState.hasWallet) {
+            console.log('❌ No wallet manager or wallet available');
+            return;
+        }
+
+        const historyList = document.getElementById('transactionHistoryList');
+        const emptyHistory = document.getElementById('emptyHistory');
+        
+        if (!historyList) {
+            console.error('❌ History list element not found');
+            return;
+        }
+
+        // Show loading state
+        historyList.innerHTML = `
+            <div class="transaction-loading">
+                <div class="loading" style="margin-right: 10px;"></div>
+                Loading transactions...
+            </div>
+        `;
+
+        const result = await window.getTransactionHistory(50);
+        
+        if (result.success && result.transactions && result.transactions.length > 0) {
+            // Hide empty state
+            if (emptyHistory) emptyHistory.style.display = 'none';
+            
+            // Render transactions
+            renderTransactionHistory(result.transactions);
+        } else {
+            // Show empty state
+            if (emptyHistory) emptyHistory.style.display = 'block';
+            historyList.innerHTML = '';
+            historyList.appendChild(emptyHistory);
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading transaction history:', error);
+        const historyList = document.getElementById('transactionHistoryList');
+        if (historyList) {
+            historyList.innerHTML = `
+                <div class="history-empty">
+                    <div class="history-empty-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="history-empty-title">Failed to load history</div>
+                    <div class="history-empty-subtitle">${error.message || 'Please try again'}</div>
+                </div>
+            `;
+        }
+    }
+}
+
+function renderTransactionHistory(transactions) {
+    const historyList = document.getElementById('transactionHistoryList');
+    if (!historyList) return;
+
+    // Sort by date (newest first)
+    transactions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    historyList.innerHTML = '';
+
+    transactions.forEach(tx => {
+        const isSend = tx.type === 'send';
+        const isReceive = tx.type === 'receive';
+        const isTON = tx.token === 'TON';
+        const isNMX = tx.token === 'NMX';
+        
+        const date = new Date(tx.created_at);
+        const formattedDate = date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        const amount = parseFloat(tx.amount) || 0;
+        const displayAmount = amount.toLocaleString('en-US', {
+            minimumFractionDigits: isTON ? 4 : 2,
+            maximumFractionDigits: isTON ? 4 : 2
+        });
+
+        const displayAddress = isSend ? (tx.to_address || 'Unknown') : (tx.from_address || 'Unknown');
+        const shortAddress = displayAddress.length > 16 
+            ? displayAddress.substring(0, 8) + '...' + displayAddress.substring(displayAddress.length - 8)
+            : displayAddress;
+
+        const tokenSymbol = tx.token || 'TON';
+        const tokenName = isTON ? 'Toncoin' : (isNMX ? 'NemexCoin' : tokenSymbol);
+        
+        // Determine status
+        let statusClass = 'status-pending';
+        let statusText = 'Pending';
+        
+        if (tx.status === 'completed' || tx.status === 'confirmed') {
+            statusClass = 'status-completed';
+            statusText = 'Completed';
+        } else if (tx.status === 'failed') {
+            statusClass = 'status-failed';
+            statusText = 'Failed';
+        }
+
+        const transactionItem = document.createElement('div');
+        transactionItem.className = `transaction-item ${isSend ? 'transaction-send' : 'transaction-receive'}`;
+        transactionItem.innerHTML = `
+            <div class="transaction-icon">
+                <i class="fas fa-${isSend ? 'arrow-up' : 'arrow-down'}"></i>
+            </div>
+            <div class="transaction-info">
+                <div class="transaction-type">
+                    ${isSend ? 'Sent' : 'Received'} ${tokenName}
+                </div>
+                <div class="transaction-address" title="${displayAddress}">
+                    ${isSend ? 'To: ' : 'From: '}${shortAddress}
+                </div>
+                ${tx.description ? `<div class="transaction-memo">"${tx.description}"</div>` : ''}
+                <div class="transaction-date">${formattedDate}</div>
+                <div class="transaction-status ${statusClass}">${statusText}</div>
+            </div>
+            <div class="transaction-amount">
+                <div class="transaction-token" style="color: ${isSend ? 'var(--error)' : 'var(--success)'}">
+                    ${isSend ? '-' : '+'}${displayAmount} ${tokenSymbol}
+                </div>
+                <div class="transaction-value">
+                    ${tx.network_fee ? `Fee: ${parseFloat(tx.network_fee).toFixed(6)} TON` : ''}
+                </div>
+            </div>
+        `;
+
+        // Add click handler to view details
+        transactionItem.onclick = () => {
+            showTransactionDetails(tx);
+        };
+
+        historyList.appendChild(transactionItem);
+    });
+}
+
+async function syncTransactionHistory() {
+    try {
+        console.log('🔄 Syncing transaction history...');
+        
+        const syncBtn = document.getElementById('syncHistoryBtn');
+        if (syncBtn) {
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing...';
+        }
+
+        showToast('🔄 Syncing received transactions...', 'info');
+        
+        const result = await window.syncTransactions();
+        
+        if (result.success) {
+            showToast(`✅ ${result.message}`, 'success');
+            // Reload history after sync
+            loadTransactionHistory();
+        } else {
+            showToast(`❌ ${result.error || 'Sync failed'}`, 'error');
+        }
+
+    } catch (error) {
+        console.error('❌ Error syncing history:', error);
+        showToast(`❌ ${error.message || 'Sync failed'}`, 'error');
+    } finally {
+        const syncBtn = document.getElementById('syncHistoryBtn');
+        if (syncBtn) {
+            syncBtn.disabled = false;
+            syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Sync';
+        }
+    }
+}
+
+function showTransactionDetails(transaction) {
+    const isSend = transaction.type === 'send';
+    const isReceive = transaction.type === 'receive';
+    const amount = parseFloat(transaction.amount) || 0;
+    const fee = parseFloat(transaction.network_fee) || 0;
+    const total = isSend ? amount + fee : amount;
+    
+    const details = `
+🔐 **Transaction Details**
+
+📝 **Type:** ${isSend ? 'Sent' : 'Received'} ${transaction.token || 'TON'}
+💰 **Amount:** ${amount.toFixed(6)} ${transaction.token || 'TON'}
+${fee > 0 ? `⛽ **Network Fee:** ${fee.toFixed(6)} TON\n` : ''}
+${isSend ? `📍 **To Address:** ${transaction.to_address || 'Unknown'}` : `📍 **From Address:** ${transaction.from_address || 'Unknown'}`}
+
+📅 **Date:** ${new Date(transaction.created_at).toLocaleString()}
+🆔 **Transaction Hash:** ${transaction.transaction_hash || 'Pending'}
+📋 **Status:** ${transaction.status || 'Pending'}
+${transaction.description ? `📝 **Memo:** "${transaction.description}"` : ''}
+
+${transaction.block_height ? `🔗 **Block Height:** ${transaction.block_height}` : ''}
+${transaction.block_time ? `⏰ **Block Time:** ${new Date(transaction.block_time).toLocaleString()}` : ''}
+    `.trim();
+
+    alert(details);
+}
+
+// =============================================
+// 🎯 COMPLETE SEND FUNCTIONALITY (REAL TRANSACTIONS)
+// =============================================
+
+async function confirmSendTransaction() {
+    const toAddress = document.getElementById('sendToAddress').value.trim();
+    const amount = parseFloat(document.getElementById('sendAmount').value);
+    const memo = document.getElementById('sendMemo').value;
+    const statusElement = document.getElementById('sendStatus');
+    const confirmBtn = document.getElementById('confirmSendBtn');
+
+    if (!toAddress) {
+        showStatusMessage('Please enter recipient address', 'error', statusElement);
+        document.getElementById('sendToAddress').focus();
+        return;
+    }
+
+    if (!amount || amount <= 0) {
+        showStatusMessage('Please enter valid amount', 'error', statusElement);
+        document.getElementById('sendAmount').focus();
+        return;
+    }
+
+    if (!validateSendAddress()) {
+        showStatusMessage('Please enter valid TON address', 'error', statusElement);
+        return;
+    }
+
+    if (currentSendToken === 'TON') {
+        const totalCost = amount + TRANSACTION_FEE;
+        if (totalCost > currentTokenBalance) {
+            showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(4)} TON (including fee)`, 'error', statusElement);
+            return;
+        }
+    } else {
+        const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+        if (amount > currentTokenBalance) {
+            showStatusMessage(`Insufficient ${currentSendToken} balance`, 'error', statusElement);
+            return;
+        }
+        if (!tonToken || tonToken.balance < TRANSACTION_FEE) {
+            showStatusMessage(`Insufficient TON for gas fee (need ${TRANSACTION_FEE} TON)`, 'error', statusElement);
+            return;
+        }
+    }
+
+    try {
+        confirmBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Processing Transaction...';
+        confirmBtn.disabled = true;
+        confirmBtn.style.opacity = '0.7';
+
+        showStatusMessage('🔐 Transaction requires wallet password...', 'loading', statusElement);
+
+        // ✅ Use the REAL send function from wallet.js
+        const result = await window.sendTransaction(toAddress, amount, memo);
+        
+        if (result.success) {
+            showStatusMessage('✅ Transaction sent successfully!', 'success', statusElement);
+            showToast('✅ Transaction sent successfully!', 'success');
+            
+            // Update balances
+            await updateRealBalance();
+            
+            // Update history
+            loadTransactionHistory();
+            
+            // Close modal after success
+            setTimeout(() => {
+                closeModal();
+                // Clear form
+                document.getElementById('sendToAddress').value = '';
+                document.getElementById('sendAmount').value = '';
+                document.getElementById('sendMemo').value = '';
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Transaction failed');
+        }
+
+    } catch (error) {
+        console.error('❌ Send transaction failed:', error);
+        if (statusElement) {
+            statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
+        }
+        showToast(`❌ ${error.message}`, 'error');
+    } finally {
+        if (confirmBtn) {
+            confirmBtn.innerHTML = 'Confirm Send';
+            confirmBtn.disabled = false;
+            confirmBtn.style.opacity = '1';
+        }
+    }
+}
+
+// =============================================
+// 🎯 WALLET DATA LOADING (UPDATED WITH FIXED FORMATTING)
+// =============================================
+
+async function loadWalletData() {
+    if (!walletState.hasWallet || !walletState.wallet) return;
+
+    try {
+        // Get TON price
+        const priceResult = await window.walletManager.getPrices();
+        if (priceResult.success && priceResult.prices) {
+            SUPPORTED_TOKENS[0].price = priceResult.prices.TON?.price || 0;
+            SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON?.change24h || 0;
+            SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0;
+            SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
+        }
+
+        // ✅ FIXED: Don't update balance here - let the updateRealBalance function handle it
+        // This prevents overwriting the real balance with 0
+        console.log('ℹ️ Skipping manual balance fetch - using real updates');
+
+        updateWalletDisplay();
+    } catch (error) {
+        console.error('❌ Load wallet data failed:', error);
+    }
+}
+
+function updateWalletDisplay() {
+    const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
+        return sum + (token.balance * token.price);
+    }, 0);
+
+    const balanceElement = document.getElementById('balanceAmount');
+    if (balanceElement) {
+        // ✅ FIXED: Total balance shows $0.00 (2 decimal places)
+        balanceElement.textContent = `$${totalUSD.toFixed(2)}`;
+        // Add animation when balance changes
+        if (totalUSD > 0) {
+            balanceElement.style.color = 'var(--gold)';
+            balanceElement.style.textShadow = '0 2px 10px rgba(212, 175, 55, 0.5)';
+        }
+    }
+
+    const tokenList = document.getElementById('tokenList');
+    if (tokenList) {
+        tokenList.innerHTML = SUPPORTED_TOKENS.map(token => {
+            // ✅ FIXED: Token price shows $0.00 (2 decimal places)
+            const priceDisplay = formatTokenPrice(token.price);
+            // ✅ FIXED: Token balance shows 0.0000 (4 decimal places)
+            const balanceDisplay = formatTokenBalance(token.balance);
+            // ✅ FIXED: Token value shows $0.00 (2 decimal places)
+            const valueDisplay = formatTokenValue(token.balance * token.price);
+            
+            return `
+            <div class="token-card ${token.symbol === 'TON' ? 'featured' : ''}">
+                <div class="token-icon ${token.symbol.toLowerCase()}-icon">
+                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
+                         onerror="handleTokenLogoError(this, '${token.symbol}')">
+                    ${token.symbol === 'TON' ? '<div class="featured-star">★</div>' : ''}
+                </div>
+                <div class="token-info">
+                    <div class="token-name">${token.name}</div>
+                    <div class="token-symbol">${token.symbol}</div>
+                    <div class="token-price">
+                        $${priceDisplay} 
+                        <span class="token-change ${token.change24h >= 0 ? 'change-positive' : 'change-negative'}">
+                            ${token.change24h >= 0 ? '+' : ''}${token.change24h.toFixed(2)}%
+                        </span>
+                    </div>
+                </div>
+                <div class="token-balance">
+                    <div class="token-amount">${balanceDisplay}</div>
+                    <div class="token-value">$${valueDisplay}</div>
+                </div>
+            </div>
+        `}).join('');
+    }
+}
+
+// =============================================
+// 🎯 OTHER FUNCTIONS (Keep existing)
 // =============================================
 
 function showSendModal() {
@@ -3310,6 +3854,7 @@ function updateSendBalances() {
             balanceElement.style.transform = 'scale(1)';
         }, 300);
 
+        // ✅ FIXED: Send modal shows balance with 4 decimal places
         balanceElement.textContent = formatTokenBalance(currentTokenBalance);
         tokenElement.textContent = currentSendToken;
 
@@ -3328,6 +3873,7 @@ function updateUsdConversion() {
 
     const usdElement = document.getElementById('sendUsdValue');
     if (usdElement) {
+        // ✅ FIXED: Send USD value shows 2 decimal places
         usdElement.textContent = usdValue.toLocaleString('en-US', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
@@ -3339,6 +3885,7 @@ function updateUsdConversion() {
         const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
         const tonPrice = tonToken ? tonToken.price : 0;
         const feeUsd = TRANSACTION_FEE * tonPrice;
+        // ✅ FIXED: Fee USD value shows 4 decimal places
         feeUsdElement.textContent = feeUsd.toFixed(4);
     }
 }
@@ -3477,81 +4024,6 @@ function updateSendSummary() {
     }
 }
 
-async function confirmSendTransaction() {
-    const toAddress = document.getElementById('sendToAddress').value.trim();
-    const amount = parseFloat(document.getElementById('sendAmount').value);
-    const memo = document.getElementById('sendMemo').value;
-    const statusElement = document.getElementById('sendStatus');
-    const confirmBtn = document.getElementById('confirmSendBtn');
-
-    if (!toAddress) {
-        showStatusMessage('Please enter recipient address', 'error', statusElement);
-        document.getElementById('sendToAddress').focus();
-        return;
-    }
-
-    if (!amount || amount <= 0) {
-        showStatusMessage('Please enter valid amount', 'error', statusElement);
-        document.getElementById('sendAmount').focus();
-        return;
-    }
-
-    if (!validateSendAddress()) {
-        showStatusMessage('Please enter valid TON address', 'error', statusElement);
-        return;
-    }
-
-    if (currentSendToken === 'TON') {
-        const totalCost = amount + TRANSACTION_FEE;
-        if (totalCost > currentTokenBalance) {
-            showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(2)} TON (including fee)`, 'error', statusElement);
-            return;
-        }
-    } else {
-        const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
-        if (amount > currentTokenBalance) {
-            showStatusMessage(`Insufficient ${currentSendToken} balance`, 'error', statusElement);
-            return;
-        }
-        if (!tonToken || tonToken.balance < TRANSACTION_FEE) {
-            showStatusMessage(`Insufficient TON for gas fee (need ${TRANSACTION_FEE} TON)`, 'error', statusElement);
-            return;
-        }
-    }
-
-    try {
-        confirmBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Processing Transaction...';
-        confirmBtn.disabled = true;
-        confirmBtn.style.opacity = '0.7';
-
-        showStatusMessage(' Processing transaction. . .', 'loading', statusElement);
-
-        showToast('⚠️ Send functionality coming soon!', 'warning');
-
-        setTimeout(() => {
-            closeModal();
-            loadWalletData();
-        }, 2000);
-
-    } catch (error) {
-        console.error('❌ Send transaction failed:', error);
-        if (statusElement) {
-            statusElement.innerHTML = `<div class="status-error">❌ ${error.message}</div>`;
-        }
-        showToast(`❌ ${error.message}`, 'error');
-    } finally {
-        if (confirmBtn) {
-            confirmBtn.innerHTML = 'Confirm Send';
-            confirmBtn.disabled = false;
-            confirmBtn.style.opacity = '1';
-        }
-    }
-}
-
-// =============================================
-// 🎯 RECEIVE FUNCTIONALITY
-// =============================================
-
 function showReceiveModal() {
     if (!walletState.hasWallet) {
         showToast('❌ You need a wallet to receive tokens', 'error');
@@ -3587,8 +4059,6 @@ function initializeWalletCard() {
     // ✅ FIX: Clean the address (remove double UQ if present)
     let cleanAddress = address;
     console.log('🔍 Raw address from walletState:', address);
-    console.log('📏 Length:', address.length);
-    console.log('🔤 First 4 chars:', address.substring(0, 4));
     
     // Check for double UQ and fix it
     if (cleanAddress.startsWith('UQUQ')) {
@@ -3600,27 +4070,11 @@ function initializeWalletCard() {
         cleanAddress = 'UQ' + cleanAddress;
     }
 
-    // Ensure exactly 48 characters
-    if (cleanAddress.length !== 48) {
-        console.warn(`⚠️ Address length ${cleanAddress.length}, fixing to 48`);
-        if (cleanAddress.length > 48) {
-            cleanAddress = cleanAddress.substring(0, 48);
-        } else {
-            // Pad with valid base64url characters
-            const padding = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-            while (cleanAddress.length < 48) {
-                cleanAddress += padding.charAt(Math.floor(Math.random() * padding.length));
-            }
-        }
-    }
-
     const addressFull = document.getElementById('addressFull');
     if (addressFull) {
         addressFull.textContent = cleanAddress;  // ✅ Use the CLEANED address
         addressFull.style.color = 'var(--gold)';
         console.log('✅ Receive modal address set (cleaned):', cleanAddress);
-        console.log('📏 Final length:', cleanAddress.length);
-        console.log('🔤 First 4 chars:', cleanAddress.substring(0, 4));
     }
 
     selectReceiveToken('TON');
@@ -3692,7 +4146,7 @@ This single address can receive all supported TON blockchain tokens.
 }
 
 // =============================================
-// 🎯 CONVERT NMXp FUNCTIONALITY
+// 🎯 OTHER FUNCTIONS (Keep existing)
 // =============================================
 
 function showSwapModal() {
@@ -4081,101 +4535,8 @@ async function deleteWallet() {
     }
 }
 
-// =============================================
-// 🎯 WALLET DATA LOADING (UPDATED)
-// =============================================
-
-async function loadWalletData() {
-    if (!walletState.hasWallet || !walletState.wallet) return;
-
-    try {
-        // Get TON price
-        const priceResult = await window.walletManager.getPrices();
-        if (priceResult.success && priceResult.prices) {
-            SUPPORTED_TOKENS[0].price = priceResult.prices.TON?.price || 0;
-            SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON?.change24h || 0;
-            SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0;
-            SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
-        }
-
-        // ✅ FIXED: Don't update balance here - let the updateRealBalance function handle it
-        // This prevents overwriting the real balance with 0
-        console.log('ℹ️ Skipping manual balance fetch - using real updates');
-
-        updateWalletDisplay();
-    } catch (error) {
-        console.error('❌ Load wallet data failed:', error);
-    }
-}
-
-function updateWalletDisplay() {
-    const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
-        return sum + (token.balance * token.price);
-    }, 0);
-
-    const balanceElement = document.getElementById('balanceAmount');
-    if (balanceElement) {
-        balanceElement.textContent = `$${totalUSD.toFixed(2)}`;
-        // Add animation when balance changes
-        if (totalUSD > 0) {
-            balanceElement.style.color = 'var(--gold)';
-            balanceElement.style.textShadow = '0 2px 10px rgba(212, 175, 55, 0.5)';
-        }
-    }
-
-    const tokenList = document.getElementById('tokenList');
-    if (tokenList) {
-        tokenList.innerHTML = SUPPORTED_TOKENS.map(token => `
-            <div class="token-card ${token.symbol === 'TON' ? 'featured' : ''}">
-                <div class="token-icon ${token.symbol.toLowerCase()}-icon">
-                    <img src="${token.logo}" alt="${token.name}" class="token-icon-img" 
-                         onerror="handleTokenLogoError(this, '${token.symbol}')">
-                    ${token.symbol === 'TON' ? '<div class="featured-star">★</div>' : ''}
-                </div>
-                <div class="token-info">
-                    <div class="token-name">${token.name}</div>
-                    <div class="token-symbol">${token.symbol}</div>
-                    <div class="token-price">
-                        $${token.price.toFixed(4)} 
-                        <span class="token-change ${token.change24h >= 0 ? 'change-positive' : 'change-negative'}">
-                            ${token.change24h >= 0 ? '+' : ''}${token.change24h.toFixed(2)}%
-                        </span>
-                    </div>
-                </div>
-                <div class="token-balance">
-                    <div class="token-amount">${token.balance.toFixed(4)}</div>
-                    <div class="token-value">$${(token.balance * token.price).toFixed(2)}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-}
-
 function showBuyModal() {
     showToast('⚠️ Buy functionality coming soon!', 'warning');
-}
-
-function showHistoryView() {
-    walletState.currentView = 'history';
-    updateNavItems();
-    showToast('⚠️ Transaction history coming soon!', 'warning');
-}
-
-function showWalletView() {
-    walletState.currentView = 'wallet';
-    updateNavItems();
-}
-
-function updateNavItems() {
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-    });
-
-    if (walletState.currentView === 'wallet') {
-        document.querySelectorAll('.nav-item')[0]?.classList.add('active');
-    } else if (walletState.currentView === 'history') {
-        document.querySelectorAll('.nav-item')[1]?.classList.add('active');
-    }
 }
 
 function showLoading(message = 'Loading...') {
@@ -4322,7 +4683,7 @@ async function fetchPricesWithFastestAPI() {
 // =============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎯 Nemex Wallet page loaded - initializing v10...');
+    console.log('🎯 Nemex Wallet page loaded - initializing v11...');
 
     console.log('🔍 Debug - Available user info:', {
         walletManagerUserId: window.walletManager?.userId,
@@ -4371,10 +4732,38 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Listen for wallet-loaded event
+    window.addEventListener('wallet-loaded', function(event) {
+        console.log('🎯 Wallet loaded event received:', event.detail);
+        // Update wallet state with loaded wallet
+        if (event.detail.wallet) {
+            walletState.wallet = event.detail.wallet;
+            walletState.address = event.detail.wallet.address;
+            walletState.hasWallet = true;
+            walletState.isInitialized = true;
+            
+            // Load history when wallet is loaded
+            loadTransactionHistory();
+        }
+    });
+
+    // Listen for balance updates
+    window.addEventListener('balance-updated', function() {
+        console.log('💰 Balance updated event received');
+        updateWalletDisplay();
+        updateSendBalances();
+    });
+
+    // Listen for history updates
+    window.addEventListener('history-updated', function(event) {
+        console.log('📜 History updated event received:', event.detail.count, 'transactions');
+        loadTransactionHistory();
+    });
+
     console.log('✅ All event listeners initialized');
 });
 
-console.log('✅ Nemex Hybrid Wallet System v10 loaded (6+ password system)');
+console.log('✅ Nemex Hybrid Wallet System v11 loaded (Complete send & history)');
     </script>
 </body>
 </html>
