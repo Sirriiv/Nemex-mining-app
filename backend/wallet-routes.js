@@ -2015,4 +2015,121 @@ router.post('/test-send', async (req, res) => {
 
 console.log('✅ WALLET ROUTES v23.0 READY - REAL TON WALLETS (UQ FORMAT) WITH SEND FUNCTIONALITY');
 
+// ============================================
+// 🎯 SESSION MANAGEMENT ENDPOINTS
+// ============================================
+
+// Create session endpoint
+router.post('/session/create', async (req, res) => {
+    try {
+        const { userId, walletAddress, action = 'login' } = req.body;
+
+        console.log('📝 Session create request:', { userId, walletAddress, action });
+
+        if (!userId || !walletAddress) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID and wallet address required'
+            });
+        }
+
+        // Generate session token
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        // Store session in database if you have a sessions table
+        // For now, just return the token
+        const session = {
+            token: sessionToken,
+            user_id: userId,
+            wallet_address: walletAddress,
+            action: action,
+            created_at: new Date().toISOString(),
+            expires_at: expiresAt.toISOString()
+        };
+
+        return res.json({
+            success: true,
+            message: 'Session created',
+            session: session
+        });
+
+    } catch (error) {
+        console.error('❌ Session create failed:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Check session endpoint
+router.post('/session/check', async (req, res) => {
+    try {
+        const { sessionToken, checkOnly = false } = req.body;
+
+        console.log('🔍 Session check request:', { 
+            tokenExists: !!sessionToken,
+            checkOnly 
+        });
+
+        if (!sessionToken) {
+            return res.json({
+                success: false,
+                error: 'Session token required'
+            });
+        }
+
+        // In a real implementation, you would:
+        // 1. Validate token signature/format
+        // 2. Check if token exists in database
+        // 3. Check if token is not expired
+        // 4. Return session data
+        
+        // For now, return a mock valid session
+        return res.json({
+            success: true,
+            hasSession: true,
+            session: {
+                token: sessionToken,
+                user_id: 'mock-user-id',
+                wallet_address: 'UQAVH25Acyf2mEjHf_AEuGrAhvxEvzHc16y0BLsuwFduA_XZ',
+                created_at: new Date().toISOString(),
+                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Session check failed:', error);
+        return res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Destroy session endpoint
+router.post('/session/destroy', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        console.log('🗑️ Session destroy request:', { token: token?.substring(0, 10) + '...' });
+
+        // In a real implementation, you would delete the session from database
+        // For now, just return success
+        
+        return res.json({
+            success: true,
+            message: 'Session destroyed'
+        });
+
+    } catch (error) {
+        console.error('❌ Session destroy failed:', error);
+        return res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
