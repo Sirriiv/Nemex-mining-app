@@ -677,7 +677,7 @@ async function getRealBalance(address, network = 'mainnet') {
 }
 
 // ============================================
-// 🎯 SEND TON TRANSACTION FUNCTION (REAL) - FIXED VERSION
+// 🎯 SEND TON TRANSACTION FUNCTION - FIXED (NO createSignedMessage)
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
@@ -769,38 +769,37 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         const amountNano = toNano(amount.toString());
         console.log(`💰 Amount: ${amount} TON (${amountNano} nanoton)`);
 
-        // 10. Get sender's balance
-        const balance = await tonClient.getBalance(senderAddress);
-        const balanceTON = parseFloat(fromNano(balance));
-        console.log(`💰 Sender balance: ${balanceTON} TON`);
+        // 10. Get sender's balance BEFORE sending
+        const initialBalance = await tonClient.getBalance(senderAddress);
+        const initialBalanceTON = parseFloat(fromNano(initialBalance));
+        console.log(`💰 Initial sender balance: ${initialBalanceTON} TON`);
 
-        if (balanceTON < parseFloat(amount) + 0.005) { // Include fee buffer
-            throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${balanceTON} TON`);
+        if (initialBalanceTON < parseFloat(amount) + 0.01) {
+            throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${initialBalanceTON} TON`);
         }
 
         // 11. Get current seqno
         let seqno = 0;
         try {
-            // Try to get seqno from contract state
-            const contractState = await tonClient.getContractState(senderAddress);
-            seqno = contractState.seqno || 0;
-            console.log(`📝 Got seqno from getContractState: ${seqno}`);
+            const walletState = await tonClient.getContractState(senderAddress);
+            seqno = walletState.seqno || 0;
+            console.log(`📝 Current seqno: ${seqno}, Wallet state: ${walletState.state}`);
         } catch (error) {
-            console.log('⚠️ Could not get seqno, using 0:', error.message);
-            seqno = 0; // For new wallets or if can't get seqno
+            console.log('⚠️ Could not get seqno, using 0');
+            seqno = 0;
         }
-
-        console.log(`📝 Using seqno: ${seqno}`);
 
         // 12. Create the internal message
         const internalMsg = internal({
             to: recipientAddress,
             value: amountNano,
-            body: memo || '',
+            body: memo || '', // Empty to avoid spam
             bounce: false
         });
 
-        // 13. Create transfer
+        // 13. Create transfer - SIMPLE APPROACH
+        console.log('🔐 Creating transfer...');
+        
         const transfer = walletContract.createTransfer({
             secretKey: keyPair.secretKey,
             seqno: seqno,
@@ -810,32 +809,17 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
         console.log('✅ Transfer created');
 
-        // 14. Send transaction - SIMPLE APPROACH THAT WORKS
-        console.log("📤 Sending transaction to blockchain...");
+        // 14. Send transaction - SIMPLIFIED
+        console.log("📤 Sending transaction...");
         
-        // Create signed message
-        const signedMessage = walletContract.createSignedMessage({
-            secretKey: keyPair.secretKey,
-            seqno: seqno,
-            messages: [internalMsg],
-            sendMode: 3
-        });
-
-        console.log('✅ Message signed');
+        // Use sendExternalMessage directly (this works)
+        await tonClient.sendExternalMessage(walletContract, transfer);
         
-        // Send the signed message
-        try {
-            await tonClient.sendMessage(signedMessage);
-            console.log("✅ Transaction broadcasted successfully!");
-        } catch (sendError) {
-            console.log('⚠️ sendMessage failed, trying sendExternalMessage:', sendError.message);
-            await tonClient.sendExternalMessage(walletContract, signedMessage);
-            console.log("✅ Transaction broadcasted via sendExternalMessage!");
-        }
+        console.log("✅ Transaction broadcasted!");
 
-        // 15. Wait a moment for transaction to process
-        console.log("⏳ Transaction sent. It may take a few seconds to appear on blockchain...");
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // 15. Wait a moment
+        console.log("⏳ Transaction sent. May take a few seconds...");
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
         // 16. Generate transaction hash
         const txHash = crypto.createHash('sha256')
@@ -845,7 +829,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
         return {
             success: true,
-            message: 'Transaction sent successfully! Check TonViewer for confirmation.',
+            message: 'Transaction sent successfully!',
             transactionHash: txHash,
             fromAddress: senderAddressString,
             toAddress: toAddress,
@@ -855,7 +839,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             memo: memo || '',
             timestamp: new Date().toISOString(),
             explorerLink: `https://tonviewer.com/${toAddress}`,
-            note: 'Transaction may take a few seconds to appear on the blockchain'
+            note: 'Check TonViewer for confirmation'
         };
 
     } catch (error) {
