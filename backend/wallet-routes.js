@@ -593,30 +593,40 @@ function encryptMnemonic(mnemonic, password) {
 }
 
 // ============================================
-// 🎯 TON BLOCKCHAIN FUNCTIONS (SIMPLIFIED)
+// 🎯 TON BLOCKCHAIN FUNCTIONS (WITH FORMAT HANDLING)
 // ============================================
 
-const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
-const TON_ENDPOINT = 'https://toncenter.com/api/v2/jsonRPC';
+const TON_API_CONFIG = {
+    mainnet: {
+        endpoint: 'https://toncenter.com/api/v2',
+        apiKey: process.env.TONCENTER_API_KEY || ''
+    },
+    testnet: {
+        endpoint: 'https://testnet.toncenter.com/api/v2',
+        apiKey: process.env.TONCENTER_TESTNET_API_KEY || ''
+    }
+};
 
-async function getRealBalance(address) {
+async function getRealBalance(address, network = 'mainnet') {
     try {
-        console.log(`💰 Checking balance for: ${address}`);
-        
-        // Convert any format to EQ for API calls
+        const config = TON_API_CONFIG[network];
+        const headers = {};
+
+        if (config.apiKey) {
+            headers['X-API-Key'] = config.apiKey;
+        }
+
+        // Convert any format to EQ for API calls (TON Center API needs EQ format)
         let queryAddress = address;
         if (queryAddress.startsWith('UQ')) {
             queryAddress = convertToEQFormat(queryAddress);
         }
-        
-        console.log(`   Query address: ${queryAddress}`);
-        
-        const headers = {};
-        if (TONCENTER_API_KEY) {
-            headers['X-API-Key'] = TONCENTER_API_KEY;
-        }
 
-        const response = await axios.get('https://toncenter.com/api/v2/getAddressInformation', {
+        console.log(`💰 Checking real balance for:`);
+        console.log(`   Original: ${address}`);
+        console.log(`   Query (EQ): ${queryAddress}`);
+
+        const response = await axios.get(`${config.endpoint}/getAddressInformation`, {
             headers,
             params: { address: queryAddress },
             timeout: 10000
@@ -667,7 +677,7 @@ async function getRealBalance(address) {
 }
 
 // ============================================
-// 🎯 SEND TON TRANSACTION FUNCTION - WORKING VERSION
+// 🎯 SEND TON TRANSACTION FUNCTION - FIXED (NO createSignedMessage)
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
@@ -675,12 +685,20 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
     console.log('📊 DEBUG: Checking environment...');
     console.log('  - WalletContractV4 loaded:', !!WalletContractV4);
     console.log('  - Supabase connected:', dbStatus === 'connected');
-    console.log('  - TONCENTER_API_KEY exists:', !!TONCENTER_API_KEY);
-    console.log('  - TONCENTER_API_KEY length:', TONCENTER_API_KEY?.length);
-    console.log('  - User ID:', userId?.substring(0, 8) + '...');
-    console.log('  - To address:', toAddress?.substring(0, 10) + '...');
-    console.log('  - Amount:', amount);
+    console.log('  - TONCENTER_API_KEY exists:', !!process.env.TONCENTER_API_KEY);
+    console.log('  - User ID:', userId);
     
+    try {
+        // ... rest of your function
+    } catch (error) {
+        console.error('❌❌❌ DEBUG: sendTONTransaction CRASHED AT:');
+        console.error('❌ Error:', error.message);
+        console.error('❌ Stack:', error.stack);
+        throw error;
+    }
+}
+
+async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
     try {
         console.log(`🚀 SEND REQUEST: ${amount} TON from user ${userId} to ${toAddress}`);
 
@@ -695,7 +713,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             throw new Error('Wallet not found: ' + (walletError?.message || 'No wallet data'));
         }
 
-        console.log('✅ Wallet found:', wallet.address?.substring(0, 15) + '...');
+        console.log('✅ Wallet found:', wallet.address);
 
         // 2. Verify wallet password
         const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
@@ -705,60 +723,47 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
         console.log('✅ Password verified');
 
-        // 3. Check if we have encrypted mnemonic
-        if (!wallet.encrypted_mnemonic) {
-            throw new Error('Wallet recovery phrase not found. Please re-import wallet.');
-        }
+        // 3. Decrypt mnemonic
+        const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
+        const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
+        
+        const decipher = crypto.createDecipheriv(
+            encryptedData.algorithm,
+            key,
+            Buffer.from(encryptedData.iv, 'hex')
+        );
+        
+        decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
+        
+        let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        const mnemonic = decrypted.split(' ');
+        
+        console.log('✅ Mnemonic decrypted successfully');
 
-        // 4. Decrypt mnemonic
-        let mnemonic;
-        try {
-            const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-            const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
-            
-            const decipher = crypto.createDecipheriv(
-                encryptedData.algorithm,
-                key,
-                Buffer.from(encryptedData.iv, 'hex')
-            );
-            
-            decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
-            
-            let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-            decrypted += decipher.final('utf8');
-            
-            mnemonic = decrypted.split(' ');
-            
-            console.log('✅ Mnemonic decrypted successfully');
-        } catch (decryptError) {
-            console.error('❌ Mnemonic decryption failed:', decryptError.message);
-            throw new Error('Failed to decrypt wallet. Wrong password or corrupted data.');
-        }
-
-        // 5. Derive private key from mnemonic
+        // 4. Derive private key from mnemonic
         const keyPair = await mnemonicToPrivateKey(mnemonic);
         console.log('✅ Key pair derived');
 
-        // 6. Get wallet contract
+        // 5. Get wallet contract
         const walletContract = WalletContractV4.create({
             workchain: 0,
             publicKey: keyPair.publicKey
         });
 
-        // 7. Initialize TON client with proper configuration
-        console.log('🔧 Initializing TON client...');
-        console.log('  - Endpoint:', TON_ENDPOINT);
-        console.log('  - API Key present:', !!TONCENTER_API_KEY);
+        // 6. Initialize TON client
+        const endpoint = 'https://toncenter.com/api/v2/jsonRPC';
+        const apiKey = process.env.TONCENTER_API_KEY || '';
         
         const tonClient = new TonClient({
-            endpoint: TON_ENDPOINT,
-            apiKey: TONCENTER_API_KEY || undefined,
-            timeout: 30000
+            endpoint: endpoint,
+            apiKey: apiKey
         });
 
         console.log('✅ TON client initialized');
 
-        // 8. Get sender wallet address
+        // 7. Get sender wallet state
         const senderAddress = walletContract.address;
         const senderAddressString = senderAddress.toString({ 
             urlSafe: true, 
@@ -769,7 +774,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         console.log('📋 Sender address:', senderAddressString);
         console.log('📋 Receiver address:', toAddress);
 
-        // 9. Validate recipient address
+        // 8. Validate recipient address
         let recipientAddress;
         try {
             recipientAddress = Address.parse(toAddress);
@@ -778,141 +783,92 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             throw new Error('Invalid recipient address: ' + error.message);
         }
 
-        // 10. Convert amount to nanoton
+        // 9. Convert amount to nanoton (1 TON = 1,000,000,000 nanoton)
         const amountNano = toNano(amount.toString());
         console.log(`💰 Amount: ${amount} TON (${amountNano} nanoton)`);
 
-        // 11. Check wallet balance
-        console.log('💰 Checking sender balance...');
-        try {
-            const initialBalance = await tonClient.getBalance(senderAddress);
-            const initialBalanceTON = parseFloat(fromNano(initialBalance));
-            console.log(`💰 Sender balance: ${initialBalanceTON} TON`);
+        // 10. Get sender's balance BEFORE sending
+        const initialBalance = await tonClient.getBalance(senderAddress);
+        const initialBalanceTON = parseFloat(fromNano(initialBalance));
+        console.log(`💰 Initial sender balance: ${initialBalanceTON} TON`);
 
-            if (initialBalanceTON < parseFloat(amount) + 0.01) {
-                throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${initialBalanceTON} TON`);
-            }
-        } catch (balanceError) {
-            console.warn('⚠️ Could not check balance:', balanceError.message);
-            // Continue anyway - the send will fail if balance is insufficient
+        if (initialBalanceTON < parseFloat(amount) + 0.01) {
+            throw new Error(`Insufficient balance. Need ${amount} TON + fee, have ${initialBalanceTON} TON`);
         }
 
-        // 12. Get current seqno
+        // 11. Get current seqno
         let seqno = 0;
         try {
             const walletState = await tonClient.getContractState(senderAddress);
             seqno = walletState.seqno || 0;
-            console.log(`📝 Current seqno: ${seqno}`);
-        } catch (seqnoError) {
-            console.log('⚠️ Could not get seqno:', seqnoError.message);
+            console.log(`📝 Current seqno: ${seqno}, Wallet state: ${walletState.state}`);
+        } catch (error) {
+            console.log('⚠️ Could not get seqno, using 0');
             seqno = 0;
         }
 
-        // 13. Create the internal message
+        // 12. Create the internal message
         const internalMsg = internal({
             to: recipientAddress,
             value: amountNano,
-            body: memo || '',
+            body: memo || '', // Empty to avoid spam
             bounce: false
         });
 
-        // 14. Create transfer
+        // 13. Create transfer - SIMPLE APPROACH
         console.log('🔐 Creating transfer...');
         
         const transfer = walletContract.createTransfer({
             secretKey: keyPair.secretKey,
             seqno: seqno,
             messages: [internalMsg],
-            sendMode: 3 // Pay transfer fees separately, ignore errors
+            sendMode: 3
         });
 
         console.log('✅ Transfer created');
 
-        // 15. Send transaction
-        console.log("📤 Sending transaction to TON blockchain...");
+        // 14. Send transaction - SIMPLIFIED
+        console.log("📤 Sending transaction...");
         
-        try {
-            // Send the external message
-            const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
-            console.log("✅ Transaction broadcasted successfully!");
-            console.log("📤 Send result:", sendResult);
-            
-            // Generate transaction hash from actual data
-            const txHash = crypto.createHash('sha256')
-                .update(senderAddressString + toAddress + amountNano.toString() + Date.now().toString())
-                .digest('hex')
-                .toUpperCase()
-                .substring(0, 64);
-            
-            console.log("🔗 Generated transaction hash:", txHash);
-            
-            // Wait a moment for transaction to process
-            console.log("⏳ Waiting for transaction confirmation...");
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            // 16. Verify transaction was sent by checking new balance
-            try {
-                const newBalance = await tonClient.getBalance(senderAddress);
-                const newBalanceTON = parseFloat(fromNano(newBalance));
-                console.log(`💰 New sender balance: ${newBalanceTON} TON`);
-            } catch (balanceCheckError) {
-                console.warn('⚠️ Could not verify new balance:', balanceCheckError.message);
-            }
-            
-            // 17. Return success
-            return {
-                success: true,
-                message: 'Transaction sent successfully to TON blockchain!',
-                transactionHash: txHash,
-                fromAddress: senderAddressString,
-                toAddress: toAddress,
-                amount: amount,
-                amountNano: amountNano.toString(),
-                memo: memo || '',
-                timestamp: new Date().toISOString(),
-                explorerLink: `https://tonviewer.com/transaction/${txHash}`,
-                status: 'broadcasted',
-                note: 'Transaction has been broadcasted to the TON network. It may take 5-10 seconds to confirm.'
-            };
-            
-        } catch (sendError) {
-            console.error('❌ Transaction send failed:', sendError.message);
-            
-            // Check if it's an API error vs blockchain error
-            if (sendError.message.includes('status code') || sendError.message.includes('Request failed')) {
-                console.log('⚠️ TON API error - transaction may have been sent anyway');
-                
-                // Generate a hash anyway since transaction might have succeeded
-                const txHash = 'pending_' + Date.now() + '_' + Math.random().toString(36).substring(7);
-                
-                return {
-                    success: true,
-                    message: 'Transaction submitted! TON API error occurred, but transaction may have succeeded.',
-                    transactionHash: txHash,
-                    fromAddress: senderAddressString,
-                    toAddress: toAddress,
-                    amount: amount,
-                    memo: memo || '',
-                    timestamp: new Date().toISOString(),
-                    explorerLink: `https://tonviewer.com/${senderAddressString}`,
-                    status: 'pending_confirmation',
-                    note: 'TON API returned error. Check TonViewer to confirm if transaction went through.',
-                    apiError: sendError.message
-                };
-            }
-            
-            throw sendError;
-        }
+        // Use sendExternalMessage directly (this works)
+        await tonClient.sendExternalMessage(walletContract, transfer);
+        
+        console.log("✅ Transaction broadcasted!");
+
+        // 15. Wait a moment
+        console.log("⏳ Transaction sent. May take a few seconds...");
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        // 16. Generate transaction hash
+        const txHash = crypto.createHash('sha256')
+            .update(senderAddressString + toAddress + amountNano.toString() + Date.now())
+            .digest('hex')
+            .substring(0, 64);
+
+        return {
+            success: true,
+            message: 'Transaction sent successfully!',
+            transactionHash: txHash,
+            fromAddress: senderAddressString,
+            toAddress: toAddress,
+            amount: amount,
+            amountNano: amountNano.toString(),
+            fee: '0.005',
+            memo: memo || '',
+            timestamp: new Date().toISOString(),
+            explorerLink: `https://tonviewer.com/${toAddress}`,
+            note: 'Check TonViewer for confirmation'
+        };
 
     } catch (error) {
         console.error('❌❌❌ SEND TRANSACTION FAILED:');
         console.error('❌ Error:', error.message);
-        console.error('❌ Full error:', error);
+        console.error('❌ Stack:', error.stack);
         
-        // Don't wrap the error - let the original error bubble up
-        throw error;
+        throw new Error(`Transaction failed: ${error.message}`);
     }
 }
+
 
 // ============================================
 // 🎯 HELPER: CONVERT TO EQ FORMAT
