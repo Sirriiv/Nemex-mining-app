@@ -9,80 +9,67 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // =============================================
-// 🎯 CORS SETUP
+// 🎯 SIMPLIFIED CORS SETUP - FIXED VERSION
 // =============================================
-const allowedOrigins = [
-    'https://nemexcoin.it.com',
-    'https://www.nemexcoin.it.com',
-    'http://nemexcoin.it.com',
-    'http://www.nemexcoin.it.com',
-    'https://nemex-backend.onrender.com',
-    'http://nemex-backend.onrender.com',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'http://localhost:5000',
-    'http://localhost:8080',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:3001',
-    'http://127.0.0.1:5000',
-    'http://127.0.0.1:8080'
-];
 
+// Allow all origins temporarily for debugging
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) !== -1) {
-            callback(null, true);
-        } else {
-            console.warn(`🚫 CORS blocked origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    origin: '*', // Allow all origins
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-        'Content-Type', 
-        'Authorization', 
-        'X-Requested-With',
-        'X-Session-Token',
-        'Accept',
-        'Origin'
-    ]
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
 }));
-
-app.options('*', cors());
 
 // Parse JSON
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Security headers
+// Custom CORS headers for all responses
 app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, X-Session-Token');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // Security headers
+    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('X-Frame-Options', 'DENY');
+    res.header('X-XSS-Protection', '1; mode=block');
+    res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    
     next();
+});
+
+// Handle preflight requests
+app.options('*', (req, res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400');
+    res.sendStatus(200);
 });
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'frontend'), {
-    setHeaders: (res, path) => {
-        if (path.endsWith('.js') || path.endsWith('.css')) {
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
             res.set('Cache-Control', 'public, max-age=3600');
         }
+        // Add CORS headers to static files too
+        res.header('Access-Control-Allow-Origin', '*');
     }
 }));
 
-// Request logging
+// Request logging middleware
 app.use((req, res, next) => {
     console.log(`🌐 ${new Date().toLocaleTimeString()} ${req.method} ${req.path} [Origin: ${req.headers.origin || 'none'}]`);
+    
+    // Log CORS headers for debugging
+    if (req.method === 'OPTIONS') {
+        console.log('🔄 Handling CORS preflight request');
+    }
+    
     next();
 });
 
@@ -96,20 +83,34 @@ const walletRoutesPath = path.join(__dirname, 'backend', 'wallet-routes.js');
 if (fs.existsSync(walletRoutesPath)) {
     try {
         console.log(`✅ Found wallet routes at: ${walletRoutesPath}`);
-        
+
         // Clear require cache to ensure fresh load
         const modulePath = require.resolve(walletRoutesPath);
         if (require.cache[modulePath]) {
             delete require.cache[modulePath];
         }
-        
+
         // Load the wallet routes
         const walletRoutes = require(walletRoutesPath);
-        
-        // Mount the wallet routes
-        app.use('/api/wallet', walletRoutes);
-        console.log('✅ Wallet routes mounted at /api/wallet');
-        
+
+        // Ensure wallet routes have CORS headers
+        const corsWrapper = (req, res, next) => {
+            res.header('Access-Control-Allow-Origin', '*');
+            res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+            res.header('Access-Control-Allow-Credentials', 'true');
+            
+            if (req.method === 'OPTIONS') {
+                return res.sendStatus(200);
+            }
+            
+            next();
+        };
+
+        // Mount the wallet routes with CORS wrapper
+        app.use('/api/wallet', corsWrapper, walletRoutes);
+        console.log('✅ Wallet routes mounted at /api/wallet with CORS wrapper');
+
         console.log('\n📋 AVAILABLE WALLET ENDPOINTS:');
         console.log('   POST   /api/wallet/create            - Create TON wallet');
         console.log('   POST   /api/wallet/login             - Login to wallet');
@@ -123,14 +124,22 @@ if (fs.existsSync(walletRoutesPath)) {
         console.log('   GET    /api/wallet/test/generate     - Test wallet generation');
         console.log('   GET    /api/wallet/health            - Health check');
         console.log('   GET    /api/wallet/test              - Test endpoint');
-        
+
     } catch (error) {
         console.error('❌ FAILED to load wallet routes:', error.message);
         console.error('Stack trace:', error.stack);
-        
-        // Create emergency router
+
+        // Create emergency router with CORS
         const emergencyRouter = express.Router();
-        
+
+        // Add CORS headers to emergency routes
+        emergencyRouter.use((req, res, next) => {
+            res.header('Access-Control-Allow-Origin', '*');
+            res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+            next();
+        });
+
         emergencyRouter.get('/health', (req, res) => {
             res.json({
                 status: 'emergency-mode',
@@ -138,7 +147,7 @@ if (fs.existsSync(walletRoutesPath)) {
                 timestamp: new Date().toISOString()
             });
         });
-        
+
         emergencyRouter.get('/test', (req, res) => {
             res.json({
                 success: false,
@@ -146,16 +155,25 @@ if (fs.existsSync(walletRoutesPath)) {
                 timestamp: new Date().toISOString()
             });
         });
-        
+
+        emergencyRouter.options('*', (req, res) => {
+            res.sendStatus(200);
+        });
+
         app.use('/api/wallet', emergencyRouter);
         console.log('⚠️ Emergency routes mounted at /api/wallet');
     }
 } else {
     console.error(`❌ Wallet routes file not found: ${walletRoutesPath}`);
-    
-    // Create emergency router
+
+    // Create emergency router with CORS
     const emergencyRouter = express.Router();
-    
+
+    emergencyRouter.use((req, res, next) => {
+        res.header('Access-Control-Allow-Origin', '*');
+        next();
+    });
+
     emergencyRouter.get('/health', (req, res) => {
         res.json({
             status: 'file-not-found',
@@ -163,19 +181,21 @@ if (fs.existsSync(walletRoutesPath)) {
             timestamp: new Date().toISOString()
         });
     });
-    
+
     app.use('/api/wallet', emergencyRouter);
 }
 
 // =============================================
-// 🎯 TEST ENDPOINTS
+// 🎯 TEST ENDPOINTS WITH CORS
 // =============================================
 app.get('/api/test', (req, res) => {
     res.json({
         success: true,
         message: 'Main API is working!',
         serverTime: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        cors: 'enabled',
+        origin: req.headers.origin
     });
 });
 
@@ -184,7 +204,8 @@ app.get('/api/health', (req, res) => {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         server: 'NemexCoin Wallet API',
-        version: '1.0.0'
+        version: '1.0.0',
+        cors: 'enabled'
     });
 });
 
@@ -198,7 +219,19 @@ app.get('/api/cors-test', (req, res) => {
         origin: req.headers.origin,
         host: req.headers.host,
         timestamp: new Date().toISOString(),
-        yourIp: req.ip
+        yourIp: req.ip,
+        headers: req.headers
+    });
+});
+
+// Test POST endpoint for CORS
+app.post('/api/cors-test', (req, res) => {
+    res.json({
+        success: true,
+        message: 'POST CORS test successful',
+        body: req.body,
+        origin: req.headers.origin,
+        timestamp: new Date().toISOString()
     });
 });
 
@@ -222,11 +255,15 @@ app.get('/login', (req, res) => {
 });
 
 // =============================================
-// 🎯 404 HANDLER
+// 🎯 404 HANDLER WITH CORS
 // =============================================
-app.use((req, res) => {
+app.use((req, res, next) => {
     console.log(`❌ 404: ${req.method} ${req.path}`);
-    
+
+    // Always set CORS headers even for 404
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({
             success: false,
@@ -236,16 +273,22 @@ app.use((req, res) => {
             timestamp: new Date().toISOString()
         });
     }
-    
+
     res.redirect('/wallet');
 });
 
 // =============================================
-// 🎯 ERROR HANDLER
+// 🎯 ERROR HANDLER WITH CORS
 // =============================================
 app.use((err, req, res, next) => {
     console.error('❌ Server error:', err.message);
-    
+    console.error('Stack:', err.stack);
+
+    // Always set CORS headers even for errors
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
     if (err.message === 'Not allowed by CORS') {
         return res.status(403).json({
             success: false,
@@ -254,12 +297,13 @@ app.use((err, req, res, next) => {
             timestamp: new Date().toISOString()
         });
     }
-    
+
     res.status(500).json({
         success: false,
         error: 'Internal server error',
         message: process.env.NODE_ENV === 'development' ? err.message : 'Please try again later',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        path: req.path
     });
 });
 
@@ -269,19 +313,26 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
     ============================================
-    🚀 NEMEX COIN WALLET SERVER - FIXED VERSION
+    🚀 NEMEX COIN WALLET SERVER - CORS FIXED
     ============================================
     
     📍 Port: ${PORT}
     🔧 Environment: ${process.env.NODE_ENV || 'development'}
     🕐 Started: ${new Date().toLocaleString()}
+    🌐 CORS: ENABLED (All origins allowed)
     
     ✅ Wallet API: /api/wallet/*
     ✅ Health Check: /api/health
-    ✅ CORS Test: /api/cors-test
+    ✅ CORS Test: /api/cors-test (GET & POST)
+    ✅ API Test: /api/test
     
     ============================================
     `);
+    
+    console.log('\n🔧 CORS Configuration:');
+    console.log('   - Allow-Origin: *');
+    console.log('   - Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    console.log('   - Allow-Credentials: true');
 });
 
 // Graceful shutdown
