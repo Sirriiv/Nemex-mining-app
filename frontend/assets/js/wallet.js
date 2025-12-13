@@ -1,5 +1,5 @@
-// assets/js/wallet.js - COMPLETE FIXED VERSION
-console.log('🚀 NEMEX WALLET - COMPLETE FIXED VERSION');
+// assets/js/wallet.js - UPDATED FOR @ton/ton LIBRARY
+console.log('🚀 NEMEX WALLET - UPDATED FOR @ton/ton LIBRARY');
 
 class WalletManager {
     constructor() {
@@ -11,11 +11,30 @@ class WalletManager {
         this.passwordMinLength = 6;
         this.transactionHistory = [];
         this.isLoading = false;
-        this.lastBalance = 0;
-        this.tonPrice = 2.35;
-        this.priceChange24h = 0;
 
-        console.log('✅ Wallet Manager initialized');
+        // Initialize @ton/ton client
+        this.tonClient = null;
+        this.initTonClient();
+
+        console.log('✅ Wallet Manager initialized with @ton/ton library');
+    }
+
+    // 🎯 INITIALIZE @ton/ton CLIENT
+    initTonClient() {
+        try {
+            if (typeof window.Ton !== 'undefined') {
+                // Create a TON client with mainnet endpoint
+                this.tonClient = new window.Ton.TonClient({
+                    endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+                    apiKey: '' // Optional: Add your API key if needed
+                });
+                console.log('✅ @ton/ton client initialized');
+            } else {
+                console.warn('⚠️ @ton/ton library not loaded');
+            }
+        } catch (error) {
+            console.error('❌ Failed to initialize @ton/ton client:', error);
+        }
     }
 
     // 🎯 GET CURRENT USER ID
@@ -63,9 +82,7 @@ class WalletManager {
 
             const response = await fetch(`${this.apiBaseUrl}/check`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: userId })
             });
 
@@ -79,7 +96,7 @@ class WalletManager {
         }
     }
 
-    // 🎯 CREATE WALLET
+    // 🎯 CREATE WALLET - UPDATED FOR @ton/ton
     async createWallet(walletPassword, buttonElement = null) {
         const userId = this.getCurrentUserId();
         if (!userId) {
@@ -103,9 +120,7 @@ class WalletManager {
 
             const createResponse = await fetch(`${this.apiBaseUrl}/create`, {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: userId,
                     walletPassword: walletPassword
@@ -116,20 +131,15 @@ class WalletManager {
             console.log('📦 Create wallet result:', result);
 
             if (!result.success) {
-                this.resetButton(buttonElement);
-                return { 
-                    success: false, 
-                    error: result.error || 'Failed to create wallet'
-                };
+                console.log('🔄 Trying legacy endpoint...');
+                return await this.legacyCreateWallet(userId, walletPassword, buttonElement);
             }
 
-            // ✅ WALLET CREATED
+            // ✅ WALLET CREATED - STORE IN MEMORY ONLY
             if (result.wallet && result.wallet.address) {
                 this.currentWallet = result.wallet;
                 this.userId = userId;
                 this.isInitialized = true;
-                this.tonPrice = result.tonPrice || 2.35;
-                this.priceChange24h = result.priceChange24h || 0;
 
                 console.log('✅ Wallet created successfully!');
 
@@ -139,8 +149,6 @@ class WalletManager {
                 return {
                     success: true,
                     wallet: result.wallet,
-                    tonPrice: this.tonPrice,
-                    priceChange24h: this.priceChange24h,
                     message: 'Wallet created successfully!'
                 };
             } else {
@@ -161,7 +169,7 @@ class WalletManager {
         }
     }
 
-    // 🎯 LOGIN TO WALLET
+    // 🎯 LOGIN TO WALLET - CREATE DATABASE SESSION
     async loginToWallet(walletPassword, buttonElement = null) {
         const userId = this.getCurrentUserId();
         if (!userId) {
@@ -203,13 +211,25 @@ class WalletManager {
                 };
             }
 
-            // ✅ LOGIN SUCCESSFUL
+            // ✅ CREATE DATABASE SESSION AFTER SUCCESSFUL LOGIN
+            let sessionToken = null;
+            try {
+                sessionToken = await this.createDatabaseSession(result.wallet);
+                if (sessionToken) {
+                    console.log('✅ Database session created and stored');
+                } else {
+                    console.warn('⚠️ Session creation returned no token');
+                }
+            } catch (sessionError) {
+                console.warn('⚠️ Session creation failed:', sessionError);
+                // Continue anyway - user is logged in memory
+            }
+
+            // Store wallet in memory
             if (result.wallet && result.wallet.address) {
                 this.currentWallet = result.wallet;
                 this.userId = userId;
                 this.isInitialized = true;
-                this.tonPrice = result.tonPrice || 2.35;
-                this.priceChange24h = result.priceChange24h || 0;
 
                 console.log('✅ Wallet login successful!');
 
@@ -219,8 +239,7 @@ class WalletManager {
                 return {
                     success: true,
                     wallet: result.wallet,
-                    tonPrice: this.tonPrice,
-                    priceChange24h: this.priceChange24h
+                    sessionCreated: !!sessionToken
                 };
             } else {
                 this.resetButton(buttonElement);
@@ -240,794 +259,116 @@ class WalletManager {
         }
     }
 
-    // ============================================
-    // 🎯 SEND TRANSACTION - COMPLETELY FIXED
-    // ============================================
-
-    async sendTransaction(toAddress, amount, memo = '', password = null) {
-        console.log('🚀 SEND TRANSACTION - FIXED VERSION');
-        console.log('📋 Send details:', { toAddress, amount, memo });
-
+    // 🎯 CREATE DATABASE SESSION (Backend should create in database)
+    async createDatabaseSession(walletData) {
         try {
+            console.log('📝 Requesting database session creation...');
+
             const userId = this.getCurrentUserId();
             if (!userId) {
-                throw new Error('Please login to your mining account first');
+                throw new Error('No user ID for session creation');
             }
 
-            if (!this.currentWallet || !this.currentWallet.address) {
-                throw new Error('No wallet found. Please create or login to a wallet first');
-            }
-
-            if (!toAddress || !toAddress.trim()) {
-                throw new Error('Recipient address is required');
-            }
-
-            const amountNum = parseFloat(amount);
-            if (isNaN(amountNum) || amountNum <= 0) {
-                throw new Error('Amount must be a positive number');
-            }
-
-            if (amountNum < 0.001) {
-                throw new Error('Minimum send amount is 0.001 TON');
-            }
-
-            // Validate address format
-            if (!toAddress.startsWith('EQ') && !toAddress.startsWith('UQ')) {
-                throw new Error('Invalid TON address format. Must start with EQ or UQ');
-            }
-
-            // Get password for transaction
-            let walletPassword = password;
-            if (!walletPassword) {
-                walletPassword = await this.promptForPassword();
-                if (!walletPassword) {
-                    throw new Error('Transaction cancelled - password required');
-                }
-            }
-
-            console.log('📤 Sending transaction:', {
-                from: this.currentWallet.address,
-                to: toAddress,
-                amount: amount,
-                memo: memo
-            });
-
-            // Show loading
-            this.showLoading('Sending transaction...');
-
-            // Call backend send endpoint
-            const response = await fetch(`${this.apiBaseUrl}/send`, {
+            const response = await fetch(`${this.apiBaseUrl}/session/create`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     userId: userId,
-                    walletPassword: walletPassword,
-                    toAddress: toAddress.trim(),
-                    amount: amount,
-                    memo: memo || ''
+                    walletAddress: walletData.address,
+                    action: 'login'
+                })
+            });
+
+            console.log('📦 Session create response status:', response.status);
+
+            if (!response.ok) {
+                console.warn(`⚠️ Session create failed with status: ${response.status}`);
+                const errorText = await response.text();
+                console.warn('Error response:', errorText);
+                return null;
+            }
+
+            const result = await response.json();
+            console.log('📦 Create session result:', result);
+
+            if (result.success && result.session && result.session.token) {
+                this.sessionToken = result.session.token;
+                // Store token in localStorage for future automatic login
+                localStorage.setItem('nemex_wallet_session', this.sessionToken);
+                console.log('✅ Database session token stored');
+                return this.sessionToken;
+            }
+
+            console.warn('❌ Create session failed (no token in response):', result);
+            return null;
+        } catch (error) {
+            console.error('❌ Create session failed (network error):', error.message);
+            return null;
+        }
+    }
+
+    // 🎯 CHECK DATABASE SESSION (Fetch from database)
+    async checkDatabaseSession() {
+        try {
+            console.log('🔍 Checking database session...');
+
+            // Get token from localStorage
+            const storedToken = localStorage.getItem('nemex_wallet_session');
+            if (!storedToken) {
+                console.log('📭 No session token in localStorage');
+                return null;
+            }
+
+            this.sessionToken = storedToken;
+
+            // Ask backend to validate session from database
+            const response = await fetch(`${this.apiBaseUrl}/session/check`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Session-Token': this.sessionToken
+                },
+                body: JSON.stringify({ 
+                    sessionToken: this.sessionToken,
+                    checkOnly: true
                 })
             });
 
             const result = await response.json();
-            console.log('📦 Send transaction result:', result);
+            console.log('📦 Session check result:', result);
 
-            // Hide loading
-            this.hideLoading();
+            if (result.success && result.hasSession && result.session) {
+                // ✅ Session is valid in database
+                this.sessionToken = result.session.token;
+                this.userId = result.session.user_id;
 
-            // Clear password from memory
-            walletPassword = null;
-
-            // 🚨 FIXED: Check if success is actually true
-            if (!result.success) {
-                // Show specific error messages
-                let errorMsg = result.error || 'Transaction failed';
-                
-                if (result.errorType === 'wallet_not_activated') {
-                    errorMsg = `❌ ${errorMsg}\n\n💡 Fix: ${result.fix || 'Send 0.05 TON to your wallet to activate it first'}`;
-                } else if (result.errorType === 'insufficient_balance') {
-                    errorMsg = `❌ ${errorMsg}\n\n💡 Fix: ${result.fix || 'Add more TON to your wallet'}`;
-                } else if (result.errorType === 'wrong_password') {
-                    errorMsg = `❌ ${errorMsg}\n\n💡 Fix: ${result.fix || 'Enter the correct wallet password'}`;
-                }
-                
-                throw new Error(errorMsg);
-            }
-
-            // ✅ Transaction successful
-            console.log('✅✅✅ Transaction SUCCESS!');
-            
-            // Refresh balance and history
-            setTimeout(() => {
-                this.triggerBalanceUpdate();
-                this.triggerHistoryUpdate();
-            }, 2000);
-
-            return {
-                success: true,
-                transaction: result.data || result,
-                message: result.message || 'Transaction sent successfully!'
-            };
-
-        } catch (error) {
-            console.error('❌❌❌ Send transaction failed:', error);
-            
-            // Hide loading if still showing
-            this.hideLoading();
-            
-            return {
-                success: false,
-                error: error.message || 'Transaction failed. Please try again.',
-                showError: true
-            };
-        }
-    }
-
-    // 🎯 PROMPT FOR PASSWORD - IMPROVED UI
-    async promptForPassword() {
-        return new Promise((resolve) => {
-            // Create modal
-            const modal = document.createElement('div');
-            modal.id = 'passwordPromptModal';
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.85);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 99999;
-                backdrop-filter: blur(5px);
-            `;
-
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 100%);
-                padding: 30px;
-                border-radius: 20px;
-                width: 90%;
-                max-width: 400px;
-                text-align: center;
-                border: 2px solid #D4AF37;
-                box-shadow: 0 10px 30px rgba(212, 175, 55, 0.3);
-            `;
-
-            content.innerHTML = `
-                <div style="color: #D4AF37; font-size: 22px; font-weight: 700; margin-bottom: 16px;">
-                    🔐 Confirm Transaction
-                </div>
-                <div style="color: #F5F5F5; margin-bottom: 20px; font-size: 14px; line-height: 1.5;">
-                    Enter your wallet password to confirm this transaction.
-                    <div style="font-size: 12px; color: #888; margin-top: 8px;">
-                        Required for security
-                    </div>
-                </div>
-                <input type="password" id="transactionPassword" 
-                       placeholder="Enter wallet password" 
-                       autocomplete="off"
-                       style="width: 100%; padding: 14px 16px; 
-                              background: rgba(255, 255, 255, 0.05); 
-                              border: 1px solid rgba(255, 255, 255, 0.1); 
-                              border-radius: 10px; 
-                              color: #F5F5F5; 
-                              font-size: 16px; 
-                              margin-bottom: 20px;
-                              outline: none;
-                              transition: border-color 0.3s;">
-                <div id="passwordError" style="color: #FF4444; font-size: 12px; margin-bottom: 15px; min-height: 18px;"></div>
-                <div style="display: flex; gap: 12px;">
-                    <button id="confirmPasswordBtn" 
-                            style="flex: 1; 
-                                   background: linear-gradient(135deg, #D4AF37 0%, #B8941F 100%);
-                                   color: #0A0A0A; 
-                                   border: none; 
-                                   padding: 14px; 
-                                   border-radius: 10px; 
-                                   font-weight: 600; 
-                                   cursor: pointer;
-                                   font-size: 16px;
-                                   transition: transform 0.2s, opacity 0.2s;">
-                        Confirm
-                    </button>
-                    <button id="cancelPasswordBtn" 
-                            style="flex: 1; 
-                                   background: transparent; 
-                                   color: #D4AF37; 
-                                   border: 2px solid #D4AF37; 
-                                   padding: 14px; 
-                                   border-radius: 10px; 
-                                   font-weight: 600; 
-                                   cursor: pointer;
-                                   font-size: 16px;
-                                   transition: transform 0.2s, opacity 0.2s;">
-                        Cancel
-                    </button>
-                </div>
-            `;
-
-            modal.appendChild(content);
-            document.body.appendChild(modal);
-
-            const passwordInput = content.querySelector('#transactionPassword');
-            const confirmBtn = content.querySelector('#confirmPasswordBtn');
-            const cancelBtn = content.querySelector('#cancelPasswordBtn');
-            const errorElement = content.querySelector('#passwordError');
-
-            // Focus input
-            setTimeout(() => passwordInput.focus(), 100);
-
-            // Button hover effects
-            confirmBtn.onmouseenter = () => confirmBtn.style.transform = 'translateY(-2px)';
-            confirmBtn.onmouseleave = () => confirmBtn.style.transform = 'translateY(0)';
-            cancelBtn.onmouseenter = () => cancelBtn.style.transform = 'translateY(-2px)';
-            cancelBtn.onmouseleave = () => cancelBtn.style.transform = 'translateY(0)';
-
-            // Confirm button click
-            confirmBtn.onclick = () => {
-                const password = passwordInput.value.trim();
-                if (!password) {
-                    errorElement.textContent = 'Password is required';
-                    passwordInput.style.borderColor = '#FF4444';
-                    return;
-                }
-                if (password.length < this.passwordMinLength) {
-                    errorElement.textContent = `Password must be at least ${this.passwordMinLength} characters`;
-                    passwordInput.style.borderColor = '#FF4444';
-                    return;
-                }
-                
-                // Success animation
-                confirmBtn.style.opacity = '0.7';
-                confirmBtn.disabled = true;
-                
-                setTimeout(() => {
-                    document.body.removeChild(modal);
-                    resolve(password);
-                }, 300);
-            };
-
-            // Cancel button click
-            cancelBtn.onclick = () => {
-                cancelBtn.style.opacity = '0.7';
-                setTimeout(() => {
-                    document.body.removeChild(modal);
-                    resolve(null);
-                }, 300);
-            };
-
-            // Enter key press
-            passwordInput.onkeypress = (e) => {
-                if (e.key === 'Enter') {
-                    confirmBtn.click();
-                }
-            };
-
-            // Clear error on input
-            passwordInput.oninput = () => {
-                errorElement.textContent = '';
-                passwordInput.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-            };
-        });
-    }
-
-    // ============================================
-    // 🎯 TRANSACTION HISTORY
-    // ============================================
-
-    async getTransactionHistory(limit = 100) {
-        try {
-            const userId = this.getCurrentUserId();
-            if (!userId) {
-                throw new Error('Please login to your mining account');
-            }
-
-            console.log('📜 Fetching transaction history for user:', userId);
-
-            this.isLoading = true;
-            this.triggerLoadingState(true);
-
-            const response = await fetch(`${this.apiBaseUrl}/transactions/${userId}?limit=${limit}`);
-
-            if (!response.ok) {
-                throw new Error(`API returned ${response.status}: ${response.statusText}`);
-            }
-
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to load transaction history');
-            }
-
-            this.transactionHistory = result.transactions || [];
-            console.log(`✅ Loaded ${this.transactionHistory.length} transactions`);
-
-            this.isLoading = false;
-            this.triggerLoadingState(false);
-
-            return {
-                success: true,
-                transactions: this.transactionHistory,
-                count: result.count || 0
-            };
-
-        } catch (error) {
-            console.error('❌ Get transaction history failed:', error);
-            this.isLoading = false;
-            this.triggerLoadingState(false);
-            return {
-                success: false,
-                error: error.message,
-                transactions: [],
-                count: 0
-            };
-        }
-    }
-
-    // ============================================
-    // 🎯 PRICE & BALANCE FUNCTIONS
-    // ============================================
-
-    async getPrices() {
-        try {
-            const response = await fetch(`${this.apiBaseUrl}/price/ton`);
-            const result = await response.json();
-
-            if (result.success) {
-                this.tonPrice = parseFloat(result.price) || 2.35;
-                this.priceChange24h = parseFloat(result.change24h) || 0;
-                
-                return {
-                    success: true,
-                    prices: {
-                        TON: { 
-                            price: this.tonPrice,
-                            change24h: this.priceChange24h,
-                            source: result.source || 'default',
-                            changePercent: result.change24hPercent || '0.00%'
-                        }
-                    }
+                // Get wallet data from session
+                this.currentWallet = {
+                    id: `session_${Date.now()}`,
+                    address: result.session.wallet_address || result.session.wallet?.address,
+                    format: 'UQ',
+                    createdAt: result.session.wallet?.createdAt || new Date().toISOString(),
+                    source: 'database_session'
                 };
-            }
 
-            throw new Error('Failed to get prices');
+                this.isInitialized = true;
+                console.log('✅ Valid database session found');
+                return result.session;
+            } else {
+                // ❌ Session invalid or expired
+                console.log('❌ Session invalid or expired, clearing token');
+                localStorage.removeItem('nemex_wallet_session');
+                this.sessionToken = null;
+                return null;
+            }
 
         } catch (error) {
-            console.error('❌ Get prices failed:', error);
-            return {
-                success: false,
-                error: error.message,
-                prices: {
-                    TON: { price: 2.35, change24h: 0, source: 'fallback', changePercent: '0.00%' }
-                }
-            };
+            console.warn('⚠️ Database session check failed:', error.message);
+            return null;
         }
-    }
-
-    async getRealBalance(address = null) {
-        try {
-            const walletAddress = address || this.getAddress();
-            if (!walletAddress) {
-                throw new Error('No wallet address available');
-            }
-
-            console.log('💰 Getting real balance for:', walletAddress);
-
-            const response = await fetch(`${this.apiBaseUrl}/balance/${walletAddress}`);
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to get balance');
-            }
-
-            // Update price if available
-            if (result.tonPrice) {
-                this.tonPrice = parseFloat(result.tonPrice);
-                this.priceChange24h = parseFloat(result.priceChange24h) || 0;
-            }
-
-            this.lastBalance = parseFloat(result.balance) || 0;
-
-            return {
-                success: true,
-                balance: this.lastBalance,
-                valueUSD: parseFloat(result.valueUSD) || 0,
-                tonPrice: this.tonPrice,
-                priceChange24h: this.priceChange24h,
-                isActive: result.isActive || false,
-                status: result.status || 'unknown',
-                address: result.address,
-                format: result.format
-            };
-
-        } catch (error) {
-            console.error('❌ Get real balance failed:', error);
-            return {
-                success: false,
-                error: error.message,
-                balance: 0,
-                valueUSD: 0,
-                isActive: false
-            };
-        }
-    }
-
-    // 🎯 CHECK WALLET ACTIVATION
-    async checkWalletActivation(address = null) {
-        try {
-            const walletAddress = address || this.getAddress();
-            if (!walletAddress) {
-                throw new Error('No wallet address available');
-            }
-
-            console.log('🔍 Checking wallet activation for:', walletAddress);
-
-            const response = await fetch(`${this.apiBaseUrl}/activation/${walletAddress}`);
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to check activation');
-            }
-
-            return {
-                success: true,
-                isActive: result.isActive || false,
-                canSend: result.canSend || false,
-                message: result.message || '',
-                currentBalance: result.currentBalance || '0',
-                requiredBalance: result.requiredBalance || '0'
-            };
-
-        } catch (error) {
-            console.error('❌ Check wallet activation failed:', error);
-            return {
-                success: false,
-                error: error.message,
-                isActive: false,
-                canSend: false
-            };
-        }
-    }
-
-    // ============================================
-    // 🎯 UI HELPER FUNCTIONS
-    // ============================================
-
-    showLoading(message = 'Loading...') {
-        // Create or show loading overlay
-        let loadingOverlay = document.getElementById('walletLoadingOverlay');
-        
-        if (!loadingOverlay) {
-            loadingOverlay = document.createElement('div');
-            loadingOverlay.id = 'walletLoadingOverlay';
-            loadingOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.9);
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                z-index: 99998;
-                backdrop-filter: blur(5px);
-            `;
-            
-            const spinner = document.createElement('div');
-            spinner.style.cssText = `
-                width: 50px;
-                height: 50px;
-                border: 3px solid rgba(212, 175, 55, 0.3);
-                border-top: 3px solid #D4AF37;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
-            `;
-            
-            const text = document.createElement('div');
-            text.id = 'loadingText';
-            text.style.cssText = `
-                color: #D4AF37;
-                margin-top: 20px;
-                font-size: 16px;
-                font-weight: 600;
-            `;
-            text.textContent = message;
-            
-            loadingOverlay.appendChild(spinner);
-            loadingOverlay.appendChild(text);
-            document.body.appendChild(loadingOverlay);
-            
-            // Add CSS animation
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-            `;
-            document.head.appendChild(style);
-        } else {
-            loadingOverlay.style.display = 'flex';
-            const text = document.getElementById('loadingText');
-            if (text) text.textContent = message;
-        }
-    }
-
-    hideLoading() {
-        const loadingOverlay = document.getElementById('walletLoadingOverlay');
-        if (loadingOverlay) {
-            loadingOverlay.style.display = 'none';
-        }
-    }
-
-    // 🎯 SHOW SUCCESS NOTIFICATION
-    showSuccess(message) {
-        if (typeof window.showToast === 'function') {
-            window.showToast(message, 'success');
-        } else if (typeof window.showMessage === 'function') {
-            window.showMessage(message, 'success');
-        } else {
-            // Create custom notification
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #28a745;
-                color: white;
-                padding: 15px 20px;
-                border-radius: 8px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-                z-index: 10000;
-                animation: slideIn 0.3s ease;
-            `;
-            notification.innerHTML = `✅ ${message}`;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        document.body.removeChild(notification);
-                    }
-                }, 300);
-            }, 3000);
-            
-            // Add CSS animations
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes slideOut {
-                    from { transform: translateX(0); opacity: 1; }
-                    to { transform: translateX(100%); opacity: 0; }
-                }
-            `;
-            document.head.appendChild(style);
-        }
-    }
-
-    // 🎯 SHOW ERROR NOTIFICATION
-    showError(message) {
-        if (typeof window.showToast === 'function') {
-            window.showToast(message, 'error');
-        } else if (typeof window.showMessage === 'function') {
-            window.showMessage(message, 'error');
-        } else {
-            // Create custom notification
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #dc3545;
-                color: white;
-                padding: 15px 20px;
-                border-radius: 8px;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-                z-index: 10000;
-                animation: slideIn 0.3s ease;
-                max-width: 400px;
-                word-wrap: break-word;
-            `;
-            notification.innerHTML = `❌ ${message}`;
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => {
-                    if (notification.parentNode) {
-                        document.body.removeChild(notification);
-                    }
-                }, 300);
-            }, 5000);
-        }
-    }
-
-    // ============================================
-    // 🎯 EVENT TRIGGERS
-    // ============================================
-
-    triggerBalanceUpdate() {
-        console.log('🎯 Triggering balance update event');
-
-        const event = new CustomEvent('balance-updated', {
-            detail: {
-                wallet: this.currentWallet,
-                userId: this.userId,
-                timestamp: new Date().toISOString()
-            }
-        });
-        window.dispatchEvent(event);
-    }
-
-    triggerHistoryUpdate() {
-        console.log('🎯 Triggering history update event');
-
-        const event = new CustomEvent('history-updated', {
-            detail: {
-                transactions: this.transactionHistory,
-                count: this.transactionHistory.length,
-                timestamp: new Date().toISOString()
-            }
-        });
-        window.dispatchEvent(event);
-    }
-
-    triggerLoadingState(isLoading) {
-        const event = new CustomEvent('loading-state', {
-            detail: { isLoading: isLoading }
-        });
-        window.dispatchEvent(event);
-    }
-
-    triggerWalletLoaded() {
-        console.log('🎯 Triggering wallet loaded event');
-
-        const event = new CustomEvent('wallet-loaded', {
-            detail: {
-                wallet: this.currentWallet,
-                userId: this.userId,
-                hasWallet: true,
-                timestamp: new Date().toISOString()
-            }
-        });
-        window.dispatchEvent(event);
-
-        if (typeof window.onWalletLoaded === 'function') {
-            window.onWalletLoaded(this.currentWallet, this.userId);
-        }
-    }
-
-    // ============================================
-    // 🎯 WALLET SUCCESS HANDLERS
-    // ============================================
-
-    handleWalletCreationSuccess(buttonElement) {
-        console.log('🎯 Handling wallet creation success');
-
-        // 1. Reset the button
-        this.resetButton(buttonElement);
-
-        // 2. Close the create modal
-        const createModal = document.getElementById('createWalletModal');
-        if (createModal) {
-            createModal.style.display = 'none';
-            console.log('✅ Create modal closed');
-        }
-
-        // 3. Clear password fields
-        const passwordInputs = document.querySelectorAll('#createWalletModal input[type="password"]');
-        passwordInputs.forEach(input => input.value = '');
-
-        // 4. Show success message
-        this.showSuccess('✅ Wallet created successfully!');
-
-        // 5. Trigger wallet loaded event
-        this.triggerWalletLoaded();
-
-        // 6. Call initWallet if it exists
-        setTimeout(() => {
-            if (typeof window.initWallet === 'function') {
-                console.log('🔄 Calling initWallet()...');
-                window.initWallet();
-            }
-        }, 1000);
-    }
-
-    handleWalletLoginSuccess(buttonElement) {
-        console.log('🎯 Handling wallet login success');
-
-        // 1. Reset the button
-        this.resetButton(buttonElement);
-
-        // 2. Close the login modal
-        const loginModal = document.getElementById('walletLoginModal');
-        if (loginModal) {
-            loginModal.style.display = 'none';
-            console.log('✅ Login modal closed');
-        }
-
-        // 3. Clear password field
-        const passwordInput = document.getElementById('walletPasswordLogin');
-        if (passwordInput) passwordInput.value = '';
-
-        // 4. Show success message
-        this.showSuccess('✅ Wallet login successful!');
-
-        // 5. Trigger wallet loaded event
-        this.triggerWalletLoaded();
-
-        // 6. Call initWallet if it exists
-        setTimeout(() => {
-            if (typeof window.initWallet === 'function') {
-                window.initWallet();
-            }
-        }, 1000);
-    }
-
-    // ============================================
-    // 🎯 HELPER METHODS
-    // ============================================
-
-    resetButton(buttonElement) {
-        if (buttonElement) {
-            const isCreateBtn = buttonElement.id === 'createWalletBtn';
-            buttonElement.textContent = isCreateBtn ? 'Create Wallet' : 'Unlock Wallet';
-            buttonElement.disabled = false;
-            console.log('✅ Button reset to normal state');
-        }
-    }
-
-    hasWallet() {
-        return !!this.currentWallet;
-    }
-
-    getAddress() {
-        return this.currentWallet?.address || null;
-    }
-
-    getShortAddress() {
-        const address = this.getAddress();
-        if (!address) return '';
-        if (address.length <= 16) return address;
-        return address.substring(0, 8) + '...' + address.substring(address.length - 8);
-    }
-
-    getBalance() {
-        return this.lastBalance;
-    }
-
-    getBalanceUSD() {
-        return (this.lastBalance * this.tonPrice).toFixed(2);
-    }
-
-    async logout() {
-        // Clear state
-        this.sessionToken = null;
-        this.currentWallet = null;
-        this.isInitialized = false;
-        this.transactionHistory = [];
-        this.lastBalance = 0;
-
-        console.log('✅ Wallet logged out');
-
-        // Show message
-        this.showSuccess('Logged out successfully');
-
-        // Reload page after delay
-        setTimeout(() => {
-            if (typeof window.location !== 'undefined') {
-                window.location.reload();
-            }
-        }, 1500);
     }
 
     // 🎯 INITIALIZE WALLET - PROPER FLOW
@@ -1035,7 +376,21 @@ class WalletManager {
         console.log('🔄 Initializing wallet system...');
 
         try {
-            // 1. Check if user is logged in
+            // 1. FIRST: Check for valid database session
+            const session = await this.checkDatabaseSession();
+            if (session) {
+                console.log('✅ Wallet loaded from database session');
+                this.triggerWalletLoaded();
+
+                return {
+                    success: true,
+                    hasWallet: true,
+                    hasSession: true,
+                    wallet: this.currentWallet
+                };
+            }
+
+            // 2. NO SESSION: Check if wallet exists in database
             const userId = this.getCurrentUserId();
             if (!userId) {
                 console.log('❌ No user ID - requires login');
@@ -1048,32 +403,17 @@ class WalletManager {
 
             this.userId = userId;
 
-            // 2. Check if wallet exists
             const checkResult = await this.checkWalletExists();
             console.log('📋 Wallet check result:', checkResult);
 
             if (checkResult.success && checkResult.hasWallet) {
-                // Wallet exists - get fresh balance
-                const balanceResult = await this.getRealBalance(checkResult.wallet.address);
-                const priceResult = await this.getPrices();
-                
-                this.currentWallet = {
-                    ...checkResult.wallet,
-                    balance: balanceResult.balance,
-                    isActive: balanceResult.isActive
-                };
-                
-                this.tonPrice = priceResult.prices?.TON?.price || 2.35;
-                this.priceChange24h = priceResult.prices?.TON?.change24h || 0;
-                
-                console.log('✅ Wallet loaded successfully');
-                this.triggerWalletLoaded();
-
+                // Wallet exists but no session - user needs to login
+                console.log('🔐 Wallet exists, showing password prompt');
                 return {
                     success: true,
                     hasWallet: true,
-                    wallet: this.currentWallet,
-                    showPasswordPrompt: false
+                    wallet: checkResult.wallet,
+                    showPasswordPrompt: true
                 };
             } else if (checkResult.success && !checkResult.hasWallet) {
                 // No wallet - show create form
@@ -1097,6 +437,661 @@ class WalletManager {
             };
         }
     }
+
+    // ============================================
+    // 🎯 SEND TRANSACTION FUNCTIONALITY - UPDATED FOR @ton/ton
+    // ============================================
+
+    // 🎯 SEND TON TRANSACTION - SIMPLIFIED VERSION
+    async sendTransaction(toAddress, amount, memo = '', password = null) {
+        try {
+            const userId = this.getCurrentUserId();
+            if (!userId) {
+                throw new Error('Please login to your mining account first');
+            }
+
+            if (!this.currentWallet || !this.currentWallet.address) {
+                throw new Error('No wallet found. Please create or login to a wallet first');
+            }
+
+            if (!toAddress || !toAddress.trim()) {
+                throw new Error('Recipient address is required');
+            }
+
+            if (!amount || parseFloat(amount) <= 0) {
+                throw new Error('Amount must be a positive number');
+            }
+
+            // Validate address format
+            if (!toAddress.startsWith('EQ') && !toAddress.startsWith('UQ')) {
+                throw new Error('Invalid TON address format. Must start with EQ or UQ');
+            }
+
+            // Get password for transaction
+            let walletPassword = password;
+            if (!walletPassword) {
+                // Prompt for password if not provided
+                walletPassword = await this.promptForPassword();
+                if (!walletPassword) {
+                    throw new Error('Transaction cancelled - password required');
+                }
+            }
+
+            console.log('📤 Sending transaction:', {
+                from: this.currentWallet.address,
+                to: toAddress,
+                amount: amount,
+                memo: memo
+            });
+
+            // Call backend send endpoint (backend handles @ton/ton operations)
+            const response = await fetch(`${this.apiBaseUrl}/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    walletPassword: walletPassword,
+                    toAddress: toAddress.trim(),
+                    amount: amount,
+                    memo: memo || ''
+                })
+            });
+
+            const result = await response.json();
+            console.log('📦 Send transaction result:', result);
+
+            if (!result.success) {
+                throw new Error(result.error || 'Transaction failed');
+            }
+
+            // Clear password from memory
+            walletPassword = null;
+
+            // Refresh balance and history
+            setTimeout(() => {
+                this.triggerBalanceUpdate();
+                this.triggerHistoryUpdate();
+            }, 2000);
+
+            return {
+                success: true,
+                transaction: result.data,
+                message: 'Transaction sent successfully!'
+            };
+
+        } catch (error) {
+            console.error('❌ Send transaction failed:', error);
+            return {
+                success: false,
+                error: error.message || 'Transaction failed. Please try again.'
+            };
+        }
+    }
+
+    // 🎯 PROMPT FOR PASSWORD
+    async promptForPassword() {
+        return new Promise((resolve) => {
+            // Create a password prompt modal
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 99999;
+            `;
+
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: #121212;
+                padding: 30px;
+                border-radius: 16px;
+                width: 90%;
+                max-width: 400px;
+                text-align: center;
+                border: 2px solid #D4AF37;
+            `;
+
+            content.innerHTML = `
+                <div style="color: #D4AF37; font-size: 20px; font-weight: 700; margin-bottom: 16px;">
+                    🔐 Confirm Transaction
+                </div>
+                <div style="color: #F5F5F5; margin-bottom: 20px; font-size: 14px;">
+                    Enter your wallet password to confirm this transaction
+                </div>
+                <input type="password" id="transactionPassword" 
+                       placeholder="Enter wallet password" 
+                       style="width: 100%; padding: 12px 16px; 
+                              background: rgba(255, 255, 255, 0.05); 
+                              border: 1px solid rgba(255, 255, 255, 0.1); 
+                              border-radius: 8px; 
+                              color: #F5F5F5; 
+                              font-size: 16px; 
+                              margin-bottom: 20px;">
+                <div id="passwordError" style="color: #FF4444; font-size: 12px; margin-bottom: 15px; min-height: 18px;"></div>
+                <div style="display: flex; gap: 12px;">
+                    <button id="confirmPasswordBtn" 
+                            style="flex: 1; 
+                                   background: #D4AF37; 
+                                   color: #0A0A0A; 
+                                   border: none; 
+                                   padding: 12px; 
+                                   border-radius: 8px; 
+                                   font-weight: 600; 
+                                   cursor: pointer;">
+                        Confirm
+                    </button>
+                    <button id="cancelPasswordBtn" 
+                            style="flex: 1; 
+                                   background: transparent; 
+                                   color: #D4AF37; 
+                                   border: 2px solid #D4AF37; 
+                                   padding: 12px; 
+                                   border-radius: 8px; 
+                                   font-weight: 600; 
+                                   cursor: pointer;">
+                        Cancel
+                    </button>
+                </div>
+            `;
+
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+
+            const passwordInput = content.querySelector('#transactionPassword');
+            const confirmBtn = content.querySelector('#confirmPasswordBtn');
+            const cancelBtn = content.querySelector('#cancelPasswordBtn');
+            const errorElement = content.querySelector('#passwordError');
+
+            // Focus input
+            setTimeout(() => passwordInput.focus(), 100);
+
+            // Confirm button click
+            confirmBtn.onclick = () => {
+                const password = passwordInput.value.trim();
+                if (!password) {
+                    errorElement.textContent = 'Password is required';
+                    return;
+                }
+                if (password.length < this.passwordMinLength) {
+                    errorElement.textContent = `Password must be at least ${this.passwordMinLength} characters`;
+                    return;
+                }
+                document.body.removeChild(modal);
+                resolve(password);
+            };
+
+            // Cancel button click
+            cancelBtn.onclick = () => {
+                document.body.removeChild(modal);
+                resolve(null);
+            };
+
+            // Enter key press
+            passwordInput.onkeypress = (e) => {
+                if (e.key === 'Enter') {
+                    confirmBtn.click();
+                }
+            };
+        });
+    }
+
+    // ============================================
+    // 🎯 TRANSACTION HISTORY FUNCTIONALITY
+    // ============================================
+
+    // 🎯 GET TRANSACTION HISTORY
+    async getTransactionHistory(limit = 100, includeReceived = true) {
+        try {
+            const userId = this.getCurrentUserId();
+            if (!userId) {
+                throw new Error('Please login to your mining account');
+            }
+
+            console.log('📜 Fetching transaction history for user:', userId);
+
+            this.isLoading = true;
+            this.triggerLoadingState(true);
+
+            const response = await fetch(`${this.apiBaseUrl}/transactions/${userId}?limit=${limit}&include_received=${includeReceived}`);
+
+            if (!response.ok) {
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to load transaction history');
+            }
+
+            this.transactionHistory = result.transactions || [];
+            console.log(`✅ Loaded ${this.transactionHistory.length} transactions`);
+
+            this.isLoading = false;
+            this.triggerLoadingState(false);
+
+            return {
+                success: true,
+                transactions: this.transactionHistory,
+                count: result.count || 0,
+                walletAddress: result.walletAddress
+            };
+
+        } catch (error) {
+            console.error('❌ Get transaction history failed:', error);
+            this.isLoading = false;
+            this.triggerLoadingState(false);
+            return {
+                success: false,
+                error: error.message,
+                transactions: [],
+                count: 0
+            };
+        }
+    }
+
+    // 🎯 SYNC RECEIVED TRANSACTIONS
+    async syncReceivedTransactions() {
+        try {
+            const userId = this.getCurrentUserId();
+            if (!userId) {
+                throw new Error('Please login to your mining account');
+            }
+
+            console.log('🔄 Syncing received transactions...');
+
+            const response = await fetch(`${this.apiBaseUrl}/transactions/sync`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            const result = await response.json();
+            console.log('📦 Sync result:', result);
+
+            if (!result.success) {
+                throw new Error(result.error || 'Sync failed');
+            }
+
+            return {
+                success: true,
+                message: result.message,
+                syncedCount: result.syncedCount || 0
+            };
+
+        } catch (error) {
+            console.error('❌ Sync received transactions failed:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    // ============================================
+    // 🎯 PRICE & BALANCE FUNCTIONS
+    // ============================================
+
+    // 🎯 GET PRICES
+    async getPrices() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/price/ton`);
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error('Failed to get prices');
+            }
+
+            // Also get NMX price
+            const nmxResponse = await fetch(`${this.apiBaseUrl}/price/nmx`).catch(() => null);
+            let nmxPrice = { price: 0.01, source: 'default' };
+
+            if (nmxResponse) {
+                try {
+                    const nmxResult = await nmxResponse.json();
+                    if (nmxResult.success) {
+                        nmxPrice = { price: nmxResult.price, source: nmxResult.source };
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Failed to parse NMX price:', e);
+                }
+            }
+
+            return {
+                success: true,
+                prices: {
+                    TON: { 
+                        price: parseFloat(result.price) || 2.35,
+                        change24h: 0,
+                        source: result.source || 'default'
+                    },
+                    NMX: {
+                        price: parseFloat(nmxPrice.price) || 0.01,
+                        change24h: 0,
+                        source: nmxPrice.source
+                    }
+                }
+            };
+
+        } catch (error) {
+            console.error('❌ Get prices failed:', error);
+            return {
+                success: false,
+                error: error.message,
+                prices: {
+                    TON: { price: 2.35, change24h: 0, source: 'fallback' },
+                    NMX: { price: 0.01, change24h: 0, source: 'fallback' }
+                }
+            };
+        }
+    }
+
+    // 🎯 GET REAL BALANCE
+    async getRealBalance(address = null) {
+        try {
+            const walletAddress = address || this.getAddress();
+            if (!walletAddress) {
+                throw new Error('No wallet address available');
+            }
+
+            console.log('💰 Getting real balance for:', walletAddress);
+
+            const response = await fetch(`${this.apiBaseUrl}/balance/${walletAddress}`);
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to get balance');
+            }
+
+            return {
+                success: true,
+                balance: parseFloat(result.balance) || 0,
+                valueUSD: parseFloat(result.valueUSD) || 0,
+                tonPrice: parseFloat(result.tonPrice) || 2.35,
+                isActive: result.isActive || false,
+                status: result.status || 'unknown',
+                address: result.address,
+                format: result.format
+            };
+
+        } catch (error) {
+            console.error('❌ Get real balance failed:', error);
+            return {
+                success: false,
+                error: error.message,
+                balance: 0,
+                valueUSD: 0,
+                isActive: false
+            };
+        }
+    }
+
+    // ============================================
+    // 🎯 EVENT TRIGGERS
+    // ============================================
+
+    // 🎯 TRIGGER BALANCE UPDATE EVENT
+    triggerBalanceUpdate() {
+        console.log('🎯 Triggering balance update event');
+
+        const event = new CustomEvent('balance-updated', {
+            detail: {
+                wallet: this.currentWallet,
+                userId: this.userId,
+                timestamp: new Date().toISOString()
+            }
+        });
+        window.dispatchEvent(event);
+    }
+
+    // 🎯 TRIGGER HISTORY UPDATE EVENT
+    triggerHistoryUpdate() {
+        console.log('🎯 Triggering history update event');
+
+        const event = new CustomEvent('history-updated', {
+            detail: {
+                transactions: this.transactionHistory,
+                count: this.transactionHistory.length,
+                timestamp: new Date().toISOString()
+            }
+        });
+        window.dispatchEvent(event);
+    }
+
+    // 🎯 TRIGGER LOADING STATE
+    triggerLoadingState(isLoading) {
+        const event = new CustomEvent('loading-state', {
+            detail: { isLoading: isLoading }
+        });
+        window.dispatchEvent(event);
+    }
+
+    // 🎯 HANDLE WALLET CREATION SUCCESS
+    handleWalletCreationSuccess(buttonElement) {
+        console.log('🎯 Handling wallet creation success');
+
+        // 1. Reset the button
+        this.resetButton(buttonElement);
+
+        // 2. Close the create modal
+        const createModal = document.getElementById('createWalletModal');
+        if (createModal) {
+            createModal.style.display = 'none';
+            console.log('✅ Create modal closed');
+        }
+
+        // 3. Clear password fields
+        const passwordInputs = document.querySelectorAll('#createWalletModal input[type="password"]');
+        passwordInputs.forEach(input => input.value = '');
+
+        // 4. Show success message
+        if (typeof window.showToast === 'function') {
+            window.showToast('✅ Wallet created successfully!', 'success');
+        } else if (typeof window.showMessage === 'function') {
+            window.showMessage('✅ Wallet created successfully!', 'success');
+        } else {
+            alert('✅ Wallet created successfully!');
+        }
+
+        // 5. Trigger wallet loaded event
+        this.triggerWalletLoaded();
+
+        // 6. Call initWallet if it exists
+        setTimeout(() => {
+            if (typeof window.initWallet === 'function') {
+                console.log('🔄 Calling initWallet()...');
+                window.initWallet();
+            }
+        }, 1000);
+    }
+
+    // 🎯 HANDLE WALLET LOGIN SUCCESS
+    handleWalletLoginSuccess(buttonElement) {
+        console.log('🎯 Handling wallet login success');
+
+        // 1. Reset the button
+        this.resetButton(buttonElement);
+
+        // 2. Close the login modal
+        const loginModal = document.getElementById('walletLoginModal');
+        if (loginModal) {
+            loginModal.style.display = 'none';
+            console.log('✅ Login modal closed');
+        }
+
+        // 3. Clear password field
+        const passwordInput = document.getElementById('walletPasswordLogin');
+        if (passwordInput) passwordInput.value = '';
+
+        // 4. Show success message
+        if (typeof window.showToast === 'function') {
+            window.showToast('✅ Wallet login successful!', 'success');
+        }
+
+        // 5. Trigger wallet loaded event
+        this.triggerWalletLoaded();
+
+        // 6. Call initWallet if it exists
+        setTimeout(() => {
+            if (typeof window.initWallet === 'function') {
+                window.initWallet();
+            }
+        }, 1000);
+    }
+
+    // 🎯 RESET BUTTON STATE
+    resetButton(buttonElement) {
+        if (buttonElement) {
+            const isCreateBtn = buttonElement.id === 'createWalletBtn';
+            buttonElement.textContent = isCreateBtn ? 'Create Wallet' : 'Unlock Wallet';
+            buttonElement.disabled = false;
+            console.log('✅ Button reset to normal state');
+        }
+    }
+
+    // 🎯 LEGACY CREATE WALLET
+    async legacyCreateWallet(userId, walletPassword, buttonElement = null) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/store-encrypted`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    walletPassword: walletPassword
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.currentWallet = result.wallet;
+                this.userId = userId;
+                this.isInitialized = true;
+
+                this.handleWalletCreationSuccess(buttonElement);
+            } else {
+                this.resetButton(buttonElement);
+            }
+
+            return result;
+        } catch (error) {
+            console.error('❌ Legacy create wallet failed:', error);
+            this.resetButton(buttonElement);
+            return {
+                success: false,
+                error: 'Wallet creation failed'
+            };
+        }
+    }
+
+    // 🎯 TRIGGER WALLET LOADED EVENT
+    triggerWalletLoaded() {
+        console.log('🎯 Triggering wallet loaded event');
+
+        const event = new CustomEvent('wallet-loaded', {
+            detail: {
+                wallet: this.currentWallet,
+                userId: this.userId,
+                hasWallet: true,
+                timestamp: new Date().toISOString()
+            }
+        });
+        window.dispatchEvent(event);
+
+        if (typeof window.onWalletLoaded === 'function') {
+            window.onWalletLoaded(this.currentWallet, this.userId);
+        }
+    }
+
+    // 🎯 DELETE WALLET
+    async deleteWallet(userId, requirePassword = false) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Clear local state
+                this.currentWallet = null;
+                this.userId = null;
+                this.isInitialized = false;
+                localStorage.removeItem('nemex_wallet_session');
+
+                return {
+                    success: true,
+                    message: 'Wallet deleted successfully'
+                };
+            }
+
+            return {
+                success: false,
+                error: result.error || 'Failed to delete wallet'
+            };
+
+        } catch (error) {
+            console.error('❌ Delete wallet failed:', error);
+            return {
+                success: false,
+                error: 'Delete failed: ' + error.message
+            };
+        }
+    }
+
+    // 🎯 HELPER METHODS
+    hasWallet() {
+        return !!this.currentWallet;
+    }
+
+    getAddress() {
+        return this.currentWallet?.address || null;
+    }
+
+    getShortAddress() {
+        const address = this.getAddress();
+        if (!address) return '';
+        if (address.length <= 16) return address;
+        return address.substring(0, 8) + '...' + address.substring(address.length - 8);
+    }
+
+    // 🎯 LOGOUT - CLEAR SESSION FROM DATABASE
+    async logout() {
+        if (this.sessionToken) {
+            try {
+                await fetch(`${this.apiBaseUrl}/session/destroy`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: this.sessionToken })
+                });
+            } catch (error) {
+                console.warn('⚠️ Session destroy failed:', error);
+            }
+        }
+
+        // Clear localStorage
+        localStorage.removeItem('nemex_wallet_session');
+
+        // Reset state
+        this.sessionToken = null;
+        this.currentWallet = null;
+        this.isInitialized = false;
+        this.transactionHistory = [];
+        this.tonClient = null;
+
+        console.log('✅ Wallet logged out');
+
+        // Reload page
+        setTimeout(() => window.location.reload(), 500);
+    }
 }
 
 // 🚀 INITIALIZE GLOBAL INSTANCE
@@ -1106,7 +1101,7 @@ window.walletManager = new WalletManager();
 // 🎯 GLOBAL HELPER FUNCTIONS FOR FRONTEND
 // ============================================
 
-// 🎯 GLOBAL HELPER FOR CREATE WALLET BUTTON
+// 🎯 GLOBAL HELPER FOR BUTTON CLICKS
 window.createWalletFromButton = async function(button) {
     console.log('🎯 Create wallet button clicked');
 
@@ -1188,8 +1183,8 @@ window.loginWalletFromButton = async function(button) {
     }
 };
 
-// 🎯 GLOBAL SEND TRANSACTION HELPER - COMPLETELY FIXED
-window.sendTransaction = async function(toAddress, amount, memo = '', showNotifications = true) {
+// 🎯 GLOBAL SEND TRANSACTION HELPER
+window.sendTransaction = async function(toAddress, amount, memo = '') {
     console.log('🎯 Global send transaction called');
 
     try {
@@ -1197,23 +1192,11 @@ window.sendTransaction = async function(toAddress, amount, memo = '', showNotifi
             throw new Error('Wallet manager not initialized');
         }
 
-        // First check wallet activation
-        const activationCheck = await window.walletManager.checkWalletActivation();
-        if (showNotifications && activationCheck.success && !activationCheck.canSend) {
-            window.walletManager.showError(`❌ Cannot send: ${activationCheck.message}`);
-            return { 
-                success: false, 
-                error: activationCheck.message,
-                activationRequired: !activationCheck.isActive
-            };
-        }
-
-        // Send transaction
         const result = await window.walletManager.sendTransaction(toAddress, amount, memo);
 
         if (result.success) {
-            if (showNotifications) {
-                window.walletManager.showSuccess('✅ Transaction sent successfully!');
+            if (typeof window.showToast === 'function') {
+                window.showToast('✅ Transaction sent successfully!', 'success');
             }
             return result;
         } else {
@@ -1221,14 +1204,10 @@ window.sendTransaction = async function(toAddress, amount, memo = '', showNotifi
         }
     } catch (error) {
         console.error('❌ Global send transaction failed:', error);
-        if (showNotifications && window.walletManager) {
-            window.walletManager.showError(`❌ ${error.message}`);
+        if (typeof window.showToast === 'function') {
+            window.showToast(`❌ ${error.message}`, 'error');
         }
-        return { 
-            success: false, 
-            error: error.message,
-            showError: true
-        };
+        return { success: false, error: error.message };
     }
 };
 
@@ -1254,51 +1233,31 @@ window.getTransactionHistory = async function(limit = 100) {
     }
 };
 
-// 🎯 GLOBAL GET BALANCE HELPER
-window.getWalletBalance = async function() {
-    console.log('🎯 Global get wallet balance called');
+// 🎯 GLOBAL SYNC TRANSACTIONS HELPER
+window.syncTransactions = async function() {
+    console.log('🎯 Global sync transactions called');
 
     try {
         if (!window.walletManager) {
             throw new Error('Wallet manager not initialized');
         }
 
-        const result = await window.walletManager.getRealBalance();
+        const result = await window.walletManager.syncReceivedTransactions();
 
         if (result.success) {
+            if (typeof window.showToast === 'function') {
+                window.showToast(`✅ ${result.message}`, 'success');
+            }
             return result;
         } else {
-            throw new Error(result.error || 'Failed to get balance');
+            throw new Error(result.error || 'Sync failed');
         }
     } catch (error) {
-        console.error('❌ Global get balance failed:', error);
-        return { success: false, error: error.message, balance: 0, valueUSD: 0 };
-    }
-};
-
-// 🎯 GLOBAL GET PRICES HELPER
-window.getPrices = async function() {
-    console.log('🎯 Global get prices called');
-
-    try {
-        if (!window.walletManager) {
-            throw new Error('Wallet manager not initialized');
+        console.error('❌ Global sync failed:', error);
+        if (typeof window.showToast === 'function') {
+            window.showToast(`❌ ${error.message}`, 'error');
         }
-
-        const result = await window.walletManager.getPrices();
-
-        if (result.success) {
-            return result;
-        } else {
-            throw new Error(result.error || 'Failed to get prices');
-        }
-    } catch (error) {
-        console.error('❌ Global get prices failed:', error);
-        return { 
-            success: false, 
-            error: error.message, 
-            prices: { TON: { price: 2.35, change24h: 0, source: 'fallback' } } 
-        };
+        return { success: false, error: error.message };
     }
 };
 
@@ -1384,8 +1343,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('📊 Initialization result:', result);
 
                 if (result.success) {
-                    if (result.hasWallet && !result.showPasswordPrompt) {
-                        console.log('✅ Wallet loaded successfully');
+                    if (result.hasWallet && result.hasSession) {
+                        console.log('✅ Wallet loaded from database session');
                         if (typeof window.initWallet === 'function') {
                             setTimeout(() => window.initWallet(), 500);
                         }
@@ -1427,4 +1386,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('✅ NEMEX WALLET READY - ALL FIXES APPLIED');
+console.log('✅ NEMEX WALLET READY - Updated for @ton/ton library');
