@@ -1,4 +1,4 @@
-// server.js - COMPLETE FIXED VERSION
+// server.js - COMPLETE FIXED VERSION WITH PROPER CORS
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -9,14 +9,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // =============================================
-// 🎯 SIMPLIFIED CORS SETUP - FIXED VERSION
+// 🎯 SIMPLIFIED CORS SETUP - ONE LAYER ONLY
 // =============================================
 
-// Allow all origins temporarily for debugging
+// Use ONLY this CORS middleware - Remove ALL other manual CORS headers
 app.use(cors({
-    origin: '*', // Allow all origins
+    origin: '*',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With']
 }));
 
@@ -24,57 +24,29 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Custom CORS headers for all responses
-app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    
-    // Security headers
-    res.header('X-Content-Type-Options', 'nosniff');
-    res.header('X-Frame-Options', 'DENY');
-    res.header('X-XSS-Protection', '1; mode=block');
-    res.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    
-    next();
-});
+// REMOVED: Custom CORS headers middleware (CONFLICTING!)
+// REMOVED: app.use((req, res, next) => { res.header(...) });
 
-// Handle preflight requests
-app.options('*', (req, res) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400');
-    res.sendStatus(200);
-});
+// REMOVED: app.options('*', (req, res) => { ... }) - Let cors handle it
 
-// Serve static files
+// Serve static files WITHOUT manual CORS headers
 app.use(express.static(path.join(__dirname, 'frontend'), {
     setHeaders: (res, filePath) => {
         if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
             res.set('Cache-Control', 'public, max-age=3600');
         }
-        // Add CORS headers to static files too
-        res.header('Access-Control-Allow-Origin', '*');
+        // REMOVED: res.header('Access-Control-Allow-Origin', '*');
     }
 }));
 
 // Request logging middleware
 app.use((req, res, next) => {
     console.log(`🌐 ${new Date().toLocaleTimeString()} ${req.method} ${req.path} [Origin: ${req.headers.origin || 'none'}]`);
-    
-    // Log CORS headers for debugging
-    if (req.method === 'OPTIONS') {
-        console.log('🔄 Handling CORS preflight request');
-    }
-    
     next();
 });
 
 // =============================================
-// 🎯 LOAD AND MOUNT WALLET ROUTES
+// 🎯 LOAD AND MOUNT WALLET ROUTES - NO CORS WRAPPER
 // =============================================
 console.log('\n🔄 LOADING WALLET ROUTES...');
 
@@ -93,23 +65,10 @@ if (fs.existsSync(walletRoutesPath)) {
         // Load the wallet routes
         const walletRoutes = require(walletRoutesPath);
 
-        // Ensure wallet routes have CORS headers
-        const corsWrapper = (req, res, next) => {
-            res.header('Access-Control-Allow-Origin', '*');
-            res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-            res.header('Access-Control-Allow-Credentials', 'true');
-            
-            if (req.method === 'OPTIONS') {
-                return res.sendStatus(200);
-            }
-            
-            next();
-        };
-
-        // Mount the wallet routes with CORS wrapper
-        app.use('/api/wallet', corsWrapper, walletRoutes);
-        console.log('✅ Wallet routes mounted at /api/wallet with CORS wrapper');
+        // REMOVED: CORS wrapper - Let the main CORS middleware handle it
+        // Mount the wallet routes WITHOUT cors wrapper
+        app.use('/api/wallet', walletRoutes);
+        console.log('✅ Wallet routes mounted at /api/wallet');
 
         console.log('\n📋 AVAILABLE WALLET ENDPOINTS:');
         console.log('   POST   /api/wallet/create            - Create TON wallet');
@@ -124,21 +83,14 @@ if (fs.existsSync(walletRoutesPath)) {
         console.log('   GET    /api/wallet/test/generate     - Test wallet generation');
         console.log('   GET    /api/wallet/health            - Health check');
         console.log('   GET    /api/wallet/test              - Test endpoint');
+        console.log('   POST   /api/wallet/send              - Send TON transaction');
 
     } catch (error) {
         console.error('❌ FAILED to load wallet routes:', error.message);
         console.error('Stack trace:', error.stack);
 
-        // Create emergency router with CORS
+        // Create emergency router
         const emergencyRouter = express.Router();
-
-        // Add CORS headers to emergency routes
-        emergencyRouter.use((req, res, next) => {
-            res.header('Access-Control-Allow-Origin', '*');
-            res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-            res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-            next();
-        });
 
         emergencyRouter.get('/health', (req, res) => {
             res.json({
@@ -156,23 +108,14 @@ if (fs.existsSync(walletRoutesPath)) {
             });
         });
 
-        emergencyRouter.options('*', (req, res) => {
-            res.sendStatus(200);
-        });
-
         app.use('/api/wallet', emergencyRouter);
         console.log('⚠️ Emergency routes mounted at /api/wallet');
     }
 } else {
     console.error(`❌ Wallet routes file not found: ${walletRoutesPath}`);
 
-    // Create emergency router with CORS
+    // Create emergency router
     const emergencyRouter = express.Router();
-
-    emergencyRouter.use((req, res, next) => {
-        res.header('Access-Control-Allow-Origin', '*');
-        next();
-    });
 
     emergencyRouter.get('/health', (req, res) => {
         res.json({
@@ -186,7 +129,7 @@ if (fs.existsSync(walletRoutesPath)) {
 }
 
 // =============================================
-// 🎯 TEST ENDPOINTS WITH CORS
+// 🎯 TEST ENDPOINTS
 // =============================================
 app.get('/api/test', (req, res) => {
     res.json({
@@ -194,7 +137,6 @@ app.get('/api/test', (req, res) => {
         message: 'Main API is working!',
         serverTime: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
-        cors: 'enabled',
         origin: req.headers.origin
     });
 });
@@ -204,8 +146,7 @@ app.get('/api/health', (req, res) => {
         status: 'healthy',
         timestamp: new Date().toISOString(),
         server: 'NemexCoin Wallet API',
-        version: '1.0.0',
-        cors: 'enabled'
+        version: '1.0.0'
     });
 });
 
@@ -213,6 +154,13 @@ app.get('/api/health', (req, res) => {
 // 🎯 CORS TEST ENDPOINT
 // =============================================
 app.get('/api/cors-test', (req, res) => {
+    // Check CORS headers
+    console.log('🧪 CORS Test - Headers:', {
+        origin: req.headers.origin,
+        method: req.method,
+        path: req.path
+    });
+
     res.json({
         success: true,
         message: 'CORS test successful',
@@ -220,7 +168,7 @@ app.get('/api/cors-test', (req, res) => {
         host: req.headers.host,
         timestamp: new Date().toISOString(),
         yourIp: req.ip,
-        headers: req.headers
+        note: 'If you see this, CORS is working!'
     });
 });
 
@@ -255,15 +203,12 @@ app.get('/login', (req, res) => {
 });
 
 // =============================================
-// 🎯 404 HANDLER WITH CORS
+// 🎯 404 HANDLER
 // =============================================
 app.use((req, res, next) => {
     console.log(`❌ 404: ${req.method} ${req.path}`);
 
-    // Always set CORS headers even for 404
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-
+    // NO MANUAL CORS HEADERS - Let cors middleware handle it
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({
             success: false,
@@ -278,17 +223,13 @@ app.use((req, res, next) => {
 });
 
 // =============================================
-// 🎯 ERROR HANDLER WITH CORS
+// 🎯 ERROR HANDLER
 // =============================================
 app.use((err, req, res, next) => {
     console.error('❌ Server error:', err.message);
     console.error('Stack:', err.stack);
 
-    // Always set CORS headers even for errors
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+    // NO MANUAL CORS HEADERS - Let cors middleware handle it
     if (err.message === 'Not allowed by CORS') {
         return res.status(403).json({
             success: false,
@@ -313,13 +254,13 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`
     ============================================
-    🚀 NEMEX COIN WALLET SERVER - CORS FIXED
+    🚀 NEMEX COIN WALLET SERVER - FIXED CORS
     ============================================
     
     📍 Port: ${PORT}
     🔧 Environment: ${process.env.NODE_ENV || 'development'}
     🕐 Started: ${new Date().toLocaleString()}
-    🌐 CORS: ENABLED (All origins allowed)
+    🌐 CORS: ENABLED (Single layer, no conflicts)
     
     ✅ Wallet API: /api/wallet/*
     ✅ Health Check: /api/health
@@ -328,11 +269,11 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     
     ============================================
     `);
-    
-    console.log('\n🔧 CORS Configuration:');
-    console.log('   - Allow-Origin: *');
-    console.log('   - Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    console.log('   - Allow-Credentials: true');
+
+    console.log('\n🔧 CORS Configuration (SIMPLE):');
+    console.log('   - Using single cors() middleware');
+    console.log('   - No manual headers (prevents conflicts)');
+    console.log('   - Test CORS: curl -X GET https://nemex-backend.onrender.com/api/cors-test');
 });
 
 // Graceful shutdown
