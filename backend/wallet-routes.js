@@ -681,6 +681,24 @@ async function getRealBalance(address, network = 'mainnet') {
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
+    console.log('🔍 DEBUG: sendTONTransaction START');
+    console.log('📊 DEBUG: Checking environment...');
+    console.log('  - WalletContractV4 loaded:', !!WalletContractV4);
+    console.log('  - Supabase connected:', dbStatus === 'connected');
+    console.log('  - TONCENTER_API_KEY exists:', !!process.env.TONCENTER_API_KEY);
+    console.log('  - User ID:', userId);
+    
+    try {
+        // ... rest of your function
+    } catch (error) {
+        console.error('❌❌❌ DEBUG: sendTONTransaction CRASHED AT:');
+        console.error('❌ Error:', error.message);
+        console.error('❌ Stack:', error.stack);
+        throw error;
+    }
+}
+
+async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
     try {
         console.log(`🚀 SEND REQUEST: ${amount} TON from user ${userId} to ${toAddress}`);
 
