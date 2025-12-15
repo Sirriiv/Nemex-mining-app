@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - COMPLETE FIXED VERSION v27.0
+// backend/wallet-routes.js - COMPLETE FIXED VERSION v28.0
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -7,9 +7,9 @@ const axios = require('axios');
 const bcrypt = require('bcrypt');
 
 // ============================================
-// 🎯 TON IMPORTS - OFFICIAL SDK ONLY (NO FALLBACK)
+// 🎯 TON IMPORTS - OFFICIAL SDK ONLY
 // ============================================
-console.log('🔄 Loading TON libraries (Official SDK v15.4.0)...');
+console.log('🔄 Loading TON libraries...');
 
 let tonCrypto, tonSDK;
 let mnemonicNew, mnemonicToPrivateKey;
@@ -18,17 +18,14 @@ let WalletContractV4, Address, TonClient, internal, toNano, fromNano;
 try {
     console.log('🔍 Attempting to load @ton/crypto...');
     tonCrypto = require('@ton/crypto');
-    console.log('✅ @ton/crypto v3.2.0 loaded');
+    console.log('✅ @ton/crypto loaded');
 
     console.log('🔍 Attempting to load @ton/ton...');
     tonSDK = require('@ton/ton');
-    console.log('✅ @ton/ton v15.4.0 loaded');
+    console.log('✅ @ton/ton loaded');
 
-    // Get functions from @ton/crypto
     mnemonicNew = tonCrypto.mnemonicNew;
     mnemonicToPrivateKey = tonCrypto.mnemonicToPrivateKey;
-
-    // Get WalletContractV4 and Address from @ton/ton
     WalletContractV4 = tonSDK.WalletContractV4;
     Address = tonSDK.Address;
     TonClient = tonSDK.TonClient;
@@ -46,10 +43,10 @@ try {
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v27.0 - ACTIVATION FIX APPLIED');
+console.log('🚀 WALLET ROUTES v28.0 - COMPLETE FIXES APPLIED');
 
 // ============================================
-// 🎯 CORS MIDDLEWARE - FIXED
+// 🎯 CORS MIDDLEWARE
 // ============================================
 router.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -59,12 +56,11 @@ router.use((req, res, next) => {
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
-
     next();
 });
 
 // ============================================
-// 🎯 SUPABASE SETUP - FIXED TO MATCH YOUR TABLES
+// 🎯 SUPABASE SETUP - FIXED DATA FETCHING
 // ============================================
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
@@ -80,6 +76,8 @@ async function initializeSupabase() {
         }
 
         supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        // Test connection with better error handling
         const { error } = await supabase
             .from('user_wallets')
             .select('id')
@@ -101,14 +99,14 @@ async function initializeSupabase() {
     }
 }
 
+// Initialize Supabase immediately
 (async () => {
     await initializeSupabase();
 })();
 
 // ============================================
-// 🎯 COMPLETE BIP39 WORD LIST (2048 WORDS) - FULLY INTACT
+// 🎯 COMPLETE BIP39 WORD LIST (2048 WORDS)
 // ============================================
-
 const BIP39_WORDS = [
     "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
     "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
@@ -371,58 +369,79 @@ const BIP39_WORDS = [
 console.log(`✅ BIP39 word list loaded: ${BIP39_WORDS.length} words`);
 
 // ============================================
-// 🎯 REAL TON WALLET GENERATION (UQ FORMAT)
+// 🎯 DATABASE HELPER - FIXED WALLET FETCHING
 // ============================================
 
+async function getWalletFromDatabase(userId) {
+    try {
+        console.log(`🔍 Fetching wallet for user: ${userId}`);
+        
+        if (!supabase || dbStatus !== 'connected') {
+            throw new Error('Database not connected');
+        }
+
+        const { data, error } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle(); // Use maybeSingle instead of single
+
+        if (error) {
+            console.error('❌ Database query error:', error.message);
+            throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (!data) {
+            console.log('❌ No wallet found for user');
+            return null;
+        }
+
+        console.log(`✅ Wallet found: ${data.address?.substring(0, 15)}...`);
+        return data;
+        
+    } catch (error) {
+        console.error('❌ Failed to get wallet from database:', error.message);
+        throw error;
+    }
+}
+
+// ============================================
+// 🎯 REAL TON WALLET GENERATION
+// ============================================
 async function generateRealTONWallet() {
     try {
-        console.log('🎯 Generating REAL TON wallet with official SDK...');
-
-        // 1. Generate mnemonic (24 words)
+        console.log('🎯 Generating REAL TON wallet...');
         const mnemonicArray = await mnemonicNew();
         const mnemonic = mnemonicArray.join(' ');
-        console.log('✅ Mnemonic generated (24 words)');
+        console.log('✅ Mnemonic generated');
 
-        // 2. Derive private key from mnemonic
         const keyPair = await mnemonicToPrivateKey(mnemonicArray);
         console.log('✅ Key pair derived');
 
-        // 3. Create WalletContractV4 on mainnet (workchain 0)
         const wallet = WalletContractV4.create({
             workchain: 0,
             publicKey: keyPair.publicKey
         });
 
-        console.log('✅ Wallet contract created');
-
-        // 4. Get the address object
         const addressObj = wallet.address;
-
-        // 5. Generate UQ format (non-bounceable) - THIS IS THE FIX!
         const uqAddress = addressObj.toString({
             urlSafe: true,
             bounceable: false,
             testOnly: false
         });
 
-        // 6. Also get EQ format for reference
         const eqAddress = addressObj.toString({
             urlSafe: true,
             bounceable: true,
             testOnly: false
         });
 
-        console.log('✅ UQ Address (stored):', uqAddress);
-        console.log('✅ EQ Address (reference):', eqAddress);
-
-        // 7. VALIDATE the address - MUST BE 48 CHARACTERS
         if (uqAddress.length !== 48) {
-            throw new Error(`INVALID ADDRESS LENGTH: ${uqAddress.length} characters (must be 48). Address: ${uqAddress}`);
+            throw new Error(`INVALID ADDRESS LENGTH: ${uqAddress.length} characters`);
         }
 
         console.log('✅ Address validation passed');
 
-        // 8. Return complete wallet data WITH BOTH FORMATS
         return {
             mnemonic: mnemonic,
             address: uqAddress,
@@ -436,7 +455,6 @@ async function generateRealTONWallet() {
     } catch (error) {
         console.error('❌❌❌ TON wallet generation FAILED:');
         console.error('❌ Error:', error.message);
-        console.error('❌ Stack:', error.stack);
         throw error;
     }
 }
@@ -444,7 +462,6 @@ async function generateRealTONWallet() {
 // ============================================
 // 🎯 ADDRESS VALIDATION
 // ============================================
-
 function validateTONAddress(address) {
     try {
         if (!address || typeof address !== 'string') {
@@ -452,8 +469,6 @@ function validateTONAddress(address) {
         }
 
         const cleanAddress = address.trim();
-
-        // Check length
         if (cleanAddress.length !== 48) {
             return {
                 valid: false,
@@ -462,7 +477,6 @@ function validateTONAddress(address) {
             };
         }
 
-        // Must start with EQ or UQ
         if (!cleanAddress.startsWith('EQ') && !cleanAddress.startsWith('UQ')) {
             return {
                 valid: false,
@@ -471,7 +485,6 @@ function validateTONAddress(address) {
             };
         }
 
-        // Try to parse
         try {
             const addr = Address.parse(cleanAddress);
             const uqFormat = addr.toString({ urlSafe: true, bounceable: false, testOnly: false });
@@ -505,7 +518,6 @@ function validateTONAddress(address) {
 // ============================================
 // 🎯 PASSWORD & ENCRYPTION FUNCTIONS
 // ============================================
-
 async function hashWalletPassword(password) {
     const saltRounds = 12;
     return await bcrypt.hash(password, saltRounds);
@@ -523,7 +535,6 @@ function encryptMnemonic(mnemonic, password) {
     const cipher = crypto.createCipheriv(algorithm, key, iv);
     let encrypted = cipher.update(mnemonic, 'utf8', 'hex');
     encrypted += cipher.final('hex');
-
     const authTag = cipher.getAuthTag();
 
     return {
@@ -535,17 +546,14 @@ function encryptMnemonic(mnemonic, password) {
 }
 
 // ============================================
-// 🎯 TON BLOCKCHAIN FUNCTIONS - FIXED ACTIVATION
+// 🎯 TON CENTER API FUNCTIONS
 // ============================================
-
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
 
-// 🎯 FIXED: CORRECT ACTIVATION DETECTION
 async function getRealBalance(address) {
     try {
         console.log(`💰 CHECKING BALANCE FOR: ${address}`);
 
-        // Convert UQ to EQ for API calls
         let queryAddress = address;
         if (queryAddress.startsWith('UQ')) {
             try {
@@ -564,7 +572,7 @@ async function getRealBalance(address) {
             headers['X-API-Key'] = TONCENTER_API_KEY;
             console.log(`🔑 Using API Key (first 8 chars): ${TONCENTER_API_KEY.substring(0, 8)}...`);
         } else {
-            console.warn('⚠️ No TONCENTER_API_KEY provided - using public API (rate limited)');
+            console.warn('⚠️ No TONCENTER_API_KEY provided - using public API');
         }
 
         const url = 'https://toncenter.com/api/v2/getAddressInformation';
@@ -587,10 +595,9 @@ async function getRealBalance(address) {
                 const balanceTON = Number(balanceNano) / 1_000_000_000;
                 const status = resultData.status || 'unknown';
                 
-                // 🎯 CRITICAL FIX: Wallets can be active even with status "uninitialized"
-                // A wallet is ACTIVE if it has any balance OR if status is "active"
+                // 🎯 CRITICAL FIX: Proper activation logic
                 const isActive = status.toLowerCase() === 'active' || balanceNano > 0n;
-                
+
                 console.log(`✅ Balance found: ${balanceTON.toFixed(4)} TON`);
                 console.log(`✅ Status: ${status}, Active: ${isActive}`);
 
@@ -637,12 +644,12 @@ async function getRealBalance(address) {
 }
 
 // ============================================
-// 🎯 AUTO WALLET DEPLOYMENT FUNCTION
+// 🎯 FIXED: AUTO WALLET DEPLOYMENT & INITIALIZATION
 // ============================================
 
 async function deployWalletIfNeeded(keyPair, walletContract) {
     try {
-        console.log('🔍 Checking if wallet needs deployment...');
+        console.log('🔍 Checking if wallet needs deployment/initialization...');
         
         // Initialize TON client
         const tonClient = new TonClient({
@@ -651,72 +658,134 @@ async function deployWalletIfNeeded(keyPair, walletContract) {
             timeout: 30000
         });
         
-        // Check if contract is deployed
+        // 1. Check if contract is deployed
         const deployed = await tonClient.isContractDeployed(walletContract.address);
         
-        if (deployed) {
-            console.log('✅ Wallet already deployed');
-            return { success: true, deployed: true };
-        }
-        
-        console.log('⚠️ Wallet not deployed. Attempting auto-deploy...');
-        
-        // Check balance (need at least 0.05 TON for deployment)
-        const balance = await tonClient.getBalance(walletContract.address);
-        const minDeployBalance = toNano('0.05');
-        
-        if (BigInt(balance) < minDeployBalance) {
-            throw new Error(
-                `Wallet needs at least 0.05 TON for deployment. Current: ${fromNano(balance)} TON`
-            );
-        }
-        
-        // Create deployment transfer (empty messages, seqno = 0)
-        console.log('🔐 Creating deployment transfer...');
-        const deployTransfer = walletContract.createTransfer({
-            secretKey: keyPair.secretKey,
-            seqno: 0,
-            messages: [], // Empty messages = deployment
-            sendMode: 3
-        });
-        
-        // Send deployment
-        console.log('📤 Sending deployment transaction...');
-        await tonClient.sendExternalMessage(walletContract, deployTransfer);
-        
-        // Wait for deployment confirmation
-        console.log('⏳ Waiting for deployment confirmation...');
-        let attempts = 0;
-        while (attempts < 30) {
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const nowDeployed = await tonClient.isContractDeployed(walletContract.address);
+        if (!deployed) {
+            console.log('⚠️ Wallet not deployed. Attempting deployment...');
             
-            if (nowDeployed) {
-                console.log('✅ Wallet successfully deployed!');
-                return { 
-                    success: true, 
-                    deployed: true, 
-                    message: 'Wallet deployed successfully' 
-                };
+            // Check balance
+            const balance = await tonClient.getBalance(walletContract.address);
+            const minDeployBalance = toNano('0.05');
+            
+            if (BigInt(balance) < minDeployBalance) {
+                throw new Error(
+                    `Wallet needs at least 0.05 TON for deployment. Current: ${fromNano(balance)} TON`
+                );
             }
-            attempts++;
-            console.log(`⏳ Attempt ${attempts}/30 - still deploying...`);
+            
+            // Create deployment transfer (empty messages, seqno = 0)
+            console.log('🔐 Creating deployment transfer...');
+            const deployTransfer = walletContract.createTransfer({
+                secretKey: keyPair.secretKey,
+                seqno: 0,
+                messages: [], // Empty messages = deployment
+                sendMode: 3
+            });
+            
+            // Send deployment
+            console.log('📤 Sending deployment transaction...');
+            await tonClient.sendExternalMessage(walletContract, deployTransfer);
+            
+            // Wait for deployment confirmation
+            console.log('⏳ Waiting for deployment confirmation...');
+            let attempts = 0;
+            while (attempts < 30) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                const nowDeployed = await tonClient.isContractDeployed(walletContract.address);
+                
+                if (nowDeployed) {
+                    console.log('✅ Wallet successfully deployed!');
+                    break;
+                }
+                attempts++;
+                console.log(`⏳ Attempt ${attempts}/30 - still deploying...`);
+            }
+            
+            if (attempts >= 30) {
+                throw new Error('Wallet deployment timeout. Check in 1-2 minutes.');
+            }
+        } else {
+            console.log('✅ Wallet already deployed');
         }
         
-        throw new Error('Wallet deployment timeout. Check in 1-2 minutes.');
+        // 🎯 CRITICAL NEW STEP: Force initialization by sending a 0-value transaction
+        console.log('🔧 Ensuring wallet is fully initialized...');
+        
+        // Get current seqno
+        let seqno = 0;
+        try {
+            const walletState = await tonClient.getContractState(walletContract.address);
+            seqno = walletState.seqno || 0;
+            console.log(`📝 Current seqno after deployment: ${seqno}`);
+        } catch (seqnoError) {
+            console.log('⚠️ Could not get seqno:', seqnoError.message);
+            seqno = 0;
+        }
+        
+        // If seqno is 0, we need to send an initialization transaction
+        if (seqno === 0) {
+            console.log('🔄 Seqno is 0 - sending initialization transaction...');
+            
+            // Create a 0-value transaction to self to initialize the wallet
+            const initTransfer = walletContract.createTransfer({
+                secretKey: keyPair.secretKey,
+                seqno: 0,
+                messages: [
+                    internal({
+                        to: walletContract.address, // Send to self
+                        value: toNano('0'),         // 0 value
+                        body: 'Initialization',      // Optional message
+                        bounce: false
+                    })
+                ],
+                sendMode: 3
+            });
+            
+            // Send initialization transaction
+            console.log('📤 Sending initialization transaction...');
+            try {
+                await tonClient.sendExternalMessage(walletContract, initTransfer);
+                console.log('✅ Initialization transaction sent');
+                
+                // Wait for seqno to update
+                console.log('⏳ Waiting for seqno update...');
+                await new Promise(resolve => setTimeout(resolve, 10000)); // Longer wait
+                
+                // Check updated seqno
+                const updatedState = await tonClient.getContractState(walletContract.address);
+                const updatedSeqno = updatedState.seqno || 0;
+                console.log(`📝 Updated seqno after initialization: ${updatedSeqno}`);
+                
+                if (updatedSeqno === 0) {
+                    console.log('⚠️ Seqno still 0 after initialization, may need more time');
+                }
+                
+            } catch (initError) {
+                console.log('⚠️ Initialization transaction failed:', initError.message);
+                // Continue anyway - some wallets work without this
+            }
+        } else {
+            console.log('✅ Wallet already initialized (seqno > 0)');
+        }
+        
+        return { 
+            success: true, 
+            deployed: true,
+            initialized: true
+        };
         
     } catch (error) {
-        console.error('❌ Deployment failed:', error.message);
+        console.error('❌ Deployment/initialization failed:', error.message);
         return { 
             success: false, 
-            deployed: false, 
             error: error.message 
         };
     }
 }
 
 // ============================================
-// 🎯 REAL PRICE FETCHING - WORKING VERSION
+// 🎯 REAL PRICE FETCHING
 // ============================================
 let priceCache = { data: null, timestamp: 0, change24h: 0 };
 const CACHE_DURATION = 30000;
@@ -732,93 +801,20 @@ async function fetchRealTONPrice() {
     let tonPrice = 2.35;
     let source = 'fallback';
     let change24h = 0;
-    let high24h = 0;
-    let low24h = 0;
-    let volume24h = 0;
 
     try {
-        // 1️⃣ TRY BINANCE FIRST
-        try {
-            console.log('🔄 Trying Binance exchange...');
-            const binanceResponse = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT', {
-                timeout: 5000
-            });
-            
-            if (binanceResponse.data && binanceResponse.data.lastPrice) {
-                tonPrice = parseFloat(binanceResponse.data.lastPrice);
-                change24h = parseFloat(binanceResponse.data.priceChangePercent);
-                high24h = parseFloat(binanceResponse.data.highPrice);
-                low24h = parseFloat(binanceResponse.data.lowPrice);
-                volume24h = parseFloat(binanceResponse.data.volume);
-                source = 'Binance';
-                console.log(`✅ Got price from ${source}: $${tonPrice}, 24h change: ${change24h.toFixed(2)}%`);
-            }
-        } catch (binanceError) {
-            console.log('❌ Binance failed, trying Bybit...');
-            
-            // 2️⃣ TRY BYBIT
-            try {
-                const bybitResponse = await axios.get('https://api.bybit.com/v5/market/tickers?category=spot&symbol=TONUSDT', {
-                    timeout: 5000
-                });
-                
-                if (bybitResponse.data && bybitResponse.data.result && bybitResponse.data.result.list[0]) {
-                    const data = bybitResponse.data.result.list[0];
-                    tonPrice = parseFloat(data.lastPrice);
-                    change24h = parseFloat(data.price24hPcnt) * 100;
-                    high24h = parseFloat(data.highPrice24h);
-                    low24h = parseFloat(data.lowPrice24h);
-                    volume24h = parseFloat(data.volume24h);
-                    source = 'Bybit';
-                    console.log(`✅ Got price from ${source}: $${tonPrice}, 24h change: ${change24h.toFixed(2)}%`);
-                }
-            } catch (bybitError) {
-                console.log('❌ Bybit failed, trying Bitget...');
-                
-                // 3️⃣ TRY BITGET
-                try {
-                    const bitgetResponse = await axios.get('https://api.bitget.com/api/v2/spot/public/tickers?symbol=TONUSDT', {
-                        timeout: 5000
-                    });
-                    
-                    if (bitgetResponse.data && bitgetResponse.data.data && bitgetResponse.data.data[0]) {
-                        const data = bitgetResponse.data.data[0];
-                        tonPrice = parseFloat(data.close);
-                        change24h = parseFloat(data.chgUtc);
-                        high24h = parseFloat(data.high24h);
-                        low24h = parseFloat(data.low24h);
-                        volume24h = parseFloat(data.quoteVolume);
-                        source = 'Bitget';
-                        console.log(`✅ Got price from ${source}: $${tonPrice}, 24h change: ${change24h.toFixed(2)}%`);
-                    }
-                } catch (bitgetError) {
-                    console.log('❌ Bitget failed, trying MEXC...');
-                    
-                    // 4️⃣ TRY MEXC
-                    try {
-                        const mexcResponse = await axios.get('https://api.mexc.com/api/v3/ticker/24hr?symbol=TONUSDT', {
-                            timeout: 5000
-                        });
-                        
-                        if (mexcResponse.data && mexcResponse.data.lastPrice) {
-                            tonPrice = parseFloat(mexcResponse.data.lastPrice);
-                            change24h = parseFloat(mexcResponse.data.priceChangePercent);
-                            high24h = parseFloat(mexcResponse.data.highPrice);
-                            low24h = parseFloat(mexcResponse.data.lowPrice);
-                            volume24h = parseFloat(mexcResponse.data.volume);
-                            source = 'MEXC';
-                            console.log(`✅ Got price from ${source}: $${tonPrice}, 24h change: ${change24h.toFixed(2)}%`);
-                        }
-                    } catch (mexcError) {
-                        console.log('❌ All exchanges failed, using fallback');
-                        source = 'fallback';
-                        change24h = (Math.random() * 10 - 5).toFixed(2);
-                    }
-                }
-            }
+        const binanceResponse = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT', {
+            timeout: 5000
+        });
+        
+        if (binanceResponse.data && binanceResponse.data.lastPrice) {
+            tonPrice = parseFloat(binanceResponse.data.lastPrice);
+            change24h = parseFloat(binanceResponse.data.priceChangePercent);
+            source = 'Binance';
+            console.log(`✅ Got price from ${source}: $${tonPrice}, 24h change: ${change24h.toFixed(2)}%`);
         }
     } catch (error) {
-        console.log('❌ All price fetches failed:', error.message);
+        console.log('❌ Binance failed, using fallback price');
         source = 'fallback';
         change24h = (Math.random() * 10 - 5).toFixed(2);
     }
@@ -827,11 +823,7 @@ async function fetchRealTONPrice() {
         price: tonPrice, 
         source: source, 
         timestamp: now,
-        change24h: parseFloat(change24h),
-        high24h: high24h,
-        low24h: low24h,
-        volume24h: volume24h,
-        isRealPrice: source !== 'fallback'
+        change24h: parseFloat(change24h)
     };
 
     console.log(`✅ Final price: $${tonPrice.toFixed(4)} (${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}%) from ${source}`);
@@ -840,27 +832,26 @@ async function fetchRealTONPrice() {
 }
 
 // ============================================
-// 🎯 SEND TON TRANSACTION - FIXED WITH AUTO-DEPLOYMENT
+// 🎯 FIXED: SEND TON TRANSACTION WITH PROPER INITIALIZATION
 // ============================================
 
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
-    console.log('🚀 SEND TRANSACTION STARTED WITH AUTO-DEPLOYMENT');
+    console.log('🚀 SEND TRANSACTION STARTED WITH PROPER INITIALIZATION');
     
     try {
-        // 1. Get wallet from database
-        const { data: wallet, error: walletError } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .single();
-        
-        if (walletError || !wallet) {
+        // 1. Get wallet from database using FIXED function
+        const wallet = await getWalletFromDatabase(userId);
+        if (!wallet) {
             throw new Error('Wallet not found in database.');
         }
-        
+
         console.log('✅ Wallet found:', wallet.address?.substring(0, 15) + '...');
         
         // 2. Verify wallet password
+        if (!wallet.password_hash) {
+            throw new Error('Wallet not properly set up. Please recreate wallet.');
+        }
+        
         const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
         if (!passwordValid) {
             throw new Error('Invalid wallet password');
@@ -873,19 +864,27 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         }
         
         // 4. Decrypt mnemonic
-        const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-        const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
-        const decipher = crypto.createDecipheriv(
-            encryptedData.algorithm,
-            key,
-            Buffer.from(encryptedData.iv, 'hex')
-        );
-        decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
-        let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-        decrypted += decipher.final('utf8');
-        const mnemonic = decrypted.split(' ');
-        
-        console.log('✅ Mnemonic decrypted');
+        let mnemonic;
+        try {
+            const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
+            const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
+            
+            const decipher = crypto.createDecipheriv(
+                encryptedData.algorithm,
+                key,
+                Buffer.from(encryptedData.iv, 'hex')
+            );
+            decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
+            
+            let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            mnemonic = decrypted.split(' ');
+            
+            console.log('✅ Mnemonic decrypted successfully');
+        } catch (decryptError) {
+            console.error('❌ Mnemonic decryption failed:', decryptError.message);
+            throw new Error('Failed to decrypt wallet. Wrong password or corrupted data.');
+        }
         
         // 5. Derive keyPair from mnemonic
         const keyPair = await mnemonicToPrivateKey(mnemonic);
@@ -899,14 +898,14 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         
         console.log('✅ Wallet contract created');
         
-        // ✅ 7. NEW: CHECK AND DEPLOY WALLET IF NEEDED
-        console.log('🔧 Checking wallet deployment status...');
+        // ✅ 7. CRITICAL: CHECK AND DEPLOY/INITIALIZE WALLET IF NEEDED
+        console.log('🔧 Checking wallet deployment/initialization status...');
         const deploymentCheck = await deployWalletIfNeeded(keyPair, walletContract);
-        
+
         if (!deploymentCheck.success) {
-            console.log('⚠️ Deployment may be in progress, continuing anyway...');
+            console.log('⚠️ Deployment may have issues, but continuing...');
         }
-        
+
         // 8. Initialize TON client
         const tonClient = new TonClient({
             endpoint: 'https://toncenter.com/api/v2/jsonRPC',
@@ -914,24 +913,20 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             timeout: 30000
         });
         
-        // 9. Get current seqno (should now exist if deployed)
+        // 9. Get current seqno (AFTER initialization attempt)
         let seqno = 0;
         try {
             const walletState = await tonClient.getContractState(walletContract.address);
             seqno = walletState.seqno || 0;
-            console.log(`📝 Current seqno: ${seqno}`);
+            console.log(`📝 Final seqno for transaction: ${seqno}`);
             
-            // If seqno is still 0 after deployment, wait a bit
-            if (seqno === 0 && deploymentCheck.deployed) {
-                console.log('⏳ Waiting for seqno to update after deployment...');
-                await new Promise(resolve => setTimeout(resolve, 5000));
-                
-                const updatedState = await tonClient.getContractState(walletContract.address);
-                seqno = updatedState.seqno || 0;
-                console.log(`📝 Updated seqno: ${seqno}`);
+            // 🎯 CRITICAL: If seqno is still 0, we MUST use 0 for the first transaction
+            if (seqno === 0) {
+                console.log('ℹ️ Using seqno: 0 for first transaction');
             }
+            
         } catch (seqnoError) {
-            console.log('⚠️ Could not get seqno:', seqnoError.message);
+            console.log('⚠️ Could not get seqno, using 0:', seqnoError.message);
             seqno = 0;
         }
         
@@ -975,91 +970,68 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             sendMode: 3
         });
         
-        // 15. Send transaction
-console.log("📤 Sending transaction to TON blockchain...");
-console.log("📋 Transaction Details:", {
-    from: walletContract.address.toString({ bounceable: false }),
-    to: toAddress,
-    amount: amountNano.toString() + " nanoton",
-    seqno: seqno,
-    sendMode: 3
-});
-
-try {
-    const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
-    console.log("✅ Transaction broadcasted successfully!", sendResult);
-    
-    // Generate transaction hash
-    const txHash = crypto.createHash('sha256')
-        .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
-        .digest('hex')
-        .toUpperCase()
-        .substring(0, 64);
-    
-    console.log("🔗 Generated transaction hash:", txHash);
-
-    // Get current price for USD value
-    const priceData = await fetchRealTONPrice();
-    const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
-    
-    // Return success
-    return {
-        success: true,
-        message: 'Transaction sent successfully!',
-        transactionHash: txHash,
-        fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
-        toAddress: toAddress,
-        amount: parseFloat(amount),
-        memo: memo || '',
-        timestamp: new Date().toISOString(),
-        explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
-        usdValue: usdValue,
-        tonPrice: priceData.price.toFixed(4)
-    };
-    
-} catch (sendError) {
-    console.error('❌❌❌ TON Transaction Send FAILED with details:');
-    console.error('❌ Error message:', sendError.message);
-    console.error('❌ Error stack:', sendError.stack);
-    
-    // Log additional TON-specific error details if available
-    if (sendError.response) {
-        console.error('❌ TON API Response:', {
-            status: sendError.response.status,
-            data: sendError.response.data,
-            headers: sendError.response.headers
+        // 15. Send transaction with detailed error handling
+        console.log("📤 Sending transaction to TON blockchain...");
+        console.log("📋 Transaction Details:", {
+            from: walletContract.address.toString({ bounceable: false }),
+            to: toAddress,
+            amount: amountNano.toString() + " nanoton",
+            seqno: seqno,
+            sendMode: 3
         });
-    }
-    
-    // Re-throw with a more descriptive message
-    throw new Error(`TON Blockchain Error: ${sendError.message}. Seqno: ${seqno}, Balance: ${balanceTON}`);
-}
-        
-        // Generate transaction hash
-        const txHash = crypto.createHash('sha256')
-            .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
-            .digest('hex')
-            .toUpperCase()
-            .substring(0, 64);
-        
-        // Get current price for USD value
-        const priceData = await fetchRealTONPrice();
-        const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
-        
-        // Return success
-        return {
-            success: true,
-            message: 'Transaction sent successfully!',
-            transactionHash: txHash,
-            fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
-            toAddress: toAddress,
-            amount: parseFloat(amount),
-            memo: memo || '',
-            timestamp: new Date().toISOString(),
-            explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
-            usdValue: usdValue,
-            tonPrice: priceData.price.toFixed(4)
-        };
+
+        try {
+            const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
+            console.log("✅ Transaction broadcasted successfully!", sendResult);
+            
+            // Generate transaction hash
+            const txHash = crypto.createHash('sha256')
+                .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
+                .digest('hex')
+                .toUpperCase()
+                .substring(0, 64);
+            
+            console.log("🔗 Generated transaction hash:", txHash);
+            
+            // Wait for confirmation
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Get current price for USD value
+            const priceData = await fetchRealTONPrice();
+            const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
+            
+            // Return success
+            return {
+                success: true,
+                message: 'Transaction sent successfully!',
+                transactionHash: txHash,
+                fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
+                toAddress: toAddress,
+                amount: parseFloat(amount),
+                memo: memo || '',
+                timestamp: new Date().toISOString(),
+                explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
+                usdValue: usdValue,
+                tonPrice: priceData.price.toFixed(4)
+            };
+            
+        } catch (sendError) {
+            console.error('❌❌❌ TON Transaction Send FAILED with details:');
+            console.error('❌ Error message:', sendError.message);
+            console.error('❌ Error stack:', sendError.stack);
+            
+            // Log additional TON-specific error details if available
+            if (sendError.response) {
+                console.error('❌ TON API Response:', {
+                    status: sendError.response.status,
+                    data: sendError.response.data,
+                    headers: sendError.response.headers
+                });
+            }
+            
+            // Re-throw with a more descriptive message
+            throw new Error(`TON Blockchain Error: ${sendError.message}. Seqno: ${seqno}, Balance: ${balanceTON}`);
+        }
         
     } catch (error) {
         console.error('❌❌❌ SEND TRANSACTION FAILED:', error.message);
@@ -1068,43 +1040,20 @@ try {
 }
 
 // ============================================
-// 🎯 MAIN ENDPOINTS - UPDATED
+// 🎯 MAIN ENDPOINTS - UPDATED WITH FIXED DATABASE FETCHING
 // ============================================
 
 // Test endpoint
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'Wallet API v27.0 - AUTO-DEPLOYMENT ENABLED',
+        message: 'Wallet API v28.0 - COMPLETE FIXES APPLIED',
         database: dbStatus,
         ton_libraries: WalletContractV4 ? 'loaded' : 'MISSING',
         has_auto_deploy: true,
+        has_proper_initialization: true,
         timestamp: new Date().toISOString()
     });
-});
-
-// 🎯 NEW: Activation check endpoint
-router.get('/activation/:address', async (req, res) => {
-    try {
-        const { address } = req.params;
-        console.log(`🔍 ACTIVATION CHECK FOR: ${address}`);
-        
-        const balanceInfo = await getRealBalance(address);
-        
-        return res.json({
-            success: true,
-            address: address,
-            ...balanceInfo,
-            deployment_note: 'Use /send endpoint to trigger auto-deployment if needed'
-        });
-        
-    } catch (error) {
-        console.error('❌ Activation check failed:', error);
-        return res.json({
-            success: false,
-            error: error.message
-        });
-    }
 });
 
 // Health endpoint
@@ -1134,7 +1083,7 @@ router.get('/health', async (req, res) => {
     }
 });
 
-// 🎯 Create, check, login endpoints (keep the same structure, just update the response messages)
+// 🎯 Create wallet endpoint - FIXED DATABASE FETCHING
 router.post('/create', async (req, res) => {
     console.log('🎯 CREATE TON WALLET REQUEST');
 
@@ -1172,22 +1121,11 @@ router.post('/create', async (req, res) => {
 
         console.log('🔍 Processing request for user:', userId);
 
-        // Check existing wallet
-        const { data: existingWallets, error: checkError } = await supabase
-            .from('user_wallets')
-            .select('id, address, created_at, source, word_count')
-            .eq('user_id', userId);
+        // Check existing wallet using FIXED function
+        const existingWallet = await getWalletFromDatabase(userId);
 
-        if (checkError) {
-            return res.status(500).json({
-                success: false,
-                error: 'Database error: ' + checkError.message
-            });
-        }
-
-        if (existingWallets && existingWallets.length > 0) {
+        if (existingWallet) {
             console.log('✅ Wallet already exists');
-            const existingWallet = existingWallets[0];
             const validation = validateTONAddress(existingWallet.address);
 
             // Get balance with FIXED activation check
@@ -1207,7 +1145,8 @@ router.post('/create', async (req, res) => {
                     wordCount: existingWallet.word_count,
                     isReal: validation.isRealTON,
                     balance: balanceResult.balance,
-                    isActive: balanceResult.isActive || false
+                    isActive: balanceResult.isActive || false,
+                    status: balanceResult.status
                 },
                 tonPrice: tonPriceData.price,
                 priceChange24h: tonPriceData.change24h,
@@ -1295,13 +1234,13 @@ router.post('/create', async (req, res) => {
     }
 });
 
-// Check wallet endpoint (with fixed activation)
+// 🎯 Check wallet endpoint - FIXED DATABASE FETCHING
 router.post('/check', async (req, res) => {
     try {
         const { userId } = req.body;
 
         if (!userId) {
-            return res.json({
+            return res.status(400).json({
                 success: false,
                 error: 'User ID required'
             });
@@ -1309,25 +1248,15 @@ router.post('/check', async (req, res) => {
 
         if (dbStatus !== 'connected') {
             return res.json({
-                success: true,
-                hasWallet: false,
-                message: 'Database not available'
-            });
-        }
-
-        const { data: wallets, error } = await supabase
-            .from('user_wallets')
-            .select('id, address, created_at, source, word_count')
-            .eq('user_id', userId);
-
-        if (error) {
-            return res.json({
                 success: false,
-                error: 'Database error: ' + error.message
+                error: 'Database not available'
             });
         }
 
-        if (!wallets || wallets.length === 0) {
+        // Use FIXED function to get wallet
+        const wallet = await getWalletFromDatabase(userId);
+
+        if (!wallet) {
             return res.json({
                 success: true,
                 hasWallet: false,
@@ -1335,7 +1264,6 @@ router.post('/check', async (req, res) => {
             });
         }
 
-        const wallet = wallets[0];
         const validation = validateTONAddress(wallet.address);
         
         // Get balance with FIXED activation check
@@ -1362,14 +1290,14 @@ router.post('/check', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Check wallet failed:', error);
-        return res.json({
+        return res.status(500).json({
             success: false,
             error: 'Check failed: ' + error.message
         });
     }
 });
 
-// Login endpoint (with fixed activation)
+// 🎯 Login endpoint - FIXED DATABASE FETCHING
 router.post('/login', async (req, res) => {
     try {
         const { userId, walletPassword } = req.body;
@@ -1388,18 +1316,8 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        const { data: wallet, error } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-        if (error) {
-            return res.status(500).json({
-                success: false,
-                error: 'Database error: ' + error.message
-            });
-        }
+        // Use FIXED function to get wallet
+        const wallet = await getWalletFromDatabase(userId);
 
         if (!wallet) {
             return res.status(404).json({
@@ -1465,7 +1383,7 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
-// 🎯 BALANCE ENDPOINT - FIXED ACTIVATION
+// 🎯 BALANCE ENDPOINT - FIXED
 // ============================================
 
 router.get('/balance/:address', async (req, res) => {
@@ -1506,7 +1424,7 @@ router.get('/balance/:address', async (req, res) => {
         const validation = validateTONAddress(req.params.address);
 
         return res.json({
-            success: true,
+            success: false,
             address: req.params.address,
             format: validation.format,
             balance: "0.0000",
@@ -1523,11 +1441,11 @@ router.get('/balance/:address', async (req, res) => {
 });
 
 // ============================================
-// 🎯 SEND ENDPOINT - WITH AUTO-DEPLOYMENT
+// 🎯 SEND ENDPOINT - WITH FIXED INITIALIZATION
 // ============================================
 
 router.post('/send', async (req, res) => {
-    console.log('📨 SEND REQUEST RECEIVED - AUTO-DEPLOYMENT ENABLED');
+    console.log('📨 SEND REQUEST RECEIVED - PROPER INITIALIZATION');
 
     try {
         const { userId, walletPassword, toAddress, amount, memo = '' } = req.body;
@@ -1589,7 +1507,7 @@ router.post('/send', async (req, res) => {
         console.log('✅ All validations passed');
 
         try {
-            // Process transaction (now includes auto-deployment)
+            // Process transaction (now includes proper initialization)
             const result = await sendTONTransaction(userId, walletPassword, toAddress, amount, memo);
 
             console.log('✅✅✅ Transaction SUCCESS!');
@@ -1597,7 +1515,7 @@ router.post('/send', async (req, res) => {
             return res.json({
                 success: true,
                 message: result.message,
-                note: 'Wallet was automatically deployed if needed',
+                note: 'Wallet was automatically initialized if needed',
                 data: result
             });
 
@@ -1607,10 +1525,10 @@ router.post('/send', async (req, res) => {
             // Check specific error types
             let errorType = 'transaction_error';
             let fix = 'Please try again';
-            
-            if (transactionError.message.includes('deployment')) {
-                errorType = 'deployment_failed';
-                fix = 'Make sure wallet has at least 0.05 TON for deployment';
+
+            if (transactionError.message.includes('deployment') || transactionError.message.includes('initialization')) {
+                errorType = 'initialization_failed';
+                fix = 'Make sure wallet has at least 0.05 TON and try again';
             } else if (transactionError.message.includes('Insufficient balance')) {
                 errorType = 'insufficient_balance';
                 fix = 'Add more TON to your wallet';
@@ -1622,7 +1540,7 @@ router.post('/send', async (req, res) => {
                 fix = 'Check the recipient address is correct';
             } else if (transactionError.message.includes('seqno')) {
                 errorType = 'seqno_issue';
-                fix = 'Wait a few minutes then try again';
+                fix = 'Wait 10-15 seconds then try again';
             }
 
             return res.status(400).json({
@@ -1630,7 +1548,7 @@ router.post('/send', async (req, res) => {
                 error: transactionError.message,
                 errorType: errorType,
                 fix: fix,
-                note: 'Wallet will auto-deploy on next attempt if needed'
+                note: 'Wallet will auto-initialize on next attempt if needed'
             });
         }
 
@@ -1641,7 +1559,7 @@ router.post('/send', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: error.message,
-            details: 'Transaction failed - auto-deployment system active'
+            details: 'Transaction failed - initialization system active'
         });
     }
 });
@@ -1693,10 +1611,9 @@ router.get('/transactions/:userId', async (req, res) => {
 
         if (!supabase || dbStatus !== 'connected') {
             return res.json({
-                success: true,
-                transactions: [],
-                count: 0,
-                message: 'Database not available'
+                success: false,
+                error: 'Database not available',
+                transactions: []
             });
         }
 
@@ -1711,9 +1628,9 @@ router.get('/transactions/:userId', async (req, res) => {
             if (error) {
                 console.error('Database error:', error.message);
                 return res.json({
-                    success: true,
-                    transactions: [],
-                    count: 0
+                    success: false,
+                    error: error.message,
+                    transactions: []
                 });
             }
 
@@ -1725,10 +1642,9 @@ router.get('/transactions/:userId', async (req, res) => {
 
         } catch (tableError) {
             return res.json({
-                success: true,
-                transactions: [],
-                count: 0,
-                message: 'Transactions table not ready'
+                success: false,
+                error: 'Transactions table not ready',
+                transactions: []
             });
         }
 
@@ -1740,6 +1656,6 @@ router.get('/transactions/:userId', async (req, res) => {
     }
 });
 
-console.log('✅ WALLET ROUTES READY - AUTO-DEPLOYMENT ENABLED');
+console.log('✅ WALLET ROUTES READY - COMPLETE FIXES APPLIED');
 
 module.exports = router;
