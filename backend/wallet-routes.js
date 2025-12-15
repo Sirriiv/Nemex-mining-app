@@ -976,10 +976,64 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         });
         
         // 15. Send transaction
-        console.log("📤 Sending transaction to TON blockchain...");
-        await tonClient.sendExternalMessage(walletContract, transfer);
-        
-        console.log("✅ Transaction broadcasted successfully!");
+console.log("📤 Sending transaction to TON blockchain...");
+console.log("📋 Transaction Details:", {
+    from: walletContract.address.toString({ bounceable: false }),
+    to: toAddress,
+    amount: amountNano.toString() + " nanoton",
+    seqno: seqno,
+    sendMode: 3
+});
+
+try {
+    const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
+    console.log("✅ Transaction broadcasted successfully!", sendResult);
+    
+    // Generate transaction hash
+    const txHash = crypto.createHash('sha256')
+        .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
+        .digest('hex')
+        .toUpperCase()
+        .substring(0, 64);
+    
+    console.log("🔗 Generated transaction hash:", txHash);
+
+    // Get current price for USD value
+    const priceData = await fetchRealTONPrice();
+    const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
+    
+    // Return success
+    return {
+        success: true,
+        message: 'Transaction sent successfully!',
+        transactionHash: txHash,
+        fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
+        toAddress: toAddress,
+        amount: parseFloat(amount),
+        memo: memo || '',
+        timestamp: new Date().toISOString(),
+        explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
+        usdValue: usdValue,
+        tonPrice: priceData.price.toFixed(4)
+    };
+    
+} catch (sendError) {
+    console.error('❌❌❌ TON Transaction Send FAILED with details:');
+    console.error('❌ Error message:', sendError.message);
+    console.error('❌ Error stack:', sendError.stack);
+    
+    // Log additional TON-specific error details if available
+    if (sendError.response) {
+        console.error('❌ TON API Response:', {
+            status: sendError.response.status,
+            data: sendError.response.data,
+            headers: sendError.response.headers
+        });
+    }
+    
+    // Re-throw with a more descriptive message
+    throw new Error(`TON Blockchain Error: ${sendError.message}. Seqno: ${seqno}, Balance: ${balanceTON}`);
+}
         
         // Generate transaction hash
         const txHash = crypto.createHash('sha256')
