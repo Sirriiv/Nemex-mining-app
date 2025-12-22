@@ -374,33 +374,93 @@ console.log(`✅ BIP39 word list loaded: ${BIP39_WORDS.length} words`);
 
 async function getWalletFromDatabase(userId) {
     try {
-        console.log(`🔍 Fetching wallet for user: ${userId}`);
+        console.log(`🔍 [BACKEND DEBUG] getWalletFromDatabase called with userId: "${userId}"`);
+        console.log(`🔍 [BACKEND DEBUG] userId type: ${typeof userId}, length: ${userId.length}`);
         
         if (!supabase || dbStatus !== 'connected') {
+            console.error('❌ [BACKEND DEBUG] Supabase client not initialized or not connected');
             throw new Error('Database not connected');
         }
 
+        // 🎯 FIX 1: Clean the userId (remove spaces, lowercase for UUID)
+        const cleanUserId = String(userId).trim();
+        console.log(`🔍 [BACKEND DEBUG] Clean userId: "${cleanUserId}"`);
+        
+        // 🎯 FIX 2: Try exact match first
+        console.log(`📋 [BACKEND DEBUG] Executing query: SELECT * FROM user_wallets WHERE user_id = '${cleanUserId}'`);
+        
         const { data, error } = await supabase
             .from('user_wallets')
             .select('*')
-            .eq('user_id', userId)
-            .maybeSingle(); // Use maybeSingle instead of single
+            .eq('user_id', cleanUserId)
+            .maybeSingle();
+
+        console.log(`📊 [BACKEND DEBUG] Query result:`, {
+            foundData: !!data,
+            dataKeys: data ? Object.keys(data) : 'no data',
+            error: error?.message || 'no error',
+            rowCount: data ? 1 : 0
+        });
 
         if (error) {
-            console.error('❌ Database query error:', error.message);
+            console.error('❌ [BACKEND DEBUG] Database query error:', error.message);
+            console.error('❌ [BACKEND DEBUG] Full error details:', error);
             throw new Error(`Database error: ${error.message}`);
         }
 
         if (!data) {
-            console.log('❌ No wallet found for user');
+            console.log(`❌ [BACKEND DEBUG] No wallet found for user "${cleanUserId}"`);
+            
+            // 🎯 CRITICAL: Check what IS in the database
+            console.log(`🔍 [BACKEND DEBUG] Checking what's actually in the database...`);
+            
+            const { data: allWallets, error: allError } = await supabase
+                .from('user_wallets')
+                .select('user_id, address, created_at')
+                .order('created_at', { ascending: false })
+                .limit(10);
+            
+            if (!allError && allWallets) {
+                console.log(`📋 [BACKEND DEBUG] First 10 wallets in database:`);
+                allWallets.forEach((wallet, index) => {
+                    console.log(`   ${index + 1}. user_id: "${wallet.user_id}", address: ${wallet.address?.substring(0, 10)}..., created: ${wallet.created_at}`);
+                    
+                    // Check if any wallet has a similar user_id
+                    if (wallet.user_id && wallet.user_id.toLowerCase().includes('89cb2dde')) {
+                        console.log(`   🎯 THIS ONE LOOKS LIKE YOUR WALLET!`);
+                    }
+                });
+                
+                // Check if the UUID exists but with different formatting
+                const similarWallets = allWallets.filter(w => 
+                    w.user_id && 
+                    w.user_id.toLowerCase().replace(/-/g, '') === cleanUserId.toLowerCase().replace(/-/g, '')
+                );
+                
+                if (similarWallets.length > 0) {
+                    console.log(`🎯 [BACKEND DEBUG] FOUND SIMILAR WALLET WITH DIFFERENT FORMATTING!`);
+                    console.log(`🎯 [BACKEND DEBUG] Similar: "${similarWallets[0].user_id}" vs Looking for: "${cleanUserId}"`);
+                }
+            }
+            
             return null;
         }
 
-        console.log(`✅ Wallet found: ${data.address?.substring(0, 15)}...`);
-        return data;
+        console.log(`✅ [BACKEND DEBUG] Wallet found!`);
+        console.log(`📋 [BACKEND DEBUG] Wallet details:`, {
+            id: data.id,
+            user_id: data.user_id,
+            address: data.address,
+            has_password: !!data.password_hash,
+            has_mnemonic: !!data.encrypted_mnemonic,
+            created_at: data.created_at
+        });
         
+        return data;
+
     } catch (error) {
-        console.error('❌ Failed to get wallet from database:', error.message);
+        console.error('❌ [BACKEND DEBUG] Failed to get wallet from database:', error.message);
+        console.error('❌ [BACKEND DEBUG] Stack trace:', error.stack);
         throw error;
     }
 }
