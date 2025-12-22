@@ -1716,6 +1716,75 @@ router.get('/transactions/:userId', async (req, res) => {
     }
 });
 
+// ============================================
+// 🎯 DEBUG ENDPOINTS TO FIND THE ISSUE
+// ============================================
+
+// 🎯 ENDPOINT 1: Direct database check
+router.get('/debug/find-by-user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        console.log(`🔍 [DEBUG ENDPOINT] Finding wallet for userId: "${userId}"`);
+        
+        const wallet = await getWalletFromDatabase(userId);
+        
+        if (!wallet) {
+            return res.json({
+                success: false,
+                error: `No wallet found for userId: "${userId}"`,
+                note: 'Check the backend logs for detailed debug info'
+            });
+        }
+        
+        return res.json({
+            success: true,
+            found: true,
+            wallet: {
+                id: wallet.id,
+                user_id: wallet.user_id,
+                address: wallet.address,
+                created_at: wallet.created_at,
+                has_password: !!wallet.password_hash,
+                has_mnemonic: !!wallet.encrypted_mnemonic
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Debug endpoint failed:', error);
+        return res.json({ success: false, error: error.message });
+    }
+});
+
+// 🎯 ENDPOINT 2: Check all wallets
+router.get('/debug/all-wallets', async (req, res) => {
+    try {
+        console.log('🔍 [DEBUG ENDPOINT] Getting all wallets...');
+        
+        if (!supabase || dbStatus !== 'connected') {
+            return res.json({ success: false, error: 'Database not connected' });
+        }
+        
+        const { data: wallets, error } = await supabase
+            .from('user_wallets')
+            .select('id, user_id, address, created_at, password_hash IS NOT NULL as has_password, encrypted_mnemonic IS NOT NULL as has_mnemonic')
+            .order('created_at', { ascending: false });
+        
+        if (error) {
+            return res.json({ success: false, error: error.message });
+        }
+        
+        return res.json({
+            success: true,
+            count: wallets?.length || 0,
+            wallets: wallets || []
+        });
+        
+    } catch (error) {
+        console.error('❌ Debug all wallets failed:', error);
+        return res.json({ success: false, error: error.message });
+    }
+});
+
 console.log('✅ WALLET ROUTES READY - COMPLETE FIXES APPLIED');
 
 module.exports = router;
