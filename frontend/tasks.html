@@ -556,8 +556,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
 
+    <!-- ✅ FIXED: ADDED OPENING SCRIPT TAG HERE -->
+    <script>
         // Updated tasks data with your requirements
         const mockTasks = [
             // Social Tasks
@@ -758,11 +759,11 @@
                     const dailyTask = mockTasks.find(task => task.id === 13);
                     if (dailyTask) {
                         dailyTask.progress = profile.daily_checkins;
-                        
+
                         // Check if last check-in was today
                         const today = new Date().toDateString();
                         const lastCheckin = profile.last_checkin ? new Date(profile.last_checkin).toDateString() : null;
-                        
+
                         if (lastCheckin === today) {
                             // User already checked in today, mark as completed
                             if (!completedTasks.includes(13)) {
@@ -887,7 +888,7 @@
                             </div>
                             <div class="task-reward">+${task.reward} NMXp</div>
                         </div>
-                        
+
                         ${task.maxProgress > 1 ? `
                             <div class="progress-container">
                                 <div class="progress-bar" style="width: ${progressPercent}%"></div>
@@ -896,7 +897,7 @@
                                 ${task.progress}/${task.maxProgress} days
                             </div>
                         ` : ''}
-                        
+
                         <div class="task-footer">
                             <div class="task-status status-${isCompleted ? 'completed' : task.status}">
                                 ${isCompleted ? 'Completed' : 'Available'}
@@ -930,7 +931,7 @@
                 // For external links, open in new tab
                 if (task.type === 'external') {
                     window.open(task.link, '_blank');
-                    
+
                     // Simulate API call delay
                     await new Promise(resolve => setTimeout(resolve, 1000));
                 }
@@ -939,7 +940,7 @@
                 let dailyCheckinUpdated = false;
                 if (task.type === 'daily') {
                     const today = new Date().toISOString().split('T')[0];
-                    
+
                     // Update daily check-in progress
                     const { data: profile, error: profileError } = await supabase
                         .from('profiles')
@@ -1087,7 +1088,7 @@
 My username: ${userUsername}
 
 Let's grow together! 💫`;
-            
+
             const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
             window.open(url, '_blank');
         }
@@ -1101,7 +1102,7 @@ Let's grow together! 💫`;
 My username: ${userUsername}
 
 Let's grow together! 💫`;
-            
+
             const url = `https://t.me/share/url?url=${encodeURIComponent(window.location.origin)}&text=${encodeURIComponent(text)}`;
             window.open(url, '_blank');
         }
@@ -1115,7 +1116,7 @@ Let's grow together! 💫`;
 My username: ${userUsername}
 
 Let's grow together! 💫`;
-            
+
             const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
             window.open(url, '_blank');
         }
@@ -1129,7 +1130,7 @@ Let's grow together! 💫`;
 My username: ${userUsername}
 
 Let's grow together! 💫`;
-            
+
             navigator.clipboard.writeText(text).then(() => {
                 alert('Share text copied to clipboard!');
             });
