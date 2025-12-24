@@ -1137,15 +1137,8 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
         console.log('✅ Wallet contract created');
 
-        console.log('🔧 Checking wallet deployment/initialization status...');
-        const deploymentCheck = await deployWalletIfNeeded(keyPair, walletContract);
-
-        if (!deploymentCheck.success) {
-            console.log('⚠️ Deployment may have issues, but continuing...');
-        }
-
         // ============================================
-        // 🔥 DUAL API STRATEGY FOR SENDING
+        // 🔥 DUAL API STRATEGY FOR SENDING (select RPC before deployment)
         // ============================================
         const rpcEndpoints = [
             {
@@ -1168,11 +1161,11 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         let tonClient;
         let lastError;
 
-        // Try each RPC endpoint
+        // Try each RPC endpoint until one works
         for (const rpc of rpcEndpoints) {
             try {
                 console.log(`🔍 Trying RPC endpoint: ${rpc.name}`);
-                
+
                 tonClient = new TonClient({
                     endpoint: rpc.endpoint,
                     apiKey: rpc.apiKey,
@@ -1194,6 +1187,15 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             throw new Error(`All RPC endpoints failed. Last error: ${lastError?.message}`);
         }
 
+        console.log('🔧 Checking wallet deployment/initialization status using selected RPC...');
+        const deploymentCheck = await deployWalletIfNeeded(keyPair, walletContract, tonClient);
+
+        if (!deploymentCheck.success) {
+            console.log('⚠️ Deployment may have issues, but continuing...');
+        }
+
+
+
         let seqno = 0;
         try {
             const walletState = await tonClient.getContractState(walletContract.address);
@@ -1201,7 +1203,30 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             console.log(`📝 Final seqno for transaction: ${seqno}`);
 
             if (seqno === 0) {
-                console.log('ℹ️ Using seqno: 0 for first transaction');
+                console.log('⚠️ Seqno is 0 after initial check — wallet may be uninitialized');
+
+                // Attempt a safeguard initialization using the same RPC client
+                try {
+                    console.log('🔄 Attempting re-init via deployWalletIfNeeded with selected RPC...');
+                    const reinit = await deployWalletIfNeeded(keyPair, walletContract, tonClient);
+                    if (!reinit.success) console.log('⚠️ Re-init attempt reported an error:', reinit.error);
+                } catch (reinitErr) {
+                    console.log('⚠️ Re-init attempt threw:', reinitErr.message);
+                }
+
+                // Wait a bit then re-fetch seqno
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                try {
+                    const updatedState = await tonClient.getContractState(walletContract.address);
+                    seqno = updatedState.seqno || 0;
+                    console.log(`📝 Seqno after re-init attempt: ${seqno}`);
+                } catch (e) {
+                    console.log('⚠️ Could not re-fetch seqno after re-init:', e.message);
+                }
+
+                if (seqno === 0) {
+                    throw new Error('Wallet seqno is still 0 after deployment/init attempts. The transaction would likely be rejected (exitcode 33). Ensure the wallet is deployed, funded, and its seqno > 0 before retrying.');
+                }
             }
 
         } catch (seqnoError) {
@@ -1346,7 +1371,22 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         }
 
         console.error('❌❌❌ TON Transaction ultimately FAILED:', lastSendError?.message);
-        throw new Error(`TON Blockchain Error: ${lastSendError?.message}${rpcStatus ? ` (status ${rpcStatus})` : ''}. Seqno: ${seqno}, Balance: ${balanceTON}. RPC: ${rpcInfo}`);
+
+        // Parse exitcode if present to provide actionable advice
+        let exitcode = null;
+        try {
+            const exitMatch = rpcInfo ? String(rpcInfo).match(/exitcode=(\d+)/) : null;
+            if (exitMatch) exitcode = parseInt(exitMatch[1], 10);
+        } catch (e) {
+            // ignore parsing errors
+        }
+
+        let advice = '';
+        if (exitcode === 33) {
+            advice = ' Contract execution returned exitcode 33 (THROW) — this usually means the contract rejected the external message (wrong seqno, uninitialized wallet, or failing contract checks). Ensure the wallet is deployed, funded, and seqno > 0 before retrying.';
+        }
+
+        throw new Error(`TON Blockchain Error: ${lastSendError?.message}${rpcStatus ? ` (status ${rpcStatus})` : ''}. Seqno: ${seqno}, Balance: ${balanceTON}. RPC: ${rpcInfo}${advice}`);
         
         
     } catch (error) {
