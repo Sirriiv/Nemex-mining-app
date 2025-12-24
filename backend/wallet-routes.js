@@ -1000,14 +1000,28 @@ async function runGetSeqno(address) {
     }
 }
 
+function isLikelyPublicKeyHex(hex) {
+    if (!hex || typeof hex !== 'string') return false;
+    const cleaned = hex.replace(/^0x/, '').toLowerCase();
+    // Accept exactly 64 hex chars (32 bytes) as valid public key
+    return /^[0-9a-f]{64}$/.test(cleaned);
+}
+
 async function runGetPublicKey(address) {
     try {
         const result = await runGetMethodJSONRPC(address, 'get_public_key');
         const stack = result.stack || [];
         if (stack.length && stack[0][1]) {
-            const raw = stack[0][1]; // e.g. '0x80fd4c...'
-            if (typeof raw === 'string') return raw.replace(/^0x/, '').toLowerCase();
-            return String(raw).replace(/^0x/, '').toLowerCase();
+            const raw = stack[0][1]; // might be '0x80fd4c...' or a small numeric like '0x1339c'
+            const str = typeof raw === 'string' ? raw : String(raw);
+            const cleaned = str.replace(/^0x/, '').toLowerCase();
+
+            if (isLikelyPublicKeyHex(cleaned)) {
+                return cleaned;
+            }
+
+            console.log('⚠️ runGetPublicKey: returned value does not look like a 32-byte public key:', cleaned);
+            return null;
         }
         return null;
     } catch (error) {
