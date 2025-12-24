@@ -4326,7 +4326,8 @@ function calculateProductionConversion() {
     const nmxpAmount = parseFloat(document.getElementById('productionConvertAmount').value) || 0;
     const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
 
-    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(6);
+    // Use fixed 2 decimal places for display
+    document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(2);
     validateProductionConversion(nmxpAmount, nmxAmount);
 }
 
@@ -4348,7 +4349,8 @@ async function setMaxConversion() {
             return;
         }
 
-        document.getElementById('productionConvertAmount').value = maxAmount;
+        // Use fixed 2 decimals
+        document.getElementById('productionConvertAmount').value = maxAmount.toFixed(2);
         calculateProductionConversion();
 
         console.log('✅ Max amount set to:', maxAmount);
@@ -4382,7 +4384,7 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
         // Remove strict wallet-address gating: allow users to set max and enable conversion UI even if wallet address isn't set.
         if (hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
             convertBtn.disabled = false;
-            convertBtn.textContent = `Convert ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX` + (hasWallet ? '' : ' (No wallet address set)');
+            convertBtn.textContent = `Convert ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(2)} NMX` + (hasWallet ? '' : ' (No wallet address set)');
             convertBtn.className = 'compact-convert-btn active';
         } else {
             convertBtn.disabled = true;
@@ -4438,7 +4440,7 @@ async function executeProductionConversion() {
             throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
         }
 
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(6)} NMX will be sent.`, 'success');
+        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(2)} NMX will be sent.`, 'success');
 
         await loadProductionSwapData();
         closeProductionSwapModal();
@@ -4461,13 +4463,27 @@ async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
 }
 
 function showWalletSetup() {
-    // If a wallet is already connected, show the connected read-only modal instead of the setup input
+    // Always open the setup modal and prefill if a wallet is connected
+    closeProductionSwapModal();
+
+    const input = document.getElementById('userWalletAddress');
+    const primaryBtn = document.getElementById('walletPrimaryBtn');
+    const saveBtn = document.getElementById('walletSaveBtn');
+
     if (walletState && walletState.hasWallet) {
-        showWalletConnectedModal();
-        return;
+        input.value = walletState.walletAddress || '';
+        // Primary action becomes disconnect
+        primaryBtn.textContent = 'Disconnect';
+        primaryBtn.onclick = function() { disconnectWalletAddressAndClose(); };
+        // Show small Save Changes button for updating address
+        if (saveBtn) saveBtn.style.display = 'inline-block';
+    } else {
+        input.value = '';
+        primaryBtn.textContent = 'Save Wallet Address';
+        primaryBtn.onclick = saveWalletAddress;
+        if (saveBtn) saveBtn.style.display = 'none';
     }
 
-    closeProductionSwapModal();
     document.getElementById('walletSetupModal').style.display = 'block';
 }
 
@@ -4512,6 +4528,13 @@ function disconnectWalletAddress() {
     // Optionally, call backend to persist this change when implemented.
 }
 
+function disconnectWalletAddressAndClose() {
+    disconnectWalletAddress();
+    // Close the setup modal if open
+    document.getElementById('walletSetupModal').style.display = 'none';
+}
+
+
 function maskAddress(addr) {
     if (!addr || addr.length < 12) return addr || '';
     return addr.substring(0, 6) + '...' + addr.substring(addr.length - 4);
@@ -4536,6 +4559,11 @@ async function saveWalletAddress() {
             showToast('Please log in first', 'error');
             return;
         }
+
+        // Update client-side state and UI immediately
+        walletState.walletAddress = walletAddress;
+        walletState.hasWallet = true;
+        updateWalletAddressDisplay(walletAddress);
 
         showToast('✅ Wallet address saved successfully!', 'success');
         setTimeout(() => {
