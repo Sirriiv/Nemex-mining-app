@@ -499,11 +499,11 @@
         </form>
 
         <div class="recovery-option">
-            <a onclick="use2FARecovery()">Forgot password? Use 2FA to access your account</a>
+            <a id="recoveryLink">Forgot password? Use 2FA to access your account</a>
         </div>
 
         <div class="register-link">
-            Don't have an account? <a onclick="redirectToRegister()">Create Account</a>
+            Don't have an account? <a id="registerLink">Create Account</a>
         </div>
     </div>
 
@@ -520,12 +520,12 @@
             <input type="text" class="verification-input" id="twoFactorCode" placeholder="000000" maxlength="6" oninput="validate2FACode()">
 
             <div class="backup-option">
-                Lost access to your authenticator? <a onclick="useBackupCode()">Use backup code</a>
+                Lost access to your authenticator? <a id="backupLink">Use backup code</a>
             </div>
 
             <div class="modal-actions">
-                <button class="modal-btn secondary" onclick="cancel2FA()">Cancel</button>
-                <button class="modal-btn primary" id="verify2FABtn" onclick="verify2FACode()" disabled>Verify</button>
+                <button class="modal-btn secondary" id="cancel2FABtn">Cancel</button>
+                <button class="modal-btn primary" id="verify2FABtn" disabled>Verify</button>
             </div>
         </div>
     </div>
@@ -540,7 +540,7 @@
             <input type="text" class="verification-input" id="backupCode" placeholder="A1B2C3D4E5" oninput="validateBackupCode()">
 
             <div class="modal-actions">
-                <button class="modal-btn secondary" onclick="cancelBackupCode()">Back</button>
+                <button class="modal-btn secondary" id="cancelBackupBtn">Back</button>
                 <button class="modal-btn primary" id="verifyBackupBtn" onclick="verifyBackupCode()" disabled>Verify</button>
             </div>
         </div>
@@ -550,7 +550,7 @@
         <div class="password-reset-form">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: var(--gold); font-size: 18px; font-weight: 700;">Set New Password</h3>
-                <button class="close-btn" onclick="closePasswordResetModal()" style="background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer;">&times;</button>
+                <button class="close-btn" id="closePasswordResetBtn" style="background: none; border: none; color: var(--muted); font-size: 24px; cursor: pointer;">&times;</button>
             </div>
 
             <div class="info-box">
@@ -572,27 +572,115 @@
             </div>
 
             <div class="password-actions">
-                <button class="modal-btn secondary" onclick="closePasswordResetModal()">Cancel</button>
-                <button class="modal-btn primary" onclick="setNewPassword()" id="setPasswordBtn">Set Password</button>
+                <button class="modal-btn secondary" id="cancelPasswordResetBtn">Cancel</button>
+                <button class="modal-btn primary" id="setPasswordBtn">Set Password</button>
             </div>
         </div>
     </div>
 
-    <!-- ✅ FIXED: ADD CLOSING SCRIPT TAG HERE -->
-    <script>
-        // 🆕 FIXED: Simple loading screen
+    <script type="module">
+        // ✅ FIXED: Wait for Supabase to be available
+        async function waitForSupabase() {
+            console.log('⏳ Waiting for Supabase to load...');
+            const maxAttempts = 50; // 5 seconds max wait
+            let attempts = 0;
+            
+            while (attempts < maxAttempts) {
+                if (window.supabase && window.supabase.auth) {
+                    console.log('✅ Supabase loaded successfully');
+                    return window.supabase;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            throw new Error('Supabase failed to load after 5 seconds');
+        }
+
+        // ✅ FIXED: Simple loading screen
         function showLoadingScreen(loadingText = 'Loading...') {
             document.getElementById('loadingText').textContent = loadingText;
             document.getElementById('loadingOverlay').style.display = 'flex';
         }
 
-        // 🆕 FIXED: Simple redirect
+        function hideLoadingScreen() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // ✅ FIXED: Simple redirect
         function redirectToRegister() {
             window.location.href = 'register.html';
         }
 
-        // 🆕 FIXED: Pure Supabase Session Check
-        async function checkExistingSession() {
+        // Global variables
+        let currentUser = null;
+        let user2FASecret = null;
+        let isRecoveryMode = false;
+
+        // ✅ FIXED: Setup event listeners
+        function setupEventListeners() {
+            // Register link
+            const registerLink = document.getElementById('registerLink');
+            if (registerLink) {
+                registerLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    redirectToRegister();
+                });
+            }
+
+            // Recovery link
+            const recoveryLink = document.getElementById('recoveryLink');
+            if (recoveryLink) {
+                recoveryLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    use2FARecovery();
+                });
+            }
+
+            // 2FA modal buttons
+            const cancel2FABtn = document.getElementById('cancel2FABtn');
+            if (cancel2FABtn) {
+                cancel2FABtn.addEventListener('click', cancel2FA);
+            }
+
+            const verify2FABtn = document.getElementById('verify2FABtn');
+            if (verify2FABtn) {
+                verify2FABtn.addEventListener('click', verify2FACode);
+            }
+
+            // Backup modal buttons
+            const backupLink = document.getElementById('backupLink');
+            if (backupLink) {
+                backupLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    useBackupCode();
+                });
+            }
+
+            const cancelBackupBtn = document.getElementById('cancelBackupBtn');
+            if (cancelBackupBtn) {
+                cancelBackupBtn.addEventListener('click', cancelBackupCode);
+            }
+
+            // Password reset modal buttons
+            const closePasswordResetBtn = document.getElementById('closePasswordResetBtn');
+            if (closePasswordResetBtn) {
+                closePasswordResetBtn.addEventListener('click', closePasswordResetModal);
+            }
+
+            const cancelPasswordResetBtn = document.getElementById('cancelPasswordResetBtn');
+            if (cancelPasswordResetBtn) {
+                cancelPasswordResetBtn.addEventListener('click', closePasswordResetModal);
+            }
+
+            const setPasswordBtn = document.getElementById('setPasswordBtn');
+            if (setPasswordBtn) {
+                setPasswordBtn.addEventListener('click', setNewPassword);
+            }
+        }
+
+        // ✅ FIXED: Pure Supabase Session Check
+        async function checkExistingSession(supabase) {
             try {
                 console.log('🔍 Checking for existing Supabase session...');
 
@@ -606,7 +694,7 @@
                 if (session?.user) {
                     console.log('✅ User already logged in:', session.user.email);
 
-                    // 🆕 Set up wallet session
+                    // Set up wallet session
                     window.currentUser = {
                         id: session.user.id,
                         email: session.user.email
@@ -628,12 +716,12 @@
             }
         }
 
-        // 🆕 FIXED: Pure Supabase Login Completion
-        async function completeLogin(user, isRecovery = false) {
+        // ✅ FIXED: Pure Supabase Login Completion
+        async function completeLogin(supabase, user, isRecovery = false) {
             try {
                 console.log('✅ Login completed for:', user.email);
 
-                // 🆕 Set up wallet session
+                // Set up wallet session
                 window.currentUser = {
                     id: user.id,
                     email: user.email,
@@ -685,86 +773,91 @@
             }
         }
 
-        // 🆕 FIXED: Pure Supabase Login
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // ✅ FIXED: Pure Supabase Login
+        async function setupLoginForm(supabase) {
+            const loginForm = document.getElementById('loginForm');
+            if (!loginForm) return;
 
-            const loginBtn = document.getElementById('loginBtn');
-            const errorMessage = document.getElementById('errorMessage');
-            const successMessage = document.getElementById('successMessage');
-            const email = document.getElementById('email').value.trim().toLowerCase();
-            const password = document.getElementById('password').value;
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Signing In...';
-            errorMessage.style.display = 'none';
-            successMessage.style.display = 'none';
-            isRecoveryMode = false;
+                const loginBtn = document.getElementById('loginBtn');
+                const errorMessage = document.getElementById('errorMessage');
+                const successMessage = document.getElementById('successMessage');
+                const email = document.getElementById('email').value.trim().toLowerCase();
+                const password = document.getElementById('password').value;
 
-            try {
-                console.log('🔐 Attempting Supabase Auth login for:', email);
+                loginBtn.disabled = true;
+                loginBtn.textContent = 'Signing In...';
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                isRecoveryMode = false;
 
-                const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+                try {
+                    console.log('🔐 Attempting Supabase Auth login for:', email);
 
-                if (authError) {
-                    console.error('❌ Supabase Auth error:', authError);
+                    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
+                    });
 
-                    if (authError.message.includes('Invalid login credentials')) {
-                        throw new Error('Invalid email or password');
-                    } else if (authError.message.includes('Email not confirmed')) {
-                        throw new Error('Please verify your email address before logging in');
-                    } else {
-                        throw new Error('Login failed: ' + authError.message);
+                    if (authError) {
+                        console.error('❌ Supabase Auth error:', authError);
+
+                        if (authError.message.includes('Invalid login credentials')) {
+                            throw new Error('Invalid email or password');
+                        } else if (authError.message.includes('Email not confirmed')) {
+                            throw new Error('Please verify your email address before logging in');
+                        } else {
+                            throw new Error('Login failed: ' + authError.message);
+                        }
                     }
-                }
 
-                console.log('✅ Supabase Auth successful:', authData.user.email);
+                    console.log('✅ Supabase Auth successful:', authData.user.email);
 
-                // Get user profile
-                const { data: user, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('*, two_factor_enabled, two_factor_secret, backup_codes')
-                    .eq('id', authData.user.id)
-                    .single();
+                    // Get user profile
+                    const { data: user, error: profileError } = await supabase
+                        .from('profiles')
+                        .select('*, two_factor_enabled, two_factor_secret, backup_codes')
+                        .eq('id', authData.user.id)
+                        .single();
 
-                if (profileError || !user) {
-                    throw new Error('Could not load user profile');
-                }
+                    if (profileError || !user) {
+                        throw new Error('Could not load user profile');
+                    }
 
-                console.log('✅ User profile loaded:', user.email);
-                console.log('🔒 2FA Status:', {
-                    enabled: user.two_factor_enabled,
-                    hasSecret: !!user.two_factor_secret
-                });
+                    console.log('✅ User profile loaded:', user.email);
+                    console.log('🔒 2FA Status:', {
+                        enabled: user.two_factor_enabled,
+                        hasSecret: !!user.two_factor_secret
+                    });
 
-                currentUser = user;
+                    currentUser = user;
 
-                // Check if 2FA is enabled
-                if (user.two_factor_enabled && user.two_factor_secret) {
-                    console.log('🔒 2FA is enabled for user, showing verification modal');
-                    user2FASecret = user.two_factor_secret;
-                    show2FAModal();
+                    // Check if 2FA is enabled
+                    if (user.two_factor_enabled && user.two_factor_secret) {
+                        console.log('🔒 2FA is enabled for user, showing verification modal');
+                        user2FASecret = user.two_factor_secret;
+                        show2FAModal();
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Sign In';
+                        return;
+                    } else {
+                        console.log('🔓 2FA not enabled, proceeding with normal login');
+                        await completeLogin(supabase, user);
+                    }
+
+                } catch (error) {
+                    console.error('❌ Login error:', error);
+                    errorMessage.textContent = error.message;
+                    errorMessage.style.display = 'block';
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Sign In';
-                    return;
-                } else {
-                    console.log('🔓 2FA not enabled, proceeding with normal login');
-                    await completeLogin(user);
                 }
+            });
+        }
 
-            } catch (error) {
-                console.error('❌ Login error:', error);
-                errorMessage.textContent = error.message;
-                errorMessage.style.display = 'block';
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Sign In';
-            }
-        });
-
-        // 🆕 FIXED: 2FA Recovery Function
+        // ✅ FIXED: 2FA Recovery Function
         async function use2FARecovery() {
             const email = document.getElementById('email').value.trim().toLowerCase();
             const errorMessage = document.getElementById('errorMessage');
@@ -782,6 +875,12 @@
 
             try {
                 console.log('🔐 Starting 2FA recovery for:', email);
+
+                // Get supabase from global
+                const supabase = window.supabase;
+                if (!supabase) {
+                    throw new Error('System not ready yet. Please wait a moment and try again.');
+                }
 
                 const { data: user, error } = await supabase
                     .from('profiles')
@@ -847,7 +946,7 @@
             }
         }
 
-        // 🆕 FIXED: 2FA Verification
+        // ✅ FIXED: 2FA Verification
         async function verify2FACode() {
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
@@ -871,7 +970,12 @@
                     console.log('🎯 Recovery mode - showing password reset form');
                     showPasswordResetModal();
                 } else {
-                    await completeLogin(currentUser);
+                    // Get supabase from global
+                    const supabase = window.supabase;
+                    if (!supabase) {
+                        throw new Error('System not ready yet. Please wait a moment and try again.');
+                    }
+                    await completeLogin(supabase, currentUser);
                 }
             } catch (error) {
                 console.error('❌ 2FA verification error:', error);
@@ -930,7 +1034,7 @@
             resetLoginForm();
         }
 
-        // 🆕 FIXED: Set New Password
+        // ✅ FIXED: Set New Password
         async function setNewPassword() {
             const newPassword = document.getElementById('newPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
@@ -955,6 +1059,12 @@
 
                 console.log('🔐 Setting new password for user:', currentUser.email);
 
+                // Get supabase from global
+                const supabase = window.supabase;
+                if (!supabase) {
+                    throw new Error('System not ready yet. Please wait a moment and try again.');
+                }
+
                 // Update password in Supabase Auth
                 const { error: authUpdateError } = await supabase.auth.updateUser({
                     password: newPassword
@@ -978,7 +1088,7 @@
 
                 console.log('✅ Successfully signed in with new password');
 
-                await completeLogin(currentUser, true);
+                await completeLogin(supabase, currentUser, true);
 
             } catch (error) {
                 console.error('❌ Password set error:', error);
@@ -1032,7 +1142,12 @@
                 if (isRecoveryMode) {
                     showPasswordResetModal();
                 } else {
-                    await completeLogin(currentUser);
+                    // Get supabase from global
+                    const supabase = window.supabase;
+                    if (!supabase) {
+                        throw new Error('System not ready yet. Please wait a moment and try again.');
+                    }
+                    await completeLogin(supabase, currentUser);
                 }
             } catch (error) {
                 console.error('❌ Backup code verification error:', error);
@@ -1067,40 +1182,60 @@
             isRecoveryMode = false;
         }
 
-        // Handle Enter key press
+        // ✅ FIXED: Main initialization
+        async function initializePage() {
+            try {
+                console.log('🚀 Login page initializing...');
+                
+                // Setup event listeners first
+                setupEventListeners();
+                
+                // Wait for Supabase
+                const supabase = await waitForSupabase();
+                
+                // Check if user is already logged in
+                const hasSession = await checkExistingSession(supabase);
+                if (hasSession) return;
+                
+                // Setup login form
+                setupLoginForm(supabase);
+                
+                console.log('✅ Login page ready with pure Supabase Auth');
+                
+            } catch (error) {
+                console.error('❌ Page initialization failed:', error);
+                alert('Error loading page. Please refresh and try again.');
+            }
+        }
+
+        // ✅ FIXED: Handle Enter key press
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 if (document.getElementById('twoFactorModal').style.display === 'flex') {
-                    if (!document.getElementById('verify2FABtn').disabled) {
+                    const verifyBtn = document.getElementById('verify2FABtn');
+                    if (verifyBtn && !verifyBtn.disabled) {
                         verify2FACode();
                     }
                 } else if (document.getElementById('backupCodeModal').style.display === 'flex') {
-                    if (!document.getElementById('verifyBackupBtn').disabled) {
+                    const backupBtn = document.getElementById('verifyBackupBtn');
+                    if (backupBtn && !backupBtn.disabled) {
                         verifyBackupCode();
                     }
                 } else if (document.getElementById('passwordResetModal').style.display === 'flex') {
                     document.getElementById('setPasswordBtn').click();
                 } else {
-                    document.getElementById('loginForm').dispatchEvent(new Event('submit'));
+                    // Check if login form is ready
+                    const loginForm = document.getElementById('loginForm');
+                    const loginBtn = document.getElementById('loginBtn');
+                    if (loginForm && loginBtn && !loginBtn.disabled) {
+                        loginForm.dispatchEvent(new Event('submit'));
+                    }
                 }
             }
         });
 
-        // 🆕 FIXED: Check for existing session on page load
-        document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 Login page loaded - checking session...');
-
-            const hasSession = await checkExistingSession();
-            if (!hasSession) {
-                console.log('🔐 No active session, showing login form');
-            }
-        });
-
-        console.log('✅ Login page ready with pure Supabase Auth');
-
-        // Make Supabase client globally available
-        window.supabase = supabase;
-        console.log('✅ Global Supabase client ready for wallet system');
+        // ✅ FIXED: Start initialization when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializePage);
     </script>
 </body>
 </html>
