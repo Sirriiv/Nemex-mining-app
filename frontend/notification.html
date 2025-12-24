@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Notifications - NemexCoin</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ✅ Only use module version -->
+    <script type="module" src="/assets/js/supabase-client.js"></script>
     <style>
         :root { 
             --dark-bg: #0f0f0f; 
@@ -406,10 +407,22 @@
         </nav>
     </div>
 
+    <!-- ✅ FIXED: Proper script tag with wait for Supabase -->
     <script>
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // ✅ Wait for Supabase to load
+        function waitForSupabase() {
+            return new Promise((resolve) => {
+                const check = () => {
+                    if (window.supabase) {
+                        console.log('✅ Supabase loaded in notification.html');
+                        resolve(window.supabase);
+                    } else {
+                        setTimeout(check, 100);
+                    }
+                };
+                check();
+            });
+        }
 
         // Loading Screen Function
         function showLoadingScreen(targetPage = 'dashboard.html', loadingText = 'Loading...') {
@@ -421,23 +434,22 @@
             }, 1500);
         }
 
-        // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
-            // Show loading screen briefly for consistency
-            setTimeout(() => {
-                document.getElementById('loadingOverlay').style.display = 'none';
-                document.getElementById('mainContent').style.display = 'block';
-                loadNotifications();
-            }, 1000);
-        });
-
         async function checkAuth() {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
+            try {
+                // Wait for Supabase
+                await waitForSupabase();
+                
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session) {
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
+                    return null;
+                }
+                return session.user;
+            } catch (error) {
+                console.error('Auth check error:', error);
                 showLoadingScreen('login.html', 'Redirecting to Login...');
                 return null;
             }
-            return session.user;
         }
 
         function getNotificationType(type) {
@@ -489,70 +501,82 @@
             const user = await checkAuth();
             if (!user) return;
 
-            const { data: notifications, error } = await supabase
-                .from('notifications')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
+            try {
+                const { data: notifications, error } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
 
-            const notificationsList = document.getElementById('notificationsList');
+                const notificationsList = document.getElementById('notificationsList');
 
-            if (error) {
-                notificationsList.innerHTML = '<div class="error">Error loading notifications</div>';
-                return;
-            }
+                if (error) {
+                    console.error('Error loading notifications:', error);
+                    notificationsList.innerHTML = '<div class="error">Error loading notifications</div>';
+                    return;
+                }
 
-            if (!notifications || notifications.length === 0) {
-                notificationsList.innerHTML = `
-                    <div class="empty-state">
-                        <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
-                        </svg>
-                        <div class="empty-title">No Notifications Yet</div>
-                        <div class="empty-message">You're all caught up! New notifications will appear here.</div>
-                    </div>
-                `;
-                return;
-            }
+                if (!notifications || notifications.length === 0) {
+                    notificationsList.innerHTML = `
+                        <div class="empty-state">
+                            <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <div class="empty-title">No Notifications Yet</div>
+                            <div class="empty-message">You're all caught up! New notifications will appear here.</div>
+                        </div>
+                    `;
+                    return;
+                }
 
-            notificationsList.innerHTML = notifications.map(notification => `
-                <div class="notification-item ${notification.is_read ? '' : 'unread'} ${getNotificationType(notification.type)}" 
-                     onclick="markAsRead('${notification.id}')">
-                    <div class="notification-header">
-                        <div class="notification-title">${notification.title || 'Notification'}</div>
-                        <span class="notification-badge">${getNotificationBadge(notification.type)}</span>
-                    </div>
-                    <div class="notification-message">${notification.message}</div>
-                    <div class="notification-footer">
-                        <div class="notification-time">${formatTime(notification.created_at)}</div>
-                        <div class="notification-actions">
-                            ${!notification.is_read ? `
-                                <button class="notification-action mark-read-btn" onclick="event.stopPropagation(); markAsRead('${notification.id}')">
-                                    Mark Read
+                notificationsList.innerHTML = notifications.map(notification => `
+                    <div class="notification-item ${notification.is_read ? '' : 'unread'} ${getNotificationType(notification.type)}" 
+                         onclick="markAsRead('${notification.id}')">
+                        <div class="notification-header">
+                            <div class="notification-title">${notification.title || 'Notification'}</div>
+                            <span class="notification-badge">${getNotificationBadge(notification.type)}</span>
+                        </div>
+                        <div class="notification-message">${notification.message}</div>
+                        <div class="notification-footer">
+                            <div class="notification-time">${formatTime(notification.created_at)}</div>
+                            <div class="notification-actions">
+                                ${!notification.is_read ? `
+                                    <button class="notification-action mark-read-btn" onclick="event.stopPropagation(); markAsRead('${notification.id}')">
+                                        Mark Read
+                                    </button>
+                                ` : ''}
+                                <button class="notification-action delete-btn" onclick="event.stopPropagation(); deleteNotification('${notification.id}')">
+                                    Delete
                                 </button>
-                            ` : ''}
-                            <button class="notification-action delete-btn" onclick="event.stopPropagation(); deleteNotification('${notification.id}')">
-                                Delete
-                            </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } catch (error) {
+                console.error('Error in loadNotifications:', error);
+                document.getElementById('notificationsList').innerHTML = '<div class="error">Error loading notifications</div>';
+            }
         }
 
         async function markAsRead(notificationId) {
-            const { error } = await supabase
-                .from('notifications')
-                .update({ is_read: true })
-                .eq('id', notificationId);
+            try {
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('id', notificationId);
 
-            if (!error) {
-                // Refresh the notifications list
-                loadNotifications();
-                // Update badge count in dashboard
-                if (window.opener) {
-                    window.opener.postMessage('refreshNotifications', '*');
+                if (!error) {
+                    // Refresh the notifications list
+                    loadNotifications();
+                    // Update badge count in dashboard
+                    if (window.opener) {
+                        window.opener.postMessage('refreshNotifications', '*');
+                    }
+                } else {
+                    console.error('Error marking as read:', error);
                 }
+            } catch (error) {
+                console.error('Error in markAsRead:', error);
             }
         }
 
@@ -560,17 +584,23 @@
             const user = await checkAuth();
             if (!user) return;
 
-            const { error } = await supabase
-                .from('notifications')
-                .update({ is_read: true })
-                .eq('user_id', user.id)
-                .eq('is_read', false);
+            try {
+                const { error } = await supabase
+                    .from('notifications')
+                    .update({ is_read: true })
+                    .eq('user_id', user.id)
+                    .eq('is_read', false);
 
-            if (!error) {
-                loadNotifications();
-                if (window.opener) {
-                    window.opener.postMessage('refreshNotifications', '*');
+                if (!error) {
+                    loadNotifications();
+                    if (window.opener) {
+                        window.opener.postMessage('refreshNotifications', '*');
+                    }
+                } else {
+                    console.error('Error marking all as read:', error);
                 }
+            } catch (error) {
+                console.error('Error in markAllAsRead:', error);
             }
         }
 
@@ -579,16 +609,22 @@
                 return;
             }
 
-            const { error } = await supabase
-                .from('notifications')
-                .delete()
-                .eq('id', notificationId);
+            try {
+                const { error } = await supabase
+                    .from('notifications')
+                    .delete()
+                    .eq('id', notificationId);
 
-            if (!error) {
-                loadNotifications();
-                if (window.opener) {
-                    window.opener.postMessage('refreshNotifications', '*');
+                if (!error) {
+                    loadNotifications();
+                    if (window.opener) {
+                        window.opener.postMessage('refreshNotifications', '*');
+                    }
+                } else {
+                    console.error('Error deleting notification:', error);
                 }
+            } catch (error) {
+                console.error('Error in deleteNotification:', error);
             }
         }
 
@@ -600,22 +636,53 @@
             const user = await checkAuth();
             if (!user) return;
 
-            const { error } = await supabase
-                .from('notifications')
-                .delete()
-                .eq('user_id', user.id);
+            try {
+                const { error } = await supabase
+                    .from('notifications')
+                    .delete()
+                    .eq('user_id', user.id);
 
-            if (!error) {
-                loadNotifications();
-                if (window.opener) {
-                    window.opener.postMessage('refreshNotifications', '*');
+                if (!error) {
+                    loadNotifications();
+                    if (window.opener) {
+                        window.opener.postMessage('refreshNotifications', '*');
+                    }
+                } else {
+                    console.error('Error clearing all notifications:', error);
                 }
+            } catch (error) {
+                console.error('Error in clearAllNotifications:', error);
             }
         }
 
         function goBack() {
             showLoadingScreen('dashboard.html', 'Returning to Dashboard...');
         }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Show loading screen
+                document.getElementById('loadingOverlay').style.display = 'flex';
+                
+                // Wait for Supabase
+                await waitForSupabase();
+                
+                // Check authentication
+                const user = await checkAuth();
+                if (!user) return;
+                
+                // Show main content and load notifications
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                await loadNotifications();
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('loadingOverlay').style.display = 'none';
+                document.getElementById('notificationsList').innerHTML = '<div class="error">Failed to load notifications</div>';
+            }
+        });
     </script>
 </body>
 </html>

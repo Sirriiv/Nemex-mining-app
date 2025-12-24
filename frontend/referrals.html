@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Referrals - NemexCoin</title>
+    <!-- ✅ Only use module version -->
+    <script type="module" src="/assets/js/supabase-client.js"></script>
     <style>
         :root { 
             --dark-bg: #0f0f0f; 
@@ -788,12 +790,22 @@
 
     <div class="toast" id="toast"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ✅ FIXED: PROPER SCRIPT TAG ADDED -->
     <script>
-        // Supabase Client Initialization
-        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // ✅ Wait for Supabase to load
+        function waitForSupabase() {
+            return new Promise((resolve) => {
+                const check = () => {
+                    if (window.supabase) {
+                        console.log('✅ Supabase loaded in referral.html');
+                        resolve(window.supabase);
+                    } else {
+                        setTimeout(check, 100);
+                    }
+                };
+                check();
+            });
+        }
 
         let currentUser = null;
         let currentProfile = null;
@@ -814,7 +826,7 @@
         async function forceSyncReferralData() {
             try {
                 console.log('🔄 FORCE SYNCING referral data...');
-                
+
                 if (!currentUser) {
                     currentUser = await checkAuth();
                     if (!currentUser) return;
@@ -834,7 +846,7 @@
 
                 const actualReferralCount = actualReferrals ? actualReferrals.length : 0;
                 console.log('📊 Actual referral count:', actualReferralCount);
-                
+
                 // Update database with correct counts
                 const { error: updateError } = await supabase
                     .from('profiles')
@@ -852,7 +864,7 @@
 
                 console.log('✅ Force sync completed. New count:', actualReferralCount);
                 showToast('Data synced successfully!', 'success');
-                
+
                 // Reload the data
                 await loadReferralData();
 
@@ -876,7 +888,7 @@
             document.getElementById('totalReferrals').textContent = usedSlots;
             document.getElementById('availableSlots').textContent = availableSlots;
             document.getElementById('earnedBonus').textContent = earnedBonus;
-            
+
             if (data.username) {
                 document.getElementById('usernameDisplay').textContent = data.username;
             }
@@ -962,7 +974,7 @@
                 if ((profile.used_slots || 0) !== actualReferralCount) {
                     console.log('🔄 Syncing used_slots with actual count...');
                     console.log('Database used_slots:', profile.used_slots, 'Actual count:', actualReferralCount);
-                    
+
                     const { error: updateError } = await supabase
                         .from('profiles')
                         .update({
@@ -1259,7 +1271,10 @@
         }
 
         // Initialize the page
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Wait for Supabase to load
+            await waitForSupabase();
+            
             // Set up event listeners
             document.getElementById('copyBtn').addEventListener('click', copyReferralLink);
             document.getElementById('cancelRemove').addEventListener('click', function() {
