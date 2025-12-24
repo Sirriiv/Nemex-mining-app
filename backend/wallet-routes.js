@@ -1792,6 +1792,99 @@ router.get('/balance/:address', async (req, res) => {
 });
 
 // ============================================
+// 🎯 DEBUG: WALLET ON-CHAIN STATE (helper for troubleshooting seqno/deploy issues)
+// ============================================
+router.get('/debug/wallet-state', async (req, res) => {
+    try {
+        const { userId, address } = req.query;
+
+        if (!userId && !address) {
+            return res.status(400).json({ success: false, error: 'Provide either userId or address as query param' });
+        }
+
+        let targetAddress = address;
+        if (userId) {
+            const wallet = await getWalletFromDatabase(userId);
+            if (!wallet) return res.status(404).json({ success: false, error: 'Wallet not found' });
+            targetAddress = wallet.address;
+        }
+
+        // Ensure we have a valid address
+        try {
+            Address.parse(targetAddress);
+        } catch (e) {
+            return res.status(400).json({ success: false, error: 'Invalid TON address' });
+        }
+
+        // Try same RPC endpoint selection strategy as send flow
+        const rpcEndpoints = [
+            { name: 'TON Console', endpoint: 'https://tonapi.io/v2/jsonRPC', apiKey: TON_CONSOLE_API_KEY ? TON_CONSOLE_API_KEY.replace('bearer_', '') : undefined },
+            { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: TONCENTER_API_KEY || undefined },
+            { name: 'Public RPC', endpoint: 'https://ton.rpc.thirdweb.com', apiKey: undefined }
+        ];
+
+        let tonClient = null;
+        let lastRpcError = null;
+        for (const rpc of rpcEndpoints) {
+            try {
+                console.log(`🔍 Debug: Trying RPC endpoint for debug: ${rpc.name}`);
+                tonClient = new TonClient({ endpoint: rpc.endpoint, apiKey: rpc.apiKey, timeout: 30000 });
+                await tonClient.getBalance(targetAddress);
+                console.log(`✅ Debug: Connected to ${rpc.name}`);
+                break;
+            } catch (err) {
+                lastRpcError = { name: rpc.name, message: err.message, response: err.response?.data || null };
+                tonClient = null;
+                continue;
+            }
+        }
+
+        if (!tonClient) {
+            return res.status(503).json({ success: false, error: 'No RPC endpoints available', lastRpcError });
+        }
+
+        // Gather on-chain info
+        let deployed = false;
+        let contractState = null;
+        let balance = '0';
+
+        try {
+            deployed = await tonClient.isContractDeployed(targetAddress);
+        } catch (e) {
+            console.log('⚠️ Debug: isContractDeployed failed:', e.message);
+        }
+
+        try {
+            contractState = await tonClient.getContractState(targetAddress);
+        } catch (e) {
+            console.log('⚠️ Debug: getContractState failed:', e.message);
+        }
+
+        try {
+            balance = await tonClient.getBalance(targetAddress);
+        } catch (e) {
+            console.log('⚠️ Debug: getBalance failed:', e.message);
+        }
+
+        return res.json({
+            success: true,
+            address: targetAddress,
+            rpcUsed: tonClient.endpoint || null,
+            rpcLastError: lastRpcError,
+            deployed,
+            contractState,
+            balance: balance ? (Number(BigInt(balance)) / 1_000_000_000) : 0,
+            rawBalance: balance || null,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Debug wallet-state failed:', error.message);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============================================
 // 🎯 SEND ENDPOINT - WITH DUAL API SUPPORT
 // ============================================
 router.post('/send', async (req, res) => {
