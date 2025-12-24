@@ -356,7 +356,7 @@
         </form>
 
         <div class="login-link">
-            Already have an account? <a onclick="redirectToLogin()">Sign In</a>
+            Already have an account? <a id="loginLink">Sign In</a>
         </div>
     </div>
 
@@ -392,6 +392,17 @@
         // ✅ FIXED: Simple redirect function
         function redirectToLogin() {
             window.location.href = 'login.html';
+        }
+
+        // ✅ FIXED: Add event listener for login link
+        function setupLoginLink() {
+            const loginLink = document.getElementById('loginLink');
+            if (loginLink) {
+                loginLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    redirectToLogin();
+                });
+            }
         }
 
         // ✅ FIXED: Check if user is already logged in
@@ -437,6 +448,9 @@
                 
                 // Wait for Supabase
                 const supabase = await waitForSupabase();
+                
+                // Setup login link
+                setupLoginLink();
                 
                 // Check if user is already logged in
                 const hasSession = await checkExistingSession(supabase);
