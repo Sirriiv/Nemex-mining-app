@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - STABLE FIXED VERSION v30.0
+// backend/wallet-routes.js - STABLE FIXED VERSION v31.0
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -43,7 +43,7 @@ try {
 
 require('dotenv').config();
 
-console.log('🚀 WALLET ROUTES v30.0 - LOGIN CRASH FIXED');
+console.log('🚀 WALLET ROUTES v31.0 - MULTI-SOURCE BALANCE & PRICE');
 
 // ============================================
 // 🎯 CORS MIDDLEWARE
@@ -548,11 +548,11 @@ function encryptMnemonic(mnemonic, password) {
 }
 
 // ============================================
-// 🎯 TON CENTER API FUNCTIONS
+// 🎯 UPDATED: GET REAL BALANCE WITH MULTIPLE SOURCES
 // ============================================
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
 
-async function getRealBalance(address) {
+async function getRealBalance(address, userId = null) {
     try {
         console.log(`💰 Checking balance for: ${address}`);
 
@@ -567,74 +567,152 @@ async function getRealBalance(address) {
             }
         }
 
-        console.log(`🔍 Querying TON Center API for: ${queryAddress}`);
+        console.log(`🔍 Querying balance for: ${queryAddress}`);
 
-        const headers = {};
-        if (TONCENTER_API_KEY) {
-            headers['X-API-Key'] = TONCENTER_API_KEY;
-            console.log(`🔑 Using API Key: ${TONCENTER_API_KEY.substring(0, 8)}...`);
-        } else {
-            console.warn('⚠️ No TONCENTER_API_KEY provided - using public API');
+        // ============================================
+        // 🔥 MULTIPLE API FALLBACK SYSTEM
+        // ============================================
+        const apiEndpoints = [
+            // 1. TON API (no key needed - most reliable)
+            {
+                name: 'TON API',
+                url: `https://tonapi.io/v2/accounts/${queryAddress}`,
+                parser: async (data) => {
+                    if (data.balance) {
+                        const balanceNano = BigInt(data.balance);
+                        return {
+                            balance: Number(balanceNano) / 1_000_000_000,
+                            status: data.status || 'active',
+                            rawBalance: balanceNano.toString()
+                        };
+                    }
+                    return null;
+                }
+            },
+            // 2. TON Center API (with key fallback)
+            {
+                name: 'TON Center',
+                url: `https://toncenter.com/api/v2/getAddressInformation`,
+                params: { address: queryAddress },
+                headers: TONCENTER_API_KEY ? { 'X-API-Key': TONCENTER_API_KEY } : {},
+                parser: async (data) => {
+                    if (data.ok !== undefined) {
+                        data = data.result;
+                    }
+                    if (data && data.balance !== undefined) {
+                        const balanceNano = BigInt(data.balance);
+                        return {
+                            balance: Number(balanceNano) / 1_000_000_000,
+                            status: data.status || 'unknown',
+                            rawBalance: balanceNano.toString()
+                        };
+                    }
+                    return null;
+                }
+            },
+            // 3. Tonkeeper API
+            {
+                name: 'Tonkeeper',
+                url: `https://api.tonkeeper.com/address/${queryAddress}/balance`,
+                parser: async (data) => {
+                    if (data.balance !== undefined) {
+                        return {
+                            balance: data.balance / 1_000_000_000,
+                            status: 'active',
+                            rawBalance: data.balance.toString()
+                        };
+                    }
+                    return null;
+                }
+            }
+        ];
+
+        // Try each API until one works
+        for (const api of apiEndpoints) {
+            try {
+                console.log(`🔍 Trying ${api.name}...`);
+                
+                let response;
+                if (api.params) {
+                    response = await axios.get(api.url, {
+                        params: api.params,
+                        headers: api.headers || {},
+                        timeout: 5000
+                    });
+                } else {
+                    response = await axios.get(api.url, {
+                        headers: api.headers || {},
+                        timeout: 5000
+                    });
+                }
+
+                const result = await api.parser(response.data);
+                if (result && result.balance !== undefined) {
+                    console.log(`✅ ${api.name} successful: ${result.balance.toFixed(4)} TON`);
+                    
+                    // Update database cache if userId provided
+                    if (userId && result.balance > 0) {
+                        await updateWalletBalanceInDB(userId, {
+                            balance: result.balance.toFixed(4),
+                            status: result.status,
+                            isActive: result.status === 'active' || result.balance > 0
+                        });
+                    }
+                    
+                    return {
+                        success: true,
+                        balance: result.balance.toFixed(4),
+                        status: result.status,
+                        isActive: result.status === 'active' || result.balance > 0,
+                        isReal: true,
+                        rawBalance: result.rawBalance,
+                        source: api.name
+                    };
+                }
+            } catch (apiError) {
+                console.log(`❌ ${api.name} failed: ${apiError.message}`);
+                continue;
+            }
         }
 
-        const url = 'https://toncenter.com/api/v2/getAddressInformation';
-        const response = await axios.get(url, {
-            headers,
-            params: { address: queryAddress },
-            timeout: 15000
-        });
-
-        console.log(`📊 API Response Status: ${response.status}`);
-
-        if (response.data && typeof response.data === 'object') {
-            let resultData = response.data;
-            if (response.data.ok !== undefined) {
-                resultData = response.data.result;
-            }
-
-            if (resultData && resultData.balance !== undefined) {
-                const balanceNano = BigInt(resultData.balance);
-                const balanceTON = Number(balanceNano) / 1_000_000_000;
-                const status = resultData.status || 'unknown';
-
-                const isActive = status.toLowerCase() === 'active' || balanceNano > 0n;
-
-                console.log(`✅ Balance found: ${balanceTON.toFixed(4)} TON`);
-                console.log(`✅ Status: ${status}, Active: ${isActive}`);
-
-                return {
-                    success: true,
-                    balance: balanceTON.toFixed(4),
-                    status: status,
-                    isActive: isActive,
-                    isReal: true,
-                    rawBalance: balanceNano.toString(),
-                    queryAddress: queryAddress
-                };
+        // ============================================
+        // 🗄️ DATABASE FALLBACK (if userId provided)
+        // ============================================
+        if (userId) {
+            try {
+                console.log(`🔍 Checking database for user ${userId}...`);
+                const wallet = await getWalletFromDatabase(userId);
+                
+                if (wallet && wallet.last_known_balance) {
+                    console.log(`✅ Using last known balance from database: ${wallet.last_known_balance} TON`);
+                    
+                    return {
+                        success: true,
+                        balance: parseFloat(wallet.last_known_balance).toFixed(4),
+                        status: wallet.last_status || 'unknown',
+                        isActive: wallet.is_active || false,
+                        isReal: true,
+                        source: 'database_cache'
+                    };
+                }
+            } catch (dbError) {
+                console.log('⚠️ Database fallback failed:', dbError.message);
             }
         }
 
+        // Final fallback
+        console.log('❌ All APIs failed, using fallback balance');
         return {
             success: true,
             balance: "0.0000",
             isActive: false,
             status: 'uninitialized',
-            isReal: true
+            isReal: true,
+            source: 'fallback'
         };
 
     } catch (error) {
         console.error('❌ Balance check failed:', error.message);
-
-        if (error.response && error.response.status === 404) {
-            return {
-                success: true,
-                balance: "0.0000",
-                isActive: false,
-                status: 'not_found',
-                isReal: true
-            };
-        }
-
         return {
             success: false,
             balance: "0.0000",
@@ -642,6 +720,201 @@ async function getRealBalance(address) {
             isReal: true
         };
     }
+}
+
+// ============================================
+// 🗄️ UPDATE WALLET BALANCE IN DATABASE
+// ============================================
+async function updateWalletBalanceInDB(userId, balanceData) {
+    try {
+        if (!supabase || dbStatus !== 'connected') return false;
+        
+        const updates = {
+            last_known_balance: balanceData.balance,
+            last_status: balanceData.status || 'unknown',
+            is_active: balanceData.isActive || false,
+            last_balance_check: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+        
+        const { error } = await supabase
+            .from('user_wallets')
+            .update(updates)
+            .eq('user_id', userId);
+            
+        if (error) {
+            console.log('⚠️ Failed to update wallet balance in DB:', error.message);
+            return false;
+        }
+        
+        console.log(`✅ Updated wallet balance in DB for user ${userId}: ${balanceData.balance} TON`);
+        return true;
+    } catch (error) {
+        console.log('⚠️ Error updating wallet balance in DB:', error.message);
+        return false;
+    }
+}
+
+// ============================================
+// 🎯 UPDATED: MULTI-EXCHANGE PRICE FETCHING
+// ============================================
+let priceCache = { data: null, timestamp: 0 };
+const PRICE_CACHE_DURATION = 30000; // 30 seconds
+
+async function fetchRealTONPrice() {
+    const now = Date.now();
+    if (priceCache.data && (now - priceCache.timestamp) < PRICE_CACHE_DURATION) {
+        return priceCache.data;
+    }
+
+    console.log('💰 Fetching TON price from multiple exchanges...');
+
+    const priceApis = [
+        // 1. Binance (Most reliable)
+        {
+            name: 'Binance',
+            url: 'https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT',
+            parser: (data) => ({
+                price: parseFloat(data.lastPrice),
+                change24h: parseFloat(data.priceChangePercent),
+                volume: parseFloat(data.volume)
+            })
+        },
+        // 2. Bybit
+        {
+            name: 'Bybit',
+            url: 'https://api.bybit.com/v5/market/tickers?category=spot&symbol=TONUSDT',
+            parser: (data) => {
+                if (data.result && data.result.list && data.result.list.length > 0) {
+                    const ticker = data.result.list[0];
+                    return {
+                        price: parseFloat(ticker.lastPrice),
+                        change24h: parseFloat(ticker.price24hPcnt) * 100,
+                        volume: parseFloat(ticker.volume24h)
+                    };
+                }
+                return null;
+            }
+        },
+        // 3. Bitget
+        {
+            name: 'Bitget',
+            url: 'https://api.bitget.com/api/v2/spot/public/ticker?symbol=TONUSDT',
+            parser: (data) => {
+                if (data.data && data.data.length > 0) {
+                    const ticker = data.data[0];
+                    return {
+                        price: parseFloat(ticker.close),
+                        change24h: parseFloat(ticker.change24h),
+                        volume: parseFloat(ticker.quoteVolume)
+                    };
+                }
+                return null;
+            }
+        },
+        // 4. MEXC
+        {
+            name: 'MEXC',
+            url: 'https://api.mexc.com/api/v3/ticker/24hr?symbol=TONUSDT',
+            parser: (data) => ({
+                price: parseFloat(data.lastPrice),
+                change24h: parseFloat(data.priceChangePercent),
+                volume: parseFloat(data.volume)
+            })
+        },
+        // 5. CoinGecko
+        {
+            name: 'CoinGecko',
+            url: 'https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd&include_24hr_change=true',
+            parser: (data) => ({
+                price: data['the-open-network'].usd,
+                change24h: data['the-open-network'].usd_24h_change,
+                volume: 0
+            })
+        }
+    ];
+
+    let successfulPrices = [];
+    let lastError = null;
+
+    // Try all APIs in parallel with timeout
+    const promises = priceApis.map(async (api) => {
+        try {
+            console.log(`🔍 Trying ${api.name}...`);
+            const response = await axios.get(api.url, { timeout: 3000 });
+            const parsed = api.parser(response.data);
+            
+            if (parsed && parsed.price && parsed.price > 0) {
+                console.log(`✅ ${api.name}: $${parsed.price.toFixed(4)}`);
+                return {
+                    source: api.name,
+                    price: parsed.price,
+                    change24h: parsed.change24h || 0,
+                    volume: parsed.volume || 0,
+                    timestamp: now
+                };
+            }
+        } catch (error) {
+            console.log(`❌ ${api.name} failed: ${error.message}`);
+            lastError = error;
+            return null;
+        }
+    });
+
+    try {
+        const results = await Promise.allSettled(promises);
+        
+        results.forEach(result => {
+            if (result.status === 'fulfilled' && result.value) {
+                successfulPrices.push(result.value);
+            }
+        });
+
+        // If we have successful prices, calculate average
+        if (successfulPrices.length > 0) {
+            // Sort by volume (higher volume = more reliable)
+            successfulPrices.sort((a, b) => (b.volume || 0) - (a.volume || 0));
+            
+            // Take weighted average of top 3
+            const topPrices = successfulPrices.slice(0, 3);
+            const totalVolume = topPrices.reduce((sum, p) => sum + (p.volume || 1), 0);
+            
+            let weightedPrice = 0;
+            let weightedChange = 0;
+            
+            topPrices.forEach(p => {
+                const weight = (p.volume || 1) / totalVolume;
+                weightedPrice += p.price * weight;
+                weightedChange += (p.change24h || 0) * weight;
+            });
+
+            console.log(`✅ Average price from ${topPrices.length} sources: $${weightedPrice.toFixed(4)}`);
+            
+            priceCache.data = {
+                price: weightedPrice,
+                change24h: weightedChange,
+                source: topPrices.map(p => p.source).join(', '),
+                timestamp: now,
+                sourcesCount: successfulPrices.length
+            };
+            
+            return priceCache.data;
+        }
+    } catch (error) {
+        console.log('❌ All price APIs failed:', error.message);
+    }
+
+    // Final fallback
+    console.log('✅ Using static fallback price: $2.35');
+    priceCache.data = {
+        price: 2.35,
+        change24h: 0,
+        source: 'fallback',
+        timestamp: now,
+        sourcesCount: 0
+    };
+    
+    return priceCache.data;
 }
 
 // ============================================
@@ -772,64 +1045,11 @@ async function deployWalletIfNeeded(keyPair, walletContract) {
 }
 
 // ============================================
-// 🎯 FIXED & SIMPLIFIED: REAL PRICE FETCHING (NO CRASH)
-// ============================================
-let priceCache = { data: null, timestamp: 0 };
-const PRICE_CACHE_DURATION = 60000; // 60 seconds
-
-async function fetchRealTONPrice() {
-    const now = Date.now();
-    if (priceCache.data && (now - priceCache.timestamp) < PRICE_CACHE_DURATION) {
-        return priceCache.data;
-    }
-
-    console.log('💰 Fetching TON price...');
-    
-    let tonPrice = 2.35;
-    let source = 'fallback';
-    let change24h = 0; // Initialize as NUMBER
-
-    try {
-        const response = await axios.get('https://api.binance.com/api/v3/ticker/24hr?symbol=TONUSDT', {
-            timeout: 5000
-        });
-        
-        if (response.data && response.data.lastPrice) {
-            tonPrice = parseFloat(response.data.lastPrice);
-            // SAFE CONVERSION: Ensure change24h is a valid number
-            const rawChange = response.data.priceChangePercent;
-            change24h = parseFloat(rawChange) || 0; // This yields a number or 0
-            source = 'Binance';
-            console.log(`✅ Got price from ${source}: $${tonPrice.toFixed(4)}`);
-        }
-    } catch (error) {
-        console.log('❌ Binance failed, using fallback price.');
-        source = 'fallback';
-        change24h = Math.random() * 10 - 5; // This is a number
-    }
-
-    // FINAL, ABSOLUTE SAFETY CHECK: Convert to numbers
-    tonPrice = Number(tonPrice) || 2.35;
-    change24h = Number(change24h) || 0;
-
-    priceCache.data = { 
-        price: tonPrice, 
-        source: source, 
-        timestamp: now,
-        change24h: change24h // Guaranteed to be a number
-    };
-
-    console.log(`✅ Final price: $${tonPrice.toFixed(4)} from ${source}`);
-    
-    return priceCache.data;
-}
-
-// ============================================
 // 🎯 FIXED: SEND TON TRANSACTION
 // ============================================
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
     console.log('🚀 SEND TRANSACTION STARTED');
-    
+
     try {
         const wallet = await getWalletFromDatabase(userId);
         if (!wallet) {
@@ -837,54 +1057,54 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         }
 
         console.log('✅ Wallet found:', wallet.address?.substring(0, 15) + '...');
-        
+
         if (!wallet.password_hash) {
             console.error('❌ Wallet missing password_hash in database');
             throw new Error('Wallet not properly set up. Password hash missing.');
         }
-        
+
         const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
         if (!passwordValid) {
             throw new Error('Invalid wallet password');
         }
         console.log('✅ Password verified');
-        
+
         if (!wallet.encrypted_mnemonic) {
             throw new Error('Wallet recovery phrase not found in database.');
         }
-        
+
         let mnemonic;
         try {
             const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
             const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
-            
+
             const decipher = crypto.createDecipheriv(
                 encryptedData.algorithm,
                 key,
                 Buffer.from(encryptedData.iv, 'hex')
             );
             decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
-            
+
             let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
             decrypted += decipher.final('utf8');
             mnemonic = decrypted.split(' ');
-            
+
             console.log('✅ Mnemonic decrypted successfully');
         } catch (decryptError) {
             console.error('❌ Mnemonic decryption failed:', decryptError.message);
             throw new Error('Failed to decrypt wallet. Wrong password or corrupted data.');
         }
-        
+
         const keyPair = await mnemonicToPrivateKey(mnemonic);
         console.log('✅ Key pair derived');
-        
+
         const walletContract = WalletContractV4.create({
             workchain: 0,
             publicKey: keyPair.publicKey
         });
-        
+
         console.log('✅ Wallet contract created');
-        
+
         console.log('🔧 Checking wallet deployment/initialization status...');
         const deploymentCheck = await deployWalletIfNeeded(keyPair, walletContract);
 
@@ -897,22 +1117,22 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             apiKey: TONCENTER_API_KEY || undefined,
             timeout: 30000
         });
-        
+
         let seqno = 0;
         try {
             const walletState = await tonClient.getContractState(walletContract.address);
             seqno = walletState.seqno || 0;
             console.log(`📝 Final seqno for transaction: ${seqno}`);
-            
+
             if (seqno === 0) {
                 console.log('ℹ️ Using seqno: 0 for first transaction');
             }
-            
+
         } catch (seqnoError) {
             console.log('⚠️ Could not get seqno, using 0:', seqnoError.message);
             seqno = 0;
         }
-        
+
         let recipientAddress;
         try {
             recipientAddress = Address.parse(toAddress);
@@ -920,34 +1140,34 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         } catch (error) {
             throw new Error('Invalid recipient address: ' + error.message);
         }
-        
+
         const amountNano = toNano(amount.toString());
         console.log(`💰 Amount: ${amount} TON (${amountNano} nanoton)`);
-        
+
         console.log('💰 Checking final balance...');
         const balance = await tonClient.getBalance(walletContract.address);
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
-        
+
         if (balanceTON < parseFloat(amount) + 0.01) {
             throw new Error(`Insufficient balance. Need ${amount} TON + ~0.01 TON fee, but only have ${balanceTON.toFixed(4)} TON.`);
         }
-        
+
         console.log(`✅ Sufficient balance: ${balanceTON.toFixed(4)} TON`);
-        
+
         const internalMsg = internal({
             to: recipientAddress,
             value: amountNano,
             body: memo || '',
             bounce: false
         });
-        
+
         const transfer = walletContract.createTransfer({
             secretKey: keyPair.secretKey,
             seqno: seqno,
             messages: [internalMsg],
             sendMode: 3
         });
-        
+
         console.log("📤 Sending transaction to TON blockchain...");
         console.log("📋 Transaction Details:", {
             from: walletContract.address.toString({ bounceable: false }),
@@ -960,20 +1180,27 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         try {
             const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
             console.log("✅ Transaction broadcasted successfully!", sendResult);
-            
+
             const txHash = crypto.createHash('sha256')
                 .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
                 .digest('hex')
                 .toUpperCase()
                 .substring(0, 64);
-            
+
             console.log("🔗 Generated transaction hash:", txHash);
-            
+
             await new Promise(resolve => setTimeout(resolve, 2000));
-            
+
             const priceData = await fetchRealTONPrice();
             const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
-            
+
+            // Update balance in database after successful send
+            await updateWalletBalanceInDB(userId, {
+                balance: (balanceTON - parseFloat(amount)).toFixed(4),
+                status: 'active',
+                isActive: true
+            });
+
             return {
                 success: true,
                 message: 'Transaction sent successfully!',
@@ -987,12 +1214,12 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                 usdValue: usdValue,
                 tonPrice: priceData.price.toFixed(4)
             };
-            
+
         } catch (sendError) {
             console.error('❌❌❌ TON Transaction Send FAILED with details:');
             console.error('❌ Error message:', sendError.message);
             console.error('❌ Error stack:', sendError.stack);
-            
+
             if (sendError.response) {
                 console.error('❌ TON API Response:', {
                     status: sendError.response.status,
@@ -1000,10 +1227,10 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                     headers: sendError.response.headers
                 });
             }
-            
+
             throw new Error(`TON Blockchain Error: ${sendError.message}. Seqno: ${seqno}, Balance: ${balanceTON}`);
         }
-        
+
     } catch (error) {
         console.error('❌❌❌ SEND TRANSACTION FAILED:', error.message);
         throw error;
@@ -1018,7 +1245,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'Wallet API v30.0 - LOGIN CRASH FIXED',
+        message: 'Wallet API v31.0 - MULTI-SOURCE BALANCE & PRICE',
         database: dbStatus,
         ton_libraries: WalletContractV4 ? 'loaded' : 'MISSING',
         has_auto_deploy: true,
@@ -1097,9 +1324,7 @@ router.post('/create', async (req, res) => {
             console.log('✅ Wallet already exists');
             const validation = validateTONAddress(existingWallet.address);
 
-            const balanceResult = await getRealBalance(existingWallet.address);
-            // 🎯 REMOVED: Price fetch from create endpoint too
-            // const tonPriceData = await fetchRealTONPrice();
+            const balanceResult = await getRealBalance(existingWallet.address, userId);
 
             return res.json({
                 success: true,
@@ -1117,7 +1342,6 @@ router.post('/create', async (req, res) => {
                     isActive: balanceResult.isActive || false,
                     status: balanceResult.status
                 },
-                // 🎯 REMOVED: tonPrice, priceChange24h, priceSource
                 note: 'Wallet will auto-deploy on first transaction'
             });
         }
@@ -1165,9 +1389,6 @@ router.post('/create', async (req, res) => {
 
         console.log('✅ Wallet saved with ID:', insertedWallet.id);
 
-        // 🎯 REMOVED: Price fetch from create response
-        // const tonPriceData = await fetchRealTONPrice();
-
         return res.json({
             success: true,
             message: 'TON wallet created successfully!',
@@ -1181,7 +1402,6 @@ router.post('/create', async (req, res) => {
                 wordCount: 24,
                 isReal: true
             },
-            // 🎯 REMOVED: tonPrice, priceChange24h, priceSource
             explorerLink: `https://tonviewer.com/${validation.eqAddress}`,
             activationNote: 'Wallet will auto-deploy when you send your first transaction'
         });
@@ -1226,7 +1446,7 @@ router.post('/check', async (req, res) => {
 
         const validation = validateTONAddress(wallet.address);
 
-        const balanceResult = await getRealBalance(wallet.address);
+        const balanceResult = await getRealBalance(wallet.address, userId);
 
         return res.json({
             success: true,
@@ -1302,10 +1522,9 @@ router.post('/login', async (req, res) => {
         }
 
         const validation = validateTONAddress(wallet.address);
-        
-        const balanceResult = await getRealBalance(wallet.address);
 
-        // ✅ CRITICAL FIX: Return WITHOUT fetching price (removes the crash)
+        const balanceResult = await getRealBalance(wallet.address, userId);
+
         return res.json({
             success: true,
             message: 'Wallet login successful',
@@ -1322,7 +1541,6 @@ router.post('/login', async (req, res) => {
                 isReal: validation.isRealTON,
                 status: balanceResult.status
             },
-            // 🎯 REMOVED: tonPrice, priceChange24h, priceSource
             explorerLink: `https://tonviewer.com/${validation.eqAddress}`,
             note: 'Wallet will auto-deploy on first transaction if needed'
         });
@@ -1337,64 +1555,73 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
-// 🎯 BALANCE ENDPOINT - Updated to handle price safely
+// 🎯 UPDATED BALANCE ENDPOINT WITH MULTI-SOURCE
 // ============================================
 
 router.get('/balance/:address', async (req, res) => {
     try {
         const { address } = req.params;
-        console.log(`💰 BALANCE REQUEST for: ${address}`);
+        const { userId } = req.query; // Optional: for database fallback
+        
+        console.log(`💰 BALANCE REQUEST for: ${address}, user: ${userId || 'none'}`);
 
         const validation = validateTONAddress(address);
 
-        const balanceResult = await getRealBalance(address);
-        
-        // Wrap price fetch in try-catch so balance endpoint still works if price fails
-        let priceData = { price: 2.35, change24h: 0, source: 'fallback' };
+        // Get balance with database fallback if userId provided
+        const balanceResult = await getRealBalance(address, userId);
+
+        // Get price from multiple exchanges
+        let priceData;
         try {
             priceData = await fetchRealTONPrice();
         } catch (priceError) {
-            console.log('⚠️ Price fetch failed in balance endpoint, using fallback');
+            console.log('⚠️ Price fetch failed, using fallback');
+            priceData = {
+                price: 2.35,
+                change24h: 0,
+                source: 'fallback',
+                timestamp: Date.now()
+            };
         }
 
         const balance = parseFloat(balanceResult.balance || "0");
         const valueUSD = (balance * priceData.price).toFixed(2);
 
-        console.log(`✅ Balance result: ${balanceResult.balance} TON, Active: ${balanceResult.isActive}`);
+        console.log(`✅ Balance result: ${balanceResult.balance} TON, Active: ${balanceResult.isActive}, Source: ${balanceResult.source}`);
 
         return res.json({
             success: true,
             address: address,
             format: validation.format,
             balance: balanceResult.balance,
-            valueUSD: valueUSD,
+            balanceUSD: valueUSD,
             tonPrice: priceData.price.toFixed(4),
             priceChange24h: priceData.change24h.toFixed(2),
             priceSource: priceData.source,
+            balanceSource: balanceResult.source,
             isActive: balanceResult.isActive || false,
             status: balanceResult.status || 'unknown',
             isRealTON: validation.isRealTON,
             explorerLink: `https://tonviewer.com/${validation.eqAddress}`,
-            note: balanceResult.isActive ? 'Wallet is active' : 'Wallet will auto-deploy on first transaction'
+            timestamp: new Date().toISOString()
         });
 
     } catch (error) {
         console.error('❌ Balance check failed:', error);
-        // Provide fallback response without crashing
-        const validation = validateTONAddress(req.params.address);
+        
         return res.json({
             success: false,
             address: req.params.address,
-            format: validation.format,
             balance: "0.0000",
-            valueUSD: "0.00",
+            balanceUSD: "0.00",
             tonPrice: "2.35",
             priceChange24h: "0.00",
             priceSource: 'fallback',
+            balanceSource: 'error',
             isActive: false,
             status: 'uninitialized',
-            isRealTON: validation.isRealTON,
-            note: 'Wallet needs initial funding and deployment'
+            note: 'Wallet needs initial funding and deployment',
+            timestamp: new Date().toISOString()
         });
     }
 });
@@ -1531,7 +1758,8 @@ router.get('/price/ton', async (req, res) => {
             change24h: priceData.change24h.toFixed(2),
             change24hPercent: `${priceData.change24h >= 0 ? '+' : ''}${priceData.change24h.toFixed(2)}%`,
             source: priceData.source,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            sourcesCount: priceData.sourcesCount || 0
         });
     } catch (error) {
         console.error('❌ TON price fetch failed:', error);
@@ -1542,7 +1770,8 @@ router.get('/price/ton', async (req, res) => {
             change24h: "0.00",
             change24hPercent: "0.00%",
             source: 'fallback',
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            sourcesCount: 0
         });
     }
 });
@@ -1607,6 +1836,6 @@ router.get('/transactions/:userId', async (req, res) => {
     }
 });
 
-console.log('✅ WALLET ROUTES READY - LOGIN CRASH FIXED');
+console.log('✅ WALLET ROUTES READY - MULTI-SOURCE BALANCE & PRICE');
 
 module.exports = router;
