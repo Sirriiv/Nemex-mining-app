@@ -1316,15 +1316,45 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             }
 
             console.log('🔎 Verifying derived public key against on-chain public key...');
-            const onChainPub = await runGetPublicKey(walletContract.address.toString({ urlSafe: true, bounceable: false }));
+            let onChainPub = await runGetPublicKey(walletContract.address.toString({ urlSafe: true, bounceable: false }));
+            const derivedPubHex = Buffer.from(keyPair.publicKey).toString('hex').toLowerCase();
+
             if (onChainPub) {
-                const derivedPubHex = Buffer.from(keyPair.publicKey).toString('hex').toLowerCase();
                 if (derivedPubHex !== onChainPub) {
-                    throw new Error(`Derived public key does NOT match on-chain get_public_key. On-chain: ${onChainPub}, Derived: ${derivedPubHex}. This suggests a wrong mnemonic or corrupted wallet data.`);
+                    console.log('⚠️ Public key mismatch detected. Attempting to re-initialize the wallet and re-check public key...');
+                    try {
+                        await deployWalletIfNeeded(keyPair, walletContract, tonClient);
+                        // allow some time for the chain to index
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        onChainPub = await runGetPublicKey(walletContract.address.toString({ urlSafe: true, bounceable: false }));
+                        if (onChainPub && derivedPubHex !== onChainPub) {
+                            throw new Error(`Derived public key does NOT match on-chain get_public_key AFTER initialization. On-chain: ${onChainPub}, Derived: ${derivedPubHex}. This suggests a wrong mnemonic or corrupted wallet data.`);
+                        }
+                    } catch (initErr) {
+                        console.log('❌ Re-initialization attempt failed or did not resolve mismatch:', initErr.message);
+                        throw initErr;
+                    }
                 }
+
                 console.log('✅ Public key verified against on-chain state');
             } else {
-                console.log('⚠️ On-chain public key not available via runGetMethod - skipping verification');
+                console.log('⚠️ On-chain public key not available via runGetMethod. Attempting to initialize the wallet (if needed) and re-check...');
+                try {
+                    await deployWalletIfNeeded(keyPair, walletContract, tonClient);
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    onChainPub = await runGetPublicKey(walletContract.address.toString({ urlSafe: true, bounceable: false }));
+                    if (onChainPub) {
+                        if (derivedPubHex !== onChainPub) {
+                            throw new Error(`Derived public key does NOT match on-chain get_public_key AFTER initialization. On-chain: ${onChainPub}, Derived: ${derivedPubHex}.`);
+                        }
+                        console.log('✅ Public key verified after initialization');
+                    } else {
+                        console.log('⚠️ Public key still not available after initialization - proceeding cautiously');
+                    }
+                } catch (verifyErr) {
+                    console.error('❌ Pre-send verification failed:', verifyErr.message);
+                    throw verifyErr;
+                }
             }
         } catch (verifyError) {
             console.error('❌ Pre-send verification failed:', verifyError.message);
@@ -1740,6 +1770,42 @@ router.post('/create', async (req, res) => {
         }
 
         console.log('✅ Wallet saved with ID:', insertedWallet.id);
+
+        // Post-insert verification: if the address already has on-chain data, verify public key matches derived key
+        try {
+            // pick a working RPC
+            const rpcCandidates = [
+                { endpoint: 'https://tonapi.io/v2/jsonRPC', apiKey: TON_CONSOLE_API_KEY ? TON_CONSOLE_API_KEY.replace('bearer_', '') : undefined },
+                { endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: TONCENTER_API_KEY || undefined },
+                { endpoint: 'https://ton.rpc.thirdweb.com', apiKey: undefined }
+            ];
+
+            let client = null;
+            for (const r of rpcCandidates) {
+                try {
+                    const c = new TonClient({ endpoint: r.endpoint, apiKey: r.apiKey, timeout: 10000 });
+                    await c.getBalance(insertedWallet.address);
+                    client = c;
+                    break;
+                } catch (e) {
+                    continue;
+                }
+            }
+
+            if (client) {
+                const onChainPub = await runGetPublicKey(insertedWallet.address);
+                if (onChainPub) {
+                    const derived = insertedWallet.public_key ? String(insertedWallet.public_key).toLowerCase() : null;
+                    if (derived && derived !== onChainPub) {
+                        console.error('❌ Post-create public key mismatch detected. Rolling back inserted wallet.');
+                        await supabase.from('user_wallets').delete().eq('user_id', userId);
+                        return res.status(500).json({ success: false, error: 'Public key mismatch detected on newly created wallet. Please try again.' });
+                    }
+                }
+            }
+        } catch (pvError) {
+            console.log('⚠️ Post-insert verification skipped/failed:', pvError.message);
+        }
 
         return res.json({
             success: true,
