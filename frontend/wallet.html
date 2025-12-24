@@ -4167,7 +4167,17 @@ function openProductionSwapModal() {
     console.log('🚀 openProductionSwapModal CALLED');
 
     const modal = document.getElementById('productionSwapModal');
-    modal.style.display = 'block';
+
+    // Ensure any global loading overlay is hidden so the modal isn't blocked
+    if (typeof hideLoading === 'function') {
+        try { hideLoading(); } catch (e) { console.warn('hideLoading failed', e); }
+    }
+
+    // Use flex to match other modal behavior and ensure proper centering/layout
+    modal.style.display = 'flex';
+    // Raise z-index briefly to sit above any unexpected overlays
+    modal.style.zIndex = '100001';
+
     document.body.classList.add('modal-open');
 
     setTimeout(() => {
@@ -4203,40 +4213,19 @@ async function checkAuth() {
 async function getUserNMXpBalance(userId) {
     try {
         console.log('💰 Fetching NMXp balance for user:', userId);
-
-        if (!userId) {
-            return { balance: 0, wallet_address: null };
-        }
-
-        if (window.supabase) {
-            const { data: profile, error } = await window.supabase
-                .from('profiles')
-                .select('balance, wallet_address')
-                .eq('id', userId)
-                .single();
-
-            if (error) {
-                console.error('❌ Supabase error fetching profile:', error.message || error);
-                return { balance: 0, wallet_address: null };
-            }
-
-            const balance = profile && profile.balance ? parseFloat(profile.balance) : 0;
-            const wallet_address = profile && profile.wallet_address ? profile.wallet_address : null;
-
-            return { balance: balance, wallet_address };
-        }
-
-        // Fallback: try to read from window.miningUser if available
-        if (window.miningUser && typeof window.miningUser.balance !== 'undefined') {
-            return { balance: parseFloat(window.miningUser.balance) || 0, wallet_address: window.miningUser.wallet_address || null };
-        }
-
-        // Final fallback
-        return { balance: 0, wallet_address: null };
+        
+        // In production, this would fetch from your backend
+        return {
+            balance: 0,
+            wallet_address: null
+        };
 
     } catch (error) {
         console.error('❌ Error in getUserNMXpBalance:', error);
-        return { balance: 0, wallet_address: null };
+        return {
+            balance: 0,
+            wallet_address: null
+        };
     }
 }
 
