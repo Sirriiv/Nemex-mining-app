@@ -1237,13 +1237,15 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             bounce: false
         });
 
-        const transfer = walletContract.createTransfer({
+        // 14. Create transfer (mutable so we can retry with refreshed seqno)
+        let transfer = walletContract.createTransfer({
             secretKey: keyPair.secretKey,
             seqno: seqno,
             messages: [internalMsg],
             sendMode: 3
         });
 
+        // 15. Send transaction with a single retry for transient RPC/seqno failures
         console.log("📤 Sending transaction to TON blockchain...");
         console.log("📋 Transaction Details:", {
             from: walletContract.address.toString({ bounceable: false }),
@@ -1253,61 +1255,100 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             sendMode: 3
         });
 
-        try {
-            const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
-            console.log("✅ Transaction broadcasted successfully!", sendResult);
+        let lastSendError = null;
+        const maxSendAttempts = 2;
+        for (let attempt = 1; attempt <= maxSendAttempts; attempt++) {
+            try {
+                const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
+                console.log(`✅ Transaction broadcasted successfully on attempt ${attempt}!`, sendResult);
 
-            const txHash = crypto.createHash('sha256')
-                .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
-                .digest('hex')
-                .toUpperCase()
-                .substring(0, 64);
+                // Generate transaction hash
+                const txHash = crypto.createHash('sha256')
+                    .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
+                    .digest('hex')
+                    .toUpperCase()
+                    .substring(0, 64);
 
-            console.log("🔗 Generated transaction hash:", txHash);
+                console.log("🔗 Generated transaction hash:", txHash);
 
-            await new Promise(resolve => setTimeout(resolve, 2000));
+                // Wait briefly for indexing
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
-            const priceData = await fetchRealTONPrice();
-            const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
+                // Get current price for USD value
+                const priceData = await fetchRealTONPrice();
+                const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
 
-            // Update balance in database after successful send
-            await updateWalletBalanceInDB(userId, {
-                balance: (balanceTON - parseFloat(amount)).toFixed(4),
-                status: 'active',
-                isActive: true,
-                source: 'transaction_send'
-            });
+                // Return success
+                return {
+                    success: true,
+                    message: 'Transaction sent successfully!',
+                    transactionHash: txHash,
+                    fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
+                    toAddress: toAddress,
+                    amount: parseFloat(amount),
+                    memo: memo || '',
+                    timestamp: new Date().toISOString(),
+                    explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
+                    usdValue: usdValue,
+                    tonPrice: priceData.price.toFixed(4)
+                };
 
-            return {
-                success: true,
-                message: 'Transaction sent successfully!',
-                transactionHash: txHash,
-                fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
-                toAddress: toAddress,
-                amount: parseFloat(amount),
-                memo: memo || '',
-                timestamp: new Date().toISOString(),
-                explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
-                usdValue: usdValue,
-                tonPrice: priceData.price.toFixed(4)
-            };
+            } catch (sendError) {
+                lastSendError = sendError;
+                console.error(`❌ TON send attempt ${attempt} failed:`, sendError.message);
 
-        } catch (sendError) {
-            console.error('❌❌❌ TON Transaction Send FAILED with details:');
-            console.error('❌ Error message:', sendError.message);
-            console.error('❌ Error stack:', sendError.stack);
+                if (sendError.response) {
+                    console.error('❌ TON API Response:', {
+                        status: sendError.response.status,
+                        data: sendError.response.data
+                    });
+                }
 
-            if (sendError.response) {
-                console.error('❌ TON API Response:', {
-                    status: sendError.response.status,
-                    data: sendError.response.data,
-                    headers: sendError.response.headers
-                });
+                // If we can retry (attempt 1 of 2), refresh seqno and recreate transfer
+                if (attempt < maxSendAttempts) {
+                    console.log('🔄 Retrying: refreshing seqno and recreating transfer...');
+                    try {
+                        const walletState = await tonClient.getContractState(walletContract.address);
+                        seqno = walletState.seqno || 0;
+                        console.log('📝 Refreshed seqno:', seqno);
+                    } catch (seqnoRefreshError) {
+                        console.log('⚠️ Could not refresh seqno before retry:', seqnoRefreshError.message);
+                        // continue and retry anyway
+                    }
+
+                    // Recreate transfer with updated seqno
+                    transfer = walletContract.createTransfer({
+                        secretKey: keyPair.secretKey,
+                        seqno: seqno,
+                        messages: [internalMsg],
+                        sendMode: 3
+                    });
+
+                    // small backoff
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    continue;
+                }
+
+                // No more retries
+                break;
             }
-
-            throw new Error(`TON Blockchain Error: ${sendError.message}. Seqno: ${seqno}, Balance: ${balanceTON}`);
         }
 
+        // If we reach here, all attempts failed - include RPC payload if available
+        const rpcStatus = lastSendError?.response?.status;
+        const rpcData = lastSendError?.response?.data;
+
+        let rpcInfo = '';
+        try {
+            rpcInfo = rpcData ? (typeof rpcData === 'object' ? JSON.stringify(rpcData) : String(rpcData)) : '';
+        } catch (e) {
+            rpcInfo = String(rpcData);
+        }
+
+        console.error('❌❌❌ TON Transaction ultimately FAILED:', lastSendError?.message);
+        throw new Error(`TON Blockchain Error: ${lastSendError?.message}${rpcStatus ? ` (status ${rpcStatus})` : ''}. Seqno: ${seqno}, Balance: ${balanceTON}. RPC: ${rpcInfo}`);
+        
+        
     } catch (error) {
         console.error('❌❌❌ SEND TRANSACTION FAILED:', error.message);
         throw error;
