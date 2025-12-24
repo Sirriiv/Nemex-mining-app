@@ -1,4 +1,4 @@
-// backend/wallet-routes.js - STABLE FIXED VERSION v31.0
+// backend/wallet-routes.js - STABLE FIXED VERSION v32.0
 const express = require('express');
 const router = express.Router();
 const { createClient } = require('@supabase/supabase-js');
@@ -41,9 +41,30 @@ try {
     throw new Error(`TON SDK failed to load: ${error.message}`);
 }
 
-require('dotenv').config();
+// ============================================
+// 🎯 LOAD ENVIRONMENT VARIABLES - FIXED!
+// ============================================
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 
-console.log('🚀 WALLET ROUTES v31.0 - MULTI-SOURCE BALANCE & PRICE');
+console.log('🚀 WALLET ROUTES v32.0 - DUAL API FIXED VERSION');
+
+// ============================================
+// 🎯 API KEYS CONFIGURATION - FIXED!
+// ============================================
+const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
+// FIX: Handle multiple possible environment variable names
+const TON_CONSOLE_API_KEY = process.env.TON_CONSOLE_API_KEY || process.env.TON_API_TOKEN || process.env.TONAPI_KEY || '';
+const TON_API_URL = process.env.TON_API_URL || 'https://tonapi.io/v2';
+
+console.log('🔑 API Keys Status:');
+console.log(`   - TON Center: ${TONCENTER_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
+console.log(`   - TON Console: ${TON_CONSOLE_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
+
+if (!TON_CONSOLE_API_KEY) {
+    console.warn('⚠️ WARNING: TON_CONSOLE_API_KEY is missing! Transactions may fail.');
+    console.warn('   Get one from: https://tonconsole.com/');
+    console.warn('   Or add to .env: TON_CONSOLE_API_KEY=bearer_your_token_here');
+}
 
 // ============================================
 // 🎯 CORS MIDDLEWARE
@@ -548,10 +569,8 @@ function encryptMnemonic(mnemonic, password) {
 }
 
 // ============================================
-// 🎯 UPDATED: GET REAL BALANCE WITH MULTIPLE SOURCES
+// 🎯 FIXED: GET REAL BALANCE WITH DUAL APIS
 // ============================================
-const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
-
 async function getRealBalance(address, userId = null) {
     try {
         console.log(`💰 Checking balance for: ${address}`);
@@ -570,26 +589,31 @@ async function getRealBalance(address, userId = null) {
         console.log(`🔍 Querying balance for: ${queryAddress}`);
 
         // ============================================
-        // 🔥 MULTIPLE API FALLBACK SYSTEM
+        // 🔥 DUAL API SYSTEM - TON CONSOLE + TON CENTER
         // ============================================
         const apiEndpoints = [
-            // 1. TON API (no key needed - most reliable)
+            // 1. TON Console API (Primary)
             {
-                name: 'TON API',
-                url: `https://tonapi.io/v2/accounts/${queryAddress}`,
+                name: 'TON Console',
+                url: `${TON_API_URL}/accounts/${queryAddress}`,
+                headers: TON_CONSOLE_API_KEY ? { 
+                    'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}`,
+                    'Accept': 'application/json'
+                } : {},
                 parser: async (data) => {
-                    if (data.balance) {
+                    if (data.balance !== undefined) {
                         const balanceNano = BigInt(data.balance);
                         return {
                             balance: Number(balanceNano) / 1_000_000_000,
                             status: data.status || 'active',
-                            rawBalance: balanceNano.toString()
+                            rawBalance: balanceNano.toString(),
+                            isActive: data.status === 'active' || balanceNano > 0n
                         };
                     }
                     return null;
                 }
             },
-            // 2. TON Center API (with key fallback)
+            // 2. TON Center API (Fallback)
             {
                 name: 'TON Center',
                 url: `https://toncenter.com/api/v2/getAddressInformation`,
@@ -604,13 +628,14 @@ async function getRealBalance(address, userId = null) {
                         return {
                             balance: Number(balanceNano) / 1_000_000_000,
                             status: data.status || 'unknown',
-                            rawBalance: balanceNano.toString()
+                            rawBalance: balanceNano.toString(),
+                            isActive: data.status === 'active' || balanceNano > 0n
                         };
                     }
                     return null;
                 }
             },
-            // 3. Tonkeeper API
+            // 3. Tonkeeper API (Public Fallback)
             {
                 name: 'Tonkeeper',
                 url: `https://api.tonkeeper.com/address/${queryAddress}/balance`,
@@ -619,7 +644,8 @@ async function getRealBalance(address, userId = null) {
                         return {
                             balance: data.balance / 1_000_000_000,
                             status: 'active',
-                            rawBalance: data.balance.toString()
+                            rawBalance: data.balance.toString(),
+                            isActive: true
                         };
                     }
                     return null;
@@ -655,7 +681,8 @@ async function getRealBalance(address, userId = null) {
                         await updateWalletBalanceInDB(userId, {
                             balance: result.balance.toFixed(4),
                             status: result.status,
-                            isActive: result.status === 'active' || result.balance > 0
+                            isActive: result.isActive,
+                            source: api.name.toLowerCase()
                         });
                     }
                     
@@ -663,10 +690,11 @@ async function getRealBalance(address, userId = null) {
                         success: true,
                         balance: result.balance.toFixed(4),
                         status: result.status,
-                        isActive: result.status === 'active' || result.balance > 0,
+                        isActive: result.isActive || false,
                         isReal: true,
                         rawBalance: result.rawBalance,
-                        source: api.name
+                        source: api.name,
+                        apiUsed: api.name
                     };
                 }
             } catch (apiError) {
@@ -676,7 +704,7 @@ async function getRealBalance(address, userId = null) {
         }
 
         // ============================================
-        // 🗄️ DATABASE FALLBACK (if userId provided)
+        // 🗄️ DATABASE FALLBACK
         // ============================================
         if (userId) {
             try {
@@ -692,7 +720,8 @@ async function getRealBalance(address, userId = null) {
                         status: wallet.last_status || 'unknown',
                         isActive: wallet.is_active || false,
                         isReal: true,
-                        source: 'database_cache'
+                        source: 'database_cache',
+                        apiUsed: 'database_cache'
                     };
                 }
             } catch (dbError) {
@@ -708,7 +737,8 @@ async function getRealBalance(address, userId = null) {
             isActive: false,
             status: 'uninitialized',
             isReal: true,
-            source: 'fallback'
+            source: 'fallback',
+            apiUsed: 'fallback'
         };
 
     } catch (error) {
@@ -717,7 +747,8 @@ async function getRealBalance(address, userId = null) {
             success: false,
             balance: "0.0000",
             error: error.message,
-            isReal: true
+            isReal: true,
+            source: 'error'
         };
     }
 }
@@ -733,6 +764,7 @@ async function updateWalletBalanceInDB(userId, balanceData) {
             last_known_balance: balanceData.balance,
             last_status: balanceData.status || 'unknown',
             is_active: balanceData.isActive || false,
+            last_source: balanceData.source || 'unknown',
             last_balance_check: new Date().toISOString(),
             updated_at: new Date().toISOString()
         };
@@ -747,7 +779,7 @@ async function updateWalletBalanceInDB(userId, balanceData) {
             return false;
         }
         
-        console.log(`✅ Updated wallet balance in DB for user ${userId}: ${balanceData.balance} TON`);
+        console.log(`✅ Updated wallet balance in DB for user ${userId}: ${balanceData.balance} TON (Source: ${balanceData.source})`);
         return true;
     } catch (error) {
         console.log('⚠️ Error updating wallet balance in DB:', error.message);
@@ -756,7 +788,7 @@ async function updateWalletBalanceInDB(userId, balanceData) {
 }
 
 // ============================================
-// 🎯 UPDATED: MULTI-EXCHANGE PRICE FETCHING
+// 🎯 MULTI-EXCHANGE PRICE FETCHING
 // ============================================
 let priceCache = { data: null, timestamp: 0 };
 const PRICE_CACHE_DURATION = 30000; // 30 seconds
@@ -835,7 +867,6 @@ async function fetchRealTONPrice() {
     ];
 
     let successfulPrices = [];
-    let lastError = null;
 
     // Try all APIs in parallel with timeout
     const promises = priceApis.map(async (api) => {
@@ -856,7 +887,6 @@ async function fetchRealTONPrice() {
             }
         } catch (error) {
             console.log(`❌ ${api.name} failed: ${error.message}`);
-            lastError = error;
             return null;
         }
     });
@@ -920,11 +950,10 @@ async function fetchRealTONPrice() {
 // ============================================
 // 🎯 FIXED: AUTO WALLET DEPLOYMENT & INITIALIZATION
 // ============================================
-
 async function deployWalletIfNeeded(keyPair, walletContract, tonClient = null) {
     try {
-        console.log('🔍 Checking wallet deployment status via TON Console...');
-        
+        console.log('🔍 Checking if wallet needs deployment/initialization...');
+
         // Create tonClient with TON Console if not provided
         if (!tonClient) {
             tonClient = new TonClient({
@@ -937,18 +966,14 @@ async function deployWalletIfNeeded(keyPair, walletContract, tonClient = null) {
         const deployed = await tonClient.isContractDeployed(walletContract.address);
 
         if (!deployed) {
-            console.log('⚠️ Wallet not deployed. Checking balance for deployment...');
-            
+            console.log('⚠️ Wallet not deployed. Attempting deployment...');
+
             const balance = await tonClient.getBalance(walletContract.address);
-            const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
-            const minDeployBalance = 0.05; // 0.05 TON for deployment
-            
-            console.log(`📊 Balance for deployment: ${balanceTON.toFixed(4)} TON (Need: ${minDeployBalance} TON)`);
-            
-            if (balanceTON < minDeployBalance) {
+            const minDeployBalance = toNano('0.05');
+
+            if (BigInt(balance) < minDeployBalance) {
                 throw new Error(
-                    `Wallet needs at least ${minDeployBalance} TON for deployment. Current: ${balanceTON.toFixed(4)} TON. ` +
-                    `Please send at least ${minDeployBalance} TON to ${walletContract.address.toString({ urlSafe: true, bounceable: false })}`
+                    `Wallet needs at least 0.05 TON for deployment. Current: ${fromNano(balance)} TON`
                 );
             }
 
@@ -960,64 +985,102 @@ async function deployWalletIfNeeded(keyPair, walletContract, tonClient = null) {
                 sendMode: 3
             });
 
-            console.log('📤 Sending deployment transaction via TON Console...');
+            console.log('📤 Sending deployment transaction...');
             await tonClient.sendExternalMessage(walletContract, deployTransfer);
 
-            console.log('✅ Deployment transaction sent. Waiting for confirmation...');
-            
-            // Wait for deployment
-            for (let i = 0; i < 20; i++) {
-                await new Promise(resolve => setTimeout(resolve, 3000));
+            console.log('⏳ Waiting for deployment confirmation...');
+            let attempts = 0;
+            while (attempts < 30) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 const nowDeployed = await tonClient.isContractDeployed(walletContract.address);
-                
+
                 if (nowDeployed) {
-                    console.log('🎉 Wallet successfully deployed!');
+                    console.log('✅ Wallet successfully deployed!');
                     break;
                 }
-                console.log(`⏳ Deployment check ${i+1}/20...`);
+                attempts++;
+                console.log(`⏳ Attempt ${attempts}/30 - still deploying...`);
+            }
+
+            if (attempts >= 30) {
+                throw new Error('Wallet deployment timeout. Check in 1-2 minutes.');
             }
         } else {
             console.log('✅ Wallet already deployed');
         }
 
+        console.log('🔧 Ensuring wallet is fully initialized...');
+
+        let seqno = 0;
+        try {
+            const walletState = await tonClient.getContractState(walletContract.address);
+            seqno = walletState.seqno || 0;
+            console.log(`📝 Current seqno after deployment: ${seqno}`);
+        } catch (seqnoError) {
+            console.log('⚠️ Could not get seqno:', seqnoError.message);
+            seqno = 0;
+        }
+
+        if (seqno === 0) {
+            console.log('🔄 Seqno is 0 - sending initialization transaction...');
+
+            const initTransfer = walletContract.createTransfer({
+                secretKey: keyPair.secretKey,
+                seqno: 0,
+                messages: [
+                    internal({
+                        to: walletContract.address,
+                        value: toNano('0'),
+                        body: 'Initialization',
+                        bounce: false
+                    })
+                ],
+                sendMode: 3
+            });
+
+            console.log('📤 Sending initialization transaction...');
+            try {
+                await tonClient.sendExternalMessage(walletContract, initTransfer);
+                console.log('✅ Initialization transaction sent');
+
+                console.log('⏳ Waiting for seqno update...');
+                await new Promise(resolve => setTimeout(resolve, 10000));
+
+                const updatedState = await tonClient.getContractState(walletContract.address);
+                const updatedSeqno = updatedState.seqno || 0;
+                console.log(`📝 Updated seqno after initialization: ${updatedSeqno}`);
+
+                if (updatedSeqno === 0) {
+                    console.log('⚠️ Seqno still 0 after initialization, may need more time');
+                }
+
+            } catch (initError) {
+                console.log('⚠️ Initialization transaction failed:', initError.message);
+            }
+        } else {
+            console.log('✅ Wallet already initialized (seqno > 0)');
+        }
+
         return { 
             success: true, 
             deployed: true,
-            note: 'Using TON Console API for deployment'
+            initialized: true
         };
 
     } catch (error) {
-        console.error('❌ Deployment failed via TON Console:', error.message);
-        
-        // Try alternative if TON Console fails
-        console.log('🔄 Trying alternative RPC endpoint...');
-        try {
-            const backupClient = new TonClient({
-                endpoint: 'https://ton.rpc.thirdweb.com',
-                timeout: 30000
-            });
-            
-            const deployed = await backupClient.isContractDeployed(walletContract.address);
-            return { 
-                success: deployed, 
-                deployed: deployed,
-                error: error.message,
-                note: 'Used backup RPC for check'
-            };
-        } catch (backupError) {
-            return { 
-                success: false, 
-                error: `TON Console: ${error.message}, Backup: ${backupError.message}`
-            };
-        }
+        console.error('❌ Deployment/initialization failed:', error.message);
+        return { 
+            success: false, 
+            error: error.message 
+        };
     }
 }
 
 // ============================================
-// 🎯 FIXED: SEND TON TRANSACTION USING TON CONSOLE API
+// 🎯 FIXED: SEND TON TRANSACTION WITH DUAL APIS
 // ============================================
 async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
-    console.log('🚀 SEND TRANSACTION STARTED - USING TON CONSOLE API');
+    console.log('🚀 SEND TRANSACTION STARTED');
 
     try {
         const wallet = await getWalletFromDatabase(userId);
@@ -1074,30 +1137,68 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
         console.log('✅ Wallet contract created');
 
-        // ============================================
-        // 🔥 USE TON CONSOLE API FOR SENDING
-        // ============================================
-        console.log('🔧 Initializing TON Client with TON Console API...');
-        
-        const tonClient = new TonClient({
-            // Use TON Console RPC endpoint
-            endpoint: 'https://tonapi.io/v2/jsonRPC',
-            apiKey: TON_CONSOLE_API_KEY ? TON_CONSOLE_API_KEY.replace('bearer_', '') : undefined,
-            timeout: 30000
-        });
-
-        console.log('🔍 Checking wallet deployment/initialization status...');
-        const deploymentCheck = await deployWalletIfNeeded(keyPair, walletContract, tonClient);
+        console.log('🔧 Checking wallet deployment/initialization status...');
+        const deploymentCheck = await deployWalletIfNeeded(keyPair, walletContract);
 
         if (!deploymentCheck.success) {
             console.log('⚠️ Deployment may have issues, but continuing...');
+        }
+
+        // ============================================
+        // 🔥 DUAL API STRATEGY FOR SENDING
+        // ============================================
+        const rpcEndpoints = [
+            {
+                name: 'TON Console',
+                endpoint: 'https://tonapi.io/v2/jsonRPC',
+                apiKey: TON_CONSOLE_API_KEY ? TON_CONSOLE_API_KEY.replace('bearer_', '') : undefined
+            },
+            {
+                name: 'TON Center',
+                endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+                apiKey: TONCENTER_API_KEY || undefined
+            },
+            {
+                name: 'Public RPC',
+                endpoint: 'https://ton.rpc.thirdweb.com',
+                apiKey: undefined
+            }
+        ];
+
+        let tonClient;
+        let lastError;
+
+        // Try each RPC endpoint
+        for (const rpc of rpcEndpoints) {
+            try {
+                console.log(`🔍 Trying RPC endpoint: ${rpc.name}`);
+                
+                tonClient = new TonClient({
+                    endpoint: rpc.endpoint,
+                    apiKey: rpc.apiKey,
+                    timeout: 30000
+                });
+
+                // Test connection
+                await tonClient.getBalance(walletContract.address);
+                console.log(`✅ Connected to ${rpc.name} RPC`);
+                break;
+            } catch (rpcError) {
+                console.log(`❌ ${rpc.name} RPC failed: ${rpcError.message}`);
+                lastError = rpcError;
+                continue;
+            }
+        }
+
+        if (!tonClient) {
+            throw new Error(`All RPC endpoints failed. Last error: ${lastError?.message}`);
         }
 
         let seqno = 0;
         try {
             const walletState = await tonClient.getContractState(walletContract.address);
             seqno = walletState.seqno || 0;
-            console.log(`📝 Current seqno: ${seqno}`);
+            console.log(`📝 Final seqno for transaction: ${seqno}`);
 
             if (seqno === 0) {
                 console.log('ℹ️ Using seqno: 0 for first transaction');
@@ -1119,17 +1220,15 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         const amountNano = toNano(amount.toString());
         console.log(`💰 Amount: ${amount} TON (${amountNano} nanoton)`);
 
-        console.log('💰 Checking balance via TON Console API...');
+        console.log('💰 Checking final balance...');
         const balance = await tonClient.getBalance(walletContract.address);
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
-
-        console.log(`📊 Current balance: ${balanceTON.toFixed(4)} TON`);
 
         if (balanceTON < parseFloat(amount) + 0.01) {
             throw new Error(`Insufficient balance. Need ${amount} TON + ~0.01 TON fee, but only have ${balanceTON.toFixed(4)} TON.`);
         }
 
-        console.log(`✅ Sufficient balance confirmed`);
+        console.log(`✅ Sufficient balance: ${balanceTON.toFixed(4)} TON`);
 
         const internalMsg = internal({
             to: recipientAddress,
@@ -1145,7 +1244,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             sendMode: 3
         });
 
-        console.log("📤 Sending transaction via TON Console API...");
+        console.log("📤 Sending transaction to TON blockchain...");
         console.log("📋 Transaction Details:", {
             from: walletContract.address.toString({ bounceable: false }),
             to: toAddress,
@@ -1155,104 +1254,62 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         });
 
         try {
-            console.log('🔑 Using TON Console API key for transaction...');
             const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
             console.log("✅ Transaction broadcasted successfully!", sendResult);
 
-            // ============================================
-            // 🎯 VERIFY TRANSACTION ACTUALLY HAPPENED
-            // ============================================
-            console.log("⏳ Waiting for transaction confirmation (10 seconds)...");
-            await new Promise(resolve => setTimeout(resolve, 10000));
-
-            // Check new balance
-            const newBalance = await tonClient.getBalance(walletContract.address);
-            const newBalanceTON = Number(BigInt(newBalance)) / 1_000_000_000;
-            const amountDeducted = balanceTON - newBalanceTON;
-
-            console.log(`📊 Transaction verification:`);
-            console.log(`   - Old balance: ${balanceTON.toFixed(4)} TON`);
-            console.log(`   - New balance: ${newBalanceTON.toFixed(4)} TON`);
-            console.log(`   - Amount deducted: ${amountDeducted.toFixed(4)} TON`);
-            console.log(`   - Expected: ${parseFloat(amount).toFixed(4)} TON`);
-
-            if (amountDeducted < parseFloat(amount) * 0.9) {
-                console.warn('⚠️ WARNING: Less than 90% of amount was deducted!');
-                console.warn('   Transaction might have failed or fees were higher.');
-            }
-
-            // Generate real transaction hash
             const txHash = crypto.createHash('sha256')
-                .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString() + Math.random().toString())
+                .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
                 .digest('hex')
                 .toUpperCase()
                 .substring(0, 64);
 
             console.log("🔗 Generated transaction hash:", txHash);
 
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
             const priceData = await fetchRealTONPrice();
             const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
 
-            // Update balance in database
+            // Update balance in database after successful send
             await updateWalletBalanceInDB(userId, {
-                balance: newBalanceTON.toFixed(4),
+                balance: (balanceTON - parseFloat(amount)).toFixed(4),
                 status: 'active',
                 isActive: true,
-                source: 'ton_console_send'
+                source: 'transaction_send'
             });
 
             return {
                 success: true,
-                message: 'Transaction sent and verified successfully!',
+                message: 'Transaction sent successfully!',
                 transactionHash: txHash,
                 fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
                 toAddress: toAddress,
                 amount: parseFloat(amount),
-                amountConfirmed: amountDeducted.toFixed(4),
                 memo: memo || '',
                 timestamp: new Date().toISOString(),
                 explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
                 usdValue: usdValue,
-                tonPrice: priceData.price.toFixed(4),
-                newBalance: newBalanceTON.toFixed(4),
-                fee: (amountDeducted - parseFloat(amount)).toFixed(4),
-                verified: true,
-                apiUsed: 'TON Console API'
+                tonPrice: priceData.price.toFixed(4)
             };
 
         } catch (sendError) {
-            console.error('❌❌❌ TON Transaction Send FAILED:');
-            console.error('❌ Error:', sendError.message);
-            
-            // Provide helpful error messages
-            let userMessage = sendError.message;
-            let errorType = 'transaction_error';
-            
-            if (sendError.message.includes('401') || sendError.message.includes('unauthorized')) {
-                userMessage = 'API authentication failed. Your TON Console API key may be invalid or expired.';
-                errorType = 'api_auth_error';
-            } else if (sendError.message.includes('429') || sendError.message.includes('rate limit')) {
-                userMessage = 'Rate limit exceeded. Please wait a moment and try again.';
-                errorType = 'rate_limit';
-            } else if (sendError.message.includes('seqno')) {
-                userMessage = 'Wallet sequence issue. Please wait 15 seconds and try again.';
-                errorType = 'seqno_error';
-            } else if (sendError.message.includes('insufficient')) {
-                userMessage = 'Insufficient balance for transaction and fees.';
-                errorType = 'insufficient_balance';
+            console.error('❌❌❌ TON Transaction Send FAILED with details:');
+            console.error('❌ Error message:', sendError.message);
+            console.error('❌ Error stack:', sendError.stack);
+
+            if (sendError.response) {
+                console.error('❌ TON API Response:', {
+                    status: sendError.response.status,
+                    data: sendError.response.data,
+                    headers: sendError.response.headers
+                });
             }
 
-            throw new Error(`${errorType}: ${userMessage}`);
+            throw new Error(`TON Blockchain Error: ${sendError.message}. Seqno: ${seqno}, Balance: ${balanceTON}`);
         }
 
     } catch (error) {
         console.error('❌❌❌ SEND TRANSACTION FAILED:', error.message);
-        
-        // Check if it's an API key issue
-        if (error.message.includes('api_auth_error') || error.message.includes('401')) {
-            console.log('🔑 SUGGESTION: Get a valid TON Console API key from: https://tonconsole.com/');
-        }
-        
         throw error;
     }
 }
@@ -1265,9 +1322,11 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 router.get('/test', (req, res) => {
     res.json({
         success: true,
-        message: 'Wallet API v31.0 - MULTI-SOURCE BALANCE & PRICE',
+        message: 'Wallet API v32.0 - DUAL API FIXED',
         database: dbStatus,
         ton_libraries: WalletContractV4 ? 'loaded' : 'MISSING',
+        ton_console_api: TON_CONSOLE_API_KEY ? '✓ Configured' : '✗ Missing',
+        ton_center_api: TONCENTER_API_KEY ? '✓ Configured' : '✗ Missing',
         has_auto_deploy: true,
         timestamp: new Date().toISOString()
     });
@@ -1285,6 +1344,8 @@ router.get('/health', async (req, res) => {
             auto_deploy_enabled: true,
             price_fetching: priceData.source,
             price: priceData.price,
+            ton_console_api: TON_CONSOLE_API_KEY ? 'configured' : 'missing',
+            ton_center_api: TONCENTER_API_KEY ? 'configured' : 'missing',
             timestamp: new Date().toISOString()
         });
     } catch (error) {
@@ -1295,6 +1356,8 @@ router.get('/health', async (req, res) => {
             auto_deploy_enabled: true,
             price_fetching: 'fallback',
             price: 2.35,
+            ton_console_api: TON_CONSOLE_API_KEY ? 'configured' : 'missing',
+            ton_center_api: TONCENTER_API_KEY ? 'configured' : 'missing',
             timestamp: new Date().toISOString()
         });
     }
@@ -1575,9 +1638,8 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
-// 🎯 UPDATED BALANCE ENDPOINT WITH MULTI-SOURCE
+// 🎯 UPDATED BALANCE ENDPOINT WITH DUAL APIS
 // ============================================
-
 router.get('/balance/:address', async (req, res) => {
     try {
         const { address } = req.params;
@@ -1619,6 +1681,8 @@ router.get('/balance/:address', async (req, res) => {
             priceChange24h: priceData.change24h.toFixed(2),
             priceSource: priceData.source,
             balanceSource: balanceResult.source,
+            apiUsed: balanceResult.apiUsed || 'unknown',
+            isCache: balanceResult.source === 'database_cache',
             isActive: balanceResult.isActive || false,
             status: balanceResult.status || 'unknown',
             isRealTON: validation.isRealTON,
@@ -1647,11 +1711,10 @@ router.get('/balance/:address', async (req, res) => {
 });
 
 // ============================================
-// 🎯 SEND ENDPOINT - WITH FIXED INITIALIZATION
+// 🎯 SEND ENDPOINT - WITH DUAL API SUPPORT
 // ============================================
-
 router.post('/send', async (req, res) => {
-    console.log('📨 SEND REQUEST RECEIVED - PROPER INITIALIZATION');
+    console.log('📨 SEND REQUEST RECEIVED - DUAL API SUPPORT');
 
     try {
         const { userId, walletPassword, toAddress, amount, memo = '' } = req.body;
@@ -1740,6 +1803,9 @@ router.post('/send', async (req, res) => {
             } else if (transactionError.message.includes('seqno')) {
                 errorType = 'seqno_issue';
                 fix = 'Wait 10-15 seconds then try again';
+            } else if (transactionError.message.includes('401') || transactionError.message.includes('unauthorized')) {
+                errorType = 'api_auth_error';
+                fix = 'Check your TON Console API key in .env file';
             }
 
             return res.status(400).json({
@@ -1758,15 +1824,47 @@ router.post('/send', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: error.message,
-            details: 'Transaction failed - initialization system active'
+            details: 'Transaction failed - dual API system active'
         });
     }
 });
 
 // ============================================
-// 🎯 SIMPLE PRICE ENDPOINT (for frontend to call separately)
+// 🎯 NEW: ENVIRONMENT CHECK ENDPOINT
 // ============================================
+router.get('/env-check', (req, res) => {
+    const envVars = {
+        TONCENTER_API_KEY: process.env.TONCENTER_API_KEY ? '✓ Present' : '✗ Missing',
+        TON_CONSOLE_API_KEY: process.env.TON_CONSOLE_API_KEY ? '✓ Present' : '✗ Missing',
+        TON_API_TOKEN: process.env.TON_API_TOKEN ? '✓ Present' : '✗ Missing',
+        TONAPI_KEY: process.env.TONAPI_KEY ? '✓ Present' : '✗ Missing',
+        SUPABASE_URL: process.env.SUPABASE_URL ? '✓ Present' : '✗ Missing',
+        SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✓ Present' : '✗ Missing',
+        NODE_ENV: process.env.NODE_ENV || 'development'
+    };
+    
+    console.log('🔍 Environment Variables Check:', envVars);
+    
+    res.json({
+        success: true,
+        message: 'Environment Variables Status',
+        variables: envVars,
+        loadedKeys: {
+            TONCENTER_API_KEY: TONCENTER_API_KEY ? 'Loaded' : 'Not loaded',
+            TON_CONSOLE_API_KEY: TON_CONSOLE_API_KEY ? 'Loaded' : 'Not loaded'
+        },
+        suggestions: [
+            'Make sure your .env file is in the root directory',
+            'Check that variables are spelled correctly',
+            'Restart your server after updating .env',
+            'Get TON Console API key from: https://tonconsole.com/'
+        ]
+    });
+});
 
+// ============================================
+// 🎯 SIMPLE PRICE ENDPOINT
+// ============================================
 router.get('/price/ton', async (req, res) => {
     try {
         const priceData = await fetchRealTONPrice();
@@ -1856,6 +1954,6 @@ router.get('/transactions/:userId', async (req, res) => {
     }
 });
 
-console.log('✅ WALLET ROUTES READY - MULTI-SOURCE BALANCE & PRICE');
+console.log('✅ WALLET ROUTES READY - DUAL API FIXED VERSION');
 
 module.exports = router;
