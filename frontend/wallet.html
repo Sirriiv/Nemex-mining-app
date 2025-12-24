@@ -4213,19 +4213,32 @@ async function checkAuth() {
 async function getUserNMXpBalance(userId) {
     try {
         console.log('💰 Fetching NMXp balance for user:', userId);
-        
-        // In production, this would fetch from your backend
+
+        // Call backend API to get user's NMXp balance and wallet address
+        const resp = await fetch(`/api/wallet/nmxp/${encodeURIComponent(userId)}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!resp.ok) {
+            console.warn('⚠️ Backend returned non-OK for NMXp balance:', resp.status);
+            return { balance: 0, wallet_address: null };
+        }
+
+        const data = await resp.json();
+        if (!data || !data.success) {
+            console.warn('⚠️ NMXp balance API error or missing data:', data);
+            return { balance: 0, wallet_address: null };
+        }
+
         return {
-            balance: 0,
-            wallet_address: null
+            balance: Number(data.balance) || 0,
+            wallet_address: data.wallet_address || null
         };
 
     } catch (error) {
         console.error('❌ Error in getUserNMXpBalance:', error);
-        return {
-            balance: 0,
-            wallet_address: null
-        };
+        return { balance: 0, wallet_address: null };
     }
 }
 
@@ -4332,17 +4345,16 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
         const withinMax = nmxpAmount <= PRODUCTION_CONFIG.MAX_CONVERSION;
         const validAmount = nmxpAmount > 0;
 
-        if (hasWallet && hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
+        // Remove strict wallet-address gating: allow users to set max and enable conversion UI even if wallet address isn't set.
+        if (hasEnoughNMXp && meetsMinimum && withinMax && validAmount) {
             convertBtn.disabled = false;
-            convertBtn.textContent = `Convert ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX`;
+            convertBtn.textContent = `Convert ${formatNumber(nmxpAmount)} NMXp to ${nmxAmount.toFixed(6)} NMX` + (hasWallet ? '' : ' (No wallet address set)');
             convertBtn.className = 'compact-convert-btn active';
         } else {
             convertBtn.disabled = true;
             convertBtn.className = 'compact-convert-btn disabled';
 
-            if (!hasWallet) {
-                convertBtn.textContent = 'Setup wallet address first';
-            } else if (!meetsMinimum) {
+            if (!meetsMinimum) {
                 convertBtn.textContent = `Minimum ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp required`;
             } else if (!hasEnoughNMXp) {
                 convertBtn.textContent = 'Insufficient NMXp balance';

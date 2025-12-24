@@ -1599,6 +1599,39 @@ router.get('/diagnose/:address', async (req, res) => {
     }
 });
 
+// 🎯 Endpoint: Get user's NMXp balance and wallet address
+router.get('/nmxp/:userId', async (req, res) => {
+    try {
+        const userId = req.params.userId;
+
+        if (!supabase || dbStatus !== 'connected') {
+            return res.status(503).json({ success: false, error: 'Database unavailable' });
+        }
+
+        // Fetch user profile balance (NMXp) - adjust table/column names if your schema differs
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, balance')
+            .eq('id', userId)
+            .maybeSingle();
+
+        if (profileError) {
+            console.error('❌ Error fetching profile balance:', profileError.message);
+            return res.status(500).json({ success: false, error: profileError.message });
+        }
+
+        const wallet = await getWalletFromDatabase(userId).catch(() => null);
+
+        const balance = profile && typeof profile.balance !== 'undefined' ? parseFloat(profile.balance) : 0;
+
+        res.json({ success: true, balance, wallet_address: wallet ? wallet.address : null });
+
+    } catch (error) {
+        console.error('❌ /nmxp error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // 🎯 Create wallet endpoint
 router.post('/create', async (req, res) => {
     console.log('🎯 CREATE TON WALLET REQUEST');
