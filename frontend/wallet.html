@@ -928,6 +928,15 @@
             min-height: 60px;
         }
 
+        /* Connected wallet button styles */
+        .wallet-settings-btn.connected {
+            color: #00C851;
+        }
+        .wallet-settings-btn.connected .wallet-address {
+            color: #00C851;
+            font-weight: 700;
+        }
+
         .dropdown-selected:hover {
             background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.1) 100%) !important;
             border-color: rgba(212, 175, 55, 0.5) !important;
@@ -2773,6 +2782,31 @@
                         <button class="btn primary" onclick="saveWalletAddress()">Save Wallet Address</button>
                     </div>
                 </div>
+        </div>
+        </div>
+
+        <!-- WALLET CONNECTED (READ-ONLY) MODAL -->
+        <div class="modal fullscreen-modal" id="walletConnectedModal" style="display: none;">
+            <div class="modal-content mini-modal">
+                <div class="modal-header">
+                    <button class="back-button" onclick="closeWalletConnectedModal()">
+                        <i class="fas fa-arrow-left"></i>
+                        Back
+                    </button>
+                    <h3><i class="fas fa-check-circle" style="color:#00C851"></i> Wallet Connected</h3>
+                </div>
+
+                <div class="modal-body">
+                    <p>Your connected TON wallet address:</p>
+                    <div id="connectedWalletAddress" style="font-weight:700; color:#00C851; font-family: monospace; margin-bottom: 12px;"></div>
+
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn" onclick="openWalletSetupForEdit()">Change Address</button>
+                        <button class="btn" onclick="disconnectWalletAddress()" style="background: rgba(255,68,68,0.12); border: 1px solid rgba(255,68,68,0.08); color: var(--error);">Disconnect</button>
+                    </div>
+                </div>
+            </div>
+        </div>
             </div>
         </div>
 
@@ -4427,6 +4461,12 @@ async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
 }
 
 function showWalletSetup() {
+    // If a wallet is already connected, show the connected read-only modal instead of the setup input
+    if (walletState && walletState.hasWallet) {
+        showWalletConnectedModal();
+        return;
+    }
+
     closeProductionSwapModal();
     document.getElementById('walletSetupModal').style.display = 'block';
 }
@@ -4434,6 +4474,47 @@ function showWalletSetup() {
 function closeWalletSetup() {
     document.getElementById('walletSetupModal').style.display = 'none';
     openProductionSwapModal();
+}
+
+function showWalletConnectedModal() {
+    const modal = document.getElementById('walletConnectedModal');
+    const addrEl = document.getElementById('connectedWalletAddress');
+
+    if (walletState && walletState.walletAddress) {
+        addrEl.textContent = maskAddress(walletState.walletAddress);
+    } else {
+        addrEl.textContent = 'Unknown';
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeWalletConnectedModal() {
+    const modal = document.getElementById('walletConnectedModal');
+    modal.style.display = 'none';
+}
+
+function openWalletSetupForEdit() {
+    // Close connected modal and open setup modal with prefilled address
+    closeWalletConnectedModal();
+    const input = document.getElementById('userWalletAddress');
+    input.value = walletState.walletAddress || '';
+    document.getElementById('walletSetupModal').style.display = 'block';
+}
+
+function disconnectWalletAddress() {
+    // For now, perform client-side disconnect and update UI. Server-side persistence can be added later.
+    walletState.walletAddress = null;
+    walletState.hasWallet = false;
+    updateWalletAddressDisplay(null);
+    closeWalletConnectedModal();
+    showToast('Wallet disconnected', 'success');
+    // Optionally, call backend to persist this change when implemented.
+}
+
+function maskAddress(addr) {
+    if (!addr || addr.length < 12) return addr || '';
+    return addr.substring(0, 6) + '...' + addr.substring(addr.length - 4);
 }
 
 async function saveWalletAddress() {
@@ -4472,7 +4553,7 @@ function updateWalletAddressDisplay(walletAddress) {
 
     if (walletAddress) {
         const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
-        walletBtn.innerHTML = `<i class="fas fa-wallet"></i> ${shortAddress}`;
+        walletBtn.innerHTML = `<i class="fas fa-wallet"></i> <span class="wallet-address">${shortAddress}</span>`;
         walletBtn.title = `Wallet: ${walletAddress}`;
         walletBtn.classList.add('connected');
     } else {
