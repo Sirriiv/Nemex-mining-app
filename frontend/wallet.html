@@ -2179,12 +2179,12 @@
             </div>
         </nav>
 
-        <!-- WALLET PASSWORD LOGIN MODAL (NEW) -->
-        <div id="walletLoginModal" class="modal">
+        <!-- WALLET PASSWORD LOGIN MODAL (FULLSCREEN) -->
+        <div id="walletLoginModal" class="modal fullscreen">
             <div class="modal-content">
                 <div class="modal-title">🔐 Enter Wallet Password</div>
                 <div class="security-warning">
-                    <strong>Secure Access:</strong> Enter your wallet password to unlock.
+                    <strong>Secure Access:</strong> Enter your wallet password to unlock. This screen is full-screen to ensure your wallet remains private until unlocked.
                 </div>
 
                 <div class="form-group">
@@ -3137,6 +3137,28 @@ function closeModal() {
     
     document.body.style.overflow = 'auto';
     document.body.classList.remove('modal-open');
+
+    // Restore bottom nav if wallet interface is visible
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) {
+        // Only show bottom-nav if walletInterface is visible
+        const walletInterface = document.getElementById('walletInterface');
+        if (walletInterface && !walletInterface.classList.contains('hidden')) {
+            bottomNav.style.display = 'flex';
+        } else {
+            bottomNav.style.display = 'none';
+        }
+    }
+
+    // Resume background updates when wallet is loaded
+    try {
+        if (walletState && walletState.hasWallet) {
+            startRealBalanceUpdates();
+            startAutoSync();
+        }
+    } catch (e) {
+        console.warn('⚠️ Could not resume background updates:', e);
+    }
 }
 
 function showModal(modalId) {
@@ -3180,12 +3202,31 @@ function showWalletLoginModal() {
         return;
     }
 
+    // Ensure all other modals are closed and stop background updates
     closeModal();
+
+    // Hide the wallet interface while the unlock screen is visible
+    const walletInterface = document.getElementById('walletInterface');
+    if (walletInterface) {
+        walletInterface.classList.add('hidden');
+    }
+
+    // Hide bottom navigation on unlock full-screen
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
+
+    // Stop background polling while locked
+    try { stopRealBalanceUpdates(); } catch (e) { /* ignore */ }
+    try { stopAutoSync(); } catch (e) { /* ignore */ }
+
     const loginModal = document.getElementById('walletLoginModal');
     if (loginModal) {
+        loginModal.classList.add('fullscreen');
         loginModal.style.display = 'flex';
         document.getElementById('walletPasswordLogin').value = '';
         document.getElementById('walletLoginStatus').innerHTML = '';
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('modal-open');
     }
 }
 
@@ -3279,6 +3320,80 @@ function startRealBalanceUpdates() {
     balanceUpdateInterval = setInterval(updateRealBalance, 15000);
 }
 
+function stopRealBalanceUpdates() {
+    console.log('⏸️ Stopping real balance updates');
+    if (balanceUpdateInterval) {
+        clearInterval(balanceUpdateInterval);
+        balanceUpdateInterval = null;
+    }
+}
+
+// ===== Auto-Sync (poll for new transactions) =====
+let autoSyncInterval = null;
+let _debounceTimer = null;
+
+function debounce(fn, wait = 250) {
+    return function(...args) {
+        if (_debounceTimer) clearTimeout(_debounceTimer);
+        _debounceTimer = setTimeout(() => fn.apply(this, args), wait);
+    };
+}
+
+function scheduleImmediateUpdate() {
+    // Debounced immediate update (called on focus/visibility change)
+    const doUpdate = debounce(async () => {
+        try { await updateRealBalance(); } catch (e) { /* ignore */ }
+        try { await loadTransactionHistory(); } catch (e) { /* ignore */ }
+    }, 200);
+    doUpdate();
+}
+
+function startAutoSync() {
+    console.log('🔁 Starting auto-sync of transactions...');
+    // Clear existing
+    if (autoSyncInterval) clearInterval(autoSyncInterval);
+    // Run immediately
+    syncTransactionHistory().catch(() => {});
+    // Poll every 30s
+    autoSyncInterval = setInterval(() => syncTransactionHistory().catch(() => {}), 30000);
+}
+
+function stopAutoSync() {
+    console.log('⏸️ Stopping auto-sync');
+    if (autoSyncInterval) {
+        clearInterval(autoSyncInterval);
+        autoSyncInterval = null;
+    }
+}
+
+function setupAutoSyncListeners() {
+    // React when a different tab or window updates session/localStorage
+    window.addEventListener('storage', (e) => {
+        if (!e.key) return;
+        if (e.key === 'nemex_wallet_session' || e.key === 'nemex_wallet_address') {
+            console.log('🔔 Storage changed detected:', e.key);
+            // Schedule immediate update
+            scheduleImmediateUpdate();
+            // Re-check session if needed
+            try { window.walletManager.checkDatabaseSession(); } catch (e) {}
+        }
+    });
+
+    // When user returns to the tab, refresh immediately
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            console.log('🔄 Visibility change: tab active - refreshing wallet data');
+            scheduleImmediateUpdate();
+        }
+    });
+
+    // Also update on focus
+    window.addEventListener('focus', () => {
+        console.log('🔄 Window focused - refreshing wallet data');
+        scheduleImmediateUpdate();
+    });
+}
+
 async function updateRealBalance() {
     try {
         console.log('🔄 Checking REAL wallet balance...');
@@ -3338,30 +3453,46 @@ async function updateRealBalance() {
 function showWelcomeScreen() {
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('walletInterface').classList.add('hidden');
+
+    // Hide bottom nav on welcome screen for a clean full-screen experience
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
+
+    // Stop background polling when on welcome screen
+    try { stopRealBalanceUpdates(); } catch (e) {}
+    try { stopAutoSync(); } catch (e) {}
 }
 
 function showWalletInterface() {
     document.getElementById('welcomeScreen').classList.add('hidden');
     document.getElementById('walletInterface').classList.remove('hidden');
+
+    // Show bottom nav when wallet interface is visible
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'flex';
+
+    // Start background updates
+    try { startRealBalanceUpdates(); } catch (e) {}
+    try { startAutoSync(); } catch (e) {}
+    try { setupAutoSyncListeners(); } catch (e) {}
 }
 
 function showLoginRequiredMessage() {
+    // Show a minimal full-screen message without navigation buttons
     document.getElementById('welcomeScreen').innerHTML = `
         <div class="welcome-title">🔒 Please Log In</div>
         <div class="welcome-subtitle">
-            You need to be logged into your Nemex account to access the wallet.
-        </div>
-        <div class="welcome-actions">
-            <button class="welcome-btn primary" onclick="goToMiningDashboard()">
-                Go to Mining Dashboard
-            </button>
-            <button class="welcome-btn secondary" onclick="window.location.href='login.html'">
-                Login Page
-            </button>
+            You need to be logged into your Nemex account to access the wallet. Please sign in via the mining dashboard.
         </div>
     `;
     document.getElementById('welcomeScreen').classList.remove('hidden');
     document.getElementById('walletInterface').classList.add('hidden');
+
+    // Hide bottom nav and stop updates
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
+    try { stopRealBalanceUpdates(); } catch (e) {}
+    try { stopAutoSync(); } catch (e) {}
 }
 
 // =============================================

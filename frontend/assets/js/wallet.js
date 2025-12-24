@@ -530,114 +530,60 @@ class WalletManager {
 
     // 🎯 PROMPT FOR PASSWORD
     async promptForPassword() {
+        // Use the existing fullscreen login modal to collect password so user doesn't see the wallet
         return new Promise((resolve) => {
-            // Create a password prompt modal
-            const modal = document.createElement('div');
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 99999;
-            `;
+            const loginModal = document.getElementById('walletLoginModal');
+            const passwordInput = document.getElementById('walletPasswordLogin');
+            const statusElement = document.getElementById('walletLoginStatus');
+            const confirmBtn = document.getElementById('walletLoginBtn');
 
-            const content = document.createElement('div');
-            content.style.cssText = `
-                background: #121212;
-                padding: 30px;
-                border-radius: 16px;
-                width: 90%;
-                max-width: 400px;
-                text-align: center;
-                border: 2px solid #D4AF37;
-            `;
+            if (!loginModal || !passwordInput || !confirmBtn) {
+                // Fallback: simple prompt
+                const fallback = prompt('Enter your wallet password to confirm transaction');
+                if (fallback && fallback.length >= this.passwordMinLength) return resolve(fallback);
+                return resolve(null);
+            }
 
-            content.innerHTML = `
-                <div style="color: #D4AF37; font-size: 20px; font-weight: 700; margin-bottom: 16px;">
-                    🔐 Confirm Transaction
-                </div>
-                <div style="color: #F5F5F5; margin-bottom: 20px; font-size: 14px;">
-                    Enter your wallet password to confirm this transaction
-                </div>
-                <input type="password" id="transactionPassword" 
-                       placeholder="Enter wallet password" 
-                       style="width: 100%; padding: 12px 16px; 
-                              background: rgba(255, 255, 255, 0.05); 
-                              border: 1px solid rgba(255, 255, 255, 0.1); 
-                              border-radius: 8px; 
-                              color: #F5F5F5; 
-                              font-size: 16px; 
-                              margin-bottom: 20px;">
-                <div id="passwordError" style="color: #FF4444; font-size: 12px; margin-bottom: 15px; min-height: 18px;"></div>
-                <div style="display: flex; gap: 12px;">
-                    <button id="confirmPasswordBtn" 
-                            style="flex: 1; 
-                                   background: #D4AF37; 
-                                   color: #0A0A0A; 
-                                   border: none; 
-                                   padding: 12px; 
-                                   border-radius: 8px; 
-                                   font-weight: 600; 
-                                   cursor: pointer;">
-                        Confirm
-                    </button>
-                    <button id="cancelPasswordBtn" 
-                            style="flex: 1; 
-                                   background: transparent; 
-                                   color: #D4AF37; 
-                                   border: 2px solid #D4AF37; 
-                                   padding: 12px; 
-                                   border-radius: 8px; 
-                                   font-weight: 600; 
-                                   cursor: pointer;">
-                        Cancel
-                    </button>
-                </div>
-            `;
+            // Show fullscreen login modal
+            showWalletLoginModal();
 
-            modal.appendChild(content);
-            document.body.appendChild(modal);
+            // Ensure status cleared
+            if (statusElement) statusElement.innerHTML = '';
 
-            const passwordInput = content.querySelector('#transactionPassword');
-            const confirmBtn = content.querySelector('#confirmPasswordBtn');
-            const cancelBtn = content.querySelector('#cancelPasswordBtn');
-            const errorElement = content.querySelector('#passwordError');
-
-            // Focus input
-            setTimeout(() => passwordInput.focus(), 100);
-
-            // Confirm button click
-            confirmBtn.onclick = () => {
+            // One-time handlers
+            const onConfirm = async () => {
                 const password = passwordInput.value.trim();
                 if (!password) {
-                    errorElement.textContent = 'Password is required';
+                    if (statusElement) statusElement.innerHTML = '<div class="status-error">Password is required</div>';
                     return;
                 }
                 if (password.length < this.passwordMinLength) {
-                    errorElement.textContent = `Password must be at least ${this.passwordMinLength} characters`;
+                    if (statusElement) statusElement.innerHTML = `<div class="status-error">Password must be at least ${this.passwordMinLength} characters</div>`;
                     return;
                 }
-                document.body.removeChild(modal);
+
+                // Remove listeners and close modal
+                confirmBtn.removeEventListener('click', onConfirm);
+                cancelBtn.removeEventListener('click', onCancel);
+
+                // Keep modal open (login will proceed separately) but resolve with password for the transaction
+                closeModal();
                 resolve(password);
             };
 
-            // Cancel button click
-            cancelBtn.onclick = () => {
-                document.body.removeChild(modal);
+            const cancelBtn = loginModal.querySelector('.close-modal.secondary');
+            const onCancel = () => {
+                confirmBtn.removeEventListener('click', onConfirm);
+                cancelBtn.removeEventListener('click', onCancel);
+                closeModal();
                 resolve(null);
             };
 
-            // Enter key press
-            passwordInput.onkeypress = (e) => {
-                if (e.key === 'Enter') {
-                    confirmBtn.click();
-                }
-            };
+            confirmBtn.addEventListener('click', onConfirm);
+            if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
+
+            // Focus input
+            setTimeout(() => passwordInput.focus(), 80);
         });
     }
 
