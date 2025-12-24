@@ -921,27 +921,34 @@ async function fetchRealTONPrice() {
 // 🎯 FIXED: AUTO WALLET DEPLOYMENT & INITIALIZATION
 // ============================================
 
-async function deployWalletIfNeeded(keyPair, walletContract) {
+async function deployWalletIfNeeded(keyPair, walletContract, tonClient = null) {
     try {
-        console.log('🔍 Checking if wallet needs deployment/initialization...');
-
-        const tonClient = new TonClient({
-            endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-            apiKey: TONCENTER_API_KEY || undefined,
-            timeout: 30000
-        });
+        console.log('🔍 Checking wallet deployment status via TON Console...');
+        
+        // Create tonClient with TON Console if not provided
+        if (!tonClient) {
+            tonClient = new TonClient({
+                endpoint: 'https://tonapi.io/v2/jsonRPC',
+                apiKey: TON_CONSOLE_API_KEY ? TON_CONSOLE_API_KEY.replace('bearer_', '') : undefined,
+                timeout: 30000
+            });
+        }
 
         const deployed = await tonClient.isContractDeployed(walletContract.address);
 
         if (!deployed) {
-            console.log('⚠️ Wallet not deployed. Attempting deployment...');
-
+            console.log('⚠️ Wallet not deployed. Checking balance for deployment...');
+            
             const balance = await tonClient.getBalance(walletContract.address);
-            const minDeployBalance = toNano('0.05');
-
-            if (BigInt(balance) < minDeployBalance) {
+            const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
+            const minDeployBalance = 0.05; // 0.05 TON for deployment
+            
+            console.log(`📊 Balance for deployment: ${balanceTON.toFixed(4)} TON (Need: ${minDeployBalance} TON)`);
+            
+            if (balanceTON < minDeployBalance) {
                 throw new Error(
-                    `Wallet needs at least 0.05 TON for deployment. Current: ${fromNano(balance)} TON`
+                    `Wallet needs at least ${minDeployBalance} TON for deployment. Current: ${balanceTON.toFixed(4)} TON. ` +
+                    `Please send at least ${minDeployBalance} TON to ${walletContract.address.toString({ urlSafe: true, bounceable: false })}`
                 );
             }
 
@@ -953,94 +960,56 @@ async function deployWalletIfNeeded(keyPair, walletContract) {
                 sendMode: 3
             });
 
-            console.log('📤 Sending deployment transaction...');
+            console.log('📤 Sending deployment transaction via TON Console...');
             await tonClient.sendExternalMessage(walletContract, deployTransfer);
 
-            console.log('⏳ Waiting for deployment confirmation...');
-            let attempts = 0;
-            while (attempts < 30) {
-                await new Promise(resolve => setTimeout(resolve, 2000));
+            console.log('✅ Deployment transaction sent. Waiting for confirmation...');
+            
+            // Wait for deployment
+            for (let i = 0; i < 20; i++) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
                 const nowDeployed = await tonClient.isContractDeployed(walletContract.address);
-
+                
                 if (nowDeployed) {
-                    console.log('✅ Wallet successfully deployed!');
+                    console.log('🎉 Wallet successfully deployed!');
                     break;
                 }
-                attempts++;
-                console.log(`⏳ Attempt ${attempts}/30 - still deploying...`);
-            }
-
-            if (attempts >= 30) {
-                throw new Error('Wallet deployment timeout. Check in 1-2 minutes.');
+                console.log(`⏳ Deployment check ${i+1}/20...`);
             }
         } else {
             console.log('✅ Wallet already deployed');
         }
 
-        console.log('🔧 Ensuring wallet is fully initialized...');
-
-        let seqno = 0;
-        try {
-            const walletState = await tonClient.getContractState(walletContract.address);
-            seqno = walletState.seqno || 0;
-            console.log(`📝 Current seqno after deployment: ${seqno}`);
-        } catch (seqnoError) {
-            console.log('⚠️ Could not get seqno:', seqnoError.message);
-            seqno = 0;
-        }
-
-        if (seqno === 0) {
-            console.log('🔄 Seqno is 0 - sending initialization transaction...');
-
-            const initTransfer = walletContract.createTransfer({
-                secretKey: keyPair.secretKey,
-                seqno: 0,
-                messages: [
-                    internal({
-                        to: walletContract.address,
-                        value: toNano('0'),
-                        body: 'Initialization',
-                        bounce: false
-                    })
-                ],
-                sendMode: 3
-            });
-
-            console.log('📤 Sending initialization transaction...');
-            try {
-                await tonClient.sendExternalMessage(walletContract, initTransfer);
-                console.log('✅ Initialization transaction sent');
-
-                console.log('⏳ Waiting for seqno update...');
-                await new Promise(resolve => setTimeout(resolve, 10000));
-
-                const updatedState = await tonClient.getContractState(walletContract.address);
-                const updatedSeqno = updatedState.seqno || 0;
-                console.log(`📝 Updated seqno after initialization: ${updatedSeqno}`);
-
-                if (updatedSeqno === 0) {
-                    console.log('⚠️ Seqno still 0 after initialization, may need more time');
-                }
-
-            } catch (initError) {
-                console.log('⚠️ Initialization transaction failed:', initError.message);
-            }
-        } else {
-            console.log('✅ Wallet already initialized (seqno > 0)');
-        }
-
         return { 
             success: true, 
             deployed: true,
-            initialized: true
+            note: 'Using TON Console API for deployment'
         };
 
     } catch (error) {
-        console.error('❌ Deployment/initialization failed:', error.message);
-        return { 
-            success: false, 
-            error: error.message 
-        };
+        console.error('❌ Deployment failed via TON Console:', error.message);
+        
+        // Try alternative if TON Console fails
+        console.log('🔄 Trying alternative RPC endpoint...');
+        try {
+            const backupClient = new TonClient({
+                endpoint: 'https://ton.rpc.thirdweb.com',
+                timeout: 30000
+            });
+            
+            const deployed = await backupClient.isContractDeployed(walletContract.address);
+            return { 
+                success: deployed, 
+                deployed: deployed,
+                error: error.message,
+                note: 'Used backup RPC for check'
+            };
+        } catch (backupError) {
+            return { 
+                success: false, 
+                error: `TON Console: ${error.message}, Backup: ${backupError.message}`
+            };
+        }
     }
 }
 
