@@ -950,6 +950,72 @@ async function fetchRealTONPrice() {
 // ============================================
 // 🎯 FIXED: AUTO WALLET DEPLOYMENT & INITIALIZATION
 // ============================================
+
+// 🧪 TON JSON-RPC HELPERS - fetch reliable on-chain values when SDK falls short
+async function runGetMethodJSONRPC(address, method) {
+    try {
+        const payload = {
+            jsonrpc: '2.0',
+            id: Date.now(),
+            method: 'runGetMethod',
+            params: {
+                address: address,
+                method: method,
+                stack: []
+            }
+        };
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (TONCENTER_API_KEY) headers['X-API-Key'] = TONCENTER_API_KEY;
+
+        const resp = await axios.post('https://toncenter.com/api/v2/jsonRPC', payload, {
+            headers,
+            timeout: 10000
+        });
+
+        if (resp && resp.data && resp.data.result) return resp.data.result;
+        throw new Error('No result from runGetMethod');
+
+    } catch (error) {
+        console.log('⚠️ runGetMethod failed:', method, error.message);
+        throw error;
+    }
+}
+
+async function runGetSeqno(address) {
+    try {
+        const result = await runGetMethodJSONRPC(address, 'seqno');
+        const stack = result.stack || [];
+        if (stack.length && stack[0][1]) {
+            const raw = stack[0][1]; // e.g. '0x1'
+            if (typeof raw === 'string' && raw.startsWith('0x')) {
+                return Number(BigInt(raw));
+            }
+            return Number(raw);
+        }
+        return null;
+    } catch (error) {
+        console.log('⚠️ runGetSeqno failed:', error.message);
+        return null;
+    }
+}
+
+async function runGetPublicKey(address) {
+    try {
+        const result = await runGetMethodJSONRPC(address, 'get_public_key');
+        const stack = result.stack || [];
+        if (stack.length && stack[0][1]) {
+            const raw = stack[0][1]; // e.g. '0x80fd4c...'
+            if (typeof raw === 'string') return raw.replace(/^0x/, '').toLowerCase();
+            return String(raw).replace(/^0x/, '').toLowerCase();
+        }
+        return null;
+    } catch (error) {
+        console.log('⚠️ runGetPublicKey failed:', error.message);
+        return null;
+    }
+}
+
 async function deployWalletIfNeeded(keyPair, walletContract, tonClient = null) {
     try {
         console.log('🔍 Checking if wallet needs deployment/initialization...');
@@ -1234,6 +1300,37 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             seqno = 0;
         }
 
+        // --- Additional safety: prefer authoritative on-chain seqno and verify public key ---
+        try {
+            console.log('🔎 Fetching authoritative seqno via runGetMethod JSON-RPC...');
+            const rpcSeqno = await runGetSeqno(walletContract.address.toString({ urlSafe: true, bounceable: false }));
+            if (rpcSeqno !== null && typeof rpcSeqno === 'number') {
+                console.log('✅ Authoritative seqno from runGetMethod:', rpcSeqno);
+                // If there's a mismatch, adopt the on-chain seqno (safer)
+                if (rpcSeqno !== seqno) {
+                    console.log(`⚠️ Seqno mismatch (SDK:${seqno} vs RPC:${rpcSeqno}) - using RPC seqno`);
+                    seqno = rpcSeqno;
+                }
+            } else {
+                console.log('⚠️ Could not obtain seqno via runGetMethod JSON-RPC, continuing with SDK seqno');
+            }
+
+            console.log('🔎 Verifying derived public key against on-chain public key...');
+            const onChainPub = await runGetPublicKey(walletContract.address.toString({ urlSafe: true, bounceable: false }));
+            if (onChainPub) {
+                const derivedPubHex = Buffer.from(keyPair.publicKey).toString('hex').toLowerCase();
+                if (derivedPubHex !== onChainPub) {
+                    throw new Error(`Derived public key does NOT match on-chain get_public_key. On-chain: ${onChainPub}, Derived: ${derivedPubHex}. This suggests a wrong mnemonic or corrupted wallet data.`);
+                }
+                console.log('✅ Public key verified against on-chain state');
+            } else {
+                console.log('⚠️ On-chain public key not available via runGetMethod - skipping verification');
+            }
+        } catch (verifyError) {
+            console.error('❌ Pre-send verification failed:', verifyError.message);
+            throw verifyError;
+        }
+
         let recipientAddress;
         try {
             recipientAddress = Address.parse(toAddress);
@@ -1441,6 +1538,64 @@ router.get('/health', async (req, res) => {
             ton_center_api: TONCENTER_API_KEY ? 'configured' : 'missing',
             timestamp: new Date().toISOString()
         });
+    }
+});
+
+// 🔍 Diagnostic endpoint to fetch on-chain seqno, public key, and balance
+router.get('/diagnose/:address', async (req, res) => {
+    const address = req.params.address;
+    console.log('🔎 Diagnosing address:', address);
+
+    try {
+        // Select a working RPC
+        const rpcList = [
+            { name: 'TON Console', endpoint: 'https://tonapi.io/v2/jsonRPC', apiKey: TON_CONSOLE_API_KEY ? TON_CONSOLE_API_KEY.replace('bearer_', '') : undefined },
+            { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: TONCENTER_API_KEY || undefined },
+            { name: 'Public RPC', endpoint: 'https://ton.rpc.thirdweb.com', apiKey: undefined }
+        ];
+
+        let tonClient = null;
+        let lastErr = null;
+        for (const rpc of rpcList) {
+            try {
+                const candidate = new TonClient({ endpoint: rpc.endpoint, apiKey: rpc.apiKey, timeout: 10000 });
+                await candidate.getBalance(address);
+                tonClient = candidate;
+                break;
+            } catch (e) {
+                lastErr = e;
+                continue;
+            }
+        }
+
+        if (!tonClient) {
+            return res.status(503).json({ success: false, error: 'No RPC available', details: lastErr?.message });
+        }
+
+        const balance = await tonClient.getBalance(address);
+        let contractState = null;
+        try {
+            contractState = await tonClient.getContractState(address);
+        } catch (e) {
+            contractState = null;
+        }
+
+        const rpcSeqno = await runGetSeqno(address);
+        const rpcPubKey = await runGetPublicKey(address);
+
+        res.json({
+            success: true,
+            address,
+            balance: Number(BigInt(balance)) / 1_000_000_000,
+            sdkSeqno: contractState ? contractState.seqno : null,
+            rpcSeqno,
+            rpcPublicKey: rpcPubKey,
+            state: contractState ? contractState.state : 'unknown'
+        });
+
+    } catch (error) {
+        console.error('❌ Diagnose failed:', error.message);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
