@@ -2732,6 +2732,41 @@ router.post('/transactions/sync/all', async (req, res) => {
     }
 });
 
+// POST /transactions/sync/address - sync transactions for a given wallet address (useful when user_wallets row missing)
+router.post('/transactions/sync/address', async (req, res) => {
+    try {
+        const { address, userId } = req.body || {};
+        if (!address || !userId) {
+            return res.status(400).json({ success: false, error: 'address and userId required' });
+        }
+
+        if (!supabase || dbStatus !== 'connected') {
+            return res.status(500).json({ success: false, error: 'Database not connected' });
+        }
+
+        console.log(`🔄 Starting transaction sync for address ${address} (user ${userId})`);
+        const chainTxs = await fetchTransactionsFromProviders(address, 200);
+
+        if (!chainTxs || chainTxs.length === 0) {
+            return res.json({ success: true, message: 'No transactions found on chain', syncedCount: 0, transactions: [] });
+        }
+
+        const upsertResult = await upsertTransactionsForUser(userId, address, chainTxs);
+
+        // Run reconciliation to update local pending transactions
+        try {
+            await reconcilePendingForUser(userId, address, chainTxs);
+        } catch (e) {
+            console.warn('⚠️ Reconciliation failed during address sync:', e.message);
+        }
+
+        return res.json({ success: true, message: 'Sync completed', syncedCount: upsertResult.syncedCount, transactions: upsertResult.rows });
+    } catch (error) {
+        console.error('❌ Address sync failed:', error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============================================
 // Transaction history endpoint
 router.get('/transactions/:userId', async (req, res) => {
