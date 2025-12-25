@@ -788,6 +788,81 @@ async function updateWalletBalanceInDB(userId, balanceData) {
 }
 
 // ============================================
+// 🎯 CHAIN TRANSACTIONS (OPTION B) HELPERS
+// - We implement a canonical `chain_transactions` linkage but keep
+//   backward-compatible fallbacks when the table hasn't been created yet.
+// - insertOrGetChainTransaction(tx): attempts to upsert into chain_transactions
+//   and returns the row (id + transaction_hash). On missing-table errors it
+//   returns null and the caller should fall back to legacy behavior.
+// ============================================
+async function insertOrGetChainTransaction(tx) {
+    if (!tx || !tx.transaction_hash) return null;
+
+    if (!supabase || dbStatus !== 'connected') return null;
+
+    try {
+        const payload = {
+            transaction_hash: tx.transaction_hash,
+            block_time: tx.block_time || null,
+            block_height: tx.block_height || null,
+            from_address: tx.from_address || null,
+            to_address: tx.to_address || null,
+            amount: tx.amount !== undefined && tx.amount !== null ? Number(tx.amount) : null,
+            network_fee: tx.network_fee !== undefined && tx.network_fee !== null ? Number(tx.network_fee) : null,
+            raw: tx
+        };
+
+        // Try an upsert into chain_transactions (requires migration to exist).
+        const { data, error } = await supabase
+            .from('chain_transactions')
+            .upsert(payload, { onConflict: 'transaction_hash' })
+            .select()
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            // Table may not exist yet or other constraint; detect and gracefully return null
+            if (error.message && (error.message.includes('does not exist') || error.message.includes('relation "chain_transactions" does not exist'))) {
+                console.log('⚠️ chain_transactions table not present; falling back to legacy behavior');
+                return null;
+            }
+            console.warn('⚠️ insertOrGetChainTransaction error:', error.message);
+            return null;
+        }
+
+        return data || null;
+    } catch (e) {
+        // If table doesn't exist, Supabase client can throw; swallow and return null to allow fallback
+        if (e && e.message && e.message.includes('does not exist')) {
+            console.log('⚠️ chain_transactions table not present (exception), falling back');
+            return null;
+        }
+        console.warn('⚠️ insertOrGetChainTransaction exception:', e.message);
+        return null;
+    }
+}
+
+async function findTransactionHashOwner(hash) {
+    if (!hash || !supabase || dbStatus !== 'connected') return null;
+    try {
+        const { data, error } = await supabase
+            .from('transactions')
+            .select('id, wallet_address, user_id')
+            .eq('transaction_hash', hash)
+            .limit(1)
+            .maybeSingle();
+        if (error) {
+            console.warn('⚠️ findTransactionHashOwner error:', error.message);
+            return null;
+        }
+        return data || null;
+    } catch (e) {
+        console.warn('⚠️ findTransactionHashOwner exception:', e.message);
+        return null;
+    }
+}
+
+// ============================================
 // 🎯 MULTI-EXCHANGE PRICE FETCHING
 // ============================================
 let priceCache = { data: null, timestamp: 0 };
@@ -2419,24 +2494,6 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                         if (tx.in_msg.fee) fee = Number(tx.in_msg.fee) / 1_000_000_000;
                     }
 
-                    // If not an inbound transaction, try to extract from out_msgs (useful for sends)
-                    if ((!amount || amount === 0) && Array.isArray(tx.out_msgs) && tx.out_msgs.length > 0) {
-                        try {
-                            // Prefer an out_msg where source is the account or simply take the first
-                            const outMsg = tx.out_msgs.find(o => !!o.source) || tx.out_msgs[0];
-                            if (outMsg) {
-                                from_address = outMsg.source || from_address;
-                                to_address = outMsg.destination || to_address;
-                                if (outMsg.value) amount = Number(outMsg.value) / 1_000_000_000;
-                                // fwd_fee or ihr_fee may be present
-                                if (outMsg.fwd_fee) fee = Number(outMsg.fwd_fee) / 1_000_000_000;
-                                else if (outMsg.ihr_fee) fee = Number(outMsg.ihr_fee) / 1_000_000_000;
-                            }
-                        } catch (e) {
-                            // ignore
-                        }
-                    }
-
                     if (!amount && tx.value) amount = Number(tx.value) / 1_000_000_000;
                     if (!amount && tx.amount) amount = Number(tx.amount);
 
@@ -2510,7 +2567,16 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
                 else txStatus = 'pending';
             }
 
-            rowsToUpsert.push({
+            // Attempt to insert into canonical chain_transactions table and get id
+            let chainTx = null;
+            try {
+                chainTx = await insertOrGetChainTransaction(tx);
+            } catch (e) {
+                console.warn('⚠️ insertOrGetChainTransaction failed:', e.message);
+                chainTx = null;
+            }
+
+            const row = {
                 user_id: userId,
                 wallet_address: address,
                 transaction_hash: tx.transaction_hash,
@@ -2523,21 +2589,62 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
                 network_fee: feeNum,
                 description: tx.description || null,
                 created_at: tx.block_time || new Date().toISOString()
-            });
+            };
+
+            if (chainTx && chainTx.id) {
+                // Prefer normalized chain id linkage when available (backwards compatible)
+                row.chain_tx_id = chainTx.id;
+            }
+
+            rowsToUpsert.push(row);
         }
 
         if (rowsToUpsert.length === 0) return { success: true, syncedCount: 0, rows: [] };
 
-        const { data: upsertedRows, error: bulkErr } = await supabase
-            .from('transactions')
-            .upsert(rowsToUpsert, { onConflict: 'transaction_hash' });
+        // Split into two batches:
+        //  - rows that have chain_tx_id -> upsert using chain_tx_id as conflict target
+        //  - rows without chain_tx_id -> upsert using per-wallet (wallet_address, transaction_hash)
+        const withChain = rowsToUpsert.filter(r => r.chain_tx_id);
+        const withoutChain = rowsToUpsert.filter(r => !r.chain_tx_id);
 
-        if (bulkErr) {
-            console.warn('⚠️ Bulk upsert error:', bulkErr.message);
-            return { success: false, error: bulkErr.message, syncedCount: 0, rows: [] };
+        let totalSynced = 0;
+        const allRows = [];
+
+        if (withChain.length > 0) {
+            try {
+                const { data: rowsA, error: errA } = await supabase
+                    .from('transactions')
+                    .upsert(withChain, { onConflict: 'chain_tx_id' });
+
+                if (errA) {
+                    console.warn('⚠️ Upsert (chain_tx_id) error:', errA.message);
+                } else {
+                    totalSynced += Array.isArray(rowsA) ? rowsA.length : 0;
+                    allRows.push(...(rowsA || []));
+                }
+            } catch (e) {
+                console.warn('⚠️ Exception during chain_tx_id upsert:', e.message);
+            }
         }
 
-        return { success: true, syncedCount: Array.isArray(upsertedRows) ? upsertedRows.length : 0, rows: upsertedRows };
+        if (withoutChain.length > 0) {
+            try {
+                const { data: rowsB, error: errB } = await supabase
+                    .from('transactions')
+                    .upsert(withoutChain, { onConflict: ['wallet_address', 'transaction_hash'] });
+
+                if (errB) {
+                    console.warn('⚠️ Upsert (wallet+hash) error:', errB.message);
+                } else {
+                    totalSynced += Array.isArray(rowsB) ? rowsB.length : 0;
+                    allRows.push(...(rowsB || []));
+                }
+            } catch (e) {
+                console.warn('⚠️ Exception during wallet+hash upsert:', e.message);
+            }
+        }
+
+        return { success: true, syncedCount: totalSynced, rows: allRows };
 
     } catch (e) {
         console.warn('⚠️ upsertTransactionsForUser failed:', e.message);
@@ -2584,24 +2691,8 @@ router.post('/transactions/sync', async (req, res) => {
 
         const upsertResult = await upsertTransactionsForUser(userId, address, chainTxs);
 
-        // Reconcile pending local transactions: match by amount + fuzzy address/time windows, then update to authoritative hash + status/type
+        // Reconcile pending local transactions: if a pending row matches on-chain tx (by from/to/amount/time window), update it to authoritative hash + status
         try {
-            function normalizeAddr(a) {
-                if (!a) return null;
-                try { return a.toString().toLowerCase().replace(/[^a-z0-9]/g, ''); } catch (e) { return null; }
-            }
-
-            function simpleAddressEqual(a, b) {
-                if (!a || !b) return false;
-                const na = normalizeAddr(a);
-                const nb = normalizeAddr(b);
-                if (!na || !nb) return false;
-                if (na === nb) return true;
-                if (na.endsWith(nb.slice(-20)) || nb.endsWith(na.slice(-20))) return true;
-                if (na.includes(nb) || nb.includes(na)) return true;
-                return false;
-            }
-
             for (const tx of chainTxs) {
                 if (!tx.transaction_hash) continue;
 
@@ -2611,12 +2702,15 @@ router.post('/transactions/sync', async (req, res) => {
                 const allowedStatuses = ['pending', 'completed', 'failed'];
                 const normalizedStatus = allowedStatuses.includes(txStatus) ? txStatus : (txStatus === 'confirmed' || txStatus === 'finalized' ? 'completed' : 'pending');
 
+                // 5 minute window around block_time or now
                 const blockTime = tx.block_time ? new Date(tx.block_time) : new Date();
-                const windowStart = new Date(blockTime.getTime() - 20 * 60 * 1000).toISOString();
-                const windowEnd = new Date(blockTime.getTime() + 20 * 60 * 1000).toISOString();
+                const windowStart = new Date(blockTime.getTime() - 5 * 60 * 1000).toISOString();
+                const windowEnd = new Date(blockTime.getTime() + 5 * 60 * 1000).toISOString();
 
-                // Fetch pending candidates by amount + time window; we'll do address fuzzy matching in code
-                const { data: candidates, error: candErr } = await supabase
+                console.log(`🔁 Reconciling tx: hash=${tx.transaction_hash || 'none'}, amount=${amountNum}, from=${tx.from_address || 'none'}, to=${tx.to_address || 'none'}, time=${blockTime.toISOString()}, status=${tx.status || 'unknown'}`);
+
+                // Try to find a single pending local row that matches
+                const { data: pendingRows, error: pendingErr } = await supabase
                     .from('transactions')
                     .select('*')
                     .eq('user_id', userId)
@@ -2624,53 +2718,93 @@ router.post('/transactions/sync', async (req, res) => {
                     .eq('amount', amountNum)
                     .gte('created_at', windowStart)
                     .lte('created_at', windowEnd)
-                    .order('created_at', { ascending: true })
-                    .limit(10);
+                    .limit(5);
 
-                if (candErr) {
-                    console.warn('⚠️ Error querying pending candidates:', candErr.message);
+                if (pendingErr) {
+                    console.warn('⚠️ Error querying pending rows:', pendingErr.message);
                     continue;
                 }
 
                 let matched = null;
-                if (candidates && candidates.length > 0) {
-                    // Prefer candidate where both from/to match (fuzzy)
-                    for (const c of candidates) {
-                        if (simpleAddressEqual(c.from_address, tx.from_address) && simpleAddressEqual(c.to_address, tx.to_address)) {
-                            matched = c; break;
-                        }
+
+                // helper to compare address variants (EQ / UQ / bounceable)
+                function addressesEquivalent(a, b) {
+                    if (!a || !b) return false;
+                    if (a === b) return true;
+                    try {
+                        const pa = Address.parse(a).toString({ urlSafe: true, bounceable: false, testOnly: false });
+                        const pb = Address.parse(b).toString({ urlSafe: true, bounceable: false, testOnly: false });
+                        if (pa === pb) return true;
+                        const paB = Address.parse(a).toString({ urlSafe: true, bounceable: true, testOnly: false });
+                        const pbB = Address.parse(b).toString({ urlSafe: true, bounceable: true, testOnly: false });
+                        if (paB === pbB) return true;
+                    } catch (e) {
+                        // ignore parse errors
                     }
-                    // Then where either side matches
-                    if (!matched) {
-                        for (const c of candidates) {
-                            if (simpleAddressEqual(c.from_address, tx.from_address) || simpleAddressEqual(c.to_address, tx.to_address)) {
-                                matched = c; break;
+                    // Fallback: compare last 8 chars
+                    try {
+                        return a.slice(-8) === b.slice(-8);
+                    } catch (e) {
+                        return false;
+                    }
+                }
+
+                if (pendingRows && pendingRows.length > 0) {
+                    for (const existing of pendingRows) {
+                        // prefer exact or normalized address match
+                        let addrMatch = false;
+                        try {
+                            if ((existing.to_address && addressesEquivalent(existing.to_address, tx.to_address)) ||
+                                (existing.from_address && addressesEquivalent(existing.from_address, tx.from_address))) {
+                                addrMatch = true;
                             }
+                        } catch (e) {
+                            // ignore
+                        }
+
+                        // If address matches or only one candidate, accept it
+                        if (addrMatch || pendingRows.length === 1) {
+                            matched = existing;
+                            break;
                         }
                     }
-                    // Fallback to earliest candidate
-                    if (!matched) matched = candidates[0];
                 }
 
                 if (matched) {
+                    const existing = matched;
+                    // Update the matched pending row with authoritative chain values
                     try {
+                        // Try to create/link canonical chain transaction first
+                        let chainTx = null;
+                        try { chainTx = await insertOrGetChainTransaction(tx); } catch (e) { chainTx = null; }
+
                         const updatePayload = {
-                            transaction_hash: tx.transaction_hash,
                             status: normalizedStatus,
-                            network_fee: tx.network_fee || matched.network_fee || 0,
-                            type: tx.type || matched.type || matched.type || 'send'
+                            network_fee: tx.network_fee || existing.network_fee || 0,
+                            created_at: tx.block_time || existing.created_at
                         };
-                        if (tx.block_time) updatePayload.created_at = tx.block_time;
+
+                        if (chainTx && chainTx.id) {
+                            updatePayload.chain_tx_id = chainTx.id;
+                        } else {
+                            // If we can't use chain table, be conservative about writing transaction_hash
+                            const owner = await findTransactionHashOwner(tx.transaction_hash);
+                            if (!owner || owner.id === existing.id || (owner.wallet_address && owner.wallet_address === existing.wallet_address)) {
+                                updatePayload.transaction_hash = tx.transaction_hash;
+                            } else {
+                                console.log(`⚠️ Skipping transaction_hash update for id=${existing.id} because it is owned by id=${owner && owner.id}`);
+                            }
+                        }
 
                         const { data: updated, error: updateErr } = await supabase
                             .from('transactions')
                             .update(updatePayload)
-                            .eq('id', matched.id);
+                            .eq('id', existing.id);
 
                         if (updateErr) {
                             console.warn('⚠️ Failed to update pending transaction:', updateErr.message);
                         } else {
-                            console.log(`✅ Reconciled pending transaction id=${matched.id} -> hash=${tx.transaction_hash}, status=${normalizedStatus}`);
+                            console.log(`✅ Reconciled pending transaction id=${existing.id} -> ${chainTx && chainTx.id ? `chain_id=${chainTx.id}` : `hash=${tx.transaction_hash}`}, status=${normalizedStatus}`);
                         }
                     } catch (e) {
                         console.warn('⚠️ Exception updating pending row:', e.message);
@@ -2684,6 +2818,238 @@ router.post('/transactions/sync', async (req, res) => {
         return res.json({ success: true, message: 'Sync completed', syncedCount: upsertResult.syncedCount, transactions: upsertResult.rows });
     } catch (error) {
         console.error('❌ Sync failed:', error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST /transactions/sync/address - sync transactions for an arbitrary address and attach to a userId (useful when user_wallets missing)
+router.post('/transactions/sync/address', async (req, res) => {
+    try {
+        const { address, userId } = req.body || {};
+        if (!address) return res.status(400).json({ success: false, error: 'address required' });
+        if (!userId) return res.status(400).json({ success: false, error: 'userId required' });
+
+        console.log(`🔄 Starting transaction sync for address ${address} (user ${userId})`);
+
+        const chainTxs = await fetchTransactionsFromProviders(address, 200);
+        if (!chainTxs || chainTxs.length === 0) {
+            return res.json({ success: true, message: 'No transactions found on chain', syncedCount: 0, transactions: [] });
+        }
+
+        const upsertResult = await upsertTransactionsForUser(userId, address, chainTxs);
+
+        // Reconciliation (same logic as user sync)
+        try {
+            for (const tx of chainTxs) {
+                if (!tx.transaction_hash) continue;
+
+                const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
+                const amountNum = Number(Number(safeAmount).toFixed(8));
+                const txStatus = (tx.status || '').toString().toLowerCase();
+                const allowedStatuses = ['pending', 'completed', 'failed'];
+                const normalizedStatus = allowedStatuses.includes(txStatus) ? txStatus : (txStatus === 'confirmed' || txStatus === 'finalized' ? 'completed' : 'pending');
+
+                const blockTime = tx.block_time ? new Date(tx.block_time) : new Date();
+                const windowStart = new Date(blockTime.getTime() - 5 * 60 * 1000).toISOString();
+                const windowEnd = new Date(blockTime.getTime() + 5 * 60 * 1000).toISOString();
+
+                console.log(`🔁 Reconciling tx: hash=${tx.transaction_hash || 'none'}, amount=${amountNum}, from=${tx.from_address || 'none'}, to=${tx.to_address || 'none'}, time=${blockTime.toISOString()}, status=${tx.status || 'unknown'}`);
+
+                const { data: pendingRows, error: pendingErr } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('status', 'pending')
+                    .eq('amount', amountNum)
+                    .gte('created_at', windowStart)
+                    .lte('created_at', windowEnd)
+                    .limit(5);
+
+                if (pendingErr) {
+                    console.warn('⚠️ Error querying pending rows:', pendingErr.message);
+                    continue;
+                }
+
+                let matched = null;
+                function addressesEquivalent(a, b) {
+                    if (!a || !b) return false;
+                    if (a === b) return true;
+                    try {
+                        const pa = Address.parse(a).toString({ urlSafe: true, bounceable: false, testOnly: false });
+                        const pb = Address.parse(b).toString({ urlSafe: true, bounceable: false, testOnly: false });
+                        if (pa === pb) return true;
+                        const paB = Address.parse(a).toString({ urlSafe: true, bounceable: true, testOnly: false });
+                        const pbB = Address.parse(b).toString({ urlSafe: true, bounceable: true, testOnly: false });
+                        if (paB === pbB) return true;
+                    } catch (e) {}
+                    try { return a.slice(-8) === b.slice(-8); } catch (e) { return false; }
+                }
+
+                if (pendingRows && pendingRows.length > 0) {
+                    for (const existing of pendingRows) {
+                        let addrMatch = false;
+                        try {
+                            if ((existing.to_address && addressesEquivalent(existing.to_address, tx.to_address)) ||
+                                (existing.from_address && addressesEquivalent(existing.from_address, tx.from_address))) {
+                                addrMatch = true;
+                            }
+                        } catch (e) {}
+
+                        if (addrMatch || pendingRows.length === 1) {
+                            matched = existing;
+                            break;
+                        }
+                    }
+                }
+
+                if (matched) {
+                    const existing = matched;
+                    try {
+                        // Try to create/link canonical chain transaction first
+                        let chainTx = null;
+                        try { chainTx = await insertOrGetChainTransaction(tx); } catch (e) { chainTx = null; }
+
+                        const updatePayload = {
+                            status: normalizedStatus,
+                            network_fee: tx.network_fee || existing.network_fee || 0,
+                            created_at: tx.block_time || existing.created_at
+                        };
+
+                        if (chainTx && chainTx.id) {
+                            updatePayload.chain_tx_id = chainTx.id;
+                        } else {
+                            const owner = await findTransactionHashOwner(tx.transaction_hash);
+                            if (!owner || owner.id === existing.id || (owner.wallet_address && owner.wallet_address === existing.wallet_address)) {
+                                updatePayload.transaction_hash = tx.transaction_hash;
+                            } else {
+                                console.log(`⚠️ Skipping transaction_hash update for id=${existing.id} because it is owned by id=${owner && owner.id}`);
+                            }
+                        }
+
+                        const { data: updated, error: updateErr } = await supabase
+                            .from('transactions')
+                            .update(updatePayload)
+                            .eq('id', existing.id);
+
+                        if (updateErr) {
+                            console.warn('⚠️ Failed to update pending transaction:', updateErr.message);
+                        } else {
+                            console.log(`✅ Reconciled pending transaction id=${existing.id} -> ${chainTx && chainTx.id ? `chain_id=${chainTx.id}` : `hash=${tx.transaction_hash}`}, status=${normalizedStatus}`);
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Exception updating pending row:', e.message);
+                    }
+                }
+            }
+        } catch (reconcileErr) {
+            console.warn('⚠️ Reconciliation step failed:', reconcileErr.message);
+        }
+
+        return res.json({ success: true, message: 'Sync completed', syncedCount: upsertResult.syncedCount, transactions: upsertResult.rows });
+
+    } catch (error) {
+        console.error('❌ Address sync failed:', error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// POST /transactions/raw/address - return normalized chain txs for an address (debug)
+router.post('/transactions/raw/address', async (req, res) => {
+    try {
+        const { address, limit } = req.body || {};
+        if (!address) return res.status(400).json({ success: false, error: 'address required' });
+        const l = parseInt(limit || '100');
+        const txs = await fetchTransactionsFromProviders(address, l);
+        return res.json({ success: true, count: txs.length, txs });
+    } catch (error) {
+        console.error('❌ Raw address fetch failed:', error.message);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ADMIN DEBUG: Force reconciliation for a single chain tx (for testing)
+router.post('/transactions/reconcile/force', async (req, res) => {
+    try {
+        const { userId, tx } = req.body || {};
+        if (!userId || !tx || !tx.transaction_hash) return res.status(400).json({ success: false, error: 'userId and tx.transaction_hash required' });
+
+        // Reuse reconciliation logic for single tx
+        const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
+        const amountNum = Number(Number(safeAmount).toFixed(8));
+        const txStatus = (tx.status || '').toString().toLowerCase();
+        const allowedStatuses = ['pending', 'completed', 'failed'];
+        const normalizedStatus = allowedStatuses.includes(txStatus) ? txStatus : (txStatus === 'confirmed' || txStatus === 'finalized' ? 'completed' : 'pending');
+
+        const blockTime = tx.block_time ? new Date(tx.block_time) : new Date();
+        const windowStart = new Date(blockTime.getTime() - 5 * 60 * 1000).toISOString();
+        const windowEnd = new Date(blockTime.getTime() + 5 * 60 * 1000).toISOString();
+
+        console.log(`🔧 Force reconcile tx: hash=${tx.transaction_hash}, amount=${amountNum}, from=${tx.from_address||'none'}, to=${tx.to_address||'none'}, status=${normalizedStatus}`);
+
+        const { data: pendingRows, error: pendingErr } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('status', 'pending')
+            .eq('amount', amountNum)
+            .gte('created_at', windowStart)
+            .lte('created_at', windowEnd)
+            .limit(10);
+
+        if (pendingErr) return res.status(500).json({ success: false, error: pendingErr.message });
+
+        function addressesEquivalent(a, b) {
+            if (!a || !b) return false;
+            if (a === b) return true;
+            try {
+                const pa = Address.parse(a).toString({ urlSafe: true, bounceable: false, testOnly: false });
+                const pb = Address.parse(b).toString({ urlSafe: true, bounceable: false, testOnly: false });
+                if (pa === pb) return true;
+                const paB = Address.parse(a).toString({ urlSafe: true, bounceable: true, testOnly: false });
+                const pbB = Address.parse(b).toString({ urlSafe: true, bounceable: true, testOnly: false });
+                if (paB === pbB) return true;
+            } catch (e) {}
+            try { return a.slice(-8) === b.slice(-8); } catch (e) { return false; }
+        }
+
+        let matched = null;
+        if (pendingRows && pendingRows.length > 0) {
+            for (const existing of pendingRows) {
+                if ((existing.to_address && addressesEquivalent(existing.to_address, tx.to_address)) ||
+                    (existing.from_address && addressesEquivalent(existing.from_address, tx.from_address))) {
+                    matched = existing; break;
+                }
+            }
+        }
+
+        if (!matched && pendingRows && pendingRows.length === 1) matched = pendingRows[0];
+
+        if (!matched) return res.json({ success: false, message: 'No pending row found for that tx' });
+
+        // Try to link canonical chain transaction and update the matched row accordingly
+        let chainTx = null;
+        try { chainTx = await insertOrGetChainTransaction(tx); } catch (e) { chainTx = null; }
+
+        const updatePayload = {
+            status: normalizedStatus,
+            network_fee: tx.network_fee || 0,
+            created_at: tx.block_time || new Date().toISOString()
+        };
+
+        if (chainTx && chainTx.id) updatePayload.chain_tx_id = chainTx.id;
+
+        const { data: updated, error: updateErr } = await supabase
+            .from('transactions')
+            .update(updatePayload)
+            .eq('id', matched.id);
+
+        if (updateErr) return res.status(500).json({ success: false, error: updateErr.message });
+
+        console.log(`✅ Forced reconcile applied to id=${matched.id} (status updated to ${normalizedStatus}${chainTx && chainTx.id ? `, chain_id=${chainTx.id}` : ''})`);
+        return res.json({ success: true, message: 'Reconciled', id: matched.id });
+
+    } catch (error) {
+        console.error('❌ Force reconcile failed:', error);
         return res.status(500).json({ success: false, error: error.message });
     }
 });
@@ -2747,55 +3113,6 @@ router.post('/transactions/sync/all', async (req, res) => {
         }
         console.error('❌ Full sync failed:', error.message);
         return res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// POST /transactions/sync/address - sync transactions for a given wallet address (useful when user_wallets row missing)
-router.post('/transactions/sync/address', async (req, res) => {
-    try {
-        const { address, userId } = req.body || {};
-        if (!address || !userId) {
-            return res.status(400).json({ success: false, error: 'address and userId required' });
-        }
-
-        if (!supabase || dbStatus !== 'connected') {
-            return res.status(500).json({ success: false, error: 'Database not connected' });
-        }
-
-        console.log(`🔄 Starting transaction sync for address ${address} (user ${userId})`);
-        const chainTxs = await fetchTransactionsFromProviders(address, 200);
-
-        if (!chainTxs || chainTxs.length === 0) {
-            return res.json({ success: true, message: 'No transactions found on chain', syncedCount: 0, transactions: [] });
-        }
-
-        const upsertResult = await upsertTransactionsForUser(userId, address, chainTxs);
-
-        // Run reconciliation to update local pending transactions
-        try {
-            await reconcilePendingForUser(userId, address, chainTxs);
-        } catch (e) {
-            console.warn('⚠️ Reconciliation failed during address sync:', e.message);
-        }
-
-        return res.json({ success: true, message: 'Sync completed', syncedCount: upsertResult.syncedCount, transactions: upsertResult.rows });
-    } catch (error) {
-        console.error('❌ Address sync failed:', error);
-        return res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// POST /transactions/raw/address - return raw normalized chain transactions for debugging
-router.post('/transactions/raw/address', async (req, res) => {
-    try {
-        const { address, limit = 200 } = req.body || {};
-        if (!address) return res.status(400).json({ success: false, error: 'address required' });
-
-        const chainTxs = await fetchTransactionsFromProviders(address, limit);
-        return res.json({ success: true, count: chainTxs.length, transactions: chainTxs });
-    } catch (e) {
-        console.error('❌ Raw address fetch failed:', e.message);
-        return res.status(500).json({ success: false, error: e.message });
     }
 });
 
