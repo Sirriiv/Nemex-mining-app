@@ -56,34 +56,6 @@ const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
 const TON_CONSOLE_API_KEY = process.env.TON_CONSOLE_API_KEY || process.env.TON_API_TOKEN || process.env.TONAPI_KEY || '';
 const TON_API_URL = process.env.TON_API_URL || 'https://tonapi.io/v2';
 
-// Transaction fee and performance tunables
-const TX_FEE_TON = process.env.TX_FEE_TON ? parseFloat(process.env.TX_FEE_TON) : 0.001; // default 0.001 TON
-const MAX_CONCURRENT_SENDS = process.env.MAX_CONCURRENT_SENDS ? parseInt(process.env.MAX_CONCURRENT_SENDS, 10) : 10;
-const SEND_RETRY_ATTEMPTS = process.env.SEND_RETRY_ATTEMPTS ? parseInt(process.env.SEND_RETRY_ATTEMPTS, 10) : 3; // exponential backoff attempts
-
-// TonClient cache to reuse connections across requests (reduces client creation overhead)
-const tonClientCache = new Map();
-function getCachedTonClient(endpoint, apiKey) {
-    const key = `${endpoint}|${apiKey||''}`;
-    if (tonClientCache.has(key)) return tonClientCache.get(key);
-
-    const client = new TonClient({ endpoint, apiKey, timeout: 30000 });
-    tonClientCache.set(key, client);
-    return client;
-}
-
-// Simple in-process semaphore to limit concurrent sends
-let activeSends = 0;
-async function acquireSendSlot() {
-    while (activeSends >= MAX_CONCURRENT_SENDS) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    activeSends += 1;
-}
-function releaseSendSlot() {
-    activeSends = Math.max(0, activeSends - 1);
-}
-
 console.log('🔑 API Keys Status:');
 console.log(`   - TON Center: ${TONCENTER_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
 console.log(`   - TON Console: ${TON_CONSOLE_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
@@ -1274,11 +1246,15 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             try {
                 console.log(`🔍 Trying RPC endpoint: ${rpc.name}`);
 
-                tonClient = getCachedTonClient(rpc.endpoint, rpc.apiKey);
+                tonClient = new TonClient({
+                    endpoint: rpc.endpoint,
+                    apiKey: rpc.apiKey,
+                    timeout: 30000
+                });
 
                 // Test connection
                 await tonClient.getBalance(walletContract.address);
-                console.log(`✅ Connected to ${rpc.name} RPC (cached client)`);
+                console.log(`✅ Connected to ${rpc.name} RPC`);
                 break;
             } catch (rpcError) {
                 console.log(`❌ ${rpc.name} RPC failed: ${rpcError.message}`);
@@ -1414,9 +1390,8 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         const balance = await tonClient.getBalance(walletContract.address);
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
 
-        // Use configured transaction fee
-        if (balanceTON < parseFloat(amount) + TX_FEE_TON) {
-            throw new Error(`Insufficient balance. Need ${amount} TON + ~${TX_FEE_TON} TON fee, but only have ${balanceTON.toFixed(4)} TON.`);
+        if (balanceTON < parseFloat(amount) + 0.01) {
+            throw new Error(`Insufficient balance. Need ${amount} TON + ~0.01 TON fee, but only have ${balanceTON.toFixed(4)} TON.`);
         }
 
         console.log(`✅ Sufficient balance: ${balanceTON.toFixed(4)} TON`);
@@ -1447,92 +1422,82 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         });
 
         let lastSendError = null;
-        const maxSendAttempts = Math.max(1, SEND_RETRY_ATTEMPTS);
+        const maxSendAttempts = 2;
+        for (let attempt = 1; attempt <= maxSendAttempts; attempt++) {
+            try {
+                const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
+                console.log(`✅ Transaction broadcasted successfully on attempt ${attempt}!`, sendResult);
 
-        // Acquire a send slot (concurrency limiter)
-        await acquireSendSlot();
-        try {
-            for (let attempt = 1; attempt <= maxSendAttempts; attempt++) {
-                try {
-                    // exponential backoff calculation for later retries
-                    const backoffMs = Math.floor(Math.pow(2, attempt - 1) * 500 + Math.random() * 200);
+                // Generate transaction hash
+                const txHash = crypto.createHash('sha256')
+                    .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
+                    .digest('hex')
+                    .toUpperCase()
+                    .substring(0, 64);
 
-                    const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
-                    console.log(`✅ Transaction broadcasted successfully on attempt ${attempt}!`, sendResult);
+                console.log("🔗 Generated transaction hash:", txHash);
 
-                    // Generate transaction hash
-                    const txHash = crypto.createHash('sha256')
-                        .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
-                        .digest('hex')
-                        .toUpperCase()
-                        .substring(0, 64);
+                // Wait briefly for indexing
+                await new Promise(resolve => setTimeout(resolve, 2000));
 
-                    console.log("🔗 Generated transaction hash:", txHash);
+                // Get current price for USD value
+                const priceData = await fetchRealTONPrice();
+                const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
 
-                    // Wait briefly for indexing (shorter; optimized)
-                    await new Promise(resolve => setTimeout(resolve, 1200));
+                // Return success
+                return {
+                    success: true,
+                    message: 'Transaction sent successfully!',
+                    transactionHash: txHash,
+                    fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
+                    toAddress: toAddress,
+                    amount: parseFloat(amount),
+                    memo: memo || '',
+                    timestamp: new Date().toISOString(),
+                    explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
+                    usdValue: usdValue,
+                    tonPrice: priceData.price.toFixed(4)
+                };
 
-                    // Get current price for USD value
-                    const priceData = await fetchRealTONPrice();
-                    const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
+            } catch (sendError) {
+                lastSendError = sendError;
+                console.error(`❌ TON send attempt ${attempt} failed:`, sendError.message);
 
-                    // Return success
-                    return {
-                        success: true,
-                        message: 'Transaction sent successfully!',
-                        transactionHash: txHash,
-                        fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
-                        toAddress: toAddress,
-                        amount: parseFloat(amount),
-                        memo: memo || '',
-                        timestamp: new Date().toISOString(),
-                        explorerLink: `https://tonviewer.com/${walletContract.address.toString({ urlSafe: true, bounceable: true, testOnly: false })}`,
-                        usdValue: usdValue,
-                        tonPrice: priceData.price.toFixed(4)
-                    };
-
-                } catch (sendError) {
-                    lastSendError = sendError;
-                    console.error(`❌ TON send attempt ${attempt} failed:`, sendError.message);
-
-                    if (sendError.response) {
-                        console.error('❌ TON API Response:', {
-                            status: sendError.response.status,
-                            data: sendError.response.data
-                        });
-                    }
-
-                    // If we can retry, refresh seqno and recreate transfer
-                    if (attempt < maxSendAttempts) {
-                        console.log(`🔄 Retrying (attempt ${attempt + 1}/${maxSendAttempts}): refreshing seqno and recreating transfer...`);
-                        try {
-                            const walletState = await tonClient.getContractState(walletContract.address);
-                            seqno = walletState.seqno || 0;
-                            console.log('📝 Refreshed seqno:', seqno);
-                        } catch (seqnoRefreshError) {
-                            console.log('⚠️ Could not refresh seqno before retry:', seqnoRefreshError.message);
-                            // continue and retry anyway
-                        }
-
-                        // Recreate transfer with updated seqno
-                        transfer = walletContract.createTransfer({
-                            secretKey: keyPair.secretKey,
-                            seqno: seqno,
-                            messages: [internalMsg],
-                            sendMode: 3
-                        });
-
-                        // backoff before next retry
-                        await new Promise(resolve => setTimeout(resolve, backoffMs));
-                        continue;
-                    }
-
-                    // No more retries
-                    break;
+                if (sendError.response) {
+                    console.error('❌ TON API Response:', {
+                        status: sendError.response.status,
+                        data: sendError.response.data
+                    });
                 }
+
+                // If we can retry (attempt 1 of 2), refresh seqno and recreate transfer
+                if (attempt < maxSendAttempts) {
+                    console.log('🔄 Retrying: refreshing seqno and recreating transfer...');
+                    try {
+                        const walletState = await tonClient.getContractState(walletContract.address);
+                        seqno = walletState.seqno || 0;
+                        console.log('📝 Refreshed seqno:', seqno);
+                    } catch (seqnoRefreshError) {
+                        console.log('⚠️ Could not refresh seqno before retry:', seqnoRefreshError.message);
+                        // continue and retry anyway
+                    }
+
+                    // Recreate transfer with updated seqno
+                    transfer = walletContract.createTransfer({
+                        secretKey: keyPair.secretKey,
+                        seqno: seqno,
+                        messages: [internalMsg],
+                        sendMode: 3
+                    });
+
+                    // small backoff
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    continue;
+                }
+
+                // No more retries
+                break;
             }
-        } finally {
-            releaseSendSlot();
         }
 
         // If we reach here, all attempts failed - include RPC payload if available
@@ -2368,6 +2333,234 @@ router.get('/price/ton', async (req, res) => {
             timestamp: new Date().toISOString(),
             sourcesCount: 0
         });
+    }
+});
+
+// ============================================
+// 🎯 SYNC ON-CHAIN TRANSACTIONS INTO DATABASE
+// ============================================
+async function fetchTransactionsFromProviders(address, limit = 50) {
+    // Try multiple providers (TON Console / TonAPI / TonCenter) and normalize results
+    const providers = [];
+
+    // TON Console (if configured)
+    if (TON_CONSOLE_API_KEY) {
+        providers.push({
+            name: 'TON Console',
+            url: `${TON_API_URL}/accounts/${address}/transactions?limit=${limit}`,
+            headers: TON_CONSOLE_API_KEY ? { 'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}` } : {}
+        });
+    }
+
+    // TonAPI (fallback)
+    providers.push({
+        name: 'TonAPI',
+        url: `${TON_API_URL}/accounts/${address}/transactions?limit=${limit}`,
+        headers: {}
+    });
+
+    // TonCenter (fallback)
+    providers.push({
+        name: 'TON Center',
+        url: `https://toncenter.com/api/v2/getTransactions`,
+        params: { address: address, limit: limit }
+    });
+
+    for (const p of providers) {
+        try {
+            console.log(`🔎 Trying transaction provider: ${p.name}`);
+            const opts = {
+                method: 'GET',
+                url: p.url,
+                timeout: 20000
+            };
+            if (p.headers) opts.headers = p.headers;
+            if (p.params) opts.params = p.params;
+
+            const response = await axios(opts);
+            if (!response || !response.data) continue;
+
+            let raw = response.data;
+
+            // Normalize TonCenter responses which wrap in { ok: true, result: [...] }
+            if (raw.ok && raw.result) raw = raw.result;
+            // TonAPI may return an object with transactions array
+            if (raw.transactions) raw = raw.transactions;
+
+            if (!Array.isArray(raw) || raw.length === 0) {
+                console.log(`ℹ️ ${p.name} returned no transactions for ${address}`);
+                continue;
+            }
+
+            // Map/normalize entries
+            const normalized = raw.map(tx => {
+                try {
+                    // TonAPI / TON Console expected keys
+                    const hash = tx.hash || tx.transaction_hash || tx.tx_hash || (tx.transaction_id && tx.transaction_id.hash);
+                    const utime = tx.utime || tx.time || (tx.block && tx.block.utime) || null;
+                    const block_time = utime ? (new Date(utime * 1000)).toISOString() : (tx.block_time || tx.block_time_iso || null);
+                    const block_height = tx.block && tx.block.height ? tx.block.height : (tx.block_height || null);
+
+                    // Amounts: TonAPI uses value in in_msg or amount fields
+                    let amount = null;
+                    let from_address = null;
+                    let to_address = null;
+                    let fee = null;
+                    let status = tx.status || 'pending';
+                    let description = tx.description || tx.memo || tx.message || '';
+
+                    // Attempt to extract from TonCenter shape
+                    if (tx.in_msg) {
+                        from_address = tx.in_msg.source || tx.in_msg.from || null;
+                        to_address = tx.in_msg.destination || tx.in_msg.to || null;
+                        if (tx.in_msg.value) amount = Number(tx.in_msg.value) / 1_000_000_000;
+                        if (tx.in_msg.fee) fee = Number(tx.in_msg.fee) / 1_000_000_000;
+                    }
+
+                    // Fallbacks
+                    if (!amount && tx.value) amount = Number(tx.value) / 1_000_000_000;
+                    if (!amount && tx.amount) amount = Number(tx.amount);
+
+                    if (!from_address && tx.from) from_address = tx.from;
+                    if (!to_address && tx.to) to_address = tx.to;
+
+                    // Determine type relative to address
+                    let type = 'unknown';
+                    const lowerAddr = (address || '').toLowerCase();
+                    if (from_address && from_address.toLowerCase() === lowerAddr) type = 'send';
+                    if (to_address && to_address.toLowerCase() === lowerAddr) type = 'receive';
+
+                    return {
+                        transaction_hash: hash || null,
+                        block_time: block_time || null,
+                        block_height: block_height || null,
+                        amount: amount !== null ? parseFloat(amount) : null,
+                        network_fee: fee !== null ? parseFloat(fee) : null,
+                        from_address: from_address || null,
+                        to_address: to_address || null,
+                        type: type,
+                        status: status,
+                        description: description || '',
+                        raw: tx
+                    };
+                } catch (e) {
+                    console.warn('⚠️ Failed to normalize tx:', e.message);
+                    return null;
+                }
+            }).filter(Boolean);
+
+            if (normalized.length > 0) return normalized;
+
+        } catch (error) {
+            console.warn(`⚠️ Provider ${p.name} failed:`, error.message);
+            continue;
+        }
+    }
+
+    return [];
+}
+
+// POST /transactions/sync - sync transactions for a single user
+router.post('/transactions/sync', async (req, res) => {
+    try {
+        const { userId } = req.body || {};
+        if (!userId) {
+            return res.status(400).json({ success: false, error: 'userId required' });
+        }
+
+        if (!supabase || dbStatus !== 'connected') {
+            return res.status(500).json({ success: false, error: 'Database not connected' });
+        }
+
+        // Lookup user's wallet address
+        const { data: wallets, error: walletErr } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .limit(1);
+
+        if (walletErr) {
+            console.error('❌ DB error fetching wallet:', walletErr.message);
+            return res.status(500).json({ success: false, error: walletErr.message });
+        }
+
+        const wallet = wallets && wallets[0];
+        if (!wallet || !wallet.wallet_address) {
+            return res.json({ success: false, error: 'No wallet address found for user', syncedCount: 0 });
+        }
+
+        const address = wallet.wallet_address;
+        console.log(`🔄 Starting transaction sync for user ${userId}, address ${address}`);
+
+        // Fetch transactions from chain
+        const chainTxs = await fetchTransactionsFromProviders(address, 100);
+
+        if (!chainTxs || chainTxs.length === 0) {
+            return res.json({ success: true, message: 'No transactions found on chain', syncedCount: 0, transactions: [] });
+        }
+
+        // Quick check: ensure transactions table exists
+        try {
+            const check = await supabase.from('transactions').select('id').limit(1);
+            if (check.error) {
+                console.warn('⚠️ Transactions table check returned error:', check.error.message);
+            }
+        } catch (e) {
+            console.warn('⚠️ Unable to access transactions table:', e.message);
+            return res.json({ success: false, error: 'Transactions table missing or inaccessible. Please create a `transactions` table with a unique transaction_hash column.' });
+        }
+
+        let synced = 0;
+        const upserts = [];
+
+        for (const tx of chainTxs) {
+            // Skip txs without a hash to avoid duplicates
+            if (!tx.transaction_hash) {
+                console.warn('⚠️ Skipping transaction without hash:', tx);
+                continue;
+            }
+
+            // Build row matching expected table columns. If your table uses a different schema, share it and I'll adapt.
+            const row = {
+                user_id: userId,
+                wallet_address: address,
+                transaction_hash: tx.transaction_hash,
+                amount: tx.amount,
+                token: 'TON',
+                network_fee: tx.network_fee,
+                from_address: tx.from_address,
+                to_address: tx.to_address,
+                status: tx.status || 'pending',
+                type: tx.type || 'unknown',
+                description: tx.description || null,
+                block_height: tx.block_height || null,
+                block_time: tx.block_time || null,
+                created_at: tx.block_time || new Date().toISOString()
+            };
+
+            // Use upsert to avoid duplicates; requires unique constraint on transaction_hash (recommended)
+            try {
+                const { data: upserted, error: upsertErr } = await supabase
+                    .from('transactions')
+                    .upsert(row, { onConflict: 'transaction_hash' });
+
+                if (upsertErr) {
+                    console.warn('⚠️ Upsert error:', upsertErr.message);
+                    // Continue, but do not throw
+                } else {
+                    synced += 1;
+                    upserts.push(upserted && upserted[0]);
+                }
+            } catch (e) {
+                console.warn('⚠️ Error during upsert:', e.message);
+            }
+        }
+
+        return res.json({ success: true, message: 'Sync completed', syncedCount: synced, transactions: upserts });
+
+    } catch (error) {
+        console.error('❌ Sync failed:', error);
+        return res.status(500).json({ success: false, error: error.message });
     }
 });
 
