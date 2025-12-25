@@ -2566,8 +2566,24 @@ router.post('/transactions/sync', async (req, res) => {
 
         const upsertResult = await upsertTransactionsForUser(userId, address, chainTxs);
 
-        // Reconcile pending local transactions: if a pending row matches on-chain tx (by from/to/amount/time window), update it to authoritative hash + status
+        // Reconcile pending local transactions: match by amount + fuzzy address/time windows, then update to authoritative hash + status/type
         try {
+            function normalizeAddr(a) {
+                if (!a) return null;
+                try { return a.toString().toLowerCase().replace(/[^a-z0-9]/g, ''); } catch (e) { return null; }
+            }
+
+            function simpleAddressEqual(a, b) {
+                if (!a || !b) return false;
+                const na = normalizeAddr(a);
+                const nb = normalizeAddr(b);
+                if (!na || !nb) return false;
+                if (na === nb) return true;
+                if (na.endsWith(nb.slice(-20)) || nb.endsWith(na.slice(-20))) return true;
+                if (na.includes(nb) || nb.includes(na)) return true;
+                return false;
+            }
+
             for (const tx of chainTxs) {
                 if (!tx.transaction_hash) continue;
 
@@ -2577,42 +2593,66 @@ router.post('/transactions/sync', async (req, res) => {
                 const allowedStatuses = ['pending', 'completed', 'failed'];
                 const normalizedStatus = allowedStatuses.includes(txStatus) ? txStatus : (txStatus === 'confirmed' || txStatus === 'finalized' ? 'completed' : 'pending');
 
-                // 5 minute window around block_time or now
                 const blockTime = tx.block_time ? new Date(tx.block_time) : new Date();
-                const windowStart = new Date(blockTime.getTime() - 5 * 60 * 1000).toISOString();
-                const windowEnd = new Date(blockTime.getTime() + 5 * 60 * 1000).toISOString();
+                const windowStart = new Date(blockTime.getTime() - 20 * 60 * 1000).toISOString();
+                const windowEnd = new Date(blockTime.getTime() + 20 * 60 * 1000).toISOString();
 
-                // Try to find a single pending local row that matches
-                const { data: pendingRows, error: pendingErr } = await supabase
+                // Fetch pending candidates by amount + time window; we'll do address fuzzy matching in code
+                const { data: candidates, error: candErr } = await supabase
                     .from('transactions')
                     .select('*')
                     .eq('user_id', userId)
                     .eq('status', 'pending')
                     .eq('amount', amountNum)
-                    .eq('from_address', tx.from_address || null)
-                    .eq('to_address', tx.to_address || null)
                     .gte('created_at', windowStart)
                     .lte('created_at', windowEnd)
-                    .limit(1);
+                    .order('created_at', { ascending: true })
+                    .limit(10);
 
-                if (pendingErr) {
-                    console.warn('⚠️ Error querying pending rows:', pendingErr.message);
+                if (candErr) {
+                    console.warn('⚠️ Error querying pending candidates:', candErr.message);
                     continue;
                 }
 
-                if (pendingRows && pendingRows.length > 0) {
-                    const existing = pendingRows[0];
-                    // Update the existing pending row to authoritative values
+                let matched = null;
+                if (candidates && candidates.length > 0) {
+                    // Prefer candidate where both from/to match (fuzzy)
+                    for (const c of candidates) {
+                        if (simpleAddressEqual(c.from_address, tx.from_address) && simpleAddressEqual(c.to_address, tx.to_address)) {
+                            matched = c; break;
+                        }
+                    }
+                    // Then where either side matches
+                    if (!matched) {
+                        for (const c of candidates) {
+                            if (simpleAddressEqual(c.from_address, tx.from_address) || simpleAddressEqual(c.to_address, tx.to_address)) {
+                                matched = c; break;
+                            }
+                        }
+                    }
+                    // Fallback to earliest candidate
+                    if (!matched) matched = candidates[0];
+                }
+
+                if (matched) {
                     try {
+                        const updatePayload = {
+                            transaction_hash: tx.transaction_hash,
+                            status: normalizedStatus,
+                            network_fee: tx.network_fee || matched.network_fee || 0,
+                            type: tx.type || matched.type || matched.type || 'send'
+                        };
+                        if (tx.block_time) updatePayload.created_at = tx.block_time;
+
                         const { data: updated, error: updateErr } = await supabase
                             .from('transactions')
-                            .update({ transaction_hash: tx.transaction_hash, status: normalizedStatus, network_fee: tx.network_fee || existing.network_fee || 0, created_at: tx.block_time || existing.created_at })
-                            .eq('id', existing.id);
+                            .update(updatePayload)
+                            .eq('id', matched.id);
 
                         if (updateErr) {
                             console.warn('⚠️ Failed to update pending transaction:', updateErr.message);
                         } else {
-                            console.log(`✅ Reconciled pending transaction id=${existing.id} -> hash=${tx.transaction_hash}, status=${normalizedStatus}`);
+                            console.log(`✅ Reconciled pending transaction id=${matched.id} -> hash=${tx.transaction_hash}, status=${normalizedStatus}`);
                         }
                     } catch (e) {
                         console.warn('⚠️ Exception updating pending row:', e.message);
