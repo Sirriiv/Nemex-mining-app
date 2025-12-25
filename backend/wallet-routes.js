@@ -2419,6 +2419,24 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                         if (tx.in_msg.fee) fee = Number(tx.in_msg.fee) / 1_000_000_000;
                     }
 
+                    // If not an inbound transaction, try to extract from out_msgs (useful for sends)
+                    if ((!amount || amount === 0) && Array.isArray(tx.out_msgs) && tx.out_msgs.length > 0) {
+                        try {
+                            // Prefer an out_msg where source is the account or simply take the first
+                            const outMsg = tx.out_msgs.find(o => !!o.source) || tx.out_msgs[0];
+                            if (outMsg) {
+                                from_address = outMsg.source || from_address;
+                                to_address = outMsg.destination || to_address;
+                                if (outMsg.value) amount = Number(outMsg.value) / 1_000_000_000;
+                                // fwd_fee or ihr_fee may be present
+                                if (outMsg.fwd_fee) fee = Number(outMsg.fwd_fee) / 1_000_000_000;
+                                else if (outMsg.ihr_fee) fee = Number(outMsg.ihr_fee) / 1_000_000_000;
+                            }
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+
                     if (!amount && tx.value) amount = Number(tx.value) / 1_000_000_000;
                     if (!amount && tx.amount) amount = Number(tx.amount);
 
