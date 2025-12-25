@@ -2366,6 +2366,274 @@ router.get('/price/ton', async (req, res) => {
     }
 });
 
+// ============================================
+// 🎯 TRANSACTION SYNC HELPERS AND ENDPOINTS
+// ============================================
+
+// Fetch transactions from public providers and normalize
+async function fetchTransactionsFromProviders(address, limit = 50) {
+    const providers = [];
+    // TonAPI / TON Console
+    providers.push({ name: 'TonAPI', url: `${TON_API_URL}/accounts/${address}/transactions?limit=${limit}`, method: 'GET' });
+    // TonCenter
+    providers.push({ name: 'TON Center', url: `https://toncenter.com/api/v2/getTransactions`, params: { address: address, limit: limit } });
+
+    for (const p of providers) {
+        try {
+            console.log(`🔎 Trying transaction provider: ${p.name} for ${address}`);
+            const opts = { method: p.method || 'GET', url: p.url, timeout: 20000 };
+            if (p.params) opts.params = p.params;
+            if (p.headers) opts.headers = p.headers;
+            if (p.name === 'TON Center' && TONCENTER_API_KEY) opts.headers = { 'X-API-Key': TONCENTER_API_KEY };
+
+            const response = await axios(opts);
+            if (!response || !response.data) continue;
+
+            let raw = response.data;
+            if (raw.ok && raw.result) raw = raw.result;
+            if (raw.transactions) raw = raw.transactions;
+
+            if (!Array.isArray(raw) || raw.length === 0) {
+                console.log(`ℹ️ ${p.name} returned no transactions for ${address}`);
+                continue;
+            }
+
+            const normalized = raw.map(tx => {
+                try {
+                    const hash = tx.hash || tx.transaction_hash || tx.tx_hash || (tx.transaction_id && tx.transaction_id.hash) || null;
+                    const timeVal = tx.utime || tx.time || (tx.block && tx.block.utime) || null;
+                    const block_time = timeVal ? (new Date(timeVal * 1000)).toISOString() : (tx.block_time || null);
+                    const block_height = tx.block && tx.block.height ? tx.block.height : (tx.block_height || null);
+
+                    let amount = null;
+                    let from_address = null;
+                    let to_address = null;
+                    let fee = null;
+                    let status = tx.status || 'pending';
+                    let description = tx.description || tx.memo || tx.message || '';
+
+                    if (tx.in_msg) {
+                        from_address = tx.in_msg.source || tx.in_msg.from || null;
+                        to_address = tx.in_msg.destination || tx.in_msg.to || null;
+                        if (tx.in_msg.value) amount = Number(tx.in_msg.value) / 1_000_000_000;
+                        if (tx.in_msg.fee) fee = Number(tx.in_msg.fee) / 1_000_000_000;
+                    }
+
+                    if (!amount && tx.value) amount = Number(tx.value) / 1_000_000_000;
+                    if (!amount && tx.amount) amount = Number(tx.amount);
+
+                    if (!from_address && tx.from) from_address = tx.from;
+                    if (!to_address && tx.to) to_address = tx.to;
+
+                    let type = 'unknown';
+                    const lowerAddr = (address || '').toLowerCase();
+                    if (from_address && from_address.toLowerCase() === lowerAddr) type = 'send';
+                    if (to_address && to_address.toLowerCase() === lowerAddr) type = 'receive';
+
+                    return {
+                        transaction_hash: hash,
+                        block_time: block_time || null,
+                        block_height: block_height || null,
+                        amount: amount !== null ? parseFloat(amount) : null,
+                        network_fee: fee !== null ? parseFloat(fee) : null,
+                        from_address: from_address || null,
+                        to_address: to_address || null,
+                        type: type,
+                        status: status,
+                        description: description || '',
+                        raw: tx
+                    };
+                } catch (e) {
+                    console.warn('⚠️ Failed to normalize tx:', e.message);
+                    return null;
+                }
+            }).filter(Boolean);
+
+            if (normalized.length > 0) return normalized;
+
+        } catch (error) {
+            console.warn(`⚠️ Provider ${p.name} failed:`, error.message);
+            continue;
+        }
+    }
+
+    return [];
+}
+
+// Upsert helper (reuses normalization rules)
+async function upsertTransactionsForUser(userId, address, chainTxs = []) {
+    try {
+        if (!Array.isArray(chainTxs) || chainTxs.length === 0) return { success: true, syncedCount: 0, rows: [] };
+
+        const allowedTypes = ['send', 'receive', 'swap', 'buy'];
+        const allowedStatuses = ['pending', 'completed', 'failed'];
+
+        const rowsToUpsert = [];
+        for (const tx of chainTxs) {
+            if (!tx.transaction_hash) continue;
+
+            const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
+            const amountNum = Number(Number(safeAmount).toFixed(8));
+            const safeFee = tx.network_fee !== null && tx.network_fee !== undefined ? Number(tx.network_fee) : 0;
+            const feeNum = Number(Number(safeFee).toFixed(8));
+
+            let txType = (tx.type || '').toString().toLowerCase();
+            if (!allowedTypes.includes(txType)) {
+                const lower = (address || '').toLowerCase();
+                if (tx.from_address && tx.from_address.toLowerCase() === lower) txType = 'send';
+                else if (tx.to_address && tx.to_address.toLowerCase() === lower) txType = 'receive';
+                else txType = 'receive';
+            }
+
+            let txStatus = (tx.status || '').toString().toLowerCase();
+            if (!allowedStatuses.includes(txStatus)) {
+                if (txStatus === 'ok' || txStatus === 'finalized' || txStatus === 'confirmed' || txStatus === 'completed') txStatus = 'completed';
+                else if (txStatus === 'failed' || txStatus === 'rejected' || txStatus === 'error') txStatus = 'failed';
+                else txStatus = 'pending';
+            }
+
+            rowsToUpsert.push({
+                user_id: userId,
+                wallet_address: address,
+                transaction_hash: tx.transaction_hash,
+                type: txType,
+                token: tx.token || 'TON',
+                amount: amountNum,
+                to_address: tx.to_address || null,
+                from_address: tx.from_address || null,
+                status: txStatus,
+                network_fee: feeNum,
+                description: tx.description || null,
+                created_at: tx.block_time || new Date().toISOString()
+            });
+        }
+
+        if (rowsToUpsert.length === 0) return { success: true, syncedCount: 0, rows: [] };
+
+        const { data: upsertedRows, error: bulkErr } = await supabase
+            .from('transactions')
+            .upsert(rowsToUpsert, { onConflict: 'transaction_hash' });
+
+        if (bulkErr) {
+            console.warn('⚠️ Bulk upsert error:', bulkErr.message);
+            return { success: false, error: bulkErr.message, syncedCount: 0, rows: [] };
+        }
+
+        return { success: true, syncedCount: Array.isArray(upsertedRows) ? upsertedRows.length : 0, rows: upsertedRows };
+
+    } catch (e) {
+        console.warn('⚠️ upsertTransactionsForUser failed:', e.message);
+        return { success: false, error: e.message, syncedCount: 0, rows: [] };
+    }
+}
+
+// POST /transactions/sync - sync transactions for a single user
+router.post('/transactions/sync', async (req, res) => {
+    try {
+        const { userId } = req.body || {};
+        if (!userId) {
+            return res.status(400).json({ success: false, error: 'userId required' });
+        }
+
+        if (!supabase || dbStatus !== 'connected') {
+            return res.status(500).json({ success: false, error: 'Database not connected' });
+        }
+
+        const { data: wallets, error: walletErr } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .limit(1);
+
+        if (walletErr) {
+            console.error('❌ DB error fetching wallet:', walletErr.message);
+            return res.status(500).json({ success: false, error: walletErr.message });
+        }
+
+        const wallet = wallets && wallets[0];
+        if (!wallet || !wallet.wallet_address) {
+            return res.json({ success: false, error: 'No wallet address found for user', syncedCount: 0 });
+        }
+
+        const address = wallet.wallet_address;
+        console.log(`🔄 Starting transaction sync for user ${userId}, address ${address}`);
+
+        const chainTxs = await fetchTransactionsFromProviders(address, 100);
+        if (!chainTxs || chainTxs.length === 0) {
+            return res.json({ success: true, message: 'No transactions found on chain', syncedCount: 0, transactions: [] });
+        }
+
+        const upsertResult = await upsertTransactionsForUser(userId, address, chainTxs);
+        return res.json({ success: true, message: 'Sync completed', syncedCount: upsertResult.syncedCount, transactions: upsertResult.rows });
+    } catch (error) {
+        console.error('❌ Sync failed:', error);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Sync all wallets helper
+async function syncAllWallets(limitPerWallet = 100) {
+    if (!supabase || dbStatus !== 'connected') {
+        throw new Error('Database not connected');
+    }
+
+    if (global.__transactionSyncRunning) {
+        throw new Error('Transaction sync already in progress');
+    }
+    global.__transactionSyncRunning = true;
+
+    const { data: wallets, error: walletErr } = await supabase
+        .from('user_wallets')
+        .select('user_id, wallet_address')
+        .not('wallet_address', 'is', null);
+
+    if (walletErr) {
+        global.__transactionSyncRunning = false;
+        throw new Error(walletErr.message);
+    }
+
+    const results = [];
+    const CONCURRENCY = parseInt(process.env.TRANSACTION_SYNC_CONCURRENCY || '5');
+    const queue = [...(wallets || [])];
+
+    async function worker() {
+        while (queue.length > 0) {
+            const w = queue.shift();
+            if (!w || !w.wallet_address) continue;
+            try {
+                const txs = await fetchTransactionsFromProviders(w.wallet_address, limitPerWallet);
+                const up = await upsertTransactionsForUser(w.user_id, w.wallet_address, txs);
+                results.push({ userId: w.user_id, address: w.wallet_address, synced: up.syncedCount || 0, error: up.error || null });
+            } catch (e) {
+                results.push({ userId: w.user_id, address: w.wallet_address, synced: 0, error: e.message });
+            }
+        }
+    }
+
+    const workers = [];
+    for (let i = 0; i < CONCURRENCY; i++) workers.push(worker());
+    await Promise.all(workers);
+
+    global.__transactionSyncRunning = false;
+    return results;
+}
+
+// POST /transactions/sync/all - sync all wallets (can be called via webhook/cron)
+router.post('/transactions/sync/all', async (req, res) => {
+    try {
+        const limitPerWallet = parseInt(req.body?.limitPerWallet || 100);
+        const results = await syncAllWallets(limitPerWallet);
+        return res.json({ success: true, message: 'Full sync completed', results });
+    } catch (error) {
+        if (error.message === 'Transaction sync already in progress') {
+            return res.json({ success: false, error: error.message });
+        }
+        console.error('❌ Full sync failed:', error.message);
+        return res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============================================
 // Transaction history endpoint
 router.get('/transactions/:userId', async (req, res) => {
     try {
@@ -2425,6 +2693,49 @@ router.get('/transactions/:userId', async (req, res) => {
         });
     }
 });
+
+// Schedule periodic full sync of all wallets (if desired)
+const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '300');
+
+function scheduleTransactionSync() {
+    if (global.__transactionSyncScheduled) return;
+    global.__transactionSyncScheduled = true;
+
+    console.log(`🔁 Transaction sync scheduled every ${TRANSACTION_SYNC_INTERVAL_SECONDS} seconds`);
+
+    // Immediate run after startup (non-blocking)
+    setTimeout(async () => {
+        try {
+            if (dbStatus === 'connected') {
+                console.log('🔁 Initial transaction sync starting...');
+                const results = await syncAllWallets();
+                console.log('🔁 Initial transaction sync completed. Wallets processed:', results.length);
+            } else {
+                console.log('🔁 Initial sync skipped: database not connected yet');
+            }
+        } catch (e) {
+            console.error('❌ Initial transaction sync failed:', e.message);
+        }
+    }, 5000);
+
+    // Periodic sync
+    setInterval(async () => {
+        try {
+            if (dbStatus !== 'connected') {
+                console.log('🔁 Skipping periodic sync - database not connected');
+                return;
+            }
+            console.log('🔁 Periodic transaction sync starting...');
+            const results = await syncAllWallets();
+            console.log('🔁 Periodic transaction sync completed. Wallets processed:', results.length);
+        } catch (e) {
+            console.error('❌ Periodic transaction sync error:', e.message);
+        }
+    }, TRANSACTION_SYNC_INTERVAL_SECONDS * 1000);
+}
+
+// Start scheduler now (safe - function checks DB status on run)
+scheduleTransactionSync();
 
 console.log('✅ WALLET ROUTES READY - DUAL API FIXED VERSION');
 
