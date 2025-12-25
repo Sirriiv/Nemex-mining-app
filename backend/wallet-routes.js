@@ -1428,7 +1428,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                 const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
                 console.log(`✅ Transaction broadcasted successfully on attempt ${attempt}!`, sendResult);
 
-                // Generate transaction hash
+                // Generate transaction hash (placeholder until indexed hash is available)
                 const txHash = crypto.createHash('sha256')
                     .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
                     .digest('hex')
@@ -1443,6 +1443,36 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                 // Get current price for USD value
                 const priceData = await fetchRealTONPrice();
                 const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
+
+                // Record transaction in DB (mark as pending) so history shows immediately
+                try {
+                    const record = {
+                        user_id: userId,
+                        wallet_address: walletContract.address.toString({ urlSafe: true, bounceable: false }),
+                        transaction_hash: txHash,
+                        type: 'send',
+                        token: 'TON',
+                        amount: Number(parseFloat(amount).toFixed(8)),
+                        to_address: toAddress,
+                        from_address: walletContract.address.toString({ urlSafe: true, bounceable: false }),
+                        status: 'pending',
+                        network_fee: Number((process.env.TX_FEE_TON || 0.001).toString()),
+                        description: memo || null,
+                        created_at: new Date().toISOString()
+                    };
+
+                    const { data: inserted, error: insertErr } = await supabase
+                        .from('transactions')
+                        .upsert(record, { onConflict: 'transaction_hash' });
+
+                    if (insertErr) {
+                        console.warn('⚠️ Failed to record outgoing transaction in DB:', insertErr.message);
+                    } else {
+                        console.log('✅ Recorded outgoing transaction in DB (pending):', inserted && inserted[0]?.transaction_hash || txHash);
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Exception while recording transaction in DB:', e.message);
+                }
 
                 // Return success
                 return {
@@ -2333,263 +2363,6 @@ router.get('/price/ton', async (req, res) => {
             timestamp: new Date().toISOString(),
             sourcesCount: 0
         });
-    }
-});
-
-// ============================================
-// 🎯 SYNC ON-CHAIN TRANSACTIONS INTO DATABASE
-// ============================================
-async function fetchTransactionsFromProviders(address, limit = 50) {
-    // Try multiple providers (TON Console / TonAPI / TonCenter) and normalize results
-    const providers = [];
-
-    // TON Console (if configured)
-    if (TON_CONSOLE_API_KEY) {
-        providers.push({
-            name: 'TON Console',
-            url: `${TON_API_URL}/accounts/${address}/transactions?limit=${limit}`,
-            headers: TON_CONSOLE_API_KEY ? { 'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}` } : {}
-        });
-    }
-
-    // TonAPI (fallback)
-    providers.push({
-        name: 'TonAPI',
-        url: `${TON_API_URL}/accounts/${address}/transactions?limit=${limit}`,
-        headers: {}
-    });
-
-    // TonCenter (fallback)
-    providers.push({
-        name: 'TON Center',
-        url: `https://toncenter.com/api/v2/getTransactions`,
-        params: { address: address, limit: limit }
-    });
-
-    for (const p of providers) {
-        try {
-            console.log(`🔎 Trying transaction provider: ${p.name}`);
-            const opts = {
-                method: 'GET',
-                url: p.url,
-                timeout: 20000
-            };
-            if (p.headers) opts.headers = p.headers;
-            if (p.params) opts.params = p.params;
-
-            const response = await axios(opts);
-            if (!response || !response.data) continue;
-
-            let raw = response.data;
-
-            // Normalize TonCenter responses which wrap in { ok: true, result: [...] }
-            if (raw.ok && raw.result) raw = raw.result;
-            // TonAPI may return an object with transactions array
-            if (raw.transactions) raw = raw.transactions;
-
-            if (!Array.isArray(raw) || raw.length === 0) {
-                console.log(`ℹ️ ${p.name} returned no transactions for ${address}`);
-                continue;
-            }
-
-            // Map/normalize entries
-            const normalized = raw.map(tx => {
-                try {
-                    // TonAPI / TON Console expected keys
-                    const hash = tx.hash || tx.transaction_hash || tx.tx_hash || (tx.transaction_id && tx.transaction_id.hash);
-                    const utime = tx.utime || tx.time || (tx.block && tx.block.utime) || null;
-                    const block_time = utime ? (new Date(utime * 1000)).toISOString() : (tx.block_time || tx.block_time_iso || null);
-                    const block_height = tx.block && tx.block.height ? tx.block.height : (tx.block_height || null);
-
-                    // Amounts: TonAPI uses value in in_msg or amount fields
-                    let amount = null;
-                    let from_address = null;
-                    let to_address = null;
-                    let fee = null;
-                    let status = tx.status || 'pending';
-                    let description = tx.description || tx.memo || tx.message || '';
-
-                    // Attempt to extract from TonCenter shape
-                    if (tx.in_msg) {
-                        from_address = tx.in_msg.source || tx.in_msg.from || null;
-                        to_address = tx.in_msg.destination || tx.in_msg.to || null;
-                        if (tx.in_msg.value) amount = Number(tx.in_msg.value) / 1_000_000_000;
-                        if (tx.in_msg.fee) fee = Number(tx.in_msg.fee) / 1_000_000_000;
-                    }
-
-                    // Fallbacks
-                    if (!amount && tx.value) amount = Number(tx.value) / 1_000_000_000;
-                    if (!amount && tx.amount) amount = Number(tx.amount);
-
-                    if (!from_address && tx.from) from_address = tx.from;
-                    if (!to_address && tx.to) to_address = tx.to;
-
-                    // Determine type relative to address
-                    let type = 'unknown';
-                    const lowerAddr = (address || '').toLowerCase();
-                    if (from_address && from_address.toLowerCase() === lowerAddr) type = 'send';
-                    if (to_address && to_address.toLowerCase() === lowerAddr) type = 'receive';
-
-                    return {
-                        transaction_hash: hash || null,
-                        block_time: block_time || null,
-                        block_height: block_height || null,
-                        amount: amount !== null ? parseFloat(amount) : null,
-                        network_fee: fee !== null ? parseFloat(fee) : null,
-                        from_address: from_address || null,
-                        to_address: to_address || null,
-                        type: type,
-                        status: status,
-                        description: description || '',
-                        raw: tx
-                    };
-                } catch (e) {
-                    console.warn('⚠️ Failed to normalize tx:', e.message);
-                    return null;
-                }
-            }).filter(Boolean);
-
-            if (normalized.length > 0) return normalized;
-
-        } catch (error) {
-            console.warn(`⚠️ Provider ${p.name} failed:`, error.message);
-            continue;
-        }
-    }
-
-    return [];
-}
-
-// POST /transactions/sync - sync transactions for a single user
-router.post('/transactions/sync', async (req, res) => {
-    try {
-        const { userId } = req.body || {};
-        if (!userId) {
-            return res.status(400).json({ success: false, error: 'userId required' });
-        }
-
-        if (!supabase || dbStatus !== 'connected') {
-            return res.status(500).json({ success: false, error: 'Database not connected' });
-        }
-
-        // Lookup user's wallet address
-        const { data: wallets, error: walletErr } = await supabase
-            .from('user_wallets')
-            .select('*')
-            .eq('user_id', userId)
-            .limit(1);
-
-        if (walletErr) {
-            console.error('❌ DB error fetching wallet:', walletErr.message);
-            return res.status(500).json({ success: false, error: walletErr.message });
-        }
-
-        const wallet = wallets && wallets[0];
-        if (!wallet || !wallet.wallet_address) {
-            return res.json({ success: false, error: 'No wallet address found for user', syncedCount: 0 });
-        }
-
-        const address = wallet.wallet_address;
-        console.log(`🔄 Starting transaction sync for user ${userId}, address ${address}`);
-
-        // Fetch transactions from chain
-        const chainTxs = await fetchTransactionsFromProviders(address, 100);
-
-        if (!chainTxs || chainTxs.length === 0) {
-            return res.json({ success: true, message: 'No transactions found on chain', syncedCount: 0, transactions: [] });
-        }
-
-        // Quick check: ensure transactions table exists
-        try {
-            const check = await supabase.from('transactions').select('id').limit(1);
-            if (check.error) {
-                console.warn('⚠️ Transactions table check returned error:', check.error.message);
-            }
-        } catch (e) {
-            console.warn('⚠️ Unable to access transactions table:', e.message);
-            return res.json({ success: false, error: 'Transactions table missing or inaccessible. Please create a `transactions` table with a unique transaction_hash column.' });
-        }
-
-        // Build rows and sanitize to match DB schema
-        const allowedTypes = ['send', 'receive', 'swap', 'buy'];
-        const allowedStatuses = ['pending', 'completed', 'failed'];
-
-        const rowsToUpsert = [];
-        for (const tx of chainTxs) {
-            // Skip txs without a hash to avoid duplicates
-            if (!tx.transaction_hash) {
-                console.warn('⚠️ Skipping transaction without hash:', tx);
-                continue;
-            }
-
-            // Normalize amount and fee to numbers with up to 8 decimals
-            const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
-            const amountNum = Number(Number(safeAmount).toFixed(8));
-            const safeFee = tx.network_fee !== null && tx.network_fee !== undefined ? Number(tx.network_fee) : 0;
-            const feeNum = Number(Number(safeFee).toFixed(8));
-
-            // Normalize type
-            let txType = (tx.type || '').toString().toLowerCase();
-            if (!allowedTypes.includes(txType)) {
-                // Derive from addresses if possible
-                const lower = (address || '').toLowerCase();
-                if (tx.from_address && tx.from_address.toLowerCase() === lower) txType = 'send';
-                else if (tx.to_address && tx.to_address.toLowerCase() === lower) txType = 'receive';
-                else txType = 'receive';
-            }
-
-            // Normalize status
-            let txStatus = (tx.status || '').toString().toLowerCase();
-            if (!allowedStatuses.includes(txStatus)) {
-                // Map common statuses into allowed set
-                if (txStatus === 'ok' || txStatus === 'finalized' || txStatus === 'confirmed' || txStatus === 'completed') txStatus = 'completed';
-                else if (txStatus === 'failed' || txStatus === 'rejected' || txStatus === 'error') txStatus = 'failed';
-                else txStatus = 'pending';
-            }
-
-            const row = {
-                user_id: userId,
-                wallet_address: address,
-                transaction_hash: tx.transaction_hash,
-                type: txType,
-                token: 'TON',
-                amount: amountNum,
-                to_address: tx.to_address || null,
-                from_address: tx.from_address || null,
-                status: txStatus,
-                network_fee: feeNum,
-                description: tx.description || null,
-                created_at: tx.block_time || new Date().toISOString()
-            };
-
-            rowsToUpsert.push(row);
-        }
-
-        if (rowsToUpsert.length === 0) {
-            return res.json({ success: true, message: 'No valid transactions to upsert', syncedCount: 0, transactions: [] });
-        }
-
-        // Bulk upsert to be efficient (onConflict by transaction_hash)
-        try {
-            const { data: upsertedRows, error: bulkErr } = await supabase
-                .from('transactions')
-                .upsert(rowsToUpsert, { onConflict: 'transaction_hash' });
-
-            if (bulkErr) {
-                console.warn('⚠️ Bulk upsert error:', bulkErr.message);
-                return res.json({ success: false, error: bulkErr.message, syncedCount: 0, transactions: [] });
-            }
-
-            const syncedCount = Array.isArray(upsertedRows) ? upsertedRows.length : 0;
-            return res.json({ success: true, message: 'Sync completed', syncedCount: syncedCount, transactions: upsertedRows });
-        } catch (e) {
-            console.warn('⚠️ Bulk upsert exception:', e.message);
-            return res.status(500).json({ success: false, error: e.message });
-        }
-
-    } catch (error) {
-        console.error('❌ Sync failed:', error);
-        return res.status(500).json({ success: false, error: error.message });
     }
 });
 

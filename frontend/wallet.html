@@ -3569,9 +3569,20 @@ async function loadTransactionHistory() {
             renderTransactionHistory(result.transactions);
         } else {
             // Show empty state
-            if (emptyHistory) emptyHistory.style.display = 'block';
-            historyList.innerHTML = '';
-            historyList.appendChild(emptyHistory);
+            if (emptyHistory && emptyHistory instanceof Node) {
+                emptyHistory.style.display = 'block';
+                historyList.innerHTML = '';
+                historyList.appendChild(emptyHistory);
+            } else {
+                // Fallback: create empty state markup
+                historyList.innerHTML = `
+                    <div class="history-empty">
+                        <div class="history-empty-icon"><i class="fas fa-exchange-alt"></i></div>
+                        <div class="history-empty-title">No transactions yet</div>
+                        <div class="history-empty-subtitle">Your transaction history will appear here</div>
+                    </div>
+                `;
+            }
         }
 
     } catch (error) {
