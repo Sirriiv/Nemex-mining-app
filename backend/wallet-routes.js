@@ -2767,6 +2767,20 @@ router.post('/transactions/sync/address', async (req, res) => {
     }
 });
 
+// POST /transactions/raw/address - return raw normalized chain transactions for debugging
+router.post('/transactions/raw/address', async (req, res) => {
+    try {
+        const { address, limit = 200 } = req.body || {};
+        if (!address) return res.status(400).json({ success: false, error: 'address required' });
+
+        const chainTxs = await fetchTransactionsFromProviders(address, limit);
+        return res.json({ success: true, count: chainTxs.length, transactions: chainTxs });
+    } catch (e) {
+        console.error('❌ Raw address fetch failed:', e.message);
+        return res.status(500).json({ success: false, error: e.message });
+    }
+});
+
 // ============================================
 // Transaction history endpoint
 router.get('/transactions/:userId', async (req, res) => {
