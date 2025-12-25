@@ -1191,28 +1191,12 @@ window.syncTransactions = async function() {
         const result = await window.walletManager.syncReceivedTransactions();
 
         if (result.success) {
-            // Only show a toast when there's something useful to report (e.g., syncedCount > 0)
-            if (result.syncedCount && result.syncedCount > 0) {
-                if (typeof window.showToast === 'function') {
-                    window.showToast(`✅ Synced ${result.syncedCount} transactions`, 'success');
-                }
-            } else {
-                // Do not show noisy popups for 'no wallet' or 'no transactions' cases
-                console.debug('Sync completed with no new transactions:', result.message);
-            }
-
+            // Silent success for sync operations - no UI toast
+            console.debug('Sync result:', result.message, 'syncedCount:', result.syncedCount || 0);
             return result;
         } else {
-            // Only surface the error when it's not a benign message
-            const msg = (result && result.error) ? result.error : 'Sync failed';
-            if (msg && !msg.toLowerCase().includes('no wallet') && !msg.toLowerCase().includes('no transactions')) {
-                if (typeof window.showToast === 'function') {
-                    window.showToast(`❌ ${msg}`, 'error');
-                }
-            } else {
-                console.debug('Suppressed benign sync error:', msg);
-            }
-
+            // Silent failure; log for debugging but do not show toasts
+            console.debug('Sync failed (silent):', (result && result.error) || 'Sync failed');
             return result;
         }
     } catch (error) {

@@ -3706,26 +3706,14 @@ async function syncTransactionHistory() {
             syncBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Syncing...';
         }
 
-        showToast('🔄 Syncing received transactions...', 'info');
-        
         const result = await window.syncTransactions();
         
         if (result.success) {
-            // Only show a success toast when there are new transactions
-            if (result.syncedCount && result.syncedCount > 0) {
-                showToast(`✅ Synced ${result.syncedCount} transactions`, 'success');
-            } else {
-                console.debug('Sync success with no new transactions:', result.message);
-            }
+            console.debug('Sync completed:', result.message, 'syncedCount:', result.syncedCount || 0);
             // Reload history after sync (so UI updates pending->completed)
             try { loadTransactionHistory(); } catch (e) { console.warn('Failed to reload history after sync'); }
         } else {
-            const errMsg = result.error || 'Sync failed';
-            if (!errMsg.toLowerCase().includes('no wallet') && !errMsg.toLowerCase().includes('no transactions')) {
-                showToast(`❌ ${errMsg}`, 'error');
-            } else {
-                console.debug('Suppressed benign sync error:', errMsg);
-            }
+            console.debug('Sync failed (silent):', result.error || 'Sync failed');
         }
 
     } catch (error) {
