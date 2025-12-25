@@ -3242,6 +3242,104 @@ router.get('/transactions/:userId', async (req, res) => {
     }
 });
 
+// ============================================
+// 🎯 FIXED: Ensure wallet address is in transactions table
+// ============================================
+router.post('/transactions/fix-wallet-link', async (req, res) => {
+    try {
+        const { userId } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID required'
+            });
+        }
+
+        if (!supabase || dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
+
+        // Get user's wallet
+        const { data: wallet, error: walletError } = await supabase
+            .from('user_wallets')
+            .select('address, wallet_address')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (walletError) {
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to fetch wallet: ' + walletError.message
+            });
+        }
+
+        if (!wallet) {
+            return res.json({
+                success: true,
+                message: 'User has no wallet',
+                updated: 0
+            });
+        }
+
+        const walletAddress = wallet.address || wallet.wallet_address;
+
+        // Find transactions that belong to this wallet address but don't have user_id
+        const { data: orphanedTransactions, error: orphanError } = await supabase
+            .from('transactions')
+            .select('*')
+            .eq('wallet_address', walletAddress)
+            .is('user_id', null);
+
+        if (orphanError) {
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to find orphaned transactions: ' + orphanError.message
+            });
+        }
+
+        // Update orphaned transactions with user_id
+        if (orphanedTransactions && orphanedTransactions.length > 0) {
+            const { error: updateError } = await supabase
+                .from('transactions')
+                .update({ user_id: userId })
+                .eq('wallet_address', walletAddress)
+                .is('user_id', null);
+
+            if (updateError) {
+                return res.status(500).json({
+                    success: false,
+                    error: 'Failed to update transactions: ' + updateError.message
+                });
+            }
+
+            return res.json({
+                success: true,
+                message: `Updated ${orphanedTransactions.length} transactions with user ID`,
+                updated: orphanedTransactions.length,
+                walletAddress: walletAddress
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: 'No orphaned transactions found',
+            updated: 0,
+            walletAddress: walletAddress
+        });
+
+    } catch (error) {
+        console.error('❌ Fix wallet link error:', error.message);
+        return res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Schedule periodic full sync of all wallets (if desired)
 const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '300');
 
