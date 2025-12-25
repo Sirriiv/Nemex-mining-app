@@ -3117,11 +3117,12 @@ router.post('/transactions/sync/all', async (req, res) => {
 });
 
 // ============================================
-// Transaction history endpoint
+// 🎯 FIXED: Transaction history endpoint - SHOWS ALL USER TRANSACTIONS
+// ============================================
 router.get('/transactions/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        const { limit = 50 } = req.query;
+        const { limit = 50, type, status, token } = req.query;
 
         if (!userId) {
             return res.status(400).json({
@@ -3138,41 +3139,105 @@ router.get('/transactions/:userId', async (req, res) => {
             });
         }
 
+        // First, get the user's wallet address
+        let walletAddress = null;
         try {
-            const { data: transactions, error } = await supabase
-                .from('transactions')
-                .select('*')
+            const { data: wallet, error: walletError } = await supabase
+                .from('user_wallets')
+                .select('address, wallet_address')
                 .eq('user_id', userId)
-                .order('created_at', { ascending: false })
-                .limit(parseInt(limit));
+                .maybeSingle();
 
-            if (error) {
-                console.error('Database error:', error.message);
-                return res.json({
-                    success: false,
-                    error: error.message,
-                    transactions: []
-                });
+            if (!walletError && wallet) {
+                walletAddress = wallet.address || wallet.wallet_address;
+                console.log(`🔍 Found wallet for user ${userId}: ${walletAddress}`);
             }
+        } catch (walletErr) {
+            console.log('⚠️ Could not fetch wallet:', walletErr.message);
+        }
 
-            return res.json({
-                success: true,
-                transactions: transactions || [],
-                count: transactions?.length || 0
-            });
+        // Build query to get ALL transactions for this user
+        let query = supabase
+            .from('transactions')
+            .select('*')
+            .or(`user_id.eq.${userId}${walletAddress ? `,wallet_address.eq.${walletAddress}` : ''}`)
+            .order('created_at', { ascending: false })
+            .limit(parseInt(limit));
 
-        } catch (tableError) {
+        // Apply filters if provided
+        if (type && ['send', 'receive', 'swap', 'buy'].includes(type.toLowerCase())) {
+            query = query.eq('type', type.toLowerCase());
+        }
+        if (status && ['pending', 'completed', 'failed'].includes(status.toLowerCase())) {
+            query = query.eq('status', status.toLowerCase());
+        }
+        if (token) {
+            query = query.ilike('token', `%${token}%`);
+        }
+
+        const { data: transactions, error } = await query;
+
+        if (error) {
+            console.error('❌ Database error fetching transactions:', error.message);
             return res.json({
                 success: false,
-                error: 'Transactions table not ready',
+                error: error.message,
                 transactions: []
             });
         }
 
+        // If no transactions found but user has a wallet, sync transactions
+        if ((!transactions || transactions.length === 0) && walletAddress) {
+            console.log(`🔄 No transactions found for user ${userId}, syncing...`);
+            
+            try {
+                // Sync transactions from blockchain
+                const chainTxs = await fetchTransactionsFromProviders(walletAddress, 50);
+                
+                if (chainTxs && chainTxs.length > 0) {
+                    console.log(`✅ Found ${chainTxs.length} transactions on-chain, syncing...`);
+                    
+                    // Upsert transactions into database
+                    const upsertResult = await upsertTransactionsForUser(userId, walletAddress, chainTxs);
+                    
+                    if (upsertResult.success && upsertResult.syncedCount > 0) {
+                        // Fetch again after sync
+                        const { data: syncedTransactions } = await supabase
+                            .from('transactions')
+                            .select('*')
+                            .or(`user_id.eq.${userId},wallet_address.eq.${walletAddress}`)
+                            .order('created_at', { ascending: false })
+                            .limit(parseInt(limit));
+                        
+                        return res.json({
+                            success: true,
+                            transactions: syncedTransactions || [],
+                            count: syncedTransactions?.length || 0,
+                            synced: true,
+                            syncCount: upsertResult.syncedCount
+                        });
+                    }
+                }
+            } catch (syncError) {
+                console.error('❌ Sync error:', syncError.message);
+                // Continue with empty transactions
+            }
+        }
+
+        return res.json({
+            success: true,
+            transactions: transactions || [],
+            count: transactions?.length || 0,
+            walletAddress: walletAddress,
+            hasWallet: !!walletAddress
+        });
+
     } catch (error) {
+        console.error('❌ Transaction history error:', error.message);
         return res.status(500).json({
             success: false,
-            error: error.message
+            error: error.message,
+            transactions: []
         });
     }
 });
