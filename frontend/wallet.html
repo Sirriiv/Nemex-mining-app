@@ -3366,7 +3366,14 @@ function stopAutoSync() {
     }
 }
 
+let autoSyncListenersInstalled = false;
+
 function setupAutoSyncListeners() {
+    if (autoSyncListenersInstalled) {
+        console.debug('Auto-sync listeners already installed - skipping');
+        return;
+    }
+
     // React when a different tab or window updates session/localStorage
     window.addEventListener('storage', (e) => {
         if (!e.key) return;
@@ -3392,6 +3399,8 @@ function setupAutoSyncListeners() {
         console.log('🔄 Window focused - refreshing wallet data');
         scheduleImmediateUpdate();
     });
+
+    autoSyncListenersInstalled = true;
 }
 
 async function updateRealBalance() {
@@ -3702,11 +3711,21 @@ async function syncTransactionHistory() {
         const result = await window.syncTransactions();
         
         if (result.success) {
-            showToast(`✅ ${result.message}`, 'success');
-            // Reload history after sync
-            loadTransactionHistory();
+            // Only show a success toast when there are new transactions
+            if (result.syncedCount && result.syncedCount > 0) {
+                showToast(`✅ Synced ${result.syncedCount} transactions`, 'success');
+            } else {
+                console.debug('Sync success with no new transactions:', result.message);
+            }
+            // Reload history after sync (so UI updates pending->completed)
+            try { loadTransactionHistory(); } catch (e) { console.warn('Failed to reload history after sync'); }
         } else {
-            showToast(`❌ ${result.error || 'Sync failed'}`, 'error');
+            const errMsg = result.error || 'Sync failed';
+            if (!errMsg.toLowerCase().includes('no wallet') && !errMsg.toLowerCase().includes('no transactions')) {
+                showToast(`❌ ${errMsg}`, 'error');
+            } else {
+                console.debug('Suppressed benign sync error:', errMsg);
+            }
         }
 
     } catch (error) {

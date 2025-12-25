@@ -2552,7 +2552,8 @@ router.post('/transactions/sync', async (req, res) => {
 
         const wallet = wallets && wallets[0];
         if (!wallet || !wallet.wallet_address) {
-            return res.json({ success: false, error: 'No wallet address found for user', syncedCount: 0 });
+            // Not an error for UI - no wallet configured for this user
+            return res.json({ success: true, message: 'No wallet configured for this user', syncedCount: 0, transactions: [] });
         }
 
         const address = wallet.wallet_address;
@@ -2564,6 +2565,64 @@ router.post('/transactions/sync', async (req, res) => {
         }
 
         const upsertResult = await upsertTransactionsForUser(userId, address, chainTxs);
+
+        // Reconcile pending local transactions: if a pending row matches on-chain tx (by from/to/amount/time window), update it to authoritative hash + status
+        try {
+            for (const tx of chainTxs) {
+                if (!tx.transaction_hash) continue;
+
+                const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
+                const amountNum = Number(Number(safeAmount).toFixed(8));
+                const txStatus = (tx.status || '').toString().toLowerCase();
+                const allowedStatuses = ['pending', 'completed', 'failed'];
+                const normalizedStatus = allowedStatuses.includes(txStatus) ? txStatus : (txStatus === 'confirmed' || txStatus === 'finalized' ? 'completed' : 'pending');
+
+                // 5 minute window around block_time or now
+                const blockTime = tx.block_time ? new Date(tx.block_time) : new Date();
+                const windowStart = new Date(blockTime.getTime() - 5 * 60 * 1000).toISOString();
+                const windowEnd = new Date(blockTime.getTime() + 5 * 60 * 1000).toISOString();
+
+                // Try to find a single pending local row that matches
+                const { data: pendingRows, error: pendingErr } = await supabase
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .eq('status', 'pending')
+                    .eq('amount', amountNum)
+                    .eq('from_address', tx.from_address || null)
+                    .eq('to_address', tx.to_address || null)
+                    .gte('created_at', windowStart)
+                    .lte('created_at', windowEnd)
+                    .limit(1);
+
+                if (pendingErr) {
+                    console.warn('⚠️ Error querying pending rows:', pendingErr.message);
+                    continue;
+                }
+
+                if (pendingRows && pendingRows.length > 0) {
+                    const existing = pendingRows[0];
+                    // Update the existing pending row to authoritative values
+                    try {
+                        const { data: updated, error: updateErr } = await supabase
+                            .from('transactions')
+                            .update({ transaction_hash: tx.transaction_hash, status: normalizedStatus, network_fee: tx.network_fee || existing.network_fee || 0, created_at: tx.block_time || existing.created_at })
+                            .eq('id', existing.id);
+
+                        if (updateErr) {
+                            console.warn('⚠️ Failed to update pending transaction:', updateErr.message);
+                        } else {
+                            console.log(`✅ Reconciled pending transaction id=${existing.id} -> hash=${tx.transaction_hash}, status=${normalizedStatus}`);
+                        }
+                    } catch (e) {
+                        console.warn('⚠️ Exception updating pending row:', e.message);
+                    }
+                }
+            }
+        } catch (reconcileErr) {
+            console.warn('⚠️ Reconciliation step failed:', reconcileErr.message);
+        }
+
         return res.json({ success: true, message: 'Sync completed', syncedCount: upsertResult.syncedCount, transactions: upsertResult.rows });
     } catch (error) {
         console.error('❌ Sync failed:', error);
