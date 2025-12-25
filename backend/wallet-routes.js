@@ -2510,9 +2510,11 @@ router.post('/transactions/sync', async (req, res) => {
             return res.json({ success: false, error: 'Transactions table missing or inaccessible. Please create a `transactions` table with a unique transaction_hash column.' });
         }
 
-        let synced = 0;
-        const upserts = [];
+        // Build rows and sanitize to match DB schema
+        const allowedTypes = ['send', 'receive', 'swap', 'buy'];
+        const allowedStatuses = ['pending', 'completed', 'failed'];
 
+        const rowsToUpsert = [];
         for (const tx of chainTxs) {
             // Skip txs without a hash to avoid duplicates
             if (!tx.transaction_hash) {
@@ -2520,43 +2522,70 @@ router.post('/transactions/sync', async (req, res) => {
                 continue;
             }
 
-            // Build row matching expected table columns. If your table uses a different schema, share it and I'll adapt.
+            // Normalize amount and fee to numbers with up to 8 decimals
+            const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
+            const amountNum = Number(Number(safeAmount).toFixed(8));
+            const safeFee = tx.network_fee !== null && tx.network_fee !== undefined ? Number(tx.network_fee) : 0;
+            const feeNum = Number(Number(safeFee).toFixed(8));
+
+            // Normalize type
+            let txType = (tx.type || '').toString().toLowerCase();
+            if (!allowedTypes.includes(txType)) {
+                // Derive from addresses if possible
+                const lower = (address || '').toLowerCase();
+                if (tx.from_address && tx.from_address.toLowerCase() === lower) txType = 'send';
+                else if (tx.to_address && tx.to_address.toLowerCase() === lower) txType = 'receive';
+                else txType = 'receive';
+            }
+
+            // Normalize status
+            let txStatus = (tx.status || '').toString().toLowerCase();
+            if (!allowedStatuses.includes(txStatus)) {
+                // Map common statuses into allowed set
+                if (txStatus === 'ok' || txStatus === 'finalized' || txStatus === 'confirmed' || txStatus === 'completed') txStatus = 'completed';
+                else if (txStatus === 'failed' || txStatus === 'rejected' || txStatus === 'error') txStatus = 'failed';
+                else txStatus = 'pending';
+            }
+
             const row = {
                 user_id: userId,
                 wallet_address: address,
                 transaction_hash: tx.transaction_hash,
-                amount: tx.amount,
+                type: txType,
                 token: 'TON',
-                network_fee: tx.network_fee,
-                from_address: tx.from_address,
-                to_address: tx.to_address,
-                status: tx.status || 'pending',
-                type: tx.type || 'unknown',
+                amount: amountNum,
+                to_address: tx.to_address || null,
+                from_address: tx.from_address || null,
+                status: txStatus,
+                network_fee: feeNum,
                 description: tx.description || null,
-                block_height: tx.block_height || null,
-                block_time: tx.block_time || null,
                 created_at: tx.block_time || new Date().toISOString()
             };
 
-            // Use upsert to avoid duplicates; requires unique constraint on transaction_hash (recommended)
-            try {
-                const { data: upserted, error: upsertErr } = await supabase
-                    .from('transactions')
-                    .upsert(row, { onConflict: 'transaction_hash' });
-
-                if (upsertErr) {
-                    console.warn('⚠️ Upsert error:', upsertErr.message);
-                    // Continue, but do not throw
-                } else {
-                    synced += 1;
-                    upserts.push(upserted && upserted[0]);
-                }
-            } catch (e) {
-                console.warn('⚠️ Error during upsert:', e.message);
-            }
+            rowsToUpsert.push(row);
         }
 
-        return res.json({ success: true, message: 'Sync completed', syncedCount: synced, transactions: upserts });
+        if (rowsToUpsert.length === 0) {
+            return res.json({ success: true, message: 'No valid transactions to upsert', syncedCount: 0, transactions: [] });
+        }
+
+        // Bulk upsert to be efficient (onConflict by transaction_hash)
+        try {
+            const { data: upsertedRows, error: bulkErr } = await supabase
+                .from('transactions')
+                .upsert(rowsToUpsert, { onConflict: 'transaction_hash' });
+
+            if (bulkErr) {
+                console.warn('⚠️ Bulk upsert error:', bulkErr.message);
+                return res.json({ success: false, error: bulkErr.message, syncedCount: 0, transactions: [] });
+            }
+
+            const syncedCount = Array.isArray(upsertedRows) ? upsertedRows.length : 0;
+            return res.json({ success: true, message: 'Sync completed', syncedCount: syncedCount, transactions: upsertedRows });
+        } catch (e) {
+            console.warn('⚠️ Bulk upsert exception:', e.message);
+            return res.status(500).json({ success: false, error: e.message });
+        }
 
     } catch (error) {
         console.error('❌ Sync failed:', error);
