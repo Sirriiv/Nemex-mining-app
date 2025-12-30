@@ -3815,15 +3815,25 @@ async function confirmSendTransaction() {
             showStatusMessage('✅ Transaction sent successfully!', 'success', statusElement);
             showToast('✅ Transaction sent successfully!', 'success');
             
-            // Update balances
+            // Update balances immediately
             await updateRealBalance();
             
-            // Force immediate history reload
+            // Force immediate history reload (multiple attempts to ensure it shows)
+            await loadTransactionHistory();
+            
             setTimeout(async () => {
                 await loadTransactionHistory();
-            }, 1000);
+            }, 500);
+            
+            setTimeout(async () => {
+                await loadTransactionHistory();
+            }, 1500);
             
             // Reload again after reconciliation time
+            setTimeout(async () => {
+                await loadTransactionHistory();
+            }, 3000);
+            
             setTimeout(async () => {
                 await loadTransactionHistory();
             }, 5000);

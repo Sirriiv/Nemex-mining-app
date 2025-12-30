@@ -530,22 +530,99 @@ class WalletManager {
 
     // 🎯 PROMPT FOR PASSWORD (FOR TRANSACTIONS)
     async promptForPassword() {
-        // Use a simple password prompt specifically for transactions
+        // Use a custom modal for password prompt (NOT the unlock wallet modal)
         return new Promise((resolve) => {
-            const password = prompt('🔐 Enter your wallet password to confirm this transaction:');
+            // Create a password confirmation modal
+            const modalId = 'transactionPasswordModal';
+            let modal = document.getElementById(modalId);
             
-            if (!password) {
+            // Create modal if it doesn't exist
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = modalId;
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-title">🔐 Confirm Transaction</div>
+                        <div class="security-warning">
+                            <strong>Security Check:</strong> Enter your wallet password to authorize this transaction.
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Wallet Password:</label>
+                            <input type="password" id="transactionPassword" class="form-input" placeholder="Enter your wallet password" minlength="6">
+                        </div>
+                        <div id="transactionPasswordError" style="color: var(--error); margin: 10px 0; display: none;"></div>
+                        <button class="close-modal" id="confirmTransactionPassword">Confirm Transaction</button>
+                        <button class="close-modal secondary" id="cancelTransactionPassword">Cancel</button>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            } else {
+                modal.style.display = 'flex';
+            }
+            
+            const passwordInput = document.getElementById('transactionPassword');
+            const errorDiv = document.getElementById('transactionPasswordError');
+            const confirmBtn = document.getElementById('confirmTransactionPassword');
+            const cancelBtn = document.getElementById('cancelTransactionPassword');
+            
+            // Clear previous input
+            if (passwordInput) passwordInput.value = '';
+            if (errorDiv) errorDiv.style.display = 'none';
+            
+            // Focus the password field
+            setTimeout(() => passwordInput?.focus(), 100);
+            
+            // Handle confirm
+            const handleConfirm = () => {
+                const password = passwordInput?.value || '';
+                
+                if (!password) {
+                    if (errorDiv) {
+                        errorDiv.textContent = 'Password is required';
+                        errorDiv.style.display = 'block';
+                    }
+                    return;
+                }
+                
+                if (password.length < this.passwordMinLength) {
+                    if (errorDiv) {
+                        errorDiv.textContent = `Password must be at least ${this.passwordMinLength} characters`;
+                        errorDiv.style.display = 'block';
+                    }
+                    return;
+                }
+                
+                // Clean up
+                modal.style.display = 'none';
+                confirmBtn?.removeEventListener('click', handleConfirm);
+                cancelBtn?.removeEventListener('click', handleCancel);
+                passwordInput?.removeEventListener('keypress', handleEnter);
+                
+                resolve(password);
+            };
+            
+            // Handle cancel
+            const handleCancel = () => {
+                modal.style.display = 'none';
+                confirmBtn?.removeEventListener('click', handleConfirm);
+                cancelBtn?.removeEventListener('click', handleCancel);
+                passwordInput?.removeEventListener('keypress', handleEnter);
                 resolve(null); // User cancelled
-                return;
-            }
+            };
             
-            if (password.length < this.passwordMinLength) {
-                alert(`Password must be at least ${this.passwordMinLength} characters`);
-                resolve(null);
-                return;
-            }
+            // Handle Enter key
+            const handleEnter = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleConfirm();
+                }
+            };
             
-            resolve(password);
+            confirmBtn?.addEventListener('click', handleConfirm);
+            cancelBtn?.addEventListener('click', handleCancel);
+            passwordInput?.addEventListener('keypress', handleEnter);
         });
     }
 

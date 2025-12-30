@@ -775,6 +775,13 @@
 
         // ✅ FIXED: Pure Supabase Login
         async function setupLoginForm(supabase) {
+            console.log('🔐 Setting up login form with Supabase');
+            console.log('🔍 Supabase instance:', {
+                url: supabase.supabaseUrl,
+                hasAuth: !!supabase.auth,
+                hasFrom: !!supabase.from
+            });
+
             const loginForm = document.getElementById('loginForm');
             if (!loginForm) return;
 
@@ -795,6 +802,8 @@
 
                 try {
                     console.log('🔐 Attempting Supabase Auth login for:', email);
+                    console.log('🔍 Supabase URL:', supabase.supabaseUrl);
+                    console.log('🔍 Auth initialized:', !!supabase.auth);
 
                     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                         email: email,
@@ -803,11 +812,18 @@
 
                     if (authError) {
                         console.error('❌ Supabase Auth error:', authError);
+                        console.error('❌ Error details:', {
+                            status: authError.status,
+                            message: authError.message,
+                            name: authError.name
+                        });
 
                         if (authError.message.includes('Invalid login credentials')) {
-                            throw new Error('Invalid email or password');
+                            throw new Error('Invalid email or password. Please check your credentials or register a new account.');
                         } else if (authError.message.includes('Email not confirmed')) {
                             throw new Error('Please verify your email address before logging in');
+                        } else if (authError.status === 400) {
+                            throw new Error('Invalid email or password. If you registered on a different device, make sure to use the same credentials.');
                         } else {
                             throw new Error('Login failed: ' + authError.message);
                         }
@@ -849,8 +865,18 @@
 
                 } catch (error) {
                     console.error('❌ Login error:', error);
-                    errorMessage.textContent = error.message;
+                    console.error('❌ Error stack:', error.stack);
+                    
+                    let errorMsg = error.message;
+                    
+                    // Provide helpful guidance
+                    if (errorMsg.includes('Invalid') || errorMsg.includes('credentials')) {
+                        errorMsg = 'Invalid email or password. Please note:\n• Credentials are case-sensitive\n• Use the same credentials you registered with\n• If you registered on a different device/browser, those credentials apply here too\n• If you forgot your password, use the "Forgot password?" link';
+                    }
+                    
+                    errorMessage.textContent = errorMsg;
                     errorMessage.style.display = 'block';
+                    errorMessage.style.whiteSpace = 'pre-line'; // Allow line breaks
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Sign In';
                 }
@@ -935,7 +961,8 @@
             document.getElementById('recoveryNotice').style.display = 'none';
         }
 
-        function validate2FACode() {
+        // Make this function globally accessible for inline event handlers
+        window.validate2FACode = function() {
             const code = document.getElementById('twoFactorCode').value;
             const verifyBtn = document.getElementById('verify2FABtn');
 
@@ -944,7 +971,7 @@
             } else {
                 verifyBtn.disabled = true;
             }
-        }
+        };
 
         // ✅ FIXED: 2FA Verification
         async function verify2FACode() {
@@ -1108,14 +1135,15 @@
             document.getElementById('verifyBackupBtn').disabled = true;
         }
 
-        function validateBackupCode() {
+        // Make this function globally accessible for inline event handlers
+        window.validateBackupCode = function() {
             const code = document.getElementById('backupCode').value;
             const verifyBtn = document.getElementById('verifyBackupBtn');
             verifyBtn.disabled = !/^[A-Z0-9]{10}$/i.test(code);
-        }
+        };
 
-        // Backup code verification
-        async function verifyBackupCode() {
+        // Backup code verification - Make globally accessible for inline event handlers
+        window.verifyBackupCode = async function() {
             const code = document.getElementById('backupCode').value.toUpperCase();
             const verifyBtn = document.getElementById('verifyBackupBtn');
 
