@@ -1539,17 +1539,17 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                 const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
                 console.log(`✅ Transaction broadcasted successfully on attempt ${attempt}!`, sendResult);
 
-                // Generate transaction hash (placeholder until indexed hash is available)
-                const txHash = crypto.createHash('sha256')
+                // Generate a temporary transaction hash as placeholder
+                const tempTxHash = 'PENDING_' + crypto.createHash('sha256')
                     .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
                     .digest('hex')
                     .toUpperCase()
-                    .substring(0, 64);
+                    .substring(0, 56);
 
-                console.log("🔗 Generated transaction hash:", txHash);
+                console.log("🔗 Temporary transaction hash:", tempTxHash);
 
-                // Wait briefly for indexing
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // Wait for blockchain indexing
+                await new Promise(resolve => setTimeout(resolve, 3000));
 
                 // Get current price for USD value
                 const priceData = await fetchRealTONPrice();
@@ -1557,15 +1557,17 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
                 // Record transaction in DB (mark as pending) so history shows immediately
                 try {
+                    const walletAddr = walletContract.address.toString({ urlSafe: true, bounceable: false });
+                    
                     const record = {
                         user_id: userId,
-                        wallet_address: walletContract.address.toString({ urlSafe: true, bounceable: false }),
-                        transaction_hash: txHash,
+                        wallet_address: walletAddr,
+                        transaction_hash: tempTxHash,
                         type: 'send',
                         token: 'TON',
                         amount: Number(parseFloat(amount).toFixed(8)),
                         to_address: toAddress,
-                        from_address: walletContract.address.toString({ urlSafe: true, bounceable: false }),
+                        from_address: walletAddr,
                         status: 'pending',
                         network_fee: Number((process.env.TX_FEE_TON || 0.001).toString()),
                         description: memo || null,
@@ -1575,7 +1577,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                     console.log('💾 Attempting to save transaction to database:', {
                         user_id: userId,
                         wallet_address: record.wallet_address,
-                        transaction_hash: txHash,
+                        transaction_hash: tempTxHash,
                         type: 'send',
                         amount: record.amount
                     });
@@ -1596,11 +1598,41 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                         // Fire-and-forget: try to sync/reconcile immediately so UI shows confirmed txs faster
                         (async () => {
                             try {
-                                const walletAddr = walletContract.address.toString({ urlSafe: true, bounceable: false });
                                 console.log('🔄 Starting post-send sync for wallet:', walletAddr);
-                                const txs = await fetchTransactionsFromProviders(walletAddr, 50);
+                                
+                                // Wait a bit longer for blockchain indexing
+                                await new Promise(resolve => setTimeout(resolve, 5000));
+                                
+                                const txs = await fetchTransactionsFromProviders(walletAddr, 20);
                                 if (txs && txs.length > 0) {
                                     console.log(`✅ Found ${txs.length} transactions from blockchain`);
+                                    
+                                    // Find the matching transaction from blockchain
+                                    const matchingTx = txs.find(tx => 
+                                        tx.to_address === toAddress && 
+                                        Math.abs(parseFloat(tx.amount || 0) - parseFloat(amount)) < 0.000001
+                                    );
+                                    
+                                    if (matchingTx && matchingTx.transaction_hash) {
+                                        console.log('✅ Found matching blockchain transaction:', matchingTx.transaction_hash);
+                                        
+                                        // Update the pending transaction with real hash and mark as completed
+                                        await supabase
+                                            .from('transactions')
+                                            .update({
+                                                transaction_hash: matchingTx.transaction_hash,
+                                                status: 'completed',
+                                                network_fee: matchingTx.network_fee || record.network_fee,
+                                                created_at: matchingTx.block_time || record.created_at
+                                            })
+                                            .eq('transaction_hash', tempTxHash);
+                                        
+                                        console.log('✅ Updated transaction from pending to completed');
+                                    } else {
+                                        console.log('⚠️ Matching transaction not found yet, will reconcile later');
+                                    }
+                                    
+                                    // Also upsert all transactions to catch received ones
                                     await upsertTransactionsForUser(userId, walletAddr, txs);
                                     await reconcileChainTxsForUser(userId, txs);
                                     console.log('✅ Post-send sync complete');
@@ -1621,7 +1653,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                 return {
                     success: true,
                     message: 'Transaction sent successfully!',
-                    transactionHash: txHash,
+                    transactionHash: tempTxHash,
                     fromAddress: walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false }),
                     toAddress: toAddress,
                     amount: parseFloat(amount),
@@ -2961,12 +2993,12 @@ router.post('/transactions/sync', async (req, res) => {
         }
 
         const wallet = wallets && wallets[0];
-        if (!wallet || !wallet.wallet_address) {
+        if (!wallet || (!wallet.address && !wallet.wallet_address)) {
             // Not an error for UI - no wallet configured for this user
             return res.json({ success: true, message: 'No wallet configured for this user', syncedCount: 0, transactions: [] });
         }
 
-        const address = wallet.wallet_address;
+        const address = wallet.address || wallet.wallet_address;
         console.log(`🔄 Starting transaction sync for user ${userId}, address ${address}`);
 
         const chainTxs = await fetchTransactionsFromProviders(address, 100);
