@@ -1599,8 +1599,9 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                         (async () => {
                             try {
                                 console.log('🔄 Starting post-send sync for wallet:', walletAddr);
+                                console.log('🔍 Looking for transaction to update with temp hash:', tempTxHash);
                                 
-                                // Wait a bit longer for blockchain indexing
+                                // Wait for blockchain indexing
                                 await new Promise(resolve => setTimeout(resolve, 5000));
                                 
                                 const txs = await fetchTransactionsFromProviders(walletAddr, 20);
@@ -1608,16 +1609,23 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                     console.log(`✅ Found ${txs.length} transactions from blockchain`);
                                     
                                     // Find the matching transaction from blockchain
-                                    const matchingTx = txs.find(tx => 
-                                        tx.to_address === toAddress && 
-                                        Math.abs(parseFloat(tx.amount || 0) - parseFloat(amount)) < 0.000001
-                                    );
+                                    const matchingTx = txs.find(tx => {
+                                        const amountMatch = Math.abs(parseFloat(tx.amount || 0) - parseFloat(amount)) < 0.000001;
+                                        const toAddressMatch = tx.to_address && tx.to_address.toLowerCase().includes(toAddress.toLowerCase().slice(-10));
+                                        return amountMatch && toAddressMatch;
+                                    });
                                     
                                     if (matchingTx && matchingTx.transaction_hash) {
                                         console.log('✅ Found matching blockchain transaction:', matchingTx.transaction_hash);
+                                        console.log('✅ Blockchain tx details:', {
+                                            hash: matchingTx.transaction_hash,
+                                            amount: matchingTx.amount,
+                                            to: matchingTx.to_address,
+                                            status: matchingTx.status
+                                        });
                                         
                                         // Update the pending transaction with real hash and mark as completed
-                                        await supabase
+                                        const { data: updated, error: updateErr } = await supabase
                                             .from('transactions')
                                             .update({
                                                 transaction_hash: matchingTx.transaction_hash,
@@ -1625,22 +1633,35 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                                 network_fee: matchingTx.network_fee || record.network_fee,
                                                 created_at: matchingTx.block_time || record.created_at
                                             })
-                                            .eq('transaction_hash', tempTxHash);
+                                            .eq('transaction_hash', tempTxHash)
+                                            .select();
                                         
-                                        console.log('✅ Updated transaction from pending to completed');
+                                        if (updateErr) {
+                                            console.error('❌ Failed to update transaction status:', updateErr.message);
+                                            console.error('❌ Update error details:', JSON.stringify(updateErr, null, 2));
+                                        } else {
+                                            console.log('✅ Successfully updated transaction from pending to completed!');
+                                            console.log('✅ Updated transaction:', JSON.stringify(updated, null, 2));
+                                        }
                                     } else {
-                                        console.log('⚠️ Matching transaction not found yet, will reconcile later');
+                                        console.log('⚠️ Matching transaction not found on blockchain yet');
+                                        console.log('⚠️ Looking for: amount=' + amount + ', toAddress=' + toAddress);
+                                        console.log('⚠️ Available transactions:', txs.map(tx => ({
+                                            hash: tx.transaction_hash,
+                                            amount: tx.amount,
+                                            to: tx.to_address
+                                        })));
                                     }
                                     
                                     // Also upsert all transactions to catch received ones
                                     await upsertTransactionsForUser(userId, walletAddr, txs);
-                                    await reconcileChainTxsForUser(userId, txs);
                                     console.log('✅ Post-send sync complete');
                                 } else {
                                     console.log('⚠️ No transactions found on blockchain yet');
                                 }
                             } catch (e) {
-                                console.warn('⚠️ Post-send auto-sync failed:', e.message);
+                                console.error('❌ Post-send auto-sync failed:', e.message);
+                                console.error('❌ Post-send sync error stack:', e.stack);
                             }
                         })();
                     }
