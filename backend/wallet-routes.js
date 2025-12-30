@@ -1582,15 +1582,16 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
                     const { data: inserted, error: insertErr } = await supabase
                         .from('transactions')
-                        .upsert(record, { onConflict: 'transaction_hash' })
+                        .insert(record)
                         .select();
 
                     if (insertErr) {
                         console.error('❌ Failed to record outgoing transaction in DB:', insertErr.message);
-                        console.error('❌ Database error details:', insertErr);
+                        console.error('❌ Database error details:', JSON.stringify(insertErr, null, 2));
+                        console.error('❌ Record that failed to insert:', JSON.stringify(record, null, 2));
                     } else {
                         console.log('✅ Transaction saved successfully to database!');
-                        console.log('✅ Inserted data:', inserted);
+                        console.log('✅ Inserted data:', JSON.stringify(inserted, null, 2));
 
                         // Fire-and-forget: try to sync/reconcile immediately so UI shows confirmed txs faster
                         (async () => {
@@ -2541,6 +2542,69 @@ router.get('/price/ton', async (req, res) => {
             source: 'fallback',
             timestamp: new Date().toISOString(),
             sourcesCount: 0
+        });
+    }
+});
+
+// ============================================
+// 🎯 TEST TRANSACTION INSERT ENDPOINT
+// ============================================
+router.post('/test-transaction-insert', async (req, res) => {
+    try {
+        const { userId, walletAddress } = req.body;
+
+        if (!userId || !walletAddress) {
+            return res.status(400).json({
+                success: false,
+                error: 'userId and walletAddress required'
+            });
+        }
+
+        const testRecord = {
+            user_id: userId,
+            wallet_address: walletAddress,
+            transaction_hash: 'TEST_' + Date.now() + '_' + Math.random().toString(36).substring(7),
+            type: 'send',
+            token: 'TON',
+            amount: 0.001,
+            to_address: 'UQTest123456789',
+            from_address: walletAddress,
+            status: 'completed',
+            network_fee: 0.001,
+            description: 'Test transaction from debug endpoint',
+            created_at: new Date().toISOString()
+        };
+
+        console.log('🧪 Testing transaction insert with record:', testRecord);
+
+        const { data: inserted, error: insertErr } = await supabase
+            .from('transactions')
+            .insert(testRecord)
+            .select();
+
+        if (insertErr) {
+            console.error('❌ Test insert failed:', insertErr);
+            return res.json({
+                success: false,
+                error: insertErr.message,
+                details: insertErr,
+                record: testRecord
+            });
+        }
+
+        console.log('✅ Test insert successful:', inserted);
+
+        return res.json({
+            success: true,
+            message: 'Test transaction inserted successfully',
+            data: inserted
+        });
+
+    } catch (error) {
+        console.error('❌ Test insert exception:', error);
+        return res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
