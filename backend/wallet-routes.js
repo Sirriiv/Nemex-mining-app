@@ -1572,23 +1572,39 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                         created_at: new Date().toISOString()
                     };
 
+                    console.log('💾 Attempting to save transaction to database:', {
+                        user_id: userId,
+                        wallet_address: record.wallet_address,
+                        transaction_hash: txHash,
+                        type: 'send',
+                        amount: record.amount
+                    });
+
                     const { data: inserted, error: insertErr } = await supabase
                         .from('transactions')
-                        .upsert(record, { onConflict: 'transaction_hash' });
+                        .upsert(record, { onConflict: 'transaction_hash' })
+                        .select();
 
                     if (insertErr) {
-                        console.warn('⚠️ Failed to record outgoing transaction in DB:', insertErr.message);
+                        console.error('❌ Failed to record outgoing transaction in DB:', insertErr.message);
+                        console.error('❌ Database error details:', insertErr);
                     } else {
-                        console.log('✅ Recorded outgoing transaction in DB (pending):', inserted && inserted[0]?.transaction_hash || txHash);
+                        console.log('✅ Transaction saved successfully to database!');
+                        console.log('✅ Inserted data:', inserted);
 
                         // Fire-and-forget: try to sync/reconcile immediately so UI shows confirmed txs faster
                         (async () => {
                             try {
                                 const walletAddr = walletContract.address.toString({ urlSafe: true, bounceable: false });
+                                console.log('🔄 Starting post-send sync for wallet:', walletAddr);
                                 const txs = await fetchTransactionsFromProviders(walletAddr, 50);
                                 if (txs && txs.length > 0) {
+                                    console.log(`✅ Found ${txs.length} transactions from blockchain`);
                                     await upsertTransactionsForUser(userId, walletAddr, txs);
                                     await reconcileChainTxsForUser(userId, txs);
+                                    console.log('✅ Post-send sync complete');
+                                } else {
+                                    console.log('⚠️ No transactions found on blockchain yet');
                                 }
                             } catch (e) {
                                 console.warn('⚠️ Post-send auto-sync failed:', e.message);
@@ -1596,7 +1612,8 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                         })();
                     }
                 } catch (e) {
-                    console.warn('⚠️ Exception while recording transaction in DB:', e.message);
+                    console.error('❌ Exception while recording transaction in DB:', e.message);
+                    console.error('❌ Exception details:', e);
                 }
 
                 // Return success
@@ -2389,7 +2406,7 @@ router.post('/send', async (req, res) => {
             // Immediately sync and reconcile to update the pending transaction to completed
             try {
                 const { data: wallet } = await supabase
-                    .from('wallets')
+                    .from('user_wallets')
                     .select('address')
                     .eq('user_id', userId)
                     .single();
@@ -3104,6 +3121,8 @@ router.get('/transactions/:userId', async (req, res) => {
         const { userId } = req.params;
         const { limit = 50, type, status, token } = req.query;
 
+        console.log(`📜 Transaction history request for user: ${userId}, limit: ${limit}`);
+
         if (!userId) {
             return res.status(400).json({
                 success: false,
@@ -3131,12 +3150,16 @@ router.get('/transactions/:userId', async (req, res) => {
             if (!walletError && wallet) {
                 walletAddress = wallet.address || wallet.wallet_address;
                 console.log(`🔍 Found wallet for user ${userId}: ${walletAddress}`);
+            } else {
+                console.log(`⚠️ No wallet found for user ${userId}`);
             }
         } catch (walletErr) {
             console.log('⚠️ Could not fetch wallet:', walletErr.message);
         }
 
         // Build query to get ALL transactions for this user
+        console.log(`🔍 Querying transactions table for user_id: ${userId} OR wallet_address: ${walletAddress}`);
+        
         let query = supabase
             .from('transactions')
             .select('*')
@@ -3164,6 +3187,18 @@ router.get('/transactions/:userId', async (req, res) => {
                 error: error.message,
                 transactions: []
             });
+        }
+
+        console.log(`✅ Found ${transactions?.length || 0} transactions in database`);
+        
+        if (transactions && transactions.length > 0) {
+            console.log(`📊 Transaction breakdown:`);
+            const breakdown = transactions.reduce((acc, tx) => {
+                const key = `${tx.type}-${tx.status}`;
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+            }, {});
+            console.log(breakdown);
         }
 
         // If no transactions found but user has a wallet, sync transactions
