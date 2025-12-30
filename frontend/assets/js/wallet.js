@@ -528,62 +528,24 @@ class WalletManager {
         }
     }
 
-    // 🎯 PROMPT FOR PASSWORD
+    // 🎯 PROMPT FOR PASSWORD (FOR TRANSACTIONS)
     async promptForPassword() {
-        // Use the existing fullscreen login modal to collect password so user doesn't see the wallet
+        // Use a simple password prompt specifically for transactions
         return new Promise((resolve) => {
-            const loginModal = document.getElementById('walletLoginModal');
-            const passwordInput = document.getElementById('walletPasswordLogin');
-            const statusElement = document.getElementById('walletLoginStatus');
-            const confirmBtn = document.getElementById('walletLoginBtn');
-
-            if (!loginModal || !passwordInput || !confirmBtn) {
-                // Fallback: simple prompt
-                const fallback = prompt('Enter your wallet password to confirm transaction');
-                if (fallback && fallback.length >= this.passwordMinLength) return resolve(fallback);
-                return resolve(null);
+            const password = prompt('🔐 Enter your wallet password to confirm this transaction:');
+            
+            if (!password) {
+                resolve(null); // User cancelled
+                return;
             }
-
-            // Show fullscreen login modal
-            showWalletLoginModal();
-
-            // Ensure status cleared
-            if (statusElement) statusElement.innerHTML = '';
-
-            // One-time handlers
-            const onConfirm = async () => {
-                const password = passwordInput.value.trim();
-                if (!password) {
-                    if (statusElement) statusElement.innerHTML = '<div class="status-error">Password is required</div>';
-                    return;
-                }
-                if (password.length < this.passwordMinLength) {
-                    if (statusElement) statusElement.innerHTML = `<div class="status-error">Password must be at least ${this.passwordMinLength} characters</div>`;
-                    return;
-                }
-
-                // Remove listeners and close modal
-                confirmBtn.removeEventListener('click', onConfirm);
-                cancelBtn.removeEventListener('click', onCancel);
-
-                // Keep modal open (login will proceed separately) but resolve with password for the transaction
-                closeModal();
-                resolve(password);
-            };
-
-            const cancelBtn = loginModal.querySelector('.close-modal.secondary');
-            const onCancel = () => {
-                confirmBtn.removeEventListener('click', onConfirm);
-                cancelBtn.removeEventListener('click', onCancel);
-                closeModal();
+            
+            if (password.length < this.passwordMinLength) {
+                alert(`Password must be at least ${this.passwordMinLength} characters`);
                 resolve(null);
-            };
-
-            confirmBtn.addEventListener('click', onConfirm);
-            if (cancelBtn) cancelBtn.addEventListener('click', onCancel);
-
-            // Focus input
-            setTimeout(() => passwordInput.focus(), 80);
+                return;
+            }
+            
+            resolve(password);
         });
     }
 

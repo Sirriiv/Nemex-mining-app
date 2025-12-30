@@ -3636,8 +3636,8 @@ function renderTransactionHistory(transactions) {
 
         const amount = parseFloat(tx.amount) || 0;
         const displayAmount = amount.toLocaleString('en-US', {
-            minimumFractionDigits: isTON ? 4 : 2,
-            maximumFractionDigits: isTON ? 4 : 2
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
 
         const displayAddress = isSend ? (tx.to_address || 'Unknown') : (tx.from_address || 'Unknown');
@@ -3682,7 +3682,7 @@ function renderTransactionHistory(transactions) {
                     ${isSend ? '-' : '+'}${displayAmount} ${tokenSymbol}
                 </div>
                 <div class="transaction-value">
-                    ${tx.network_fee ? `Fee: ${parseFloat(tx.network_fee).toFixed(6)} TON` : ''}
+                    ${tx.network_fee ? `Fee: ${parseFloat(tx.network_fee).toFixed(2)} TON` : ''}
                 </div>
             </div>
         `;
@@ -3818,8 +3818,15 @@ async function confirmSendTransaction() {
             // Update balances
             await updateRealBalance();
             
-            // Update history
-            loadTransactionHistory();
+            // Force immediate history reload
+            setTimeout(async () => {
+                await loadTransactionHistory();
+            }, 1000);
+            
+            // Reload again after reconciliation time
+            setTimeout(async () => {
+                await loadTransactionHistory();
+            }, 5000);
             
             // Close modal after success
             setTimeout(() => {
