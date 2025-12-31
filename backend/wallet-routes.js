@@ -1560,12 +1560,13 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                     const walletAddr = walletContract.address.toString({ urlSafe: true, bounceable: false });
                     
                     const amountValue = Number(parseFloat(amount).toFixed(8));
-                const feeValue = Number((process.env.TX_FEE_TON || 0.001).toString());
+                    const feeValue = Number(parseFloat(process.env.TX_FEE_TON || '0.01').toFixed(8));
                 
                 console.log('🔢 Transaction amounts:', {
                     originalAmount: amount,
                     parsedAmount: amountValue,
                     networkFee: feeValue,
+                    feeEnv: process.env.TX_FEE_TON,
                     amountType: typeof amount,
                     amountIsNaN: isNaN(amountValue)
                 });
@@ -1590,7 +1591,8 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                         wallet_address: record.wallet_address,
                         transaction_hash: tempTxHash,
                         type: 'send',
-                        amount: record.amount
+                        amount: record.amount,
+                        network_fee: record.network_fee
                     });
 
                     const { data: inserted, error: insertErr } = await supabase
@@ -3247,8 +3249,8 @@ async function syncAllWallets(limitPerWallet = 100) {
 
     const { data: wallets, error: walletErr } = await supabase
         .from('user_wallets')
-        .select('user_id, wallet_address')
-        .not('wallet_address', 'is', null);
+        .select('user_id, address')
+        .not('address', 'is', null);
 
     if (walletErr) {
         global.__transactionSyncRunning = false;
@@ -3262,14 +3264,14 @@ async function syncAllWallets(limitPerWallet = 100) {
     async function worker() {
         while (queue.length > 0) {
             const w = queue.shift();
-            if (!w || !w.wallet_address) continue;
+            if (!w || !w.address) continue;
             try {
-                const txs = await fetchTransactionsFromProviders(w.wallet_address, limitPerWallet);
-                const up = await upsertTransactionsForUser(w.user_id, w.wallet_address, txs);
+                const txs = await fetchTransactionsFromProviders(w.address, limitPerWallet);
+                const up = await upsertTransactionsForUser(w.user_id, w.address, txs);
                 await reconcileChainTxsForUser(w.user_id, txs);
-                results.push({ userId: w.user_id, address: w.wallet_address, synced: up.syncedCount || 0, error: up.error || null });
+                results.push({ userId: w.user_id, address: w.address, synced: up.syncedCount || 0, error: up.error || null });
             } catch (e) {
-                results.push({ userId: w.user_id, address: w.wallet_address, synced: 0, error: e.message });
+                results.push({ userId: w.user_id, address: w.address, synced: 0, error: e.message });
             }
         }
     }
