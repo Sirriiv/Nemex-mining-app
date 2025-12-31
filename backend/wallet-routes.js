@@ -2445,7 +2445,9 @@ router.post('/send', async (req, res) => {
         console.log('📋 Request details:', { 
             userId: userId ? `${userId.substring(0, 8)}...` : 'MISSING',
             toAddress: toAddress ? `${toAddress.substring(0, 10)}...` : 'MISSING',
-            amount: amount || 'MISSING'
+            amount: amount || 'MISSING',
+            amountType: typeof amount,
+            amountValue: amount
         });
 
         if (!userId || !walletPassword || !toAddress || !amount) {
@@ -2456,6 +2458,13 @@ router.post('/send', async (req, res) => {
         }
 
         const amountNum = parseFloat(amount);
+        console.log('🔢 Parsed amount:', {
+            original: amount,
+            parsed: amountNum,
+            type: typeof amountNum,
+            isNaN: isNaN(amountNum)
+        });
+        
         if (isNaN(amountNum) || amountNum <= 0) {
             return res.status(400).json({
                 success: false,
@@ -2494,6 +2503,7 @@ router.post('/send', async (req, res) => {
         console.log('✅ All validations passed');
 
         try {
+            console.log('🚀 Calling sendTONTransaction with amountNum:', amountNum, 'type:', typeof amountNum);
             const result = await sendTONTransaction(userId, walletPassword, toAddress, amountNum, memo);
 
             console.log('✅✅✅ Transaction SUCCESS!');
