@@ -2737,10 +2737,25 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                     if (!from_address && tx.from) from_address = tx.from;
                     if (!to_address && tx.to) to_address = tx.to;
 
+                    // Helper function to compare addresses safely
+                    function isSameAddress(addr1, addr2) {
+                        if (!addr1 || !addr2) return false;
+                        try {
+                            const a1 = Address.parse(addr1).toString({ urlSafe: true, bounceable: false });
+                            const a2 = Address.parse(addr2).toString({ urlSafe: true, bounceable: false });
+                            return a1 === a2;
+                        } catch (e) {
+                            // Fallback to string comparison
+                            return addr1.toLowerCase() === addr2.toLowerCase();
+                        }
+                    }
+
                     let type = 'unknown';
-                    const lowerAddr = (address || '').toLowerCase();
-                    if (from_address && from_address.toLowerCase() === lowerAddr) type = 'send';
-                    if (to_address && to_address.toLowerCase() === lowerAddr) type = 'receive';
+                    if (from_address && isSameAddress(from_address, address)) {
+                        type = 'send';
+                    } else if (to_address && isSameAddress(to_address, address)) {
+                        type = 'receive';
+                    }
 
                     return {
                         transaction_hash: hash,
