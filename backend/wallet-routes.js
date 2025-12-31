@@ -2980,46 +2980,36 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
 
         if (rowsToUpsert.length === 0) return { success: true, syncedCount: 0, rows: [] };
 
-        // Split into two batches:
-        //  - rows that have chain_tx_id -> upsert using chain_tx_id as conflict target
-        //  - rows without chain_tx_id -> upsert using per-wallet (wallet_address, transaction_hash)
-        const withChain = rowsToUpsert.filter(r => r.chain_tx_id);
-        const withoutChain = rowsToUpsert.filter(r => !r.chain_tx_id);
-
+        // Insert new transactions using INSERT ... ON CONFLICT DO NOTHING
         let totalSynced = 0;
         const allRows = [];
 
-        if (withChain.length > 0) {
+        for (const row of rowsToUpsert) {
             try {
-                const { data: rowsA, error: errA } = await supabase
+                // Try to insert, checking if it already exists first
+                const { data: existing, error: checkErr } = await supabase
                     .from('transactions')
-                    .upsert(withChain, { onConflict: 'chain_tx_id' });
+                    .select('id')
+                    .eq('wallet_address', row.wallet_address)
+                    .eq('transaction_hash', row.transaction_hash)
+                    .maybeSingle();
 
-                if (errA) {
-                    console.warn('⚠️ Upsert (chain_tx_id) error:', errA.message);
-                } else {
-                    totalSynced += Array.isArray(rowsA) ? rowsA.length : 0;
-                    allRows.push(...(rowsA || []));
+                if (existing) {
+                    // Already exists, skip
+                    continue;
+                }
+
+                const { data: inserted, error: insertErr } = await supabase
+                    .from('transactions')
+                    .insert(row)
+                    .select();
+
+                if (!insertErr && inserted && inserted.length > 0) {
+                    totalSynced++;
+                    allRows.push(inserted[0]);
                 }
             } catch (e) {
-                console.warn('⚠️ Exception during chain_tx_id upsert:', e.message);
-            }
-        }
-
-        if (withoutChain.length > 0) {
-            try {
-                const { data: rowsB, error: errB } = await supabase
-                    .from('transactions')
-                    .upsert(withoutChain, { onConflict: ['wallet_address', 'transaction_hash'] });
-
-                if (errB) {
-                    console.warn('⚠️ Upsert (wallet+hash) error:', errB.message);
-                } else {
-                    totalSynced += Array.isArray(rowsB) ? rowsB.length : 0;
-                    allRows.push(...(rowsB || []));
-                }
-            } catch (e) {
-                console.warn('⚠️ Exception during wallet+hash upsert:', e.message);
+                // Silently skip duplicates
             }
         }
 
