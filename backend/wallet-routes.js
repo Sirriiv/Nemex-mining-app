@@ -2900,9 +2900,20 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
 
             let txType = (tx.type || '').toString().toLowerCase();
             if (!allowedTypes.includes(txType)) {
-                const lower = (address || '').toLowerCase();
-                if (tx.from_address && tx.from_address.toLowerCase() === lower) txType = 'send';
-                else if (tx.to_address && tx.to_address.toLowerCase() === lower) txType = 'receive';
+                // Helper function to compare TON addresses properly
+                function isSameAddress(addr1, addr2) {
+                    if (!addr1 || !addr2) return false;
+                    try {
+                        const a1 = Address.parse(addr1).toString({ urlSafe: true, bounceable: false });
+                        const a2 = Address.parse(addr2).toString({ urlSafe: true, bounceable: false });
+                        return a1 === a2;
+                    } catch (e) {
+                        return addr1.toLowerCase() === addr2.toLowerCase();
+                    }
+                }
+                
+                if (tx.from_address && isSameAddress(tx.from_address, address)) txType = 'send';
+                else if (tx.to_address && isSameAddress(tx.to_address, address)) txType = 'receive';
                 else txType = 'receive';
             }
 
