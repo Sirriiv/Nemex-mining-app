@@ -2844,10 +2844,24 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                         }
                     }
 
+                    // Normalize addresses to UQ format (non-bounceable)
+                    function normalizeAddress(addr) {
+                        if (!addr) return null;
+                        try {
+                            return Address.parse(addr).toString({ urlSafe: true, bounceable: false });
+                        } catch (e) {
+                            return addr;
+                        }
+                    }
+
+                    from_address = normalizeAddress(from_address);
+                    to_address = normalizeAddress(to_address);
+                    const normalizedWalletAddr = normalizeAddress(address);
+
                     let type = 'unknown';
-                    if (from_address && isSameAddress(from_address, address)) {
+                    if (from_address && isSameAddress(from_address, normalizedWalletAddr)) {
                         type = 'send';
-                    } else if (to_address && isSameAddress(to_address, address)) {
+                    } else if (to_address && isSameAddress(to_address, normalizedWalletAddr)) {
                         type = 'receive';
                     }
 
@@ -2857,8 +2871,8 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                         block_height: block_height || null,
                         amount: amount !== null ? parseFloat(amount) : null,
                         network_fee: fee !== null ? parseFloat(fee) : null,
-                        from_address: from_address || null,
-                        to_address: to_address || null,
+                        from_address: from_address,
+                        to_address: to_address,
                         type: type,
                         status: status,
                         description: description || '',
@@ -2886,6 +2900,14 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
     try {
         if (!Array.isArray(chainTxs) || chainTxs.length === 0) return { success: true, syncedCount: 0, rows: [] };
 
+        // Normalize wallet address to UQ format
+        let normalizedAddress = address;
+        try {
+            normalizedAddress = Address.parse(address).toString({ urlSafe: true, bounceable: false });
+        } catch (e) {
+            console.warn('⚠️ Could not normalize address:', address);
+        }
+
         const allowedTypes = ['send', 'receive', 'swap', 'buy'];
         const allowedStatuses = ['pending', 'completed', 'failed'];
 
@@ -2912,8 +2934,8 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
                     }
                 }
                 
-                if (tx.from_address && isSameAddress(tx.from_address, address)) txType = 'send';
-                else if (tx.to_address && isSameAddress(tx.to_address, address)) txType = 'receive';
+                if (tx.from_address && isSameAddress(tx.from_address, normalizedAddress)) txType = 'send';
+                else if (tx.to_address && isSameAddress(tx.to_address, normalizedAddress)) txType = 'receive';
                 else txType = 'receive';
             }
 
@@ -2935,7 +2957,7 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
 
             const row = {
                 user_id: userId,
-                wallet_address: address,
+                wallet_address: normalizedAddress,
                 transaction_hash: tx.transaction_hash,
                 type: txType,
                 token: tx.token || 'TON',
@@ -3623,7 +3645,7 @@ router.post('/transactions/fix-wallet-link', async (req, res) => {
 });
 
 // Schedule periodic full sync of all wallets (if desired)
-const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '300');
+const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '60');
 
 function scheduleTransactionSync() {
     if (global.__transactionSyncScheduled) return;
