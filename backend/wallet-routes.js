@@ -3088,7 +3088,10 @@ async function reconcileChainTxsForUser(userId, chainTxs = []) {
                     const updatePayload = {
                         status: normalizedStatus,
                         network_fee: tx.network_fee || existing.network_fee || 0,
-                        created_at: tx.block_time || existing.created_at
+                        created_at: tx.block_time || existing.created_at,
+                        type: tx.type || existing.type,
+                        from_address: tx.from_address || existing.from_address,
+                        to_address: tx.to_address || existing.to_address
                     };
 
                     if (chainTx && chainTx.id) {
