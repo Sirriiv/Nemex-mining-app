@@ -2469,7 +2469,7 @@ router.post('/send', async (req, res) => {
         console.log('✅ All validations passed');
 
         try {
-            const result = await sendTONTransaction(userId, walletPassword, toAddress, amount, memo);
+            const result = await sendTONTransaction(userId, walletPassword, toAddress, amountNum, memo);
 
             console.log('✅✅✅ Transaction SUCCESS!');
 
