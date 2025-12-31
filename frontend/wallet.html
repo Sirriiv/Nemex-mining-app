@@ -3681,9 +3681,6 @@ function renderTransactionHistory(transactions) {
                 <div class="transaction-token" style="color: ${isSend ? 'var(--error)' : 'var(--success)'}">
                     ${isSend ? '-' : '+'}${displayAmount} ${tokenSymbol}
                 </div>
-                <div class="transaction-value">
-                    ${tx.network_fee ? `Fee: ${parseFloat(tx.network_fee).toFixed(2)} TON` : ''}
-                </div>
             </div>
         `;
 
