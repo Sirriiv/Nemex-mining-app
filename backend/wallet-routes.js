@@ -1615,10 +1615,19 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                 console.log('🔍 Looking for transaction to update with temp hash:', tempTxHash);
                                 console.log('🔍 Expected amount:', amount, 'toAddress:', toAddress);
                                 
-                                // Wait for blockchain indexing (increased to 10 seconds)
-                                await new Promise(resolve => setTimeout(resolve, 10000));
+                                // Retry mechanism: try up to 3 times with increasing delays
+                                const maxAttempts = 3;
+                                const delays = [10000, 20000, 30000]; // 10s, 20s, 30s
+                                let matchingTx = null;
+                                let txs = [];
                                 
-                                const txs = await fetchTransactionsFromProviders(walletAddr, 20);
+                                for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                                    console.log(`🔄 Post-send sync attempt ${attempt + 1}/${maxAttempts}, waiting ${delays[attempt]/1000}s...`);
+                                    
+                                    // Wait for blockchain indexing
+                                    await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+                                
+                                txs = await fetchTransactionsFromProviders(walletAddr, 20);
                                 if (txs && txs.length > 0) {
                                     console.log(`✅ Found ${txs.length} transactions from blockchain`);
                                     
@@ -1636,7 +1645,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                     }
                                     
                                     // Find the matching transaction from blockchain
-                                    const matchingTx = txs.find(tx => {
+                                    matchingTx = txs.find(tx => {
                                         const amountMatch = Math.abs(parseFloat(tx.amount || 0) - parseFloat(amount)) < 0.000001;
                                         const toAddressMatch = tx.to_address && isSameAddress(tx.to_address, toAddress);
                                         const isOutgoing = tx.type === 'send' || (tx.from_address && isSameAddress(tx.from_address, walletAddr));
@@ -1655,6 +1664,18 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                     });
                                     
                                     if (matchingTx && matchingTx.transaction_hash) {
+                                        console.log('✅ Found matching blockchain transaction on attempt', attempt + 1);
+                                        break; // Exit retry loop
+                                    } else {
+                                        console.log(`⚠️ Attempt ${attempt + 1}: Matching transaction not found yet`);
+                                    }
+                                } else {
+                                    console.log(`⚠️ Attempt ${attempt + 1}: No transactions found on blockchain yet`);
+                                }
+                                }
+                                
+                                // After all attempts, process the result
+                                if (matchingTx && matchingTx.transaction_hash) {
                                         console.log('✅ Found matching blockchain transaction:', matchingTx.transaction_hash);
                                         console.log('✅ Blockchain tx details:', {
                                             hash: matchingTx.transaction_hash,
@@ -1688,13 +1709,18 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                             console.log('✅ Updated transaction:', JSON.stringify(updated, null, 2));
                                         }
                                     } else {
-                                        console.log('⚠️ Matching transaction not found on blockchain yet');
+                                        console.log('⚠️ FINAL: Matching transaction not found after all attempts');
                                         console.log('⚠️ Looking for: amount=' + amount + ', toAddress=' + toAddress);
-                                        console.log('⚠️ Available transactions:', txs.map(tx => ({
-                                            hash: tx.transaction_hash,
-                                            amount: tx.amount,
-                                            to: tx.to_address
-                                        })));
+                                        if (txs && txs.length > 0) {
+                                            console.log('⚠️ Available transactions:', txs.slice(0, 5).map(tx => ({
+                                                hash: tx.transaction_hash?.substring(0, 16) + '...',
+                                                amount: tx.amount,
+                                                to: tx.to_address?.substring(0, 20) + '...',
+                                                from: tx.from_address?.substring(0, 20) + '...',
+                                                type: tx.type
+                                            })));
+                                        }
+                                        console.log('⚠️ Transaction will remain pending until next sync or manual sync');
                                     }
                                     
                                     // Also upsert all transactions to catch received ones
