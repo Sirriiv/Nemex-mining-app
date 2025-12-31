@@ -2790,16 +2790,29 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                     let status = tx.status || 'pending';
                     let description = tx.description || tx.memo || tx.message || '';
 
-                    if (tx.in_msg) {
+                    // Parse transaction fee
+                    if (tx.fee) fee = Number(tx.fee) / 1_000_000_000;
+                    else if (tx.total_fees) fee = Number(tx.total_fees) / 1_000_000_000;
+
+                    // Check for OUTGOING transaction (out_msgs)
+                    if (tx.out_msgs && Array.isArray(tx.out_msgs) && tx.out_msgs.length > 0) {
+                        const outMsg = tx.out_msgs[0];
+                        from_address = outMsg.source || outMsg.from || tx.account || address;
+                        to_address = outMsg.destination || outMsg.to || null;
+                        if (outMsg.value) amount = Number(outMsg.value) / 1_000_000_000;
+                        if (!description && outMsg.message) description = outMsg.message;
+                    }
+                    // Check for INCOMING transaction (in_msg)
+                    else if (tx.in_msg && tx.in_msg.source) {
                         from_address = tx.in_msg.source || tx.in_msg.from || null;
-                        to_address = tx.in_msg.destination || tx.in_msg.to || null;
+                        to_address = tx.in_msg.destination || tx.in_msg.to || tx.account || address;
                         if (tx.in_msg.value) amount = Number(tx.in_msg.value) / 1_000_000_000;
-                        if (tx.in_msg.fee) fee = Number(tx.in_msg.fee) / 1_000_000_000;
+                        if (!description && tx.in_msg.message) description = tx.in_msg.message;
                     }
 
+                    // Fallback to top-level fields
                     if (!amount && tx.value) amount = Number(tx.value) / 1_000_000_000;
                     if (!amount && tx.amount) amount = Number(tx.amount);
-
                     if (!from_address && tx.from) from_address = tx.from;
                     if (!to_address && tx.to) to_address = tx.to;
 
