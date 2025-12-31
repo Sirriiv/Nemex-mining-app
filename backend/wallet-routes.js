@@ -1615,9 +1615,9 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                 console.log('🔍 Looking for transaction to update with temp hash:', tempTxHash);
                                 console.log('🔍 Expected amount:', amount, 'toAddress:', toAddress);
                                 
-                                // Retry mechanism: try up to 3 times with increasing delays
+                                // Retry mechanism: try up to 3 times with aggressive timing
                                 const maxAttempts = 3;
-                                const delays = [10000, 20000, 30000]; // 10s, 20s, 30s
+                                const delays = [500, 1500, 2500]; // 0.5s, 1.5s, 2.5s - ultra fast for 5-7s total
                                 let matchingTx = null;
                                 let txs = [];
                                 
@@ -2772,10 +2772,7 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
             if (raw.transactions) raw = raw.transactions;
 
             if (!Array.isArray(raw) || raw.length === 0) {
-                console.log(`ℹ️ ${p.name} returned no transactions for ${address}`);
-                continue;
-            }
-
+                console.log(`ℹ️ ${p.name} returned no transactions for ${add
             const normalized = raw.map(tx => {
                 try {
                     const hash = tx.hash || tx.transaction_hash || tx.tx_hash || (tx.transaction_id && tx.transaction_id.hash) || null;
@@ -2898,10 +2895,25 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
     return [];
 }
 
+// Transaction processing lock for concurrent user handling
+const processingLocks = new Map();
+
 // Upsert helper (reuses normalization rules)
 async function upsertTransactionsForUser(userId, address, chainTxs = []) {
+    // Prevent concurrent processing for same user
+    const lockKey = `${userId}_${address}`;
+    if (processingLocks.has(lockKey)) {
+        console.log(`⏳ Transaction processing already in progress for ${lockKey}, skipping...`);
+        return { success: true, syncedCount: 0, rows: [], skipped: true };
+    }
+    
+    processingLocks.set(lockKey, Date.now());
+    
     try {
-        if (!Array.isArray(chainTxs) || chainTxs.length === 0) return { success: true, syncedCount: 0, rows: [] };
+        if (!Array.isArray(chainTxs) || chainTxs.length === 0) {
+            processingLocks.delete(lockKey);
+            return { success: true, syncedCount: 0, rows: [] };
+        }
 
         // Normalize wallet address to UQ format
         let normalizedAddress = address;
@@ -2918,10 +2930,20 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
         for (const tx of chainTxs) {
             if (!tx.transaction_hash) continue;
 
-            const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
-            const amountNum = Number(Number(safeAmount).toFixed(8));
-            const safeFee = tx.network_fee !== null && tx.network_fee !== undefined ? Number(tx.network_fee) : 0;
-            const feeNum = Number(Number(safeFee).toFixed(8));
+            // Robust amount parsing - handle all possible formats
+            let safeAmount = 0;
+            if (tx.amount !== null && tx.amount !== undefined && tx.amount !== '' && tx.amount !== '0' && tx.amount !== 0) {
+                safeAmount = Number(tx.amount);
+                if (isNaN(safeAmount)) safeAmount = 0;
+            }
+            const amountNum = safeAmount > 0 ? Number(Number(safeAmount).toFixed(8)) : 0;
+            
+            let safeFee = 0;
+            if (tx.network_fee !== null && tx.network_fee !== undefined && tx.network_fee !== '' && tx.network_fee !== '0') {
+                safeFee = Number(tx.network_fee);
+                if (isNaN(safeFee)) safeFee = 0;
+            }
+            const feeNum = safeFee > 0 ? Number(Number(safeFee).toFixed(8)) : 0;
 
             let txType = (tx.type || '').toString().toLowerCase();
             if (!allowedTypes.includes(txType)) {
@@ -2989,16 +3011,33 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
 
         for (const row of rowsToUpsert) {
             try {
-                // Try to insert, checking if it already exists first
+                // Comprehensive duplicate check: check by hash alone and by user+wallet+hash
                 const { data: existing, error: checkErr } = await supabase
                     .from('transactions')
-                    .select('id')
-                    .eq('wallet_address', row.wallet_address)
+                    .select('id, user_id, wallet_address')
                     .eq('transaction_hash', row.transaction_hash)
                     .maybeSingle();
 
                 if (existing) {
-                    // Already exists, skip
+                    // Check if it's the same user's transaction
+                    if (existing.user_id === row.user_id && existing.wallet_address === row.wallet_address) {
+                        // Exact duplicate, skip
+                        console.log(`⏭️ Skipping duplicate transaction: ${row.transaction_hash.substring(0, 10)}... for user ${row.user_id}`);
+                        continue;
+                    }
+                }
+                
+                // Additional check for same user+wallet+hash combination
+                const { data: userCheck, error: userCheckErr } = await supabase
+                    .from('transactions')
+                    .select('id')
+                    .eq('user_id', row.user_id)
+                    .eq('wallet_address', row.wallet_address)
+                    .eq('transaction_hash', row.transaction_hash)
+                    .maybeSingle();
+
+                if (userCheck) {
+                    console.log(`⏭️ Skipping duplicate for user's wallet: ${row.transaction_hash.substring(0, 10)}...`);
                     continue;
                 }
 
@@ -3016,10 +3055,12 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
             }
         }
 
+        processingLocks.delete(lockKey);
         return { success: true, syncedCount: totalSynced, rows: allRows };
 
     } catch (e) {
         console.warn('⚠️ upsertTransactionsForUser failed:', e.message);
+        processingLocks.delete(lockKey);
         return { success: false, error: e.message, syncedCount: 0, rows: [] };
     }
 }
@@ -3034,8 +3075,13 @@ async function reconcileChainTxsForUser(userId, chainTxs = []) {
         for (const tx of chainTxs) {
             if (!tx.transaction_hash) continue;
 
-            const safeAmount = tx.amount !== null && tx.amount !== undefined ? Number(tx.amount) : 0;
-            const amountNum = Number(Number(safeAmount).toFixed(8));
+            // Robust amount parsing for reconciliation
+            let safeAmount = 0;
+            if (tx.amount !== null && tx.amount !== undefined && tx.amount !== '' && tx.amount !== '0' && tx.amount !== 0) {
+                safeAmount = Number(tx.amount);
+                if (isNaN(safeAmount)) safeAmount = 0;
+            }
+            const amountNum = safeAmount > 0 ? Number(Number(safeAmount).toFixed(8)) : 0;
             const txStatus = (tx.status || '').toString().toLowerCase();
             const allowedStatuses = ['pending', 'completed', 'failed'];
             const normalizedStatus = allowedStatuses.includes(txStatus) ? txStatus : (txStatus === 'confirmed' || txStatus === 'finalized' ? 'completed' : 'pending');

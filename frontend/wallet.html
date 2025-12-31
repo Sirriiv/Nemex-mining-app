@@ -3317,7 +3317,7 @@ function startRealBalanceUpdates() {
     updateRealBalance();
     
     // Then run every 15 seconds
-    balanceUpdateInterval = setInterval(updateRealBalance, 15000);
+    balanceUpdateInterval = setInterval(updateRealBalance, 30000); // Every 30 seconds
 }
 
 function stopRealBalanceUpdates() {
@@ -3355,7 +3355,7 @@ function startAutoSync() {
     // Run immediately
     syncTransactionHistory().catch(() => {});
     // Poll every 30s
-    autoSyncInterval = setInterval(() => syncTransactionHistory().catch(() => {}), 30000);
+    autoSyncInterval = setInterval(() => syncTransactionHistory().catch(() => {}), 60000); // Every 60 seconds
 }
 
 function stopAutoSync() {
@@ -3430,10 +3430,10 @@ async function updateRealBalance() {
                 const oldBalance = tonToken.balance;
                 tonToken.balance = tonBalance;
                 
-                // If balance changed, show notification
+                // If balance changed, log it (no toast notification to avoid disruption)
                 if (tonBalance > oldBalance && tonBalance > 0) {
-                    console.log('🎉 Balance increased!');
-                    showToast(`✅ Received ${tonBalance.toFixed(4)} TON!`, 'success');
+                    console.log('🎉 Balance increased from', oldBalance, 'to', tonBalance);
+                    // Toast notification removed per user request
                 }
                 
                 console.log('✅ Updated TON balance:', tonBalance);
@@ -3635,10 +3635,9 @@ function renderTransactionHistory(transactions) {
         });
 
         const amount = parseFloat(tx.amount) || 0;
-        const displayAmount = amount.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        });
+        // Dynamic precision: shows 0.01 as "0.01" and 0.001 as "0.001" without forcing decimals
+        // Remove trailing zeros by converting to number and back to string
+        const displayAmount = parseFloat(amount.toFixed(8)).toString();
 
         const displayAddress = isSend ? (tx.to_address || 'Unknown') : (tx.from_address || 'Unknown');
         const shortAddress = displayAddress.length > 16 
@@ -3730,14 +3729,18 @@ function showTransactionDetails(transaction) {
     const isReceive = transaction.type === 'receive';
     const amount = parseFloat(transaction.amount) || 0;
     const fee = parseFloat(transaction.network_fee) || 0;
-    const total = isSend ? amount + fee : amount;
+    
+    // Format with dynamic precision - removes trailing zeros
+    const formatAmount = (val) => {
+        return parseFloat(val.toFixed(8)).toString();
+    };
     
     const details = `
 🔐 **Transaction Details**
 
 📝 **Type:** ${isSend ? 'Sent' : 'Received'} ${transaction.token || 'TON'}
-💰 **Amount:** ${amount.toFixed(6)} ${transaction.token || 'TON'}
-${fee > 0 ? `⛽ **Network Fee:** ${fee.toFixed(6)} TON\n` : ''}
+💰 **Amount:** ${formatAmount(amount)} ${transaction.token || 'TON'}
+${fee > 0 ? `⛽ **Network Fee:** ${formatAmount(fee)} TON\n` : ''}
 ${isSend ? `📍 **To Address:** ${transaction.to_address || 'Unknown'}` : `📍 **From Address:** ${transaction.from_address || 'Unknown'}`}
 
 📅 **Date:** ${new Date(transaction.created_at).toLocaleString()}
@@ -3815,25 +3818,12 @@ async function confirmSendTransaction() {
             // Update balances immediately
             await updateRealBalance();
             
-            // Force immediate history reload (multiple attempts to ensure it shows)
+            // Load history immediately and once more after 2 seconds
             await loadTransactionHistory();
             
             setTimeout(async () => {
                 await loadTransactionHistory();
-            }, 500);
-            
-            setTimeout(async () => {
-                await loadTransactionHistory();
-            }, 1500);
-            
-            // Reload again after reconciliation time
-            setTimeout(async () => {
-                await loadTransactionHistory();
-            }, 3000);
-            
-            setTimeout(async () => {
-                await loadTransactionHistory();
-            }, 5000);
+            }, 2000);
             
             // Close modal after success
             setTimeout(() => {
@@ -3842,7 +3832,7 @@ async function confirmSendTransaction() {
                 document.getElementById('sendToAddress').value = '';
                 document.getElementById('sendAmount').value = '';
                 document.getElementById('sendMemo').value = '';
-            }, 2000);
+            }, 1500);
         } else {
             throw new Error(result.error || 'Transaction failed');
         }
