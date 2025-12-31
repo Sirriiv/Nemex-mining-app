@@ -3737,6 +3737,7 @@ function showTransactionDetails(transaction) {
 
 📝 **Type:** ${isSend ? 'Sent' : 'Received'} ${transaction.token || 'TON'}
 💰 **Amount:** ${amount.toFixed(6)} ${transaction.token || 'TON'}
+${fee > 0 ? `⛽ **Network Fee:** ${fee.toFixed(6)} TON\n` : ''}
 ${isSend ? `📍 **To Address:** ${transaction.to_address || 'Unknown'}` : `📍 **From Address:** ${transaction.from_address || 'Unknown'}`}
 
 📅 **Date:** ${new Date(transaction.created_at).toLocaleString()}
@@ -4193,6 +4194,9 @@ function updateSendSummary() {
 
                 <div style="color: var(--text-muted);">Value:</div>
                 <div style="text-align: right; font-weight: 600;">$${usdValue} USD</div>
+
+                <div style="color: var(--text-muted);">Network Fee:</div>
+                <div style="text-align: right; font-weight: 600;">${TRANSACTION_FEE} TON</div>
             </div>
         `;
 
