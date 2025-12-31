@@ -2772,7 +2772,10 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
             if (raw.transactions) raw = raw.transactions;
 
             if (!Array.isArray(raw) || raw.length === 0) {
-                console.log(`ℹ️ ${p.name} returned no transactions for ${add
+                console.log(`ℹ️ ${p.name} returned no transactions for ${address}`);
+                continue;
+            }
+
             const normalized = raw.map(tx => {
                 try {
                     const hash = tx.hash || tx.transaction_hash || tx.tx_hash || (tx.transaction_id && tx.transaction_id.hash) || null;
