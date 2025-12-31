@@ -1672,7 +1672,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                 } else {
                                     console.log(`⚠️ Attempt ${attempt + 1}: No transactions found on blockchain yet`);
                                 }
-                                }
+                            } // End of for loop
                                 
                                 // After all attempts, process the result
                                 if (matchingTx && matchingTx.transaction_hash) {
@@ -1723,13 +1723,12 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                         console.log('⚠️ Transaction will remain pending until next sync or manual sync');
                                     }
                                     
-                                    // Also upsert all transactions to catch received ones
-                                    await upsertTransactionsForUser(userId, walletAddr, txs);
-                                    console.log('✅ Post-send sync complete');
-                                } else {
-                                    console.log('⚠️ No transactions found on blockchain yet');
-                                }
-                            } catch (e) {
+                                    // Also upsert all transactions to catch received ones (outside the if block)
+                                    if (txs && txs.length > 0) {
+                                        await upsertTransactionsForUser(userId, walletAddr, txs);
+                                        console.log('✅ Post-send upsert complete');
+                                    }
+                                } catch (e) {
                                 console.error('❌ Post-send auto-sync failed:', e.message);
                                 console.error('❌ Post-send sync error stack:', e.stack);
                             }
