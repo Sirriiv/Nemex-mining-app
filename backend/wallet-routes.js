@@ -1619,11 +1619,36 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                 if (txs && txs.length > 0) {
                                     console.log(`✅ Found ${txs.length} transactions from blockchain`);
                                     
+                                    // Helper function to compare TON addresses safely
+                                    function isSameAddress(addr1, addr2) {
+                                        if (!addr1 || !addr2) return false;
+                                        try {
+                                            const a1 = Address.parse(addr1).toString({ urlSafe: true, bounceable: false });
+                                            const a2 = Address.parse(addr2).toString({ urlSafe: true, bounceable: false });
+                                            return a1 === a2;
+                                        } catch (e) {
+                                            // Fallback to simple comparison
+                                            return addr1.toLowerCase().includes(addr2.toLowerCase().slice(-10));
+                                        }
+                                    }
+                                    
                                     // Find the matching transaction from blockchain
                                     const matchingTx = txs.find(tx => {
                                         const amountMatch = Math.abs(parseFloat(tx.amount || 0) - parseFloat(amount)) < 0.000001;
-                                        const toAddressMatch = tx.to_address && tx.to_address.toLowerCase().includes(toAddress.toLowerCase().slice(-10));
-                                        return amountMatch && toAddressMatch;
+                                        const toAddressMatch = tx.to_address && isSameAddress(tx.to_address, toAddress);
+                                        const isOutgoing = tx.type === 'send' || (tx.from_address && isSameAddress(tx.from_address, walletAddr));
+                                        
+                                        console.log('🔍 Checking tx:', {
+                                            hash: tx.transaction_hash?.substring(0, 10) + '...',
+                                            amount: tx.amount,
+                                            amountMatch,
+                                            toAddressMatch,
+                                            isOutgoing,
+                                            txTo: tx.to_address?.substring(0, 15) + '...',
+                                            expectedTo: toAddress?.substring(0, 15) + '...'
+                                        });
+                                        
+                                        return amountMatch && toAddressMatch && isOutgoing;
                                     });
                                     
                                     if (matchingTx && matchingTx.transaction_hash) {
