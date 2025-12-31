@@ -1559,17 +1559,28 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                 try {
                     const walletAddr = walletContract.address.toString({ urlSafe: true, bounceable: false });
                     
-                    const record = {
+                    const amountValue = Number(parseFloat(amount).toFixed(8));
+                const feeValue = Number((process.env.TX_FEE_TON || 0.001).toString());
+                
+                console.log('🔢 Transaction amounts:', {
+                    originalAmount: amount,
+                    parsedAmount: amountValue,
+                    networkFee: feeValue,
+                    amountType: typeof amount,
+                    amountIsNaN: isNaN(amountValue)
+                });
+                
+                const record = {
                         user_id: userId,
                         wallet_address: walletAddr,
                         transaction_hash: tempTxHash,
                         type: 'send',
                         token: 'TON',
-                        amount: Number(parseFloat(amount).toFixed(8)),
+                        amount: amountValue,
                         to_address: toAddress,
                         from_address: walletAddr,
                         status: 'pending',
-                        network_fee: Number((process.env.TX_FEE_TON || 0.001).toString()),
+                        network_fee: feeValue,
                         description: memo || null,
                         created_at: new Date().toISOString()
                     };
@@ -1625,14 +1636,19 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                         });
                                         
                                         // Update the pending transaction with real hash and mark as completed
+                                        const updateData = {
+                                            transaction_hash: matchingTx.transaction_hash,
+                                            status: 'completed',
+                                            amount: matchingTx.amount || record.amount,
+                                            network_fee: matchingTx.network_fee || record.network_fee,
+                                            created_at: matchingTx.block_time || record.created_at
+                                        };
+                                        
+                                        console.log('📝 Updating transaction with data:', updateData);
+                                        
                                         const { data: updated, error: updateErr } = await supabase
                                             .from('transactions')
-                                            .update({
-                                                transaction_hash: matchingTx.transaction_hash,
-                                                status: 'completed',
-                                                network_fee: matchingTx.network_fee || record.network_fee,
-                                                created_at: matchingTx.block_time || record.created_at
-                                            })
+                                            .update(updateData)
                                             .eq('transaction_hash', tempTxHash)
                                             .select();
                                         
@@ -3316,6 +3332,17 @@ router.get('/transactions/:userId', async (req, res) => {
                 return acc;
             }, {});
             console.log(breakdown);
+            
+            // Log sample transaction to debug amount/fee display issues
+            console.log('📋 Sample transaction data:', {
+                hash: transactions[0].transaction_hash,
+                amount: transactions[0].amount,
+                amountType: typeof transactions[0].amount,
+                networkFee: transactions[0].network_fee,
+                feeType: typeof transactions[0].network_fee,
+                status: transactions[0].status,
+                type: transactions[0].type
+            });
         }
 
         // If no transactions found but user has a wallet, sync transactions
