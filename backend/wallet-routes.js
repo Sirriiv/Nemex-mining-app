@@ -2787,8 +2787,11 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                     let from_address = null;
                     let to_address = null;
                     let fee = null;
-                    let status = tx.status || 'pending';
+                    // Transactions fetched from blockchain are already confirmed
+                    let status = 'completed';
                     let description = tx.description || tx.memo || tx.message || '';
+                    // Filter out empty or whitespace-only descriptions
+                    description = description && description.trim() ? description.trim() : '';
 
                     // Parse transaction fee
                     if (tx.fee) fee = Number(tx.fee) / 1_000_000_000;
