@@ -1611,9 +1611,10 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                             try {
                                 console.log('🔄 Starting post-send sync for wallet:', walletAddr);
                                 console.log('🔍 Looking for transaction to update with temp hash:', tempTxHash);
+                                console.log('🔍 Expected amount:', amount, 'toAddress:', toAddress);
                                 
-                                // Wait for blockchain indexing
-                                await new Promise(resolve => setTimeout(resolve, 5000));
+                                // Wait for blockchain indexing (increased to 10 seconds)
+                                await new Promise(resolve => setTimeout(resolve, 10000));
                                 
                                 const txs = await fetchTransactionsFromProviders(walletAddr, 20);
                                 if (txs && txs.length > 0) {
