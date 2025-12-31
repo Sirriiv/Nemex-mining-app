@@ -1560,7 +1560,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                     const walletAddr = walletContract.address.toString({ urlSafe: true, bounceable: false });
                     
                     const amountValue = Number(parseFloat(amount).toFixed(8));
-                    const feeValue = Number(parseFloat(process.env.TX_FEE_TON || '0.01').toFixed(8));
+                    const feeValue = Number(parseFloat(process.env.TX_FEE_TON || '0.001').toFixed(8));
                 
                 console.log('🔢 Transaction amounts:', {
                     originalAmount: amount,
@@ -1656,7 +1656,10 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                             amountMatch,
                                             toAddressMatch,
                                             isOutgoing,
+                                            type: tx.type,
+                                            txFrom: tx.from_address?.substring(0, 15) + '...',
                                             txTo: tx.to_address?.substring(0, 15) + '...',
+                                            expectedFrom: walletAddr?.substring(0, 15) + '...',
                                             expectedTo: toAddress?.substring(0, 15) + '...'
                                         });
                                         
@@ -2799,6 +2802,21 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
 
                     if (!from_address && tx.from) from_address = tx.from;
                     if (!to_address && tx.to) to_address = tx.to;
+
+                    // Debug logging for transaction parsing
+                    if (!from_address || !to_address) {
+                        console.log('⚠️ Missing address in transaction:', {
+                            hash: hash?.substring(0, 16),
+                            from_address,
+                            to_address,
+                            has_in_msg: !!tx.in_msg,
+                            in_msg_source: tx.in_msg?.source,
+                            in_msg_destination: tx.in_msg?.destination,
+                            tx_from: tx.from,
+                            tx_to: tx.to,
+                            out_msgs_count: tx.out_msgs?.length || 0
+                        });
+                    }
 
                     // Helper function to compare addresses safely
                     function isSameAddress(addr1, addr2) {
