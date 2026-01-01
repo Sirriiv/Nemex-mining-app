@@ -2137,7 +2137,7 @@
                 <div class="history-header">
                     <div class="history-title">Transaction History</div>
                     <div class="history-actions">
-                        <button class="sync-history-btn" onclick="syncTransactionHistory()" id="syncHistoryBtn">
+                        <button class="sync-history-btn" onclick="syncTransactionHistory()" id="syncHistoryBtn" style="display: none;">
                             <i class="fas fa-sync-alt"></i> Sync
                         </button>
                     </div>
@@ -3568,13 +3568,8 @@ async function loadTransactionHistory() {
             return;
         }
 
-        // Show loading state
-        historyList.innerHTML = `
-            <div class="transaction-loading">
-                <div class="loading" style="margin-right: 10px;"></div>
-                Loading transactions...
-            </div>
-        `;
+        // Silent loading - no loading indicator shown
+        // historyList remains unchanged until data arrives
 
         const result = await window.getTransactionHistory(50);
         
