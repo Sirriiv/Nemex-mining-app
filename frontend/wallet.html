@@ -4653,8 +4653,9 @@ async function executeProductionConversion() {
         const userData = await getUserNMXpBalance(userSession.id);
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
 
+        // Validation checks
         if (!userData.wallet_address) {
-            throw new Error('Wallet address not set');
+            throw new Error('Wallet address not set. Please configure your wallet first.');
         }
 
         if (userData.balance < nmxpAmount) {
@@ -4665,11 +4666,106 @@ async function executeProductionConversion() {
             throw new Error(`Minimum conversion is ${PRODUCTION_CONFIG.MIN_CONVERSION} NMXp`);
         }
 
-        showToast(`✅ Conversion recorded! ${nmxAmount.toFixed(2)} NMX will be sent.`, 'success');
+        if (nmxpAmount > PRODUCTION_CONFIG.MAX_CONVERSION) {
+            throw new Error(`Maximum conversion is ${PRODUCTION_CONFIG.MAX_CONVERSION} NMXp`);
+        }
 
+        console.log('✅ All validations passed. Creating conversion request...');
+
+        // Initialize Supabase client
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Get user's profile information for the conversion request
+        const { data: profile, error: profileError } = await supabaseClient
+            .from('profiles')
+            .select('id, email, username, full_name, balance')
+            .eq('id', userSession.id)
+            .single();
+
+        if (profileError) {
+            console.error('❌ Error fetching profile:', profileError);
+            throw new Error('Failed to fetch user profile');
+        }
+
+        // Double-check balance from database
+        const currentBalance = Number(profile.balance) || 0;
+        if (currentBalance < nmxpAmount) {
+            throw new Error('Insufficient NMXp balance');
+        }
+
+        console.log(`💰 Current balance: ${currentBalance}, Converting: ${nmxpAmount}`);
+
+        // Step 1: Create conversion request in conversions table
+        const conversionData = {
+            user_id: userSession.id,
+            nmxp_amount: nmxpAmount,
+            nmx_amount: nmxAmount,
+            wallet_address: userData.wallet_address,
+            status: 'pending',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+        };
+
+        console.log('📝 Creating conversion request:', conversionData);
+
+        const { data: conversion, error: conversionError } = await supabaseClient
+            .from('conversions')
+            .insert([conversionData])
+            .select()
+            .single();
+
+        if (conversionError) {
+            console.error('❌ Error creating conversion:', conversionError);
+            throw new Error('Failed to create conversion request: ' + conversionError.message);
+        }
+
+        console.log('✅ Conversion request created:', conversion.id);
+
+        // Step 2: Deduct NMXp from user's balance
+        const newBalance = currentBalance - nmxpAmount;
+
+        console.log(`💸 Deducting ${nmxpAmount} NMXp. New balance: ${newBalance}`);
+
+        const { error: balanceError } = await supabaseClient
+            .from('profiles')
+            .update({ 
+                balance: newBalance,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userSession.id);
+
+        if (balanceError) {
+            console.error('❌ Error updating balance:', balanceError);
+            
+            // Rollback: Delete the conversion request if balance update fails
+            await supabaseClient
+                .from('conversions')
+                .delete()
+                .eq('id', conversion.id);
+            
+            throw new Error('Failed to update balance. Transaction cancelled.');
+        }
+
+        console.log('✅ Balance updated successfully');
+
+        // Success notification
+        showToast(`✅ Conversion request submitted! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet after approval.`, 'success');
+
+        // Clear cache to force balance refresh
+        cachedUserData = null;
+        cacheTimestamp = 0;
+
+        // Reload swap data to show updated balance
         await loadProductionSwapData();
-        closeProductionSwapModal();
+        
+        // Close modal after short delay
+        setTimeout(() => {
+            closeProductionSwapModal();
+        }, 2000);
 
+        // Clear input fields
         document.getElementById('productionConvertAmount').value = '';
         document.getElementById('productionReceiveAmount').value = '';
 
