@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NMX Distribution Admin Panel</title>
+    <title>NMX Admin Panel - Conversion Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -14,11 +14,13 @@
         }
 
         :root {
+            --bg-dark: #0a0a0a;
             --bg-primary: #0f0f0f;
             --bg-secondary: #1a1a1a;
-            --bg-dark: #0a0a0a;
+            --bg-card: #1e1e1e;
             --gold: #d4af37;
             --gold-dark: #b8941f;
+            --gold-light: rgba(212, 175, 55, 0.1);
             --text: #ffffff;
             --text-muted: #888888;
             --border: #333333;
@@ -29,27 +31,21 @@
         }
 
         body {
-            background: var(--bg-primary);
+            background: var(--bg-dark);
             color: var(--text);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
             overflow: hidden;
+            height: 100vh;
         }
 
-        /* Full Screen Admin Container */
-        .admin-fullscreen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: var(--bg-dark);
-            z-index: 10000;
+        /* Admin Container */
+        .admin-container {
             display: flex;
             flex-direction: column;
+            height: 100vh;
         }
 
-        /* Admin Header */
+        /* Header */
         .admin-header {
             background: var(--bg-secondary);
             border-bottom: 2px solid var(--gold);
@@ -57,36 +53,52 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.5);
+            z-index: 100;
         }
 
-        .admin-title {
+        .header-left {
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
+        .admin-logo {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--bg-dark);
+        }
+
         .admin-title h1 {
             color: var(--gold);
-            font-size: 28px;
+            font-size: 26px;
             font-weight: 700;
+            margin: 0;
         }
 
-        .admin-title i {
-            font-size: 32px;
-            color: var(--gold);
+        .admin-subtitle {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 2px;
         }
 
-        .admin-actions {
+        .header-right {
             display: flex;
             gap: 15px;
+            align-items: center;
         }
 
-        .admin-btn {
+        .refresh-btn, .logout-btn {
             background: var(--bg-primary);
             border: 1px solid var(--border);
             color: var(--text);
-            padding: 12px 20px;
+            padding: 10px 18px;
             border-radius: 8px;
             cursor: pointer;
             display: flex;
@@ -94,12 +106,13 @@
             gap: 8px;
             font-weight: 600;
             transition: all 0.3s ease;
+            font-size: 14px;
         }
 
-        .admin-btn:hover {
+        .refresh-btn:hover {
             background: var(--gold);
             color: var(--bg-dark);
-            transform: translateY(-2px);
+            border-color: var(--gold);
         }
 
         .logout-btn {
@@ -109,38 +122,134 @@
 
         .logout-btn:hover {
             background: #c82333;
+            border-color: #c82333;
         }
 
-        /* Stats Grid */
-        .admin-stats-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 20px;
-            padding: 30px;
+        /* Tabs Navigation */
+        .admin-tabs {
             background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            padding: 0 30px;
+            gap: 5px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 16px 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            position: relative;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tab-btn:hover {
+            color: var(--gold);
+            background: var(--gold-light);
+        }
+
+        .tab-btn.active {
+            color: var(--gold);
+            background: var(--gold-light);
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gold);
+        }
+
+        .tab-badge {
+            background: var(--warning);
+            color: var(--bg-dark);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+            min-width: 22px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .admin-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            background: var(--bg-dark);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Overview Grid */
+        .overview-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
         }
 
         .stat-card {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 15px;
             padding: 25px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
+            position: relative;
+            overflow: hidden;
             transition: all 0.3s ease;
-            cursor: pointer;
         }
 
         .stat-card:hover {
             border-color: var(--gold);
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(212, 175, 55, 0.2);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 100px;
+            height: 100px;
+            background: var(--gold-light);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
         }
 
         .stat-icon {
-            width: 60px;
-            height: 60px;
+            width: 50px;
+            height: 50px;
             border-radius: 12px;
             display: flex;
             align-items: center;
@@ -148,379 +257,204 @@
             font-size: 24px;
         }
 
-        .stat-icon.pending { background: rgba(255, 193, 7, 0.2); color: var(--warning); }
-        .stat-icon.accepted { background: rgba(40, 167, 69, 0.2); color: var(--success); }
-        .stat-icon.rejected { background: rgba(220, 53, 69, 0.2); color: var(--danger); }
-        .stat-icon.converted { background: rgba(23, 162, 184, 0.2); color: var(--info); }
-        .stat-icon.nmx { background: rgba(212, 175, 55, 0.2); color: var(--gold); }
+        .stat-icon.gold { background: var(--gold-light); color: var(--gold); }
+        .stat-icon.success { background: rgba(40, 167, 69, 0.1); color: var(--success); }
+        .stat-icon.warning { background: rgba(255, 193, 7, 0.1); color: var(--warning); }
+        .stat-icon.info { background: rgba(23, 162, 184, 0.1); color: var(--info); }
 
-        .stat-info {
-            flex: 1;
+        .stat-body {
+            position: relative;
+            z-index: 1;
         }
 
         .stat-label {
             color: var(--text-muted);
-            font-size: 14px;
-            display: block;
-            margin-bottom: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
         }
 
         .stat-value {
             color: var(--text);
-            font-size: 28px;
+            font-size: 32px;
             font-weight: 700;
-            display: block;
+            margin-bottom: 5px;
         }
 
-        /* Tab Navigation */
-        .admin-tabs {
-            display: flex;
-            background: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 0 30px;
-            overflow-x: auto;
-        }
-
-        .tab-button {
-            background: none;
-            border: none;
+        .stat-footer {
             color: var(--text-muted);
-            padding: 20px 30px;
-            cursor: pointer;
+            font-size: 12px;
             display: flex;
             align-items: center;
-            gap: 12px;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-            position: relative;
-            white-space: nowrap;
-            font-size: 16px;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .stat-trend {
+            color: var(--success);
             font-weight: 600;
-            min-width: 200px;
-            justify-content: center;
         }
 
-        .tab-button:hover {
-            color: var(--gold);
-            background: rgba(212, 175, 55, 0.1);
+        .stat-trend.down {
+            color: var(--danger);
         }
 
-        .tab-button.active {
-            color: var(--gold);
-            border-bottom-color: var(--gold);
-            background: rgba(212, 175, 55, 0.15);
-        }
-
-        .tab-badge {
-            background: var(--warning);
-            color: var(--bg-dark);
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 700;
-            min-width: 25px;
-            text-align: center;
-        }
-
-        .accepted-badge { background: var(--success); color: white; }
-        .rejected-badge { background: var(--danger); color: white; }
-
-        /* Tab Content */
-        .admin-tab-content {
-            flex: 1;
-            padding: 30px;
-            background: var(--bg-primary);
-            overflow-y: auto;
-        }
-
-        .tab-pane {
-            display: none;
-            height: 100%;
-        }
-
-        .tab-pane.active {
-            display: block;
-        }
-
-        /* Overview Grid */
-        .overview-grid {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr;
-            gap: 30px;
-            height: 100%;
-        }
-
-        .overview-card {
+        /* Table Styles */
+        .table-container {
             background: var(--bg-secondary);
             border: 1px solid var(--border);
             border-radius: 15px;
-            padding: 30px;
+            overflow: hidden;
         }
 
-        .overview-card h3 {
+        .table-header {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
             color: var(--gold);
-            margin-bottom: 20px;
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        /* Chart Styles */
-        .stats-chart {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .chart-bar {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .chart-label {
-            width: 80px;
-            color: var(--text-muted);
-            font-weight: 600;
-        }
-
-        .chart-value {
-            flex: 1;
+            font-size: 18px;
+            font-weight: 700;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .chart-fill {
-            height: 20px;
-            border-radius: 10px;
-            transition: width 0.5s ease;
-            min-width: 20px;
+        .table-actions {
+            display: flex;
+            gap: 10px;
         }
 
-        .pending-fill { background: var(--warning); }
-        .accepted-fill { background: var(--success); }
-        .rejected-fill { background: var(--danger); }
-
-        /* Quick Actions */
-        .quick-actions {
+        .filter-btn, .export-btn {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
             display: flex;
-            flex-direction: column;
-            gap: 15px;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .filter-btn:hover, .export-btn:hover {
+            background: var(--gold);
+            color: var(--bg-dark);
+            border-color: var(--gold);
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table thead {
+            background: var(--bg-card);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table th {
+            padding: 15px 20px;
+            text-align: left;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text);
+            font-size: 14px;
+        }
+
+        .data-table tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--bg-card);
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-pending {
+            background: rgba(255, 193, 7, 0.2);
+            color: var(--warning);
+        }
+
+        .status-verified {
+            background: rgba(40, 167, 69, 0.2);
+            color: var(--success);
+        }
+
+        .status-rejected {
+            background: rgba(220, 53, 69, 0.2);
+            color: var(--danger);
         }
 
         .action-btn {
             background: var(--bg-primary);
             border: 1px solid var(--border);
             color: var(--text);
-            padding: 15px 20px;
-            border-radius: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 600;
+            font-size: 13px;
             transition: all 0.3s ease;
-            text-align: left;
+            margin-right: 5px;
+        }
+
+        .action-btn.approve {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .action-btn.approve:hover {
+            background: #218838;
+            border-color: #218838;
+        }
+
+        .action-btn.reject {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        .action-btn.reject:hover {
+            background: #c82333;
+            border-color: #c82333;
         }
 
         .action-btn:hover {
-            border-color: var(--gold);
-            transform: translateX(5px);
+            transform: scale(1.05);
         }
 
-        .action-btn i {
-            font-size: 18px;
-            width: 20px;
-        }
-
-        /* System Info */
-        .system-info {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .info-item:last-child {
-            border-bottom: none;
-        }
-
-        /* Tab Headers */
-        .tab-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--border);
-        }
-
-        .tab-header h3 {
-            color: var(--gold);
-            margin: 0;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .tab-actions {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-        }
-
-        .tab-stats {
-            display: flex;
-            gap: 20px;
-            color: var(--text-muted);
-        }
-
-        .tab-stats span {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-        }
-
-        /* Conversions Container */
-        .conversions-container {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            overflow: hidden;
-            margin-top: 20px;
-        }
-
-        .conversions-header {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 20px;
-            padding: 20px;
-            background: rgba(212, 175, 55, 0.1);
-            border-bottom: 1px solid var(--border);
-            font-weight: 600;
-            color: var(--gold);
-        }
-
-        .conversion-column {
-            padding: 0 10px;
-        }
-
-        .conversions-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        /* Conversion Items */
-        .conversion-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            gap: 20px;
-            padding: 20px;
-            border-bottom: 1px solid var(--border);
-            align-items: center;
-            transition: all 0.3s ease;
-        }
-
-        .conversion-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .conversion-item:last-child {
-            border-bottom: none;
-        }
-
-        .user-info {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .user-wallet {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .conversion-amount {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--gold);
-            text-align: center;
-        }
-
-        .conversion-date {
-            color: var(--text-muted);
-            text-align: center;
-        }
-
-        .conversion-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-accept, .btn-reject {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .btn-accept {
-            background: var(--success);
-            color: white;
-        }
-
-        .btn-accept:hover {
-            background: #218838;
-            transform: translateY(-2px);
-        }
-
-        .btn-reject {
-            background: var(--danger);
-            color: white;
-        }
-
-        .btn-reject:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-        }
-
-        /* Status Badges */
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .status-pending { background: rgba(255, 193, 7, 0.2); color: var(--warning); }
-        .status-accepted { background: rgba(40, 167, 69, 0.2); color: var(--success); }
-        .status-rejected { background: rgba(220, 53, 69, 0.2); color: var(--danger); }
-
-        /* Empty States */
+        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -528,892 +462,575 @@
         }
 
         .empty-state i {
+            font-size: 64px;
             margin-bottom: 20px;
             opacity: 0.5;
         }
 
-        .empty-state p {
-            font-size: 18px;
+        .empty-state h3 {
+            font-size: 20px;
             margin-bottom: 10px;
+            color: var(--text);
         }
 
-        .empty-state small {
+        .empty-state p {
             font-size: 14px;
         }
 
-        /* Filters */
-        .filters {
-            display: flex;
-            gap: 15px;
-            align-items: center;
+        /* Loading State */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--gold);
+            animation: spin 1s ease-in-out infinite;
         }
 
-        .filters select, .filters input {
-            background: var(--bg-primary);
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 12px 15px;
-            border-radius: 8px;
-            min-width: 150px;
-        }
-
-        .filters input {
-            min-width: 200px;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Toast Notifications */
         .toast {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 8px;
-            font-weight: 600;
-            z-index: 10001;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            bottom: 30px;
+            right: 30px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 15px 20px;
+            min-width: 300px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.5);
+            z-index: 1000;
             animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .toast.success { background: var(--success); color: white; }
-        .toast.error { background: var(--danger); color: white; }
-        .toast.warning { background: var(--warning); color: var(--bg-dark); }
-        .toast.info { background: var(--info); color: white; }
-
         @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
+            from { transform: translateX(400px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
 
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .admin-stats-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-            
-            .overview-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
+        .toast.info { border-left: 4px solid var(--info); }
 
+        /* Responsive */
         @media (max-width: 768px) {
-            .admin-stats-grid {
+            .admin-header {
+                padding: 15px 20px;
+            }
+
+            .admin-content {
+                padding: 20px 15px;
+            }
+
+            .overview-stats {
                 grid-template-columns: 1fr;
             }
-            
-            .overview-grid {
-                grid-template-columns: 1fr;
+
+            .admin-tabs {
+                overflow-x: auto;
+                padding: 0 20px;
             }
-            
-            .tab-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-            
-            .conversions-header,
-            .conversion-item {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-            
-            .conversion-column {
-                display: none;
-            }
-            
-            .conversions-header .conversion-column:first-child,
-            .conversion-item > div:first-child {
-                display: block;
+
+            .table-container {
+                overflow-x: auto;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Full Screen Admin Panel -->
-    <div class="admin-fullscreen" id="adminPanel">
+    <div class="admin-container">
         <!-- Header -->
-        <div class="admin-header">
-            <div class="admin-title">
-                <i class="fas fa-crown"></i>
-                <h1>NMX Distribution Admin Panel</h1>
-            </div>
-            <div class="admin-actions">
-                <button class="admin-btn" onclick="refreshAllData()">
-                    <i class="fas fa-sync-alt"></i> Refresh All
-                </button>
-                <button class="admin-btn" onclick="exportConversionsCSV()">
-                    <i class="fas fa-download"></i> Export CSV
-                </button>
-                <button class="admin-btn logout-btn" onclick="closeAdminPanel()">
-                    <i class="fas fa-times"></i> Close Panel
-                </button>
-            </div>
-        </div>
-
-        <!-- Stats Overview -->
-        <div class="admin-stats-grid">
-            <div class="stat-card" onclick="switchAdminTab('pending')">
-                <div class="stat-icon pending">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-info">
-                    <span class="stat-label">Pending Review</span>
-                    <strong class="stat-value" id="pendingCount">0</strong>
-                </div>
-            </div>
-            
-            <div class="stat-card" onclick="switchAdminTab('accepted')">
-                <div class="stat-icon accepted">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <div class="stat-info">
-                    <span class="stat-label">Total Accepted</span>
-                    <strong class="stat-value" id="totalAccepted">0</strong>
-                </div>
-            </div>
-            
-            <div class="stat-card" onclick="switchAdminTab('rejected')">
-                <div class="stat-icon rejected">
-                    <i class="fas fa-times-circle"></i>
-                </div>
-                <div class="stat-info">
-                    <span class="stat-label">Total Rejected</span>
-                    <strong class="stat-value" id="totalRejected">0</strong>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon converted">
-                    <i class="fas fa-exchange-alt"></i>
-                </div>
-                <div class="stat-info">
-                    <span class="stat-label">Total NMXp Converted</span>
-                    <strong class="stat-value" id="totalNmxpConverted">0</strong>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon nmx">
+        <header class="admin-header">
+            <div class="header-left">
+                <div class="admin-logo">
                     <i class="fas fa-coins"></i>
                 </div>
-                <div class="stat-info">
-                    <span class="stat-label">Total NMX to Send</span>
-                    <strong class="stat-value" id="totalNMXSend">0 NMX</strong>
+                <div class="admin-title">
+                    <h1>NMX Admin Panel</h1>
+                    <div class="admin-subtitle">Conversion Management System</div>
                 </div>
             </div>
-        </div>
+            <div class="header-right">
+                <button class="refresh-btn" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </button>
+            </div>
+        </header>
 
-        <!-- Tab Navigation -->
+        <!-- Tabs Navigation -->
         <div class="admin-tabs">
-            <button class="tab-button active" onclick="switchAdminTab('overview')">
-                <i class="fas fa-chart-bar"></i> Overview
+            <button class="tab-btn active" onclick="switchTab('overview')">
+                <i class="fas fa-chart-line"></i>
+                Overview
             </button>
-            <button class="tab-button" onclick="switchAdminTab('pending')">
-                <i class="fas fa-clock"></i> Pending Review
-                <span class="tab-badge" id="pendingBadge">0</span>
+            <button class="tab-btn" onclick="switchTab('pending')">
+                <i class="fas fa-clock"></i>
+                Pending Conversions
+                <span class="tab-badge" id="pendingCount">0</span>
             </button>
-            <button class="tab-button" onclick="switchAdminTab('accepted')">
-                <i class="fas fa-check-circle"></i> Accepted
-                <span class="tab-badge accepted-badge" id="acceptedBadge">0</span>
-            </button>
-            <button class="tab-button" onclick="switchAdminTab('rejected')">
-                <i class="fas fa-times-circle"></i> Rejected
-                <span class="tab-badge rejected-badge" id="rejectedBadge">0</span>
-            </button>
-            <button class="tab-button" onclick="switchAdminTab('all')">
-                <i class="fas fa-list"></i> All Conversions
+            <button class="tab-btn" onclick="switchTab('completed')">
+                <i class="fas fa-check-circle"></i>
+                Completed Conversions
             </button>
         </div>
 
-        <!-- Tab Content -->
-        <div class="admin-tab-content">
+        <!-- Main Content -->
+        <main class="admin-content">
             <!-- Overview Tab -->
-            <div id="overviewTab" class="tab-pane active">
-                <div class="overview-grid">
-                    <div class="overview-card">
-                        <h3><i class="fas fa-chart-line"></i> Conversion Statistics</h3>
-                        <div class="stats-chart">
-                            <div class="chart-bar">
-                                <div class="chart-label">Pending</div>
-                                <div class="chart-value">
-                                    <div class="chart-fill pending-fill" id="chartPending"></div>
-                                    <span id="chartPendingText">0%</span>
-                                </div>
+            <div id="overview" class="tab-content active">
+                <div class="overview-stats">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon gold">
+                                <i class="fas fa-exchange-alt"></i>
                             </div>
-                            <div class="chart-bar">
-                                <div class="chart-label">Accepted</div>
-                                <div class="chart-value">
-                                    <div class="chart-fill accepted-fill" id="chartAccepted"></div>
-                                    <span id="chartAcceptedText">0%</span>
-                                </div>
-                            </div>
-                            <div class="chart-bar">
-                                <div class="chart-label">Rejected</div>
-                                <div class="chart-value">
-                                    <div class="chart-fill rejected-fill" id="chartRejected"></div>
-                                    <span id="chartRejectedText">0%</span>
-                                </div>
+                        </div>
+                        <div class="stat-body">
+                            <div class="stat-label">Total NMXp Converted</div>
+                            <div class="stat-value" id="totalConverted">0</div>
+                            <div class="stat-footer">
+                                <span class="stat-trend"><i class="fas fa-arrow-up"></i> +12.5%</span>
+                                <span>from last month</span>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="overview-card">
-                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
-                        <div class="quick-actions">
-                            <button onclick="processAllPending()" class="action-btn">
-                                <i class="fas fa-play-circle"></i>
-                                Process All Pending
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon success">
+                                <i class="fas fa-check-double"></i>
+                            </div>
+                        </div>
+                        <div class="stat-body">
+                            <div class="stat-label">Verified Conversions</div>
+                            <div class="stat-value" id="totalVerified">0</div>
+                            <div class="stat-footer">
+                                <span class="stat-trend"><i class="fas fa-arrow-up"></i> +8.3%</span>
+                                <span>from last month</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon warning">
+                                <i class="fas fa-hourglass-half"></i>
+                            </div>
+                        </div>
+                        <div class="stat-body">
+                            <div class="stat-label">Pending Conversions</div>
+                            <div class="stat-value" id="totalPending">0</div>
+                            <div class="stat-footer">
+                                <span class="stat-trend down"><i class="fas fa-arrow-down"></i> -3.2%</span>
+                                <span>from last week</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon info">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                        </div>
+                        <div class="stat-body">
+                            <div class="stat-label">Total Requests</div>
+                            <div class="stat-value" id="totalRequests">0</div>
+                            <div class="stat-footer">
+                                <span class="stat-trend"><i class="fas fa-arrow-up"></i> +15.7%</span>
+                                <span>from last month</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <i class="fas fa-history"></i>
+                            Recent Activity
+                        </div>
+                        <div class="table-actions">
+                            <button class="filter-btn">
+                                <i class="fas fa-filter"></i>
+                                Filter
                             </button>
-                            <button onclick="refreshAllData()" class="action-btn">
-                                <i class="fas fa-sync"></i>
-                                Refresh All Data
-                            </button>
-                            <button onclick="showBulkActionModal()" class="action-btn">
-                                <i class="fas fa-layer-group"></i>
-                                Bulk Actions
+                            <button class="export-btn">
+                                <i class="fas fa-download"></i>
+                                Export
                             </button>
                         </div>
                     </div>
-                    
-                    <div class="overview-card">
-                        <h3><i class="fas fa-info-circle"></i> System Info</h3>
-                        <div class="system-info">
-                            <div class="info-item">
-                                <span>Last Updated:</span>
-                                <strong id="lastUpdated">Never</strong>
-                            </div>
-                            <div class="info-item">
-                                <span>Total Conversions:</span>
-                                <strong id="totalConversions">0</strong>
-                            </div>
-                            <div class="info-item">
-                                <span>Success Rate:</span>
-                                <strong id="successRate">0%</strong>
-                            </div>
-                            <div class="info-item">
-                                <span>Active Users:</span>
-                                <strong id="activeUsers">0</strong>
-                            </div>
-                        </div>
-                    </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>User ID</th>
+                                <th>NMXp Amount</th>
+                                <th>NMX Amount</th>
+                                <th>Wallet Address</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentActivityTable">
+                            <tr>
+                                <td colspan="6">
+                                    <div class="empty-state">
+                                        <i class="fas fa-inbox"></i>
+                                        <h3>No Recent Activity</h3>
+                                        <p>Recent conversion requests will appear here</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <!-- Pending Review Tab -->
-            <div id="pendingTab" class="tab-pane">
-                <div class="tab-header">
-                    <h3><i class="fas fa-clock"></i> Pending Conversions</h3>
-                    <div class="tab-actions">
-                        <button onclick="processAllPending()" class="admin-btn">
-                            <i class="fas fa-play-circle"></i> Process All (<span id="pendingProcessCount">0</span>)
-                        </button>
-                        <button onclick="loadPendingConversions()" class="admin-btn">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="conversions-container">
-                    <div class="conversions-header">
-                        <div class="conversion-column user-info">User Information</div>
-                        <div class="conversion-column amount">Amount</div>
-                        <div class="conversion-column date">Date</div>
-                        <div class="conversion-column actions">Actions</div>
-                    </div>
-                    <div class="conversions-list" id="pendingConversionsList">
-                        <div class="empty-state">
-                            <i class="fas fa-clock fa-2x"></i>
-                            <p>No pending conversions</p>
-                            <small>Conversion requests will appear here when users submit them</small>
+
+            <!-- Pending Conversions Tab -->
+            <div id="pending" class="tab-content">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <i class="fas fa-clock"></i>
+                            Pending Conversion Requests
+                        </div>
+                        <div class="table-actions">
+                            <button class="filter-btn">
+                                <i class="fas fa-filter"></i>
+                                Filter
+                            </button>
+                            <button class="export-btn">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
                         </div>
                     </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Date</th>
+                                <th>User ID</th>
+                                <th>NMXp Amount</th>
+                                <th>NMX Amount</th>
+                                <th>Wallet Address</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingConversionsTable">
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <i class="fas fa-check-circle"></i>
+                                        <h3>No Pending Conversions</h3>
+                                        <p>All conversion requests have been processed</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <!-- Accepted Tab -->
-            <div id="acceptedTab" class="tab-pane">
-                <div class="tab-header">
-                    <h3><i class="fas fa-check-circle"></i> Accepted Conversions</h3>
-                    <div class="tab-stats">
-                        <span>Total NMX Sent: <strong id="acceptedNmxTotal">0</strong> NMX</span>
-                        <span>Total Conversions: <strong id="acceptedCount">0</strong></span>
-                    </div>
-                </div>
-                
-                <div class="conversions-container">
-                    <div class="conversions-header">
-                        <div class="conversion-column user-info">User Information</div>
-                        <div class="conversion-column amount">Amount</div>
-                        <div class="conversion-column date">Processed Date</div>
-                        <div class="conversion-column status">Status</div>
-                    </div>
-                    <div class="conversions-list" id="acceptedConversionsList">
-                        <div class="empty-state">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                            <p>No accepted conversions</p>
-                            <small>Accepted conversions will appear here</small>
+
+            <!-- Completed Conversions Tab -->
+            <div id="completed" class="tab-content">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="table-title">
+                            <i class="fas fa-check-circle"></i>
+                            Completed Conversions
+                        </div>
+                        <div class="table-actions">
+                            <button class="filter-btn">
+                                <i class="fas fa-filter"></i>
+                                Filter
+                            </button>
+                            <button class="export-btn">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
                         </div>
                     </div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Date</th>
+                                <th>User ID</th>
+                                <th>NMXp Converted</th>
+                                <th>NMX Received</th>
+                                <th>Wallet Address</th>
+                                <th>Status</th>
+                                <th>Verified By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completedConversionsTable">
+                            <tr>
+                                <td colspan="8">
+                                    <div class="empty-state">
+                                        <i class="fas fa-clipboard-check"></i>
+                                        <h3>No Completed Conversions</h3>
+                                        <p>Completed conversion records will appear here</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <!-- Rejected Tab -->
-            <div id="rejectedTab" class="tab-pane">
-                <div class="tab-header">
-                    <h3><i class="fas fa-times-circle"></i> Rejected Conversions</h3>
-                    <div class="tab-stats">
-                        <span>Total NMXp Returned: <strong id="rejectedNmxpTotal">0</strong> NMXp</span>
-                        <span>Total Rejections: <strong id="rejectedCount">0</strong></span>
-                    </div>
-                </div>
-                
-                <div class="conversions-container">
-                    <div class="conversions-header">
-                        <div class="conversion-column user-info">User Information</div>
-                        <div class="conversion-column amount">Amount</div>
-                        <div class="conversion-column date">Rejected Date</div>
-                        <div class="conversion-column status">Status</div>
-                    </div>
-                    <div class="conversions-list" id="rejectedConversionsList">
-                        <div class="empty-state">
-                            <i class="fas fa-times-circle fa-2x"></i>
-                            <p>No rejected conversions</p>
-                            <small>Rejected conversions will appear here</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- All Conversions Tab -->
-            <div id="allTab" class="tab-pane">
-                <div class="tab-header">
-                    <h3><i class="fas fa-list"></i> All Conversions</h3>
-                    <div class="filters">
-                        <select id="statusFilter" onchange="filterAllConversions()">
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="accepted">Accepted</option>
-                            <option value="rejected">Rejected</option>
-                        </select>
-                        <input type="date" id="dateFilter" onchange="filterAllConversions()" placeholder="Filter by date">
-                        <input type="text" id="searchFilter" onkeyup="filterAllConversions()" placeholder="Search users...">
-                    </div>
-                </div>
-                
-                <div class="conversions-container">
-                    <div class="conversions-header">
-                        <div class="conversion-column user-info">User Information</div>
-                        <div class="conversion-column amount">Amount</div>
-                        <div class="conversion-column status">Status</div>
-                        <div class="conversion-column date">Date</div>
-                    </div>
-                    <div class="conversions-list" id="allConversionsList">
-                        <div class="empty-state">
-                            <i class="fas fa-list fa-2x"></i>
-                            <p>No conversions found</p>
-                            <small>All conversion history will appear here</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
 
     <script>
-        // Supabase configuration
-        const SUPABASE_URL = 'https://your-project.supabase.co';
-        const SUPABASE_ANON_KEY = 'your-anon-key';
-        
-        // Initialize Supabase client
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Tab Switching
+        function switchTab(tabName) {
+            // Remove active from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-        // Global variables
-        let currentAdminTab = 'overview';
-        let allConversions = [];
-        let pendingConversions = [];
-        let acceptedConversions = [];
-        let rejectedConversions = [];
+            // Add active to selected tab
+            event.target.closest('.tab-btn').classList.add('active');
+            document.getElementById(tabName).classList.add('active');
 
-        // Initialize admin panel
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 NMX Admin Panel Initialized');
-            loadAllConversions();
-        });
-
-        // Close admin panel
-        function closeAdminPanel() {
-            if (confirm('Are you sure you want to close the admin panel?')) {
-                window.close(); // Close the window/tab
+            // Load tab data
+            if (tabName === 'pending') {
+                loadPendingConversions();
+            } else if (tabName === 'completed') {
+                loadCompletedConversions();
             }
         }
 
-        // Switch between tabs
-        function switchAdminTab(tabName) {
-            currentAdminTab = tabName;
-            
-            // Hide all tab panes
-            document.querySelectorAll('.tab-pane').forEach(pane => {
-                pane.classList.remove('active');
-            });
-            
-            // Remove active class from all tab buttons
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
-            
-            // Show selected tab pane
-            const tabElement = document.getElementById(tabName + 'Tab');
-            if (tabElement) {
-                tabElement.classList.add('active');
-            }
-            
-            // Activate selected tab button
-            const buttonElement = document.querySelector(`[onclick="switchAdminTab('${tabName}')"]`);
-            if (buttonElement) {
-                button.classList.add('active');
-            }
-            
-            // Render the current tab content
-            renderCurrentTab();
-        }
-
-        // Load all conversions
-        async function loadAllConversions() {
+        // Load Overview Stats
+        async function loadOverviewStats() {
             try {
-                console.log('🔄 Loading all conversions...');
-                
-                // Simulated data - replace with actual Supabase call
-                const simulatedData = [
+                // TODO: Replace with actual API calls
+                const stats = {
+                    totalConverted: 125000,
+                    totalVerified: 98,
+                    totalPending: 12,
+                    totalRequests: 110
+                };
+
+                document.getElementById('totalConverted').textContent = stats.totalConverted.toLocaleString();
+                document.getElementById('totalVerified').textContent = stats.totalVerified;
+                document.getElementById('totalPending').textContent = stats.totalPending;
+                document.getElementById('totalRequests').textContent = stats.totalRequests;
+                document.getElementById('pendingCount').textContent = stats.totalPending;
+            } catch (error) {
+                console.error('Error loading overview stats:', error);
+                showToast('Failed to load statistics', 'error');
+            }
+        }
+
+        // Load Pending Conversions
+        async function loadPendingConversions() {
+            const tbody = document.getElementById('pendingConversionsTable');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><div class="loading"></div> Loading pending conversions...</td></tr>';
+
+            try {
+                // TODO: Replace with actual API call
+                const pendingConversions = [
                     {
-                        id: '1',
-                        user_id: 'user_001',
-                        wallet_address: '0x742d35Cc6634C0532925a3b8D',
-                        nmxp_amount: 1500,
-                        nmx_amount: 1.5,
-                        status: 'pending',
-                        created_at: new Date().toISOString(),
-                        updated_at: null
+                        id: 'REQ-001',
+                        date: '2026-01-01 10:30',
+                        userId: 'user_123',
+                        nmxpAmount: 5000,
+                        nmxAmount: 5000,
+                        walletAddress: 'EQAbc...xyz123',
+                        status: 'pending'
                     },
                     {
-                        id: '2', 
-                        user_id: 'user_002',
-                        wallet_address: '0x89205A3a3b2C69c8c8D3b2a1',
-                        nmxp_amount: 2500,
-                        nmx_amount: 2.5,
-                        status: 'accepted',
-                        created_at: new Date(Date.now() - 86400000).toISOString(),
-                        updated_at: new Date().toISOString()
-                    },
-                    {
-                        id: '3',
-                        user_id: 'user_003',
-                        wallet_address: '0x3456B3a3b2C69c8c8D3b2a1',
-                        nmxp_amount: 1000,
-                        nmx_amount: 1.0,
-                        status: 'rejected',
-                        created_at: new Date(Date.now() - 172800000).toISOString(),
-                        updated_at: new Date().toISOString()
+                        id: 'REQ-002',
+                        date: '2026-01-01 11:45',
+                        userId: 'user_456',
+                        nmxpAmount: 10000,
+                        nmxAmount: 10000,
+                        walletAddress: 'EQDef...uvw456',
+                        status: 'pending'
                     }
                 ];
 
-                allConversions = simulatedData;
-                pendingConversions = allConversions.filter(c => c.status === 'pending');
-                acceptedConversions = allConversions.filter(c => c.status === 'accepted');
-                rejectedConversions = allConversions.filter(c => c.status === 'rejected');
-                
-                updateAdminStats();
-                renderCurrentTab();
-                
-            } catch (error) {
-                console.error('❌ Error loading conversions:', error);
-                showToast('Error loading conversions', 'error');
-            }
-        }
-
-        // Update admin statistics
-        function updateAdminStats() {
-            const pending = pendingConversions.length;
-            const accepted = acceptedConversions.length;
-            const rejected = rejectedConversions.length;
-            const totalNmxp = allConversions.reduce((sum, conv) => sum + (conv.nmxp_amount || 0), 0);
-            const totalNmx = allConversions.reduce((sum, conv) => sum + (conv.nmx_amount || 0), 0);
-            
-            // Update stat cards
-            document.getElementById('pendingCount').textContent = pending;
-            document.getElementById('totalAccepted').textContent = accepted;
-            document.getElementById('totalRejected').textContent = rejected;
-            document.getElementById('totalNmxpConverted').textContent = formatNumber(totalNmxp);
-            document.getElementById('totalNMXSend').textContent = totalNmx.toFixed(2);
-            
-            // Update tab badges
-            document.getElementById('pendingBadge').textContent = pending;
-            document.getElementById('acceptedBadge').textContent = accepted;
-            document.getElementById('rejectedBadge').textContent = rejected;
-            document.getElementById('pendingProcessCount').textContent = pending;
-            
-            // Update chart
-            const total = pending + accepted + rejected;
-            if (total > 0) {
-                const pendingPercent = (pending / total) * 100;
-                const acceptedPercent = (accepted / total) * 100;
-                const rejectedPercent = (rejected / total) * 100;
-                
-                document.getElementById('chartPending').style.width = pendingPercent + '%';
-                document.getElementById('chartAccepted').style.width = acceptedPercent + '%';
-                document.getElementById('chartRejected').style.width = rejectedPercent + '%';
-                
-                document.getElementById('chartPendingText').textContent = pendingPercent.toFixed(1) + '%';
-                document.getElementById('chartAcceptedText').textContent = acceptedPercent.toFixed(1) + '%';
-                document.getElementById('chartRejectedText').textContent = rejectedPercent.toFixed(1) + '%';
-            }
-            
-            // Update system info
-            document.getElementById('totalConversions').textContent = total;
-            document.getElementById('successRate').textContent = total > 0 ? ((accepted / total) * 100).toFixed(1) + '%' : '0%';
-            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
-            document.getElementById('activeUsers').textContent = new Set(allConversions.map(c => c.user_id)).size;
-        }
-
-        // Render content for current tab
-        function renderCurrentTab() {
-            switch(currentAdminTab) {
-                case 'overview':
-                    updateAdminStats();
-                    break;
-                case 'pending':
-                    renderPendingConversions();
-                    break;
-                case 'accepted':
-                    renderAcceptedConversions();
-                    break;
-                case 'rejected':
-                    renderRejectedConversions();
-                    break;
-                case 'all':
-                    renderAllConversions();
-                    break;
-            }
-        }
-
-        // Render pending conversions
-        function renderPendingConversions() {
-            const container = document.getElementById('pendingConversionsList');
-            if (!container) return;
-            
-            if (pendingConversions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-clock fa-2x"></i>
-                        <p>No pending conversions</p>
-                        <small>Conversion requests will appear here when users submit them</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = pendingConversions.map(conversion => `
-                <div class="conversion-item" data-id="${conversion.id}">
-                    <div class="user-info">
-                        <div class="user-id">User: ${conversion.user_id}</div>
-                        <div class="user-wallet">Wallet: ${conversion.wallet_address}</div>
-                    </div>
-                    <div class="conversion-amount">
-                        ${formatNumber(conversion.nmxp_amount)} NMXp → ${conversion.nmx_amount.toFixed(6)} NMX
-                    </div>
-                    <div class="conversion-date">
-                        ${new Date(conversion.created_at).toLocaleDateString()}
-                    </div>
-                    <div class="conversion-actions">
-                        <div class="action-buttons">
-                            <button class="btn-accept" onclick="processConversion('${conversion.id}', 'accepted')">
-                                <i class="fas fa-check"></i> Accept
-                            </button>
-                            <button class="btn-reject" onclick="processConversion('${conversion.id}', 'rejected')">
-                                <i class="fas fa-times"></i> Reject
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Render accepted conversions
-        function renderAcceptedConversions() {
-            const container = document.getElementById('acceptedConversionsList');
-            if (!container) return;
-            
-            const totalNmx = acceptedConversions.reduce((sum, conv) => sum + (conv.nmx_amount || 0), 0);
-            document.getElementById('acceptedNmxTotal').textContent = totalNmx.toFixed(2);
-            document.getElementById('acceptedCount').textContent = acceptedConversions.length;
-            
-            if (acceptedConversions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-check-circle fa-2x"></i>
-                        <p>No accepted conversions</p>
-                        <small>Accepted conversions will appear here</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = acceptedConversions.map(conversion => `
-                <div class="conversion-item">
-                    <div class="user-info">
-                        <div class="user-id">User: ${conversion.user_id}</div>
-                        <div class="user-wallet">Wallet: ${conversion.wallet_address}</div>
-                    </div>
-                    <div class="conversion-amount">
-                        ${formatNumber(conversion.nmxp_amount)} NMXp → ${conversion.nmx_amount.toFixed(6)} NMX
-                    </div>
-                    <div class="conversion-date">
-                        ${new Date(conversion.updated_at || conversion.created_at).toLocaleDateString()}
-                    </div>
-                    <div class="conversion-status">
-                        <span class="status-badge status-accepted">ACCEPTED</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Render rejected conversions
-        function renderRejectedConversions() {
-            const container = document.getElementById('rejectedConversionsList');
-            if (!container) return;
-            
-            const totalNmxp = rejectedConversions.reduce((sum, conv) => sum + (conv.nmxp_amount || 0), 0);
-            document.getElementById('rejectedNmxpTotal').textContent = formatNumber(totalNmxp);
-            document.getElementById('rejectedCount').textContent = rejectedConversions.length;
-            
-            if (rejectedConversions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-times-circle fa-2x"></i>
-                        <p>No rejected conversions</p>
-                        <small>Rejected conversions will appear here</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = rejectedConversions.map(conversion => `
-                <div class="conversion-item">
-                    <div class="user-info">
-                        <div class="user-id">User: ${conversion.user_id}</div>
-                        <div class="user-wallet">Wallet: ${conversion.wallet_address}</div>
-                    </div>
-                    <div class="conversion-amount">
-                        ${formatNumber(conversion.nmxp_amount)} NMXp → REJECTED
-                    </div>
-                    <div class="conversion-date">
-                        ${new Date(conversion.updated_at || conversion.created_at).toLocaleDateString()}
-                    </div>
-                    <div class="conversion-status">
-                        <span class="status-badge status-rejected">REJECTED</span>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Render all conversions
-        function renderAllConversions() {
-            const container = document.getElementById('allConversionsList');
-            if (!container) return;
-            
-            if (allConversions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-list fa-2x"></i>
-                        <p>No conversions found</p>
-                        <small>All conversion history will appear here</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = allConversions.map(conversion => `
-                <div class="conversion-item">
-                    <div class="user-info">
-                        <div class="user-id">User: ${conversion.user_id}</div>
-                        <div class="user-wallet">Wallet: ${conversion.wallet_address}</div>
-                    </div>
-                    <div class="conversion-amount">
-                        ${formatNumber(conversion.nmxp_amount)} NMXp → ${conversion.status === 'rejected' ? 'REJECTED' : conversion.nmx_amount.toFixed(6) + ' NMX'}
-                    </div>
-                    <div class="conversion-status">
-                        <span class="status-badge status-${conversion.status}">${conversion.status.toUpperCase()}</span>
-                    </div>
-                    <div class="conversion-date">
-                        ${new Date(conversion.created_at).toLocaleDateString()}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Process conversion (accept/reject)
-        async function processConversion(conversionId, action) {
-            try {
-                console.log(`🔄 Processing conversion ${conversionId} as ${action}`);
-                
-                // Simulate API call - replace with actual Supabase update
-                setTimeout(() => {
-                    showToast(`Conversion ${action} successfully!`, 'success');
-                    loadAllConversions(); // Reload data
-                }, 1000);
-                
-            } catch (error) {
-                console.error('❌ Error processing conversion:', error);
-                showToast('Error processing conversion', 'error');
-            }
-        }
-
-        // Process all pending conversions
-        async function processAllPending() {
-            try {
                 if (pendingConversions.length === 0) {
-                    showToast('No pending conversions to process', 'info');
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8">
+                                <div class="empty-state">
+                                    <i class="fas fa-check-circle"></i>
+                                    <h3>No Pending Conversions</h3>
+                                    <p>All conversion requests have been processed</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
                     return;
                 }
 
-                showToast(`Processing ${pendingConversions.length} conversions...`, 'info');
+                tbody.innerHTML = pendingConversions.map(conv => `
+                    <tr>
+                        <td><strong>${conv.id}</strong></td>
+                        <td>${conv.date}</td>
+                        <td>${conv.userId}</td>
+                        <td><strong style="color: var(--gold)">${conv.nmxpAmount.toLocaleString()}</strong></td>
+                        <td><strong style="color: var(--success)">${conv.nmxAmount.toLocaleString()}</strong></td>
+                        <td><code style="font-size:12px">${conv.walletAddress}</code></td>
+                        <td><span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span></td>
+                        <td>
+                            <button class="action-btn approve" onclick="approveConversion('${conv.id}')">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="action-btn reject" onclick="rejectConversion('${conv.id}')">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading pending conversions:', error);
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">Failed to load data</td></tr>';
+                showToast('Failed to load pending conversions', 'error');
+            }
+        }
 
-                // Process each conversion
-                for (const conversion of pendingConversions) {
-                    await processConversion(conversion.id, 'accepted');
+        // Load Completed Conversions
+        async function loadCompletedConversions() {
+            const tbody = document.getElementById('completedConversionsTable');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><div class="loading"></div> Loading completed conversions...</td></tr>';
+
+            try {
+                // TODO: Replace with actual API call
+                const completedConversions = [
+                    {
+                        id: 'REQ-003',
+                        date: '2025-12-31 14:20',
+                        userId: 'user_789',
+                        nmxpAmount: 7500,
+                        nmxAmount: 7500,
+                        walletAddress: 'EQGhi...rst789',
+                        status: 'verified',
+                        verifiedBy: 'admin_01'
+                    }
+                ];
+
+                if (completedConversions.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8">
+                                <div class="empty-state">
+                                    <i class="fas fa-clipboard-check"></i>
+                                    <h3>No Completed Conversions</h3>
+                                    <p>Completed conversion records will appear here</p>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
                 }
 
-                showToast(`Successfully processed ${pendingConversions.length} conversions`, 'success');
-                
-            } catch (error) {
-                console.error('❌ Error processing all conversions:', error);
-                showToast('Error processing conversions', 'error');
-            }
-        }
-
-        // Refresh all data
-        function refreshAllData() {
-            loadAllConversions();
-            showToast('Data refreshed successfully', 'success');
-        }
-
-        // Filter all conversions
-        function filterAllConversions() {
-            const statusFilter = document.getElementById('statusFilter').value;
-            const dateFilter = document.getElementById('dateFilter').value;
-            const searchFilter = document.getElementById('searchFilter').value.toLowerCase();
-            
-            let filtered = allConversions;
-            
-            if (statusFilter !== 'all') {
-                filtered = filtered.filter(conv => conv.status === statusFilter);
-            }
-            
-            if (dateFilter) {
-                filtered = filtered.filter(conv => conv.created_at.startsWith(dateFilter));
-            }
-            
-            if (searchFilter) {
-                filtered = filtered.filter(conv => 
-                    conv.user_id.toLowerCase().includes(searchFilter) ||
-                    conv.wallet_address.toLowerCase().includes(searchFilter)
-                );
-            }
-            
-            // Re-render with filtered data
-            const container = document.getElementById('allConversionsList');
-            if (container && filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-search fa-2x"></i>
-                        <p>No conversions match your filters</p>
-                        <small>Try adjusting your search criteria</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            if (container) {
-                container.innerHTML = filtered.map(conversion => `
-                    <div class="conversion-item">
-                        <div class="user-info">
-                            <div class="user-id">User: ${conversion.user_id}</div>
-                            <div class="user-wallet">Wallet: ${conversion.wallet_address}</div>
-                        </div>
-                        <div class="conversion-amount">
-                            ${formatNumber(conversion.nmxp_amount)} NMXp → ${conversion.status === 'rejected' ? 'REJECTED' : conversion.nmx_amount.toFixed(6) + ' NMX'}
-                        </div>
-                        <div class="conversion-status">
-                            <span class="status-badge status-${conversion.status}">${conversion.status.toUpperCase()}</span>
-                        </div>
-                        <div class="conversion-date">
-                            ${new Date(conversion.created_at).toLocaleDateString()}
-                        </div>
-                    </div>
+                tbody.innerHTML = completedConversions.map(conv => `
+                    <tr>
+                        <td><strong>${conv.id}</strong></td>
+                        <td>${conv.date}</td>
+                        <td>${conv.userId}</td>
+                        <td><strong style="color: var(--gold)">${conv.nmxpAmount.toLocaleString()}</strong></td>
+                        <td><strong style="color: var(--success)">${conv.nmxAmount.toLocaleString()}</strong></td>
+                        <td><code style="font-size:12px">${conv.walletAddress}</code></td>
+                        <td><span class="status-badge status-verified"><i class="fas fa-check-circle"></i> Verified</span></td>
+                        <td>${conv.verifiedBy}</td>
+                    </tr>
                 `).join('');
+            } catch (error) {
+                console.error('Error loading completed conversions:', error);
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">Failed to load data</td></tr>';
+                showToast('Failed to load completed conversions', 'error');
             }
         }
 
-        // Export to CSV
-        function exportConversionsCSV() {
-            if (allConversions.length === 0) {
-                showToast('No data to export', 'warning');
-                return;
+        // Approve Conversion
+        async function approveConversion(requestId) {
+            if (!confirm(`Are you sure you want to approve conversion ${requestId}?`)) return;
+
+            try {
+                // TODO: Replace with actual API call
+                showToast(`Conversion ${requestId} approved successfully`, 'success');
+                loadPendingConversions();
+                loadOverviewStats();
+            } catch (error) {
+                console.error('Error approving conversion:', error);
+                showToast('Failed to approve conversion', 'error');
             }
-
-            const headers = ['User ID', 'Wallet Address', 'NMXp Amount', 'NMX Amount', 'Status', 'Created At', 'Updated At'];
-            const csvData = allConversions.map(conv => [
-                conv.user_id,
-                conv.wallet_address,
-                conv.nmxp_amount,
-                conv.nmx_amount,
-                conv.status,
-                new Date(conv.created_at).toLocaleString(),
-                conv.updated_at ? new Date(conv.updated_at).toLocaleString() : 'N/A'
-            ]);
-
-            const csvContent = [headers, ...csvData]
-                .map(row => row.map(field => `"${field}"`).join(','))
-                .join('\n');
-
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `nmx-conversions-${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-            
-            showToast('CSV exported successfully', 'success');
         }
 
-        // Show bulk action modal
-        function showBulkActionModal() {
-            alert('Bulk actions feature coming soon! This will allow you to select multiple conversions and process them together.');
+        // Reject Conversion
+        async function rejectConversion(requestId) {
+            const reason = prompt('Enter rejection reason:');
+            if (!reason) return;
+
+            try {
+                // TODO: Replace with actual API call
+                showToast(`Conversion ${requestId} rejected`, 'warning');
+                loadPendingConversions();
+                loadOverviewStats();
+            } catch (error) {
+                console.error('Error rejecting conversion:', error);
+                showToast('Failed to reject conversion', 'error');
+            }
         }
 
-        // Utility functions
-        function formatNumber(num) {
-            return new Intl.NumberFormat().format(num);
+        // Refresh All Data
+        function refreshData() {
+            showToast('Refreshing data...', 'info');
+            loadOverviewStats();
+            const activeTab = document.querySelector('.tab-content.active').id;
+            if (activeTab === 'pending') {
+                loadPendingConversions();
+            } else if (activeTab === 'completed') {
+                loadCompletedConversions();
+            }
         }
 
+        // Logout
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                window.location.href = '/login.html';
+            }
+        }
+
+        // Show Toast Notification
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            toast.textContent = message;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                ${message}
+            `;
             document.body.appendChild(toast);
-            
+
             setTimeout(() => {
-                document.body.removeChild(toast);
+                toast.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => document.body.removeChild(toast), 300);
             }, 3000);
         }
 
-        // Simulate loading specific conversion types
-        async function loadPendingConversions() {
-            // Simulate API call
-            setTimeout(() => {
-                showToast('Pending conversions refreshed', 'success');
-                renderPendingConversions();
-            }, 1000);
-        }
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadOverviewStats();
+        });
     </script>
 </body>
 </html>
