@@ -3877,13 +3877,14 @@ async function loadWalletData() {
             SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON?.change24h || 0;
             SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0;
             SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
+            
+            // Immediately update display to show percentage changes
+            updateWalletDisplay();
         }
 
         // ✅ FIXED: Don't update balance here - let the updateRealBalance function handle it
         // This prevents overwriting the real balance with 0
         console.log('ℹ️ Skipping manual balance fetch - using real updates');
-
-        updateWalletDisplay();
     } catch (error) {
         console.error('❌ Load wallet data failed:', error);
     }
@@ -4998,6 +4999,7 @@ async function fetchPricesWithFastestAPI() {
                 SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h;
             }
 
+            // Immediately update display to show prices and percentages
             updateWalletDisplay();
             return fastest.prices;
         } else {
