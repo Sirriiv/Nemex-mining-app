@@ -819,7 +819,15 @@
         // Load Overview Stats
         async function loadOverviewStats() {
             try {
-                // TODO: Replace with actual API calls
+                // TODO: Replace with actual Supabase API call
+                // Example query:
+                // SELECT 
+                //   COUNT(*) as total_requests,
+                //   SUM(CASE WHEN status = 'completed' THEN nmxp_amount ELSE 0 END) as total_converted,
+                //   COUNT(CASE WHEN status = 'completed' OR status = 'approved' THEN 1 END) as total_verified,
+                //   COUNT(CASE WHEN status = 'pending' THEN 1 END) as total_pending
+                // FROM conversion_requests
+                
                 const stats = {
                     totalConverted: 125000,
                     totalVerified: 98,
@@ -844,24 +852,30 @@
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><div class="loading"></div> Loading pending conversions...</td></tr>';
 
             try {
-                // TODO: Replace with actual API call
+                // TODO: Replace with actual Supabase API call
+                // Example query:
+                // SELECT id, user_id, nmxp_amount, nmx_amount, wallet_address, status, request_date
+                // FROM conversion_requests
+                // WHERE status = 'pending'
+                // ORDER BY request_date DESC
+                
                 const pendingConversions = [
                     {
-                        id: 'REQ-001',
-                        date: '2026-01-01 10:30',
-                        userId: 'user_123',
-                        nmxpAmount: 5000,
-                        nmxAmount: 5000,
-                        walletAddress: 'EQAbc...xyz123',
+                        id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
+                        request_date: '2026-01-01T10:30:00Z',
+                        user_id: '123e4567-e89b-12d3-a456-426614174000',
+                        nmxp_amount: 5000,
+                        nmx_amount: 5000,
+                        wallet_address: 'EQAbc...xyz123',
                         status: 'pending'
                     },
                     {
-                        id: 'REQ-002',
-                        date: '2026-01-01 11:45',
-                        userId: 'user_456',
-                        nmxpAmount: 10000,
-                        nmxAmount: 10000,
-                        walletAddress: 'EQDef...uvw456',
+                        id: 'b2c3d4e5-f6a7-5890-b123-4567890bcdef',
+                        request_date: '2026-01-01T11:45:00Z',
+                        user_id: '234f5678-f90c-23e4-b567-537725285111',
+                        nmxp_amount: 10000,
+                        nmx_amount: 10000,
+                        wallet_address: 'EQDef...uvw456',
                         status: 'pending'
                     }
                 ];
@@ -881,14 +895,18 @@
                     return;
                 }
 
-                tbody.innerHTML = pendingConversions.map(conv => `
+                tbody.innerHTML = pendingConversions.map(conv => {
+                    const requestDate = new Date(conv.request_date).toLocaleString();
+                    const shortId = conv.id.substring(0, 8);
+                    const shortUserId = conv.user_id.substring(0, 8);
+                    return `
                     <tr>
-                        <td><strong>${conv.id}</strong></td>
-                        <td>${conv.date}</td>
-                        <td>${conv.userId}</td>
-                        <td><strong style="color: var(--gold)">${conv.nmxpAmount.toLocaleString()}</strong></td>
-                        <td><strong style="color: var(--success)">${conv.nmxAmount.toLocaleString()}</strong></td>
-                        <td><code style="font-size:12px">${conv.walletAddress}</code></td>
+                        <td><strong title="${conv.id}">${shortId}...</strong></td>
+                        <td>${requestDate}</td>
+                        <td><code title="${conv.user_id}">${shortUserId}...</code></td>
+                        <td><strong style="color: var(--gold)">${Number(conv.nmxp_amount).toLocaleString()}</strong></td>
+                        <td><strong style="color: var(--success)">${Number(conv.nmx_amount).toLocaleString()}</strong></td>
+                        <td><code style="font-size:12px">${conv.wallet_address}</code></td>
                         <td><span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span></td>
                         <td>
                             <button class="action-btn approve" onclick="approveConversion('${conv.id}')">
@@ -899,7 +917,8 @@
                             </button>
                         </td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             } catch (error) {
                 console.error('Error loading pending conversions:', error);
                 tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">Failed to load data</td></tr>';
@@ -913,17 +932,26 @@
             tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;"><div class="loading"></div> Loading completed conversions...</td></tr>';
 
             try {
-                // TODO: Replace with actual API call
+                // TODO: Replace with actual Supabase API call
+                // Example query:
+                // SELECT cr.id, cr.user_id, cr.nmxp_amount, cr.nmx_amount, cr.wallet_address, 
+                //        cr.status, cr.request_date, cr.completed_date, cr.approved_by, cr.transaction_hash
+                // FROM conversion_requests cr
+                // WHERE status IN ('completed', 'approved')
+                // ORDER BY completed_date DESC
+                
                 const completedConversions = [
                     {
-                        id: 'REQ-003',
-                        date: '2025-12-31 14:20',
-                        userId: 'user_789',
-                        nmxpAmount: 7500,
-                        nmxAmount: 7500,
-                        walletAddress: 'EQGhi...rst789',
-                        status: 'verified',
-                        verifiedBy: 'admin_01'
+                        id: 'c3d4e5f6-a7b8-6901-c234-567890cdefab',
+                        request_date: '2025-12-31T14:20:00Z',
+                        user_id: '345g6789-g01d-34f5-c678-648836396222',
+                        nmxp_amount: 7500,
+                        nmx_amount: 7500,
+                        wallet_address: 'EQGhi...rst789',
+                        status: 'completed',
+                        approved_by: '456h7890-h12e-45g6-d789-759947407333',
+                        completed_date: '2025-12-31T15:30:00Z',
+                        transaction_hash: '3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b'
                     }
                 ];
 
@@ -942,18 +970,27 @@
                     return;
                 }
 
-                tbody.innerHTML = completedConversions.map(conv => `
+                tbody.innerHTML = completedConversions.map(conv => {
+                    const requestDate = new Date(conv.request_date).toLocaleString();
+                    const shortId = conv.id.substring(0, 8);
+                    const shortUserId = conv.user_id.substring(0, 8);
+                    const shortApprovedBy = conv.approved_by ? conv.approved_by.substring(0, 8) : 'N/A';
+                    const statusBadge = conv.status === 'completed' ? 'status-verified' : 'status-pending';
+                    const statusIcon = conv.status === 'completed' ? 'check-circle' : 'clock';
+                    const statusText = conv.status.charAt(0).toUpperCase() + conv.status.slice(1);
+                    return `
                     <tr>
-                        <td><strong>${conv.id}</strong></td>
-                        <td>${conv.date}</td>
-                        <td>${conv.userId}</td>
-                        <td><strong style="color: var(--gold)">${conv.nmxpAmount.toLocaleString()}</strong></td>
-                        <td><strong style="color: var(--success)">${conv.nmxAmount.toLocaleString()}</strong></td>
-                        <td><code style="font-size:12px">${conv.walletAddress}</code></td>
-                        <td><span class="status-badge status-verified"><i class="fas fa-check-circle"></i> Verified</span></td>
-                        <td>${conv.verifiedBy}</td>
+                        <td><strong title="${conv.id}">${shortId}...</strong></td>
+                        <td>${requestDate}</td>
+                        <td><code title="${conv.user_id}">${shortUserId}...</code></td>
+                        <td><strong style="color: var(--gold)">${Number(conv.nmxp_amount).toLocaleString()}</strong></td>
+                        <td><strong style="color: var(--success)">${Number(conv.nmx_amount).toLocaleString()}</strong></td>
+                        <td><code style="font-size:12px">${conv.wallet_address}</code></td>
+                        <td><span class="status-badge ${statusBadge}"><i class="fas fa-${statusIcon}"></i> ${statusText}</span></td>
+                        <td><code title="${conv.approved_by || 'N/A'}">${shortApprovedBy}...</code></td>
                     </tr>
-                `).join('');
+                    `;
+                }).join('');
             } catch (error) {
                 console.error('Error loading completed conversions:', error);
                 tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--danger);padding:40px;">Failed to load data</td></tr>';
@@ -963,11 +1000,20 @@
 
         // Approve Conversion
         async function approveConversion(requestId) {
-            if (!confirm(`Are you sure you want to approve conversion ${requestId}?`)) return;
+            const shortId = requestId.substring(0, 8);
+            if (!confirm(`Are you sure you want to approve conversion ${shortId}...?`)) return;
 
             try {
-                // TODO: Replace with actual API call
-                showToast(`Conversion ${requestId} approved successfully`, 'success');
+                // TODO: Replace with actual API call to update conversion_requests
+                // Example API call:
+                // UPDATE conversion_requests
+                // SET status = 'approved',
+                //     approved_by = current_admin_id,
+                //     approval_date = NOW(),
+                //     updated_at = NOW()
+                // WHERE id = requestId
+                
+                showToast(`Conversion ${shortId}... approved successfully`, 'success');
                 loadPendingConversions();
                 loadOverviewStats();
             } catch (error) {
@@ -981,9 +1027,20 @@
             const reason = prompt('Enter rejection reason:');
             if (!reason) return;
 
+            const shortId = requestId.substring(0, 8);
+
             try {
-                // TODO: Replace with actual API call
-                showToast(`Conversion ${requestId} rejected`, 'warning');
+                // TODO: Replace with actual API call to update conversion_requests
+                // Example API call:
+                // UPDATE conversion_requests
+                // SET status = 'rejected',
+                //     rejection_reason = reason,
+                //     approved_by = current_admin_id,
+                //     approval_date = NOW(),
+                //     updated_at = NOW()
+                // WHERE id = requestId
+                
+                showToast(`Conversion ${shortId}... rejected`, 'warning');
                 loadPendingConversions();
                 loadOverviewStats();
             } catch (error) {
