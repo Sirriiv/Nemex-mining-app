@@ -1,0 +1,454 @@
+<!-- THIS IS THE MODERN ADMIN PANEL STRUCTURE TO BE EMBEDDED IN DASHBOARD.HTML -->
+<!-- Copy the HTML structure below into the .nmx-admin-content div in dashboard.html -->
+
+<div style="display: flex; flex-direction: column; height: 90vh; background: #0a0a0a;">
+    <!-- Header -->
+    <header style="background: #1a1a1a; border-bottom: 2px solid #d4af37; padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 20px rgba(0,0,0,0.5);">
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #d4af37, #b8941f); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #0a0a0a;">
+                <i class="fas fa-coins"></i>
+            </div>
+            <div>
+                <h1 style="color: #d4af37; font-size: 26px; font-weight: 700; margin: 0;">NMX Conversion Admin</h1>
+                <div style="color: #888888; font-size: 13px; margin-top: 2px;">Distribution Management System</div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <button onclick="refreshAdminData()" style="background: #0f0f0f; border: 1px solid #333333; color: #ffffff; padding: 10px 18px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px;">
+                <i class="fas fa-sync-alt"></i>
+                Refresh
+            </button>
+            <button onclick="closeNmxAdmin()" style="background: #dc3545; border: 1px solid #dc3545; color: white; padding: 10px 18px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px;">
+                <i class="fas fa-times"></i>
+                Close
+            </button>
+        </div>
+    </header>
+
+    <!-- Tabs Navigation -->
+    <div style="background: #0f0f0f; border-bottom: 1px solid #333333; display: flex; padding: 0 30px; gap: 5px;">
+        <button class="modern-tab-btn active" onclick="switchModernTab('overview')" style="background: transparent; border: none; color: #888888; padding: 16px 25px; cursor: pointer; font-weight: 600; font-size: 15px; position: relative; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-chart-line"></i>
+            Overview
+        </button>
+        <button class="modern-tab-btn" onclick="switchModernTab('pending')" style="background: transparent; border: none; color: #888888; padding: 16px 25px; cursor: pointer; font-weight: 600; font-size: 15px; position: relative; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-clock"></i>
+            Pending Conversions
+            <span id="modernPendingCount" style="background: #ffc107; color: #0a0a0a; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: 700; min-width: 22px; text-align: center;">0</span>
+        </button>
+        <button class="modern-tab-btn" onclick="switchModernTab('completed')" style="background: transparent; border: none; color: #888888; padding: 16px 25px; cursor: pointer; font-weight: 600; font-size: 15px; position: relative; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-check-circle"></i>
+            Completed Conversions
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div style="flex: 1; overflow-y: auto; padding: 30px; background: #0a0a0a;">
+        <!-- Overview Tab -->
+        <div id="modernOverviewTab" class="modern-tab-content" style="display: block;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 30px;">
+                <div style="background: #1a1a1a; border: 1px solid #333333; border-radius: 15px; padding: 25px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(212, 175, 55, 0.1); color: #d4af37; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                    </div>
+                    <div style="color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Total NMXp Converted</div>
+                    <div id="modernTotalConverted" style="color: #ffffff; font-size: 32px; font-weight: 700;">0</div>
+                </div>
+
+                <div style="background: #1a1a1a; border: 1px solid #333333; border-radius: 15px; padding: 25px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(40, 167, 69, 0.1); color: #28a745; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div style="color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Total Verified</div>
+                    <div id="modernTotalVerified" style="color: #ffffff; font-size: 32px; font-weight: 700;">0</div>
+                </div>
+
+                <div style="background: #1a1a1a; border: 1px solid #333333; border-radius: 15px; padding: 25px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(255, 193, 7, 0.1); color: #ffc107; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div style="color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Pending Review</div>
+                    <div id="modernTotalPending" style="color: #ffffff; font-size: 32px; font-weight: 700;">0</div>
+                </div>
+
+                <div style="background: #1a1a1a; border: 1px solid #333333; border-radius: 15px; padding: 25px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <div style="width: 50px; height: 50px; border-radius: 12px; background: rgba(23, 162, 184, 0.1); color: #17a2b8; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            <i class="fas fa-list"></i>
+                        </div>
+                    </div>
+                    <div style="color: #888888; font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Total Requests</div>
+                    <div id="modernTotalRequests" style="color: #ffffff; font-size: 32px; font-weight: 700;">0</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity Table -->
+            <div style="background: #1a1a1a; border: 1px solid #333333; border-radius: 15px; overflow: hidden;">
+                <div style="background: #1e1e1e; border-bottom: 1px solid #333333; padding: 20px 25px;">
+                    <div style="color: #d4af37; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-history"></i>
+                        Recent Activity
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #1e1e1e;">
+                            <tr>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Date</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">User ID</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">NMXp Amount</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">NMX Amount</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Wallet</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modernRecentActivityTable">
+                            <tr><td colspan="6" style="padding: 40px; text-align: center; color: #888888;">No recent activity</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Tab -->
+        <div id="modernPendingTab" class="modern-tab-content" style="display: none;">
+            <div style="background: #1a1a1a; border: 1px solid #333333; border-radius: 15px; overflow: hidden;">
+                <div style="background: #1e1e1e; border-bottom: 1px solid #333333; padding: 20px 25px;">
+                    <div style="color: #d4af37; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-clock"></i>
+                        Pending Conversions
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #1e1e1e;">
+                            <tr>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Request ID</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Date</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">User ID</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">NMXp</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">NMX</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Wallet</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Status</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modernPendingConversionsTable">
+                            <tr><td colspan="8" style="padding: 40px; text-align: center; color: #888888;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completed Tab -->
+        <div id="modernCompletedTab" class="modern-tab-content" style="display: none;">
+            <div style="background: #1a1a1a; border: 1px solid #333333; border-radius: 15px; overflow: hidden;">
+                <div style="background: #1e1e1e; border-bottom: 1px solid #333333; padding: 20px 25px;">
+                    <div style="color: #d4af37; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-check-circle"></i>
+                        Completed Conversions
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead style="background: #1e1e1e;">
+                            <tr>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Request ID</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Date</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">User ID</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">NMXp</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">NMX</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Wallet</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">Processed Date</th>
+                                <th style="padding: 15px 20px; text-align: left; color: #888888; font-weight: 600; font-size: 12px; text-transform: uppercase;">TX Hash</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modernCompletedConversionsTable">
+                            <tr><td colspan="8" style="padding: 40px; text-align: center; color: #888888;">No completed conversions</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Add these CSS rules to dashboard.html */
+.modern-tab-btn:hover {
+    color: #d4af37 !important;
+    background: rgba(212, 175, 55, 0.1) !important;
+}
+
+.modern-tab-btn.active {
+    color: #d4af37 !important;
+    background: rgba(212, 175, 55, 0.1) !important;
+}
+
+.modern-tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #d4af37;
+}
+
+.modern-tab-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+table tbody tr {
+    transition: all 0.2s ease;
+}
+
+table tbody tr:hover {
+    background: #1e1e1e !important;
+}
+</style>
+
+<script>
+// Add these JavaScript functions to dashboard.html
+
+function switchModernTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.modern-tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Remove active from all buttons
+    document.querySelectorAll('.modern-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById('modern' + tabName.charAt(0).toUpperCase() + tabName.slice(1) + 'Tab').style.display = 'block';
+    
+    // Activate button
+    event.target.closest('.modern-tab-btn').classList.add('active');
+    
+    // Load data
+    if (tabName === 'pending') {
+        loadModernPendingConversions();
+    } else if (tabName === 'completed') {
+        loadModernCompletedConversions();
+    } else if (tabName === 'overview') {
+        loadModernOverviewStats();
+    }
+}
+
+async function loadModernOverviewStats() {
+    try {
+        if (!window.supabase) {
+            console.error('Supabase not initialized');
+            return;
+        }
+
+        const { data: conversions, error } = await window.supabase
+            .from('conversions')
+            .select('*');
+
+        if (error) throw error;
+
+        const pending = conversions.filter(c => c.status === 'pending').length;
+        const completed = conversions.filter(c => c.status === 'completed' || c.status === 'approved').length;
+        const totalConverted = conversions
+            .filter(c => c.status === 'completed' || c.status === 'approved')
+            .reduce((sum, c) => sum + Number(c.nmxp_amount || 0), 0);
+
+        document.getElementById('modernTotalConverted').textContent = totalConverted.toLocaleString();
+        document.getElementById('modernTotalVerified').textContent = completed;
+        document.getElementById('modernTotalPending').textContent = pending;
+        document.getElementById('modernTotalRequests').textContent = conversions.length;
+        document.getElementById('modernPendingCount').textContent = pending;
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+async function loadModernPendingConversions() {
+    const tbody = document.getElementById('modernPendingConversionsTable');
+    tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #888888;"><div style="display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #d4af37; animation: spin 1s ease-in-out infinite;"></div> Loading...</td></tr>';
+
+    try {
+        if (!window.supabase) {
+            tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #dc3545;">Supabase not initialized</td></tr>';
+            return;
+        }
+
+        const { data: conversions, error } = await window.supabase
+            .from('conversions')
+            .select('*')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!conversions || conversions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #888888;"><i class="fas fa-check-circle" style="font-size: 48px; margin-bottom: 10px; opacity: 0.5;"></i><br/>No pending conversions</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = conversions.map(conv => {
+            const shortId = conv.id.substring(0, 8);
+            const shortUserId = conv.user_id.substring(0, 8);
+            const date = new Date(conv.created_at).toLocaleString();
+            const shortWallet = conv.wallet_address ? conv.wallet_address.substring(0, 8) + '...' : 'N/A';
+
+            return `
+                <tr style="border-bottom: 1px solid #333333;">
+                    <td style="padding: 18px 20px; color: #ffffff;" title="${conv.id}">${shortId}...</td>
+                    <td style="padding: 18px 20px; color: #ffffff;">${date}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;" title="${conv.user_id}">${shortUserId}...</td>
+                    <td style="padding: 18px 20px; color: #ffffff;">${Number(conv.nmxp_amount).toLocaleString()}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;">${Number(conv.nmx_amount).toLocaleString()}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;" title="${conv.wallet_address}">${shortWallet}</td>
+                    <td style="padding: 18px 20px;"><span style="padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: rgba(255, 193, 7, 0.2); color: #ffc107;"><i class="fas fa-clock"></i> Pending</span></td>
+                    <td style="padding: 18px 20px;">
+                        <button onclick="approveModernConversion('${conv.id}')" style="background: #28a745; border: 1px solid #28a745; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-right: 5px;"><i class="fas fa-check"></i> Approve</button>
+                        <button onclick="rejectModernConversion('${conv.id}')" style="background: #dc3545; border: 1px solid #dc3545; color: white; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;"><i class="fas fa-times"></i> Reject</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading pending conversions:', error);
+        tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #dc3545;">Failed to load data</td></tr>';
+    }
+}
+
+async function loadModernCompletedConversions() {
+    const tbody = document.getElementById('modernCompletedConversionsTable');
+    tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #888888;">Loading...</td></tr>';
+
+    try {
+        if (!window.supabase) {
+            tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #dc3545;">Supabase not initialized</td></tr>';
+            return;
+        }
+
+        const { data: conversions, error } = await window.supabase
+            .from('conversions')
+            .select('*')
+            .in('status', ['completed', 'approved'])
+            .order('processed_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (!conversions || conversions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #888888;">No completed conversions</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = conversions.map(conv => {
+            const shortId = conv.id.substring(0, 8);
+            const shortUserId = conv.user_id.substring(0, 8);
+            const date = new Date(conv.created_at).toLocaleString();
+            const processedDate = conv.processed_at ? new Date(conv.processed_at).toLocaleString() : 'N/A';
+            const shortWallet = conv.wallet_address ? conv.wallet_address.substring(0, 8) + '...' : 'N/A';
+            const shortHash = conv.transaction_hash ? conv.transaction_hash.substring(0, 8) + '...' : 'Pending';
+
+            return `
+                <tr style="border-bottom: 1px solid #333333;">
+                    <td style="padding: 18px 20px; color: #ffffff;" title="${conv.id}">${shortId}...</td>
+                    <td style="padding: 18px 20px; color: #ffffff;">${date}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;" title="${conv.user_id}">${shortUserId}...</td>
+                    <td style="padding: 18px 20px; color: #ffffff;">${Number(conv.nmxp_amount).toLocaleString()}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;">${Number(conv.nmx_amount).toLocaleString()}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;" title="${conv.wallet_address}">${shortWallet}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;">${processedDate}</td>
+                    <td style="padding: 18px 20px; color: #ffffff;" title="${conv.transaction_hash || ''}">${shortHash}</td>
+                </tr>
+            `;
+        }).join('');
+    } catch (error) {
+        console.error('Error loading completed conversions:', error);
+        tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: #dc3545;">Failed to load data</td></tr>';
+    }
+}
+
+async function approveModernConversion(requestId) {
+    const shortId = requestId.substring(0, 8);
+    if (!confirm(`Are you sure you want to approve conversion ${shortId}...?`)) return;
+
+    try {
+        if (!window.supabase) {
+            alert('Database not available');
+            return;
+        }
+
+        const { error } = await window.supabase
+            .from('conversions')
+            .update({
+                status: 'approved',
+                processed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', requestId);
+
+        if (error) throw error;
+
+        alert(`Conversion ${shortId}... approved successfully!`);
+        loadModernPendingConversions();
+        loadModernOverviewStats();
+    } catch (error) {
+        console.error('Error approving conversion:', error);
+        alert('Failed to approve conversion');
+    }
+}
+
+async function rejectModernConversion(requestId) {
+    const reason = prompt('Enter rejection reason:');
+    if (!reason) return;
+
+    const shortId = requestId.substring(0, 8);
+
+    try {
+        if (!window.supabase) {
+            alert('Database not available');
+            return;
+        }
+
+        const { error } = await window.supabase
+            .from('conversions')
+            .update({
+                status: 'rejected',
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', requestId);
+
+        if (error) throw error;
+
+        alert(`Conversion ${shortId}... rejected`);
+        loadModernPendingConversions();
+        loadModernOverviewStats();
+    } catch (error) {
+        console.error('Error rejecting conversion:', error);
+        alert('Failed to reject conversion');
+    }
+}
+
+function refreshAdminData() {
+    loadModernOverviewStats();
+    const activeTab = document.querySelector('.modern-tab-btn.active');
+    if (activeTab) {
+        const tabName = activeTab.textContent.toLowerCase().includes('pending') ? 'pending' :
+                       activeTab.textContent.toLowerCase().includes('completed') ? 'completed' : 'overview';
+        if (tabName === 'pending') loadModernPendingConversions();
+        else if (tabName === 'completed') loadModernCompletedConversions();
+    }
+}
+</script>
