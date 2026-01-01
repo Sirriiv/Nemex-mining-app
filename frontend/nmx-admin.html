@@ -279,6 +279,109 @@
             background: rgba(255, 255, 255, 0.03); 
         }
 
+        /* Card-based layout for pending conversions */
+        .conversions-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .conversion-card {
+            background: var(--darker-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .conversion-card:hover {
+            border-color: var(--gold);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.1);
+        }
+
+        .conversion-card.pending {
+            border-left: 4px solid var(--warning);
+        }
+
+        .conversion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .conversion-amount {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+
+        .conversion-meta {
+            color: var(--muted);
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .conversion-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-group {
+            margin-bottom: 5px;
+        }
+
+        .detail-label {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 5px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 14px;
+            word-break: break-all;
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+        }
+
+        .detail-value.copyable {
+            cursor: pointer;
+            position: relative;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .detail-value.copyable:hover {
+            background: rgba(212, 175, 55, 0.1);
+            border-color: var(--gold);
+        }
+
+        .copy-icon {
+            width: 14px;
+            height: 14px;
+            margin-left: 8px;
+            opacity: 0.6;
+            vertical-align: middle;
+        }
+
+        .conversion-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
         .status-badge {
             padding: 6px 12px;
             border-radius: 12px;
@@ -550,31 +653,12 @@
                 </div>
             </div>
 
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Request ID</th>
-                        <th>Date</th>
-                        <th>User ID</th>
-                        <th>Email</th>
-                        <th>NMXp</th>
-                        <th>NMX</th>
-                        <th>Wallet Address</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="pendingTable">
-                    <tr>
-                        <td colspan="9">
-                            <div class="loading-container">
-                                <div class="loading-spinner"></div>
-                                <p>Loading pending conversions...</p>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div id="pendingConversionsGrid" class="conversions-grid">
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>Loading pending conversions...</p>
+                </div>
+            </div>
         </div>
 
         <!-- Approved Section -->
@@ -905,27 +989,23 @@
         }
 
         function renderPendingTable() {
-            const tbody = document.getElementById('pendingTable');
+            const container = document.getElementById('pendingConversionsGrid');
             const pending = allConversions.filter(c => c.status === 'pending');
 
             if (pending.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="9">
-                            <div class="empty-state">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <h3>No Pending Conversions</h3>
-                                <p>All conversion requests have been processed</p>
-                            </div>
-                        </td>
-                    </tr>
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <h3>No Pending Conversions</h3>
+                        <p>All conversion requests have been processed</p>
+                    </div>
                 `;
                 return;
             }
 
-            tbody.innerHTML = pending.map(conv => createPendingRow(conv)).join('');
+            container.innerHTML = pending.map(conv => createPendingCard(conv)).join('');
         }
 
         function renderApprovedTable() {
@@ -1038,41 +1118,92 @@
             `;
         }
 
-        function createPendingRow(conv) {
+        function createPendingCard(conv) {
             const shortId = conv.id.substring(0, 8);
-            const shortUser = conv.user_id.substring(0, 8);
-            const date = new Date(conv.created_at).toLocaleDateString();
-            const shortWallet = conv.wallet_address ? conv.wallet_address.substring(0, 12) + '...' : 'N/A';
+            const date = new Date(conv.created_at).toLocaleString();
             const userEmail = conv.profiles?.email || 'Unknown';
+            const userName = conv.profiles?.username || conv.profiles?.full_name || 'Unknown User';
+            const nmxpAmount = Number(conv.nmxp_amount).toLocaleString();
+            const nmxAmount = Number(conv.nmx_amount).toFixed(2);
 
             return `
-                <tr>
-                    <td title="${conv.id}">${shortId}...</td>
-                    <td>${date}</td>
-                    <td title="${conv.user_id}">${shortUser}...</td>
-                    <td title="${userEmail}">${userEmail}</td>
-                    <td>${Number(conv.nmxp_amount).toLocaleString()}</td>
-                    <td>${Number(conv.nmx_amount).toLocaleString()}</td>
-                    <td title="${conv.wallet_address}">${shortWallet}</td>
-                    <td><span class="status-badge status-pending">PENDING</span></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="action-btn btn-approve" onclick="approveConversion('${conv.id}')">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                                </svg>
-                                Approve
-                            </button>
-                            <button class="action-btn btn-reject" onclick="rejectConversion('${conv.id}')">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                                Reject
-                            </button>
+                <div class="conversion-card pending">
+                    <div class="conversion-header">
+                        <div class="conversion-amount">
+                            ${nmxpAmount} NMXp → ${nmxAmount} NMX
                         </div>
-                    </td>
-                </tr>
+                        <div class="conversion-meta">
+                            <span class="status-badge status-pending">PENDING</span><br>
+                            ${date}
+                        </div>
+                    </div>
+                    
+                    <div class="conversion-details">
+                        <div class="detail-group">
+                            <div class="detail-label">Request ID</div>
+                            <div class="detail-value" title="${conv.id}">${shortId}...</div>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-label">User Name</div>
+                            <div class="detail-value">${userName}</div>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-label">Email</div>
+                            <div class="detail-value">${userEmail}</div>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-label">User ID</div>
+                            <div class="detail-value" title="${conv.user_id}">${conv.user_id}</div>
+                        </div>
+                        <div class="detail-group" style="grid-column: 1 / -1;">
+                            <div class="detail-label">Wallet Address (Click to Copy)</div>
+                            <div class="detail-value copyable" onclick="copyToClipboard('${conv.wallet_address}', this)" title="Click to copy">
+                                ${conv.wallet_address}
+                                <svg class="copy-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-label">NMXp Amount</div>
+                            <div class="detail-value" style="color: var(--warning);">${nmxpAmount}</div>
+                        </div>
+                        <div class="detail-group">
+                            <div class="detail-label">NMX Amount</div>
+                            <div class="detail-value" style="color: var(--success);">${nmxAmount}</div>
+                        </div>
+                    </div>
+
+                    <div class="conversion-actions">
+                        <button class="action-btn btn-approve" onclick="approveConversion('${conv.id}')">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approve & Send ${nmxAmount} NMX
+                        </button>
+                        <button class="action-btn btn-reject" onclick="rejectConversion('${conv.id}')">
+                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Reject Request
+                        </button>
+                    </div>
+                </div>
             `;
+        }
+
+        // Copy to clipboard function
+        function copyToClipboard(text, element) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = element.innerHTML;
+                element.innerHTML = `<span style="color: var(--success);">✓ Copied!</span>`;
+                setTimeout(() => {
+                    element.innerHTML = originalText;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard');
+            });
         }
 
         function createApprovedRow(conv) {
