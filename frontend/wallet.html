@@ -3805,8 +3805,9 @@ async function confirmSendTransaction() {
         confirmBtn.innerHTML = '<div class="loading" style="margin-right: 8px;"></div> Processing Transaction...';
         confirmBtn.disabled = true;
         confirmBtn.style.opacity = '0.7';
-
-        showStatusMessage('🔐 Transaction requires wallet password...', 'loading', statusElement);
+        
+        // Clear status - button shows processing state
+        statusElement.innerHTML = '';
 
         // ✅ Use the REAL send function from wallet.js
         const result = await window.sendTransaction(toAddress, amount, memo);
@@ -4094,9 +4095,42 @@ function updateFeeDisplay() {
 
 async function pasteAddress() {
     try {
-        const text = await navigator.clipboard.readText();
+        let text = '';
+        
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            try {
+                text = await navigator.clipboard.readText();
+            } catch (clipErr) {
+                console.log('Clipboard API failed, trying fallback:', clipErr.message);
+                // Fallback: use execCommand
+                const tempInput = document.createElement('textarea');
+                tempInput.style.position = 'absolute';
+                tempInput.style.left = '-9999px';
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('paste');
+                text = tempInput.value;
+                document.body.removeChild(tempInput);
+            }
+        } else {
+            // Older browser fallback
+            const tempInput = document.createElement('textarea');
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px';
+            document.body.appendChild(tempInput);
+            tempInput.focus();
+            document.execCommand('paste');
+            text = tempInput.value;
+            document.body.removeChild(tempInput);
+        }
+        
+        if (!text || text.trim() === '') {
+            throw new Error('Clipboard is empty or permission denied');
+        }
+        
         const addressInput = document.getElementById('sendToAddress');
-        addressInput.value = text;
+        addressInput.value = text.trim();
 
         addressInput.style.borderColor = 'var(--success)';
         setTimeout(() => {
@@ -4109,7 +4143,7 @@ async function pasteAddress() {
         showStatusMessage('Address pasted successfully!', 'success', document.getElementById('sendStatus'));
     } catch (error) {
         console.error('Failed to paste address:', error);
-        showStatusMessage('Failed to paste from clipboard', 'error', document.getElementById('sendStatus'));
+        showStatusMessage('Failed to paste. Please grant clipboard permission or paste manually (Ctrl+V)', 'error', document.getElementById('sendStatus'));
     }
 }
 

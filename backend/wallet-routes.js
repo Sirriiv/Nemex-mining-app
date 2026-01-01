@@ -1615,9 +1615,9 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                 console.log('🔍 Looking for transaction to update with temp hash:', tempTxHash);
                                 console.log('🔍 Expected amount:', amount, 'toAddress:', toAddress);
                                 
-                                // Retry mechanism: try up to 3 times with aggressive timing
-                                const maxAttempts = 3;
-                                const delays = [500, 1500, 2500]; // 0.5s, 1.5s, 2.5s - ultra fast for 5-7s total
+                                // Retry mechanism: optimized for maximum speed (3-5 seconds total)
+                                const maxAttempts = 4;
+                                const delays = [300, 800, 1200, 1700]; // 0.3s, 0.8s, 1.2s, 1.7s - aggressive timing
                                 let matchingTx = null;
                                 let txs = [];
                                 
@@ -2748,7 +2748,7 @@ router.post('/test-transaction-insert', async (req, res) => {
 // 🎯 TRANSACTION SYNC HELPERS AND ENDPOINTS
 // ============================================
 
-// Fetch transactions from public providers and normalize
+// Fetch transactions from public providers and normalize (with concurrent fetching)
 async function fetchTransactionsFromProviders(address, limit = 50) {
     const providers = [];
     // TonAPI / TON Console
@@ -2756,7 +2756,8 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
     // TonCenter
     providers.push({ name: 'TON Center', url: `https://toncenter.com/api/v2/getTransactions`, params: { address: address, limit: limit } });
 
-    for (const p of providers) {
+    // Try providers concurrently for faster response
+    const providerPromises = providers.map(async (p) => {
         try {
             console.log(`🔎 Trying transaction provider: ${p.name} for ${address}`);
             const opts = { method: p.method || 'GET', url: p.url, timeout: 20000 };
@@ -2765,7 +2766,7 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
             if (p.name === 'TON Center' && TONCENTER_API_KEY) opts.headers = { 'X-API-Key': TONCENTER_API_KEY };
 
             const response = await axios(opts);
-            if (!response || !response.data) continue;
+            if (!response || !response.data) return null;
 
             let raw = response.data;
             if (raw.ok && raw.result) raw = raw.result;
@@ -2773,7 +2774,7 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
 
             if (!Array.isArray(raw) || raw.length === 0) {
                 console.log(`ℹ️ ${p.name} returned no transactions for ${address}`);
-                continue;
+                return null;
             }
 
             const normalized = raw.map(tx => {
@@ -2891,7 +2892,15 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
 
         } catch (error) {
             console.warn(`⚠️ Provider ${p.name} failed:`, error.message);
-            continue;
+            return null;
+        }
+    });
+
+    // Wait for first successful result or all to fail
+    const results = await Promise.all(providerPromises);
+    for (const result of results) {
+        if (result && result.length > 0) {
+            return result;
         }
     }
 
