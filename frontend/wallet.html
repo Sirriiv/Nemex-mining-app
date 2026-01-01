@@ -4663,8 +4663,8 @@ async function createConversionNotification(userId, nmxpAmount, nmxAmount) {
 }
 
 function showWalletSetup() {
-    // Always open the setup modal and prefill if a wallet is connected
-    closeProductionSwapModal();
+    // Don't close swap modal - open setup modal on top
+    // closeProductionSwapModal(); // Removed to keep swap modal in background
 
     const input = document.getElementById('userWalletAddress');
     const primaryBtn = document.getElementById('walletPrimaryBtn');
@@ -4684,12 +4684,17 @@ function showWalletSetup() {
         if (saveBtn) saveBtn.style.display = 'none';
     }
 
-    document.getElementById('walletSetupModal').style.display = 'block';
+    // Open wallet setup modal on top with higher z-index
+    const setupModal = document.getElementById('walletSetupModal');
+    setupModal.style.display = 'block';
+    setupModal.style.zIndex = '100002'; // Higher than swap modal
 }
 
 function closeWalletSetup() {
-    document.getElementById('walletSetupModal').style.display = 'none';
-    openProductionSwapModal();
+    const setupModal = document.getElementById('walletSetupModal');
+    setupModal.style.display = 'none';
+    setupModal.style.zIndex = ''; // Reset z-index
+    // Swap modal remains open in background
 }
 
 function showWalletConnectedModal() {
