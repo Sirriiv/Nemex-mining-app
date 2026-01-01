@@ -894,6 +894,7 @@
                         <th>User</th>
                         <th>NMXp</th>
                         <th>NMX</th>
+                        <th>Gas Fee</th>
                         <th>Wallet</th>
                         <th>TX Hash</th>
                         <th>Status</th>
@@ -901,7 +902,7 @@
                 </thead>
                 <tbody id="approvedTable">
                     <tr>
-                        <td colspan="9">
+                        <td colspan="10">
                             <div class="loading-container">
                                 <div class="loading-spinner"></div>
                                 <p>Loading approved conversions...</p>
@@ -1425,6 +1426,10 @@
                             <div class="detail-item-value" style="color: var(--success); font-size: 18px; font-weight: 700;">${nmxAmount}</div>
                         </div>
                         <div class="detail-item">
+                            <div class="detail-item-label">Gas Fee Paid</div>
+                            <div class="detail-item-value" style="color: var(--info); font-weight: 700;">${conversion.gas_fee_paid || 0} TON</div>
+                        </div>
+                        <div class="detail-item">
                             <div class="detail-item-label">Request Date</div>
                             <div class="detail-item-value">${date}</div>
                         </div>
@@ -1524,6 +1529,7 @@
             const shortWallet = conv.wallet_address ? conv.wallet_address.substring(0, 12) + '...' : 'N/A';
             const shortHash = conv.transaction_hash ? conv.transaction_hash.substring(0, 12) + '...' : 'Pending';
             const userEmail = conv.profiles?.email || 'Unknown';
+            const gasFee = conv.gas_fee_paid || 0;
 
             return `
                 <tr>
@@ -1533,6 +1539,7 @@
                     <td title="${userEmail}">${shortUser}...</td>
                     <td>${Number(conv.nmxp_amount).toLocaleString()}</td>
                     <td>${Number(conv.nmx_amount).toLocaleString()}</td>
+                    <td style="color: var(--info); font-weight: 600;">${gasFee} TON</td>
                     <td title="${conv.wallet_address}">${shortWallet}</td>
                     <td title="${conv.transaction_hash || ''}">${shortHash}</td>
                     <td><span class="status-badge status-approved">${conv.status.toUpperCase()}</span></td>

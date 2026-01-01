@@ -2746,7 +2746,7 @@
 
                     <!-- Fee at the bottom of swap panels -->
                     <div class="conversion-fee">
-                        <span class="fee-text">Fee: 0.005 TON</span>
+                        <span class="fee-text">Gas Fee: 0.1 TON</span>
                     </div>
                 </div>
 
@@ -4652,6 +4652,8 @@ async function executeProductionConversion() {
 
         const userData = await getUserNMXpBalance(userSession.id);
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
+        const GAS_FEE = 0.1; // 0.1 TON gas fee
+        const FEE_COLLECTION_WALLET = 'UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St';
 
         // Validation checks
         if (!userData.wallet_address) {
@@ -4670,7 +4672,66 @@ async function executeProductionConversion() {
             throw new Error(`Maximum conversion is ${PRODUCTION_CONFIG.MAX_CONVERSION} NMXp`);
         }
 
-        console.log('✅ All validations passed. Creating conversion request...');
+        console.log('✅ All validations passed. Checking wallet balance for gas fee...');
+
+        // Check TON wallet balance for gas fee
+        let tonWalletBalance = 0;
+        try {
+            const balanceResponse = await fetch(`/api/wallet/balance/${userData.wallet_address}`);
+            const balanceData = await balanceResponse.json();
+            
+            if (balanceData.success) {
+                tonWalletBalance = parseFloat(balanceData.balance) || 0;
+                console.log(`💰 TON Wallet Balance: ${tonWalletBalance} TON`);
+            } else {
+                console.warn('⚠️ Could not fetch wallet balance');
+            }
+        } catch (balanceError) {
+            console.error('❌ Error fetching wallet balance:', balanceError);
+            throw new Error('Unable to verify wallet balance. Please try again.');
+        }
+
+        // Check if user has enough TON for gas fee
+        if (tonWalletBalance < GAS_FEE) {
+            throw new Error(`Insufficient TON balance for gas fee. You need ${GAS_FEE} TON but only have ${tonWalletBalance.toFixed(4)} TON. Please top up your wallet.`);
+        }
+
+        console.log('✅ Sufficient TON balance. Processing gas fee payment...');
+
+        // Send gas fee to collection wallet
+        let gasFeePaymentSuccess = false;
+        try {
+            const feePaymentResponse = await fetch('/api/wallet/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userSession.id,
+                    fromAddress: userData.wallet_address,
+                    toAddress: FEE_COLLECTION_WALLET,
+                    amount: GAS_FEE,
+                    memo: `Conversion fee for ${nmxpAmount} NMXp to ${nmxAmount} NMX`
+                })
+            });
+
+            const feePaymentData = await feePaymentResponse.json();
+            
+            if (feePaymentData.success) {
+                gasFeePaymentSuccess = true;
+                console.log('✅ Gas fee payment successful:', feePaymentData);
+                showToast(`Gas fee of ${GAS_FEE} TON paid successfully`, 'success');
+            } else {
+                throw new Error(feePaymentData.error || 'Failed to send gas fee');
+            }
+        } catch (feeError) {
+            console.error('❌ Gas fee payment failed:', feeError);
+            throw new Error(`Gas fee payment failed: ${feeError.message}. Please ensure your wallet has sufficient balance.`);
+        }
+
+        if (!gasFeePaymentSuccess) {
+            throw new Error('Gas fee payment was not completed. Conversion cancelled.');
+        }
+
+        console.log('✅ Gas fee paid. Creating conversion request...');
 
         // Initialize Supabase client
         const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
@@ -4697,12 +4758,13 @@ async function executeProductionConversion() {
 
         console.log(`💰 Current balance: ${currentBalance}, Converting: ${nmxpAmount}`);
 
-        // Step 1: Create conversion request in conversions table
+        // Step 1: Create conversion request in conversions table with gas fee
         const conversionData = {
             user_id: userSession.id,
             nmxp_amount: nmxpAmount,
             nmx_amount: nmxAmount,
             wallet_address: userData.wallet_address,
+            gas_fee_paid: GAS_FEE,
             status: 'pending',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -4751,7 +4813,7 @@ async function executeProductionConversion() {
         console.log('✅ Balance updated successfully');
 
         // Success notification
-        showToast(`✅ Conversion request submitted! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet after approval.`, 'success');
+        showToast(`✅ Conversion request submitted! Gas fee of ${GAS_FEE} TON paid. ${nmxAmount.toFixed(2)} NMX will be sent to your wallet after approval.`, 'success');
 
         // Clear cache to force balance refresh
         cachedUserData = null;
