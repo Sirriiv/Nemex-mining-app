@@ -4491,6 +4491,11 @@ function setBalanceDisplay(balance) {
     }
 }
 
+// Cache for user balance to avoid repeated API calls
+let cachedUserData = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 5000; // 5 seconds cache
+
 async function loadProductionSwapData() {
     console.log('🔄 loadProductionSwapData CALLED');
 
@@ -4505,6 +4510,10 @@ async function loadProductionSwapData() {
 
         const userData = await getUserNMXpBalance(userSession.id);
         const nmxpBalance = userData.balance;
+
+        // Cache the user data
+        cachedUserData = userData;
+        cacheTimestamp = Date.now();
 
         console.log('💰 User NMXp Balance:', nmxpBalance);
         console.log('🎯 Calling setBalanceDisplay with:', nmxpBalance);
@@ -4528,20 +4537,31 @@ function calculateProductionConversion() {
 
     // Use fixed 2 decimal places for display
     document.getElementById('productionReceiveAmount').value = nmxAmount.toFixed(2);
-    validateProductionConversion(nmxpAmount, nmxAmount);
+    
+    // Debounced validation to avoid excessive API calls
+    if (window.validationTimeout) clearTimeout(window.validationTimeout);
+    window.validationTimeout = setTimeout(() => {
+        validateProductionConversion(nmxpAmount, nmxAmount);
+    }, 300); // Wait 300ms after user stops typing
 }
 
 async function setMaxConversion() {
     console.log('📈 setMaxConversion CALLED');
 
     try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            showToast('Please log in first', 'error');
-            return;
+        // Use cached data if available and fresh
+        let userData = cachedUserData;
+        if (!userData || (Date.now() - cacheTimestamp > CACHE_DURATION)) {
+            const userSession = await checkAuth();
+            if (!userSession) {
+                showToast('Please log in first', 'error');
+                return;
+            }
+            userData = await getUserNMXpBalance(userSession.id);
+            cachedUserData = userData;
+            cacheTimestamp = Date.now();
         }
 
-        const userData = await getUserNMXpBalance(userSession.id);
         const maxAmount = Math.min(userData.balance, PRODUCTION_CONFIG.MAX_CONVERSION);
 
         if (maxAmount <= 0) {
@@ -4565,15 +4585,20 @@ async function validateProductionConversion(nmxpAmount, nmxAmount) {
     const convertBtn = document.getElementById('productionConvertBtn');
 
     try {
-        const userSession = await checkAuth();
-        if (!userSession) {
-            convertBtn.disabled = true;
-            convertBtn.textContent = 'Please log in first';
-            convertBtn.className = 'compact-convert-btn disabled';
-            return;
+        // Use cached data if available and fresh
+        let userData = cachedUserData;
+        if (!userData || (Date.now() - cacheTimestamp > CACHE_DURATION)) {
+            const userSession = await checkAuth();
+            if (!userSession) {
+                convertBtn.disabled = true;
+                convertBtn.textContent = 'Please log in first';
+                convertBtn.className = 'compact-convert-btn disabled';
+                return;
+            }
+            userData = await getUserNMXpBalance(userSession.id);
+            cachedUserData = userData;
+            cacheTimestamp = Date.now();
         }
-
-        const userData = await getUserNMXpBalance(userSession.id);
         const userNmxpBalance = userData.balance;
         const hasWallet = !!userData.wallet_address;
         const hasEnoughNMXp = userNmxpBalance >= nmxpAmount;
