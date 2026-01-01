@@ -3728,7 +3728,7 @@ function scheduleTransactionSync() {
             }
             console.log('🔁 Periodic transaction sync starting...');
             const results = await syncAllWallets();
-            console.log('🔁 Periodic transaction sync completed. Wallets processed:', results.length);
+            console.log('🔁 Periodic tran processed:', results.length);
         } catch (e) {
             console.error('❌ Periodic transaction sync error:', e.message);
         }

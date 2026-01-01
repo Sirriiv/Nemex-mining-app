@@ -875,7 +875,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            display: none;
+            display: none; /* Stays hidden unless explicitly shown */
             justify-content: center;
             align-items: center;
             z-index: 99999;
@@ -3306,7 +3306,7 @@ async function initWallet() {
 let balanceUpdateInterval = null;
 
 function startRealBalanceUpdates() {
-    console.log('🚀 Starting REAL balance updates...');
+    // Silent background balance updates
     
     // Clear any existing interval
     if (balanceUpdateInterval) {
@@ -3316,8 +3316,8 @@ function startRealBalanceUpdates() {
     // Run immediately
     updateRealBalance();
     
-    // Then run every 15 seconds
-    balanceUpdateInterval = setInterval(updateRealBalance, 30000); // Every 30 seconds
+    // Then run every 30 seconds
+    balanceUpdateInterval = setInterval(updateRealBalance, 30000);
 }
 
 function stopRealBalanceUpdates() {
@@ -3405,21 +3405,17 @@ function setupAutoSyncListeners() {
 
 async function updateRealBalance() {
     try {
-        console.log('🔄 Checking REAL wallet balance...');
+        // Silent background update - no loading indicators
         
         if (!walletState.hasWallet || !walletState.wallet?.address) {
-            console.log('❌ No wallet or address available');
             return;
         }
 
         const walletAddress = walletState.wallet.address;
-        console.log('💰 Checking balance for address:', walletAddress);
 
         // Call your backend API directly
         const response = await fetch(`/api/wallet/balance/${walletAddress}`);
         const balanceData = await response.json();
-
-        console.log('💰 REAL Balance response:', balanceData);
 
         if (balanceData.success) {
             const tonBalance = parseFloat(balanceData.balance) || 0;
@@ -3430,13 +3426,10 @@ async function updateRealBalance() {
                 const oldBalance = tonToken.balance;
                 tonToken.balance = tonBalance;
                 
-                // If balance changed, log it (no toast notification to avoid disruption)
+                // Silent update - log only significant changes
                 if (tonBalance > oldBalance && tonBalance > 0) {
-                    console.log('🎉 Balance increased from', oldBalance, 'to', tonBalance);
-                    // Toast notification removed per user request
+                    console.log('Balance updated:', oldBalance, '->', tonBalance);
                 }
-                
-                console.log('✅ Updated TON balance:', tonBalance);
             }
 
             // Update total balance display
@@ -3444,13 +3437,6 @@ async function updateRealBalance() {
 
             // Update send modal balances if it's open
             updateSendBalances();
-            
-            // Update wallet status
-            if (tonBalance > 0) {
-                console.log('✅ Wallet is active with balance:', tonBalance);
-            }
-        } else {
-            console.warn('⚠️ Balance check failed:', balanceData.error);
         }
 
     } catch (error) {
@@ -4096,40 +4082,46 @@ function updateFeeDisplay() {
 async function pasteAddress() {
     try {
         let text = '';
+        const addressInput = document.getElementById('sendToAddress');
         
-        // Try modern clipboard API first
+        // Try modern clipboard API with automatic permission request
         if (navigator.clipboard && navigator.clipboard.readText) {
             try {
+                // Request permission automatically
+                if (navigator.permissions && navigator.permissions.query) {
+                    try {
+                        const permission = await navigator.permissions.query({ name: 'clipboard-read' });
+                        if (permission.state === 'denied') {
+                            // Permission denied, use fallback
+                            throw new Error('Permission denied');
+                        }
+                    } catch (permErr) {
+                        // Permission API not supported, try anyway
+                        console.log('Permission API not supported, attempting clipboard read...');
+                    }
+                }
+                
                 text = await navigator.clipboard.readText();
             } catch (clipErr) {
-                console.log('Clipboard API failed, trying fallback:', clipErr.message);
-                // Fallback: use execCommand
-                const tempInput = document.createElement('textarea');
-                tempInput.style.position = 'absolute';
-                tempInput.style.left = '-9999px';
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('paste');
-                text = tempInput.value;
-                document.body.removeChild(tempInput);
+                console.log('Clipboard API failed, using manual paste:', clipErr.message);
+                // Show instruction and focus input for manual paste
+                addressInput.focus();
+                showStatusMessage('Please paste manually (Ctrl+V or Cmd+V)', 'info', document.getElementById('sendStatus'));
+                return;
             }
         } else {
-            // Older browser fallback
-            const tempInput = document.createElement('textarea');
-            tempInput.style.position = 'absolute';
-            tempInput.style.left = '-9999px';
-            document.body.appendChild(tempInput);
-            tempInput.focus();
-            document.execCommand('paste');
-            text = tempInput.value;
-            document.body.removeChild(tempInput);
+            // Older browser - just focus the input for manual paste
+            addressInput.focus();
+            showStatusMessage('Please paste manually (Ctrl+V or Cmd+V)', 'info', document.getElementById('sendStatus'));
+            return;
         }
         
         if (!text || text.trim() === '') {
-            throw new Error('Clipboard is empty or permission denied');
+            addressInput.focus();
+            showStatusMessage('Clipboard is empty. Please copy an address first', 'info', document.getElementById('sendStatus'));
+            return;
         }
         
-        const addressInput = document.getElementById('sendToAddress');
         addressInput.value = text.trim();
 
         addressInput.style.borderColor = 'var(--success)';
@@ -4140,10 +4132,12 @@ async function pasteAddress() {
         validateSendAddress();
         updateSendSummary();
 
-        showStatusMessage('Address pasted successfully!', 'success', document.getElementById('sendStatus'));
+        showStatusMessage('✓ Address pasted successfully!', 'success', document.getElementById('sendStatus'));
     } catch (error) {
-        console.error('Failed to paste address:', error);
-        showStatusMessage('Failed to paste. Please grant clipboard permission or paste manually (Ctrl+V)', 'error', document.getElementById('sendStatus'));
+        console.error('Paste error:', error);
+        const addressInput = document.getElementById('sendToAddress');
+        addressInput.focus();
+        showStatusMessage('Please paste manually (Ctrl+V or Cmd+V)', 'info', document.getElementById('sendStatus'));
     }
 }
 
