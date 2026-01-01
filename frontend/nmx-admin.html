@@ -826,7 +826,7 @@
                 //   SUM(CASE WHEN status = 'completed' THEN nmxp_amount ELSE 0 END) as total_converted,
                 //   COUNT(CASE WHEN status = 'completed' OR status = 'approved' THEN 1 END) as total_verified,
                 //   COUNT(CASE WHEN status = 'pending' THEN 1 END) as total_pending
-                // FROM conversion_requests
+                // FROM conversions
                 
                 const stats = {
                     totalConverted: 125000,
@@ -854,15 +854,15 @@
             try {
                 // TODO: Replace with actual Supabase API call
                 // Example query:
-                // SELECT id, user_id, nmxp_amount, nmx_amount, wallet_address, status, request_date
-                // FROM conversion_requests
+                // SELECT id, user_id, nmxp_amount, nmx_amount, wallet_address, status, created_at
+                // FROM conversions
                 // WHERE status = 'pending'
-                // ORDER BY request_date DESC
+                // ORDER BY created_at DESC
                 
                 const pendingConversions = [
                     {
                         id: 'a1b2c3d4-e5f6-4789-a012-3456789abcde',
-                        request_date: '2026-01-01T10:30:00Z',
+                        created_at: '2026-01-01T10:30:00Z',
                         user_id: '123e4567-e89b-12d3-a456-426614174000',
                         nmxp_amount: 5000,
                         nmx_amount: 5000,
@@ -871,7 +871,7 @@
                     },
                     {
                         id: 'b2c3d4e5-f6a7-5890-b123-4567890bcdef',
-                        request_date: '2026-01-01T11:45:00Z',
+                        created_at: '2026-01-01T11:45:00Z',
                         user_id: '234f5678-f90c-23e4-b567-537725285111',
                         nmxp_amount: 10000,
                         nmx_amount: 10000,
@@ -896,7 +896,7 @@
                 }
 
                 tbody.innerHTML = pendingConversions.map(conv => {
-                    const requestDate = new Date(conv.request_date).toLocaleString();
+                    const requestDate = new Date(conv.created_at).toLocaleString();
                     const shortId = conv.id.substring(0, 8);
                     const shortUserId = conv.user_id.substring(0, 8);
                     return `
@@ -934,11 +934,11 @@
             try {
                 // TODO: Replace with actual Supabase API call
                 // Example query:
-                // SELECT cr.id, cr.user_id, cr.nmxp_amount, cr.nmx_amount, cr.wallet_address, 
-                //        cr.status, cr.request_date, cr.completed_date, cr.approved_by, cr.transaction_hash
-                // FROM conversion_requests cr
+                // SELECT id, user_id, nmxp_amount, nmx_amount, wallet_address, 
+                //        status, created_at, processed_at, transaction_hash
+                // FROM conversions
                 // WHERE status IN ('completed', 'approved')
-                // ORDER BY completed_date DESC
+                // ORDER BY processed_at DESC
                 
                 const completedConversions = [
                     {
@@ -971,10 +971,10 @@
                 }
 
                 tbody.innerHTML = completedConversions.map(conv => {
-                    const requestDate = new Date(conv.request_date).toLocaleString();
+                    const requestDate = new Date(conv.created_at).toLocaleString();
                     const shortId = conv.id.substring(0, 8);
                     const shortUserId = conv.user_id.substring(0, 8);
-                    const shortApprovedBy = conv.approved_by ? conv.approved_by.substring(0, 8) : 'N/A';
+                    const processedDate = conv.processed_at ? new Date(conv.processed_at).toLocaleString() : 'N/A';
                     const statusBadge = conv.status === 'completed' ? 'status-verified' : 'status-pending';
                     const statusIcon = conv.status === 'completed' ? 'check-circle' : 'clock';
                     const statusText = conv.status.charAt(0).toUpperCase() + conv.status.slice(1);
@@ -1004,12 +1004,11 @@
             if (!confirm(`Are you sure you want to approve conversion ${shortId}...?`)) return;
 
             try {
-                // TODO: Replace with actual API call to update conversion_requests
+                // TODO: Replace with actual API call to update conversions
                 // Example API call:
-                // UPDATE conversion_requests
+                // UPDATE conversions
                 // SET status = 'approved',
-                //     approved_by = current_admin_id,
-                //     approval_date = NOW(),
+                //     processed_at = NOW(),
                 //     updated_at = NOW()
                 // WHERE id = requestId
                 
@@ -1030,15 +1029,13 @@
             const shortId = requestId.substring(0, 8);
 
             try {
-                // TODO: Replace with actual API call to update conversion_requests
+                // TODO: Replace with actual API call to update conversions
                 // Example API call:
-                // UPDATE conversion_requests
+                // UPDATE conversions
                 // SET status = 'rejected',
-                //     rejection_reason = reason,
-                //     approved_by = current_admin_id,
-                //     approval_date = NOW(),
                 //     updated_at = NOW()
                 // WHERE id = requestId
+                // Note: Add a rejection_reason column if needed
                 
                 showToast(`Conversion ${shortId}... rejected`, 'warning');
                 loadPendingConversions();
