@@ -4667,27 +4667,28 @@ function showWalletSetup() {
     // closeProductionSwapModal(); // Removed to keep swap modal in background
 
     const input = document.getElementById('userWalletAddress');
-    const primaryBtn = document.getElementById('walletPrimaryBtn');
-    const saveBtn = document.getElementById('walletSaveBtn');
+    
+    // Check if input exists before proceeding
+    if (!input) {
+        console.error('❌ userWalletAddress input not found');
+        return;
+    }
 
-    if (walletState && walletState.hasWallet) {
-        input.value = walletState.walletAddress || '';
-        // Primary action becomes disconnect
-        primaryBtn.textContent = 'Disconnect';
-        primaryBtn.onclick = function() { disconnectWalletAddressAndClose(); };
-        // Show small Save Changes button for updating address
-        if (saveBtn) saveBtn.style.display = 'inline-block';
+    // Pre-fill with current wallet address if connected
+    if (walletState && walletState.hasWallet && walletState.wallet?.address) {
+        input.value = walletState.wallet.address || '';
     } else {
         input.value = '';
-        primaryBtn.textContent = 'Save Wallet Address';
-        primaryBtn.onclick = saveWalletAddress;
-        if (saveBtn) saveBtn.style.display = 'none';
     }
 
     // Open wallet setup modal on top with higher z-index
     const setupModal = document.getElementById('walletSetupModal');
-    setupModal.style.display = 'block';
-    setupModal.style.zIndex = '100002'; // Higher than swap modal
+    if (setupModal) {
+        setupModal.style.display = 'block';
+        setupModal.style.zIndex = '100002'; // Higher than swap modal
+    } else {
+        console.error('❌ walletSetupModal not found');
+    }
 }
 
 function closeWalletSetup() {
