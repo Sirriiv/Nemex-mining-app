@@ -1615,9 +1615,9 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                                 console.log('🔍 Looking for transaction to update with temp hash:', tempTxHash);
                                 console.log('🔍 Expected amount:', amount, 'toAddress:', toAddress);
                                 
-                                // Retry mechanism: optimized for maximum speed (3-5 seconds total)
-                                const maxAttempts = 4;
-                                const delays = [300, 800, 1200, 1700]; // 0.3s, 0.8s, 1.2s, 1.7s - aggressive timing
+                                // Retry mechanism: ultra-optimized for 11s target (1.5s total retry time)
+                                const maxAttempts = 3;
+                                const delays = [150, 500, 900]; // 0.15s, 0.5s, 0.9s - ultra-aggressive timing
                                 let matchingTx = null;
                                 let txs = [];
                                 
@@ -2748,8 +2748,20 @@ router.post('/test-transaction-insert', async (req, res) => {
 // 🎯 TRANSACTION SYNC HELPERS AND ENDPOINTS
 // ============================================
 
-// Fetch transactions from public providers and normalize (with concurrent fetching)
+// Cache for heavy load optimization (2 second TTL)
+const txCache = new Map();
+const CACHE_TTL = 2000; // 2 seconds
+
+// Fetch transactions from public providers and normalize (with concurrent fetching + caching)
 async function fetchTransactionsFromProviders(address, limit = 50) {
+    // Check cache first for heavy load optimization
+    const cacheKey = `${address}_${limit}`;
+    const cached = txCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        console.log(`⚡ Cache hit for ${address} (${Date.now() - cached.timestamp}ms old)`);
+        return cached.data;
+    }
+    
     const providers = [];
     // TonAPI / TON Console
     providers.push({ name: 'TonAPI', url: `${TON_API_URL}/accounts/${address}/transactions?limit=${limit}`, method: 'GET' });
@@ -2760,7 +2772,7 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
     const providerPromises = providers.map(async (p) => {
         try {
             console.log(`🔎 Trying transaction provider: ${p.name} for ${address}`);
-            const opts = { method: p.method || 'GET', url: p.url, timeout: 20000 };
+            const opts = { method: p.method || 'GET', url: p.url, timeout: 8000 }; // Reduced for speed
             if (p.params) opts.params = p.params;
             if (p.headers) opts.headers = p.headers;
             if (p.name === 'TON Center' && TONCENTER_API_KEY) opts.headers = { 'X-API-Key': TONCENTER_API_KEY };
@@ -2900,6 +2912,13 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
     const results = await Promise.all(providerPromises);
     for (const result of results) {
         if (result && result.length > 0) {
+            // Cache successful result for heavy load optimization
+            txCache.set(cacheKey, { data: result, timestamp: Date.now() });
+            // Clean old cache entries (prevent memory leak)
+            if (txCache.size > 100) {
+                const oldestKey = txCache.keys().next().value;
+                txCache.delete(oldestKey);
+            }
             return result;
         }
     }
@@ -3728,7 +3747,7 @@ function scheduleTransactionSync() {
             }
             console.log('🔁 Periodic transaction sync starting...');
             const results = await syncAllWallets();
-            console.log('🔁 Periodic tran processed:', results.length);
+            console processed:', results.length);
         } catch (e) {
             console.error('❌ Periodic transaction sync error:', e.message);
         }

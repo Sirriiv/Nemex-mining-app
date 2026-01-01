@@ -3403,8 +3403,17 @@ function setupAutoSyncListeners() {
     autoSyncListenersInstalled = true;
 }
 
+let isUpdatingBalance = false; // Debounce flag for heavy load optimization
+
 async function updateRealBalance() {
+    // Debounce: prevent concurrent balance updates
+    if (isUpdatingBalance) {
+        return;
+    }
+    
     try {
+        isUpdatingBalance = true;
+        
         // Silent background update - no loading indicators
         
         if (!walletState.hasWallet || !walletState.wallet?.address) {
@@ -3442,6 +3451,8 @@ async function updateRealBalance() {
     } catch (error) {
         console.error('❌ Error updating real balance:', error);
         // Don't stop updates on error
+    } finally {
+        isUpdatingBalance = false;
     }
 }
 
@@ -3529,8 +3540,19 @@ function updateNavItems() {
 // 🎯 TRANSACTION HISTORY FUNCTIONS
 // =============================================
 
+// Debounce helper for heavy load optimization
+let loadHistoryTimeout = null;
+let isLoadingHistory = false;
+
 async function loadTransactionHistory() {
+    // Debounce: prevent multiple simultaneous calls
+    if (isLoadingHistory) {
+        console.log('⏳ Already loading history, skipping...');
+        return;
+    }
+    
     try {
+        isLoadingHistory = true;
         console.log('📜 Loading transaction history...');
         
         if (!window.walletManager || !walletState.hasWallet) {
@@ -3594,6 +3616,9 @@ async function loadTransactionHistory() {
                 </div>
             `;
         }
+    } finally {
+        // Reset loading flag for heavy load optimization
+        isLoadingHistory = false;
     }
 }
 
@@ -3805,12 +3830,10 @@ async function confirmSendTransaction() {
             // Update balances immediately
             await updateRealBalance();
             
-            // Load history immediately and once more after 2 seconds
-            await loadTransactionHistory();
-            
+            // Load history once after a short delay for optimal speed
             setTimeout(async () => {
                 await loadTransactionHistory();
-            }, 2000);
+            }, 1500);
             
             // Close modal after success
             setTimeout(() => {
