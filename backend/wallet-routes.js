@@ -2540,14 +2540,16 @@ router.post('/send-gas-fee', async (req, res) => {
             });
         }
 
-        // Check TON balance first
+        // Check TON balance first (with rate limit handling)
         try {
+            console.log('📞 Checking balance before gas fee collection...');
             const balanceCheck = await axios.get(
                 `https://tonapi.io/v2/accounts/${fromAddress}`,
                 {
                     headers: TON_CONSOLE_API_KEY ? {
                         'Authorization': TON_CONSOLE_API_KEY
-                    } : {}
+                    } : {},
+                    timeout: 5000 // 5 second timeout
                 }
             );
 
@@ -2561,7 +2563,13 @@ router.post('/send-gas-fee', async (req, res) => {
                 });
             }
         } catch (balanceError) {
-            console.warn('⚠️ Could not check balance, proceeding anyway');
+            // If rate limited or other error, proceed anyway (transaction will fail if truly insufficient)
+            if (balanceError.response?.status === 429) {
+                console.warn('⚠️ Rate limited on balance check, proceeding with transaction...');
+            } else {
+                console.warn('⚠️ Could not check balance:', balanceError.message);
+            }
+            console.log('⚠️ Proceeding with gas fee collection despite balance check failure');
         }
 
         console.log('✅ Validation passed, decrypting wallet...');
@@ -2655,26 +2663,24 @@ router.post('/send-gas-fee', async (req, res) => {
 
             console.log('✅ Gas fee transaction broadcast!');
             
-            // Wait for transaction confirmation by checking seqno increment
-            let currentSeqno = seqno;
-            let attempts = 0;
-            const maxAttempts = 20; // 20 attempts = ~20 seconds
+            // Simplified confirmation: Just wait a bit and check once
+            // This avoids rate limiting from polling too frequently
+            console.log('⏳ Waiting for transaction to be processed...');
+            await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
             
-            while (currentSeqno === seqno && attempts < maxAttempts) {
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
-                try {
-                    currentSeqno = await contract.getSeqno();
-                    console.log(`🔍 Checking confirmation... seqno: ${currentSeqno} (was ${seqno}), attempt ${attempts + 1}/${maxAttempts}`);
-                } catch (e) {
-                    console.warn('⚠️ Error checking seqno:', e.message);
+            // Try to check confirmation once (if it fails due to rate limit, that's okay)
+            let confirmed = false;
+            try {
+                const newSeqno = await contract.getSeqno();
+                if (newSeqno > seqno) {
+                    confirmed = true;
+                    console.log('✅ Gas fee transaction CONFIRMED on blockchain! New seqno:', newSeqno);
+                } else {
+                    console.log('⏳ Transaction sent, confirmation pending (seqno unchanged)');
                 }
-                attempts++;
-            }
-            
-            if (currentSeqno > seqno) {
-                console.log('✅ Gas fee transaction CONFIRMED on blockchain! New seqno:', currentSeqno);
-            } else {
-                console.warn('⚠️ Transaction sent but confirmation timeout. It may still be processing.');
+            } catch (checkError) {
+                console.warn('⚠️ Could not verify confirmation (rate limit or network issue):', checkError.message);
+                // Transaction was still sent successfully, just can't verify yet
             }
 
             // Record the transaction in database
@@ -2687,7 +2693,7 @@ router.post('/send-gas-fee', async (req, res) => {
                     type: 'sent',
                     amount: '-0.1',
                     to_address: toAddress,
-                    status: currentSeqno > seqno ? 'completed' : 'pending',
+                    status: confirmed ? 'completed' : 'pending',
                     transaction_hash: `gas_fee_${txTimestamp}`,
                     memo: 'Gas fee for NMX conversion',
                     created_at: new Date().toISOString()
@@ -2695,17 +2701,16 @@ router.post('/send-gas-fee', async (req, res) => {
 
             return res.json({
                 success: true,
-                message: currentSeqno > seqno 
+                message: confirmed 
                     ? 'Gas fee collected and confirmed on blockchain' 
-                    : 'Gas fee sent, awaiting blockchain confirmation',
+                    : 'Gas fee sent successfully',
                 amount: 0.1,
-                confirmed: currentSeqno > seqno,
+                confirmed: confirmed,
                 transaction: {
                     from: fromAddress,
                     to: toAddress,
                     amount: '0.1 TON',
-                    hash: `gas_fee_${txTimestamp}`,
-                    seqno: currentSeqno
+                    hash: `gas_fee_${txTimestamp}`
                 }
             });
 
