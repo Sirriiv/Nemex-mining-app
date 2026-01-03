@@ -1080,9 +1080,10 @@
             });
         });
 
-        // FIXED: Load packages with working purchase limits
+        // FIXED: Load packages with PER-USER purchase limits
         async function loadPackages() {
             try {
+                // Get all packages
                 const { data: packages, error } = await supabaseClient
                     .from('package_types')
                     .select('*')
@@ -1094,7 +1095,34 @@
                     return;
                 }
 
-                availablePackages = packages || [];
+                // Get user's purchase history to calculate remaining per-user limits
+                const { data: userPurchases, error: purchaseError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('package_amount, status')
+                    .eq('user_id', currentUser.id);
+
+                if (purchaseError) {
+                    console.warn('Warning loading user purchases:', purchaseError);
+                }
+
+                // Calculate remaining purchases per package for THIS USER
+                availablePackages = (packages || []).map(pkg => {
+                    // Count how many times THIS USER has purchased this specific package
+                    const userPurchaseCount = (userPurchases || []).filter(
+                        purchase => purchase.package_amount === pkg.package_amount &&
+                                   (purchase.status === 'pending' || purchase.status === 'approved' || purchase.status === 'completed')
+                    ).length;
+
+                    // Calculate remaining purchases for THIS USER
+                    const userRemainingPurchases = pkg.purchase_limit - userPurchaseCount;
+
+                    return {
+                        ...pkg,
+                        user_purchase_count: userPurchaseCount,
+                        user_remaining_purchases: Math.max(0, userRemainingPurchases)
+                    };
+                });
+
                 renderPackages();
 
             } catch (error) {
@@ -1102,7 +1130,7 @@
             }
         }
 
-        // FIXED: Render packages with working purchase limits
+        // FIXED: Render packages with PER-USER purchase limits
         function renderPackages() {
             const packagesGrid = document.getElementById('packagesGrid');
             if (!packagesGrid) return;
@@ -1113,8 +1141,9 @@
             }
 
             packagesGrid.innerHTML = availablePackages.map(pkg => {
-                const isSoldOut = pkg.purchase_limit <= 0;
-                const isLowStock = pkg.purchase_limit <= 3 && pkg.purchase_limit > 0;
+                // Use user-specific remaining purchases
+                const isSoldOut = pkg.user_remaining_purchases <= 0;
+                const isLowStock = pkg.user_remaining_purchases <= 3 && pkg.user_remaining_purchases > 0;
                 const remainingClass = isLowStock ? 'remaining-badge low' : 'remaining-badge';
 
                 return `
@@ -1124,13 +1153,13 @@
                         <div class="package-amount">${pkg.package_amount.toLocaleString()} NMXp</div>
                         <div class="package-price">$${pkg.price_usd} USDT</div>
                         <div class="package-purchase-limit">
-                            ${pkg.purchase_limit > 0
-                                ? `Can purchase ${pkg.purchase_limit} more times` 
-                                : 'Sold out'}
+                            ${pkg.user_remaining_purchases > 0
+                                ? `You can purchase ${pkg.user_remaining_purchases} more time${pkg.user_remaining_purchases !== 1 ? 's' : ''}` 
+                                : 'Purchase limit reached'}
                         </div>
-                        ${pkg.purchase_limit > 0 && pkg.purchase_limit <= 5 ? `
+                        ${pkg.user_remaining_purchases > 0 && pkg.user_remaining_purchases <= 5 ? `
                             <div class="${remainingClass}">
-                                Only ${pkg.purchase_limit} left!
+                                Only ${pkg.user_remaining_purchases} purchase${pkg.user_remaining_purchases !== 1 ? 's' : ''} left for you!
                             </div>
                         ` : ''}
                         ${pkg.bonus_amount > 0 ? `
@@ -1141,14 +1170,14 @@
             }).join('');
         }
 
-        // FIXED: Select package with purchase limit check
+        // FIXED: Select package with PER-USER purchase limit check
         function selectPackage(element, packageId) {
             const packageData = availablePackages.find(pkg => pkg.id === packageId);
             if (!packageData) return;
 
-            // Check if package is sold out
-            if (packageData.purchase_limit <= 0) {
-                alert('❌ This package is sold out! Please select another package.');
+            // Check if user has reached their purchase limit for this package
+            if (packageData.user_remaining_purchases <= 0) {
+                alert('❌ You have reached your purchase limit for this package.');
                 return;
             }
 
@@ -1168,7 +1197,7 @@
                 price: packageData.price_usd,
                 bonus: packageData.bonus_amount,
                 totalAmount: packageData.package_amount + packageData.bonus_amount,
-                purchase_limit: packageData.purchase_limit,
+                user_remaining_purchases: packageData.user_remaining_purchases,
                 is_vip: packageData.is_vip
             };
 
@@ -1204,9 +1233,9 @@
                 return;
             }
 
-            // Double-check if package is still available
-            if (selectedPackage.purchase_limit <= 0) {
-                alert('❌ This package is no longer available. Please select another package.');
+            // Double-check if user still has purchases remaining
+            if (selectedPackage.user_remaining_purchases <= 0) {
+                alert('❌ You have reached your purchase limit for this package. Please select another package.');
                 loadPackages(); // Refresh packages
                 return;
             }
@@ -1220,7 +1249,7 @@
             if (confirmPackage) confirmPackage.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
             if (confirmAmount) confirmAmount.textContent = `${selectedPackage.totalAmount.toLocaleString()} NMXp`;
             if (confirmPrice) confirmPrice.textContent = `$${selectedPackage.price} USD`;
-            if (confirmRemaining) confirmRemaining.textContent = `${selectedPackage.purchase_limit - 1} left after your purchase`;
+            if (confirmRemaining) confirmRemaining.textContent = `${selectedPackage.user_remaining_purchases - 1} purchase${(selectedPackage.user_remaining_purchases - 1) !== 1 ? 's' : ''} left for you after this`;
             if (modal) modal.style.display = 'flex';
         }
 
@@ -1243,15 +1272,37 @@
                     return;
                 }
 
-                // Final availability check
-                const { data: currentPackage, error: packageError } = await supabaseClient
+                // Final per-user availability check
+                const { data: userPurchases, error: purchaseError } = await supabaseClient
+                    .from('pending_transactions')
+                    .select('package_amount, status')
+                    .eq('user_id', currentUser.id)
+                    .eq('package_amount', selectedPackage.amount)
+                    .in('status', ['pending', 'approved', 'completed']);
+
+                if (purchaseError) {
+                    console.warn('Warning checking user purchases:', purchaseError);
+                }
+
+                // Get package purchase limit
+                const { data: packageData, error: packageError } = await supabaseClient
                     .from('package_types')
                     .select('purchase_limit')
                     .eq('id', selectedPackage.id)
                     .single();
 
-                if (packageError || !currentPackage || currentPackage.purchase_limit <= 0) {
-                    alert('❌ This package is no longer available. Please select another package.');
+                if (packageError || !packageData) {
+                    alert('❌ Error checking package. Please try again.');
+                    await loadPackages();
+                    closeConfirmation();
+                    return;
+                }
+
+                const userPurchaseCount = (userPurchases || []).length;
+                const userRemainingPurchases = packageData.purchase_limit - userPurchaseCount;
+
+                if (userRemainingPurchases <= 0) {
+                    alert('❌ You have reached your purchase limit for this package.');
                     await loadPackages();
                     closeConfirmation();
                     return;
@@ -1307,19 +1358,9 @@
                     throw new Error('Failed to submit transaction: ' + error.message);
                 }
 
-                // FIXED: DECREMENT PURCHASE LIMIT
-                const { error: updateError } = await supabaseClient
-                    .from('package_types')
-                    .update({
-                        purchase_limit: currentPackage.purchase_limit - 1
-                    })
-                    .eq('id', selectedPackage.id);
-
-                if (updateError) {
-                    console.warn('⚠️ Could not update purchase limit:', updateError);
-                } else {
-                    console.log('✅ Purchase limit decremented successfully');
-                }
+                // NO LONGER DECREMENTING GLOBAL PURCHASE_LIMIT
+                // Purchase limits are now tracked per-user via pending_transactions table
+                console.log('✅ Transaction created. User-specific purchase tracking active.');
 
                 // CREATE PURCHASE NOTIFICATION
                 const notificationCreated = await createPurchaseNotification(
