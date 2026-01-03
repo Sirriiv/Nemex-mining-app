@@ -1656,12 +1656,9 @@
             const qrCodeElement = document.getElementById('qrCode');
             qrCodeElement.innerHTML = '';
 
-            console.log('🔍 Checking QRCode library availability...');
+            console.log('🔍 Generating QR code for 2FA setup...');
+            console.log('OTP Auth URI:', otpAuthUri);
             
-            // Check both global QRCode and window.QRCode
-            const QRCodeLib = window.QRCode || QRCode;
-            console.log('QRCode type:', typeof QRCodeLib);
-
             // Wait for library to be fully loaded
             let attempts = 0;
             while (typeof window.QRCode === 'undefined' && attempts < 15) {
@@ -1671,53 +1668,29 @@
             }
 
             if (typeof window.QRCode === 'undefined') {
-                console.error('❌ QRCode library failed to load after waiting');
-                showToast('QR code library loading... Please wait and try again.', 'warning');
-                // Try to reload the library
-                const script = document.createElement('script');
-                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-                script.onload = () => {
-                    console.log('✅ QRCode library reloaded, generating...');
-                    setTimeout(() => generateQRCodeWithSecret(secretKey, userEmail), 500);
-                };
-                script.onerror = () => {
-                    console.error('❌ Failed to reload QRCode library, using fallback');
-                    createFallbackQRCode();
-                };
-                document.head.appendChild(script);
+                console.error('❌ QRCode library not available, using fallback');
+                createFallbackQRCode();
                 return;
             }
 
             try {
-                console.log('✅ QRCode library loaded, generating real QR code...');
-                console.log('OTP Auth URI:', otpAuthUri);
-
-                // Use window.QRCode.toDataURL method
-                window.QRCode.toDataURL(otpAuthUri, {
+                console.log('✅ QRCode library available, generating...');
+                
+                // Use QRCode constructor (correct API for qrcodejs)
+                new window.QRCode(qrCodeElement, {
+                    text: otpAuthUri,
                     width: 180,
-                    margin: 2,
-                    color: {
-                        dark: '#000000',
-                        light: '#ffffff'
-                    },
-                    errorCorrectionLevel: 'H'
-                }).then(url => {
-                    console.log('✅ QR code data URL generated successfully');
-                    const img = document.createElement('img');
-                    img.src = url;
-                    img.style.width = '180px';
-                    img.style.height = '180px';
-                    img.style.display = 'block';
-                    qrCodeElement.appendChild(img);
-                    console.log('✅ Real scannable QR code displayed!');
-                }).catch(error => {
-                    console.error('❌ QR Code toDataURL error:', error);
-                    showToast('Error generating QR code. Please try again.', 'error');
-                    createFallbackQRCode();
+                    height: 180,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: window.QRCode.CorrectLevel.H
                 });
+                
+                console.log('✅ Real scannable QR code generated successfully!');
 
             } catch (error) {
                 console.error('❌ QR Code generation failed:', error);
+                console.error('Error details:', error.message, error.stack);
                 showToast('Error generating QR code. Using alternative display.', 'error');
                 createFallbackQRCode();
             }
