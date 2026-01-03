@@ -5014,10 +5014,11 @@ async function executeProductionConversion() {
 
         console.log('✅ Sufficient TON balance. User confirmed conversion, collecting gas fee immediately...');
         
-        // Step 1: Automatically collect 0.1 TON gas fee with retry logic
+        // Step 1: Automatically collect 0.1 TON gas fee with retry logic and exponential backoff
         showToast('Collecting gas fee (0.1 TON)...', 'info');
         
-        const MAX_RETRIES = 2;
+        const MAX_RETRIES = 4; // Increased from 2 to 4 attempts
+        const BASE_DELAY = 8000; // Base delay of 8 seconds
         let feeResult = null;
         
         for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -5026,7 +5027,7 @@ async function executeProductionConversion() {
                 if (attempt === 1) {
                     showToast('⏳ Sending 0.1 TON gas fee to blockchain...', 'info');
                 } else {
-                    showToast(`⏳ Retrying gas fee collection (attempt ${attempt})...`, 'info');
+                    showToast(`⏳ Retrying gas fee collection (attempt ${attempt}/${MAX_RETRIES})...`, 'info');
                 }
                 
                 const feePayment = await fetch('/api/wallet/send-gas-fee', {
@@ -5066,27 +5067,30 @@ async function executeProductionConversion() {
                     throw new Error(`Failed to collect gas fee: ${feeResult.message}`);
                 }
 
-                // If rate limited and we have retries left, wait and continue
+                // If rate limited and we have retries left, wait with exponential backoff
                 if (attempt < MAX_RETRIES) {
-                    console.warn(`⚠️ Rate limited, waiting 5 seconds before retry ${attempt + 1}...`);
-                    await new Promise(resolve => setTimeout(resolve, 5000));
+                    const delay = BASE_DELAY * attempt; // 8s, 16s, 24s, 32s
+                    console.warn(`⚠️ Rate limited, waiting ${delay/1000} seconds before retry ${attempt + 1}...`);
+                    showToast(`⏳ Network busy, waiting ${delay/1000}s before retry...`, 'warning');
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 } else {
                     // Last attempt failed
-                    console.error('❌ All retry attempts exhausted');
-                    showToast('Network is busy. Please try again in a moment.', 'error');
+                    console.error('❌ All retry attempts exhausted after 4 tries');
+                    showToast('⚠️ TON network is very busy. Please wait a minute and try again.', 'error');
                     throw new Error('Failed to collect gas fee: Network busy, please try again');
                 }
 
             } catch (feeError) {
-                // Only throw if we've exhausted retries
+                // Only throw if we've exhausted retries or it's not a rate limit error
                 if (attempt >= MAX_RETRIES || !feeError.message?.includes('429')) {
                     console.error('❌ Error collecting gas fee:', feeError);
-                    showToast('Failed to collect gas fee. Please try again.', 'error');
+                    showToast('Failed to collect gas fee. Please try again later.', 'error');
                     throw new Error('Failed to collect gas fee: ' + feeError.message);
                 }
-                // Otherwise continue to next retry
-                console.warn(`⚠️ Retry ${attempt} failed, continuing...`);
-                await new Promise(resolve => setTimeout(resolve, 5000));
+                // Otherwise continue to next retry with exponential backoff
+                const delay = BASE_DELAY * attempt;
+                console.warn(`⚠️ Retry ${attempt} failed, waiting ${delay/1000}s before continuing...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
 
