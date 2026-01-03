@@ -2465,6 +2465,224 @@ router.get('/debug/wallet-state', async (req, res) => {
 });
 
 // ============================================
+// 🎯 SEND GAS FEE - NO PASSWORD REQUIRED
+// ============================================
+router.post('/send-gas-fee', async (req, res) => {
+    console.log('⛽ GAS FEE COLLECTION REQUEST');
+
+    try {
+        const { userId, fromAddress, toAddress, amount } = req.body;
+
+        console.log('📋 Gas fee request:', { 
+            userId: userId ? `${userId.substring(0, 8)}...` : 'MISSING',
+            fromAddress: fromAddress ? `${fromAddress.substring(0, 10)}...` : 'MISSING',
+            toAddress: toAddress ? `${toAddress.substring(0, 10)}...` : 'MISSING',
+            amount: amount
+        });
+
+        // Validation
+        if (!userId || !fromAddress || !toAddress || !amount) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
+        if (amount !== 0.1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Gas fee must be exactly 0.1 TON'
+            });
+        }
+
+        if (!toAddress.startsWith('EQ') && !toAddress.startsWith('UQ')) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid fee collection address'
+            });
+        }
+
+        if (dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                message: 'Database not available'
+            });
+        }
+
+        // Get user's wallet credentials
+        const { data: wallet, error: walletError } = await supabase
+            .from('user_wallets')
+            .select('*')
+            .eq('user_id', userId)
+            .single();
+
+        if (walletError || !wallet) {
+            console.error('❌ Wallet not found:', walletError);
+            return res.status(404).json({
+                success: false,
+                message: 'Wallet not found'
+            });
+        }
+
+        // Verify fromAddress matches user's wallet
+        if (wallet.address !== fromAddress) {
+            return res.status(403).json({
+                success: false,
+                message: 'Wallet address mismatch'
+            });
+        }
+
+        // Check TON balance first
+        try {
+            const balanceCheck = await axios.get(
+                `https://tonapi.io/v2/accounts/${fromAddress}`,
+                {
+                    headers: TON_CONSOLE_API_KEY ? {
+                        'Authorization': TON_CONSOLE_API_KEY
+                    } : {}
+                }
+            );
+
+            const balance = parseFloat(fromNano(balanceCheck.data.balance)) || 0;
+            console.log(`💰 Current balance: ${balance} TON`);
+
+            if (balance < 0.1) { // Need exactly 0.1 TON for gas fee
+                return res.status(400).json({
+                    success: false,
+                    message: `Insufficient balance. You have ${balance.toFixed(4)} TON, need at least 0.1 TON for gas fee`
+                });
+            }
+        } catch (balanceError) {
+            console.warn('⚠️ Could not check balance, proceeding anyway');
+        }
+
+        console.log('✅ Validation passed, decrypting wallet...');
+
+        // Decrypt mnemonic
+        let mnemonic;
+        try {
+            const iv = Buffer.from(wallet.iv, 'hex');
+            const encryptedMnemonic = Buffer.from(wallet.encrypted_mnemonic, 'hex');
+            const key = crypto.scryptSync(process.env.WALLET_ENCRYPTION_KEY || 'default-key', 'salt', 32);
+            
+            const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+            let decrypted = decipher.update(encryptedMnemonic, undefined, 'utf8');
+            decrypted += decipher.final('utf8');
+            
+            mnemonic = decrypted.split(' ');
+            console.log('✅ Mnemonic decrypted');
+        } catch (decryptError) {
+            console.error('❌ Decryption failed:', decryptError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to decrypt wallet credentials'
+            });
+        }
+
+        // Send the gas fee
+        try {
+            console.log('💸 Sending gas fee...');
+            const keyPair = await mnemonicToPrivateKey(mnemonic);
+            const workchain = 0;
+            const walletContract = WalletContractV4.create({ workchain, publicKey: keyPair.publicKey });
+            
+            const endpoint = TON_CONSOLE_API_KEY 
+                ? 'https://toncenter.com/api/v2/jsonRPC'
+                : 'https://testnet.toncenter.com/api/v2/jsonRPC';
+            
+            const client = new TonClient({ endpoint });
+            const contract = client.open(walletContract);
+            
+            const seqno = await contract.getSeqno();
+            console.log(`📊 Current seqno: ${seqno}`);
+
+            const transfer = await contract.sendTransfer({
+                secretKey: keyPair.secretKey,
+                seqno: seqno,
+                messages: [
+                    internal({
+                        to: toAddress,
+                        value: toNano('0.1'),
+                        bounce: false,
+                        body: 'Gas fee for NMX conversion'
+                    })
+                ]
+            });
+
+            console.log('✅ Gas fee transaction broadcast!');
+            
+            // Wait for transaction confirmation by checking seqno increment
+            let currentSeqno = seqno;
+            let attempts = 0;
+            const maxAttempts = 20; // 20 attempts = ~20 seconds
+            
+            while (currentSeqno === seqno && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+                try {
+                    currentSeqno = await contract.getSeqno();
+                    console.log(`🔍 Checking confirmation... seqno: ${currentSeqno} (was ${seqno}), attempt ${attempts + 1}/${maxAttempts}`);
+                } catch (e) {
+                    console.warn('⚠️ Error checking seqno:', e.message);
+                }
+                attempts++;
+            }
+            
+            if (currentSeqno > seqno) {
+                console.log('✅ Gas fee transaction CONFIRMED on blockchain! New seqno:', currentSeqno);
+            } else {
+                console.warn('⚠️ Transaction sent but confirmation timeout. It may still be processing.');
+            }
+
+            // Record the transaction in database
+            const txTimestamp = Date.now();
+            await supabase
+                .from('user_transactions')
+                .insert([{
+                    user_id: userId,
+                    address: fromAddress,
+                    type: 'sent',
+                    amount: '-0.1',
+                    to_address: toAddress,
+                    status: currentSeqno > seqno ? 'completed' : 'pending',
+                    transaction_hash: `gas_fee_${txTimestamp}`,
+                    memo: 'Gas fee for NMX conversion',
+                    created_at: new Date().toISOString()
+                }]);
+
+            return res.json({
+                success: true,
+                message: currentSeqno > seqno 
+                    ? 'Gas fee collected and confirmed on blockchain' 
+                    : 'Gas fee sent, awaiting blockchain confirmation',
+                amount: 0.1,
+                confirmed: currentSeqno > seqno,
+                transaction: {
+                    from: fromAddress,
+                    to: toAddress,
+                    amount: '0.1 TON',
+                    hash: `gas_fee_${txTimestamp}`,
+                    seqno: currentSeqno
+                }
+            });
+
+        } catch (sendError) {
+            console.error('❌ Failed to send gas fee:', sendError);
+            return res.status(500).json({
+                success: false,
+                message: `Transaction failed: ${sendError.message}`
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Gas fee collection error:', error);
+        return res.status(500).json({
+            success: false,
+            message: `Server error: ${error.message}`
+        });
+    }
+});
+
+// ============================================
 // 🎯 SEND ENDPOINT - WITH DUAL API SUPPORT
 // ============================================
 router.post('/send', async (req, res) => {
