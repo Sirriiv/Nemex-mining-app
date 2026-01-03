@@ -3,11 +3,10 @@ services:
     name: nemexcoin-app
     env: node
     plan: free
-    rootDirectory: backend
     buildCommand: npm install
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: JWT_SECRET
-        generateValue: true
+      - key: NODE_VERSION
+        value: 20.11.0
