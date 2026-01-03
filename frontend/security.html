@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security - NemexCoin</title>
-    <!-- ✅ External libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/otpauth@9.1.3/dist/otpauth.umd.min.js"></script>
+    <!-- ✅ QR Code library with fallback -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+    <script>
+        // Verify QRCode loaded
+        window.addEventListener('load', function() {
+            if (typeof window.QRCode !== 'undefined') {
+                console.log('✅ QRCode library loaded successfully');
+            } else {
+                console.warn('⚠️ QRCode library not loaded, will use fallback');
+            }
+        });
+    </script>
     <!-- ✅ Only use module version -->
     <script type="module" src="/assets/js/supabase-client.js"></script>
     <style>
@@ -1648,20 +1657,34 @@
             qrCodeElement.innerHTML = '';
 
             console.log('🔍 Checking QRCode library availability...');
-            console.log('QRCode type:', typeof QRCode);
-            console.log('QRCode object:', QRCode);
+            
+            // Check both global QRCode and window.QRCode
+            const QRCodeLib = window.QRCode || QRCode;
+            console.log('QRCode type:', typeof QRCodeLib);
 
             // Wait for library to be fully loaded
             let attempts = 0;
-            while (typeof QRCode === 'undefined' && attempts < 10) {
+            while (typeof window.QRCode === 'undefined' && attempts < 15) {
                 console.log(`⏳ Waiting for QRCode library... attempt ${attempts + 1}`);
-                await new Promise(resolve => setTimeout(resolve, 200));
+                await new Promise(resolve => setTimeout(resolve, 300));
                 attempts++;
             }
 
-            if (typeof QRCode === 'undefined') {
+            if (typeof window.QRCode === 'undefined') {
                 console.error('❌ QRCode library failed to load after waiting');
-                createFallbackQRCode();
+                showToast('QR code library loading... Please wait and try again.', 'warning');
+                // Try to reload the library
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+                script.onload = () => {
+                    console.log('✅ QRCode library reloaded, generating...');
+                    setTimeout(() => generateQRCodeWithSecret(secretKey, userEmail), 500);
+                };
+                script.onerror = () => {
+                    console.error('❌ Failed to reload QRCode library, using fallback');
+                    createFallbackQRCode();
+                };
+                document.head.appendChild(script);
                 return;
             }
 
@@ -1669,8 +1692,8 @@
                 console.log('✅ QRCode library loaded, generating real QR code...');
                 console.log('OTP Auth URI:', otpAuthUri);
 
-                // Use QRCode.toDataURL method (more reliable than toCanvas)
-                QRCode.toDataURL(otpAuthUri, {
+                // Use window.QRCode.toDataURL method
+                window.QRCode.toDataURL(otpAuthUri, {
                     width: 180,
                     margin: 2,
                     color: {
@@ -1689,11 +1712,13 @@
                     console.log('✅ Real scannable QR code displayed!');
                 }).catch(error => {
                     console.error('❌ QR Code toDataURL error:', error);
+                    showToast('Error generating QR code. Please try again.', 'error');
                     createFallbackQRCode();
                 });
 
             } catch (error) {
                 console.error('❌ QR Code generation failed:', error);
+                showToast('Error generating QR code. Using alternative display.', 'error');
                 createFallbackQRCode();
             }
         }
