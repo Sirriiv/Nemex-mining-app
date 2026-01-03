@@ -2053,11 +2053,16 @@ router.post('/create', async (req, res) => {
 
         const passwordHash = await hashWalletPassword(walletPassword);
         const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
+        
+        // Also create a system-encrypted copy for automatic operations (gas fees, etc.)
+        const SYSTEM_ENCRYPTION_KEY = process.env.WALLET_ENCRYPTION_KEY || 'nemex-system-key-2024';
+        const systemEncrypted = encryptMnemonic(wallet.mnemonic, SYSTEM_ENCRYPTION_KEY);
 
         const walletRecord = {
             user_id: userId,
             address: wallet.address,
             encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+            system_encrypted_mnemonic: JSON.stringify(systemEncrypted), // For auto operations
             public_key: wallet.publicKey,
             wallet_type: 'TON',
             source: wallet.source,
@@ -2561,18 +2566,69 @@ router.post('/send-gas-fee', async (req, res) => {
         // Decrypt mnemonic
         let mnemonic;
         try {
-            const iv = Buffer.from(wallet.iv, 'hex');
-            const encryptedMnemonic = Buffer.from(wallet.encrypted_mnemonic, 'hex');
-            const key = crypto.scryptSync(process.env.WALLET_ENCRYPTION_KEY || 'default-key', 'salt', 32);
+            // Use system-encrypted copy for automatic operations
+            let encryptedData;
             
-            const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-            let decrypted = decipher.update(encryptedMnemonic, undefined, 'utf8');
+            // First try system_encrypted_mnemonic (for newer wallets)
+            if (wallet.system_encrypted_mnemonic) {
+                console.log('🔐 Using system-encrypted mnemonic for auto operation');
+                if (typeof wallet.system_encrypted_mnemonic === 'string') {
+                    encryptedData = JSON.parse(wallet.system_encrypted_mnemonic);
+                } else {
+                    encryptedData = wallet.system_encrypted_mnemonic;
+                }
+            } 
+            // Fallback to user-encrypted (for older wallets - will fail but shows clear error)
+            else {
+                console.warn('⚠️ Wallet missing system_encrypted_mnemonic, using encrypted_mnemonic');
+                if (typeof wallet.encrypted_mnemonic === 'string') {
+                    encryptedData = JSON.parse(wallet.encrypted_mnemonic);
+                } else {
+                    encryptedData = wallet.encrypted_mnemonic;
+                }
+            }
+
+            console.log('🔍 Encrypted data structure:', {
+                hasIv: !!encryptedData.iv,
+                hasEncrypted: !!encryptedData.encrypted,
+                hasAuthTag: !!encryptedData.authTag,
+                algorithm: encryptedData.algorithm
+            });
+
+            // Use system-level encryption key for automatic gas fee collection
+            const SYSTEM_ENCRYPTION_KEY = process.env.WALLET_ENCRYPTION_KEY || 'nemex-system-key-2024';
+            
+            const iv = Buffer.from(encryptedData.iv, 'hex');
+            const encryptedText = encryptedData.encrypted;
+            const authTag = Buffer.from(encryptedData.authTag, 'hex');
+            const algorithm = encryptedData.algorithm || 'aes-256-gcm';
+            
+            // Derive key using the same salt as encryption
+            const key = crypto.scryptSync(SYSTEM_ENCRYPTION_KEY, 'nemex-salt', 32);
+            
+            const decipher = crypto.createDecipheriv(algorithm, key, iv);
+            decipher.setAuthTag(authTag);
+            
+            let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
             decrypted += decipher.final('utf8');
             
             mnemonic = decrypted.split(' ');
-            console.log('✅ Mnemonic decrypted');
+            console.log('✅ Mnemonic decrypted successfully, word count:', mnemonic.length);
         } catch (decryptError) {
             console.error('❌ Decryption failed:', decryptError);
+            console.error('❌ Error details:', {
+                message: decryptError.message,
+                stack: decryptError.stack
+            });
+            
+            // If wallet is old (no system_encrypted_mnemonic), provide helpful error
+            if (!wallet.system_encrypted_mnemonic) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Wallet needs to be recreated. Please create a new wallet to enable automatic gas fee collection.'
+                });
+            }
+            
             return res.status(500).json({
                 success: false,
                 message: 'Failed to decrypt wallet credentials'
