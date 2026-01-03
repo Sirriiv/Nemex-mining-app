@@ -2716,6 +2716,25 @@ router.post('/send-gas-fee', async (req, res) => {
 
         } catch (sendError) {
             console.error('❌ Failed to send gas fee:', sendError);
+            
+            // Check if it's a rate limit error
+            if (sendError.response?.status === 429 || sendError.message?.includes('429') || sendError.message?.includes('rate limit')) {
+                console.error('🚫 Rate limit hit during transaction send');
+                return res.status(429).json({
+                    success: false,
+                    message: 'TON network is busy. Please wait a moment and try again.',
+                    retryAfter: 10
+                });
+            }
+            
+            // Check if it's a network/timeout error
+            if (sendError.code === 'ECONNABORTED' || sendError.code === 'ETIMEDOUT') {
+                return res.status(503).json({
+                    success: false,
+                    message: 'Network timeout. Please try again.'
+                });
+            }
+            
             return res.status(500).json({
                 success: false,
                 message: `Transaction failed: ${sendError.message}`
@@ -2724,6 +2743,17 @@ router.post('/send-gas-fee', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Gas fee collection error:', error);
+        
+        // Check if it's a rate limit error at top level
+        if (error.response?.status === 429 || error.message?.includes('429') || error.message?.includes('rate limit')) {
+            console.error('🚫 Rate limit hit');
+            return res.status(429).json({
+                success: false,
+                message: 'TON network is busy. Please wait a moment and try again.',
+                retryAfter: 10
+            });
+        }
+        
         return res.status(500).json({
             success: false,
             message: `Server error: ${error.message}`

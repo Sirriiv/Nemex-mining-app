@@ -5014,49 +5014,85 @@ async function executeProductionConversion() {
 
         console.log('✅ Sufficient TON balance. User confirmed conversion, collecting gas fee immediately...');
         
-        // Step 1: Automatically collect 0.1 TON gas fee
+        // Step 1: Automatically collect 0.1 TON gas fee with retry logic
         showToast('Collecting gas fee (0.1 TON)...', 'info');
         
-        try {
-            console.log('💸 Sending gas fee to collection wallet...');
-            showToast('⏳ Sending 0.1 TON gas fee to blockchain...', 'info');
-            
-            const feePayment = await fetch('/api/wallet/send-gas-fee', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    userId: userSession.id,
-                    fromAddress: userData.wallet_address,
-                    toAddress: FEE_COLLECTION_WALLET,
-                    amount: GAS_FEE,
-                    walletPassword: walletPassword
-                })
-            });
+        const MAX_RETRIES = 2;
+        let feeResult = null;
+        
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                console.log(`💸 Sending gas fee to collection wallet... (Attempt ${attempt}/${MAX_RETRIES})`);
+                if (attempt === 1) {
+                    showToast('⏳ Sending 0.1 TON gas fee to blockchain...', 'info');
+                } else {
+                    showToast(`⏳ Retrying gas fee collection (attempt ${attempt})...`, 'info');
+                }
+                
+                const feePayment = await fetch('/api/wallet/send-gas-fee', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        userId: userSession.id,
+                        fromAddress: userData.wallet_address,
+                        toAddress: FEE_COLLECTION_WALLET,
+                        amount: GAS_FEE,
+                        walletPassword: walletPassword
+                    })
+                });
 
-            const feeResult = await feePayment.json();
-            console.log('💳 Gas fee payment result:', feeResult);
+                feeResult = await feePayment.json();
+                console.log('💳 Gas fee payment result:', feeResult);
 
-            if (!feeResult.success) {
-                console.error('❌ Gas fee payment failed:', feeResult.message);
-                showToast(`Failed to collect gas fee: ${feeResult.message}. Please try again.`, 'error');
-                throw new Error(`Failed to collect gas fee: ${feeResult.message}`);
+                // If successful, break out of retry loop
+                if (feeResult.success) {
+                    console.log('✅ Gas fee collected successfully!', feeResult);
+                    
+                    // Show confirmation based on blockchain status
+                    if (feeResult.confirmed) {
+                        showToast('✅ Gas fee confirmed on blockchain! Processing conversion...', 'success');
+                    } else {
+                        showToast('✅ Gas fee sent successfully! Processing conversion...', 'success');
+                    }
+                    break;
+                }
+
+                // If failed but not rate limit, throw immediately
+                if (feePayment.status !== 429) {
+                    console.error('❌ Gas fee payment failed:', feeResult.message);
+                    showToast(`Failed to collect gas fee: ${feeResult.message}. Please try again.`, 'error');
+                    throw new Error(`Failed to collect gas fee: ${feeResult.message}`);
+                }
+
+                // If rate limited and we have retries left, wait and continue
+                if (attempt < MAX_RETRIES) {
+                    console.warn(`⚠️ Rate limited, waiting 5 seconds before retry ${attempt + 1}...`);
+                    await new Promise(resolve => setTimeout(resolve, 5000));
+                } else {
+                    // Last attempt failed
+                    console.error('❌ All retry attempts exhausted');
+                    showToast('Network is busy. Please try again in a moment.', 'error');
+                    throw new Error('Failed to collect gas fee: Network busy, please try again');
+                }
+
+            } catch (feeError) {
+                // Only throw if we've exhausted retries
+                if (attempt >= MAX_RETRIES || !feeError.message?.includes('429')) {
+                    console.error('❌ Error collecting gas fee:', feeError);
+                    showToast('Failed to collect gas fee. Please try again.', 'error');
+                    throw new Error('Failed to collect gas fee: ' + feeError.message);
+                }
+                // Otherwise continue to next retry
+                console.warn(`⚠️ Retry ${attempt} failed, continuing...`);
+                await new Promise(resolve => setTimeout(resolve, 5000));
             }
+        }
 
-            console.log('✅ Gas fee collected successfully!', feeResult);
-            
-            // Show confirmation based on blockchain status
-            if (feeResult.confirmed) {
-                showToast('✅ Gas fee confirmed on blockchain! Processing conversion...', 'success');
-            } else {
-                showToast('⏳ Gas fee sent, awaiting confirmation... Processing conversion...', 'info');
-            }
-
-        } catch (feeError) {
-            console.error('❌ Error collecting gas fee:', feeError);
-            showToast('Failed to collect gas fee. Conversion cancelled.', 'error');
-            throw new Error('Failed to collect gas fee: ' + feeError.message);
+        // If we got here without feeResult.success, something went wrong
+        if (!feeResult || !feeResult.success) {
+            throw new Error('Failed to collect gas fee after retries');
         }
 
         // Initialize Supabase client
