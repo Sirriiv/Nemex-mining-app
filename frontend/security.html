@@ -1647,38 +1647,51 @@
             const qrCodeElement = document.getElementById('qrCode');
             qrCodeElement.innerHTML = '';
 
+            console.log('🔍 Checking QRCode library availability...');
+            console.log('QRCode type:', typeof QRCode);
+            console.log('QRCode object:', QRCode);
+
+            // Wait for library to be fully loaded
+            let attempts = 0;
+            while (typeof QRCode === 'undefined' && attempts < 10) {
+                console.log(`⏳ Waiting for QRCode library... attempt ${attempts + 1}`);
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+
+            if (typeof QRCode === 'undefined') {
+                console.error('❌ QRCode library failed to load after waiting');
+                createFallbackQRCode();
+                return;
+            }
+
             try {
-                // Wait for QRCode library to be loaded
-                if (typeof QRCode === 'undefined') {
-                    console.warn('QRCode library not loaded yet, waiting...');
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
+                console.log('✅ QRCode library loaded, generating real QR code...');
+                console.log('OTP Auth URI:', otpAuthUri);
 
-                if (typeof QRCode === 'undefined') {
-                    throw new Error('QRCode library still not loaded');
-                }
-
-                // Create a canvas element first
-                const canvas = document.createElement('canvas');
-                qrCodeElement.appendChild(canvas);
-
-                // Generate proper scannable QR code with optimal settings
-                QRCode.toCanvas(canvas, otpAuthUri, {
+                // Use QRCode.toDataURL method (more reliable than toCanvas)
+                QRCode.toDataURL(otpAuthUri, {
                     width: 180,
-                    height: 180,
                     margin: 2,
-                    colorDark: "#000000",  // Black QR code modules
-                    colorLight: "#ffffff", // White background
-                    errorCorrectionLevel: 'H' // High error correction for better scanning
-                }, function(error) {
-                    if (error) {
-                        console.error('QR Code generation error:', error);
-                        qrCodeElement.innerHTML = '';
-                        createFallbackQRCode();
-                    } else {
-                        console.log('✅ Scannable QR Code generated successfully');
-                    }
+                    color: {
+                        dark: '#000000',
+                        light: '#ffffff'
+                    },
+                    errorCorrectionLevel: 'H'
+                }).then(url => {
+                    console.log('✅ QR code data URL generated successfully');
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.style.width = '180px';
+                    img.style.height = '180px';
+                    img.style.display = 'block';
+                    qrCodeElement.appendChild(img);
+                    console.log('✅ Real scannable QR code displayed!');
+                }).catch(error => {
+                    console.error('❌ QR Code toDataURL error:', error);
+                    createFallbackQRCode();
                 });
+
             } catch (error) {
                 console.error('❌ QR Code generation failed:', error);
                 createFallbackQRCode();
