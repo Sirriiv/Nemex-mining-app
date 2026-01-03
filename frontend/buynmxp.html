@@ -1083,6 +1083,13 @@
         // FIXED: Load packages with PER-USER purchase limits
         async function loadPackages() {
             try {
+                if (!currentUser || !currentUser.id) {
+                    console.error('❌ No user logged in, cannot load per-user limits');
+                    return;
+                }
+
+                console.log('📊 Loading packages for user:', currentUser.id);
+
                 // Get all packages
                 const { data: packages, error } = await supabaseClient
                     .from('package_types')
@@ -1095,6 +1102,8 @@
                     return;
                 }
 
+                console.log('📦 Loaded packages from database:', packages);
+
                 // Get user's purchase history to calculate remaining per-user limits
                 const { data: userPurchases, error: purchaseError } = await supabaseClient
                     .from('pending_transactions')
@@ -1104,6 +1113,8 @@
                 if (purchaseError) {
                     console.warn('Warning loading user purchases:', purchaseError);
                 }
+
+                console.log('🛒 User purchase history:', userPurchases);
 
                 // Calculate remaining purchases per package for THIS USER
                 availablePackages = (packages || []).map(pkg => {
@@ -1116,6 +1127,8 @@
                     // Calculate remaining purchases for THIS USER
                     const userRemainingPurchases = pkg.purchase_limit - userPurchaseCount;
 
+                    console.log(`📊 Package ${pkg.package_amount}: User purchased ${userPurchaseCount} times, ${userRemainingPurchases} remaining (limit: ${pkg.purchase_limit})`);
+
                     return {
                         ...pkg,
                         user_purchase_count: userPurchaseCount,
@@ -1123,6 +1136,7 @@
                     };
                 });
 
+                console.log('✅ Packages with per-user limits calculated:', availablePackages);
                 renderPackages();
 
             } catch (error) {
