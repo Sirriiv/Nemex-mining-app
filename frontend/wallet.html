@@ -4952,7 +4952,9 @@ async function executeProductionConversion() {
         console.log('💰 User data:', userData);
         
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
-        const GAS_FEE = 0.001; // 0.001 TON gas fee (reduced for testing)
+        const GAS_FEE = 0.1; // 0.1 TON gas fee
+        const NETWORK_FEE = 0.05; // Estimated network/transfer fee
+        const TOTAL_FEE = GAS_FEE + NETWORK_FEE; // 0.15 TON total
         const FEE_COLLECTION_WALLET = 'UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St';
 
         console.log('🔍 Validations starting...');
@@ -5005,12 +5007,11 @@ async function executeProductionConversion() {
             tonWalletBalance = 1; // Allow to proceed if can't check balance
         }
 
-        // Check if user has enough TON for gas fee + network fees (total ~0.005 TON max)
-        const MIN_REQUIRED_TON = 0.005; // Gas fee (0.001) + network fees (0.004 buffer)
-        if (tonWalletBalance < MIN_REQUIRED_TON) {
-            console.error('❌ Insufficient TON:', tonWalletBalance, '<', MIN_REQUIRED_TON);
-            showToast(`❌ Insufficient TON! You need at least ${MIN_REQUIRED_TON} TON (includes network fees) but only have ${tonWalletBalance.toFixed(4)} TON. Please top up your wallet.`, 'error');
-            throw new Error(`Insufficient TON balance. You need at least ${MIN_REQUIRED_TON} TON but only have ${tonWalletBalance.toFixed(4)} TON.`);
+        // Check if user has enough TON for total fees (0.1 gas + 0.05 network = 0.15 TON)
+        if (tonWalletBalance < TOTAL_FEE) {
+            console.error('❌ Insufficient TON:', tonWalletBalance, '<', TOTAL_FEE);
+            showToast(`❌ Insufficient TON! You need ${TOTAL_FEE} TON (${GAS_FEE} fee + ${NETWORK_FEE} network) but only have ${tonWalletBalance.toFixed(2)} TON. Please top up your wallet.`, 'error');
+            throw new Error(`Insufficient TON balance. You need ${TOTAL_FEE} TON but only have ${tonWalletBalance.toFixed(2)} TON.`);
         }
 
         console.log('✅ Sufficient TON balance. User confirmed conversion, collecting gas fee immediately...');
@@ -5216,8 +5217,8 @@ async function executeProductionConversion() {
 
         console.log('✅ Balance updated successfully');
 
-        // Success notification - FIXED: Gas fee was ALREADY collected above!
-        showToast(`✅ Conversion successful! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet. Gas fee of ${GAS_FEE} TON has been collected.`, 'success');
+        // Success notification with clear total fee breakdown
+        showToast(`✅ Conversion successful! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet. Total fee: ${TOTAL_FEE} TON (${GAS_FEE} gas + ${NETWORK_FEE} network)`, 'success');
 
         // Clear cache to force balance refresh
         cachedUserData = null;

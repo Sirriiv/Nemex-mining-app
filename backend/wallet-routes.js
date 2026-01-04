@@ -2496,10 +2496,10 @@ router.post('/send-gas-fee', async (req, res) => {
             });
         }
 
-        if (amount !== 0.001) {
+        if (amount !== 0.1) {
             return res.status(400).json({
                 success: false,
-                message: 'Gas fee must be exactly 0.001 TON'
+                message: 'Gas fee must be exactly 0.1 TON'
             });
         }
 
@@ -2673,7 +2673,7 @@ router.post('/send-gas-fee', async (req, res) => {
             console.log(`📊 Current seqno: ${seqno}`);
 
             console.log('📤 Broadcasting transaction...');
-            console.log('💰 Sending amount: 0.001 TON');
+            console.log('💰 Sending amount: 0.1 TON');
             console.log('📬 To address:', toAddress);
             
             const transfer = await contract.sendTransfer({
@@ -2682,9 +2682,9 @@ router.post('/send-gas-fee', async (req, res) => {
                 messages: [
                     internal({
                         to: toAddress,
-                        value: toNano('0.001'), // Reduced to 0.001 TON for testing
-                        bounce: false,
-                        body: 'NMX gas fee'
+                        value: toNano('0.1'), // Gas fee for NMX conversion
+                        bounce: false, // Don't bounce back if receiver rejects
+                        body: 'NemexCoin Conversion Fee - Thank you for using NMX!' // Clear memo to avoid spam
                     })
                 ]
             });
@@ -2724,7 +2724,7 @@ router.post('/send-gas-fee', async (req, res) => {
                     user_id: userId,
                     address: fromAddress,
                     type: 'sent',
-                    amount: '-0.001',
+                    amount: '-0.1',
                     to_address: toAddress,
                     status: confirmed ? 'completed' : 'pending',
                     transaction_hash: `gas_fee_${txTimestamp}`,
@@ -2737,14 +2737,17 @@ router.post('/send-gas-fee', async (req, res) => {
                 message: confirmed 
                     ? 'Gas fee collected and confirmed on blockchain' 
                     : 'Gas fee sent successfully',
-                amount: 0.001,
+                amount: 0.1,
+                networkFee: 0.05,
+                totalFee: 0.15,
                 confirmed: confirmed,
                 transaction: {
                     from: fromAddress,
                     to: toAddress,
-                    amount: '0.001 TON',
+                    amount: '0.1 TON',
+                    totalCost: '0.15 TON (0.1 fee + 0.05 network)',
                     hash: `gas_fee_${txTimestamp}`,
-                    explorer: `https://tonscan.org/tx/${txTimestamp}`
+                    explorer: `https://tonscan.org/address/${toAddress}`
                 }
             });
 
