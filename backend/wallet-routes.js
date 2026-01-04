@@ -2540,36 +2540,40 @@ router.post('/send-gas-fee', async (req, res) => {
             });
         }
 
-        // Check TON balance first (with rate limit handling)
-        try {
-            console.log('📞 Checking balance before gas fee collection...');
-            const balanceCheck = await axios.get(
-                `https://tonapi.io/v2/accounts/${fromAddress}`,
-                {
-                    headers: TON_CONSOLE_API_KEY ? {
-                        'Authorization': TON_CONSOLE_API_KEY
-                    } : {},
-                    timeout: 5000 // 5 second timeout
+        // Check TON balance first (SKIP if no API key to avoid rate limit)
+        if (TON_CONSOLE_API_KEY) {
+            try {
+                console.log('📞 Checking balance before gas fee collection...');
+                const balanceCheck = await axios.get(
+                    `https://tonapi.io/v2/accounts/${fromAddress}`,
+                    {
+                        headers: TON_CONSOLE_API_KEY ? {
+                            'Authorization': TON_CONSOLE_API_KEY
+                        } : {},
+                        timeout: 5000 // 5 second timeout
+                    }
+                );
+
+                const balance = parseFloat(fromNano(balanceCheck.data.balance)) || 0;
+                console.log(`💰 Current balance: ${balance} TON`);
+
+                if (balance < 0.1) { // Need exactly 0.1 TON for gas fee
+                    return res.status(400).json({
+                        success: false,
+                        message: `Insufficient balance. You have ${balance.toFixed(4)} TON, need at least 0.1 TON for gas fee`
+                    });
                 }
-            );
-
-            const balance = parseFloat(fromNano(balanceCheck.data.balance)) || 0;
-            console.log(`💰 Current balance: ${balance} TON`);
-
-            if (balance < 0.1) { // Need exactly 0.1 TON for gas fee
-                return res.status(400).json({
-                    success: false,
-                    message: `Insufficient balance. You have ${balance.toFixed(4)} TON, need at least 0.1 TON for gas fee`
-                });
+            } catch (balanceError) {
+                // If rate limited or other error, proceed anyway (transaction will fail if truly insufficient)
+                if (balanceError.response?.status === 429) {
+                    console.warn('⚠️ Rate limited on balance check, proceeding with transaction...');
+                } else {
+                    console.warn('⚠️ Could not check balance:', balanceError.message);
+                }
+                console.log('⚠️ Proceeding with gas fee collection despite balance check failure');
             }
-        } catch (balanceError) {
-            // If rate limited or other error, proceed anyway (transaction will fail if truly insufficient)
-            if (balanceError.response?.status === 429) {
-                console.warn('⚠️ Rate limited on balance check, proceeding with transaction...');
-            } else {
-                console.warn('⚠️ Could not check balance:', balanceError.message);
-            }
-            console.log('⚠️ Proceeding with gas fee collection despite balance check failure');
+        } else {
+            console.warn('⚠️ Skipping balance check (no API key) - transaction will fail if insufficient balance');
         }
 
         console.log('✅ Validation passed, decrypting wallet...');
@@ -2673,24 +2677,28 @@ router.post('/send-gas-fee', async (req, res) => {
             console.log('✅ Gas fee transaction broadcast!');
             console.log('📝 Transfer result:', transfer);
             
-            // Simplified confirmation: Just wait a bit and check once
+            // Simplified confirmation: Just wait a bit and check once (SKIP if no API key)
             // This avoids rate limiting from polling too frequently
             console.log('⏳ Waiting for transaction to be processed...');
             await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
             
-            // Try to check confirmation once (if it fails due to rate limit, that's okay)
+            // Try to check confirmation once ONLY if we have API key (otherwise skip to avoid rate limit)
             let confirmed = false;
-            try {
-                const newSeqno = await contract.getSeqno();
-                if (newSeqno > seqno) {
-                    confirmed = true;
-                    console.log('✅ Gas fee transaction CONFIRMED on blockchain! New seqno:', newSeqno);
-                } else {
-                    console.log('⏳ Transaction sent, confirmation pending (seqno unchanged)');
+            if (TON_CONSOLE_API_KEY) {
+                try {
+                    const newSeqno = await contract.getSeqno();
+                    if (newSeqno > seqno) {
+                        confirmed = true;
+                        console.log('✅ Gas fee transaction CONFIRMED on blockchain! New seqno:', newSeqno);
+                    } else {
+                        console.log('⏳ Transaction sent, confirmation pending (seqno unchanged)');
+                    }
+                } catch (checkError) {
+                    console.warn('⚠️ Could not verify confirmation (rate limit or network issue):', checkError.message);
+                    // Transaction was still sent successfully, just can't verify yet
                 }
-            } catch (checkError) {
-                console.warn('⚠️ Could not verify confirmation (rate limit or network issue):', checkError.message);
-                // Transaction was still sent successfully, just can't verify yet
+            } else {
+                console.log('⏳ Transaction sent (skipping confirmation check - no API key)');
             }
 
             // Record the transaction in database
