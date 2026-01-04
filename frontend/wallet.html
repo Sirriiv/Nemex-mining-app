@@ -5215,8 +5215,8 @@ async function executeProductionConversion() {
 
         console.log('✅ Balance updated successfully');
 
-        // Success notification
-        showToast(`✅ Conversion request submitted! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet after approval. Gas fee of ${GAS_FEE} TON will be collected upon approval.`, 'success');
+        // Success notification - FIXED: Gas fee was ALREADY collected above!
+        showToast(`✅ Conversion successful! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet. Gas fee of ${GAS_FEE} TON has been collected.`, 'success');
 
         // Clear cache to force balance refresh
         cachedUserData = null;
