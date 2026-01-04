@@ -4952,7 +4952,7 @@ async function executeProductionConversion() {
         console.log('💰 User data:', userData);
         
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
-        const GAS_FEE = 0.1; // 0.1 TON gas fee
+        const GAS_FEE = 0.001; // 0.001 TON gas fee (reduced for testing)
         const FEE_COLLECTION_WALLET = 'UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St';
 
         console.log('🔍 Validations starting...');
@@ -5005,11 +5005,12 @@ async function executeProductionConversion() {
             tonWalletBalance = 1; // Allow to proceed if can't check balance
         }
 
-        // Check if user has enough TON for gas fee (exactly 0.1 TON)
-        if (tonWalletBalance < GAS_FEE) {
-            console.error('❌ Insufficient TON:', tonWalletBalance, '<', GAS_FEE);
-            showToast(`❌ Insufficient TON for gas fee! You need ${GAS_FEE} TON but only have ${tonWalletBalance.toFixed(4)} TON. Please top up your wallet.`, 'error');
-            throw new Error(`Insufficient TON balance for gas fee. You need ${GAS_FEE} TON but only have ${tonWalletBalance.toFixed(4)} TON. Please top up your wallet.`);
+        // Check if user has enough TON for gas fee + network fees (total ~0.005 TON max)
+        const MIN_REQUIRED_TON = 0.005; // Gas fee (0.001) + network fees (0.004 buffer)
+        if (tonWalletBalance < MIN_REQUIRED_TON) {
+            console.error('❌ Insufficient TON:', tonWalletBalance, '<', MIN_REQUIRED_TON);
+            showToast(`❌ Insufficient TON! You need at least ${MIN_REQUIRED_TON} TON (includes network fees) but only have ${tonWalletBalance.toFixed(4)} TON. Please top up your wallet.`, 'error');
+            throw new Error(`Insufficient TON balance. You need at least ${MIN_REQUIRED_TON} TON but only have ${tonWalletBalance.toFixed(4)} TON.`);
         }
 
         console.log('✅ Sufficient TON balance. User confirmed conversion, collecting gas fee immediately...');

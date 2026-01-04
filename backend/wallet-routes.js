@@ -2496,10 +2496,10 @@ router.post('/send-gas-fee', async (req, res) => {
             });
         }
 
-        if (amount !== 0.1) {
+        if (amount !== 0.001) {
             return res.status(400).json({
                 success: false,
-                message: 'Gas fee must be exactly 0.1 TON'
+                message: 'Gas fee must be exactly 0.001 TON'
             });
         }
 
@@ -2673,15 +2673,18 @@ router.post('/send-gas-fee', async (req, res) => {
             console.log(`📊 Current seqno: ${seqno}`);
 
             console.log('📤 Broadcasting transaction...');
+            console.log('💰 Sending amount: 0.001 TON');
+            console.log('📬 To address:', toAddress);
+            
             const transfer = await contract.sendTransfer({
                 secretKey: keyPair.secretKey,
                 seqno: seqno,
                 messages: [
                     internal({
                         to: toAddress,
-                        value: toNano('0.1'),
+                        value: toNano('0.001'), // Reduced to 0.001 TON for testing
                         bounce: false,
-                        body: 'Gas fee for NMX conversion'
+                        body: 'NMX gas fee'
                     })
                 ]
             });
@@ -2721,7 +2724,7 @@ router.post('/send-gas-fee', async (req, res) => {
                     user_id: userId,
                     address: fromAddress,
                     type: 'sent',
-                    amount: '-0.1',
+                    amount: '-0.001',
                     to_address: toAddress,
                     status: confirmed ? 'completed' : 'pending',
                     transaction_hash: `gas_fee_${txTimestamp}`,
@@ -2734,13 +2737,14 @@ router.post('/send-gas-fee', async (req, res) => {
                 message: confirmed 
                     ? 'Gas fee collected and confirmed on blockchain' 
                     : 'Gas fee sent successfully',
-                amount: 0.1,
+                amount: 0.001,
                 confirmed: confirmed,
                 transaction: {
                     from: fromAddress,
                     to: toAddress,
-                    amount: '0.1 TON',
-                    hash: `gas_fee_${txTimestamp}`
+                    amount: '0.001 TON',
+                    hash: `gas_fee_${txTimestamp}`,
+                    explorer: `https://tonscan.org/tx/${txTimestamp}`
                 }
             });
 
