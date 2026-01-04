@@ -328,11 +328,11 @@
             width: 220px;
             height: 220px;
             margin: 0 auto;
-            background: #ffffff !important;
+            background: #000000 !important;
             padding: 15px;
             border-radius: 12px;
             border: 2px solid var(--gold);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
         }
 
         .qr-code canvas {
@@ -1648,7 +1648,7 @@
             currentSecretKey = '';
         }
 
-        // FIXED: QR Code generation with WHITE CONTAINER & BLACK PATTERN
+        // CUSTOMIZED: QR Code with YELLOW/GOLD SQUARES on BLACK BACKGROUND
         async function generateQRCodeWithSecret(secretKey, userEmail) {
             const issuer = "NemexCoin";
             const otpAuthUri = `otpauth://totp/${issuer}:${userEmail}?secret=${secretKey}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
@@ -1676,17 +1676,17 @@
             try {
                 console.log('✅ QRCode library available, generating...');
                 
-                // Use QRCode constructor (correct API for qrcodejs)
+                // CUSTOMIZED: Gold/yellow squares on black background to match platform theme
                 new window.QRCode(qrCodeElement, {
                     text: otpAuthUri,
                     width: 180,
                     height: 180,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: window.QRCode.CorrectLevel.H
+                    colorDark: "#d4af37",   // GOLD/YELLOW squares (platform color)
+                    colorLight: "#000000",  // BLACK background
+                    correctLevel: window.QRCode.CorrectLevel.H  // 30% damage tolerance
                 });
                 
-                console.log('✅ Real scannable QR code generated successfully!');
+                console.log('✅ Custom gold QR code generated successfully!');
 
             } catch (error) {
                 console.error('❌ QR Code generation failed:', error);
