@@ -4952,9 +4952,9 @@ async function executeProductionConversion() {
         console.log('💰 User data:', userData);
         
         const nmxAmount = nmxpAmount * PRODUCTION_CONFIG.CONVERSION_RATE;
-        const GAS_FEE = 0.1; // 0.1 TON gas fee
+        const GAS_FEE = 0.108; // Send 0.108 so exactly 0.1 arrives (after blockchain fee)
         const NETWORK_FEE = 0.05; // Estimated network/transfer fee
-        const TOTAL_FEE = GAS_FEE + NETWORK_FEE; // 0.15 TON total
+        const TOTAL_FEE = GAS_FEE + NETWORK_FEE; // 0.158 TON total
         const FEE_COLLECTION_WALLET = 'UQCjL2yM3S80N-Kb4WuYfMUVR2y2188JKMgCEjzAFzWJ95St';
 
         console.log('🔍 Validations starting...');
@@ -5218,7 +5218,7 @@ async function executeProductionConversion() {
         console.log('✅ Balance updated successfully');
 
         // Success notification with clear total fee breakdown
-        showToast(`✅ Conversion successful! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet. Total fee: ${TOTAL_FEE} TON (${GAS_FEE} gas + ${NETWORK_FEE} network)`, 'success');
+        showToast(`✅ Conversion successful! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet. Fee: 0.1 TON collected`, 'success');
 
         // Clear cache to force balance refresh
         cachedUserData = null;
