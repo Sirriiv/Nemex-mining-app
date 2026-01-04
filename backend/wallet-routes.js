@@ -2634,20 +2634,29 @@ router.post('/send-gas-fee', async (req, res) => {
         // Send the gas fee
         try {
             console.log('💸 Sending gas fee...');
+            console.log('🔍 Using mnemonic length:', mnemonic.length, 'words');
+            
             const keyPair = await mnemonicToPrivateKey(mnemonic);
+            console.log('✅ KeyPair generated from mnemonic');
+            
             const workchain = 0;
             const walletContract = WalletContractV4.create({ workchain, publicKey: keyPair.publicKey });
+            console.log('✅ Wallet contract created');
             
             const endpoint = TON_CONSOLE_API_KEY 
                 ? 'https://toncenter.com/api/v2/jsonRPC'
                 : 'https://testnet.toncenter.com/api/v2/jsonRPC';
             
+            console.log('🌐 Using TON endpoint:', endpoint);
+            
             const client = new TonClient({ endpoint });
             const contract = client.open(walletContract);
             
+            console.log('📊 Fetching seqno...');
             const seqno = await contract.getSeqno();
             console.log(`📊 Current seqno: ${seqno}`);
 
+            console.log('📤 Broadcasting transaction...');
             const transfer = await contract.sendTransfer({
                 secretKey: keyPair.secretKey,
                 seqno: seqno,
@@ -2662,6 +2671,7 @@ router.post('/send-gas-fee', async (req, res) => {
             });
 
             console.log('✅ Gas fee transaction broadcast!');
+            console.log('📝 Transfer result:', transfer);
             
             // Simplified confirmation: Just wait a bit and check once
             // This avoids rate limiting from polling too frequently

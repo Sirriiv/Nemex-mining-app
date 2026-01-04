@@ -5045,6 +5045,7 @@ async function executeProductionConversion() {
                 });
 
                 feeResult = await feePayment.json();
+                console.log('💳 Gas fee payment HTTP status:', feePayment.status);
                 console.log('💳 Gas fee payment result:', feeResult);
 
                 // If successful, break out of retry loop
@@ -5060,10 +5061,37 @@ async function executeProductionConversion() {
                     break;
                 }
 
-                // If failed but not rate limit, throw immediately
+                // Check for specific error types
+                if (feePayment.status === 401) {
+                    // Wrong password - don't retry
+                    console.error('❌ Wrong wallet password!');
+                    showToast('❌ Incorrect wallet password. Please try again.', 'error');
+                    throw new Error('Incorrect wallet password');
+                }
+
+                if (feePayment.status === 400) {
+                    // Bad request (like insufficient balance) - don't retry
+                    console.error('❌ Bad request:', feeResult.message);
+                    showToast(`❌ ${feeResult.message}`, 'error');
+                    throw new Error(feeResult.message);
+                }
+
+                if (feePayment.status === 500) {
+                    // Server error - might be TON SDK issue
+                    console.error('❌ Server error:', feeResult.message);
+                    if (attempt < MAX_RETRIES && feeResult.message?.includes('network')) {
+                        // Only retry if it seems like a network issue
+                        showToast(`⚠️ Server error, retrying... (${attempt}/${MAX_RETRIES})`, 'warning');
+                    } else {
+                        showToast(`❌ ${feeResult.message}`, 'error');
+                        throw new Error(feeResult.message);
+                    }
+                }
+
+                // If rate limit (429), we'll retry below
                 if (feePayment.status !== 429) {
-                    console.error('❌ Gas fee payment failed:', feeResult.message);
-                    showToast(`Failed to collect gas fee: ${feeResult.message}. Please try again.`, 'error');
+                    console.error('❌ Gas fee payment failed with status:', feePayment.status, feeResult.message);
+                    showToast(`❌ ${feeResult.message}`, 'error');
                     throw new Error(`Failed to collect gas fee: ${feeResult.message}`);
                 }
 
