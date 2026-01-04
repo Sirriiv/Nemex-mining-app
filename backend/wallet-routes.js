@@ -2647,13 +2647,25 @@ router.post('/send-gas-fee', async (req, res) => {
             const walletContract = WalletContractV4.create({ workchain, publicKey: keyPair.publicKey });
             console.log('✅ Wallet contract created');
             
-            const endpoint = TON_CONSOLE_API_KEY 
-                ? 'https://toncenter.com/api/v2/jsonRPC'
-                : 'https://testnet.toncenter.com/api/v2/jsonRPC';
+            // Use TonCenter with API key for better rate limits
+            const endpoint = 'https://toncenter.com/api/v2/jsonRPC';
+            const clientConfig = { endpoint };
             
-            console.log('🌐 Using TON endpoint:', endpoint);
+            // Add TonCenter API key if available for better rate limits
+            if (TONCENTER_API_KEY) {
+                clientConfig.apiKey = TONCENTER_API_KEY;
+                console.log('🌐 Using TonCenter endpoint with API key');
+            } else if (TON_CONSOLE_API_KEY) {
+                // Fallback to TON Console key if no TonCenter key
+                clientConfig.apiKey = TON_CONSOLE_API_KEY.replace('Bearer ', '').replace('bearer_', '');
+                console.log('🌐 Using TonCenter endpoint with TON Console key as fallback');
+            } else {
+                console.warn('⚠️ Using TonCenter endpoint WITHOUT API key - rate limits apply!');
+            }
             
-            const client = new TonClient({ endpoint });
+            console.log('🌐 TON endpoint:', endpoint);
+            
+            const client = new TonClient(clientConfig);
             const contract = client.open(walletContract);
             
             console.log('📊 Fetching seqno...');
