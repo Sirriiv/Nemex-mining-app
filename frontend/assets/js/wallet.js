@@ -922,12 +922,29 @@ class WalletManager {
         // 5. Trigger wallet loaded event
         this.triggerWalletLoaded();
 
-        // 6. Call initWallet if it exists
+        // 6. Show wallet interface and load data
         setTimeout(() => {
-            if (typeof window.initWallet === 'function') {
-                window.initWallet();
+            // Update global walletState
+            if (typeof window.walletState !== 'undefined' && this.currentWallet) {
+                window.walletState.hasWallet = true;
+                window.walletState.wallet = this.currentWallet;
+                window.walletState.address = this.currentWallet.address;
+                window.walletState.isInitialized = true;
             }
-        }, 1000);
+            
+            if (typeof window.showWalletInterface === 'function') {
+                window.showWalletInterface();
+            }
+            if (typeof window.loadWalletData === 'function') {
+                window.loadWalletData();
+            }
+            if (typeof window.startRealBalanceUpdates === 'function') {
+                window.startRealBalanceUpdates();
+            }
+            if (typeof window.loadTransactionHistory === 'function') {
+                window.loadTransactionHistory();
+            }
+        }, 500);
     }
 
     // 🎯 RESET BUTTON STATE
