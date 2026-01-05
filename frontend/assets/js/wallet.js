@@ -1052,13 +1052,13 @@ class WalletManager {
     async logout() {
         if (this.sessionToken) {
             try {
-                await fetch(`${this.apiBaseUrl}/session/destroy`, {
+                await fetch(`${this.apiBaseUrl}/session/delete`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: this.sessionToken })
+                    body: JSON.stringify({ sessionToken: this.sessionToken })
                 });
             } catch (error) {
-                console.warn('⚠️ Session destroy failed:', error);
+                console.warn('⚠️ Session delete failed:', error);
             }
         }
 

@@ -2299,6 +2299,185 @@ router.post('/login', async (req, res) => {
 });
 
 // ============================================
+// 🎯 SESSION MANAGEMENT ENDPOINTS
+// ============================================
+
+// Create a new wallet session
+router.post('/session/create', async (req, res) => {
+    try {
+        const { userId, walletAddress } = req.body;
+
+        if (!userId || !walletAddress) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID and wallet address required'
+            });
+        }
+
+        if (dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
+
+        // Generate session token
+        const sessionToken = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        // Store session in database
+        const { data, error } = await supabase
+            .from('wallet_sessions')
+            .insert({
+                user_id: userId,
+                wallet_address: walletAddress,
+                session_token: sessionToken,
+                expires_at: expiresAt.toISOString(),
+                created_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (error) {
+            console.error('❌ Session creation failed:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to create session'
+            });
+        }
+
+        console.log('✅ Session created for user:', userId);
+        return res.json({
+            success: true,
+            session: {
+                token: sessionToken,
+                user_id: userId,
+                wallet_address: walletAddress,
+                expires_at: expiresAt.toISOString()
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Session creation error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Session creation failed: ' + error.message
+        });
+    }
+});
+
+// Check if session is valid
+router.post('/session/check', async (req, res) => {
+    try {
+        const { sessionToken } = req.body;
+
+        if (!sessionToken) {
+            return res.status(400).json({
+                success: false,
+                error: 'Session token required'
+            });
+        }
+
+        if (dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
+
+        // Check if session exists and is not expired
+        const { data: sessionData, error } = await supabase
+            .from('wallet_sessions')
+            .select('*')
+            .eq('session_token', sessionToken)
+            .gt('expires_at', new Date().toISOString())
+            .single();
+
+        if (error || !sessionData) {
+            console.log('❌ Invalid or expired session');
+            return res.json({
+                success: true,
+                hasSession: false,
+                message: 'Session invalid or expired'
+            });
+        }
+
+        // Update last_used timestamp
+        await supabase
+            .from('wallet_sessions')
+            .update({ last_used: new Date().toISOString() })
+            .eq('session_token', sessionToken);
+
+        console.log('✅ Valid session found for user:', sessionData.user_id);
+        return res.json({
+            success: true,
+            hasSession: true,
+            session: {
+                token: sessionData.session_token,
+                user_id: sessionData.user_id,
+                wallet_address: sessionData.wallet_address,
+                expires_at: sessionData.expires_at
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Session check error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Session check failed: ' + error.message
+        });
+    }
+});
+
+// Delete session (logout)
+router.post('/session/delete', async (req, res) => {
+    try {
+        const { sessionToken } = req.body;
+
+        if (!sessionToken) {
+            return res.status(400).json({
+                success: false,
+                error: 'Session token required'
+            });
+        }
+
+        if (dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
+
+        // Delete session from database
+        const { error } = await supabase
+            .from('wallet_sessions')
+            .delete()
+            .eq('session_token', sessionToken);
+
+        if (error) {
+            console.error('❌ Session deletion failed:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to delete session'
+            });
+        }
+
+        console.log('✅ Session deleted');
+        return res.json({
+            success: true,
+            message: 'Session deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Session deletion error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Session deletion failed: ' + error.message
+        });
+    }
+});
+
+// ============================================
 // 🎯 UPDATED BALANCE ENDPOINT WITH DUAL APIS
 // ============================================
 router.get('/balance/:address', async (req, res) => {
