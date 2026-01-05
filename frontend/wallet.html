@@ -2273,16 +2273,6 @@
                     </div>
                 </div>
 
-                <!-- LOCK WALLET -->
-                <div class="settings-option" onclick="lockWallet()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                        <div>Lock Wallet</div>
-                    </div>
-                </div>
-
                 <!-- BACK TO DASHBOARD -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
@@ -3378,7 +3368,15 @@ async function initWallet() {
                 walletState.isInitialized = true;
                 console.log('✅ Wallet loaded for user (cleaned):', walletAddress);
 
-                showWalletInterface();
+                // ✅ FIX: If user has valid session, stay in wallet interface (don't redirect to welcome)
+                // Only show welcome screen if wallet interface is not already visible
+                const walletInterface = document.getElementById('walletInterface');
+                const isAlreadyInWallet = walletInterface && !walletInterface.classList.contains('hidden');
+                
+                if (!isAlreadyInWallet) {
+                    showWalletInterface();
+                }
+                
                 await loadWalletData();
                 // ✅ ADDED: Start REAL balance updates
                 startRealBalanceUpdates();
@@ -4077,12 +4075,22 @@ async function loadWalletData() {
         // Get TON price
         const priceResult = await window.walletManager.getPrices();
         if (priceResult.success && priceResult.prices) {
-            SUPPORTED_TOKENS[0].price = priceResult.prices.TON?.price || 0;
-            SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON?.change24h || 0;
-            SUPPORTED_TOKENS[1].price = priceResult.prices.NMX?.price || 0;
-            SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX?.change24h || 0;
+            // ✅ FIX: Only update price if we have valid non-zero data
+            // This prevents resetting existing prices to 0
+            if (priceResult.prices.TON?.price && priceResult.prices.TON.price > 0) {
+                SUPPORTED_TOKENS[0].price = priceResult.prices.TON.price;
+            }
+            if (priceResult.prices.TON?.change24h !== undefined && priceResult.prices.TON.change24h !== null) {
+                SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
+            }
+            if (priceResult.prices.NMX?.price && priceResult.prices.NMX.price > 0) {
+                SUPPORTED_TOKENS[1].price = priceResult.prices.NMX.price;
+            }
+            if (priceResult.prices.NMX?.change24h !== undefined && priceResult.prices.NMX.change24h !== null) {
+                SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX.change24h;
+            }
             
-            // Immediately update display to show percentage changes
+            // Update display only if we updated prices
             updateWalletDisplay();
         }
 
@@ -5498,18 +5506,6 @@ function hideLoading() {
 
     if (loadingOverlay) {
         loadingOverlay.style.display = 'none';
-    }
-}
-
-// Lock wallet function - clears session without logging out of mining account
-function lockWallet() {
-    // Call wallet manager logout
-    if (window.walletManager) {
-        window.walletManager.logout();
-    } else {
-        // Fallback if wallet manager not available
-        localStorage.removeItem('nemex_wallet_session');
-        window.location.reload();
     }
 }
 
