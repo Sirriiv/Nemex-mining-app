@@ -402,7 +402,7 @@
             left: 0;
             right: 0;
             background: var(--card-bg);
-            display: flex;
+            display: none; /* Hidden by default, shown only when wallet interface is visible */
             justify-content: space-around;
             padding: 12px 0;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -459,7 +459,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 40px 20px;
+            padding: 20px;
             text-align: center;
             z-index: 1000;
         }
@@ -2199,7 +2199,6 @@
                 <button class="close-modal" onclick="loginWalletFromButton(this)" id="walletLoginBtn">
     Unlock Wallet
 </button>
-                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
                 
                 <p style="margin-top: 20px; font-size: 0.9em; color: var(--text-muted);">
                     <a href="#" onclick="showRecoveryOptions()" style="color: var(--gold);">Forgot password?</a>
