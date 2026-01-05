@@ -899,13 +899,27 @@ class WalletManager {
         // 5. Trigger wallet loaded event
         this.triggerWalletLoaded();
 
-        // 6. Call initWallet if it exists
-        setTimeout(() => {
-            if (typeof window.initWallet === 'function') {
-                console.log('🔄 Calling initWallet()...');
-                window.initWallet();
-            }
-        }, 1000);
+        // 6. Show wallet interface and load data immediately
+        // Update global walletState
+        if (typeof window.walletState !== 'undefined' && this.currentWallet) {
+            window.walletState.hasWallet = true;
+            window.walletState.wallet = this.currentWallet;
+            window.walletState.address = this.currentWallet.address;
+            window.walletState.isInitialized = true;
+        }
+        
+        if (typeof window.showWalletInterface === 'function') {
+            window.showWalletInterface();
+        }
+        if (typeof window.loadWalletData === 'function') {
+            window.loadWalletData();
+        }
+        if (typeof window.startRealBalanceUpdates === 'function') {
+            window.startRealBalanceUpdates();
+        }
+        if (typeof window.loadTransactionHistory === 'function') {
+            window.loadTransactionHistory();
+        }
     }
 
     // 🎯 HANDLE WALLET LOGIN SUCCESS
@@ -934,29 +948,27 @@ class WalletManager {
         // 5. Trigger wallet loaded event
         this.triggerWalletLoaded();
 
-        // 6. Show wallet interface and load data
-        setTimeout(() => {
-            // Update global walletState
-            if (typeof window.walletState !== 'undefined' && this.currentWallet) {
-                window.walletState.hasWallet = true;
-                window.walletState.wallet = this.currentWallet;
-                window.walletState.address = this.currentWallet.address;
-                window.walletState.isInitialized = true;
-            }
-            
-            if (typeof window.showWalletInterface === 'function') {
-                window.showWalletInterface();
-            }
-            if (typeof window.loadWalletData === 'function') {
-                window.loadWalletData();
-            }
-            if (typeof window.startRealBalanceUpdates === 'function') {
-                window.startRealBalanceUpdates();
-            }
-            if (typeof window.loadTransactionHistory === 'function') {
-                window.loadTransactionHistory();
-            }
-        }, 500);
+        // 6. Show wallet interface and load data immediately
+        // Update global walletState
+        if (typeof window.walletState !== 'undefined' && this.currentWallet) {
+            window.walletState.hasWallet = true;
+            window.walletState.wallet = this.currentWallet;
+            window.walletState.address = this.currentWallet.address;
+            window.walletState.isInitialized = true;
+        }
+        
+        if (typeof window.showWalletInterface === 'function') {
+            window.showWalletInterface();
+        }
+        if (typeof window.loadWalletData === 'function') {
+            window.loadWalletData();
+        }
+        if (typeof window.startRealBalanceUpdates === 'function') {
+            window.startRealBalanceUpdates();
+        }
+        if (typeof window.loadTransactionHistory === 'function') {
+            window.loadTransactionHistory();
+        }
     }
 
     // 🎯 RESET BUTTON STATE

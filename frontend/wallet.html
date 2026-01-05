@@ -3340,8 +3340,27 @@ function showWalletLoginModal() {
 // 🎯 WALLET INITIALIZATION
 // =============================================
 
+let isInitializingWallet = false;
+
 async function initWallet() {
     console.log('🔄 Initializing Nemex Hybrid wallet v11...');
+
+    // Prevent multiple simultaneous initializations
+    if (isInitializingWallet) {
+        console.log('⏳ Already initializing wallet, skipping...');
+        return;
+    }
+
+    // If wallet is already loaded and interface is visible, skip re-initialization
+    if (walletState.isInitialized && walletState.hasWallet) {
+        const walletInterface = document.getElementById('walletInterface');
+        if (walletInterface && !walletInterface.classList.contains('hidden')) {
+            console.log('✅ Wallet already initialized and visible, skipping re-init');
+            return;
+        }
+    }
+
+    isInitializingWallet = true;
 
     try {
         if (!window.walletManager) {
@@ -3409,6 +3428,8 @@ async function initWallet() {
     } catch (error) {
         console.error('❌ Wallet initialization failed:', error);
         showToast('Wallet system error', 'error');
+    } finally {
+        isInitializingWallet = false;
     }
 }
 
