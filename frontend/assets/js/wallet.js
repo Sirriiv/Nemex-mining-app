@@ -376,7 +376,19 @@ class WalletManager {
         console.log('🔄 Initializing wallet system...');
 
         try {
-            // 1. FIRST: Check for valid database session
+            // 0. FIRST: Check if wallet is already loaded in memory (from recent login)
+            if (this.isInitialized && this.currentWallet && this.currentWallet.address) {
+                console.log('✅ Wallet already loaded in memory, skipping re-initialization');
+                return {
+                    success: true,
+                    hasWallet: true,
+                    hasSession: true,
+                    wallet: this.currentWallet,
+                    fromMemory: true
+                };
+            }
+
+            // 1. Check for valid database session
             const session = await this.checkDatabaseSession();
             if (session) {
                 console.log('✅ Wallet loaded from database session');

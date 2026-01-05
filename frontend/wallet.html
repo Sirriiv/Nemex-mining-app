@@ -3353,8 +3353,8 @@ async function initWallet() {
         const result = await window.walletManager.initialize();
 
         if (result.success) {
-            if (result.hasWallet && result.hasSession) {
-                // ✅ Valid session - user is already logged in, show wallet interface
+            if (result.hasWallet && (result.hasSession || result.fromMemory)) {
+                // ✅ Valid session or already in memory - user is logged in, show wallet interface
                 walletState.hasWallet = true;
                 walletState.wallet = result.wallet;
                 
@@ -3373,15 +3373,18 @@ async function initWallet() {
                 walletState.wallet.address = walletAddress; // Update the wallet object too
                 
                 walletState.isInitialized = true;
-                console.log('✅ Wallet loaded with valid session:', walletAddress);
+                console.log('✅ Wallet loaded:', result.fromMemory ? '(from memory)' : '(with session)', walletAddress);
 
-                // Show wallet interface directly (user has valid session)
-                showWalletInterface();
-                await loadWalletData();
-                // ✅ ADDED: Start REAL balance updates
-                startRealBalanceUpdates();
-                // ✅ ADDED: Load transaction history
-                loadTransactionHistory();
+                // Show wallet interface if not already visible
+                const walletInterface = document.getElementById('walletInterface');
+                if (walletInterface && walletInterface.classList.contains('hidden')) {
+                    showWalletInterface();
+                    await loadWalletData();
+                    startRealBalanceUpdates();
+                    loadTransactionHistory();
+                } else {
+                    console.log('ℹ️ Wallet interface already visible, skipping reload');
+                }
             } else if (result.showPasswordPrompt) {
                 // ✅ Wallet exists but no session - show password prompt directly
                 // Don't show welcome screen or wallet interface, go straight to login
