@@ -2067,7 +2067,7 @@
         </header>
 
         <!-- Welcome Screen (shown when no wallet) -->
-        <div id="welcomeScreen" class="welcome-screen">
+        <div id="welcomeScreen" class="welcome-screen hidden">
             <div class="welcome-title">Welcome to Nemex Wallet</div>
             <div class="welcome-subtitle">
                 Secure, non-custodial wallet for TON and NemexCoin. 
@@ -3347,7 +3347,8 @@ async function initWallet() {
         const result = await window.walletManager.initialize();
 
         if (result.success) {
-            if (result.hasWallet) {
+            if (result.hasWallet && result.hasSession) {
+                // ✅ Valid session - user is already logged in, show wallet interface
                 walletState.hasWallet = true;
                 walletState.wallet = result.wallet;
                 
@@ -3366,23 +3367,18 @@ async function initWallet() {
                 walletState.wallet.address = walletAddress; // Update the wallet object too
                 
                 walletState.isInitialized = true;
-                console.log('✅ Wallet loaded for user (cleaned):', walletAddress);
+                console.log('✅ Wallet loaded with valid session:', walletAddress);
 
-                // ✅ FIX: If user has valid session, stay in wallet interface (don't redirect to welcome)
-                // Only show welcome screen if wallet interface is not already visible
-                const walletInterface = document.getElementById('walletInterface');
-                const isAlreadyInWallet = walletInterface && !walletInterface.classList.contains('hidden');
-                
-                if (!isAlreadyInWallet) {
-                    showWalletInterface();
-                }
-                
+                // Show wallet interface directly (user has valid session)
+                showWalletInterface();
                 await loadWalletData();
                 // ✅ ADDED: Start REAL balance updates
                 startRealBalanceUpdates();
                 // ✅ ADDED: Load transaction history
                 loadTransactionHistory();
             } else if (result.showPasswordPrompt) {
+                // ✅ Wallet exists but no session - show password prompt directly
+                // Don't show welcome screen or wallet interface, go straight to login
                 console.log('🔐 Wallet exists, showing password prompt');
                 showWalletLoginModal();
             } else if (result.showCreateForm) {
@@ -3565,8 +3561,11 @@ async function updateRealBalance() {
 }
 
 function showWelcomeScreen() {
-    document.getElementById('welcomeScreen').classList.remove('hidden');
-    document.getElementById('walletInterface').classList.add('hidden');
+    const welcomeScreen = document.getElementById('welcomeScreen');
+    const walletInterface = document.getElementById('walletInterface');
+    
+    if (welcomeScreen) welcomeScreen.classList.remove('hidden');
+    if (walletInterface) walletInterface.classList.add('hidden');
 
     // Hide bottom nav on welcome screen for a clean full-screen experience
     const bottomNav = document.querySelector('.bottom-nav');
@@ -5633,6 +5632,10 @@ async function fetchPricesWithFastestAPI() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Nemex Wallet page loaded - initializing v11...');
 
+    // ✅ Hide loading overlay immediately
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+
     console.log('🔍 Debug - Available user info:', {
         walletManagerUserId: window.walletManager?.userId,
         miningUser: window.miningUser,
@@ -5640,13 +5643,12 @@ document.addEventListener('DOMContentLoaded', function() {
         walletManagerExists: !!window.walletManager
     });
 
-    setTimeout(() => {
-        initWallet();
+    // ✅ Initialize immediately - no delay needed
+    initWallet();
 
-        fetchPricesWithFastestAPI();
-
-        setInterval(fetchPricesWithFastestAPI, 60000);
-    }, 500);
+    // Fetch prices in background
+    fetchPricesWithFastestAPI();
+    setInterval(fetchPricesWithFastestAPI, 60000);
 
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {
