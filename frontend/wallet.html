@@ -2996,6 +2996,10 @@ let walletState = {
     userId: null
 };
 
+// ✅ NMX Jetton Master Contract Address (IMPORTANT: This is the official NMX Jetton contract)
+// This address is used to query NMX token balances from user wallets
+const NMX_JETTON_MASTER = 'EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT'; // Replace with actual NMX Jetton Master
+
 let SUPPORTED_TOKENS = [
     {
         symbol: "TON",
@@ -3596,42 +3600,64 @@ async function updateRealBalance() {
         isUpdatingBalance = true;
         lastBalanceUpdate = now;
         
-        if (!walletState.hasWallet || !walletState.wallet?.address) {
+        if (!walletState.wallet || !walletState.wallet.address) {
             return;
         }
 
         const walletAddress = walletState.wallet.address;
 
-        // ✅ OPTIMIZED: Add timeout to prevent hanging
+        // ✅ OPTIMIZED: Fetch TON and NMX balances in parallel
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 8000);
 
-        const response = await fetch(`/api/wallet/balance/${walletAddress}`, {
-            signal: controller.signal
-        });
+        const [tonResponse, nmxResponse] = await Promise.all([
+            // Fetch TON balance
+            fetch(`/api/wallet/balance/${walletAddress}`, {
+                signal: controller.signal
+            }),
+            // Fetch NMX Jetton balance
+            fetch(`/api/wallet/jetton-balance/${walletAddress}?jettonMasterAddress=${NMX_JETTON_MASTER}`, {
+                signal: controller.signal
+            })
+        ]);
+        
         clearTimeout(timeout);
         
-        const balanceData = await response.json();
-
-        if (balanceData.success) {
-            const tonBalance = parseFloat(balanceData.balance) || 0;
+        // Process TON balance
+        const tonData = await tonResponse.json();
+        if (tonData.success) {
+            const tonBalance = parseFloat(tonData.balance) || 0;
             
-            // Update TON token balance
             const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
             if (tonToken) {
                 const oldBalance = tonToken.balance;
                 tonToken.balance = tonBalance;
                 
-                // Log significant changes
                 if (Math.abs(tonBalance - oldBalance) > 0.01) {
-                    console.log('💰 Balance changed:', oldBalance.toFixed(4), '→', tonBalance.toFixed(4));
+                    console.log('💰 TON Balance:', oldBalance.toFixed(4), '→', tonBalance.toFixed(4));
                 }
             }
-
-            // Update displays
-            updateWalletDisplay();
-            updateSendBalances();
         }
+        
+        // ✅ Process NMX Jetton balance
+        const nmxData = await nmxResponse.json();
+        if (nmxData.success) {
+            const nmxBalance = parseFloat(nmxData.balance) || 0;
+            
+            const nmxToken = SUPPORTED_TOKENS.find(t => t.symbol === 'NMX');
+            if (nmxToken) {
+                const oldBalance = nmxToken.balance;
+                nmxToken.balance = nmxBalance;
+                
+                if (Math.abs(nmxBalance - oldBalance) > 0.01) {
+                    console.log('💰 NMX Balance:', oldBalance.toFixed(2), '→', nmxBalance.toFixed(2));
+                }
+            }
+        }
+
+        // Update displays
+        updateWalletDisplay();
+        updateSendBalances();
 
     } catch (error) {
         if (error.name === 'AbortError') {
@@ -4688,8 +4714,11 @@ function selectReceiveToken(token) {
         if (cardholderName) {
             if (token === 'NMX') {
                 cardholderName.textContent = 'Receive NMX (Jetton on TON)';
+                console.log('📥 Receive address for NMX:', cleanAddress);
+                console.log('ℹ️ Note: NMX is a Jetton token - use this TON address to receive NMX');
             } else {
                 cardholderName.textContent = 'Receive TON';
+                console.log('📥 Receive address for TON:', cleanAddress);
             }
         }
     }

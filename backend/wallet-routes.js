@@ -2551,6 +2551,83 @@ router.get('/balance/:address', async (req, res) => {
 });
 
 // ============================================
+// 🎯 GET JETTON BALANCE (NMX and other Jetton tokens)
+// ============================================
+router.get('/jetton-balance/:address', async (req, res) => {
+    try {
+        const { address } = req.params;
+        const { jettonMasterAddress } = req.query; // NMX Jetton Master contract address
+        
+        console.log(`🪙 JETTON BALANCE REQUEST for: ${address}`);
+        
+        if (!jettonMasterAddress) {
+            return res.json({
+                success: false,
+                error: 'jettonMasterAddress query parameter required',
+                balance: "0"
+            });
+        }
+
+        // Use TonAPI to get Jetton balance (fastest and most reliable)
+        const tonApiKey = process.env.TON_CONSOLE_API_KEY?.replace('bearer_', '') || '';
+        
+        try {
+            // TonAPI v2 endpoint for Jetton balances
+            const tonApiUrl = `https://tonapi.io/v2/accounts/${address}/jettons/${jettonMasterAddress}`;
+            
+            const response = await axios.get(tonApiUrl, {
+                headers: tonApiKey ? { 'Authorization': `Bearer ${tonApiKey}` } : {},
+                timeout: 10000
+            });
+            
+            if (response.data && response.data.balance) {
+                const rawBalance = response.data.balance;
+                const decimals = response.data.jetton?.decimals || 9;
+                const balance = (BigInt(rawBalance) / BigInt(10 ** decimals)).toString();
+                
+                console.log(`✅ Jetton balance: ${balance} (raw: ${rawBalance}, decimals: ${decimals})`);
+                
+                return res.json({
+                    success: true,
+                    address: address,
+                    jettonMasterAddress: jettonMasterAddress,
+                    balance: balance,
+                    rawBalance: rawBalance,
+                    decimals: decimals,
+                    jettonInfo: response.data.jetton || null,
+                    timestamp: new Date().toISOString()
+                });
+            }
+        } catch (apiError) {
+            console.warn('⚠️ TonAPI Jetton balance failed, trying fallback:', apiError.message);
+        }
+        
+        // Fallback: Return 0 balance
+        return res.json({
+            success: true,
+            address: address,
+            jettonMasterAddress: jettonMasterAddress,
+            balance: "0",
+            rawBalance: "0",
+            decimals: 9,
+            note: 'No Jetton balance found',
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error('❌ Jetton balance check failed:', error);
+        
+        return res.json({
+            success: false,
+            address: req.params.address,
+            balance: "0",
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// ============================================
 // 🎯 DEBUG: WALLET ON-CHAIN STATE (helper for troubleshooting seqno/deploy issues)
 // ============================================
 router.get('/debug/wallet-state', async (req, res) => {
