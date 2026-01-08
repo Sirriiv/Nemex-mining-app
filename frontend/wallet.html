@@ -5310,9 +5310,9 @@ function showWalletSetup() {
         return;
     }
 
-    // Pre-fill with current wallet address if connected
-    if (walletState && walletState.hasWallet && walletState.wallet?.address) {
-        input.value = walletState.wallet.address || '';
+    // Pre-fill with SAVED wallet address for NMX receiving (not the Nemex wallet)
+    if (walletState && walletState.walletAddress) {
+        input.value = walletState.walletAddress;
     } else {
         input.value = '';
     }
@@ -5328,6 +5328,12 @@ function showWalletSetup() {
 }
 
 function closeWalletSetup() {
+    // Revert input to saved value (don't keep unsaved changes)
+    const input = document.getElementById('userWalletAddress');
+    if (input) {
+        input.value = walletState.walletAddress || '';
+    }
+    
     const setupModal = document.getElementById('walletSetupModal');
     setupModal.style.display = 'none';
     setupModal.style.zIndex = ''; // Reset z-index
@@ -5385,13 +5391,9 @@ function maskAddress(addr) {
 async function saveWalletAddress() {
     const walletAddress = document.getElementById('userWalletAddress').value.trim();
 
-    if (!walletAddress) {
-        showToast('Please enter a wallet address', 'error');
-        return;
-    }
-
-    if (!walletAddress.startsWith('EQ') && !walletAddress.startsWith('UQ')) {
-        showToast('Please enter a valid TON wallet address', 'error');
+    // Allow empty address (for deletion)
+    if (walletAddress && !walletAddress.startsWith('EQ') && !walletAddress.startsWith('UQ')) {
+        showToast('Please enter a valid TON wallet address (starting with EQ or UQ)', 'error');
         return;
     }
 
@@ -5403,11 +5405,19 @@ async function saveWalletAddress() {
         }
 
         // Update client-side state and UI immediately
-        walletState.walletAddress = walletAddress;
-        walletState.hasWallet = true;
-        updateWalletAddressDisplay(walletAddress);
+        if (walletAddress) {
+            walletState.walletAddress = walletAddress;
+            walletState.hasWallet = true;
+            updateWalletAddressDisplay(walletAddress);
+            showToast('✅ Wallet address saved successfully!', 'success');
+        } else {
+            // Empty address = deletion
+            walletState.walletAddress = null;
+            walletState.hasWallet = false;
+            updateWalletAddressDisplay(null);
+            showToast('✅ Wallet address removed!', 'success');
+        }
 
-        showToast('✅ Wallet address saved successfully!', 'success');
         setTimeout(() => {
             closeWalletSetup();
         }, 1500);
