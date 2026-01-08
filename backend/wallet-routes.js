@@ -1500,12 +1500,16 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         console.log('💰 Checking final balance...');
         const balance = await tonClient.getBalance(walletContract.address);
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
+        
+        // ✅ FIXED: Use realistic gas fee (0.05 TON for safety)
+        const requiredGasFee = 0.05;
+        const totalRequired = parseFloat(amount) + requiredGasFee;
 
-        if (balanceTON < parseFloat(amount) + 0.01) {
-            throw new Error(`Insufficient balance. Need ${amount} TON + ~0.01 TON fee, but only have ${balanceTON.toFixed(4)} TON.`);
+        if (balanceTON < totalRequired) {
+            throw new Error(`Insufficient balance. Need ${amount} TON + ${requiredGasFee} TON fee, but only have ${balanceTON.toFixed(4)} TON.`);
         }
 
-        console.log(`✅ Sufficient balance: ${balanceTON.toFixed(4)} TON`);
+        console.log(`✅ Sufficient balance: ${balanceTON.toFixed(4)} TON (need ${totalRequired.toFixed(4)} TON)`);
 
         const internalMsg = internal({
             to: recipientAddress,

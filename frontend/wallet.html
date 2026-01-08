@@ -3027,7 +3027,19 @@ let SUPPORTED_TOKENS = [
 let currentSendToken = 'TON';
 let currentTokenBalance = 0;
 let currentTokenPrice = 0;
-const TRANSACTION_FEE = 0.001;
+
+// ✅ BLOCKCHAIN-ACCURATE GAS FEES
+// These fees are what the TON blockchain actually requires, not arbitrary values
+const GAS_FEES = {
+    TON: 0.05,      // Native TON transfer: ~0.01-0.05 TON (using 0.05 for safety)
+    JETTON: 0.08    // Jetton (NMX) transfer: ~0.05-0.08 TON (higher because it calls smart contract)
+};
+
+// Helper function to get gas fee for current token
+function getGasFee(tokenSymbol = 'TON') {
+    return tokenSymbol === 'TON' ? GAS_FEES.TON : GAS_FEES.JETTON;
+}
+
 const PRODUCTION_CONFIG = {
     CONVERSION_RATE: 1/30,
     MIN_CONVERSION: 30,
@@ -4140,19 +4152,22 @@ async function confirmSendTransaction() {
     }
 
     if (currentSendToken === 'TON') {
-        const totalCost = amount + TRANSACTION_FEE;
+        const gasFee = getGasFee('TON');
+        const totalCost = amount + gasFee;
         if (totalCost > currentTokenBalance) {
-            showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(4)} TON (including fee)`, 'error', statusElement);
+            showStatusMessage(`Insufficient TON balance. Need ${totalCost.toFixed(4)} TON (including ${gasFee} TON fee)`, 'error', statusElement);
             return;
         }
     } else {
+        // Sending Jetton (NMX) - need TON for gas
+        const gasFee = getGasFee('JETTON');
         const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
         if (amount > currentTokenBalance) {
             showStatusMessage(`Insufficient ${currentSendToken} balance`, 'error', statusElement);
             return;
         }
-        if (!tonToken || tonToken.balance < TRANSACTION_FEE) {
-            showStatusMessage(`Insufficient TON for gas fee (need ${TRANSACTION_FEE} TON)`, 'error', statusElement);
+        if (!tonToken || tonToken.balance < gasFee) {
+            showStatusMessage(`Insufficient TON for gas fee (need ${gasFee} TON for Jetton transfer)`, 'error', statusElement);
             return;
         }
     }
@@ -4559,9 +4574,11 @@ function setMaxAmount() {
     const amountInput = document.getElementById('sendAmount');
 
     if (currentSendToken === 'TON') {
-        const maxAmount = Math.max(0, currentTokenBalance - TRANSACTION_FEE);
+        const gasFee = getGasFee('TON');
+        const maxAmount = Math.max(0, currentTokenBalance - gasFee);
         amountInput.value = maxAmount.toFixed(6);
     } else {
+        // For Jetton tokens, can send full balance (gas is paid separately in TON)
         amountInput.value = currentTokenBalance;
     }
 
@@ -4604,7 +4621,7 @@ function updateSendSummary() {
                 <div style="text-align: right; font-weight: 600;">$${usdValue} USD</div>
 
                 <div style="color: var(--text-muted);">Network Fee:</div>
-                <div style="text-align: right; font-weight: 600;">${TRANSACTION_FEE} TON</div>
+                <div style="text-align: right; font-weight: 600;">${getGasFee(currentSendToken)} TON</div>
             </div>
         `;
 
