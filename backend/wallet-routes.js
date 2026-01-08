@@ -3281,7 +3281,7 @@ router.post('/send-jetton', async (req, res) => {
                 success: false,
                 error: transactionError.message,
                 errorType: 'jetton_transaction_error',
-                fix: 'Make sure you have enough TON for gas fees (0.08 TON)'
+                fix: 'Make sure you have enough TON for gas fees (0.05 TON)'
             });
         }
 
@@ -3385,7 +3385,7 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
         // Check TON balance for gas
         const balance = await tonClient.getBalance(walletContract.address);
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
-        const requiredGas = 0.08; // Jetton transfers need more gas
+        const requiredGas = 0.05; // Jetton transfers (real-world: 0.02-0.05 TON)
 
         if (balanceTON < requiredGas) {
             throw new Error(`Insufficient TON for gas. Need ${requiredGas} TON, have ${balanceTON.toFixed(4)} TON`);
@@ -3440,7 +3440,7 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
         // Create internal message to Jetton wallet
         const internalMsg = internal({
             to: jettonWalletAddress,
-            value: toNano('0.08'), // Gas for Jetton transfer
+            value: toNano('0.05'), // Gas for Jetton transfer (real-world: 0.02-0.05 TON)
             body: transferPayload,
             bounce: true
         });
