@@ -4336,8 +4336,8 @@ function updateWalletDisplay() {
 // =============================================
 
 function showSendModal() {
-    // ✅ FIX: Check if wallet object exists, not just hasWallet flag
-    if (!walletState.wallet || !walletState.wallet.address) {
+    // ✅ FIX: Check if wallet exists (more defensive checking)
+    if (!walletState.hasWallet || !walletState.address) {
         showToast('❌ You need a wallet to send tokens', 'error');
         return;
     }
