@@ -4579,52 +4579,33 @@ function initializeWalletCard() {
 function selectReceiveToken(token) {
     currentReceiveToken = token;
     
-    // Update address based on selected token
+    // Both TON and NMX use the SAME Nemex wallet address (Jettons use the same address as TON)
+    const address = walletState.wallet?.address;
     const addressFull = document.getElementById('addressFull');
     const cardholderName = document.querySelector('.cardholder-name');
     
-    if (token === 'NMX') {
-        // For NMX, use the saved receiving address (walletState.walletAddress)
-        if (walletState.walletAddress) {
-            if (addressFull) {
-                addressFull.textContent = walletState.walletAddress;
-                addressFull.style.color = 'var(--gold)';
-            }
-            if (cardholderName) {
-                cardholderName.textContent = 'NMX Receiving Address';
-            }
-        } else {
-            // No NMX address configured
-            if (addressFull) {
-                addressFull.textContent = 'Not configured - Set up in Convert NMXp';
-                addressFull.style.color = 'var(--error)';
-                addressFull.style.fontSize = '14px';
-            }
-            if (cardholderName) {
-                cardholderName.textContent = 'NMX Receiving Address (Not Set)';
-            }
-            showToast('⚠️ Please configure your NMX receiving address in Convert NMXp section', 'warning');
+    if (address) {
+        let cleanAddress = address;
+        
+        // Clean the address
+        if (cleanAddress.startsWith('UQUQ')) {
+            cleanAddress = 'UQ' + cleanAddress.substring(4);
+        } else if (!cleanAddress.startsWith('UQ') && !cleanAddress.startsWith('EQ')) {
+            cleanAddress = 'UQ' + cleanAddress;
         }
-    } else {
-        // For TON, use the Nemex wallet address
-        const address = walletState.wallet?.address;
-        if (address) {
-            let cleanAddress = address;
-            
-            // Clean the address
-            if (cleanAddress.startsWith('UQUQ')) {
-                cleanAddress = 'UQ' + cleanAddress.substring(4);
-            } else if (!cleanAddress.startsWith('UQ') && !cleanAddress.startsWith('EQ')) {
-                cleanAddress = 'UQ' + cleanAddress;
-            }
-            
-            if (addressFull) {
-                addressFull.textContent = cleanAddress;
-                addressFull.style.color = 'var(--gold)';
-                addressFull.style.fontSize = ''; // Reset font size
-            }
-            if (cardholderName) {
-                cardholderName.textContent = 'Nemex Wallet Address';
+        
+        if (addressFull) {
+            addressFull.textContent = cleanAddress;
+            addressFull.style.color = 'var(--gold)';
+            addressFull.style.fontSize = ''; // Reset font size
+        }
+        
+        // Update card title based on selected token
+        if (cardholderName) {
+            if (token === 'NMX') {
+                cardholderName.textContent = 'Receive NMX (Jetton on TON)';
+            } else {
+                cardholderName.textContent = 'Receive TON';
             }
         }
     }
@@ -4645,21 +4626,12 @@ function selectReceiveToken(token) {
 }
 
 function copyWalletAddress() {
-    let address;
+    // Both TON and NMX use the same address (Jettons use the same TON address)
+    const address = walletState.wallet?.address;
     
-    // Get the correct address based on selected token
-    if (currentReceiveToken === 'NMX') {
-        address = walletState.walletAddress;
-        if (!address) {
-            showToast('⚠️ NMX receiving address not configured', 'error');
-            return;
-        }
-    } else {
-        address = walletState.wallet?.address;
-        if (!address) {
-            showToast('No wallet address available', 'error');
-            return;
-        }
+    if (!address) {
+        showToast('No wallet address available', 'error');
+        return;
     }
 
     navigator.clipboard.writeText(address).then(() => {
