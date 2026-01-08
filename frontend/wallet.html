@@ -3410,9 +3410,18 @@ async function initWallet() {
                 const walletInterface = document.getElementById('walletInterface');
                 if (walletInterface && walletInterface.classList.contains('hidden')) {
                     showWalletInterface();
-                    await loadWalletData();
+                    
+                    // ✅ OPTIMIZED: Parallelize independent operations
+                    Promise.all([
+                        loadWalletData(),
+                        updateRealBalance() // Get balance immediately
+                    ]);
+                    
+                    // Start background updates
                     startRealBalanceUpdates();
-                    loadTransactionHistory();
+                    
+                    // ✅ OPTIMIZED: Defer transaction history (not critical for initial view)
+                    setTimeout(() => loadTransactionHistory(), 2000);
                 } else {
                     console.log('ℹ️ Wallet interface already visible, skipping reload');
                 }
@@ -3477,6 +3486,7 @@ function stopRealBalanceUpdates() {
 // ===== Auto-Sync (poll for new transactions) =====
 let autoSyncInterval = null;
 let _debounceTimer = null;
+let isTabActive = !document.hidden; // Track tab visibility
 
 function debounce(fn, wait = 250) {
     return function(...args) {
@@ -3498,10 +3508,23 @@ function startAutoSync() {
     console.log('🔁 Starting auto-sync of transactions...');
     // Clear existing
     if (autoSyncInterval) clearInterval(autoSyncInterval);
+    
+    // ✅ OPTIMIZED: Adaptive polling based on tab visibility
+    const updateInterval = () => {
+        // 30s if tab active, 120s if inactive
+        const interval = isTabActive ? 30000 : 120000;
+        
+        if (autoSyncInterval) clearInterval(autoSyncInterval);
+        autoSyncInterval = setInterval(() => {
+            if (isTabActive) {
+                syncTransactionHistory().catch(() => {});
+            }
+        }, interval);
+    };
+    
     // Run immediately
     syncTransactionHistory().catch(() => {});
-    // Poll every 30s
-    autoSyncInterval = setInterval(() => syncTransactionHistory().catch(() => {}), 60000); // Every 60 seconds
+    updateInterval();
 }
 
 function stopAutoSync() {
@@ -3534,9 +3557,17 @@ function setupAutoSyncListeners() {
 
     // When user returns to the tab, refresh immediately
     document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            console.log('🔄 Visibility change: tab active - refreshing wallet data');
+        isTabActive = !document.hidden;
+        
+        if (isTabActive) {
+            console.log('🔄 Tab active - refreshing wallet data');
             scheduleImmediateUpdate();
+            // Restart with active interval
+            if (autoSyncInterval) startAutoSync();
+        } else {
+            console.log('💤 Tab inactive - reducing update frequency');
+            // Switch to slower interval
+            if (autoSyncInterval) startAutoSync();
         }
     });
 
@@ -3549,18 +3580,21 @@ function setupAutoSyncListeners() {
     autoSyncListenersInstalled = true;
 }
 
-let isUpdatingBalance = false; // Debounce flag for heavy load optimization
+let isUpdatingBalance = false; // Debounce flag
+let lastBalanceUpdate = 0; // Timestamp of last update
+const BALANCE_UPDATE_COOLDOWN = 5000; // 5 seconds minimum between updates
 
 async function updateRealBalance() {
-    // Debounce: prevent concurrent balance updates
-    if (isUpdatingBalance) {
+    // ✅ OPTIMIZED: Prevent excessive updates with cooldown
+    const now = Date.now();
+    if (isUpdatingBalance || (now - lastBalanceUpdate < BALANCE_UPDATE_COOLDOWN)) {
+        console.log('⏳ Balance update skipped (cooldown active)');
         return;
     }
     
     try {
         isUpdatingBalance = true;
-        
-        // Silent background update - no loading indicators
+        lastBalanceUpdate = now;
         
         if (!walletState.hasWallet || !walletState.wallet?.address) {
             return;
@@ -3568,8 +3602,15 @@ async function updateRealBalance() {
 
         const walletAddress = walletState.wallet.address;
 
-        // Call your backend API directly
-        const response = await fetch(`/api/wallet/balance/${walletAddress}`);
+        // ✅ OPTIMIZED: Add timeout to prevent hanging
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch(`/api/wallet/balance/${walletAddress}`, {
+            signal: controller.signal
+        });
+        clearTimeout(timeout);
+        
         const balanceData = await response.json();
 
         if (balanceData.success) {
@@ -3581,22 +3622,23 @@ async function updateRealBalance() {
                 const oldBalance = tonToken.balance;
                 tonToken.balance = tonBalance;
                 
-                // Silent update - log only significant changes
-                if (tonBalance > oldBalance && tonBalance > 0) {
-                    console.log('Balance updated:', oldBalance, '->', tonBalance);
+                // Log significant changes
+                if (Math.abs(tonBalance - oldBalance) > 0.01) {
+                    console.log('💰 Balance changed:', oldBalance.toFixed(4), '→', tonBalance.toFixed(4));
                 }
             }
 
-            // Update total balance display
+            // Update displays
             updateWalletDisplay();
-
-            // Update send modal balances if it's open
             updateSendBalances();
         }
 
     } catch (error) {
-        console.error('❌ Error updating real balance:', error);
-        // Don't stop updates on error
+        if (error.name === 'AbortError') {
+            console.warn('⏱️ Balance update timeout');
+        } else {
+            console.error('❌ Error updating balance:', error);
+        }
     } finally {
         isUpdatingBalance = false;
     }
@@ -3693,10 +3735,22 @@ function updateNavItems() {
 let loadHistoryTimeout = null;
 let isLoadingHistory = false;
 
+let historyCache = null;
+let historyCacheTime = 0;
+const HISTORY_CACHE_DURATION = 30000; // Cache for 30 seconds
+
 async function loadTransactionHistory() {
     // Debounce: prevent multiple simultaneous calls
     if (isLoadingHistory) {
         console.log('⏳ Already loading history, skipping...');
+        return;
+    }
+    
+    // ✅ OPTIMIZED: Use cached history if recent
+    const now = Date.now();
+    if (historyCache && (now - historyCacheTime < HISTORY_CACHE_DURATION)) {
+        console.log('⚡ Using cached transaction history');
+        renderTransactionHistory(historyCache);
         return;
     }
     
@@ -3712,50 +3766,68 @@ async function loadTransactionHistory() {
             return;
         }
 
-        // Load both TON transactions and NMX conversions
+        // ✅ OPTIMIZED: Load TON and NMX transactions in parallel
         let allTransactions = [];
         
-        // Get TON transactions if wallet exists
-        if (window.walletManager && walletState.hasWallet) {
-            const result = await window.getTransactionHistory(50);
-            if (result.success && result.transactions && result.transactions.length > 0) {
-                allTransactions = result.transactions;
-            }
-        }
-
-        // Get NMX conversions from Supabase
-        try {
-            const userSession = await checkAuth();
-            if (userSession) {
-                const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-                const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-                const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-                const { data: conversions, error } = await supabaseClient
-                    .from('conversions')
-                    .select('*')
-                    .eq('user_id', userSession.id)
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-
-                if (!error && conversions && conversions.length > 0) {
-                    // Convert conversions to transaction format
-                    const conversionTxs = conversions.map(conv => ({
-                        type: 'conversion',
-                        token: 'NMX',
-                        nmxp_amount: conv.nmxp_amount,
-                        nmx_amount: conv.nmx_amount,
-                        status: conv.status,
-                        gas_fee: conv.gas_fee_paid || 0.1,
-                        created_at: conv.created_at,
-                        conversion_id: conv.id
-                    }));
-                    allTransactions = [...allTransactions, ...conversionTxs];
+        // Load TON and conversion transactions in parallel
+        const [tonTxs, conversionTxs] = await Promise.all([
+            // Get TON transactions if wallet exists
+            (async () => {
+                // ✅ FIX: Check if wallet object exists with address
+                if (window.walletManager && walletState.wallet && walletState.wallet.address) {
+                    console.log('📥 Loading TON transactions for:', walletState.wallet.address);
+                    const result = await window.getTransactionHistory(50);
+                    if (result.success && result.transactions && result.transactions.length > 0) {
+                        console.log('✅ Loaded', result.transactions.length, 'TON transactions');
+                        return result.transactions;
+                    }
                 }
-            }
-        } catch (convError) {
-            console.warn('⚠️ Could not load conversions:', convError);
-        }
+                console.log('ℹ️ No TON transactions to load (no wallet)');
+                return [];
+            })(),
+            // Get NMX conversions from Supabase
+            (async () => {
+                try {
+                    const userSession = await checkAuth();
+                    if (userSession) {
+                        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+                        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+                        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+                        const { data: conversions, error } = await supabaseClient
+                            .from('conversions')
+                            .select('*')
+                            .eq('user_id', userSession.id)
+                            .order('created_at', { ascending: false })
+                            .limit(50);
+
+                        if (!error && conversions && conversions.length > 0) {
+                            // Convert conversions to transaction format
+                            return conversions.map(conv => ({
+                                type: 'conversion',
+                                token: 'NMX',
+                                nmxp_amount: conv.nmxp_amount,
+                                nmx_amount: conv.nmx_amount,
+                                status: conv.status,
+                                gas_fee: conv.gas_fee_paid || 0.1,
+                                created_at: conv.created_at,
+                                conversion_id: conv.id
+                            }));
+                        }
+                    }
+                } catch (convError) {
+                    console.warn('⚠️ Could not load conversions:', convError);
+                }
+                return [];
+            })()
+        ]);
+        
+        // Combine all transactions
+        allTransactions = [...tonTxs, ...conversionTxs];
+        
+        // ✅ Cache the results
+        historyCache = allTransactions;
+        historyCacheTime = now;
         
         if (allTransactions.length > 0) {
             // Hide empty state
@@ -4113,31 +4185,41 @@ async function loadWalletData() {
     if (!walletState.hasWallet || !walletState.wallet) return;
 
     try {
-        // Get TON price
-        const priceResult = await window.walletManager.getPrices();
-        if (priceResult.success && priceResult.prices) {
-            // ✅ FIX: Only update price if we have valid non-zero data
-            // This prevents resetting existing prices to 0
-            if (priceResult.prices.TON?.price && priceResult.prices.TON.price > 0) {
-                SUPPORTED_TOKENS[0].price = priceResult.prices.TON.price;
-            }
-            if (priceResult.prices.TON?.change24h !== undefined && priceResult.prices.TON.change24h !== null) {
-                SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
-            }
-            if (priceResult.prices.NMX?.price && priceResult.prices.NMX.price > 0) {
-                SUPPORTED_TOKENS[1].price = priceResult.prices.NMX.price;
-            }
-            if (priceResult.prices.NMX?.change24h !== undefined && priceResult.prices.NMX.change24h !== null) {
-                SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX.change24h;
-            }
-            
-            // Update display only if we updated prices
+        // ✅ OPTIMIZED: Use cached prices if available and recent
+        const hasCachedPrices = SUPPORTED_TOKENS[0].price > 0 || SUPPORTED_TOKENS[1].price > 0;
+        
+        if (hasCachedPrices) {
+            // Display with cached prices immediately
             updateWalletDisplay();
+            console.log('⚡ Using cached prices for instant display');
         }
+        
+        // ✅ OPTIMIZED: Fetch fresh prices in background (non-blocking)
+        window.walletManager.getPrices().then(priceResult => {
+            if (priceResult.success && priceResult.prices) {
+                // Only update price if we have valid non-zero data
+                if (priceResult.prices.TON?.price && priceResult.prices.TON.price > 0) {
+                    SUPPORTED_TOKENS[0].price = priceResult.prices.TON.price;
+                }
+                if (priceResult.prices.TON?.change24h !== undefined && priceResult.prices.TON.change24h !== null) {
+                    SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
+                }
+                if (priceResult.prices.NMX?.price && priceResult.prices.NMX.price > 0) {
+                    SUPPORTED_TOKENS[1].price = priceResult.prices.NMX.price;
+                }
+                if (priceResult.prices.NMX?.change24h !== undefined && priceResult.prices.NMX.change24h !== null) {
+                    SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX.change24h;
+                }
+                
+                // Update display with fresh prices
+                updateWalletDisplay();
+            }
+        }).catch(error => {
+            console.error('❌ Price fetch failed:', error);
+        });
 
-        // ✅ FIXED: Don't update balance here - let the updateRealBalance function handle it
-        // This prevents overwriting the real balance with 0
-        console.log('ℹ️ Skipping manual balance fetch - using real updates');
+        // ✅ Balance updates handled by updateRealBalance()
+        console.log('ℹ️ Using real balance updates');
     } catch (error) {
         console.error('❌ Load wallet data failed:', error);
     }
@@ -4200,7 +4282,8 @@ function updateWalletDisplay() {
 // =============================================
 
 function showSendModal() {
-    if (!walletState.hasWallet) {
+    // ✅ FIX: Check if wallet object exists, not just hasWallet flag
+    if (!walletState.wallet || !walletState.wallet.address) {
         showToast('❌ You need a wallet to send tokens', 'error');
         return;
     }
@@ -4520,12 +4603,13 @@ function updateSendSummary() {
 }
 
 function showReceiveModal() {
-    if (!walletState.hasWallet) {
+    // ✅ FIX: Check if wallet object exists, not just hasWallet flag
+    if (!walletState.wallet || !walletState.wallet.address) {
         showToast('❌ You need a wallet to receive tokens', 'error');
         return;
     }
 
-    console.log('🔄 Opening receive modal for address:', walletState.address);
+    console.log('🔄 Opening receive modal for address:', walletState.wallet.address);
 
     closeModal();
 
@@ -5462,14 +5546,13 @@ async function saveWalletAddress() {
         // Update client-side state and UI immediately
         if (walletAddress) {
             walletState.walletAddress = walletAddress;
-            walletState.hasWallet = true;
             updateWalletAddressDisplay(walletAddress);
             showToast('✅ Wallet address saved successfully!', 'success');
         } else {
-            // Empty address = deletion
+            // ✅ FIX: Empty address = deletion - pass empty string to force display update
             walletState.walletAddress = null;
-            walletState.hasWallet = false;
-            updateWalletAddressDisplay(null);
+            document.getElementById('userWalletAddress').value = ''; // Clear input
+            updateWalletAddressDisplay(''); // Force update with empty string
             showToast('✅ Wallet address removed!', 'success');
         }
 
@@ -5485,13 +5568,20 @@ async function saveWalletAddress() {
 
 function updateWalletAddressDisplay(walletAddress) {
     const walletBtn = document.querySelector('.wallet-settings-btn');
+    
+    if (!walletBtn) {
+        console.warn('⚠️ Wallet settings button not found');
+        return;
+    }
 
-    if (walletAddress) {
+    // ✅ FIX: Properly check if address exists and is valid
+    if (walletAddress && walletAddress.trim().length > 0) {
         const shortAddress = walletAddress.substring(0, 6) + '...' + walletAddress.substring(walletAddress.length - 4);
         walletBtn.innerHTML = `<i class="fas fa-wallet"></i> <span class="wallet-address">${shortAddress}</span>`;
         walletBtn.title = `Wallet: ${walletAddress}`;
         walletBtn.classList.add('connected');
     } else {
+        // ✅ FIX: Reset to default state when no address
         walletBtn.innerHTML = '<i class="fas fa-cog"></i> Wallet';
         walletBtn.title = 'Setup wallet address';
         walletBtn.classList.remove('connected');
@@ -5624,6 +5714,7 @@ function goToMiningDashboard() {
 // 🎯 PRICE API INTEGRATION
 // =============================================
 
+// ✅ OPTIMIZED: Only fastest and most reliable APIs
 const PRICE_APIS = [
     {
         name: "CoinGecko",
@@ -5634,23 +5725,44 @@ const PRICE_APIS = [
         })
     },
     {
-        name: "CoinMarketCap",
-        url: "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=TON,NMX&convert=USD",
-        headers: { "X-CMC_PRO_API_KEY": "your-api-key-here" },
-        parser: (data) => ({
-            TON: { price: data.data?.TON?.quote?.USD?.price || 0, change24h: data.data?.TON?.quote?.USD?.percent_change_24h || 0 },
-            NMX: { price: data.data?.NMX?.quote?.USD?.price || 0, change24h: data.data?.NMX?.quote?.USD?.percent_change_24h || 0 }
-        })
+        name: "MEXC",
+        url: "https://api.mexc.com/api/v3/ticker/24hr?symbols=[\"TONUSDT\",\"NMXUSDT\"]",
+        parser: (data) => {
+            const tonData = Array.isArray(data) ? data.find(t => t.symbol === 'TONUSDT') : null;
+            const nmxData = Array.isArray(data) ? data.find(t => t.symbol === 'NMXUSDT') : null;
+            return {
+                TON: { 
+                    price: tonData ? parseFloat(tonData.lastPrice) : 0, 
+                    change24h: tonData ? parseFloat(tonData.priceChangePercent) : 0 
+                },
+                NMX: { 
+                    price: nmxData ? parseFloat(nmxData.lastPrice) : 0, 
+                    change24h: nmxData ? parseFloat(nmxData.priceChangePercent) : 0 
+                }
+            };
+        }
     }
 ];
 
+// ✅ Price cache to prevent unnecessary API calls
+let priceCache = null;
+let priceCacheTime = 0;
+const PRICE_CACHE_DURATION = 60000; // Cache prices for 60 seconds
+
 async function fetchPricesWithFastestAPI() {
-    console.log('🔄 Fetching prices from multiple exchanges...');
+    // ✅ OPTIMIZED: Return cached prices if recent
+    const now = Date.now();
+    if (priceCache && (now - priceCacheTime < PRICE_CACHE_DURATION)) {
+        console.log('⚡ Using cached prices (age: ' + Math.round((now - priceCacheTime) / 1000) + 's)');
+        return priceCache;
+    }
+    
+    console.log('🔄 Fetching fresh prices from multiple exchanges...');
 
     const promises = PRICE_APIS.map(async (api) => {
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 5000);
+            const timeout = setTimeout(() => controller.abort(), 3000); // ✅ Faster timeout
 
             const options = {
                 method: 'GET',
@@ -5701,6 +5813,10 @@ async function fetchPricesWithFastestAPI() {
                 SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h;
             }
 
+            // ✅ Cache the successful result
+            priceCache = fastest.prices;
+            priceCacheTime = now;
+
             // Immediately update display to show prices and percentages
             updateWalletDisplay();
             return fastest.prices;
@@ -5738,12 +5854,15 @@ document.addEventListener('DOMContentLoaded', function() {
         walletManagerExists: !!window.walletManager
     });
 
-    // ✅ Initialize immediately - no delay needed
+    // ✅ OPTIMIZED: Initialize wallet immediately (critical path)
     initWallet();
 
-    // Fetch prices in background
-    fetchPricesWithFastestAPI();
-    setInterval(fetchPricesWithFastestAPI, 60000);
+    // ✅ OPTIMIZED: Defer price fetching to not block initialization
+    setTimeout(() => {
+        fetchPricesWithFastestAPI();
+        // Update prices every 60 seconds
+        setInterval(fetchPricesWithFastestAPI, 60000);
+    }, 1000); // Fetch after wallet loads
 
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {
