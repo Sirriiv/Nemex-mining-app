@@ -1217,6 +1217,18 @@
             transform: translateY(-1px);
         }
 
+        .circular-btn.active .circular-icon {
+            background: rgba(212, 175, 55, 0.3);
+            border-color: var(--gold);
+            border-width: 3px;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .circular-btn.active .circular-label {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
         .circular-icon {
             width: 55px;
             height: 55px;
@@ -2665,7 +2677,7 @@
                     <div class="circular-actions-section">
                         <div class="circular-actions">
                             <!-- TON Icon -->
-                            <button class="circular-btn" onclick="selectReceiveToken('TON')" title="Receive TON">
+                            <button class="circular-btn active" id="tonReceiveBtn" onclick="selectReceiveToken('TON')" title="Receive TON">
                                 <div class="circular-icon ton-icon">
                                     <img src="https://assets.coingecko.com/coins/images/17980/small/ton_symbol.png" 
                                          alt="TON" onerror="handleTokenLogoError(this, 'TON')">
@@ -2674,7 +2686,7 @@
                             </button>
 
                             <!-- NMX Icon -->
-                            <button class="circular-btn" onclick="selectReceiveToken('NMX')" title="Receive NMX">
+                            <button class="circular-btn" id="nmxReceiveBtn" onclick="selectReceiveToken('NMX')" title="Receive NMX">
                                 <div class="circular-icon nmx-icon">
                                     <img src="https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1" 
                                          alt="NMX" onerror="handleTokenLogoError(this, 'NMX')">
@@ -4566,17 +4578,88 @@ function initializeWalletCard() {
 
 function selectReceiveToken(token) {
     currentReceiveToken = token;
-    const tokenIndicator = document.getElementById('activeTokenIndicator');
-    if (tokenIndicator) {
-        tokenIndicator.textContent = token;
+    
+    // Update address based on selected token
+    const addressFull = document.getElementById('addressFull');
+    const cardholderName = document.querySelector('.cardholder-name');
+    
+    if (token === 'NMX') {
+        // For NMX, use the saved receiving address (walletState.walletAddress)
+        if (walletState.walletAddress) {
+            if (addressFull) {
+                addressFull.textContent = walletState.walletAddress;
+                addressFull.style.color = 'var(--gold)';
+            }
+            if (cardholderName) {
+                cardholderName.textContent = 'NMX Receiving Address';
+            }
+        } else {
+            // No NMX address configured
+            if (addressFull) {
+                addressFull.textContent = 'Not configured - Set up in Convert NMXp';
+                addressFull.style.color = 'var(--error)';
+                addressFull.style.fontSize = '14px';
+            }
+            if (cardholderName) {
+                cardholderName.textContent = 'NMX Receiving Address (Not Set)';
+            }
+            showToast('⚠️ Please configure your NMX receiving address in Convert NMXp section', 'warning');
+        }
+    } else {
+        // For TON, use the Nemex wallet address
+        const address = walletState.wallet?.address;
+        if (address) {
+            let cleanAddress = address;
+            
+            // Clean the address
+            if (cleanAddress.startsWith('UQUQ')) {
+                cleanAddress = 'UQ' + cleanAddress.substring(4);
+            } else if (!cleanAddress.startsWith('UQ') && !cleanAddress.startsWith('EQ')) {
+                cleanAddress = 'UQ' + cleanAddress;
+            }
+            
+            if (addressFull) {
+                addressFull.textContent = cleanAddress;
+                addressFull.style.color = 'var(--gold)';
+                addressFull.style.fontSize = ''; // Reset font size
+            }
+            if (cardholderName) {
+                cardholderName.textContent = 'Nemex Wallet Address';
+            }
+        }
+    }
+    
+    // Highlight selected token button
+    const tonBtn = document.getElementById('tonReceiveBtn');
+    const nmxBtn = document.getElementById('nmxReceiveBtn');
+    
+    if (tonBtn && nmxBtn) {
+        if (token === 'TON') {
+            tonBtn.classList.add('active');
+            nmxBtn.classList.remove('active');
+        } else {
+            tonBtn.classList.remove('active');
+            nmxBtn.classList.add('active');
+        }
     }
 }
 
 function copyWalletAddress() {
-    const address = walletState.wallet?.address;
-    if (!address) {
-        showToast('No wallet address available', 'error');
-        return;
+    let address;
+    
+    // Get the correct address based on selected token
+    if (currentReceiveToken === 'NMX') {
+        address = walletState.walletAddress;
+        if (!address) {
+            showToast('⚠️ NMX receiving address not configured', 'error');
+            return;
+        }
+    } else {
+        address = walletState.wallet?.address;
+        if (!address) {
+            showToast('No wallet address available', 'error');
+            return;
+        }
     }
 
     navigator.clipboard.writeText(address).then(() => {
