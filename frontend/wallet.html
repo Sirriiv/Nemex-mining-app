@@ -4475,7 +4475,8 @@ function updateUsdConversion() {
     if (feeUsdElement) {
         const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
         const tonPrice = tonToken ? tonToken.price : 0;
-        const feeUsd = TRANSACTION_FEE * tonPrice;
+        const gasFee = getGasFee(currentSendToken);
+        const feeUsd = gasFee * tonPrice;
         // ✅ FIXED: Fee USD value shows 4 decimal places
         feeUsdElement.textContent = feeUsd.toFixed(4);
     }
@@ -4484,10 +4485,11 @@ function updateUsdConversion() {
 function updateFeeDisplay() {
     const feeElement = document.getElementById('transactionFee');
     if (feeElement) {
+        const gasFee = getGasFee(currentSendToken);
         if (currentSendToken === 'TON') {
-            feeElement.textContent = `${TRANSACTION_FEE} TON`;
+            feeElement.textContent = `${gasFee} TON`;
         } else {
-            feeElement.textContent = `${TRANSACTION_FEE} TON (gas fee)`;
+            feeElement.textContent = `${gasFee} TON (gas fee)`;
         }
     }
     updateUsdConversion();
