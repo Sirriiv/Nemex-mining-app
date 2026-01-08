@@ -3424,15 +3424,16 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
             console.log('   Jetton master (raw):', jettonMasterRaw);
             
             const tonApiUrl = `https://tonapi.io/v2/accounts/${userAddressStr}/jettons/${jettonMasterRaw}`;
-            const tonApiResponse = await fetch(tonApiUrl, {
+            const tonApiResponse = await axios.get(tonApiUrl, {
                 headers: TON_CONSOLE_API_KEY ? { 'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}` } : {},
-                timeout: 10000
+                timeout: 10000,
+                validateStatus: () => true // Don't throw on non-2xx status
             });
             
             console.log('   TonAPI response status:', tonApiResponse.status);
             
-            if (tonApiResponse.ok) {
-                const jettonData = await tonApiResponse.json();
+            if (tonApiResponse.status === 200 && tonApiResponse.data) {
+                const jettonData = tonApiResponse.data;
                 console.log('   TonAPI data:', JSON.stringify(jettonData, null, 2));
                 
                 if (jettonData.wallet_address && jettonData.wallet_address.address) {
@@ -3442,12 +3443,11 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
                     throw new Error('You have 0 NMX tokens. Please receive some NMX first before sending.');
                 }
             } else {
-                const errorText = await tonApiResponse.text();
-                console.warn('⚠️ TonAPI returned error:', tonApiResponse.status, errorText);
+                console.warn('⚠️ TonAPI returned error:', tonApiResponse.status, tonApiResponse.data);
             }
         } catch (apiError) {
             console.warn('⚠️ TonAPI method failed, trying direct contract call:', apiError.message);
-            if (apiError.message.includes('0 NMX')) {
+            if (apiError.message && apiError.message.includes('0 NMX')) {
                 throw apiError; // Re-throw if it's a balance error
             }
         }
