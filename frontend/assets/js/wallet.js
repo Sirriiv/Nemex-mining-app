@@ -509,6 +509,19 @@ class WalletManager {
                 })
             });
 
+            // Check if response is ok before parsing JSON
+            if (!response.ok) {
+                let errorMessage = `Request failed with status code ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorData.message || errorMessage;
+                } catch (e) {
+                    // If parsing fails, use the status text
+                    errorMessage = response.statusText || errorMessage;
+                }
+                throw new Error(errorMessage);
+            }
+
             const result = await response.json();
             console.log('📦 Send transaction result:', result);
 
@@ -1276,6 +1289,19 @@ window.sendJettonTransaction = async function(toAddress, amount, memo = '', jett
                 memo: memo || ''
             })
         });
+
+        // Check if response is ok before parsing JSON
+        if (!response.ok) {
+            let errorMessage = `Request failed with status code ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (e) {
+                // If parsing fails, use the status text
+                errorMessage = response.statusText || errorMessage;
+            }
+            throw new Error(errorMessage);
+        }
 
         const result = await response.json();
         console.log('📦 Jetton send result:', result);

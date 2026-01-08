@@ -53,7 +53,7 @@ console.log('🚀 WALLET ROUTES v32.0 - DUAL API FIXED VERSION');
 // ============================================
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
 // FIX: Handle multiple possible environment variable names
-const TON_CONSOLE_API_KEY = process.env.TON_CONSOLE_API_KEY || process.env.TON_API_TOKEN || process.env.TONAPI_KEY || '';
+const TON_CONSOLE_API_KEY = process.env.TON_CONSOLE_API_KEY || process.env.TONCONSOLE_API_KEY || process.env.TON_API_TOKEN || process.env.TONAPI_KEY || '';
 const TON_API_URL = process.env.TON_API_URL || 'https://tonapi.io/v2';
 
 console.log('🔑 API Keys Status:');
