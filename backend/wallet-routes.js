@@ -3409,14 +3409,42 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
 
         // Get user's Jetton wallet address
         console.log('🔍 Getting Jetton wallet address...');
-        const jettonWalletAddress = await getJettonWalletAddress(
-            tonClient,
-            jettonMasterAddr,
-            walletContract.address
-        );
+        
+        // Try TonAPI first (more reliable)
+        let jettonWalletAddress = null;
+        try {
+            const userAddressStr = walletContract.address.toString();
+            const jettonMasterStr = jettonMasterAddress.replace('EQ', '0:').replace('UQ', '0:');
+            
+            console.log('🌐 Trying TonAPI method...');
+            const tonApiUrl = `https://tonapi.io/v2/accounts/${userAddressStr}/jettons/${jettonMasterStr}`;
+            const tonApiResponse = await fetch(tonApiUrl, {
+                headers: TON_CONSOLE_API_KEY ? { 'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}` } : {}
+            });
+            
+            if (tonApiResponse.ok) {
+                const jettonData = await tonApiResponse.json();
+                if (jettonData.wallet_address && jettonData.wallet_address.address) {
+                    jettonWalletAddress = Address.parse(jettonData.wallet_address.address);
+                    console.log('✅ Got Jetton wallet from TonAPI:', jettonWalletAddress.toString());
+                }
+            }
+        } catch (apiError) {
+            console.warn('⚠️ TonAPI method failed, trying direct contract call:', apiError.message);
+        }
+        
+        // Fallback to direct contract call
+        if (!jettonWalletAddress) {
+            console.log('🔍 Trying direct contract method...');
+            jettonWalletAddress = await getJettonWalletAddress(
+                tonClient,
+                Address.parse(jettonMasterAddress),
+                walletContract.address
+            );
+        }
 
         if (!jettonWalletAddress) {
-            throw new Error('Could not get Jetton wallet address. You may not have any of this token.');
+            throw new Error('Could not get Jetton wallet address. You may not have any of this token, or the Jetton master address is incorrect.');
         }
 
         console.log('✅ Jetton wallet:', jettonWalletAddress.toString());
@@ -3478,22 +3506,44 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
 // Helper function to get Jetton wallet address
 async function getJettonWalletAddress(tonClient, jettonMasterAddress, ownerAddress) {
     try {
-        const cell = tonSDK.beginCell()
+        console.log('🔍 Getting Jetton wallet for owner:', ownerAddress.toString());
+        console.log('🔍 From Jetton master:', jettonMasterAddress.toString());
+        
+        // Build the parameter cell with owner address
+        const ownerAddressCell = tonSDK.beginCell()
             .storeAddress(ownerAddress)
             .endCell();
 
+        // Call get_wallet_address method on Jetton master
         const response = await tonClient.runMethod(jettonMasterAddress, 'get_wallet_address', [
-            { type: 'slice', cell: cell }
+            { type: 'slice', cell: ownerAddressCell }
         ]);
 
-        if (response.stack.length > 0) {
-            const jettonWalletAddress = response.stack[0];
-            return jettonWalletAddress.type === 'slice' ? jettonWalletAddress.cell.beginParse().loadAddress() : null;
+        console.log('📦 Jetton wallet response:', response);
+
+        // Parse the result - it should be an address
+        if (response.stack && response.stack.length > 0) {
+            const resultItem = response.stack[0];
+            
+            // The result is usually a slice containing the address
+            if (resultItem.type === 'slice') {
+                const slice = resultItem.cell.beginParse();
+                const jettonWalletAddr = slice.loadAddress();
+                console.log('✅ Jetton wallet address:', jettonWalletAddr.toString());
+                return jettonWalletAddr;
+            } else if (resultItem.type === 'cell') {
+                const slice = resultItem.cell.beginParse();
+                const jettonWalletAddr = slice.loadAddress();
+                console.log('✅ Jetton wallet address (from cell):', jettonWalletAddr.toString());
+                return jettonWalletAddr;
+            }
         }
 
+        console.error('❌ Invalid response format from get_wallet_address');
         return null;
     } catch (error) {
         console.error('❌ Get Jetton wallet address failed:', error);
+        console.error('Error details:', error.message);
         return null;
     }
 }
