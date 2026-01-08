@@ -3209,6 +3209,296 @@ router.post('/send', async (req, res) => {
 });
 
 // ============================================
+// 🎯 SEND JETTON (NMX) TRANSACTION
+// ============================================
+router.post('/send-jetton', async (req, res) => {
+    console.log('🪙 SEND JETTON REQUEST RECEIVED');
+
+    try {
+        const { userId, walletPassword, toAddress, amount, jettonMasterAddress, memo = '' } = req.body;
+
+        console.log('📋 Jetton send request:', { 
+            userId: userId ? `${userId.substring(0, 8)}...` : 'MISSING',
+            toAddress: toAddress ? `${toAddress.substring(0, 10)}...` : 'MISSING',
+            amount: amount || 'MISSING',
+            jettonMaster: jettonMasterAddress ? `${jettonMasterAddress.substring(0, 10)}...` : 'MISSING'
+        });
+
+        // Validation
+        if (!userId || !walletPassword || !toAddress || !amount || !jettonMasterAddress) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, walletPassword, toAddress, amount, jettonMasterAddress'
+            });
+        }
+
+        const amountNum = parseFloat(amount);
+        if (isNaN(amountNum) || amountNum <= 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid amount. Must be a positive number'
+            });
+        }
+
+        if (!toAddress.startsWith('EQ') && !toAddress.startsWith('UQ')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid TON address format. Must start with EQ or UQ'
+            });
+        }
+
+        if (dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
+
+        console.log('✅ All validations passed');
+
+        try {
+            const result = await sendJettonTransaction(
+                userId, 
+                walletPassword, 
+                toAddress, 
+                amountNum, 
+                jettonMasterAddress,
+                memo
+            );
+
+            console.log('✅✅✅ Jetton Transaction SUCCESS!');
+
+            return res.json({
+                success: true,
+                message: result.message || 'Jetton transaction sent successfully',
+                data: result
+            });
+
+        } catch (transactionError) {
+            console.error('❌❌❌ Jetton Transaction failed:', transactionError.message);
+
+            return res.status(400).json({
+                success: false,
+                error: transactionError.message,
+                errorType: 'jetton_transaction_error',
+                fix: 'Make sure you have enough TON for gas fees (0.08 TON)'
+            });
+        }
+
+    } catch (error) {
+        console.error('❌❌❌❌❌ SEND JETTON ENDPOINT CRASHED:', error.message);
+
+        return res.status(500).json({
+            success: false,
+            error: error.message,
+            details: 'Jetton transaction failed'
+        });
+    }
+});
+
+// ============================================
+// 🎯 JETTON TRANSFER FUNCTION
+// ============================================
+async function sendJettonTransaction(userId, walletPassword, toAddress, amount, jettonMasterAddress, memo = '') {
+    console.log('🚀 SEND JETTON TRANSACTION STARTED');
+
+    try {
+        // Get wallet from database
+        const wallet = await getWalletFromDatabase(userId);
+        if (!wallet) {
+            throw new Error(`Wallet not found for user: ${userId}`);
+        }
+
+        console.log('✅ Wallet found:', wallet.address?.substring(0, 15) + '...');
+
+        // Verify password
+        const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
+        if (!passwordValid) {
+            throw new Error('Invalid wallet password');
+        }
+        console.log('✅ Password verified');
+
+        // Decrypt mnemonic
+        let mnemonic;
+        try {
+            const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
+            const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
+            const decipher = crypto.createDecipheriv(
+                encryptedData.algorithm,
+                key,
+                Buffer.from(encryptedData.iv, 'hex')
+            );
+            decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
+            let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+            mnemonic = decrypted.split(' ');
+            console.log('✅ Mnemonic decrypted');
+        } catch (decryptError) {
+            throw new Error('Failed to decrypt wallet. Wrong password or corrupted data.');
+        }
+
+        // Get keypair and wallet contract
+        const keyPair = await mnemonicToPrivateKey(mnemonic);
+        const walletContract = WalletContractV4.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey
+        });
+
+        console.log('✅ Wallet contract created');
+
+        // Connect to TON
+        const rpcEndpoints = [
+            {
+                name: 'TON Console',
+                endpoint: 'https://tonapi.io/v2/jsonRPC',
+                apiKey: TON_CONSOLE_API_KEY ? TON_CONSOLE_API_KEY.replace('bearer_', '') : undefined
+            },
+            {
+                name: 'TON Center',
+                endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+                apiKey: TONCENTER_API_KEY || undefined
+            }
+        ];
+
+        let tonClient;
+        for (const rpc of rpcEndpoints) {
+            try {
+                console.log(`🔍 Trying RPC: ${rpc.name}`);
+                tonClient = new TonClient({
+                    endpoint: rpc.endpoint,
+                    apiKey: rpc.apiKey,
+                    timeout: 30000
+                });
+                await tonClient.getBalance(walletContract.address);
+                console.log(`✅ Connected to ${rpc.name}`);
+                break;
+            } catch (rpcError) {
+                console.log(`❌ ${rpc.name} failed: ${rpcError.message}`);
+                continue;
+            }
+        }
+
+        if (!tonClient) {
+            throw new Error('All RPC endpoints failed');
+        }
+
+        // Check TON balance for gas
+        const balance = await tonClient.getBalance(walletContract.address);
+        const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
+        const requiredGas = 0.08; // Jetton transfers need more gas
+
+        if (balanceTON < requiredGas) {
+            throw new Error(`Insufficient TON for gas. Need ${requiredGas} TON, have ${balanceTON.toFixed(4)} TON`);
+        }
+
+        console.log(`✅ Sufficient gas: ${balanceTON.toFixed(4)} TON`);
+
+        // Get seqno
+        let seqno = 0;
+        try {
+            const walletState = await tonClient.getContractState(walletContract.address);
+            seqno = walletState.seqno || 0;
+            console.log(`📝 Seqno: ${seqno}`);
+        } catch (seqnoError) {
+            console.warn('⚠️ Could not get seqno, using 0');
+        }
+
+        // Parse addresses
+        const recipientAddress = Address.parse(toAddress);
+        const jettonMasterAddr = Address.parse(jettonMasterAddress);
+
+        // Get user's Jetton wallet address
+        console.log('🔍 Getting Jetton wallet address...');
+        const jettonWalletAddress = await getJettonWalletAddress(
+            tonClient,
+            jettonMasterAddr,
+            walletContract.address
+        );
+
+        if (!jettonWalletAddress) {
+            throw new Error('Could not get Jetton wallet address. You may not have any of this token.');
+        }
+
+        console.log('✅ Jetton wallet:', jettonWalletAddress.toString());
+
+        // Create Jetton transfer message
+        const jettonAmount = BigInt(Math.floor(amount * 100)); // NMX has 2 decimals
+        const forwardAmount = toNano('0.001'); // Small amount for notification
+        
+        // Build Jetton transfer payload
+        const transferPayload = tonSDK.beginCell()
+            .storeUint(0xf8a7ea5, 32) // Jetton transfer op code
+            .storeUint(0, 64) // query_id
+            .storeCoins(jettonAmount) // amount
+            .storeAddress(recipientAddress) // destination
+            .storeAddress(walletContract.address) // response_destination (refund address)
+            .storeBit(0) // custom_payload (null)
+            .storeCoins(forwardAmount) // forward_ton_amount
+            .storeBit(0) // forward_payload (empty)
+            .endCell();
+
+        // Create internal message to Jetton wallet
+        const internalMsg = internal({
+            to: jettonWalletAddress,
+            value: toNano('0.08'), // Gas for Jetton transfer
+            body: transferPayload,
+            bounce: true
+        });
+
+        // Create and send transfer
+        const transfer = walletContract.createTransfer({
+            secretKey: keyPair.secretKey,
+            seqno: seqno,
+            messages: [internalMsg],
+            sendMode: 3
+        });
+
+        console.log('📤 Sending Jetton transaction...');
+        await tonClient.sendExternalMessage(walletContract, transfer);
+
+        console.log('✅ Jetton transaction sent!');
+
+        // Wait for indexing
+        await new Promise(resolve => setTimeout(resolve, 3000));
+
+        return {
+            success: true,
+            message: 'Jetton transaction sent successfully',
+            amount: amount,
+            recipient: toAddress,
+            jettonMaster: jettonMasterAddress
+        };
+
+    } catch (error) {
+        console.error('❌ Send Jetton transaction failed:', error);
+        throw error;
+    }
+}
+
+// Helper function to get Jetton wallet address
+async function getJettonWalletAddress(tonClient, jettonMasterAddress, ownerAddress) {
+    try {
+        const cell = tonSDK.beginCell()
+            .storeAddress(ownerAddress)
+            .endCell();
+
+        const response = await tonClient.runMethod(jettonMasterAddress, 'get_wallet_address', [
+            { type: 'slice', cell: cell }
+        ]);
+
+        if (response.stack.length > 0) {
+            const jettonWalletAddress = response.stack[0];
+            return jettonWalletAddress.type === 'slice' ? jettonWalletAddress.cell.beginParse().loadAddress() : null;
+        }
+
+        return null;
+    } catch (error) {
+        console.error('❌ Get Jetton wallet address failed:', error);
+        return null;
+    }
+}
+
+// ============================================
 // 🎯 NEW: ENVIRONMENT CHECK ENDPOINT
 // ============================================
 router.get('/env-check', (req, res) => {

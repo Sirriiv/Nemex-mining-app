@@ -1209,7 +1209,7 @@ window.loginWalletFromButton = async function(button) {
     }
 };
 
-// 🎯 GLOBAL SEND TRANSACTION HELPER
+// 🎯 GLOBAL SEND TRANSACTION HELPER (TON)
 window.sendTransaction = async function(toAddress, amount, memo = '') {
     console.log('🎯 Global send transaction called');
 
@@ -1230,6 +1230,79 @@ window.sendTransaction = async function(toAddress, amount, memo = '') {
         }
     } catch (error) {
         console.error('❌ Global send transaction failed:', error);
+        if (typeof window.showToast === 'function') {
+            window.showToast(`❌ ${error.message}`, 'error');
+        }
+        return { success: false, error: error.message };
+    }
+};
+
+// 🎯 GLOBAL SEND JETTON TRANSACTION HELPER (NMX)
+window.sendJettonTransaction = async function(toAddress, amount, memo = '', jettonMasterAddress) {
+    console.log('🎯 Global send Jetton transaction called');
+
+    try {
+        if (!window.walletManager) {
+            throw new Error('Wallet manager not initialized');
+        }
+
+        const userId = window.walletManager.getCurrentUserId();
+        if (!userId) {
+            throw new Error('Please login to your mining account first');
+        }
+
+        // Get password for transaction
+        const password = await window.walletManager.promptForPassword();
+        if (!password) {
+            throw new Error('Password required for transaction');
+        }
+
+        console.log('🪙 Sending Jetton transaction:', {
+            to: toAddress,
+            amount: amount,
+            jettonMaster: jettonMasterAddress
+        });
+
+        // Call backend Jetton send endpoint
+        const response = await fetch(`${window.walletManager.apiBaseUrl}/send-jetton`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                walletPassword: password,
+                toAddress: toAddress.trim(),
+                amount: amount,
+                jettonMasterAddress: jettonMasterAddress,
+                memo: memo || ''
+            })
+        });
+
+        const result = await response.json();
+        console.log('📦 Jetton send result:', result);
+
+        if (!result.success) {
+            throw new Error(result.error || 'Jetton transaction failed');
+        }
+
+        if (typeof window.showToast === 'function') {
+            window.showToast('✅ Jetton transaction sent successfully!', 'success');
+        }
+
+        // Refresh balance
+        setTimeout(() => {
+            if (typeof window.updateRealBalance === 'function') {
+                window.updateRealBalance();
+            }
+        }, 2000);
+
+        return {
+            success: true,
+            transaction: result.data,
+            message: 'Jetton transaction sent successfully!'
+        };
+
+    } catch (error) {
+        console.error('❌ Global send Jetton transaction failed:', error);
         if (typeof window.showToast === 'function') {
             window.showToast(`❌ ${error.message}`, 'error');
         }

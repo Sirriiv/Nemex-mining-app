@@ -4180,8 +4180,17 @@ async function confirmSendTransaction() {
         // Clear status - button shows processing state
         statusElement.innerHTML = '';
 
-        // ✅ Use the REAL send function from wallet.js
-        const result = await window.sendTransaction(toAddress, amount, memo);
+        // ✅ OPTIMIZED: Call different endpoint based on token type
+        let result;
+        if (currentSendToken === 'TON') {
+            // Native TON transfer
+            result = await window.sendTransaction(toAddress, amount, memo);
+        } else if (currentSendToken === 'NMX') {
+            // Jetton (NMX) transfer
+            result = await window.sendJettonTransaction(toAddress, amount, memo, NMX_JETTON_MASTER);
+        } else {
+            throw new Error('Unsupported token type');
+        }
         
         if (result.success) {
             showStatusMessage('✅ Transaction sent successfully!', 'success', statusElement);
