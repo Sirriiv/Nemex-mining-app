@@ -3172,10 +3172,13 @@ function formatTokenPrice(price) {
 }
 
 // ✅ FIXED: Token balances display with 4 decimal places (0.0000)
-function formatTokenBalance(balance) {
+function formatTokenBalance(balance, tokenSymbol = 'TON') {
+    // ✅ NMX uses 2 decimal places, TON uses 4
+    const decimals = tokenSymbol === 'NMX' ? 2 : 4;
+    
     return parseFloat(balance).toLocaleString('en-US', {
-        minimumFractionDigits: 4,
-        maximumFractionDigits: 4
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
     });
 }
 
@@ -4274,7 +4277,7 @@ function updateWalletDisplay() {
             // ✅ FIXED: Token price shows $0.00 (2 decimal places)
             const priceDisplay = formatTokenPrice(token.price);
             // ✅ FIXED: Token balance shows 0.0000 (4 decimal places)
-            const balanceDisplay = formatTokenBalance(token.balance);
+            const balanceDisplay = formatTokenBalance(token.balance, token.symbol);
             // ✅ FIXED: Token value shows $0.00 (2 decimal places)
             const valueDisplay = formatTokenValue(token.balance * token.price);
             
@@ -4386,13 +4389,13 @@ function updateDropdownBalances() {
     const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
     const tonBalanceElement = document.getElementById('tonBalanceDropdown');
     if (tonBalanceElement && tonToken) {
-        tonBalanceElement.textContent = formatTokenBalance(tonToken.balance);
+        tonBalanceElement.textContent = formatTokenBalance(tonToken.balance, 'TON');
     }
 
     const nmxToken = SUPPORTED_TOKENS.find(t => t.symbol === 'NMX');
     const nmxBalanceElement = document.getElementById('nmxBalanceDropdown');
     if (nmxBalanceElement && nmxToken) {
-        nmxBalanceElement.textContent = formatTokenBalance(nmxToken.balance);
+        nmxBalanceElement.textContent = formatTokenBalance(nmxToken.balance, 'NMX');
     }
 }
 
@@ -4419,7 +4422,7 @@ function updateSendBalances() {
         }, 300);
 
         // ✅ FIXED: Send modal shows balance with 4 decimal places
-        balanceElement.textContent = formatTokenBalance(currentTokenBalance);
+        balanceElement.textContent = formatTokenBalance(currentTokenBalance, currentSendToken);
         tokenElement.textContent = currentSendToken;
 
         console.log('✅ Updated available balance:', currentTokenBalance, currentSendToken);
