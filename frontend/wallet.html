@@ -4184,9 +4184,15 @@ async function confirmSendTransaction() {
         let result;
         if (currentSendToken === 'TON') {
             // Native TON transfer
+            if (typeof window.sendTransaction !== 'function') {
+                throw new Error('Send transaction function not loaded. Please refresh the page.');
+            }
             result = await window.sendTransaction(toAddress, amount, memo);
         } else if (currentSendToken === 'NMX') {
             // Jetton (NMX) transfer
+            if (typeof window.sendJettonTransaction !== 'function') {
+                throw new Error('Send Jetton transaction function not loaded. Please refresh the page.');
+            }
             result = await window.sendJettonTransaction(toAddress, amount, memo, NMX_JETTON_MASTER);
         } else {
             throw new Error('Unsupported token type');
