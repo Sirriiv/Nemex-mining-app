@@ -59,6 +59,9 @@ const TON_API_URL = process.env.TON_API_URL || 'https://tonapi.io/v2';
 console.log('🔑 API Keys Status:');
 console.log(`   - TON Center: ${TONCENTER_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
 console.log(`   - TON Console: ${TON_CONSOLE_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
+if (TON_CONSOLE_API_KEY) {
+    console.log(`   - TON Console API Key (first 20 chars): ${TON_CONSOLE_API_KEY.substring(0, 20)}...`);
+}
 
 if (!TON_CONSOLE_API_KEY) {
     console.warn('⚠️ WARNING: TON_CONSOLE_API_KEY is missing! Transactions may fail.');
@@ -3287,11 +3290,14 @@ router.post('/send-jetton', async (req, res) => {
 
     } catch (error) {
         console.error('❌❌❌❌❌ SEND JETTON ENDPOINT CRASHED:', error.message);
+        console.error('❌ Full error:', error);
+        console.error('❌ Stack trace:', error.stack);
 
         return res.status(500).json({
             success: false,
-            error: error.message,
-            details: 'Jetton transaction failed'
+            error: error.message || 'Internal server error',
+            details: 'Jetton transaction failed - check server logs',
+            errorStack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 });
