@@ -3414,23 +3414,42 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
         let jettonWalletAddress = null;
         try {
             const userAddressStr = walletContract.address.toString();
-            const jettonMasterStr = jettonMasterAddress.replace('EQ', '0:').replace('UQ', '0:');
+            
+            // Convert Jetton master address to raw format for TonAPI
+            const jettonMasterAddr = Address.parse(jettonMasterAddress);
+            const jettonMasterRaw = `${jettonMasterAddr.workChain}:${jettonMasterAddr.hash.toString('hex')}`;
             
             console.log('🌐 Trying TonAPI method...');
-            const tonApiUrl = `https://tonapi.io/v2/accounts/${userAddressStr}/jettons/${jettonMasterStr}`;
+            console.log('   User address:', userAddressStr);
+            console.log('   Jetton master (raw):', jettonMasterRaw);
+            
+            const tonApiUrl = `https://tonapi.io/v2/accounts/${userAddressStr}/jettons/${jettonMasterRaw}`;
             const tonApiResponse = await fetch(tonApiUrl, {
-                headers: TON_CONSOLE_API_KEY ? { 'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}` } : {}
+                headers: TON_CONSOLE_API_KEY ? { 'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}` } : {},
+                timeout: 10000
             });
+            
+            console.log('   TonAPI response status:', tonApiResponse.status);
             
             if (tonApiResponse.ok) {
                 const jettonData = await tonApiResponse.json();
+                console.log('   TonAPI data:', JSON.stringify(jettonData, null, 2));
+                
                 if (jettonData.wallet_address && jettonData.wallet_address.address) {
                     jettonWalletAddress = Address.parse(jettonData.wallet_address.address);
                     console.log('✅ Got Jetton wallet from TonAPI:', jettonWalletAddress.toString());
+                } else if (jettonData.balance === "0") {
+                    throw new Error('You have 0 NMX tokens. Please receive some NMX first before sending.');
                 }
+            } else {
+                const errorText = await tonApiResponse.text();
+                console.warn('⚠️ TonAPI returned error:', tonApiResponse.status, errorText);
             }
         } catch (apiError) {
             console.warn('⚠️ TonAPI method failed, trying direct contract call:', apiError.message);
+            if (apiError.message.includes('0 NMX')) {
+                throw apiError; // Re-throw if it's a balance error
+            }
         }
         
         // Fallback to direct contract call
