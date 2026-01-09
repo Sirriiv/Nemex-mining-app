@@ -3276,12 +3276,15 @@ router.post('/send-jetton', async (req, res) => {
 
         } catch (transactionError) {
             console.error('❌❌❌ Jetton Transaction failed:', transactionError.message);
+            console.error('❌ Full error:', transactionError);
+            console.error('❌ Stack trace:', transactionError.stack);
 
             return res.status(400).json({
                 success: false,
-                error: transactionError.message,
+                error: transactionError.message || 'Jetton transaction failed',
                 errorType: 'jetton_transaction_error',
-                fix: 'Make sure you have enough TON for gas fees (0.05 TON)'
+                details: transactionError.toString(),
+                fix: 'Make sure you have enough TON for gas fees (0.05 TON) and the Jetton master address is correct'
             });
         }
 
