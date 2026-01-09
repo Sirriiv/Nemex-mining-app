@@ -150,6 +150,31 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// 🚦 Deploy info endpoint - helps verify deployed commit and env var presence
+const { execSync } = require('child_process');
+function getGitShortCommit() {
+    try {
+        return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    } catch (e) {
+        return 'unknown';
+    }
+}
+
+app.get('/api/deploy-info', (req, res) => {
+    const commit = getGitShortCommit();
+    res.json({
+        success: true,
+        commit,
+        env: {
+            TONCENTER_API_KEY: !!process.env.TONCENTER_API_KEY,
+            TON_CONSOLE_API_KEY: !!process.env.TON_CONSOLE_API_KEY,
+            TONAPI_KEY: !!process.env.TONAPI_KEY,
+            NODE_ENV: process.env.NODE_ENV || 'development'
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
 // =============================================
 // 🎯 CORS TEST ENDPOINT
 // =============================================
