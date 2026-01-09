@@ -49,6 +49,18 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') }
 console.log('🚀 WALLET ROUTES v32.0 - DUAL API FIXED VERSION');
 
 // ============================================
+// 🎯 ENSURE CORS ON ALL RESPONSES
+// ============================================
+router.use((req, res, next) => {
+    // Ensure CORS headers on all responses (including errors)
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+});
+
+// ============================================
 // 🎯 API KEYS CONFIGURATION - FIXED!
 // ============================================
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';

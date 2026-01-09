@@ -249,6 +249,24 @@ app.use((err, req, res, next) => {
 });
 
 // =============================================
+// 🎯 GLOBAL ERROR HANDLER (Ensures CORS on errors)
+// =============================================
+app.use((err, req, res, next) => {
+    console.error('❌ Global error handler:', err.message);
+    
+    // Ensure CORS headers are present on error responses
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+    
+    res.status(err.status || 500).json({
+        success: false,
+        error: err.message || 'Internal server error',
+        details: err.toString()
+    });
+});
+
+// =============================================
 // 🎯 START SERVER
 // =============================================
 const server = app.listen(PORT, '0.0.0.0', () => {
