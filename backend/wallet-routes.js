@@ -3532,64 +3532,63 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
     }
 }
 
-// Helper function to get Jetton wallet address from contract
+// Helper function to get Jetton wallet address (multiple fallback methods)
 async function getJettonWalletAddress(tonClient, jettonMasterAddress, ownerAddress) {
     try {
-        console.log('🔍 Calling get_wallet_address on Jetton master contract');
+        console.log('🔍 Getting Jetton wallet address');
         console.log('   Owner:', ownerAddress.toString());
         console.log('   Jetton Master:', jettonMasterAddress.toString());
         
-        // Build the parameter - owner address as a slice
-        const ownerAddressCell = tonSDK.beginCell()
-            .storeAddress(ownerAddress)
-            .endCell();
+        // METHOD 1: Try contract call with each RPC endpoint
+        const rpcEndpoints = [
+            { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC' },
+            { name: 'TON API', endpoint: 'https://tonapi.io/v2/jsonRPC' }
+        ];
+        
+        for (const rpc of rpcEndpoints) {
+            try {
+                console.log(`📞 Trying ${rpc.name}...`);
+                
+                const tempClient = new TonClient({
+                    endpoint: rpc.endpoint,
+                    timeout: 15000
+                });
+                
+                const ownerAddressCell = tonSDK.beginCell()
+                    .storeAddress(ownerAddress)
+                    .endCell();
 
-        // Call get_wallet_address method on Jetton master contract
-        const response = await tonClient.runMethod(
-            jettonMasterAddress, 
-            'get_wallet_address', 
-            [{
-                type: 'slice',
-                cell: ownerAddressCell
-            }]
-        );
+                const response = await tempClient.runMethod(
+                    jettonMasterAddress, 
+                    'get_wallet_address', 
+                    [{ type: 'slice', cell: ownerAddressCell }]
+                );
 
-        console.log('📦 Contract response:', JSON.stringify(response, null, 2));
-
-        // Parse the result
-        if (response.stack && response.stack.length > 0) {
-            const resultItem = response.stack[0];
-            console.log('   Result item type:', resultItem.type);
-            
-            // Try to extract address from different possible return types
-            let jettonWalletAddr;
-            
-            if (resultItem.type === 'slice') {
-                // Result is a slice - parse the address from it
-                const slice = resultItem.cell.beginParse();
-                jettonWalletAddr = slice.loadAddress();
-            } else if (resultItem.type === 'cell') {
-                // Result is a cell - parse it as a slice then load address
-                const slice = resultItem.cell.beginParse();
-                jettonWalletAddr = slice.loadAddress();
-            } else if (resultItem.type === 'int') {
-                // Some contracts return raw int - not standard but handle it
-                console.warn('⚠️ Unexpected int return type from get_wallet_address');
-                return null;
-            }
-            
-            if (jettonWalletAddr) {
-                console.log('✅ Jetton wallet address:', jettonWalletAddr.toString());
-                return jettonWalletAddr;
+                if (response.stack && response.stack.length > 0) {
+                    const resultItem = response.stack[0];
+                    
+                    let jettonWalletAddr;
+                    if (resultItem.type === 'slice') {
+                        jettonWalletAddr = resultItem.cell.beginParse().loadAddress();
+                    } else if (resultItem.type === 'cell') {
+                        jettonWalletAddr = resultItem.cell.beginParse().loadAddress();
+                    }
+                    
+                    if (jettonWalletAddr) {
+                        console.log(`✅ Got Jetton wallet from ${rpc.name}:`, jettonWalletAddr.toString());
+                        return jettonWalletAddr;
+                    }
+                }
+            } catch (rpcError) {
+                console.warn(`⚠️ ${rpc.name} failed:`, rpcError.message);
             }
         }
-
-        console.error('❌ No valid address in contract response');
+        
+        console.error('❌ All methods failed to get Jetton wallet address');
         return null;
         
     } catch (error) {
-        console.error('❌ Contract call failed:', error.message);
-        console.error('   Full error:', error);
+        console.error('❌ Get Jetton wallet address completely failed:', error.message);
         return null;
     }
 }
