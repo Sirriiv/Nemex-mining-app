@@ -2588,21 +2588,34 @@ router.get('/jetton-balance/:address', async (req, res) => {
         const tonApiKey = process.env.TON_CONSOLE_API_KEY?.replace('bearer_', '') || '';
         
         try {
-            // TonAPI v2 endpoint for Jetton balances
-            const tonApiUrl = `https://tonapi.io/v2/accounts/${address}/jettons/${jettonMasterAddress}`;
-            
+            // Normalize jetton master address to TonAPI raw format (workchain:hex)
+            let jettonMasterRaw = jettonMasterAddress;
+            try {
+                if (jettonMasterAddress && (jettonMasterAddress.startsWith('EQ') || jettonMasterAddress.startsWith('UQ') || jettonMasterAddress.startsWith('0:') === false)) {
+                    const parsed = Address.parse(jettonMasterAddress);
+                    jettonMasterRaw = `${parsed.workChain}:${parsed.hash.toString('hex')}`;
+                }
+            } catch (parseErr) {
+                console.warn('⚠️ Could not parse jetton master address, using provided value:', parseErr.message);
+            }
+
+            // TonAPI v2 endpoint for Jetton balances (direct)
+            const tonApiUrl = `https://tonapi.io/v2/accounts/${address}/jettons/${jettonMasterRaw}`;
+            console.log('🌐 TonAPI jetton balance URL:', tonApiUrl);
             const response = await axios.get(tonApiUrl, {
                 headers: tonApiKey ? { 'Authorization': `Bearer ${tonApiKey}` } : {},
-                timeout: 10000
+                timeout: 10000,
+                validateStatus: () => true
             });
-            
-            if (response.data && response.data.balance) {
+
+            console.log('   TonAPI status:', response.status);
+            if (response.status === 200 && response.data && response.data.balance) {
                 const rawBalance = response.data.balance;
                 const decimals = response.data.jetton?.decimals || 9;
                 const balance = (BigInt(rawBalance) / BigInt(10 ** decimals)).toString();
-                
+
                 console.log(`✅ Jetton balance: ${balance} (raw: ${rawBalance}, decimals: ${decimals})`);
-                
+
                 return res.json({
                     success: true,
                     address: address,
@@ -2614,8 +2627,50 @@ router.get('/jetton-balance/:address', async (req, res) => {
                     timestamp: new Date().toISOString()
                 });
             }
+
+            // If TonAPI returns 404 or no data, fallback to listing all jettons for the account
+            if (response.status === 404 || !response.data || !response.data.balance) {
+                console.log('⚠️ Direct TonAPI jetton endpoint returned no data, trying list endpoint');
+                const listUrl = `https://tonapi.io/v2/accounts/${address}/jettons`;
+                const listResp = await axios.get(listUrl, {
+                    headers: tonApiKey ? { 'Authorization': `Bearer ${tonApiKey}` } : {},
+                    timeout: 10000,
+                    validateStatus: () => true
+                });
+
+                console.log('   TonAPI list status:', listResp.status);
+                if (listResp.status === 200 && listResp.data && Array.isArray(listResp.data.balances)) {
+                    const jettonMasterAddrObj = (() => {
+                        try { return Address.parse(jettonMasterAddress); } catch(e){ return null; }
+                    })();
+                    const jettonMasterHex = jettonMasterAddrObj ? `${jettonMasterAddrObj.workChain}:${jettonMasterAddrObj.hash.toString('hex')}` : jettonMasterAddress;
+
+                    for (const j of listResp.data.balances) {
+                        const jm = j.jetton?.address;
+                        if (!jm) continue;
+                        if (jm === jettonMasterHex || jm === jettonMasterAddress) {
+                            const walletAddrStr = j.wallet_address?.address || null;
+                            const rawBalance = j.balance || "0";
+                            const decimals = j.jetton?.decimals || 9;
+                            const balance = (BigInt(rawBalance) / BigInt(10 ** decimals)).toString();
+                            console.log('✅ Found jetton from list:', jm, 'wallet:', walletAddrStr);
+                            return res.json({
+                                success: true,
+                                address: address,
+                                jettonMasterAddress: jettonMasterAddress,
+                                balance: balance,
+                                rawBalance: rawBalance,
+                                decimals: decimals,
+                                jettonInfo: j.jetton || null,
+                                jettonWallet: walletAddrStr,
+                                timestamp: new Date().toISOString()
+                            });
+                        }
+                    }
+                }
+            }
         } catch (apiError) {
-            console.warn('⚠️ TonAPI Jetton balance failed, trying fallback:', apiError.message);
+            console.warn('⚠️ TonAPI Jetton balance failed, trying fallback:', apiError.message || apiError);
         }
         
         // Fallback: Return 0 balance
