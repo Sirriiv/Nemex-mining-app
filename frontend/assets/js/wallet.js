@@ -1292,12 +1292,28 @@ window.sendJettonTransaction = async function(toAddress, amount, memo = '', jett
 
         // Check if response is ok before parsing JSON
         if (!response.ok) {
+            console.error('❌ Response not OK:', {
+                status: response.status,
+                statusText: response.statusText,
+                headers: Object.fromEntries(response.headers.entries())
+            });
+            
             let errorMessage = `Request failed with status code ${response.status}`;
             try {
-                const errorData = await response.json();
-                errorMessage = errorData.error || errorData.message || errorMessage;
+                const errorText = await response.text();
+                console.error('❌ Raw error response:', errorText);
+                
+                // Try to parse as JSON
+                try {
+                    const errorData = JSON.parse(errorText);
+                    console.error('❌ Parsed error data:', errorData);
+                    errorMessage = errorData.error || errorData.message || errorData.details || errorMessage;
+                } catch (parseErr) {
+                    console.error('❌ Could not parse error as JSON:', parseErr);
+                    errorMessage = errorText || errorMessage;
+                }
             } catch (e) {
-                // If parsing fails, use the status text
+                console.error('❌ Could not read error response:', e);
                 errorMessage = response.statusText || errorMessage;
             }
             throw new Error(errorMessage);
