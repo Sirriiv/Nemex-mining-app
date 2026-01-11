@@ -3464,7 +3464,7 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
         // Check TON balance for gas
         const balance = await tonClient.getBalance(walletContract.address);
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
-        const requiredGas = 0.05; // Jetton transfers (real-world: 0.02-0.05 TON)
+        const requiredGas = 0.05; // Jetton transfers need ~0.05 TON for gas
 
         if (balanceTON < requiredGas) {
             throw new Error(`Insufficient TON for gas. Need ${requiredGas} TON, have ${balanceTON.toFixed(4)} TON`);
@@ -3472,104 +3472,37 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
 
         console.log(`✅ Sufficient gas: ${balanceTON.toFixed(4)} TON`);
 
-        // Get seqno
-        let seqno = 0;
-        try {
-            const walletState = await tonClient.getContractState(walletContract.address);
-            seqno = walletState.seqno || 0;
-            console.log(`📝 Seqno: ${seqno}`);
-        } catch (seqnoError) {
-            console.warn('⚠️ Could not get seqno, using 0');
-        }
-
         // Parse addresses
         const recipientAddress = Address.parse(toAddress);
         const jettonMasterAddr = Address.parse(jettonMasterAddress);
 
-        // Get user's Jetton wallet address
-        console.log('🔍 Getting Jetton wallet address...');
-        
-        let jettonWalletAddress = null;
-        const userAddressStr = walletContract.address.toString();
-        
-        // METHOD 1: Query all user's Jettons from TonAPI (works for any Jetton including custom ones)
-        try {
-            console.log('🌐 Method 1: Querying all user Jettons from TonAPI...');
-            
-            const jettonsUrl = `https://tonapi.io/v2/accounts/${userAddressStr}/jettons`;
-            const jettonsResponse = await axios.get(jettonsUrl, {
-                headers: TON_CONSOLE_API_KEY ? { 'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}` } : {},
-                timeout: 10000,
-                validateStatus: () => true
-            });
-            
-            console.log('   TonAPI response status:', jettonsResponse.status);
-            
-            if (jettonsResponse.status === 200 && jettonsResponse.data && jettonsResponse.data.balances) {
-                console.log(`   Found ${jettonsResponse.data.balances.length} Jettons`);
-                
-                // Look for the NMX Jetton by master address
-                const jettonMasterAddr = Address.parse(jettonMasterAddress);
-                const jettonMasterRaw = `${jettonMasterAddr.workChain}:${jettonMasterAddr.hash.toString('hex')}`;
-                
-                for (const jetton of jettonsResponse.data.balances) {
-                    const jettonMaster = jetton.jetton?.address;
-                    if (jettonMaster && (jettonMaster === jettonMasterRaw || jettonMaster === jettonMasterAddress)) {
-                        jettonWalletAddress = Address.parse(jetton.wallet_address.address);
-                        console.log('✅ Found NMX Jetton wallet:', jettonWalletAddress.toString());
-                        break;
-                    }
-                }
-            }
-        } catch (apiError) {
-            console.warn('⚠️ TonAPI list Jettons failed:', apiError.message);
-        }
-        
-        // METHOD 2: Try direct contract call if TonAPI didn't work
-        if (!jettonWalletAddress) {
-            console.log('🔍 Method 2: Trying direct contract call...');
-            jettonWalletAddress = await getJettonWalletAddress(
-                tonClient,
-                Address.parse(jettonMasterAddress),
-                walletContract.address
-            );
-        }
-
-        if (!jettonWalletAddress) {
-            throw new Error('Could not find your NMX Jetton wallet. Make sure you have received NMX tokens at least once to this address.');
-        }
-
-        console.log('✅ Jetton wallet:', jettonWalletAddress.toString());
-
-        // Use Assets SDK for better Jetton handling
         console.log('🎯 Using Assets SDK for Jetton transfer...');
-        
-        // Calculate Jetton amount
-        const jettonAmount = toNano(amount.toString());
-        
-        console.log(`📊 Sending ${amount} NMX (${jettonAmount} nanoNMX) to ${toAddress}`);
+        console.log(`📊 Sending ${amount} NMX to ${toAddress}`);
         
         // Create sender object from wallet
-        const sender = walletContract.sender(tonClient.provider(walletContract.address), keyPair.secretKey);
+        const walletProvider = tonClient.provider(walletContract.address);
+        const sender = walletContract.sender(walletProvider, keyPair.secretKey);
         
         // Create Assets SDK instance
-        const network = 'mainnet'; // or 'testnet' based on your deployment
-        const api = await createApi(network);
+        const api = await createApi('mainnet');
         const sdk = AssetsSDK.create({ api, sender });
         
         // Open Jetton Master contract
         const jetton = await sdk.openJetton(jettonMasterAddr);
         
-        // Get sender's Jetton Wallet
+        // Get sender's Jetton Wallet (auto-deploys if needed)
         const jettonWallet = await jetton.getWallet(walletContract.address);
         
-        // Send Jettons using the correct SDK method
+        // Calculate Jetton amount in base units
+        const jettonAmount = toNano(amount.toString());
+        
+        // Send Jettons using Assets SDK
         await jettonWallet.send(
             sender,
             recipientAddress,
             jettonAmount,
             {
-                forwardAmount: toNano('0.01'),
+                forwardAmount: toNano('0.01'), // TON for notification
                 forwardPayload: memo ? tonSDK.beginCell().storeUint(0, 32).storeStringTail(memo).endCell() : null
             }
         );
