@@ -7,13 +7,14 @@ const axios = require('axios');
 const bcrypt = require('bcrypt');
 
 // ============================================
-// 🎯 TON IMPORTS - OFFICIAL SDK ONLY
+// 🎯 TON IMPORTS - OFFICIAL SDK + ASSETS SDK
 // ============================================
 console.log('🔄 Loading TON libraries...');
 
-let tonCrypto, tonSDK;
+let tonCrypto, tonSDK, assetsSDK;
 let mnemonicNew, mnemonicToPrivateKey;
 let WalletContractV4, Address, TonClient, internal, toNano, fromNano;
+let JettonMaster, JettonWallet;
 
 try {
     console.log('🔍 Attempting to load @ton/crypto...');
@@ -24,6 +25,10 @@ try {
     tonSDK = require('@ton/ton');
     console.log('✅ @ton/ton loaded');
 
+    console.log('🔍 Attempting to load @ton-community/assets-sdk...');
+    assetsSDK = require('@ton-community/assets-sdk');
+    console.log('✅ @ton-community/assets-sdk loaded');
+
     mnemonicNew = tonCrypto.mnemonicNew;
     mnemonicToPrivateKey = tonCrypto.mnemonicToPrivateKey;
     WalletContractV4 = tonSDK.WalletContractV4;
@@ -32,6 +37,8 @@ try {
     internal = tonSDK.internal;
     toNano = tonSDK.toNano;
     fromNano = tonSDK.fromNano;
+    JettonMaster = assetsSDK.JettonMaster;
+    JettonWallet = assetsSDK.JettonWallet;
 
     console.log('✅ TON libraries loaded successfully');
 
@@ -3532,42 +3539,33 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
 
         console.log('✅ Jetton wallet:', jettonWalletAddress.toString());
 
-        // Create Jetton transfer message
-        const jettonAmount = BigInt(Math.floor(amount * 100)); // NMX has 2 decimals
-        const forwardAmount = toNano('0.001'); // Small amount for notification
+        // Use Assets SDK for better Jetton handling
+        console.log('🎯 Using Assets SDK for Jetton transfer...');
         
-        // Build Jetton transfer payload
-        const transferPayload = tonSDK.beginCell()
-            .storeUint(0xf8a7ea5, 32) // Jetton transfer op code
-            .storeUint(0, 64) // query_id
-            .storeCoins(jettonAmount) // amount
-            .storeAddress(recipientAddress) // destination
-            .storeAddress(walletContract.address) // response_destination (refund address)
-            .storeBit(0) // custom_payload (null)
-            .storeCoins(forwardAmount) // forward_ton_amount
-            .storeBit(0) // forward_payload (empty)
-            .endCell();
+        // Open Jetton Wallet contract
+        const jettonWallet = tonClient.open(JettonWallet.create(jettonWalletAddress));
+        
+        // Open wallet contract for sending
+        const senderWallet = tonClient.open(walletContract);
+        
+        // Calculate Jetton amount (NMX has 2 decimals, so multiply by 100)
+        const jettonAmount = toNano(amount.toString());
+        
+        console.log(`📊 Sending ${amount} NMX (${jettonAmount} nanoNMX) to ${toAddress}`);
+        
+        // Send Jetton transfer using Assets SDK
+        await jettonWallet.sendTransfer(
+            senderWallet.sender(keyPair.secretKey),
+            {
+                value: toNano('0.05'),                     // TON for gas fees
+                to: recipientAddress,                       // recipient's regular wallet
+                jettonAmount: jettonAmount,                 // amount of NMX tokens
+                forwardAmount: toNano('0.01'),             // TON for notification
+                forwardPayload: memo ? tonSDK.beginCell().storeUint(0, 32).storeStringTail(memo).endCell() : null
+            }
+        );
 
-        // Create internal message to Jetton wallet
-        const internalMsg = internal({
-            to: jettonWalletAddress,
-            value: toNano('0.05'), // Gas for Jetton transfer (real-world: 0.02-0.05 TON)
-            body: transferPayload,
-            bounce: true
-        });
-
-        // Create and send transfer
-        const transfer = walletContract.createTransfer({
-            secretKey: keyPair.secretKey,
-            seqno: seqno,
-            messages: [internalMsg],
-            sendMode: 3
-        });
-
-        console.log('📤 Sending Jetton transaction...');
-        await tonClient.sendExternalMessage(walletContract, transfer);
-
-        console.log('✅ Jetton transaction sent!');
+        console.log('✅ Jetton transaction sent via Assets SDK!');
 
         // Wait for indexing
         await new Promise(resolve => setTimeout(resolve, 3000));

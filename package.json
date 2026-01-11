@@ -8,14 +8,15 @@
     "test-ton": "node -e \"console.log('Testing TON packages...'); try { const c = require('@ton/crypto'); const t = require('@ton/ton'); console.log('✅ TON packages loaded! Crypto:', !!c.mnemonicNew, 'Ton:', !!t.WalletContractV4); } catch(e) { console.log('❌ Error:', e.message); console.log('❌ Stack:', e.stack); }\""
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "@supabase/supabase-js": "^2.38.0",
-    "axios": "^1.6.8",
+    "@ton-community/assets-sdk": "^0.0.5",
     "@ton/crypto": "^3.2.0",
     "@ton/ton": "^15.4.0",
-    "bcrypt": "^5.1.1"
+    "axios": "^1.6.8",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
   },
   "engines": {
     "node": "20.x"
