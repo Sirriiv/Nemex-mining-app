@@ -37,8 +37,10 @@ try {
     internal = tonSDK.internal;
     toNano = tonSDK.toNano;
     fromNano = tonSDK.fromNano;
-    JettonMaster = assetsSDK.JettonMaster;
-    JettonWallet = assetsSDK.JettonWallet;
+    
+    // Assets SDK exports
+    const { AssetsSDK, createApi } = assetsSDK;
+    console.log('✅ AssetsSDK and createApi loaded');
 
     console.log('✅ TON libraries loaded successfully');
 
@@ -3542,25 +3544,32 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
         // Use Assets SDK for better Jetton handling
         console.log('🎯 Using Assets SDK for Jetton transfer...');
         
-        // Open Jetton Wallet contract
-        const jettonWallet = tonClient.open(JettonWallet.create(jettonWalletAddress));
-        
-        // Open wallet contract for sending
-        const senderWallet = tonClient.open(walletContract);
-        
-        // Calculate Jetton amount (NMX has 2 decimals, so multiply by 100)
+        // Calculate Jetton amount
         const jettonAmount = toNano(amount.toString());
         
         console.log(`📊 Sending ${amount} NMX (${jettonAmount} nanoNMX) to ${toAddress}`);
         
-        // Send Jetton transfer using Assets SDK
-        await jettonWallet.sendTransfer(
-            senderWallet.sender(keyPair.secretKey),
+        // Create sender object from wallet
+        const sender = walletContract.sender(tonClient.provider(walletContract.address), keyPair.secretKey);
+        
+        // Create Assets SDK instance
+        const network = 'mainnet'; // or 'testnet' based on your deployment
+        const api = await createApi(network);
+        const sdk = AssetsSDK.create({ api, sender });
+        
+        // Open Jetton Master contract
+        const jetton = await sdk.openJetton(jettonMasterAddr);
+        
+        // Get sender's Jetton Wallet
+        const jettonWallet = await jetton.getWallet(walletContract.address);
+        
+        // Send Jettons using the correct SDK method
+        await jettonWallet.send(
+            sender,
+            recipientAddress,
+            jettonAmount,
             {
-                value: toNano('0.05'),                     // TON for gas fees
-                to: recipientAddress,                       // recipient's regular wallet
-                jettonAmount: jettonAmount,                 // amount of NMX tokens
-                forwardAmount: toNano('0.01'),             // TON for notification
+                forwardAmount: toNano('0.01'),
                 forwardPayload: memo ? tonSDK.beginCell().storeUint(0, 32).storeStringTail(memo).endCell() : null
             }
         );
