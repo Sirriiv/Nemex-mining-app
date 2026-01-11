@@ -15,6 +15,7 @@ let tonCrypto, tonSDK, assetsSDK;
 let mnemonicNew, mnemonicToPrivateKey;
 let WalletContractV4, Address, TonClient, internal, toNano, fromNano;
 let JettonMaster, JettonWallet;
+let AssetsSDK, createApi;
 
 try {
     console.log('🔍 Attempting to load @ton/crypto...');
@@ -39,7 +40,8 @@ try {
     fromNano = tonSDK.fromNano;
     
     // Assets SDK exports
-    const { AssetsSDK, createApi } = assetsSDK;
+    AssetsSDK = assetsSDK.AssetsSDK;
+    createApi = assetsSDK.createApi;
     console.log('✅ AssetsSDK and createApi loaded');
 
     console.log('✅ TON libraries loaded successfully');
