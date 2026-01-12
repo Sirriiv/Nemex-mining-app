@@ -6,9 +6,12 @@
     <title>Buy NMXp - NemexCoin</title>
     <style>
         :root { 
-            --dark-bg: #0f0f0f; 
-            --darker-bg: #080808; 
-            --gold: #d4af37; 
+            --dark-bg: #0a0a0f; 
+            --darker-bg: #050508; 
+            --gold: #d4af37;
+            --gold-light: #f4d03f;
+            --gold-dark: #b8941f;
+            --gold-glow: rgba(212, 175, 55, 0.4);
             --text: #f5f5f5; 
             --muted: #aaa; 
             --bg-secondary: #1a1a1a;
@@ -17,6 +20,13 @@
             --vip: #9b59b6;
             --danger: #ff4444;
             --info: #33b5e5;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
 
         * { 
@@ -27,13 +37,30 @@
         }
 
         body { 
-            background: var(--dark-bg); 
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a0a20 50%, #0f0a1a 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
             color: var(--text); 
             min-height: 100vh; 
             display: flex; 
             flex-direction: column;
             padding: 0;
             margin: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.03) 0%, transparent 50%);
+            animation: gradientShift 20s ease infinite;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .container { 
@@ -43,6 +70,8 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 1;
         }
 
         .header {
@@ -50,11 +79,14 @@
             justify-content: space-between;
             align-items: center;
             padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
-            background-color: var(--dark-bg);
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
         }
 
         .back-btn {
@@ -74,10 +106,15 @@
         .header-title {
             font-size: 18px;
             font-weight: 700;
-            color: var(--gold);
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             display: flex;
             align-items: center;
             gap: 8px;
+            filter: drop-shadow(0 0 10px var(--gold-glow));
+        }
         }
 
         .header-icon {

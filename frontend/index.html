@@ -6,13 +6,27 @@
     <title>NemexCoin - Crypto Mining Platform</title>
     <style>
         :root {
-            --dark-bg: #0f0f1a;
+            --dark-bg: #0a0a0f;
             --darker-bg: #050508;
             --gold: #FFD700;
+            --gold-light: #FFED4E;
             --gold-dark: #b8941f;
+            --gold-glow: rgba(255, 215, 0, 0.4);
             --text: #ffffff;
             --text-secondary: #cccccc;
             --muted: #888888;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
         }
 
         * {
@@ -23,10 +37,27 @@
         }
 
         body {
-            background: var(--dark-bg);
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a0a20 50%, #0f0a1a 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
             color: var(--text);
             min-height: 100vh;
             overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 215, 0, 0.03) 0%, transparent 50%);
+            animation: gradientShift 20s ease infinite;
+            pointer-events: none;
+            z-index: 0;
         }
 
         .container {
@@ -37,13 +68,16 @@
 
         /* Header */
         .header {
-            background: var(--darker-bg);
+            background: rgba(5, 5, 8, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             padding: 20px 0;
             border-bottom: 2px solid var(--gold);
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 1000;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
         }
 
         .nav {
@@ -55,11 +89,16 @@
         .logo {
             font-size: 28px;
             font-weight: bold;
-            color: var(--gold);
+            background: linear-gradient(135deg, var(--gold-light), var(--gold), var(--gold-dark));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             text-decoration: none;
             display: flex;
             align-items: center;
             gap: 10px;
+            filter: drop-shadow(0 0 15px var(--gold-glow));
+            animation: float 3s ease-in-out infinite;
         }
 
         .logo-icon {
