@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Support - NemexCoin</title>
     <style>
         :root { 
@@ -406,6 +406,41 @@
                 width: 100%;
                 transform: translateX(100%);
             }
+        }
+        
+        /* Comprehensive Responsive Design */
+        @media (max-width: 360px) {
+            .container { max-width: 100%; padding: 0 10px; }
+            .header { padding: 12px 10px; }
+            .header-title { font-size: 16px; }
+            .support-option { padding: 14px; }
+            .option-title { font-size: 15px; }
+            .form-input, .form-textarea { padding: 10px; font-size: 14px; }
+            .submit-btn { padding: 12px; font-size: 14px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { max-width: 100%; }
+            .support-options { grid-template-columns: 1fr; gap: 12px; }
+            .support-option { flex-direction: column; align-items: flex-start; }
+        }
+        
+        @media (min-width: 481px) and (max-width: 767px) {
+            .container { max-width: 500px; }
+            .support-options { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container { max-width: 600px; }
+        }
+        
+        @media (min-width: 1025px) {
+            .container { max-width: 700px; }
+        }
+        
+        @media (max-height: 600px) and (orientation: landscape) {
+            .support-section { padding: 15px 0; }
+            .bottom-nav { height: 55px; }
         }
     </style>
 </head>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>About - NemexCoin</title>
     <style>
         :root { 
@@ -593,6 +593,42 @@
                 width: 100%;
                 transform: translateX(100%);
             }
+        }
+        
+        /* Comprehensive Responsive Design */
+        @media (max-width: 360px) {
+            .container { max-width: 100%; padding: 0 10px; }
+            .header { padding: 12px 10px; }
+            .header-title { font-size: 16px; }
+            .about-section { padding: 16px; }
+            .section-title { font-size: 18px; }
+            .feature-item { padding: 12px; }
+            .feature-title { font-size: 14px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { max-width: 100%; }
+            .features-grid { grid-template-columns: 1fr; gap: 12px; }
+            .team-grid { grid-template-columns: 1fr; }
+            .stat-card { padding: 16px; }
+        }
+        
+        @media (min-width: 481px) and (max-width: 767px) {
+            .container { max-width: 500px; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container { max-width: 600px; }
+        }
+        
+        @media (min-width: 1025px) {
+            .container { max-width: 700px; }
+        }
+        
+        @media (max-height: 600px) and (orientation: landscape) {
+            .about-section { padding: 15px; }
+            .bottom-nav { height: 55px; }
         }
     </style>
 </head>
