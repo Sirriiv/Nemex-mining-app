@@ -8,9 +8,13 @@
     <script type="module" src="/assets/js/supabase-client.js"></script>
     <style>
         :root { 
-            --dark-bg: #0f0f0f; 
-            --darker-bg: #080808; 
-            --gold: #d4af37; 
+            --dark-bg: #0a0a0f; 
+            --darker-bg: #050508; 
+            --gold: #d4af37;
+            --gold-light: #f4d03f;
+            --gold-dark: #b8941f;
+            --gold-glow: rgba(212, 175, 55, 0.4);
+            --gold-shimmer: rgba(212, 175, 55, 0.15);
             --text: #f5f5f5; 
             --muted: #aaa; 
             --bg-secondary: #1a1a1a;
@@ -19,21 +23,60 @@
             --warning: #ffbb33;
             --info: #33b5e5;
             --error: #ff4444;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(-10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-        body { background: var(--dark-bg); color: var(--text); min-height: 100vh; }
-        .container { width: 100%; max-width: 400px; margin: 0 auto; padding-bottom: 70px; }
+        
+        body { 
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a0a20 50%, #0f0a1a 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            color: var(--text); 
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle at 20% 50%, rgba(212, 175, 55, 0.03) 0%, transparent 50%);
+            animation: gradientShift 20s ease infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container { width: 100%; max-width: 400px; margin: 0 auto; padding-bottom: 70px; position: relative; z-index: 1; }
 
         /* Header */
         .header { 
             display: flex; 
             align-items: center; 
             padding: 16px 20px; 
-            border-bottom: 1px solid var(--border-color);
-            background: var(--dark-bg);
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
         }
         .back-button { 
             background: none; 
@@ -42,11 +85,19 @@
             margin-right: 15px; 
             cursor: pointer;
             padding: 5px;
+            transition: all 0.3s ease;
+        }
+        .back-button:hover {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 8px var(--gold-glow));
         }
         .header-title { 
             font-size: 18px; 
             font-weight: 700; 
-            color: var(--gold);
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             flex: 1;
         }
 
@@ -81,17 +132,46 @@
         .notification-gold { border-left: 4px solid var(--gold); }
 
         .notification-item { 
-            background: var(--darker-bg); 
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 18px;
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            margin: 10px 15px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            animation: slideIn 0.3s ease;
         }
+        .notification-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            width: 3px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .notification-item.notification-success::after { background: linear-gradient(180deg, var(--success), transparent); }
+        .notification-item.notification-warning::after { background: linear-gradient(180deg, var(--warning), transparent); }
+        .notification-item.notification-info::after { background: linear-gradient(180deg, var(--info), transparent); }
+        .notification-item.notification-error::after { background: linear-gradient(180deg, var(--error), transparent); }
+        .notification-item.notification-gold::after { background: linear-gradient(180deg, var(--gold), transparent); }
         .notification-item:hover {
-            background: rgba(212, 175, 55, 0.05);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px var(--gold-glow);
+            border-color: var(--gold);
+        }
+        .notification-item:hover::after {
+            opacity: 1;
         }
         .notification-item.unread {
-            background: rgba(212, 175, 55, 0.08);
+            background: rgba(212, 175, 55, 0.12);
+            border-color: var(--gold);
+            box-shadow: 0 2px 15px rgba(212, 175, 55, 0.2);
         }
 
         .notification-header {
