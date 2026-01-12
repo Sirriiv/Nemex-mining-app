@@ -1786,6 +1786,11 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .back-btn:hover {
+            background: rgba(212, 175, 55, 0.2) !important;
         }
 
         .history-title {
@@ -2155,6 +2160,9 @@
             <!-- History View (hidden by default) -->
             <div id="historyView" class="history-section">
                 <div class="history-header">
+                    <button class="back-btn" onclick="showWalletView()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600;">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
                     <div class="history-title">Transaction History</div>
                     <div class="history-actions">
                         <button class="sync-history-btn" onclick="syncTransactionHistory()" id="syncHistoryBtn" style="display: none;">
@@ -3744,6 +3752,10 @@ function showWalletView() {
     
     document.getElementById('walletView').style.display = 'block';
     document.getElementById('historyView').style.display = 'none';
+    
+    // Show bottom navigation
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'flex';
 }
 
 function showHistoryView() {
@@ -3752,6 +3764,10 @@ function showHistoryView() {
     
     document.getElementById('walletView').style.display = 'none';
     document.getElementById('historyView').style.display = 'block';
+    
+    // Hide bottom navigation on history view
+    const bottomNav = document.querySelector('.bottom-nav');
+    if (bottomNav) bottomNav.style.display = 'none';
     
     // Load history if not already loaded
     loadTransactionHistory();
@@ -3808,11 +3824,11 @@ async function loadTransactionHistory() {
             return;
         }
 
-        // ✅ OPTIMIZED: Load TON and NMX transactions in parallel
+        // ✅ OPTIMIZED: Load TON, NMX, and conversion transactions in parallel
         let allTransactions = [];
         
-        // Load TON and conversion transactions in parallel
-        const [tonTxs, conversionTxs] = await Promise.all([
+        // Load TON, NMX transfers, and conversions in parallel
+        const [tonTxs, nmxTxs, conversionTxs] = await Promise.all([
             // Get TON transactions if wallet exists
             (async () => {
                 // ✅ FIX: Check if wallet object exists with address
@@ -3825,6 +3841,33 @@ async function loadTransactionHistory() {
                     }
                 }
                 console.log('ℹ️ No TON transactions to load (no wallet)');
+                return [];
+            })(),
+            // Get NMX transactions from database
+            (async () => {
+                try {
+                    const userSession = await checkAuth();
+                    if (userSession) {
+                        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+                        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+                        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+                        const { data: nmxTransactions, error } = await supabaseClient
+                            .from('transactions')
+                            .select('*')
+                            .eq('user_id', userSession.id)
+                            .eq('token', 'NMX')
+                            .order('created_at', { ascending: false })
+                            .limit(50);
+
+                        if (!error && nmxTransactions && nmxTransactions.length > 0) {
+                            console.log('✅ Loaded', nmxTransactions.length, 'NMX transactions');
+                            return nmxTransactions;
+                        }
+                    }
+                } catch (nmxError) {
+                    console.warn('⚠️ Could not load NMX transactions:', nmxError);
+                }
                 return [];
             })(),
             // Get NMX conversions from Supabase
@@ -3865,7 +3908,7 @@ async function loadTransactionHistory() {
         ]);
         
         // Combine all transactions
-        allTransactions = [...tonTxs, ...conversionTxs];
+        allTransactions = [...tonTxs, ...nmxTxs, ...conversionTxs];
         
         // ✅ Cache the results
         historyCache = allTransactions;

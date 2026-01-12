@@ -3511,6 +3511,39 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
 
         console.log('✅ Jetton transaction sent via Assets SDK!');
 
+        // Save NMX transaction to database
+        try {
+            const tempTxHash = 'NMX_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+            const txRecord = {
+                user_id: userId,
+                wallet_address: walletContract.address.toString(),
+                transaction_hash: tempTxHash,
+                type: 'send',
+                token: 'NMX',
+                amount: amount,
+                to_address: toAddress,
+                from_address: walletContract.address.toString(),
+                status: 'completed',
+                network_fee: 0.05,
+                description: memo || 'NMX Jetton transfer',
+                created_at: new Date().toISOString()
+            };
+
+            console.log('💾 Saving NMX transaction to database...');
+            const { data: inserted, error: insertErr } = await supabase
+                .from('transactions')
+                .insert(txRecord)
+                .select();
+
+            if (insertErr) {
+                console.warn('⚠️ Failed to save NMX transaction:', insertErr.message);
+            } else {
+                console.log('✅ NMX transaction saved to database:', inserted[0]?.id);
+            }
+        } catch (dbError) {
+            console.warn('⚠️ Database save error (non-critical):', dbError.message);
+        }
+
         // Wait for indexing
         await new Promise(resolve => setTimeout(resolve, 3000));
 
