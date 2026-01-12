@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>NemexCoin - Crypto Mining Platform</title>
     <style>
         :root {
@@ -246,7 +246,83 @@
             font-size: 14px;
         }
 
-        /* Responsive */
+        /* Responsive Design - Comprehensive */
+        /* Small phones (< 360px) */
+        @media (max-width: 360px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 0.95rem;
+            }
+            
+            .container {
+                padding: 0 15px;
+            }
+            
+            .header {
+                padding: 15px 0;
+            }
+            
+            .btn {
+                padding: 10px 18px;
+                font-size: 13px;
+            }
+        }
+
+        /* Mobile devices (< 480px) */
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero-logo {
+                width: 70px;
+                height: 70px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+            
+            .feature-card {
+                padding: 20px;
+            }
+        }
+
+        /* Tablets (481px - 767px) */
+        @media (min-width: 481px) and (max-width: 767px) {
+            .hero h1 {
+                font-size: 2.8rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .container {
+                padding: 0 30px;
+            }
+        }
+
+        /* Standard tablets and small laptops */
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 2.5rem;
@@ -264,6 +340,40 @@
             .hero-logo {
                 width: 80px;
                 height: 80px;
+            }
+        }
+        
+        /* Large tablets and laptops */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                max-width: 900px;
+            }
+            
+            .hero h1 {
+                font-size: 3.5rem;
+            }
+        }
+        
+        /* Desktop */
+        @media (min-width: 1025px) {
+            .container {
+                max-width: 1200px;
+            }
+        }
+        
+        /* Landscape mode */
+        @media (max-height: 600px) and (orientation: landscape) {
+            .hero {
+                padding: 40px 0;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .hero-logo {
+                width: 60px;
+                height: 60px;
             }
         }
     </style>

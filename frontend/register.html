@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Create Account - NemexCoin</title>
     <!-- ✅ Only use module version -->
     <script type="module" src="/assets/js/supabase-client.js"></script>
@@ -288,6 +288,34 @@
                 width: 100%;
                 transform: translateX(100%);
             }
+        }
+        
+        /* Comprehensive Responsive Design */
+        @media (max-width: 360px) {
+            .container { max-width: 100%; padding: 0 15px; }
+            .register-logo { width: 60px; height: 60px; }
+            .register-title { font-size: 22px; }
+            .form-input { padding: 12px; font-size: 14px; }
+            .register-btn { padding: 12px; font-size: 14px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { max-width: 100%; }
+            .register-box { padding: 25px; margin: 20px; }
+        }
+        
+        @media (min-width: 481px) and (max-width: 767px) {
+            .container { max-width: 450px; }
+        }
+        
+        @media (min-width: 768px) {
+            .container { max-width: 500px; }
+            .register-box { padding: 40px; }
+        }
+        
+        @media (max-height: 600px) and (orientation: landscape) {
+            .register-box { padding: 20px; margin: 10px; }
+            .register-logo { width: 50px; height: 50px; }
         }
     </style>
 </head>

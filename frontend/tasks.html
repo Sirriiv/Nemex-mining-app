@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Tasks - NemexCoin</title>
     <script type="module" src="/assets/js/supabase-client.js"></script>
    <style>
@@ -465,6 +465,39 @@
 
         .modal-btn:hover {
             transform: translateY(-1px);
+        }
+        
+        /* Comprehensive Responsive Design */
+        @media (max-width: 360px) {
+            .container { max-width: 100%; padding: 0 10px; }
+            .header { padding: 12px 10px; }
+            .header-title { font-size: 16px; }
+            .task-item { padding: 12px; }
+            .task-reward { font-size: 14px; }
+            .claim-btn { padding: 8px 12px; font-size: 12px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { max-width: 100%; }
+            .task-item { flex-direction: column; align-items: flex-start; }
+            .task-info { margin-bottom: 10px; }
+        }
+        
+        @media (min-width: 481px) and (max-width: 767px) {
+            .container { max-width: 500px; }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container { max-width: 600px; }
+        }
+        
+        @media (min-width: 1025px) {
+            .container { max-width: 700px; }
+        }
+        
+        @media (max-height: 600px) and (orientation: landscape) {
+            .tasks-section { padding: 15px 0; }
+            .bottom-nav { height: 55px; }
         }
     </style>
 </head>

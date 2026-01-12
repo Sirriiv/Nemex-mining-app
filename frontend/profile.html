@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>Profile - NemexCoin</title>
     <style>
         :root { 
@@ -580,6 +580,41 @@
 
         .toast.info {
             background: var(--gold);
+        }
+        
+        /* Comprehensive Responsive Design */
+        @media (max-width: 360px) {
+            .container { max-width: 100%; padding: 0 10px; }
+            .header { padding: 12px 10px; }
+            .header-title { font-size: 16px; }
+            .profile-avatar { width: 70px; height: 70px; font-size: 28px; }
+            .profile-name { font-size: 20px; }
+            .stat-value { font-size: 20px; }
+            .menu-item { padding: 14px; }
+        }
+        
+        @media (max-width: 480px) {
+            .container { max-width: 100%; }
+            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            .profile-section { padding: 20px; }
+        }
+        
+        @media (min-width: 481px) and (max-width: 767px) {
+            .container { max-width: 500px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container { max-width: 600px; }
+        }
+        
+        @media (min-width: 1025px) {
+            .container { max-width: 700px; }
+        }
+        
+        @media (max-height: 600px) and (orientation: landscape) {
+            .profile-section { padding: 15px; }
+            .bottom-nav { height: 55px; }
         }
     </style>
 </head>
