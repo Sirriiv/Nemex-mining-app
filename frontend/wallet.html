@@ -3188,6 +3188,10 @@ try {
 const PRICE_STORAGE_KEY = 'wallet_price_snapshot_v1';
 const PRICE_STORAGE_TTL = 10 * 60 * 1000; // 10 minutes
 
+// ✅ Persist user-entered NMXp receive address locally so it survives refreshes
+const LOCAL_WALLET_ADDR_KEY = 'production_wallet_address_v1';
+const LOCAL_WALLET_ADDR_DELETED = '__DELETED__';
+
 function restoreCachedPricesFromStorage() {
     try {
         const raw = localStorage.getItem(PRICE_STORAGE_KEY);
@@ -4938,10 +4942,19 @@ function updateSendSummary() {
 }
 
 function showReceiveModal() {
-    // ✅ FIX: Check if wallet object exists, not just hasWallet flag
-    if (!walletState.wallet || !walletState.wallet.address) {
+    // ✅ FIX: Be defensive and use any available address (wallet object, state address, or saved wallet address)
+    const fallbackAddr = walletState.wallet?.address || walletState.address || walletState.walletAddress;
+
+    if (!fallbackAddr) {
         showToast('❌ You need a wallet to receive tokens', 'error');
         return;
+    }
+
+    // Ensure walletState.wallet exists so downstream logic works
+    if (!walletState.wallet) {
+        walletState.wallet = { address: fallbackAddr };
+    } else if (!walletState.wallet.address) {
+        walletState.wallet.address = fallbackAddr;
     }
 
     console.log('🔄 Opening receive modal for address:', walletState.wallet.address);
@@ -4960,7 +4973,7 @@ function showReceiveModal() {
 }
 
 function initializeWalletCard() {
-    const address = walletState.wallet?.address;
+    const address = walletState.wallet?.address || walletState.address || walletState.walletAddress;
     const userId = getCurrentUserId();
 
     console.log('🔄 Initializing wallet card with address:', address);
@@ -5243,13 +5256,26 @@ async function loadProductionSwapData() {
 
         setBalanceDisplay(nmxpBalance);
 
-        // Sync wallet address into state/UI and prompt for setup when missing
-        walletState.walletAddress = userData.wallet_address || null;
+        // Sync wallet address into state/UI with local fallback and prompt when missing
+        const cachedAddrRaw = localStorage.getItem(LOCAL_WALLET_ADDR_KEY);
+        const cachedAddr = (cachedAddrRaw === LOCAL_WALLET_ADDR_DELETED) ? null : cachedAddrRaw;
+
+        let resolvedAddress = null;
+        if (cachedAddr === null && userData.wallet_address && userData.wallet_address.trim().length > 0) {
+            // No local override; use backend value if present
+            resolvedAddress = userData.wallet_address;
+        } else if (cachedAddr) {
+            // Use local cached address (including overriding backend)
+            resolvedAddress = cachedAddr;
+        }
+
+        walletState.walletAddress = resolvedAddress;
         updateWalletAddressDisplay(walletState.walletAddress);
 
         if (!walletState.walletAddress) {
             showWalletSetup();
         } else {
+            localStorage.setItem(LOCAL_WALLET_ADDR_KEY, walletState.walletAddress);
             const setupModal = document.getElementById('walletSetupModal');
             if (setupModal) setupModal.style.display = 'none';
         }
@@ -5800,7 +5826,9 @@ function showWalletSetup() {
     if (walletState && walletState.walletAddress) {
         input.value = walletState.walletAddress;
     } else {
-        input.value = '';
+        const cachedAddrRaw = localStorage.getItem(LOCAL_WALLET_ADDR_KEY);
+        const cachedAddr = cachedAddrRaw === LOCAL_WALLET_ADDR_DELETED ? '' : (cachedAddrRaw || '');
+        input.value = cachedAddr;
     }
 
     // Open wallet setup modal on top with higher z-index
@@ -5894,12 +5922,14 @@ async function saveWalletAddress() {
         if (walletAddress) {
             walletState.walletAddress = walletAddress;
             updateWalletAddressDisplay(walletAddress);
+            localStorage.setItem(LOCAL_WALLET_ADDR_KEY, walletAddress);
             showToast('✅ Wallet address saved successfully!', 'success');
         } else {
             // ✅ FIX: Empty address = deletion - pass empty string to force display update
             walletState.walletAddress = null;
             document.getElementById('userWalletAddress').value = ''; // Clear input
             updateWalletAddressDisplay(''); // Force update with empty string
+            localStorage.setItem(LOCAL_WALLET_ADDR_KEY, LOCAL_WALLET_ADDR_DELETED);
             showToast('✅ Wallet address removed!', 'success');
         }
 
