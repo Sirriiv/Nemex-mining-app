@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>NemexCoin - Mining Dashboard</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Preconnect to external domains for faster loading -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://telegram.org">
+    <link rel="preconnect" href="https://bjulifvbfogymoduxnzl.supabase.co">
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    
+    <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Environment Variables as Meta Tags -->
     <meta name="supabase-url" content="https://bjulifvbfogymoduxnzl.supabase.co">
@@ -204,6 +211,7 @@
             align-items:center;
             justify-content:center;
             animation: floatLogo 6s ease-in-out infinite;
+            will-change: transform; /* GPU acceleration */
         }
         
         @keyframes floatLogo {
@@ -2584,9 +2592,30 @@
             return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
         }
 
-        // FIXED: Use Supabase Auth instead of localStorage
+        // Cache for auth session to avoid repeated calls
+        let authSessionCache = null;
+        let authSessionCacheTime = 0;
+        const AUTH_CACHE_DURATION = 10000; // 10 seconds
+        let authCheckInProgress = false;
+
+        // FIXED: Use Supabase Auth instead of localStorage with caching
         async function checkAuth() {
             try {
+                // Check cache first
+                const now = Date.now();
+                if (authSessionCache && (now - authSessionCacheTime < AUTH_CACHE_DURATION)) {
+                    return authSessionCache;
+                }
+
+                // Prevent duplicate calls
+                if (authCheckInProgress) {
+                    // Wait for ongoing check
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    return authSessionCache;
+                }
+
+                authCheckInProgress = true;
+
                 // Check if Supabase is available
                 if (!window.supabase) {
                     console.error('❌ Supabase client not available in checkAuth');
@@ -2608,18 +2637,40 @@
                 }
 
                 console.log('✅ Supabase session found for user:', session.user.id);
+
+                // Cache the session
+                authSessionCache = session.user;
+                authSessionCacheTime = now;
+
                 return session.user;
 
             } catch (error) {
-                console.error('❌ Auth check error:', error);
+                console.error('❌ Auth check failed:', error);
                 window.location.href = 'login.html';
                 return null;
+            } finally {
+                authCheckInProgress = false;
             }
         }
 
-        // FIXED: Enhanced user data loading with Supabase Auth
+        // Cache for user data to avoid repeated API calls
+        let userDataCache = null;
+        let userDataCacheTime = 0;
+        const USER_CACHE_DURATION = 30000; // 30 seconds
+
+        // FIXED: Enhanced user data loading with Supabase Auth and Caching
         async function loadUserData() {
             try {
+                // Check cache first
+                const now = Date.now();
+                if (userDataCache && (now - userDataCacheTime < USER_CACHE_DURATION)) {
+                    console.log('⚡ Using cached user data');
+                    userBalance = userDataCache.balance || 0;
+                    lastClaimTime = userDataCache.last_claim ? new Date(userDataCache.last_claim) : null;
+                    document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                    return userDataCache;
+                }
+
                 console.log('🔄 Loading user data with Supabase Auth...');
 
                 // Check authentication first with Supabase
@@ -2658,6 +2709,10 @@
                     window.location.href = 'login.html';
                     return null;
                 }
+
+                // Cache the profile
+                userDataCache = profile;
+                userDataCacheTime = now;
 
                 // Set user data
                 user = profile;
@@ -3040,32 +3095,40 @@
             telegramUserInfo.style.display = 'block';
         }
 
-        // Start countdown timer
+        // Start countdown timer with optimization
         function startCountdownTimer() {
             updateCountdownTimer();
+            // Update every second, but batch DOM updates
             countdownInterval = setInterval(updateCountdownTimer, 1000);
         }
 
-        // Update countdown timer
+        // Optimized countdown timer - only update DOM when value changes
+        let lastCountdownText = '';
         function updateCountdownTimer() {
             const countdownTimer = document.getElementById('countdownTimer');
             const claimButton = document.getElementById('claimButton');
 
             if (!lastClaimTime) {                
-                countdownTimer.textContent = 'Ready!';
-                claimButton.disabled = false;
-                claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+                if (lastCountdownText !== 'Ready!') {
+                    countdownTimer.textContent = 'Ready!';
+                    claimButton.disabled = false;
+                    claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+                    lastCountdownText = 'Ready!';
+                }
                 return;
             }
 
-            const now = new Date();
-            const timeSinceLastClaim = now - new Date(lastClaimTime);
+            const now = Date.now();
+            const timeSinceLastClaim = now - new Date(lastClaimTime).getTime();
             const timeRemaining = CLAIM_COOLDOWN - timeSinceLastClaim;
 
             if (timeRemaining <= 0) {
-                countdownTimer.textContent = 'Ready!';
-                claimButton.disabled = false;
-                claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+                if (lastCountdownText !== 'Ready!') {
+                    countdownTimer.textContent = 'Ready!';
+                    claimButton.disabled = false;
+                    claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+                    lastCountdownText = 'Ready!';
+                }
                 return;
             }
 
@@ -3074,9 +3137,19 @@
             const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
 
-            countdownTimer.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            claimButton.disabled = true;
-            claimButton.textContent = 'Claim Cooldown';
+            const newText = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Only update DOM if text changed
+            if (lastCountdownText !== newText) {
+                countdownTimer.textContent = newText;
+                lastCountdownText = newText;
+            }
+            
+            // Only update button state if needed
+            if (!claimButton.disabled) {
+                claimButton.disabled = true;
+                claimButton.textContent = 'Claim Cooldown';
+            }
         }
 
         // Show success message
@@ -3095,12 +3168,13 @@
             setTimeout(() => errorElement.style.display = 'none', 5000);
         }
 
-        // 🆕 UPDATED: Enhanced mining reward claim with Supabase Auth AND Notification
+        // 🆕 OPTIMIZED: Enhanced mining reward claim with instant UI feedback
         async function claimMiningReward() {
             try {
                 const loadingIndicator = document.getElementById('loadingIndicator');
                 const claimButton = document.getElementById('claimButton');
 
+                // Immediate UI feedback
                 loadingIndicator.style.display = 'block';
                 claimButton.disabled = true;
 
@@ -3120,37 +3194,56 @@
                 const now = new Date();
                 const newBalance = userBalance + CLAIM_AMOUNT;
 
-                // Update balance in profiles table
-                const { data: profileData, error: profileError } = await window.supabase
-                    .from('profiles')
-                    .update({
-                        balance: newBalance,
-                        last_claim: now.toISOString(),
-                        updated_at: now.toISOString()
-                    })
-                    .eq('id', userSession.id)
-                    .select()
-                    .single();
-
-                if (profileError) throw profileError;
-
-                console.log('✅ Mining reward claimed successfully');
+                // Update UI immediately for instant feedback
                 userBalance = newBalance;
                 lastClaimTime = now;
-
                 document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
                 showSuccess(`🎉 Successfully claimed ${CLAIM_AMOUNT} NMX!`);
-
-                // 🆕 NEW: CREATE NOTIFICATION FOR MINING CLAIM
-                await createMiningNotification(userSession.id, CLAIM_AMOUNT, now);
-
-                // Update countdown timer
                 updateCountdownTimer();
+
+                // Clear user data cache to force refresh on next load
+                userDataCache = null;
+
+                // Process database update in background (non-blocking)
+                const updatePromise = (async () => {
+                    try {
+                        // Update balance in profiles table
+                        const { data: profileData, error: profileError } = await window.supabase
+                            .from('profiles')
+                            .update({
+                                balance: newBalance,
+                                last_claim: now.toISOString(),
+                                updated_at: now.toISOString()
+                            })
+                            .eq('id', userSession.id)
+                            .select()
+                            .single();
+
+                        if (profileError) throw profileError;
+
+                        console.log('✅ Mining reward claimed successfully');
+
+                        // 🆕 NEW: CREATE NOTIFICATION IN BACKGROUND
+                        createMiningNotification(userSession.id, CLAIM_AMOUNT, now).catch(e => 
+                            console.warn('⚠️ Notification failed:', e)
+                        );
+
+                    } catch (error) {
+                        console.error('❌ Database update failed:', error);
+                        // Revert UI on failure
+                        userBalance -= CLAIM_AMOUNT;
+                        lastClaimTime = null;
+                        document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                        showError('Failed to save claim. Please try again.');
+                    }
+                })();
+
+                // Don't wait for database - continue immediately
+                loadingIndicator.style.display = 'none';
 
             } catch (error) {
                 console.error('❌ Error claiming mining reward:', error);                
                 showError('Failed to claim reward. Please try again.');
-            } finally {
                 document.getElementById('loadingIndicator').style.display = 'none';
             }
         }
