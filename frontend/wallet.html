@@ -147,6 +147,12 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
         }
 
+        /* Prevent white flash on scroll */
+        html {
+            background-color: #0a0a0f;
+            overflow-x: hidden;
+        }
+
         /* Animated Gradient Background */
         body {
             background: linear-gradient(135deg, 
@@ -3149,7 +3155,7 @@ let SUPPORTED_TOKENS = [
         balance: 0,
         logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
         price: 0,
-        change24h: 0,
+        change24h: null, // Start as null to preserve cached values
         canSend: true,
         isNative: true
     },
@@ -3159,11 +3165,20 @@ let SUPPORTED_TOKENS = [
         balance: 0,
         logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
         price: 0,
-        change24h: 0,
+        change24h: null, // Start as null to preserve cached values
         canSend: true,
         isNative: false
     }
 ];
+
+// Restore cached change24h values from sessionStorage
+try {
+    const cachedTONChange = sessionStorage.getItem('TON_change24h');
+    const cachedNMXChange = sessionStorage.getItem('NMX_change24h');
+    if (cachedTONChange !== null) SUPPORTED_TOKENS[0].change24h = parseFloat(cachedTONChange) || 0;
+    if (cachedNMXChange !== null) SUPPORTED_TOKENS[1].change24h = parseFloat(cachedNMXChange) || 0;
+    console.log('📊 Restored cached change24h:', {TON: SUPPORTED_TOKENS[0].change24h, NMX: SUPPORTED_TOKENS[1].change24h});
+} catch (e) { console.warn('Could not restore cached change24h'); }
 
 let currentSendToken = 'TON';
 let currentTokenBalance = 0;
@@ -4047,6 +4062,20 @@ async function loadTransactionHistory() {
         // Combine all transactions
         allTransactions = [...tonTxs, ...nmxTxs, ...conversionTxs];
         
+        // ✅ DEDUPLICATE: Remove duplicate NMX transactions by unique key (user_id + amount + to_address + timestamp)
+        const seen = new Set();
+        allTransactions = allTransactions.filter(tx => {
+            // Create unique key based on transaction properties
+            const key = `${tx.token || 'TON'}_${tx.type || 'unknown'}_${tx.amount || 0}_${tx.to_address || ''}_${tx.from_address || ''}_${new Date(tx.created_at).getTime()}`;
+            if (seen.has(key)) {
+                console.log('⏭️ Skipping duplicate transaction:', key.substring(0, 50));
+                return false; // Skip duplicate
+            }
+            seen.add(key);
+            return true; // Keep unique transaction
+        });
+        console.log(`✅ Deduplicated transactions: ${tonTxs.length + nmxTxs.length + conversionTxs.length} → ${allTransactions.length}`);
+        
         // ✅ Cache the results
         historyCache = allTransactions;
         historyCacheTime = now;
@@ -4444,11 +4473,16 @@ async function loadWalletData() {
                 if (priceResult.prices.TON?.change24h !== undefined && priceResult.prices.TON.change24h !== null) {
                     SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
                 }
+                if (priceResult.prices.TON?.change24h !== undefined && priceResult.prices.TON.change24h !== null) {
+                    SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
+                    sessionStorage.setItem('TON_change24h', priceResult.prices.TON.change24h.toString());
+                }
                 if (priceResult.prices.NMX?.price && priceResult.prices.NMX.price > 0) {
                     SUPPORTED_TOKENS[1].price = priceResult.prices.NMX.price;
                 }
                 if (priceResult.prices.NMX?.change24h !== undefined && priceResult.prices.NMX.change24h !== null) {
                     SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX.change24h;
+                    sessionStorage.setItem('NMX_change24h', priceResult.prices.NMX.change24h.toString());
                 }
                 
                 // Update display with fresh prices
@@ -4503,8 +4537,8 @@ function updateWalletDisplay() {
                     <div class="token-symbol">${token.symbol}</div>
                     <div class="token-price">
                         $${priceDisplay} 
-                        <span class="token-change ${token.change24h >= 0 ? 'change-positive' : 'change-negative'}">
-                            ${token.change24h >= 0 ? '+' : ''}${token.change24h.toFixed(2)}%
+                        <span class="token-change ${(token.change24h !== null && token.change24h >= 0) ? 'change-positive' : 'change-negative'}">
+                            ${token.change24h !== null ? (token.change24h >= 0 ? '+' : '') + token.change24h.toFixed(2) + '%' : '--'}
                         </span>
                     </div>
                 </div>
