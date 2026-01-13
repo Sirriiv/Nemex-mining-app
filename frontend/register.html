@@ -400,33 +400,33 @@
             <div id="invalidReferralMessage"></div>
         </div>
 
-        <form id="registerForm">
+        <form id="registerForm" autocomplete="off" onsubmit="return false;">
             <div class="form-group">
                 <label class="form-label">Full Name</label>
-                <input type="text" class="form-input" id="fullName" required>
+                <input type="text" class="form-input" id="fullName" autocomplete="off" required>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Username (for referrals)</label>
-                <input type="text" class="form-input" id="username" required minlength="3">
+                <input type="text" class="form-input" id="username" autocomplete="off" required minlength="3">
                 <div class="password-hint">This will be your unique referral identifier</div>
                 <div class="error-message" id="usernameError"></div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Email Address</label>
-                <input type="email" class="form-input" id="email" required>
+                <input type="email" class="form-input" id="email" autocomplete="off" required>
                 <div class="error-message" id="emailError"></div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Password</label>
-                <input type="password" class="form-input" id="password" required minlength="6">
+                <input type="password" class="form-input" id="password" autocomplete="new-password" required minlength="6">
                 <div class="password-hint">Must be at least 6 characters - This will also secure your wallet</div>
                 <div class="error-message" id="passwordError"></div>
             </div>
 
-            <button type="submit" class="register-btn" id="registerBtn">Create Account</button>
+            <button type="button" class="register-btn" id="registerBtn">Create Account</button>
         </form>
 
         <div class="login-link">
@@ -544,9 +544,31 @@
         function initializeForm(supabase) {
             console.log('📝 Initializing registration form...');
             
-            document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            const registerBtn = document.getElementById('registerBtn');
+            const registerForm = document.getElementById('registerForm');
+            
+            // Prevent form submission entirely
+            registerForm.addEventListener('submit', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
+                return false;
+            });
+            
+            // Handle button click instead of form submit
+            registerBtn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 await handleRegistration(e, supabase);
+                return false;
+            });
+            
+            // Prevent Enter key from submitting form
+            registerForm.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+                    e.preventDefault();
+                    registerBtn.click();
+                    return false;
+                }
             });
         }
 
