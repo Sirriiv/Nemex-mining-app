@@ -3291,6 +3291,9 @@ router.post('/send', async (req, res) => {
 // ============================================
 router.post('/send-jetton', async (req, res) => {
     console.log('🪙 SEND JETTON REQUEST RECEIVED');
+    console.log('📍 Request timestamp:', new Date().toISOString());
+    console.log('📍 Database status:', dbStatus);
+    console.log('📍 Supabase initialized:', supabase ? 'YES' : 'NO');
 
     try {
         const { userId, walletPassword, toAddress, amount, jettonMasterAddress, memo = '' } = req.body;
@@ -3299,19 +3302,30 @@ router.post('/send-jetton', async (req, res) => {
             userId: userId ? `${userId.substring(0, 8)}...` : 'MISSING',
             toAddress: toAddress ? `${toAddress.substring(0, 10)}...` : 'MISSING',
             amount: amount || 'MISSING',
-            jettonMaster: jettonMasterAddress ? `${jettonMasterAddress.substring(0, 10)}...` : 'MISSING'
+            jettonMaster: jettonMasterAddress ? `${jettonMasterAddress.substring(0, 10)}...` : 'MISSING',
+            hasPassword: walletPassword ? 'YES' : 'NO',
+            passwordLength: walletPassword ? walletPassword.length : 0
         });
 
         // Validation
         if (!userId || !walletPassword || !toAddress || !amount || !jettonMasterAddress) {
+            const missingFields = [];
+            if (!userId) missingFields.push('userId');
+            if (!walletPassword) missingFields.push('walletPassword');
+            if (!toAddress) missingFields.push('toAddress');
+            if (!amount) missingFields.push('amount');
+            if (!jettonMasterAddress) missingFields.push('jettonMasterAddress');
+            
+            console.error('❌ Missing required fields:', missingFields.join(', '));
             return res.status(400).json({
                 success: false,
-                error: 'Missing required fields: userId, walletPassword, toAddress, amount, jettonMasterAddress'
+                error: `Missing required fields: ${missingFields.join(', ')}`
             });
         }
 
         const amountNum = parseFloat(amount);
         if (isNaN(amountNum) || amountNum <= 0) {
+            console.error('❌ Invalid amount:', amount);
             return res.status(400).json({
                 success: false,
                 error: 'Invalid amount. Must be a positive number'
@@ -3319,17 +3333,33 @@ router.post('/send-jetton', async (req, res) => {
         }
 
         if (!toAddress.startsWith('EQ') && !toAddress.startsWith('UQ')) {
+            console.error('❌ Invalid address format:', toAddress);
             return res.status(400).json({
                 success: false,
                 error: 'Invalid TON address format. Must start with EQ or UQ'
             });
         }
 
-        if (dbStatus !== 'connected') {
-            return res.status(503).json({
-                success: false,
-                error: 'Database not available'
-            });
+        // Check database connection and try to reconnect if needed
+        if (dbStatus !== 'connected' || !supabase) {
+            console.warn('⚠️ Database not connected, attempting to reconnect...');
+            try {
+                await initializeSupabase();
+                if (dbStatus !== 'connected' || !supabase) {
+                    console.error('❌ Database reconnection failed');
+                    return res.status(503).json({
+                        success: false,
+                        error: 'Database service temporarily unavailable. Please try again.'
+                    });
+                }
+                console.log('✅ Database reconnected successfully');
+            } catch (reconnectError) {
+                console.error('❌ Database reconnection error:', reconnectError);
+                return res.status(503).json({
+                    success: false,
+                    error: 'Database not available'
+                });
+            }
         }
 
         console.log('✅ All validations passed');
@@ -3382,27 +3412,75 @@ router.post('/send-jetton', async (req, res) => {
 // ============================================
 async function sendJettonTransaction(userId, walletPassword, toAddress, amount, jettonMasterAddress, memo = '') {
     console.log('🚀 SEND JETTON TRANSACTION STARTED');
+    console.log('📊 Function params:', {
+        userId: userId ? 'provided' : 'missing',
+        password: walletPassword ? 'provided' : 'missing',
+        toAddress: toAddress ? toAddress.substring(0, 10) + '...' : 'missing',
+        amount: amount,
+        jettonMaster: jettonMasterAddress ? jettonMasterAddress.substring(0, 10) + '...' : 'missing'
+    });
 
     try {
-        // Get wallet from database
-        const wallet = await getWalletFromDatabase(userId);
+        // Get wallet from database with detailed error handling
+        console.log('🔍 Step 1: Fetching wallet from database for user:', userId);
+        let wallet;
+        try {
+            wallet = await getWalletFromDatabase(userId);
+        } catch (dbError) {
+            console.error('❌ Database error while fetching wallet:', dbError.message);
+            throw new Error(`Failed to retrieve wallet from database: ${dbError.message}`);
+        }
+        
         if (!wallet) {
-            throw new Error(`Wallet not found for user: ${userId}`);
+            console.error('❌ No wallet record found for user:', userId);
+            throw new Error('Wallet not found. Please create a wallet first.');
         }
 
         console.log('✅ Wallet found:', wallet.address?.substring(0, 15) + '...');
+        console.log('📊 Wallet data check:', {
+            hasAddress: !!wallet.address,
+            hasPasswordHash: !!wallet.password_hash,
+            hasEncryptedMnemonic: !!wallet.encrypted_mnemonic
+        });
 
-        // Verify password
-        const passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
-        if (!passwordValid) {
-            throw new Error('Invalid wallet password');
+        // Verify password with better error messages
+        console.log('🔍 Step 2: Verifying password...');
+        if (!wallet.password_hash) {
+            console.error('❌ Wallet has no password hash stored');
+            throw new Error('Wallet password not configured. Please recreate your wallet.');
         }
-        console.log('✅ Password verified');
+        
+        let passwordValid;
+        try {
+            passwordValid = await verifyWalletPassword(walletPassword, wallet.password_hash);
+        } catch (verifyError) {
+            console.error('❌ Password verification error:', verifyError.message);
+            throw new Error('Password verification failed. Please try again.');
+        }
+        
+        if (!passwordValid) {
+            console.error('❌ Password verification returned false');
+            throw new Error('Invalid wallet password. Please check your password and try again.');
+        }
+        console.log('✅ Password verified successfully');
 
-        // Decrypt mnemonic
+        // Decrypt mnemonic with detailed error handling
+        console.log('🔍 Step 3: Decrypting mnemonic...');
         let mnemonic;
         try {
+            if (!wallet.encrypted_mnemonic) {
+                console.error('❌ No encrypted mnemonic found in wallet record');
+                throw new Error('Wallet data corrupted. Missing encrypted mnemonic.');
+            }
+            
             const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
+            console.log('📊 Encrypted data structure:', {
+                hasIv: !!encryptedData.iv,
+                hasEncrypted: !!encryptedData.encrypted,
+                hasAuthTag: !!encryptedData.authTag,
+                algorithm: encryptedData.algorithm
+            });
+            
             const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
             const decipher = crypto.createDecipheriv(
                 encryptedData.algorithm,
@@ -3413,21 +3491,52 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
             let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
             decrypted += decipher.final('utf8');
             mnemonic = decrypted.split(' ');
-            console.log('✅ Mnemonic decrypted');
+            
+            if (!mnemonic || mnemonic.length < 12) {
+                console.error('❌ Decrypted mnemonic invalid:', mnemonic?.length, 'words');
+                throw new Error('Invalid mnemonic recovered. Data may be corrupted.');
+            }
+            
+            console.log('✅ Mnemonic decrypted successfully:', mnemonic.length, 'words');
         } catch (decryptError) {
+            console.error('❌ Decryption error:', decryptError.message);
+            console.error('❌ Stack:', decryptError.stack);
+            if (decryptError.message.includes('Unsupported state')) {
+                throw new Error('Failed to decrypt wallet. Please verify your password is correct.');
+            }
             throw new Error('Failed to decrypt wallet. Wrong password or corrupted data.');
         }
 
-        // Get keypair and wallet contract
-        const keyPair = await mnemonicToPrivateKey(mnemonic);
-        const walletContract = WalletContractV4.create({
-            workchain: 0,
-            publicKey: keyPair.publicKey
-        });
+        // Get keypair and wallet contract with error handling
+        console.log('🔍 Step 4: Creating wallet contract...');
+        let keyPair, walletContract;
+        try {
+            keyPair = await mnemonicToPrivateKey(mnemonic);
+            console.log('✅ KeyPair derived from mnemonic');
+            
+            walletContract = WalletContractV4.create({
+                workchain: 0,
+                publicKey: keyPair.publicKey
+            });
+            console.log('✅ Wallet contract created');
+            console.log('📊 Contract address:', walletContract.address.toString());
+            
+            // Verify address matches database
+            const contractAddr = walletContract.address.toString({ urlSafe: true, bounceable: false, testOnly: false });
+            if (wallet.address && contractAddr !== wallet.address) {
+                console.warn('⚠️ Address mismatch detected!');
+                console.warn('   Database:', wallet.address);
+                console.warn('   Contract:', contractAddr);
+                // Continue anyway - the mnemonic is correct
+            }
+        } catch (contractError) {
+            console.error('❌ Wallet contract creation failed:', contractError.message);
+            console.error('❌ Stack:', contractError.stack);
+            throw new Error('Failed to create wallet contract from mnemonic.');
+        }
 
-        console.log('✅ Wallet contract created');
-
-        // Connect to TON
+        // Connect to TON with improved error handling
+        console.log('🔍 Step 5: Connecting to TON network...');
         const rpcEndpoints = [
             {
                 name: 'TON Console',
@@ -3442,6 +3551,7 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
         ];
 
         let tonClient;
+        let lastRpcError;
         for (const rpc of rpcEndpoints) {
             try {
                 console.log(`🔍 Trying RPC: ${rpc.name}`);
@@ -3450,68 +3560,141 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
                     apiKey: rpc.apiKey,
                     timeout: 30000
                 });
-                await tonClient.getBalance(walletContract.address);
-                console.log(`✅ Connected to ${rpc.name}`);
+                
+                // Test connection by getting balance
+                const testBalance = await tonClient.getBalance(walletContract.address);
+                console.log(`✅ Connected to ${rpc.name}, balance: ${Number(BigInt(testBalance)) / 1_000_000_000} TON`);
                 break;
             } catch (rpcError) {
+                lastRpcError = rpcError;
                 console.log(`❌ ${rpc.name} failed: ${rpcError.message}`);
                 continue;
             }
         }
 
         if (!tonClient) {
-            throw new Error('All RPC endpoints failed');
+            console.error('❌ All RPC endpoints failed');
+            console.error('❌ Last error:', lastRpcError?.message);
+            throw new Error('Cannot connect to TON network. Please try again later.');
         }
 
-        // Check TON balance for gas
-        const balance = await tonClient.getBalance(walletContract.address);
-        const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
+        // Check TON balance for gas with detailed feedback
+        console.log('🔍 Step 6: Checking TON balance for gas fees...');
+        let balance, balanceTON;
+        try {
+            balance = await tonClient.getBalance(walletContract.address);
+            balanceTON = Number(BigInt(balance)) / 1_000_000_000;
+            console.log(`💰 Current balance: ${balanceTON.toFixed(6)} TON`);
+        } catch (balanceError) {
+            console.error('❌ Failed to check balance:', balanceError.message);
+            throw new Error('Failed to check wallet balance. Please try again.');
+        }
+        
         const requiredGas = 0.05; // Jetton transfers need ~0.05 TON for gas
 
         if (balanceTON < requiredGas) {
-            throw new Error(`Insufficient TON for gas. Need ${requiredGas} TON, have ${balanceTON.toFixed(4)} TON`);
+            console.error(`❌ Insufficient gas: have ${balanceTON.toFixed(4)} TON, need ${requiredGas} TON`);
+            throw new Error(`Insufficient TON for gas. Need ${requiredGas} TON, have ${balanceTON.toFixed(4)} TON. Please add TON to your wallet.`);
         }
 
         console.log(`✅ Sufficient gas: ${balanceTON.toFixed(4)} TON`);
 
-        // Parse addresses
-        const recipientAddress = Address.parse(toAddress);
-        const jettonMasterAddr = Address.parse(jettonMasterAddress);
+        // Parse addresses with error handling
+        console.log('🔍 Step 7: Parsing addresses...');
+        let recipientAddress, jettonMasterAddr;
+        try {
+            recipientAddress = Address.parse(toAddress);
+            console.log('✅ Recipient address parsed:', recipientAddress.toString());
+        } catch (addrError) {
+            console.error('❌ Failed to parse recipient address:', addrError.message);
+            throw new Error('Invalid recipient address format.');
+        }
+        
+        try {
+            jettonMasterAddr = Address.parse(jettonMasterAddress);
+            console.log('✅ Jetton master address parsed:', jettonMasterAddr.toString());
+        } catch (jettonError) {
+            console.error('❌ Failed to parse jetton master address:', jettonError.message);
+            throw new Error('Invalid Jetton master address.');
+        }
 
         console.log('🎯 Using Assets SDK for Jetton transfer...');
         console.log(`📊 Sending ${amount} NMX to ${toAddress}`);
         
-        // Create sender object from wallet
-        const walletProvider = tonClient.provider(walletContract.address);
-        const sender = walletContract.sender(walletProvider, keyPair.secretKey);
+        // Create sender object from wallet with error handling
+        console.log('🔍 Step 8: Creating transaction sender...');
+        let walletProvider, sender, api, sdk;
+        try {
+            walletProvider = tonClient.provider(walletContract.address);
+            sender = walletContract.sender(walletProvider, keyPair.secretKey);
+            console.log('✅ Sender created');
+            
+            // Create Assets SDK instance
+            api = await createApi('mainnet');
+            sdk = AssetsSDK.create({ api, sender });
+            console.log('✅ Assets SDK initialized');
+        } catch (sdkError) {
+            console.error('❌ Failed to initialize Assets SDK:', sdkError.message);
+            throw new Error('Failed to initialize transaction system.');
+        }
         
-        // Create Assets SDK instance
-        const api = await createApi('mainnet');
-        const sdk = AssetsSDK.create({ api, sender });
-        
-        // Open Jetton Master contract
-        const jetton = await sdk.openJetton(jettonMasterAddr);
-        
-        // Get sender's Jetton Wallet (auto-deploys if needed)
-        const jettonWallet = await jetton.getWallet(walletContract.address);
+        // Open Jetton Master contract and get wallet
+        console.log('🔍 Step 9: Opening Jetton contracts...');
+        let jetton, jettonWallet;
+        try {
+            jetton = await sdk.openJetton(jettonMasterAddr);
+            console.log('✅ Jetton master contract opened');
+            
+            // Get sender's Jetton Wallet (auto-deploys if needed)
+            jettonWallet = await jetton.getWallet(walletContract.address);
+            console.log('✅ Jetton wallet retrieved:', jettonWallet.address.toString());
+        } catch (jettonOpenError) {
+            console.error('❌ Failed to open Jetton contracts:', jettonOpenError.message);
+            throw new Error('Failed to access NMX token contract. Please try again.');
+        }
         
         // Calculate Jetton amount in base units
-        const jettonAmount = toNano(amount.toString());
+        console.log('🔍 Step 10: Preparing transaction...');
+        let jettonAmount;
+        try {
+            jettonAmount = toNano(amount.toString());
+            console.log('📊 Jetton amount:', jettonAmount.toString(), 'nano-units');
+        } catch (nanoError) {
+            console.error('❌ Failed to convert amount:', nanoError.message);
+            throw new Error('Invalid amount format.');
+        }
         
         // Send Jettons using Assets SDK
-        await jettonWallet.send(
-            sender,
-            recipientAddress,
-            jettonAmount,
-            {
-                forwardAmount: toNano('0.01'), // TON for notification
-                forwardPayload: memo ? tonSDK.beginCell().storeUint(0, 32).storeStringTail(memo).endCell() : null
+        console.log('🔍 Step 11: Sending Jetton transaction...');
+        try {
+            await jettonWallet.send(
+                sender,
+                recipientAddress,
+                jettonAmount,
+                {
+                    forwardAmount: toNano('0.01'), // TON for notification
+                    forwardPayload: memo ? tonSDK.beginCell().storeUint(0, 32).storeStringTail(memo).endCell() : null
+                }
+            );
+            console.log('✅✅✅ Jetton transaction sent successfully via Assets SDK!');
+        } catch (sendError) {
+            console.error('❌ Jetton send failed:', sendError.message);
+            console.error('❌ Send error stack:', sendError.stack);
+            
+            // Provide user-friendly error messages
+            if (sendError.message.includes('insufficient')) {
+                throw new Error('Insufficient NMX balance or TON for gas.');
+            } else if (sendError.message.includes('timeout')) {
+                throw new Error('Transaction timed out. Please try again.');
+            } else if (sendError.message.includes('network')) {
+                throw new Error('Network error. Please check your connection and try again.');
+            } else {
+                throw new Error(`Transaction failed: ${sendError.message}`);
             }
-        );
-
-        console.log('✅ Jetton transaction sent via Assets SDK!');
+        }
 
         // Save NMX transaction to database
+        console.log('🔍 Step 12: Saving transaction to database...');
         try {
             const tempTxHash = 'NMX_' + Date.now() + '_' + Math.random().toString(36).substring(7);
             const txRecord = {
@@ -3537,22 +3720,27 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
 
             if (insertErr) {
                 console.warn('⚠️ Failed to save NMX transaction:', insertErr.message);
+                console.warn('⚠️ This is non-critical - transaction was sent successfully');
             } else {
                 console.log('✅ NMX transaction saved to database:', inserted[0]?.id);
             }
         } catch (dbError) {
             console.warn('⚠️ Database save error (non-critical):', dbError.message);
+            // Don't fail the transaction if database save fails
         }
 
         // Wait for indexing
+        console.log('⏳ Waiting for blockchain indexing...');
         await new Promise(resolve => setTimeout(resolve, 3000));
 
+        console.log('✅✅✅ JETTON TRANSACTION COMPLETED SUCCESSFULLY!');
         return {
             success: true,
             message: 'Jetton transaction sent successfully',
             amount: amount,
             recipient: toAddress,
-            jettonMaster: jettonMasterAddress
+            jettonMaster: jettonMasterAddress,
+            timestamp: new Date().toISOString()
         };
 
     } catch (error) {

@@ -1265,9 +1265,11 @@ window.sendJettonTransaction = async function(toAddress, amount, memo = '', jett
         }
 
         // Get password for transaction
+        console.log('🔐 Requesting password for transaction...');
         const password = await window.walletManager.promptForPassword();
         if (!password) {
-            throw new Error('Password required for transaction');
+            console.log('⚠️ User cancelled password prompt');
+            throw new Error('Transaction cancelled - password required');
         }
 
         console.log('🪙 Sending Jetton transaction:', {
@@ -1276,64 +1278,116 @@ window.sendJettonTransaction = async function(toAddress, amount, memo = '', jett
             jettonMaster: jettonMasterAddress
         });
 
-        // Call backend Jetton send endpoint
-        const response = await fetch(`${window.walletManager.apiBaseUrl}/send-jetton`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId: userId,
-                walletPassword: password,
-                toAddress: toAddress.trim(),
-                amount: amount,
-                jettonMasterAddress: jettonMasterAddress,
-                memo: memo || ''
-            })
-        });
+        // Show loading toast
+        if (typeof window.showToast === 'function') {
+            window.showToast('⏳ Sending NMX transaction...', 'info');
+        }
+
+        // Call backend Jetton send endpoint with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
+        let response;
+        try {
+            response = await fetch(`${window.walletManager.apiBaseUrl}/send-jetton`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: userId,
+                    walletPassword: password,
+                    toAddress: toAddress.trim(),
+                    amount: amount,
+                    jettonMasterAddress: jettonMasterAddress,
+                    memo: memo || ''
+                }),
+                signal: controller.signal
+            });
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                throw new Error('Request timed out. Please check your connection and try again.');
+            }
+            throw new Error('Network error. Please check your connection and try again.');
+        }
+        
+        clearTimeout(timeoutId);
 
         // Check if response is ok before parsing JSON
         if (!response.ok) {
             console.error('❌ Response not OK:', {
                 status: response.status,
                 statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries())
+                url: response.url
             });
             
-            let errorMessage = `Request failed with status code ${response.status}`;
+            let errorMessage = `Request failed with status ${response.status}`;
+            
+            // Try to get detailed error message from response
             try {
-                const errorText = await response.text();
-                console.error('❌ Raw error response:', errorText);
+                const contentType = response.headers.get('content-type');
+                let errorText;
                 
-                // Try to parse as JSON
-                try {
-                    const errorData = JSON.parse(errorText);
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
                     console.error('❌ Parsed error data:', errorData);
                     errorMessage = errorData.error || errorData.message || errorData.details || errorMessage;
-                } catch (parseErr) {
-                    console.error('❌ Could not parse error as JSON:', parseErr);
+                } else {
+                    errorText = await response.text();
+                    console.error('❌ Raw error response:', errorText);
                     errorMessage = errorText || errorMessage;
                 }
-            } catch (e) {
-                console.error('❌ Could not read error response:', e);
-                errorMessage = response.statusText || errorMessage;
+            } catch (parseErr) {
+                console.error('❌ Could not parse error response:', parseErr);
+                
+                // Provide helpful messages based on status code
+                if (response.status === 400) {
+                    errorMessage = 'Invalid request. Please check your wallet password and try again.';
+                } else if (response.status === 401) {
+                    errorMessage = 'Authentication failed. Please check your wallet password.';
+                } else if (response.status === 403) {
+                    errorMessage = 'Access denied. Please verify your wallet.';
+                } else if (response.status === 404) {
+                    errorMessage = 'Wallet not found. Please create a wallet first.';
+                } else if (response.status === 500) {
+                    errorMessage = 'Server error. Please try again in a moment.';
+                } else if (response.status === 503) {
+                    errorMessage = 'Service temporarily unavailable. Please try again.';
+                }
             }
+            
             throw new Error(errorMessage);
         }
 
-        const result = await response.json();
-        console.log('📦 Jetton send result:', result);
+        // Parse successful response
+        let result;
+        try {
+            result = await response.json();
+            console.log('📦 Jetton send result:', result);
+        } catch (jsonError) {
+            console.error('❌ Failed to parse success response:', jsonError);
+            throw new Error('Invalid response from server');
+        }
 
         if (!result.success) {
+            console.error('❌ Transaction failed:', result.error);
             throw new Error(result.error || 'Jetton transaction failed');
         }
 
+        console.log('✅✅✅ Jetton transaction successful!');
+        
+        // Show success message
         if (typeof window.showToast === 'function') {
-            window.showToast('✅ Jetton transaction sent successfully!', 'success');
+            window.showToast('✅ NMX transaction sent successfully!', 'success');
         }
 
-        // Refresh balance
+        // Refresh balance after short delay
         setTimeout(() => {
+            console.log('🔄 Refreshing balance after transaction...');
             if (typeof window.updateRealBalance === 'function') {
                 window.updateRealBalance();
+            }
+            if (typeof window.loadTransactionHistory === 'function') {
+                window.loadTransactionHistory();
             }
         }, 2000);
 
@@ -1344,10 +1398,29 @@ window.sendJettonTransaction = async function(toAddress, amount, memo = '', jett
         };
 
     } catch (error) {
-        console.error('❌ Global send Jetton transaction failed:', error);
+        console.error('❌❌❌ Global send Jetton transaction failed:', error.message);
+        console.error('❌ Error stack:', error.stack);
+        
+        // Show error toast with user-friendly message
         if (typeof window.showToast === 'function') {
-            window.showToast(`❌ ${error.message}`, 'error');
+            // Make error message more user-friendly
+            let userMessage = error.message;
+            
+            if (userMessage.includes('fetch') || userMessage.includes('NetworkError')) {
+                userMessage = 'Network error. Please check your connection and try again.';
+            } else if (userMessage.includes('timeout')) {
+                userMessage = 'Request timed out. Please try again.';
+            } else if (userMessage.includes('password')) {
+                userMessage = 'Invalid wallet password. Please try again.';
+            } else if (userMessage.includes('balance') || userMessage.includes('insufficient')) {
+                userMessage = 'Insufficient balance. Please check your NMX and TON balances.';
+            } else if (userMessage.includes('Database')) {
+                userMessage = 'Database temporarily unavailable. Please try again.';
+            }
+            
+            window.showToast(`❌ ${userMessage}`, 'error');
         }
+        
         return { success: false, error: error.message };
     }
 };
