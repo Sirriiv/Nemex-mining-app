@@ -1366,6 +1366,9 @@
                 const availableSlots = Math.max(0, totalSlots - directCount);
                 const earnedBonus = profile.total_earned_from_refs || 0;
 
+                // Keep profile slots in sync with live direct referral count
+                await syncReferralCounters(directCount, totalSlots);
+
                 document.getElementById('totalReferrals').textContent = directCount;
                 document.getElementById('availableSlots').textContent = availableSlots;
                 document.getElementById('earnedBonus').textContent = earnedBonus;
@@ -1387,6 +1390,20 @@
                 console.error('❌ Error loading referral data:', error);
                 showToast('Error loading referral data', 'error');
                 document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        async function syncReferralCounters(directCount, slotCap) {
+            try {
+                await supabase
+                    .from('profiles')
+                    .update({
+                        used_slots: directCount,
+                        referral_slots: slotCap
+                    })
+                    .eq('id', currentUser.id);
+            } catch (err) {
+                console.error('❌ Error syncing referral counters:', err);
             }
         }
 
