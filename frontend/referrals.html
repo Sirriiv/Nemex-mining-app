@@ -1355,8 +1355,8 @@
                 // Update tier UI
                 updateTierUI(tierStatus, directCount, Number(profile.balance || 0), mainTasksStatus);
 
-                // Referral link uses referral_code first, fallback to username
-                const code = profile.referral_code || profile.username || currentUser.id;
+                // Referral link now always shows username (fallback to referral_code/id if missing)
+                const code = profile.username || profile.referral_code || currentUser.id;
                 const referralLink = `${REF_BASE_URL}${encodeURIComponent(code)}`;
                 document.getElementById('referralLink').value = referralLink;
 
