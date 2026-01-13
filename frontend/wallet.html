@@ -994,6 +994,10 @@
         .wallet-settings-btn.connected .wallet-address {
             color: #00C851;
             font-weight: 700;
+            max-width: 140px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .dropdown-selected:hover {
@@ -3040,7 +3044,7 @@
 
                 <div class="modal-body">
                     <p>Enter your TON wallet address to receive NMX tokens:</p>
-                    <input type="text" id="userWalletAddress" placeholder="EQABCD1234..." class="wallet-input">
+                    <input type="text" id="userWalletAddress" placeholder="UQxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="wallet-input">
 
                     <div class="modal-actions">
                         <button class="btn primary" onclick="saveWalletAddress()">Save Wallet Address</button>
@@ -3179,6 +3183,54 @@ try {
     if (cachedNMXChange !== null) SUPPORTED_TOKENS[1].change24h = parseFloat(cachedNMXChange) || 0;
     console.log('📊 Restored cached change24h:', {TON: SUPPORTED_TOKENS[0].change24h, NMX: SUPPORTED_TOKENS[1].change24h});
 } catch (e) { console.warn('Could not restore cached change24h'); }
+
+// ✅ Persist prices/percentages across reloads for instant display
+const PRICE_STORAGE_KEY = 'wallet_price_snapshot_v1';
+const PRICE_STORAGE_TTL = 10 * 60 * 1000; // 10 minutes
+
+function restoreCachedPricesFromStorage() {
+    try {
+        const raw = localStorage.getItem(PRICE_STORAGE_KEY);
+        if (!raw) return;
+
+        const cached = JSON.parse(raw);
+        if (!cached.timestamp || (Date.now() - cached.timestamp) > PRICE_STORAGE_TTL) return;
+
+        ['TON', 'NMX'].forEach((symbol, idx) => {
+            const tokenCache = cached[symbol];
+            if (!tokenCache) return;
+
+            if (typeof tokenCache.price === 'number' && tokenCache.price > 0) {
+                SUPPORTED_TOKENS[idx].price = tokenCache.price;
+            }
+            if (tokenCache.change24h !== undefined && tokenCache.change24h !== null) {
+                SUPPORTED_TOKENS[idx].change24h = tokenCache.change24h;
+                sessionStorage.setItem(`${symbol}_change24h`, tokenCache.change24h.toString());
+            }
+        });
+
+        console.log('📦 Restored cached prices from storage:', cached);
+    } catch (error) {
+        console.warn('⚠️ Could not restore cached prices', error);
+    }
+}
+
+function persistPriceCacheToStorage() {
+    try {
+        const snapshot = {
+            timestamp: Date.now(),
+            TON: { price: SUPPORTED_TOKENS[0].price, change24h: SUPPORTED_TOKENS[0].change24h },
+            NMX: { price: SUPPORTED_TOKENS[1].price, change24h: SUPPORTED_TOKENS[1].change24h }
+        };
+
+        localStorage.setItem(PRICE_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (error) {
+        console.warn('⚠️ Could not persist price cache', error);
+    }
+}
+
+// Load any recent cached prices immediately so UI never shows 0%/0.00 while fetching
+restoreCachedPricesFromStorage();
 
 let currentSendToken = 'TON';
 let currentTokenBalance = 0;
@@ -4489,6 +4541,9 @@ async function loadWalletData() {
                 
                 // Update display with fresh prices
                 updateWalletDisplay();
+
+                // Persist for instant reuse on next load
+                persistPriceCacheToStorage();
             }
         }).catch(error => {
             console.error('❌ Price fetch failed:', error);
@@ -5188,7 +5243,16 @@ async function loadProductionSwapData() {
 
         setBalanceDisplay(nmxpBalance);
 
-        updateWalletAddressDisplay(userData.wallet_address);
+        // Sync wallet address into state/UI and prompt for setup when missing
+        walletState.walletAddress = userData.wallet_address || null;
+        updateWalletAddressDisplay(walletState.walletAddress);
+
+        if (!walletState.walletAddress) {
+            showWalletSetup();
+        } else {
+            const setupModal = document.getElementById('walletSetupModal');
+            if (setupModal) setupModal.style.display = 'none';
+        }
 
         console.log('✅ loadProductionSwapData COMPLETED');
 
@@ -6100,6 +6164,11 @@ async function fetchPricesWithFastestAPI() {
             priceCache = fastest.prices;
             priceCacheTime = now;
 
+            // Persist to storage for instant reuse on next load
+            sessionStorage.setItem('TON_change24h', (SUPPORTED_TOKENS[0].change24h ?? 0).toString());
+            sessionStorage.setItem('NMX_change24h', (SUPPORTED_TOKENS[1].change24h ?? 0).toString());
+            persistPriceCacheToStorage();
+
             // Immediately update display to show prices and percentages
             updateWalletDisplay();
             return fastest.prices;
@@ -6145,7 +6214,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchPricesWithFastestAPI();
         // Update prices every 60 seconds
         setInterval(fetchPricesWithFastestAPI, 60000);
-    }, 1000); // Fetch after wallet loads
+    }, 50); // Fetch almost immediately after wallet loads
 
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {
