@@ -818,48 +818,49 @@
             try {
                 console.log('🔄 Processing referral...');
 
-                if (shouldGiveBonus) {
-                    const BONUS_AMOUNT = 30;
+                // Always consume a slot; only add balance/earnings when a bonus applies
+                const BONUS_AMOUNT = 30;
 
-                    const { data: referrerData } = await supabase
-                        .from('profiles')
-                        .select('balance, total_earned_from_refs, used_slots, username')
-                        .eq('id', referrerId)
-                        .single();
+                const { data: referrerData } = await supabase
+                    .from('profiles')
+                    .select('balance, total_earned_from_refs, used_slots, username')
+                    .eq('id', referrerId)
+                    .single();
 
-                    if (!referrerData) return;
-
-                    const newBalance = (referrerData.balance || 0) + BONUS_AMOUNT;
-                    const newEarned = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
+                if (referrerData) {
                     const newUsedSlots = (referrerData.used_slots || 0) + 1;
+                    const updatePayload = { used_slots: newUsedSlots };
+
+                    if (shouldGiveBonus) {
+                        updatePayload.balance = (referrerData.balance || 0) + BONUS_AMOUNT;
+                        updatePayload.total_earned_from_refs = (referrerData.total_earned_from_refs || 0) + BONUS_AMOUNT;
+                    }
 
                     await supabase
                         .from('profiles')
-                        .update({ 
-                            balance: newBalance,
-                            total_earned_from_refs: newEarned,
-                            used_slots: newUsedSlots
-                        })
+                        .update(updatePayload)
                         .eq('id', referrerId);
 
-                    console.log('✅ Referral bonus processed successfully');
+                    if (shouldGiveBonus) {
+                        console.log('✅ Referral bonus processed successfully');
 
-                    // Create referral notification
-                    try {
-                        const notificationData = {
-                            user_id: referrerId,
-                            type: 'referral',
-                            title: 'New Referral!',
-                            message: `${document.getElementById('username').value} joined using your referral link. You earned ${BONUS_AMOUNT} NMXp bonus!`,
-                            is_read: false,
-                            created_at: new Date().toISOString()
-                        };
+                        // Create referral notification
+                        try {
+                            const notificationData = {
+                                user_id: referrerId,
+                                type: 'referral',
+                                title: 'New Referral!',
+                                message: `${document.getElementById('username').value} joined using your referral link. You earned ${BONUS_AMOUNT} NMXp bonus!`,
+                                is_read: false,
+                                created_at: new Date().toISOString()
+                            };
 
-                        await supabase
-                            .from('notifications')
-                            .insert([notificationData]);
-                    } catch (notificationError) {
-                        console.error('❌ Error creating referral notification:', notificationError);
+                            await supabase
+                                .from('notifications')
+                                .insert([notificationData]);
+                        } catch (notificationError) {
+                            console.error('❌ Error creating referral notification:', notificationError);
+                        }
                     }
                 }
 
