@@ -48,7 +48,7 @@
             background: linear-gradient(135deg, 
                 var(--darker-bg) 0%, 
                 var(--dark-bg) 50%, 
-                #0f0f1a 100%
+                var(--darker-bg) 100%
             );
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
@@ -151,10 +151,10 @@
         
         .balance-display {
             margin-bottom: 20px;
-            padding: 20px;
+            padding: 15px 20px;
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
-            border-radius: 20px;
+            border-radius: 15px;
             border: 1px solid var(--glass-border);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             transition: all 0.4s ease;
@@ -177,7 +177,7 @@
         }
         
         .balance-amount {
-            font-size: 42px;
+            font-size: 32px;
             font-weight: 700;
             background: linear-gradient(135deg, var(--gold-light), var(--gold));
             -webkit-background-clip: text;
@@ -412,9 +412,9 @@
             background-size: 200% 200%;
             color: var(--darker-bg);
             border: none;
-            padding: 16px 45px;
-            border-radius: 30px;
-            font-size: 17px;
+            padding: 14px 50px;
+            border-radius: 25px;
+            font-size: 16px;
             font-weight: 700;
             margin: 20px 0;
             cursor: pointer;
@@ -424,7 +424,7 @@
                 0 0 40px rgba(212,175,55,0.2),
                 inset 0 1px 0 rgba(255,255,255,0.3);
             width: 100%;
-            max-width: 280px;
+            max-width: 320px;
             position: relative;
             overflow: hidden;
             text-transform: uppercase;

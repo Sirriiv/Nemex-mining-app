@@ -152,10 +152,11 @@
             background: linear-gradient(135deg, 
                 var(--darker-bg) 0%, 
                 var(--dark-bg) 50%, 
-                #0f0f1a 100%
+                var(--darker-bg) 100%
             );
             background-size: 400% 400%;
             animation: gradientShift 15s ease infinite;
+            background-attachment: fixed;
             color: var(--text);
             min-height: 100vh;
             padding: 0;
