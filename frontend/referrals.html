@@ -1206,14 +1206,33 @@
         }
 
         async function fetchDirectReferrals() {
-            const { data, error } = await supabase
+            // Fetch direct referral edges, then hydrate with profile data to avoid FK dependence
+            const { data: edges, error } = await supabase
                 .from('referral_network')
-                .select('id, created_at, level, referred:profiles!referral_network_referred_id_fkey (id, username, email, full_name, created_at, balance)')
+                .select('id, created_at, level, referrer_id, referred_id')
                 .eq('referrer_id', currentUser.id)
                 .eq('level', 1)
                 .order('created_at', { ascending: false });
+
             if (error) throw error;
-            return data || [];
+            if (!edges || edges.length === 0) return [];
+
+            const referredIds = edges.map(e => e.referred_id).filter(Boolean);
+            if (referredIds.length === 0) return edges;
+
+            const { data: profiles, error: profileError } = await supabase
+                .from('profiles')
+                .select('id, username, email, full_name, created_at, balance')
+                .in('id', referredIds);
+
+            if (profileError) throw profileError;
+
+            const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+
+            return edges.map(e => ({
+                ...e,
+                referred_profile: profileMap.get(e.referred_id) || null
+            }));
         }
 
         async function fetchMainTaskStatus() {
@@ -1409,8 +1428,8 @@
 
             let html = '';
             referralsData.forEach(ref => {
-                const referralDate = new Date(ref.created_at || ref.referred?.created_at).toLocaleDateString();
-                const referred = ref.referred || {};
+                const referralDate = new Date(ref.created_at || ref.referred_profile?.created_at).toLocaleDateString();
+                const referred = ref.referred_profile || {};
                 const displayName = referred.full_name || referred.username || referred.email || 'Unknown User';
                 const referredId = referred.id || ref.referred_id || ref.id;
 
