@@ -4454,12 +4454,14 @@ async function loadWalletData() {
     if (!walletState.hasWallet || !walletState.wallet) return;
 
     try {
+        // ✅ ALWAYS display immediately with current values (even if zero, percentages will show from cache)
+        updateWalletDisplay();
+        console.log('⚡ Displaying wallet with current values (cached percentages should be visible)');
+        
         // ✅ OPTIMIZED: Use cached prices if available and recent
         const hasCachedPrices = SUPPORTED_TOKENS[0].price > 0 || SUPPORTED_TOKENS[1].price > 0;
         
         if (hasCachedPrices) {
-            // Display with cached prices immediately
-            updateWalletDisplay();
             console.log('⚡ Using cached prices for instant display');
         }
         
