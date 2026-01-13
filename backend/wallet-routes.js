@@ -3410,8 +3410,56 @@ router.post('/send-jetton', async (req, res) => {
 // ============================================
 // 🎯 JETTON TRANSFER FUNCTION
 // ============================================
+// ============================================
+// 🔥 GLOBAL WALLET DEPLOYMENT CHECK
+// This ensures ALL wallets (new + existing users) are deployed before sending
+// ============================================
+async function ensureWalletDeployed(tonClient, walletContract, secretKey) {
+    console.log('🔍 Checking if wallet is deployed on blockchain...');
+    
+    try {
+        const deployed = await tonClient.isContractDeployed(walletContract.address);
+
+        if (deployed) {
+            console.log('✅ Wallet already deployed');
+            return true;
+        }
+
+        console.log('⚠️ Wallet NOT deployed - deploying now with global fix...');
+        const seqno = await walletContract.getSeqno();
+
+        await walletContract.sendTransfer({
+            seqno,
+            secretKey,
+            messages: [
+                internal({
+                    to: walletContract.address,
+                    value: toNano('0.05'), // Deployment fee
+                    bounce: false
+                })
+            ]
+        });
+
+        // Wait for deployment to finalize (max 15 seconds)
+        const startTime = Date.now();
+        while (Date.now() - startTime < 15000) {
+            const isNowDeployed = await tonClient.isContractDeployed(walletContract.address);
+            if (isNowDeployed) {
+                console.log('✅ Wallet deployed successfully!');
+                return true;
+            }
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+
+        throw new Error('Wallet deployment timed out after 15 seconds');
+    } catch (error) {
+        console.error('❌ Wallet deployment check failed:', error.message);
+        throw new Error(`Wallet deployment failed: ${error.message}`);
+    }
+}
+
 async function sendJettonTransaction(userId, walletPassword, toAddress, amount, jettonMasterAddress, memo = '') {
-    console.log('🚀 SEND JETTON TRANSACTION STARTED');
+    console.log('🚀 SEND JETTON TRANSACTION STARTED - GLOBAL DEPLOYMENT FIX');
     console.log('📊 Function params:', {
         userId: userId ? 'provided' : 'missing',
         password: walletPassword ? 'provided' : 'missing',
@@ -3578,6 +3626,15 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
             throw new Error('Cannot connect to TON network. Please try again later.');
         }
 
+        // 🔥 STEP 5.5: FORCE WALLET DEPLOYMENT (GLOBAL FIX)
+        console.log('🔥 Step 5.5: Ensuring wallet is deployed on blockchain...');
+        try {
+            await ensureWalletDeployed(tonClient, walletContract, keyPair.secretKey);
+        } catch (deployError) {
+            console.error('❌ Wallet deployment failed:', deployError.message);
+            throw new Error(`Wallet deployment required but failed: ${deployError.message}. Please ensure you have at least 0.1 TON in your wallet.`);
+        }
+
         // Check TON balance for gas with detailed feedback
         console.log('🔍 Step 6: Checking TON balance for gas fees...');
         let balance, balanceTON;
@@ -3672,11 +3729,11 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
                 recipientAddress,
                 jettonAmount,
                 {
-                    forwardAmount: toNano('0.01'), // TON for notification
-                    forwardPayload: memo ? tonSDK.beginCell().storeUint(0, 32).storeStringTail(memo).endCell() : null
+                    forwardAmount: toNano('0'), // No forward amount
+                    forwardPayload: null
                 }
             );
-            console.log('✅✅✅ Jetton transaction sent successfully via Assets SDK!');
+            console.log('✅✅✅ Jetton transaction sent successfully via Assets SDK with global deployment fix!');
         } catch (sendError) {
             console.error('❌ Jetton send failed:', sendError.message);
             console.error('❌ Send error stack:', sendError.stack);
