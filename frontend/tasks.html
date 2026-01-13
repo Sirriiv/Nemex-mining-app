@@ -1140,8 +1140,34 @@
                         throw profileError;
                     }
 
-                    let newCheckins = (profile.daily_checkins || 0) + 1;
-                    if (newCheckins > 7) newCheckins = 1; // Reset after 7 days
+                    // Check if user already checked in today
+                    const lastCheckin = profile.last_checkin ? new Date(profile.last_checkin).toISOString().split('T')[0] : null;
+                    if (lastCheckin === today) {
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        alert('⏰ You have already checked in today! Come back tomorrow for your next check-in.');
+                        return;
+                    }
+
+                    // Check if check-in is consecutive or if streak should reset
+                    let newCheckins;
+                    if (lastCheckin) {
+                        const yesterday = new Date();
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        const yesterdayStr = yesterday.toISOString().split('T')[0];
+                        
+                        if (lastCheckin === yesterdayStr) {
+                            // Consecutive day - increment
+                            newCheckins = (profile.daily_checkins || 0) + 1;
+                            if (newCheckins > 7) newCheckins = 1; // Reset after 7 days
+                        } else {
+                            // Streak broken - reset to day 1
+                            newCheckins = 1;
+                        }
+                    } else {
+                        // First check-in ever
+                        newCheckins = 1;
+                    }
 
                     const newBalance = (profile.balance || 0) + task.reward;
 
