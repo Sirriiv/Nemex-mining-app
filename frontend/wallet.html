@@ -2590,6 +2590,8 @@
                             <div style="flex: 1; position: relative;">
                                 <input type="text" id="sendToAddress" class="form-input" 
                                        placeholder="Enter wallet address (EQ...)"
+                                       oninput="validateSendAddressInstant()"
+                                       onpaste="setTimeout(validateSendAddressInstant, 10)"
                                        style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); 
                                               border: 2px solid rgba(212, 175, 55, 0.3); 
                                               color: var(--text); 
@@ -3859,7 +3861,9 @@ async function updateRealBalance() {
             const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
             if (tonToken) {
                 const oldBalance = tonToken.balance;
+                // ✅ FIX: Only update balance, preserve price and change24h
                 tonToken.balance = tonBalance;
+                // Do NOT reset tonToken.price or tonToken.change24h here!
                 
                 if (Math.abs(tonBalance - oldBalance) > 0.01) {
                     console.log('💰 TON Balance:', oldBalance.toFixed(4), '→', tonBalance.toFixed(4));
@@ -3875,7 +3879,9 @@ async function updateRealBalance() {
             const nmxToken = SUPPORTED_TOKENS.find(t => t.symbol === 'NMX');
             if (nmxToken) {
                 const oldBalance = nmxToken.balance;
+                // ✅ FIX: Only update balance, preserve price and change24h
                 nmxToken.balance = nmxBalance;
+                // Do NOT reset nmxToken.price or nmxToken.change24h here!
                 
                 if (Math.abs(nmxBalance - oldBalance) > 0.01) {
                     console.log('💰 NMX Balance:', oldBalance.toFixed(2), '→', nmxBalance.toFixed(2));
@@ -4838,7 +4844,8 @@ async function pasteAddress() {
     }
 }
 
-function validateSendAddress() {
+// ✅ NEW: Instant validation as user types or pastes
+function validateSendAddressInstant() {
     const addressInput = document.getElementById('sendToAddress');
     const validationElement = document.getElementById('addressValidation');
     const address = addressInput.value.trim();
@@ -4849,17 +4856,30 @@ function validateSendAddress() {
         return false;
     }
 
-    const isValid = address.startsWith('EQ') || address.startsWith('UQ');
-
-    if (isValid) {
-        validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address format</span>';
+    // Check if address is valid TON format (EQ or UQ prefix + 48 base64 chars)
+    const isValidFormat = (address.startsWith('EQ') || address.startsWith('UQ')) && address.length === 48;
+    const hasCorrectPrefix = address.startsWith('EQ') || address.startsWith('UQ');
+    
+    if (isValidFormat) {
+        validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address</span>';
         addressInput.style.borderColor = 'var(--success)';
-    } else {
-        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid TON address format</span>';
+        addressInput.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.1)';
+    } else if (hasCorrectPrefix && address.length < 48) {
+        validationElement.innerHTML = '<span style="color: #FFA500; font-weight: 600;">⚠ Address too short (need 48 characters)</span>';
+        addressInput.style.borderColor = '#FFA500';
+        addressInput.style.boxShadow = '0 0 0 3px rgba(255, 165, 0, 0.1)';
+    } else if (address.length > 0) {
+        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid format (must start with EQ or UQ)</span>';
         addressInput.style.borderColor = 'var(--error)';
+        addressInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
     }
 
-    return isValid;
+    return isValidFormat;
+}
+
+function validateSendAddress() {
+    // Fallback to instant validation
+    return validateSendAddressInstant();
 }
 
 function setMaxAmount() {
@@ -6235,6 +6255,16 @@ document.addEventListener('DOMContentLoaded', function() {
         sessionStorage: sessionStorage.getItem('miningUser'),
         walletManagerExists: !!window.walletManager
     });
+
+    // ✅ FIX: Load cached percentage values immediately to prevent 0.00% display
+    const cachedTonChange = sessionStorage.getItem('TON_change24h');
+    const cachedNmxChange = sessionStorage.getItem('NMX_change24h');
+    if (cachedTonChange !== null) {
+        SUPPORTED_TOKENS[0].change24h = parseFloat(cachedTonChange);
+    }
+    if (cachedNmxChange !== null) {
+        SUPPORTED_TOKENS[1].change24h = parseFloat(cachedNmxChange);
+    }
 
     // ✅ OPTIMIZED: Initialize wallet immediately (critical path)
     initWallet();
