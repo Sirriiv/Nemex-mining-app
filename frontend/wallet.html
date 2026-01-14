@@ -3161,7 +3161,7 @@ let SUPPORTED_TOKENS = [
         balance: 0,
         logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
         price: 0,
-        change24h: null, // Start as null to preserve cached values
+        change24h: 0, // Initialize to 0, will be updated by price fetch
         canSend: true,
         isNative: true
     },
@@ -3171,18 +3171,24 @@ let SUPPORTED_TOKENS = [
         balance: 0,
         logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
         price: 0,
-        change24h: null, // Start as null to preserve cached values
+        change24h: 0, // Initialize to 0, will be updated by price fetch
         canSend: true,
         isNative: false
     }
 ];
 
-// Restore cached change24h values from sessionStorage
+// 🔥 IMMEDIATE: Restore cached change24h values from sessionStorage BEFORE any other operations
 try {
     const cachedTONChange = sessionStorage.getItem('TON_change24h');
     const cachedNMXChange = sessionStorage.getItem('NMX_change24h');
-    if (cachedTONChange !== null) SUPPORTED_TOKENS[0].change24h = parseFloat(cachedTONChange) || 0;
-    if (cachedNMXChange !== null) SUPPORTED_TOKENS[1].change24h = parseFloat(cachedNMXChange) || 0;
+    if (cachedTONChange !== null && cachedTONChange !== 'null') {
+        const val = parseFloat(cachedTONChange);
+        if (!isNaN(val)) SUPPORTED_TOKENS[0].change24h = val;
+    }
+    if (cachedNMXChange !== null && cachedNMXChange !== 'null') {
+        const val = parseFloat(cachedNMXChange);
+        if (!isNaN(val)) SUPPORTED_TOKENS[1].change24h = val;
+    }
     console.log('📊 Restored cached change24h:', {TON: SUPPORTED_TOKENS[0].change24h, NMX: SUPPORTED_TOKENS[1].change24h});
 } catch (e) { console.warn('Could not restore cached change24h'); }
 
@@ -4604,8 +4610,8 @@ function updateWalletDisplay() {
                     <div class="token-symbol">${token.symbol}</div>
                     <div class="token-price">
                         $${priceDisplay} 
-                        <span class="token-change ${(token.change24h !== null && token.change24h >= 0) ? 'change-positive' : 'change-negative'}">
-                            ${token.change24h !== null ? (token.change24h >= 0 ? '+' : '') + token.change24h.toFixed(2) + '%' : '--'}
+                        <span class="token-change ${(typeof token.change24h === 'number' && token.change24h >= 0) ? 'change-positive' : 'change-negative'}">
+                            ${typeof token.change24h === 'number' ? (token.change24h >= 0 ? '+' : '') + token.change24h.toFixed(2) + '%' : '0.00%'}
                         </span>
                     </div>
                 </div>
@@ -4844,6 +4850,72 @@ async function pasteAddress() {
     }
 }
 
+// ✅ PROPER TON ADDRESS VALIDATION with checksum verification
+function isValidTONAddress(address) {
+    try {
+        // Must start with EQ or UQ and be 48 characters
+        if (!address || address.length !== 48) return false;
+        if (!address.startsWith('EQ') && !address.startsWith('UQ')) return false;
+        
+        // Validate base64url characters (A-Z, a-z, 0-9, -, _)
+        const base64UrlPattern = /^[A-Za-z0-9_-]+$/;
+        if (!base64UrlPattern.test(address)) return false;
+        
+        // Convert base64url to base64 standard
+        let base64 = address.replace(/-/g, '+').replace(/_/g, '/');
+        
+        // Decode base64 to bytes
+        try {
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            
+            // TON address must be exactly 36 bytes (1 tag + 1 workchain + 32 hash + 2 checksum)
+            if (bytes.length !== 36) return false;
+            
+            // Extract components
+            const tag = bytes[0];
+            const workchain = bytes[1];
+            const hash = bytes.slice(2, 34);
+            const checksum = bytes.slice(34, 36);
+            
+            // Calculate CRC16 checksum
+            const dataForCrc = new Uint8Array(34);
+            dataForCrc[0] = tag;
+            dataForCrc[1] = workchain;
+            dataForCrc.set(hash, 2);
+            
+            const calculatedChecksum = crc16(dataForCrc);
+            const providedChecksum = (checksum[0] << 8) | checksum[1];
+            
+            // Verify checksum matches
+            return calculatedChecksum === providedChecksum;
+        } catch (e) {
+            return false;
+        }
+    } catch (error) {
+        return false;
+    }
+}
+
+// CRC16 calculation for TON addresses
+function crc16(data) {
+    const poly = 0x1021;
+    let crc = 0;
+    
+    for (let i = 0; i < data.length; i++) {
+        crc ^= (data[i] << 8);
+        
+        for (let j = 0; j < 8; j++) {
+            crc = (crc & 0x8000) ? ((crc << 1) ^ poly) : (crc << 1);
+        }
+    }
+    
+    return crc & 0xFFFF;
+}
+
 // ✅ NEW: Instant validation as user types or pastes
 function validateSendAddressInstant() {
     const addressInput = document.getElementById('sendToAddress');
@@ -4853,28 +4925,36 @@ function validateSendAddressInstant() {
     if (!address) {
         validationElement.innerHTML = '';
         addressInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
+        addressInput.style.boxShadow = 'none';
         return false;
     }
 
-    // Check if address is valid TON format (EQ or UQ prefix + 48 base64 chars)
-    const isValidFormat = (address.startsWith('EQ') || address.startsWith('UQ')) && address.length === 48;
+    // Full validation with checksum verification
+    const isValid = isValidTONAddress(address);
     const hasCorrectPrefix = address.startsWith('EQ') || address.startsWith('UQ');
+    const hasCorrectLength = address.length === 48;
     
-    if (isValidFormat) {
-        validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address</span>';
+    if (isValid) {
+        validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address (checksum verified)</span>';
         addressInput.style.borderColor = 'var(--success)';
         addressInput.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.1)';
-    } else if (hasCorrectPrefix && address.length < 48) {
-        validationElement.innerHTML = '<span style="color: #FFA500; font-weight: 600;">⚠ Address too short (need 48 characters)</span>';
+    } else if (!hasCorrectPrefix) {
+        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid format (must start with EQ or UQ)</span>';
+        addressInput.style.borderColor = 'var(--error)';
+        addressInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+    } else if (!hasCorrectLength) {
+        const diff = 48 - address.length;
+        validationElement.innerHTML = `<span style="color: #FFA500; font-weight: 600;">⚠ Address too ${diff > 0 ? 'short' : 'long'} (${Math.abs(diff)} characters ${diff > 0 ? 'needed' : 'extra'})</span>`;
         addressInput.style.borderColor = '#FFA500';
         addressInput.style.boxShadow = '0 0 0 3px rgba(255, 165, 0, 0.1)';
-    } else if (address.length > 0) {
-        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid format (must start with EQ or UQ)</span>';
+    } else {
+        // Has correct prefix and length but invalid checksum
+        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid address (checksum failed - check for typos)</span>';
         addressInput.style.borderColor = 'var(--error)';
         addressInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
     }
 
-    return isValidFormat;
+    return isValid;
 }
 
 function validateSendAddress() {
@@ -6203,11 +6283,13 @@ async function fetchPricesWithFastestAPI() {
             if (fastest.prices.TON.price > 0) {
                 SUPPORTED_TOKENS[0].price = fastest.prices.TON.price;
                 SUPPORTED_TOKENS[0].change24h = fastest.prices.TON.change24h;
+                console.log('📊 Set TON change24h:', SUPPORTED_TOKENS[0].change24h);
             }
 
             if (fastest.prices.NMX.price > 0) {
                 SUPPORTED_TOKENS[1].price = fastest.prices.NMX.price;
                 SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h;
+                console.log('📊 Set NMX change24h:', SUPPORTED_TOKENS[1].change24h);
             }
 
             // ✅ Cache the successful result
@@ -6215,8 +6297,12 @@ async function fetchPricesWithFastestAPI() {
             priceCacheTime = now;
 
             // Persist to storage for instant reuse on next load
-            sessionStorage.setItem('TON_change24h', (SUPPORTED_TOKENS[0].change24h ?? 0).toString());
-            sessionStorage.setItem('NMX_change24h', (SUPPORTED_TOKENS[1].change24h ?? 0).toString());
+            sessionStorage.setItem('TON_change24h', SUPPORTED_TOKENS[0].change24h.toString());
+            sessionStorage.setItem('NMX_change24h', SUPPORTED_TOKENS[1].change24h.toString());
+            console.log('💾 Saved percentages to sessionStorage:', {
+                TON: SUPPORTED_TOKENS[0].change24h,
+                NMX: SUPPORTED_TOKENS[1].change24h
+            });
             persistPriceCacheToStorage();
 
             // Immediately update display to show prices and percentages
@@ -6256,17 +6342,8 @@ document.addEventListener('DOMContentLoaded', function() {
         walletManagerExists: !!window.walletManager
     });
 
-    // ✅ FIX: Load cached percentage values immediately to prevent 0.00% display
-    const cachedTonChange = sessionStorage.getItem('TON_change24h');
-    const cachedNmxChange = sessionStorage.getItem('NMX_change24h');
-    if (cachedTonChange !== null) {
-        SUPPORTED_TOKENS[0].change24h = parseFloat(cachedTonChange);
-    }
-    if (cachedNmxChange !== null) {
-        SUPPORTED_TOKENS[1].change24h = parseFloat(cachedNmxChange);
-    }
-
     // ✅ OPTIMIZED: Initialize wallet immediately (critical path)
+    // Note: change24h values already restored at top of file
     initWallet();
 
     // ✅ OPTIMIZED: Defer price fetching to not block initialization
