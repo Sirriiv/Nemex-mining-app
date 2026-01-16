@@ -10,45 +10,32 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- ✅ UPDATED: USE @ton/ton INSTEAD OF TonWeb (MATCHES YOUR BACKEND) -->
-    <!-- @ton/ton (VERSION 15.4.0 - MATCHES YOUR BACKEND package.json) -->
-    <script src="https://cdn.jsdelivr.net/npm/@ton/ton@15.4.0/dist/ton.min.js"></script>
+    <!-- ✅ TON SDK Libraries - Using UNPKG for better browser compatibility -->
+    <!-- @ton/core - Core TON blockchain primitives -->
+    <script src="https://unpkg.com/@ton/core@0.56.0/dist/index.js"></script>
     
-    <!-- @ton/crypto (VERSION 3.2.0 - MATCHES YOUR BACKEND package.json) -->
-    <script src="https://cdn.jsdelivr.net/npm/@ton/crypto@3.2.0/dist/crypto.min.js"></script>
+    <!-- @ton/crypto - Cryptographic functions -->
+    <script src="https://unpkg.com/@ton/crypto@3.2.0/dist/index.js"></script>
     
-    <!-- @ton/core (NEEDED FOR TRANSACTIONS) -->
-    <script src="https://cdn.jsdelivr.net/npm/@ton/core@0.57.4/dist/index.min.js"></script>
-
-    <!-- REMOVED: tonweb@0.0.42 - NO LONGER NEEDED -->
+    <!-- @ton/ton - Main TON SDK -->
+    <script src="https://unpkg.com/@ton/ton@13.11.0/dist/index.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {
-                console.log('✅ TON Library Check (UPDATED TO @ton/ton):');
-                console.log('@ton/ton loaded:', typeof window.Ton !== 'undefined');
-                console.log('@ton/core loaded:', typeof window.TonCore !== 'undefined');
-                console.log('@ton/crypto loaded:', typeof window.TonCrypto !== 'undefined');
+                console.log('✅ TON Library Check:');
+                console.log('@ton/ton loaded:', typeof window.TonWeb !== 'undefined' || typeof window.TON !== 'undefined');
+                console.log('@ton/core loaded:', typeof window.TonCore !== 'undefined' || typeof window.core !== 'undefined');
+                console.log('@ton/crypto loaded:', typeof window.TonCrypto !== 'undefined' || typeof window.crypto !== 'undefined');
                 
-                // Test TON functionality with new library
-                if (typeof window.Ton !== 'undefined') {
-                    console.log('🎉 @ton/ton successfully loaded!');
-                    console.log('TON library version:', window.Ton.VERSION);
-                    console.log('Available methods:', Object.keys(window.Ton).filter(k => typeof window.Ton[k] === 'function'));
-                    
-                    // Test creating a wallet (compatible with backend)
-                    if (window.Ton.WalletContractV4) {
-                        console.log('✅ WalletContractV4 available');
-                    }
-                } else {
-                    console.error('❌ @ton/ton NOT LOADED!');
-                }
+                // Check window for all TON-related objects
+                const tonKeys = Object.keys(window).filter(k => k.toLowerCase().includes('ton'));
+                console.log('🔍 Available TON objects in window:', tonKeys);
                 
-                if (typeof window.TonCrypto !== 'undefined') {
-                    console.log('✅ @ton/crypto library loaded');
-                    console.log('Available crypto methods:', ['mnemonic', 'keyPair', 'sha256'].filter(k => typeof window.TonCrypto[k] === 'function'));
+                if (tonKeys.length > 0) {
+                    console.log('✅ TON libraries loaded successfully');
                 } else {
-                    console.warn('⚠️ @ton/crypto not loaded');
+                    console.warn('⚠️ No TON libraries detected in window scope');
                 }
             }, 1500);
         });
