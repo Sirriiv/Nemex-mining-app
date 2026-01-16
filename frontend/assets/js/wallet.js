@@ -322,6 +322,7 @@ class WalletManager {
                 return null;
             }
 
+            console.log('✅ Found session token in localStorage:', storedToken.substring(0, 16) + '...');
             this.sessionToken = storedToken;
 
             // Ask backend to validate session from database
@@ -355,11 +356,11 @@ class WalletManager {
                 };
 
                 this.isInitialized = true;
-                console.log('✅ Valid database session found');
+                console.log('✅ Valid database session found for user:', this.userId, 'address:', this.currentWallet.address);
                 return result.session;
             } else {
                 // ❌ Session invalid or expired
-                console.log('❌ Session invalid or expired, clearing token');
+                console.log('❌ Session invalid or expired, clearing token. Reason:', result.message);
                 localStorage.removeItem('nemex_wallet_session');
                 this.sessionToken = null;
                 return null;
