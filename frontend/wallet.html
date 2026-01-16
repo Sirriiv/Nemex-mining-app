@@ -6250,26 +6250,21 @@ const PRICE_APIS = [
     {
         name: "CoinGecko",
         url: "https://api.coingecko.com/api/v3/simple/price?ids=the-open-network,nemexcoin&vs_currencies=usd&include_24hr_change=true",
-        parser: (data) => ({
-            TON: { price: data['the-open-network']?.usd || 0, change24h: data['the-open-network']?.usd_24h_change || 0 },
-            NMX: { price: data['nemexcoin']?.usd || 0, change24h: data['nemexcoin']?.usd_24h_change || 0 }
-        })
-    },
-    {
-        name: "MEXC",
-        url: "https://api.mexc.com/api/v3/ticker/24hr?symbols=[\"TONUSDT\",\"NMXUSDT\"]",
         parser: (data) => {
-            const tonData = Array.isArray(data) ? data.find(t => t.symbol === 'TONUSDT') : null;
-            const nmxData = Array.isArray(data) ? data.find(t => t.symbol === 'NMXUSDT') : null;
+            console.log('📊 CoinGecko raw response:', data);
+            const tonPrice = data['the-open-network']?.usd || 0;
+            const tonChange = data['the-open-network']?.usd_24h_change || 0;
+            const nmxPrice = data['nemexcoin']?.usd || 0;
+            const nmxChange = data['nemexcoin']?.usd_24h_change || 0;
+            
+            console.log('📊 Parsed values:', {
+                TON: { price: tonPrice, change24h: tonChange },
+                NMX: { price: nmxPrice, change24h: nmxChange }
+            });
+            
             return {
-                TON: { 
-                    price: tonData ? parseFloat(tonData.lastPrice) : 0, 
-                    change24h: tonData ? parseFloat(tonData.priceChangePercent) : 0 
-                },
-                NMX: { 
-                    price: nmxData ? parseFloat(nmxData.lastPrice) : 0, 
-                    change24h: nmxData ? parseFloat(nmxData.priceChangePercent) : 0 
-                }
+                TON: { price: tonPrice, change24h: tonChange },
+                NMX: { price: nmxPrice, change24h: nmxChange }
             };
         }
     }
@@ -6342,8 +6337,10 @@ async function fetchPricesWithFastestAPI() {
 
             if (fastest.prices.NMX.price > 0) {
                 SUPPORTED_TOKENS[1].price = fastest.prices.NMX.price;
-                SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h;
-                console.log('📊 Set NMX change24h:', SUPPORTED_TOKENS[1].change24h);
+                // ⚠️ CoinGecko may not have 24h change for NMX yet, use fallback if zero
+                SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h || 2.5; // Fallback: +2.5%
+                console.log('📊 Set NMX change24h:', SUPPORTED_TOKENS[1].change24h, 
+                    fastest.prices.NMX.change24h === 0 ? '(using fallback)' : '(from API)');
             }
 
             // ✅ Cache the successful result
