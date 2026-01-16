@@ -5355,26 +5355,43 @@ async function loadProductionSwapData() {
 
         setBalanceDisplay(nmxpBalance);
 
-        // Sync wallet address into state/UI with local fallback and prompt when missing
+        // 🔥 FIX: Sync wallet address into state/UI - RESPECT LOCAL DELETION
         const cachedAddrRaw = localStorage.getItem(LOCAL_WALLET_ADDR_KEY);
-        const cachedAddr = (cachedAddrRaw === LOCAL_WALLET_ADDR_DELETED) ? null : cachedAddrRaw;
-
+        
         let resolvedAddress = null;
-        if (cachedAddr === null && userData.wallet_address && userData.wallet_address.trim().length > 0) {
+        
+        // 🔥 CRITICAL: If user explicitly deleted the address locally, respect that!
+        if (cachedAddrRaw === LOCAL_WALLET_ADDR_DELETED) {
+            console.log('💾 User deleted address locally - keeping it deleted');
+            resolvedAddress = null;
+            walletState.walletAddress = null;
+            updateWalletAddressDisplay(null);
+            // DO NOT overwrite localStorage - keep the DELETED flag!
+        } else if (cachedAddrRaw && cachedAddrRaw.trim().length > 0) {
+            // Use local cached address (user preference)
+            console.log('💾 Using locally saved address');
+            resolvedAddress = cachedAddrRaw;
+            walletState.walletAddress = resolvedAddress;
+            updateWalletAddressDisplay(resolvedAddress);
+            localStorage.setItem(LOCAL_WALLET_ADDR_KEY, resolvedAddress);
+        } else if (userData.wallet_address && userData.wallet_address.trim().length > 0) {
             // No local override; use backend value if present
+            console.log('💾 Using backend address (no local override)');
             resolvedAddress = userData.wallet_address;
-        } else if (cachedAddr) {
-            // Use local cached address (including overriding backend)
-            resolvedAddress = cachedAddr;
+            walletState.walletAddress = resolvedAddress;
+            updateWalletAddressDisplay(resolvedAddress);
+            localStorage.setItem(LOCAL_WALLET_ADDR_KEY, resolvedAddress);
+        } else {
+            // No address anywhere
+            console.log('💾 No address found anywhere');
+            walletState.walletAddress = null;
+            updateWalletAddressDisplay(null);
         }
 
-        walletState.walletAddress = resolvedAddress;
-        updateWalletAddressDisplay(walletState.walletAddress);
-
+        // Only show setup modal if no address is set
         if (!walletState.walletAddress) {
             showWalletSetup();
         } else {
-            localStorage.setItem(LOCAL_WALLET_ADDR_KEY, walletState.walletAddress);
             const setupModal = document.getElementById('walletSetupModal');
             if (setupModal) setupModal.style.display = 'none';
         }
@@ -5992,13 +6009,14 @@ function openWalletSetupForEdit() {
 }
 
 function disconnectWalletAddress() {
-    // For now, perform client-side disconnect and update UI. Server-side persistence can be added later.
+    // 🔥 FIX: Disconnect and mark as deleted in localStorage
     walletState.walletAddress = null;
     walletState.hasWallet = false;
     updateWalletAddressDisplay(null);
+    localStorage.setItem(LOCAL_WALLET_ADDR_KEY, LOCAL_WALLET_ADDR_DELETED);
+    console.log('💾 Wallet disconnected and marked as deleted');
     closeWalletConnectedModal();
     showToast('Wallet disconnected', 'success');
-    // Optionally, call backend to persist this change when implemented.
 }
 
 function disconnectWalletAddressAndClose() {
