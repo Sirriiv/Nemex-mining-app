@@ -3651,11 +3651,20 @@ async function initWallet() {
                 if (walletInterface && walletInterface.classList.contains('hidden')) {
                     showWalletInterface();
                     
-                    // ✅ OPTIMIZED: Parallelize independent operations
+                    // ✅ FIX: Load prices and balances TOGETHER before first display
+                    // This prevents percentage reset when balance loads separately
                     Promise.all([
-                        loadWalletData(),
-                        updateRealBalance() // Get balance immediately
-                    ]);
+                        fetchPricesWithFastestAPI(),  // Get fresh prices & percentages
+                        updateRealBalance()            // Get fresh balances
+                    ]).then(() => {
+                        // Now display with ALL data loaded together
+                        updateWalletDisplay();
+                        console.log('✅ Synchronized display: prices, balances, and percentages loaded together');
+                    }).catch(err => {
+                        console.error('❌ Error loading wallet data:', err);
+                        // Still show something even if there's an error
+                        updateWalletDisplay();
+                    });
                     
                     // Start background updates
                     startRealBalanceUpdates();
@@ -4573,6 +4582,21 @@ async function loadWalletData() {
 }
 
 function updateWalletDisplay() {
+    console.log('🖼️ Updating wallet display. Current SUPPORTED_TOKENS state:', {
+        TON: {
+            balance: SUPPORTED_TOKENS[0].balance,
+            price: SUPPORTED_TOKENS[0].price,
+            change24h: SUPPORTED_TOKENS[0].change24h,
+            change24hType: typeof SUPPORTED_TOKENS[0].change24h
+        },
+        NMX: {
+            balance: SUPPORTED_TOKENS[1].balance,
+            price: SUPPORTED_TOKENS[1].price,
+            change24h: SUPPORTED_TOKENS[1].change24h,
+            change24hType: typeof SUPPORTED_TOKENS[1].change24h
+        }
+    });
+    
     const totalUSD = SUPPORTED_TOKENS.reduce((sum, token) => {
         return sum + (token.balance * token.price);
     }, 0);
@@ -6376,12 +6400,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Note: change24h values already restored at top of file
     initWallet();
 
-    // ✅ OPTIMIZED: Defer price fetching to not block initialization
-    setTimeout(() => {
-        fetchPricesWithFastestAPI();
-        // Update prices every 60 seconds
-        setInterval(fetchPricesWithFastestAPI, 60000);
-    }, 50); // Fetch almost immediately after wallet loads
+    // ✅ Update prices every 60 seconds in background
+    setInterval(fetchPricesWithFastestAPI, 60000);
 
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {
