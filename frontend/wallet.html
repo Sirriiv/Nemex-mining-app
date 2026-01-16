@@ -4935,21 +4935,20 @@ function validateSendAddressInstant() {
     const hasCorrectLength = address.length === 48;
     
     if (isValid) {
-        validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address (checksum verified)</span>';
+        validationElement.innerHTML = '<span style="color: var(--success); font-weight: 600;">✓ Valid TON address</span>';
         addressInput.style.borderColor = 'var(--success)';
         addressInput.style.boxShadow = '0 0 0 3px rgba(34, 197, 94, 0.1)';
     } else if (!hasCorrectPrefix) {
-        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid format (must start with EQ or UQ)</span>';
+        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid address</span>';
         addressInput.style.borderColor = 'var(--error)';
         addressInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
     } else if (!hasCorrectLength) {
-        const diff = 48 - address.length;
-        validationElement.innerHTML = `<span style="color: #FFA500; font-weight: 600;">⚠ Address too ${diff > 0 ? 'short' : 'long'} (${Math.abs(diff)} characters ${diff > 0 ? 'needed' : 'extra'})</span>`;
+        validationElement.innerHTML = '<span style="color: #FFA500; font-weight: 600;">⚠ Address is too short</span>';
         addressInput.style.borderColor = '#FFA500';
         addressInput.style.boxShadow = '0 0 0 3px rgba(255, 165, 0, 0.1)';
     } else {
         // Has correct prefix and length but invalid checksum
-        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid address (checksum failed - check for typos)</span>';
+        validationElement.innerHTML = '<span style="color: var(--error); font-weight: 600;">✗ Invalid address</span>';
         addressInput.style.borderColor = 'var(--error)';
         addressInput.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
     }
