@@ -4527,59 +4527,7 @@ async function confirmSendTransaction() {
 // 🎯 WALLET DATA LOADING (UPDATED WITH FIXED FORMATTING)
 // =============================================
 
-async function loadWalletData() {
-    if (!walletState.hasWallet || !walletState.wallet) return;
-
-    try {
-        // ✅ ALWAYS display immediately with current values (even if zero, percentages will show from cache)
-        updateWalletDisplay();
-        console.log('⚡ Displaying wallet with current values (cached percentages should be visible)');
-        
-        // ✅ OPTIMIZED: Use cached prices if available and recent
-        const hasCachedPrices = SUPPORTED_TOKENS[0].price > 0 || SUPPORTED_TOKENS[1].price > 0;
-        
-        if (hasCachedPrices) {
-            console.log('⚡ Using cached prices for instant display');
-        }
-        
-        // ✅ OPTIMIZED: Fetch fresh prices in background (non-blocking)
-        window.walletManager.getPrices().then(priceResult => {
-            if (priceResult.success && priceResult.prices) {
-                // Only update price if we have valid non-zero data
-                if (priceResult.prices.TON?.price && priceResult.prices.TON.price > 0) {
-                    SUPPORTED_TOKENS[0].price = priceResult.prices.TON.price;
-                }
-                if (priceResult.prices.TON?.change24h !== undefined && priceResult.prices.TON.change24h !== null) {
-                    SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
-                }
-                if (priceResult.prices.TON?.change24h !== undefined && priceResult.prices.TON.change24h !== null) {
-                    SUPPORTED_TOKENS[0].change24h = priceResult.prices.TON.change24h;
-                    sessionStorage.setItem('TON_change24h', priceResult.prices.TON.change24h.toString());
-                }
-                if (priceResult.prices.NMX?.price && priceResult.prices.NMX.price > 0) {
-                    SUPPORTED_TOKENS[1].price = priceResult.prices.NMX.price;
-                }
-                if (priceResult.prices.NMX?.change24h !== undefined && priceResult.prices.NMX.change24h !== null) {
-                    SUPPORTED_TOKENS[1].change24h = priceResult.prices.NMX.change24h;
-                    sessionStorage.setItem('NMX_change24h', priceResult.prices.NMX.change24h.toString());
-                }
-                
-                // Update display with fresh prices
-                updateWalletDisplay();
-
-                // Persist for instant reuse on next load
-                persistPriceCacheToStorage();
-            }
-        }).catch(error => {
-            console.error('❌ Price fetch failed:', error);
-        });
-
-        // ✅ Balance updates handled by updateRealBalance()
-        console.log('ℹ️ Using real balance updates');
-    } catch (error) {
-        console.error('❌ Load wallet data failed:', error);
-    }
-}
+// ✅ loadWalletData() removed - now using fetchPricesWithFastestAPI() + updateRealBalance() directly in initWallet()
 
 function updateWalletDisplay() {
     console.log('🖼️ Updating wallet display. Current SUPPORTED_TOKENS state:', {
