@@ -2355,7 +2355,7 @@
             <div class="modal-content">
                 <div class="modal-title">🔐 Enter Wallet Password</div>
                 <div class="security-warning">
-                    <strong>Secure Access:</strong> Enter your wallet password to unlock. This screen is full-screen to ensure your wallet remains private until unlocked.
+                    <strong>Secure Access:</strong> Unlock password to access your wallet.
                 </div>
 
                 <div class="form-group">
@@ -5921,13 +5921,19 @@ function showWalletSetup() {
         return;
     }
 
-    // Pre-fill with SAVED wallet address for NMX receiving (not the Nemex wallet)
-    if (walletState && walletState.walletAddress) {
+    // ✅ FIX: Pre-fill with SAVED wallet address, respecting deleted state
+    const cachedAddrRaw = localStorage.getItem(LOCAL_WALLET_ADDR_KEY);
+    
+    // If marked as deleted or null, show empty
+    if (cachedAddrRaw === LOCAL_WALLET_ADDR_DELETED || !cachedAddrRaw) {
+        input.value = '';
+        walletState.walletAddress = null; // Ensure state is cleared
+    } else if (walletState && walletState.walletAddress) {
+        // Use state if available
         input.value = walletState.walletAddress;
     } else {
-        const cachedAddrRaw = localStorage.getItem(LOCAL_WALLET_ADDR_KEY);
-        const cachedAddr = cachedAddrRaw === LOCAL_WALLET_ADDR_DELETED ? '' : (cachedAddrRaw || '');
-        input.value = cachedAddr;
+        // Otherwise use cached value
+        input.value = cachedAddrRaw || '';
     }
 
     // Open wallet setup modal on top with higher z-index
@@ -5941,10 +5947,16 @@ function showWalletSetup() {
 }
 
 function closeWalletSetup() {
-    // Revert input to saved value (don't keep unsaved changes)
+    // ✅ FIX: Revert input to saved value, respecting deleted state
     const input = document.getElementById('userWalletAddress');
     if (input) {
-        input.value = walletState.walletAddress || '';
+        const cachedAddrRaw = localStorage.getItem(LOCAL_WALLET_ADDR_KEY);
+        // If deleted, keep empty; otherwise use state or cached value
+        if (cachedAddrRaw === LOCAL_WALLET_ADDR_DELETED) {
+            input.value = '';
+        } else {
+            input.value = walletState.walletAddress || '';
+        }
     }
     
     const setupModal = document.getElementById('walletSetupModal');
@@ -6024,11 +6036,12 @@ async function saveWalletAddress() {
             localStorage.setItem(LOCAL_WALLET_ADDR_KEY, walletAddress);
             showToast('✅ Wallet address saved successfully!', 'success');
         } else {
-            // ✅ FIX: Empty address = deletion - pass empty string to force display update
+            // ✅ FIX: Empty address = deletion - clear everything and mark as deleted
             walletState.walletAddress = null;
             document.getElementById('userWalletAddress').value = ''; // Clear input
             updateWalletAddressDisplay(''); // Force update with empty string
             localStorage.setItem(LOCAL_WALLET_ADDR_KEY, LOCAL_WALLET_ADDR_DELETED);
+            console.log('💾 Address marked as deleted in localStorage');
             showToast('✅ Wallet address removed!', 'success');
         }
 
