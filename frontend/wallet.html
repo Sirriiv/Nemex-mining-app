@@ -3651,19 +3651,20 @@ async function initWallet() {
                 if (walletInterface && walletInterface.classList.contains('hidden')) {
                     showWalletInterface();
                     
-                    // ✅ FIX: Load prices and balances TOGETHER before first display
-                    // This prevents percentage reset when balance loads separately
+                    // ✅ Show immediately with cached data (instant display)
+                    updateWalletDisplay();
+                    console.log('⚡ Wallet displayed instantly with cached data');
+                    
+                    // ✅ Then fetch fresh data in background (non-blocking)
                     Promise.all([
                         fetchPricesWithFastestAPI(),  // Get fresh prices & percentages
                         updateRealBalance()            // Get fresh balances
                     ]).then(() => {
-                        // Now display with ALL data loaded together
+                        // Update display with fresh data
                         updateWalletDisplay();
-                        console.log('✅ Synchronized display: prices, balances, and percentages loaded together');
+                        console.log('✅ Updated with fresh prices and balances');
                     }).catch(err => {
-                        console.error('❌ Error loading wallet data:', err);
-                        // Still show something even if there's an error
-                        updateWalletDisplay();
+                        console.error('❌ Error loading fresh data:', err);
                     });
                     
                     // Start background updates
