@@ -3255,6 +3255,68 @@ const PRODUCTION_CONFIG = {
 let currentReceiveToken = 'TON';
 
 // =============================================
+// 🎯 VIEW STATE PERSISTENCE (Stay on same page after refresh)
+// =============================================
+
+const VIEW_STATE_KEY = 'wallet_current_view';
+
+function saveViewState(viewName) {
+    try {
+        sessionStorage.setItem(VIEW_STATE_KEY, viewName);
+        console.log('💾 Saved view state:', viewName);
+    } catch (e) {
+        console.warn('Could not save view state:', e);
+    }
+}
+
+function getViewState() {
+    try {
+        return sessionStorage.getItem(VIEW_STATE_KEY);
+    } catch (e) {
+        return null;
+    }
+}
+
+function clearViewState() {
+    try {
+        sessionStorage.removeItem(VIEW_STATE_KEY);
+        console.log('🗑️ Cleared view state');
+    } catch (e) {
+        console.warn('Could not clear view state:', e);
+    }
+}
+
+function restoreViewState() {
+    const savedView = getViewState();
+    if (!savedView) {
+        console.log('ℹ️ No saved view state, showing main wallet');
+        return;
+    }
+
+    console.log('🔄 Restoring view state:', savedView);
+
+    // Small delay to ensure wallet is fully loaded
+    setTimeout(() => {
+        switch (savedView) {
+            case 'send':
+                showSendModal();
+                break;
+            case 'receive':
+                showReceiveModal();
+                break;
+            case 'convert':
+                showSwapModal();
+                break;
+            case 'history':
+                showHistoryView();
+                break;
+            default:
+                console.log('✅ Showing main wallet view');
+        }
+    }, 300);
+}
+
+// =============================================
 // 🎯 UTILITY FUNCTIONS
 // =============================================
 
@@ -3473,6 +3535,9 @@ function handleTokenLogoError(img, symbol) {
 function closeModal() {
     console.log('🔒 Closing all modals...');
     
+    // ✅ Clear view state when modal is manually closed
+    clearViewState();
+    
     const modals = document.querySelectorAll('.modal, .fullscreen-modal');
     modals.forEach(modal => {
         if (modal && modal.style) {
@@ -3650,8 +3715,13 @@ async function initWallet() {
                         // Update display with fresh data
                         updateWalletDisplay();
                         console.log('✅ Updated with fresh prices and balances');
+                        
+                        // ✅ Restore previous view if user was in send/receive/convert/history
+                        restoreViewState();
                     }).catch(err => {
                         console.error('❌ Error loading fresh data:', err);
+                        // Still try to restore view even if data fetch failed
+                        restoreViewState();
                     });
                     
                     // Start background updates
@@ -3963,6 +4033,9 @@ function showWalletView() {
     walletState.currentView = 'wallet';
     updateNavItems();
     
+    // ✅ Clear view state when returning to main wallet
+    clearViewState();
+    
     document.getElementById('walletView').style.display = 'block';
     document.getElementById('historyView').style.display = 'none';
     
@@ -3976,6 +4049,9 @@ function showWalletView() {
 function showHistoryView() {
     walletState.currentView = 'history';
     updateNavItems();
+    
+    // ✅ Save view state for persistence
+    saveViewState('history');
     
     document.getElementById('walletView').style.display = 'none';
     document.getElementById('historyView').style.display = 'block';
@@ -4596,6 +4672,9 @@ function showSendModal() {
     }
 
     console.log('🔄 Opening send modal, wallet state:', walletState);
+    
+    // ✅ Save view state for persistence
+    saveViewState('send');
 
     document.getElementById('sendToAddress').value = '';
     document.getElementById('sendAmount').value = '';
@@ -5017,6 +5096,9 @@ function showReceiveModal() {
     }
 
     console.log('🔄 Opening receive modal for address:', walletState.wallet.address);
+    
+    // ✅ Save view state for persistence
+    saveViewState('receive');
 
     closeModal();
 
@@ -5188,6 +5270,10 @@ function showSwapModal() {
     }
 
     console.log('🔄 Opening swap modal');
+    
+    // ✅ Save view state for persistence
+    saveViewState('convert');
+    
     closeModal();
     openProductionSwapModal();
 }
