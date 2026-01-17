@@ -1,6 +1,7 @@
 // server.js - COMPLETE FIXED VERSION WITH PROPER CORS
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
@@ -11,6 +12,17 @@ const PORT = process.env.PORT || 3000;
 // =============================================
 // 🎯 SIMPLIFIED CORS SETUP - ONE LAYER ONLY
 // =============================================
+
+// Enable compression for all responses (reduces egress by 70-80%)
+app.use(compression({
+    filter: (req, res) => {
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    },
+    level: 6 // Balanced compression (1=fastest, 9=best compression)
+}));
 
 // Use ONLY this CORS middleware - Remove ALL other manual CORS headers
 app.use(cors({
