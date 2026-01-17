@@ -6297,9 +6297,6 @@ async function changeWalletPassword() {
         showToast('✅ Wallet password changed successfully! Please login again.', 'success');
 
         setTimeout(async () => {
-            // Close the modal
-            closeChangeWalletPasswordModal();
-            
             // Delete the current session to lock the wallet
             const sessionToken = localStorage.getItem('nemex_wallet_session');
             if (sessionToken) {
@@ -6315,20 +6312,8 @@ async function changeWalletPassword() {
                 localStorage.removeItem('nemex_wallet_session');
             }
             
-            // Reset wallet state
-            walletState.hasWallet = false;
-            walletState.wallet = null;
-            walletState.isInitialized = false;
-            
-            // Hide settings and show login modal
-            document.getElementById('settingsModal').style.display = 'none';
-            document.getElementById('walletLoginModal').style.display = 'flex';
-            
-            // Clear the password input
-            document.getElementById('walletPassword').value = '';
-            
-            changePasswordBtn.disabled = false;
-            changePasswordBtn.textContent = 'Change Password';
+            // Reload page - this will show login modal since session is deleted
+            window.location.reload();
         }, 1500);
 
     } catch (error) {
