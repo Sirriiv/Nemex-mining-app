@@ -2456,11 +2456,6 @@
                     <div id="newPasswordStrength" style="margin-top: 5px; font-size: 12px;"></div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Confirm New Password:</label>
-                    <input type="password" id="confirmWalletPassword" class="form-input" placeholder="Confirm new password" minlength="6">
-                </div>
-
                 <div id="walletPasswordError" class="error-message" style="display: none; color: #ff3b30; padding: 10px; margin: 10px 0; background: rgba(255,59,48,0.1); border-radius: 8px;"></div>
                 <div id="walletPasswordSuccess" class="success-message" style="display: none; color: #34c759; padding: 10px; margin: 10px 0; background: rgba(52,199,89,0.1); border-radius: 8px;"></div>
 
@@ -2493,11 +2488,6 @@
                     <label class="form-label">New Wallet Password:</label>
                     <input type="password" id="recoveryNewPassword" class="form-input" placeholder="Enter new password (6+ characters)" minlength="6">
                     <div id="recoveryPasswordStrength" style="margin-top: 5px; font-size: 12px;"></div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Confirm New Password:</label>
-                    <input type="password" id="recoveryConfirmPassword" class="form-input" placeholder="Confirm new password" minlength="6">
                 </div>
 
                 <div id="recoveryPasswordError" class="error-message" style="display: none; color: #ff3b30; padding: 10px; margin: 10px 0; background: rgba(255,59,48,0.1); border-radius: 8px;"></div>
@@ -6230,7 +6220,6 @@ function showChangePasswordModal() {
     // Clear previous inputs and messages
     document.getElementById('currentWalletPassword').value = '';
     document.getElementById('newWalletPassword').value = '';
-    document.getElementById('confirmWalletPassword').value = '';
     document.getElementById('walletPasswordError').style.display = 'none';
     document.getElementById('walletPasswordSuccess').style.display = 'none';
     document.getElementById('newPasswordStrength').textContent = '';
@@ -6252,7 +6241,6 @@ async function changeWalletPassword() {
     
     const currentPassword = document.getElementById('currentWalletPassword').value;
     const newPassword = document.getElementById('newWalletPassword').value;
-    const confirmPassword = document.getElementById('confirmWalletPassword').value;
     const errorMessage = document.getElementById('walletPasswordError');
     const successMessage = document.getElementById('walletPasswordSuccess');
     const changePasswordBtn = document.getElementById('changeWalletPasswordBtn');
@@ -6260,26 +6248,20 @@ async function changeWalletPassword() {
     console.log('📝 Field values:', {
         current: currentPassword,
         new: newPassword,
-        confirm: confirmPassword,
         currentLen: currentPassword.length,
-        newLen: newPassword.length,
-        confirmLen: confirmPassword.length
+        newLen: newPassword.length
     });
 
     errorMessage.style.display = 'none';
     successMessage.style.display = 'none';
 
     try {
-        if (!currentPassword || !newPassword || !confirmPassword) {
-            throw new Error('All fields are required');
+        if (!currentPassword || !newPassword) {
+            throw new Error('Both current and new password are required');
         }
 
         if (newPassword.length < 6) {
             throw new Error('New password must be at least 6 characters');
-        }
-
-        if (newPassword !== confirmPassword) {
-            throw new Error('New passwords do not match');
         }
 
         if (currentPassword === newPassword) {
@@ -6334,7 +6316,6 @@ function showForgotPasswordRecovery() {
     document.getElementById('forgotPasswordRecoveryModal').style.display = 'flex';
     document.getElementById('recoveryMnemonicInput').value = '';
     document.getElementById('recoveryNewPassword').value = '';
-    document.getElementById('recoveryConfirmPassword').value = '';
     document.getElementById('recoveryPasswordError').style.display = 'none';
     document.getElementById('recoveryPasswordSuccess').style.display = 'none';
 }
@@ -6343,13 +6324,11 @@ function closeForgotPasswordRecoveryModal() {
     document.getElementById('forgotPasswordRecoveryModal').style.display = 'none';
     document.getElementById('recoveryMnemonicInput').value = '';
     document.getElementById('recoveryNewPassword').value = '';
-    document.getElementById('recoveryConfirmPassword').value = '';
 }
 
 async function recoverWalletWithNewPassword() {
     const mnemonicInput = document.getElementById('recoveryMnemonicInput').value.trim();
     const newPassword = document.getElementById('recoveryNewPassword').value;
-    const confirmPassword = document.getElementById('recoveryConfirmPassword').value;
     const errorMessage = document.getElementById('recoveryPasswordError');
     const successMessage = document.getElementById('recoveryPasswordSuccess');
     const recoverBtn = document.getElementById('recoverWalletBtn');
@@ -6358,8 +6337,8 @@ async function recoverWalletWithNewPassword() {
     successMessage.style.display = 'none';
 
     try {
-        if (!mnemonicInput || !newPassword || !confirmPassword) {
-            throw new Error('All fields are required');
+        if (!mnemonicInput || !newPassword) {
+            throw new Error('Both recovery phrase and new password are required');
         }
 
         // Parse and validate mnemonic
@@ -6370,10 +6349,6 @@ async function recoverWalletWithNewPassword() {
 
         if (newPassword.length < 6) {
             throw new Error('New password must be at least 6 characters');
-        }
-
-        if (newPassword !== confirmPassword) {
-            throw new Error('Passwords do not match');
         }
 
         const userId = getCurrentUserId();
