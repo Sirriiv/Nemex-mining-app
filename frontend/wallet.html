@@ -2409,16 +2409,6 @@
                     </div>
                 </div>
 
-                <!-- DELETE WALLET -->
-                <div class="settings-option" onclick="showDeleteWalletModal()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                        </svg>
-                        <div style="color: var(--error);">Delete Wallet</div>
-                    </div>
-                </div>
-
                 <!-- BACK TO DASHBOARD -->
                 <div class="settings-option" onclick="logout()">
                     <div class="settings-option-content">
@@ -3124,50 +3114,6 @@
             </div>
         </div>
 
-        <!-- DELETE WALLET MODAL -->
-        <div id="deleteWalletModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-title" style="color: var(--error);">⚠️ Delete Wallet</div>
-
-                <div class="security-warning" style="border-color: var(--error);">
-                    <strong>🚨 DANGER:</strong> This will permanently delete your wallet from our database!
-                </div>
-
-                <div style="margin: 20px 0; padding: 15px; background: rgba(255,68,68,0.1); border-radius: 10px;">
-                    <p style="margin-bottom: 10px; color: var(--text);">
-                        <strong>You will lose access to:</strong>
-                    </p>
-                    <ul style="text-align: left; margin-left: 20px; color: var(--text-muted);">
-                        <li>Your wallet address and balance</li>
-                        <li>All transaction history</li>
-                        <li>Wallet configuration</li>
-                    </ul>
-
-                    <p style="margin-top: 15px; color: var(--warning);">
-                        <strong>⚠️ IMPORTANT:</strong> Make sure you have backed up your 24-word recovery phrase before deleting!
-                    </p>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label" style="text-align: center;">
-                        <input type="checkbox" id="deleteConfirmation" style="margin-right: 8px;">
-                        I have backed up my recovery phrase and understand this action cannot be undone
-                    </label>
-                </div>
-
-                <div id="deleteWalletStatus"></div>
-
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button class="close-modal" style="flex: 1; background: var(--error);" 
-                            onclick="deleteWallet()" id="deleteWalletBtn" disabled>
-                        Delete Wallet
-                    </button>
-                    <button class="close-modal secondary" style="flex: 1;" onclick="closeDeleteWalletModal()">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -6436,68 +6382,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-function showDeleteWalletModal() {
-    if (!walletState.hasWallet) {
-        showToast('❌ You don\'t have a wallet to delete', 'error');
-        return;
-    }
-
-    document.getElementById('deleteWalletModal').style.display = 'flex';
-
-    document.getElementById('deleteConfirmation').addEventListener('change', function() {
-        document.getElementById('deleteWalletBtn').disabled = !this.checked;
-    });
-}
-
-function closeDeleteWalletModal() {
-    document.getElementById('deleteWalletModal').style.display = 'none';
-}
-
-async function deleteWallet() {
-    const userId = getCurrentUserId();
-    if (!userId) {
-        showToast('❌ Please login to your mining account first', 'error');
-        return;
-    }
-
-    try {
-        showLoading('Deleting wallet...');
-
-        if (window.walletManager && typeof window.walletManager.deleteWallet === 'function') {
-            const result = await window.walletManager.deleteWallet(userId, true);
-
-            if (result.success) {
-                closeDeleteWalletModal();
-
-                walletState.hasWallet = false;
-                walletState.wallet = null;
-                walletState.balances = {};
-                walletState.isInitialized = false;
-                walletState.address = null;
-
-                // Clear balance update interval
-                if (balanceUpdateInterval) {
-                    clearInterval(balanceUpdateInterval);
-                    balanceUpdateInterval = null;
-                }
-
-                showWelcomeScreen();
-
-                showToast('✅ Wallet deleted successfully!', 'success');
-            } else {
-                throw new Error(result.error || 'Failed to delete wallet');
-            }
-        } else {
-            throw new Error('Wallet deletion not supported yet');
-        }
-    } catch (error) {
-        console.error('❌ Delete wallet failed:', error);
-        showToast(`❌ ${error.message}`, 'error');
-    } finally {
-        hideLoading();
-    }
-}
 
 function showBuyModal() {
     showToast('⚠️ Buy functionality coming soon!', 'warning');
