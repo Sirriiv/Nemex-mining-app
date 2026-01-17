@@ -6294,10 +6294,39 @@ async function changeWalletPassword() {
 
         successMessage.textContent = 'Password changed successfully!';
         successMessage.style.display = 'block';
-        showToast('✅ Wallet password changed successfully!', 'success');
+        showToast('✅ Wallet password changed successfully! Please login again.', 'success');
 
-        setTimeout(() => {
+        setTimeout(async () => {
+            // Close the modal
             closeChangeWalletPasswordModal();
+            
+            // Delete the current session to lock the wallet
+            const sessionToken = localStorage.getItem('nemex_wallet_session');
+            if (sessionToken) {
+                try {
+                    await fetch('/api/wallet/session/delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sessionToken })
+                    });
+                } catch (err) {
+                    console.log('Session cleanup error:', err);
+                }
+                localStorage.removeItem('nemex_wallet_session');
+            }
+            
+            // Reset wallet state
+            walletState.hasWallet = false;
+            walletState.wallet = null;
+            walletState.isInitialized = false;
+            
+            // Hide settings and show login modal
+            document.getElementById('settingsModal').style.display = 'none';
+            document.getElementById('walletLoginModal').style.display = 'flex';
+            
+            // Clear the password input
+            document.getElementById('walletPassword').value = '';
+            
             changePasswordBtn.disabled = false;
             changePasswordBtn.textContent = 'Change Password';
         }, 1500);
