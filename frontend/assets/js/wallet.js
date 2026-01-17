@@ -214,14 +214,16 @@ class WalletManager {
             // ✅ CREATE DATABASE SESSION AFTER SUCCESSFUL LOGIN
             let sessionToken = null;
             try {
+                console.log('🔑 Attempting to create database session for wallet:', result.wallet.address);
                 sessionToken = await this.createDatabaseSession(result.wallet);
                 if (sessionToken) {
-                    console.log('✅ Database session created and stored');
+                    console.log('✅ Database session created and stored, token:', sessionToken.substring(0, 16) + '...');
                 } else {
-                    console.warn('⚠️ Session creation returned no token');
+                    console.warn('⚠️ Session creation returned no token - will need to re-login after refresh');
                 }
             } catch (sessionError) {
-                console.warn('⚠️ Session creation failed:', sessionError);
+                console.error('❌ Session creation failed with error:', sessionError);
+                console.error('Stack trace:', sessionError.stack);
                 // Continue anyway - user is logged in memory
             }
 
@@ -298,7 +300,16 @@ class WalletManager {
                 this.sessionToken = result.session.token;
                 // Store token in localStorage for future automatic login
                 localStorage.setItem('nemex_wallet_session', this.sessionToken);
-                console.log('✅ Database session token stored');
+                console.log('✅ Database session token stored in localStorage');
+                
+                // Verify it was stored
+                const verifyToken = localStorage.getItem('nemex_wallet_session');
+                if (verifyToken === this.sessionToken) {
+                    console.log('✅ Verified: Token successfully stored and retrievable');
+                } else {
+                    console.error('❌ Token storage verification failed!', { stored: verifyToken, expected: this.sessionToken });
+                }
+                
                 return this.sessionToken;
             }
 
