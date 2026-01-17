@@ -1177,14 +1177,28 @@
             setProgress('taskProgressBar', taskPct);
             document.getElementById('taskProgressLabel').textContent = `${mainTasksStatus.completed}/${mainTasksStatus.total}`;
 
-            // Points progress toward next meaningful threshold
-            const targetPoints = label === 'Tier 3' ? TIER_RULES.tier3.minPoints : TIER_RULES.tier2.minPoints;
+            // Points progress - use NEXT tier target if available, otherwise current
+            let targetPoints;
+            if (label === 'Tier 1') {
+                targetPoints = TIER_RULES.tier2.minPoints; // Show progress toward Tier 2
+            } else if (label === 'Tier 2') {
+                targetPoints = TIER_RULES.tier3.minPoints; // Show progress toward Tier 3
+            } else {
+                targetPoints = TIER_RULES.tier3.minPoints; // Already at max
+            }
             const pointsPct = Math.min(100, (balance / targetPoints) * 100);
             setProgress('pointsProgressBar', pointsPct);
             document.getElementById('pointsProgressLabel').textContent = `${balance.toFixed(0)} / ${targetPoints}`;
 
-            // Invites progress
-            const targetInvites = label === 'Tier 3' ? TIER_RULES.tier3.minInvites : TIER_RULES.tier2.minInvites;
+            // Invites progress - use NEXT tier target if available, otherwise current
+            let targetInvites;
+            if (label === 'Tier 1') {
+                targetInvites = TIER_RULES.tier2.minInvites; // Show progress toward Tier 2
+            } else if (label === 'Tier 2') {
+                targetInvites = TIER_RULES.tier3.minInvites; // Show progress toward Tier 3
+            } else {
+                targetInvites = TIER_RULES.tier3.minInvites; // Already at max
+            }
             const invitesPct = Math.min(100, (inviteCount / targetInvites) * 100);
             setProgress('inviteProgressBar', invitesPct);
             document.getElementById('inviteProgressLabel').textContent = `${inviteCount} / ${targetInvites}`;
