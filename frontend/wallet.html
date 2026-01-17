@@ -2386,7 +2386,7 @@
                <button class="close-modal" onclick="createWalletFromButton(this)" id="createWalletBtn">
     Create Wallet
 </button>
-                <button class="close-modal secondary" onclick="closeModal()">Cancel</button>
+                <button class="close-modal secondary" onclick="closeModalAndClearState()">Cancel</button>
                 
                 <p style="margin-top: 20px; font-size: 0.9em; color: var(--text-muted);">
                     ⚠️ This password is only for your wallet. Keep it secure!
@@ -2406,16 +2406,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
                         </svg>
                         <div>Change Wallet Password</div>
-                    </div>
-                </div>
-
-                <!-- BACKUP STATUS -->
-                <div class="settings-option" onclick="showBackupStatus()">
-                    <div class="settings-option-content">
-                        <svg class="settings-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        <div>Backup Status</div>
                     </div>
                 </div>
 
@@ -2439,7 +2429,7 @@
                     </div>
                 </div>
 
-                <button class="close-modal" onclick="closeModal()">Close Settings</button>
+                <button class="close-modal" onclick="closeModalAndClearState()">Close Settings</button>
             </div>
         </div>
 
@@ -2450,7 +2440,7 @@
                 <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 16px 20px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
                     <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
-                            <button onclick="closeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <button onclick="closeModalAndClearState()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                                 <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
@@ -2766,7 +2756,7 @@
                 <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 20px 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.3);">
                     <div style="display: flex; align-items: center; justify-content: between; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
-                            <button onclick="closeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <button onclick="closeModalAndClearState()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                                 <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
@@ -3535,8 +3525,8 @@ function handleTokenLogoError(img, symbol) {
 function closeModal() {
     console.log('🔒 Closing all modals...');
     
-    // ✅ Clear view state when modal is manually closed
-    clearViewState();
+    // ✅ Only clear view state if user manually closes (not when switching modals)
+    // The switching functions will set their own state after calling closeModal
     
     const modals = document.querySelectorAll('.modal, .fullscreen-modal');
     modals.forEach(modal => {
@@ -3569,6 +3559,12 @@ function closeModal() {
     } catch (e) {
         console.warn('⚠️ Could not resume background updates:', e);
     }
+}
+
+// ✅ Close modal AND clear view state (for close buttons)
+function closeModalAndClearState() {
+    clearViewState();
+    closeModal();
 }
 
 function showModal(modalId) {
@@ -5303,6 +5299,7 @@ function openProductionSwapModal() {
 }
 
 function closeProductionSwapModal() {
+    clearViewState(); // Clear state when explicitly closing convert modal
     document.getElementById('productionSwapModal').style.display = 'none';
     document.body.classList.remove('modal-open');
 }
@@ -6151,10 +6148,6 @@ function showSettingsModal() {
 
 function showChangePasswordModal() {
     showToast('⚠️ Change password functionality coming soon!', 'warning');
-}
-
-function showBackupStatus() {
-    showToast('⚠️ Backup status functionality coming soon!', 'warning');
 }
 
 function showDeleteWalletModal() {
