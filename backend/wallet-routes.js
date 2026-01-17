@@ -591,6 +591,37 @@ function encryptMnemonic(mnemonic, password) {
     };
 }
 
+function decryptMnemonic(encryptedData, password) {
+    try {
+        // Parse encrypted data (could be string or object)
+        let data;
+        if (typeof encryptedData === 'string') {
+            data = JSON.parse(encryptedData);
+        } else {
+            data = encryptedData;
+        }
+
+        const algorithm = data.algorithm || 'aes-256-gcm';
+        const iv = Buffer.from(data.iv, 'hex');
+        const authTag = Buffer.from(data.authTag, 'hex');
+        const encrypted = data.encrypted;
+        
+        // Derive key from password using same salt as encryption
+        const key = crypto.scryptSync(password, 'nemex-salt', 32);
+
+        const decipher = crypto.createDecipheriv(algorithm, key, iv);
+        decipher.setAuthTag(authTag);
+        
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        return decrypted;
+    } catch (error) {
+        console.error('❌ Decryption failed:', error.message);
+        throw new Error('Failed to decrypt mnemonic. Password may be incorrect.');
+    }
+}
+
 // ============================================
 // 🎯 FIXED: GET REAL BALANCE WITH DUAL APIS
 // ============================================
@@ -2650,11 +2681,11 @@ router.post('/change-password', async (req, res) => {
         const newEncryptedData = encryptMnemonic(mnemonic, newPassword);
         const newPasswordHash = await hashWalletPassword(newPassword);
 
-        // Update database
+        // Update database with JSON stringified encrypted data
         const { error: updateError } = await supabase
-            .from('wallets')
+            .from('user_wallets')
             .update({
-                encrypted_mnemonic: newEncryptedData,
+                encrypted_mnemonic: JSON.stringify(newEncryptedData),
                 password_hash: newPasswordHash,
                 updated_at: new Date().toISOString()
             })
