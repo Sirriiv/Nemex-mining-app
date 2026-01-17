@@ -2436,9 +2436,24 @@ router.post('/session/create', async (req, res) => {
 
         if (error) {
             console.error('❌ Session creation failed:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                details: error.details,
+                hint: error.hint
+            });
+            
+            // Check if table doesn't exist
+            if (error.code === '42P01') {
+                return res.status(500).json({
+                    success: false,
+                    error: 'Database table not found. Please run the SQL migration: database/create_wallet_sessions_table.sql'
+                });
+            }
+            
             return res.status(500).json({
                 success: false,
-                error: 'Failed to create session'
+                error: 'Failed to create session: ' + (error.message || 'Unknown error')
             });
         }
 
