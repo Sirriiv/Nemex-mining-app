@@ -2684,6 +2684,150 @@ router.post('/change-password', async (req, res) => {
 });
 
 // ============================================
+// 🔐 WALLET PASSWORD RECOVERY ENDPOINT
+// ============================================
+router.post('/recover-password', async (req, res) => {
+    try {
+        const { userId, mnemonic, newPassword } = req.body;
+        
+        console.log('🔓 WALLET PASSWORD RECOVERY REQUEST:', { 
+            userId, 
+            mnemonicWords: mnemonic?.length || 0,
+            timestamp: new Date().toISOString() 
+        });
+
+        // Validation
+        if (!userId || !mnemonic || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'Missing required fields: userId, mnemonic, newPassword'
+            });
+        }
+
+        if (!Array.isArray(mnemonic) || mnemonic.length !== 24) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid recovery phrase. Must be 24 words.'
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'New password must be at least 6 characters'
+            });
+        }
+
+        // Fetch user's wallet data from database
+        const { data: walletData, error: fetchError } = await supabase
+            .from('user_wallets')
+            .select('wallet_address')
+            .eq('user_id', userId)
+            .single();
+
+        if (fetchError || !walletData) {
+            console.error('❌ Failed to fetch wallet data:', fetchError);
+            return res.status(404).json({
+                success: false,
+                error: 'Wallet not found for user'
+            });
+        }
+
+        console.log('🔍 Verifying mnemonic matches wallet address...');
+
+        // Verify that the provided mnemonic generates the same wallet address
+        try {
+            const keyPair = await mnemonicToPrivateKey(mnemonic);
+            const workchain = 0;
+            const wallet = WalletContractV4.create({ workchain, publicKey: keyPair.publicKey });
+            const generatedAddress = wallet.address.toString({ urlSafe: true, bounceable: true });
+
+            if (generatedAddress !== walletData.wallet_address) {
+                console.error('❌ Mnemonic does not match wallet address');
+                return res.status(401).json({
+                    success: false,
+                    error: 'Recovery phrase does not match your wallet. Please check your 24-word phrase.'
+                });
+            }
+
+            console.log('✅ Mnemonic verified successfully!');
+
+        } catch (verifyError) {
+            console.error('❌ Mnemonic verification failed:', verifyError);
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid recovery phrase format'
+            });
+        }
+
+        // Generate new encryption key from new password
+        const newSalt = crypto.randomBytes(32);
+        const newKey = await new Promise((resolve, reject) => {
+            crypto.scrypt(newPassword, newSalt, 32, (err, derivedKey) => {
+                if (err) reject(err);
+                else resolve(derivedKey);
+            });
+        });
+
+        // Encrypt mnemonic with new password
+        const mnemonicString = mnemonic.join(' ');
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipheriv('aes-256-gcm', newKey, iv);
+        
+        let encrypted = cipher.update(mnemonicString, 'utf8', 'base64');
+        encrypted += cipher.final('base64');
+        const authTag = cipher.getAuthTag();
+
+        const newEncryptedMnemonic = JSON.stringify({
+            encrypted,
+            iv: iv.toString('base64'),
+            salt: newSalt.toString('base64'),
+            authTag: authTag.toString('base64')
+        });
+
+        // Hash new password with bcrypt
+        const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
+        console.log('💾 Updating wallet with new password...');
+
+        // Update database with new encrypted mnemonic and password hash
+        const { error: updateError } = await supabase
+            .from('user_wallets')
+            .update({
+                encrypted_mnemonic: newEncryptedMnemonic,
+                password_hash: newPasswordHash,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+
+        if (updateError) {
+            console.error('❌ Database update failed:', updateError);
+            throw updateError;
+        }
+
+        // Delete all existing sessions to force re-login with new password
+        await supabase
+            .from('wallet_sessions')
+            .delete()
+            .eq('user_id', userId);
+
+        console.log('✅ Wallet password recovered successfully!');
+
+        res.json({
+            success: true,
+            message: 'Wallet password recovered successfully. Please login with your new password.'
+        });
+
+    } catch (error) {
+        console.error('❌ PASSWORD RECOVERY ERROR:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to recover wallet password: ' + error.message
+        });
+    }
+});
+
+// ============================================
 // 🎯 UPDATED BALANCE ENDPOINT WITH DUAL APIS
 // ============================================
 router.get('/balance/:address', async (req, res) => {

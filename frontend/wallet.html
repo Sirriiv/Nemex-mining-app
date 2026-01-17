@@ -2445,6 +2445,9 @@
                 <div class="form-group">
                     <label class="form-label">Current Wallet Password:</label>
                     <input type="password" id="currentWalletPassword" class="form-input" placeholder="Enter current password" minlength="6">
+                    <div style="margin-top: 5px;">
+                        <a href="#" onclick="showForgotPasswordRecovery(); return false;" style="font-size: 12px; color: #0098ea;">Forgot password? Use Recovery Phrase</a>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -2458,11 +2461,51 @@
                     <input type="password" id="confirmWalletPassword" class="form-input" placeholder="Confirm new password" minlength="6">
                 </div>
 
-                <div id="changeWalletPasswordStatus"></div>
+                <div id="walletPasswordError" class="error-message" style="display: none; color: #ff3b30; padding: 10px; margin: 10px 0; background: rgba(255,59,48,0.1); border-radius: 8px;"></div>
+                <div id="walletPasswordSuccess" class="success-message" style="display: none; color: #34c759; padding: 10px; margin: 10px 0; background: rgba(52,199,89,0.1); border-radius: 8px;"></div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button class="close-modal secondary" onclick="closeChangeWalletPasswordModal()">Cancel</button>
-                    <button class="close-modal" onclick="changeWalletPassword()" id="changeWalletPasswordBtn">Change Password</button>
+                    <button class="modal-btn primary" onclick="changeWalletPassword()" id="changeWalletPasswordBtn">Change Password</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORGOT PASSWORD RECOVERY MODAL -->
+        <div id="forgotPasswordRecoveryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">⚠️ Wallet Password Recovery</div>
+                
+                <div class="security-warning">
+                    <strong>Lost your password?</strong><br>
+                    You can recover your wallet by entering your 24-word recovery phrase and setting a new password.
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Recovery Phrase (24 words):</label>
+                    <textarea id="recoveryMnemonicInput" class="form-input" rows="4" placeholder="Enter your 24-word recovery phrase separated by spaces" style="resize: vertical; font-size: 12px;"></textarea>
+                    <div style="margin-top: 5px; font-size: 11px; color: #8e8e93;">
+                        Enter all 24 words separated by spaces, in the correct order.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">New Wallet Password:</label>
+                    <input type="password" id="recoveryNewPassword" class="form-input" placeholder="Enter new password (6+ characters)" minlength="6">
+                    <div id="recoveryPasswordStrength" style="margin-top: 5px; font-size: 12px;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password:</label>
+                    <input type="password" id="recoveryConfirmPassword" class="form-input" placeholder="Confirm new password" minlength="6">
+                </div>
+
+                <div id="recoveryPasswordError" class="error-message" style="display: none; color: #ff3b30; padding: 10px; margin: 10px 0; background: rgba(255,59,48,0.1); border-radius: 8px;"></div>
+                <div id="recoveryPasswordSuccess" class="success-message" style="display: none; color: #34c759; padding: 10px; margin: 10px 0; background: rgba(52,199,89,0.1); border-radius: 8px;"></div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="close-modal secondary" onclick="closeForgotPasswordRecoveryModal()">Cancel</button>
+                    <button class="modal-btn primary" onclick="recoverWalletWithNewPassword()" id="recoverWalletBtn">Recover Wallet</button>
                 </div>
             </div>
         </div>
@@ -6184,11 +6227,12 @@ function showChangePasswordModal() {
     document.getElementById('changeWalletPasswordModal').style.display = 'flex';
     document.getElementById('settingsModal').style.display = 'none';
     
-    // Clear previous inputs
+    // Clear previous inputs and messages
     document.getElementById('currentWalletPassword').value = '';
     document.getElementById('newWalletPassword').value = '';
     document.getElementById('confirmWalletPassword').value = '';
-    document.getElementById('changeWalletPasswordStatus').innerHTML = '';
+    document.getElementById('walletPasswordError').style.display = 'none';
+    document.getElementById('walletPasswordSuccess').style.display = 'none';
     document.getElementById('newPasswordStrength').textContent = '';
     
     // Add password strength checker
@@ -6204,46 +6248,51 @@ function closeChangeWalletPasswordModal() {
 }
 
 async function changeWalletPassword() {
+    console.log('✅ changeWalletPassword function called!');
+    
     const currentPassword = document.getElementById('currentWalletPassword').value;
     const newPassword = document.getElementById('newWalletPassword').value;
     const confirmPassword = document.getElementById('confirmWalletPassword').value;
-    const statusElement = document.getElementById('changeWalletPasswordStatus');
-    const button = document.getElementById('changeWalletPasswordBtn');
+    const errorMessage = document.getElementById('walletPasswordError');
+    const successMessage = document.getElementById('walletPasswordSuccess');
+    const changePasswordBtn = document.getElementById('changeWalletPasswordBtn');
+    
+    console.log('📝 Field values:', {
+        current: currentPassword,
+        new: newPassword,
+        confirm: confirmPassword,
+        currentLen: currentPassword.length,
+        newLen: newPassword.length,
+        confirmLen: confirmPassword.length
+    });
 
-    // Clear previous status
-    statusElement.innerHTML = '';
-
-    // Validation
-    if (!currentPassword || !newPassword || !confirmPassword) {
-        showStatusMessage('All fields are required', 'error', statusElement);
-        return;
-    }
-
-    if (newPassword.length < 6) {
-        showStatusMessage('New password must be at least 6 characters', 'error', statusElement);
-        return;
-    }
-
-    if (newPassword !== confirmPassword) {
-        showStatusMessage('New passwords do not match', 'error', statusElement);
-        return;
-    }
-
-    if (currentPassword === newPassword) {
-        showStatusMessage('New password must be different from current password', 'error', statusElement);
-        return;
-    }
-
-    const userId = getCurrentUserId();
-    if (!userId) {
-        showStatusMessage('User not logged in', 'error', statusElement);
-        return;
-    }
+    errorMessage.style.display = 'none';
+    successMessage.style.display = 'none';
 
     try {
-        button.disabled = true;
-        button.textContent = 'Changing...';
-        showStatusMessage('Changing wallet password...', 'loading', statusElement);
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            throw new Error('All fields are required');
+        }
+
+        if (newPassword.length < 6) {
+            throw new Error('New password must be at least 6 characters');
+        }
+
+        if (newPassword !== confirmPassword) {
+            throw new Error('New passwords do not match');
+        }
+
+        if (currentPassword === newPassword) {
+            throw new Error('New password must be different from current password');
+        }
+
+        const userId = getCurrentUserId();
+        if (!userId) {
+            throw new Error('User not logged in');
+        }
+
+        changePasswordBtn.disabled = true;
+        changePasswordBtn.textContent = 'Changing...';
 
         const response = await fetch('/api/wallet/change-password', {
             method: 'POST',
@@ -6257,25 +6306,147 @@ async function changeWalletPassword() {
 
         const result = await response.json();
 
-        if (result.success) {
-            showStatusMessage('✅ Wallet password changed successfully!', 'success', statusElement);
-            showToast('✅ Wallet password changed successfully!', 'success');
-            
-            setTimeout(() => {
-                closeChangeWalletPasswordModal();
-            }, 2000);
-        } else {
-            showStatusMessage('❌ ' + result.error, 'error', statusElement);
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to change password');
         }
 
+        successMessage.textContent = 'Password changed successfully!';
+        successMessage.style.display = 'block';
+        showToast('✅ Wallet password changed successfully!', 'success');
+
+        setTimeout(() => {
+            closeChangeWalletPasswordModal();
+            changePasswordBtn.disabled = false;
+            changePasswordBtn.textContent = 'Change Password';
+        }, 1500);
+
     } catch (error) {
-        console.error('❌ Change password error:', error);
-        showStatusMessage('❌ Failed to change password: ' + error.message, 'error', statusElement);
-    } finally {
-        button.disabled = false;
-        button.textContent = 'Change Password';
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        changePasswordBtn.disabled = false;
+        changePasswordBtn.textContent = 'Change Password';
     }
 }
+
+// Forgot Password Recovery Functions
+function showForgotPasswordRecovery() {
+    closeChangeWalletPasswordModal();
+    document.getElementById('forgotPasswordRecoveryModal').style.display = 'flex';
+    document.getElementById('recoveryMnemonicInput').value = '';
+    document.getElementById('recoveryNewPassword').value = '';
+    document.getElementById('recoveryConfirmPassword').value = '';
+    document.getElementById('recoveryPasswordError').style.display = 'none';
+    document.getElementById('recoveryPasswordSuccess').style.display = 'none';
+}
+
+function closeForgotPasswordRecoveryModal() {
+    document.getElementById('forgotPasswordRecoveryModal').style.display = 'none';
+    document.getElementById('recoveryMnemonicInput').value = '';
+    document.getElementById('recoveryNewPassword').value = '';
+    document.getElementById('recoveryConfirmPassword').value = '';
+}
+
+async function recoverWalletWithNewPassword() {
+    const mnemonicInput = document.getElementById('recoveryMnemonicInput').value.trim();
+    const newPassword = document.getElementById('recoveryNewPassword').value;
+    const confirmPassword = document.getElementById('recoveryConfirmPassword').value;
+    const errorMessage = document.getElementById('recoveryPasswordError');
+    const successMessage = document.getElementById('recoveryPasswordSuccess');
+    const recoverBtn = document.getElementById('recoverWalletBtn');
+
+    errorMessage.style.display = 'none';
+    successMessage.style.display = 'none';
+
+    try {
+        if (!mnemonicInput || !newPassword || !confirmPassword) {
+            throw new Error('All fields are required');
+        }
+
+        // Parse and validate mnemonic
+        const mnemonicWords = mnemonicInput.trim().split(/\s+/);
+        if (mnemonicWords.length !== 24) {
+            throw new Error(`Invalid recovery phrase. Expected 24 words, got ${mnemonicWords.length}`);
+        }
+
+        if (newPassword.length < 6) {
+            throw new Error('New password must be at least 6 characters');
+        }
+
+        if (newPassword !== confirmPassword) {
+            throw new Error('Passwords do not match');
+        }
+
+        const userId = getCurrentUserId();
+        if (!userId) {
+            throw new Error('User not logged in');
+        }
+
+        recoverBtn.disabled = true;
+        recoverBtn.textContent = 'Recovering...';
+
+        const response = await fetch('/api/wallet/recover-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                mnemonic: mnemonicWords,
+                newPassword: newPassword
+            })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to recover password');
+        }
+
+        successMessage.textContent = 'Wallet password recovered successfully!';
+        successMessage.style.display = 'block';
+        showToast('✅ Password recovered! Please login again.', 'success');
+
+        setTimeout(() => {
+            closeForgotPasswordRecoveryModal();
+            logoutWallet();
+        }, 2000);
+
+    } catch (error) {
+        errorMessage.textContent = error.message;
+        errorMessage.style.display = 'block';
+        recoverBtn.disabled = false;
+        recoverBtn.textContent = 'Recover Wallet';
+    }
+}
+
+// Password strength checker for recovery
+document.addEventListener('DOMContentLoaded', function() {
+    const recoveryPasswordInput = document.getElementById('recoveryNewPassword');
+    if (recoveryPasswordInput) {
+        recoveryPasswordInput.addEventListener('input', function() {
+            const password = this.value;
+            const strengthElement = document.getElementById('recoveryPasswordStrength');
+            
+            if (!password) {
+                strengthElement.innerHTML = '';
+                return;
+            }
+
+            let strength = 0;
+            let feedback = [];
+
+            if (password.length >= 8) strength++;
+            if (password.length >= 12) strength++;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+            const colors = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#00c7be'];
+            const labels = ['Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
+
+            strengthElement.style.color = colors[strength];
+            strengthElement.textContent = `Password Strength: ${labels[strength]}`;
+        });
+    }
+});
 
 function showDeleteWalletModal() {
     if (!walletState.hasWallet) {
