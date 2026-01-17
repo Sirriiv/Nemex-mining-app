@@ -1086,12 +1086,12 @@
             try {
                 // Wait for Supabase client to be ready
                 let attempts = 0;
-                while (!window.supabaseClient && attempts < 20) {
+                while (!supabaseClient && attempts < 20) {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     attempts++;
                 }
 
-                if (!window.supabaseClient) {
+                if (!supabaseClient) {
                     console.error('❌ Supabase client not available after waiting');
                     showLoadingScreen('login.html', 'Redirecting to Login...');
                     return null;

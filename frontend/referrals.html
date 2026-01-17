@@ -1333,7 +1333,7 @@
                 await new Promise(resolve => setTimeout(resolve, 100));
 
                 // Get current session from Supabase
-                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                const { data: { session }, error: sessionError } = await window.supabase.auth.getSession();
 
                 if (sessionError) {
                     console.error('Session error:', sessionError);
