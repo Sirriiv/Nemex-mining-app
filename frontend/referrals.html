@@ -1196,12 +1196,14 @@
         }
 
         async function fetchProfile() {
+            // Force fresh data from database - no cache
             const { data, error } = await supabase
                 .from('profiles')
                 .select('id, username, referral_code, balance, referral_slots, used_slots, total_earned_from_refs')
                 .eq('id', currentUser.id)
                 .single();
             if (error) throw error;
+            console.log('📊 Profile fetched:', { used_slots: data.used_slots, total_earned: data.total_earned_from_refs });
             return data;
         }
 
@@ -1215,7 +1217,12 @@
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            if (!edges || edges.length === 0) return [];
+            if (!edges || edges.length === 0) {
+                console.log('👥 Direct referrals count: 0');
+                return [];
+            }
+
+            console.log(`👥 Direct referrals count: ${edges.length}`);
 
             const referredIds = edges.map(e => e.referred_id).filter(Boolean);
             if (referredIds.length === 0) return edges;
@@ -1374,6 +1381,8 @@
                 const directRefs = await fetchDirectReferrals();
                 const directCount = directRefs.length;
 
+                console.log(`📊 Current stats - Direct refs: ${directCount}, Profile used_slots: ${profile.used_slots}, Earned: ${profile.total_earned_from_refs}`);
+
                 const mainTasksStatus = await fetchMainTaskStatus();
                 const tierStatus = computeTierStatus(profile.balance || 0, directCount, mainTasksStatus.allDone);
 
@@ -1384,6 +1393,8 @@
 
                 // Keep profile slots in sync with live direct referral count
                 await syncReferralCounters(directCount, totalSlots);
+
+                console.log(`🎯 Updating UI - Total Refs: ${directCount}, Available: ${availableSlots}, Earned: ${earnedBonus}`);
 
                 document.getElementById('totalReferrals').textContent = directCount;
                 document.getElementById('availableSlots').textContent = availableSlots;
@@ -1411,15 +1422,26 @@
 
         async function syncReferralCounters(directCount, slotCap) {
             try {
-                await supabase
+                console.log(`🔄 Syncing counters: used_slots=${directCount}, referral_slots=${slotCap}`);
+                
+                const { data, error } = await supabase
                     .from('profiles')
                     .update({
                         used_slots: directCount,
                         referral_slots: slotCap
                     })
-                    .eq('id', currentUser.id);
+                    .eq('id', currentUser.id)
+                    .select();
+
+                if (error) {
+                    console.error('❌ Error syncing referral counters:', error);
+                    throw error;
+                }
+                
+                console.log('✅ Counters synced successfully:', data);
             } catch (err) {
                 console.error('❌ Error syncing referral counters:', err);
+                throw err;
             }
         }
 
@@ -1445,6 +1467,8 @@
         function displayReferralsList(referralsData) {
             const referralsList = document.getElementById('referralsList');
             if (!referralsList) return;
+
+            console.log(`📋 Displaying ${referralsData?.length || 0} referrals in list`);
 
             if (!referralsData || referralsData.length === 0) {
                 referralsList.innerHTML = `
