@@ -41,14 +41,21 @@ SELECT
     COUNT(*) AS count
 FROM public.referral_network;
 
--- Step 3: Update used_slots for all referrers based on actual referral_network count
+-- Step 3: Update used_slots AND total_earned_from_refs for all referrers based on actual referral_network count
 UPDATE public.profiles p
-SET used_slots = (
-    SELECT COUNT(*)
-    FROM public.referral_network rn
-    WHERE rn.referrer_id = p.id
-    AND rn.level = 1
-);
+SET 
+    used_slots = (
+        SELECT COUNT(*)
+        FROM public.referral_network rn
+        WHERE rn.referrer_id = p.id
+        AND rn.level = 1
+    ),
+    total_earned_from_refs = (
+        SELECT COUNT(*) * 30  -- 30 NMXp per referral
+        FROM public.referral_network rn
+        WHERE rn.referrer_id = p.id
+        AND rn.level = 1
+    );
 
 -- Step 4: Show summary by user
 SELECT 
