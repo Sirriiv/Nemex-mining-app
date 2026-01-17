@@ -2598,7 +2598,7 @@
         const AUTH_CACHE_DURATION = 10000; // 10 seconds
         let authCheckInProgress = false;
 
-        // FIXED: Use Supabase Auth instead of localStorage with caching
+        // FIXED: Use Supabase Auth with proper session persistence
         async function checkAuth() {
             try {
                 // Check cache first
@@ -2616,12 +2616,21 @@
 
                 authCheckInProgress = true;
 
-                // Check if Supabase is available
+                // Wait for Supabase client to be ready
+                let attempts = 0;
+                while (!window.supabase && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
                 if (!window.supabase) {
-                    console.error('❌ Supabase client not available in checkAuth');
+                    console.error('❌ Supabase client not available after waiting');
                     window.location.href = 'login.html';
                     return null;
                 }
+
+                // Wait a bit for session restoration from localStorage
+                await new Promise(resolve => setTimeout(resolve, 100));
 
                 const { data: { session }, error } = await window.supabase.auth.getSession();
 

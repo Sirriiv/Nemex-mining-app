@@ -6565,8 +6565,40 @@ async function fetchPricesWithFastestAPI() {
 // 🚀 INITIALIZE ON PAGE LOAD
 // =============================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('🎯 Nemex Wallet page loaded - initializing v11...');
+
+    // ✅ First, verify Supabase session for persistence
+    try {
+        // Wait for Supabase client to be ready
+        let attempts = 0;
+        while (!window.supabase && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+
+        if (window.supabase) {
+            // Wait a bit for session restoration from localStorage
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            const { data: { session }, error } = await window.supabase.auth.getSession();
+            
+            if (session && session.user) {
+                console.log('✅ Supabase session restored for user:', session.user.id);
+                // Store user info for wallet system
+                if (!window.miningUser) {
+                    window.miningUser = { id: session.user.id };
+                }
+                if (!sessionStorage.getItem('miningUser')) {
+                    sessionStorage.setItem('miningUser', JSON.stringify({ id: session.user.id }));
+                }
+            } else {
+                console.warn('⚠️ No Supabase session found - wallet features may be limited');
+            }
+        }
+    } catch (error) {
+        console.error('❌ Error checking Supabase session:', error);
+    }
 
     // ✅ Hide loading overlay immediately
     const loadingOverlay = document.getElementById('loadingOverlay');

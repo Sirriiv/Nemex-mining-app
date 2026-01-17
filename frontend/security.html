@@ -1342,14 +1342,27 @@
             }
         }
 
-        // Check authentication on page load
+        // Check authentication on page load with session persistence
         async function checkAuth() {
             try {
                 document.getElementById('loadingText').textContent = 'Loading Security...';
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
-                // Wait for Supabase
-                await waitForSupabase();
+                // Wait for Supabase client to be ready
+                let attempts = 0;
+                while (!window.supabase && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (!window.supabase) {
+                    console.error('❌ Supabase client not available after waiting');
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
+                    return;
+                }
+
+                // Wait a bit for session restoration from localStorage
+                await new Promise(resolve => setTimeout(resolve, 100));
 
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (error || !session) {

@@ -1081,9 +1081,25 @@
             }, 1500);
         }
 
-        // Check authentication
+        // Check authentication with session persistence
         async function checkAuth() {
             try {
+                // Wait for Supabase client to be ready
+                let attempts = 0;
+                while (!window.supabaseClient && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (!window.supabaseClient) {
+                    console.error('❌ Supabase client not available after waiting');
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
+                    return null;
+                }
+
+                // Wait a bit for session restoration from localStorage
+                await new Promise(resolve => setTimeout(resolve, 100));
+
                 const { data: { session }, error } = await supabaseClient.auth.getSession();
                 if (!session || error) {
                     showLoadingScreen('login.html', 'Redirecting to Login...');

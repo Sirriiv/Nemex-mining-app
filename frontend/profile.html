@@ -1004,7 +1004,7 @@
             document.querySelector('.nav-item:nth-child(5)').classList.add('active');
         });
 
-        // FIXED: Enhanced profile loading with proper authentication
+        // FIXED: Enhanced profile loading with proper authentication and session persistence
         async function loadUserProfile() {
             try {
                 console.log('🔄 Loading user profile...');
@@ -1013,6 +1013,22 @@
                 document.getElementById('loadingText').textContent = 'Loading Profile...';
                 document.getElementById('loadingOverlay').style.display = 'flex';
                 document.getElementById('mainContent').style.display = 'none';
+
+                // Wait for Supabase client to be ready
+                let attempts = 0;
+                while (!window.supabaseClient && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (!window.supabaseClient) {
+                    console.error('❌ Supabase client not available after waiting');
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
+                    return;
+                }
+
+                // Wait a bit for session restoration from localStorage
+                await new Promise(resolve => setTimeout(resolve, 100));
 
                 // Check authentication using Supabase session
                 const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();

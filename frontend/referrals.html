@@ -1311,10 +1311,26 @@
             console.log('✅ UI updated with fresh data:', { usedSlots, availableSlots, earnedBonus });
         }
 
-        // FIXED: Enhanced authentication check using Supabase Auth
+        // FIXED: Enhanced authentication check with session persistence
         async function checkAuth() {
             try {
                 console.log('🔐 Checking authentication...');
+
+                // Wait for Supabase client to be ready
+                let attempts = 0;
+                while (!window.supabase && attempts < 20) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (!window.supabase) {
+                    console.error('❌ Supabase client not available after waiting');
+                    showLoadingScreen('login.html', 'Redirecting to Login...');
+                    return null;
+                }
+
+                // Wait a bit for session restoration from localStorage
+                await new Promise(resolve => setTimeout(resolve, 100));
 
                 // Get current session from Supabase
                 const { data: { session }, error: sessionError } = await supabase.auth.getSession();
