@@ -2433,6 +2433,40 @@
             </div>
         </div>
 
+        <!-- CHANGE WALLET PASSWORD MODAL -->
+        <div id="changeWalletPasswordModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-title">Change Wallet Password</div>
+                
+                <div class="security-warning">
+                    <strong>⚠️ Important:</strong> This password protects your wallet. Make sure to remember it!
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Current Wallet Password:</label>
+                    <input type="password" id="currentWalletPassword" class="form-input" placeholder="Enter current password" minlength="6">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">New Wallet Password:</label>
+                    <input type="password" id="newWalletPassword" class="form-input" placeholder="Enter new password (6+ characters)" minlength="6">
+                    <div id="newPasswordStrength" style="margin-top: 5px; font-size: 12px;"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password:</label>
+                    <input type="password" id="confirmWalletPassword" class="form-input" placeholder="Confirm new password" minlength="6">
+                </div>
+
+                <div id="changeWalletPasswordStatus"></div>
+
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button class="close-modal secondary" onclick="closeChangeWalletPasswordModal()">Cancel</button>
+                    <button class="close-modal" onclick="changeWalletPassword()" id="changeWalletPasswordBtn">Change Password</button>
+                </div>
+            </div>
+        </div>
+
         <!-- SEND MODAL -->
         <div id="sendModal" class="modal fullscreen">
             <div class="modal-content" style="background: linear-gradient(135deg, var(--dark-bg) 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
@@ -6147,7 +6181,100 @@ function showSettingsModal() {
 }
 
 function showChangePasswordModal() {
-    showToast('⚠️ Change password functionality coming soon!', 'warning');
+    document.getElementById('changeWalletPasswordModal').style.display = 'flex';
+    document.getElementById('settingsModal').style.display = 'none';
+    
+    // Clear previous inputs
+    document.getElementById('currentWalletPassword').value = '';
+    document.getElementById('newWalletPassword').value = '';
+    document.getElementById('confirmWalletPassword').value = '';
+    document.getElementById('changeWalletPasswordStatus').innerHTML = '';
+    document.getElementById('newPasswordStrength').textContent = '';
+    
+    // Add password strength checker
+    const newPasswordInput = document.getElementById('newWalletPassword');
+    newPasswordInput.addEventListener('input', function() {
+        checkPasswordStrength(this.value, 'newPasswordStrength');
+    });
+}
+
+function closeChangeWalletPasswordModal() {
+    document.getElementById('changeWalletPasswordModal').style.display = 'none';
+    document.getElementById('settingsModal').style.display = 'flex';
+}
+
+async function changeWalletPassword() {
+    const currentPassword = document.getElementById('currentWalletPassword').value;
+    const newPassword = document.getElementById('newWalletPassword').value;
+    const confirmPassword = document.getElementById('confirmWalletPassword').value;
+    const statusElement = document.getElementById('changeWalletPasswordStatus');
+    const button = document.getElementById('changeWalletPasswordBtn');
+
+    // Clear previous status
+    statusElement.innerHTML = '';
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showStatusMessage('All fields are required', 'error', statusElement);
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showStatusMessage('New password must be at least 6 characters', 'error', statusElement);
+        return;
+    }
+
+    if (newPassword !== confirmPassword) {
+        showStatusMessage('New passwords do not match', 'error', statusElement);
+        return;
+    }
+
+    if (currentPassword === newPassword) {
+        showStatusMessage('New password must be different from current password', 'error', statusElement);
+        return;
+    }
+
+    const userId = getCurrentUserId();
+    if (!userId) {
+        showStatusMessage('User not logged in', 'error', statusElement);
+        return;
+    }
+
+    try {
+        button.disabled = true;
+        button.textContent = 'Changing...';
+        showStatusMessage('Changing wallet password...', 'loading', statusElement);
+
+        const response = await fetch('/api/wallet/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showStatusMessage('✅ Wallet password changed successfully!', 'success', statusElement);
+            showToast('✅ Wallet password changed successfully!', 'success');
+            
+            setTimeout(() => {
+                closeChangeWalletPasswordModal();
+            }, 2000);
+        } else {
+            showStatusMessage('❌ ' + result.error, 'error', statusElement);
+        }
+
+    } catch (error) {
+        console.error('❌ Change password error:', error);
+        showStatusMessage('❌ Failed to change password: ' + error.message, 'error', statusElement);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Change Password';
+    }
 }
 
 function showDeleteWalletModal() {

@@ -2589,6 +2589,101 @@ router.post('/session/delete', async (req, res) => {
 });
 
 // ============================================
+// 🎯 CHANGE WALLET PASSWORD ENDPOINT
+// ============================================
+router.post('/change-password', async (req, res) => {
+    try {
+        const { userId, currentPassword, newPassword } = req.body;
+
+        if (!userId || !currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                error: 'User ID, current password, and new password are required'
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                error: 'New password must be at least 6 characters long'
+            });
+        }
+
+        if (dbStatus !== 'connected') {
+            return res.status(503).json({
+                success: false,
+                error: 'Database not available'
+            });
+        }
+
+        // Get wallet from database
+        const wallet = await getWalletFromDatabase(userId);
+        if (!wallet) {
+            return res.status(404).json({
+                success: false,
+                error: 'No wallet found for this user'
+            });
+        }
+
+        // Verify current password
+        const passwordValid = await verifyWalletPassword(currentPassword, wallet.password_hash);
+        if (!passwordValid) {
+            return res.status(401).json({
+                success: false,
+                error: 'Current password is incorrect'
+            });
+        }
+
+        // Decrypt mnemonic with current password
+        let mnemonic;
+        try {
+            mnemonic = decryptMnemonic(wallet.encrypted_mnemonic, currentPassword);
+        } catch (error) {
+            console.error('❌ Failed to decrypt mnemonic:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to decrypt wallet. Please contact support.'
+            });
+        }
+
+        // Re-encrypt mnemonic with new password
+        const newEncryptedData = encryptMnemonic(mnemonic, newPassword);
+        const newPasswordHash = await hashWalletPassword(newPassword);
+
+        // Update database
+        const { error: updateError } = await supabase
+            .from('wallets')
+            .update({
+                encrypted_mnemonic: newEncryptedData,
+                password_hash: newPasswordHash,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+
+        if (updateError) {
+            console.error('❌ Failed to update wallet password:', updateError);
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to update wallet password'
+            });
+        }
+
+        console.log('✅ Wallet password changed successfully for user:', userId);
+        return res.json({
+            success: true,
+            message: 'Wallet password changed successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Change wallet password error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to change wallet password: ' + error.message
+        });
+    }
+});
+
+// ============================================
 // 🎯 UPDATED BALANCE ENDPOINT WITH DUAL APIS
 // ============================================
 router.get('/balance/:address', async (req, res) => {
