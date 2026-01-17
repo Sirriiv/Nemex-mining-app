@@ -1765,5 +1765,12 @@
             }, 5000);
         }
     </script>
-</body>
+</body>-- Remove the problematic unique constraint
+DROP INDEX IF EXISTS public.unique_referred_user;-- Check if RLS is blocking reads
+SELECT * FROM referral_network LIMIT 5;
+
+-- Check RLS policies
+SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual 
+FROM pg_policies 
+WHERE tablename = 'referral_network';
 </html>

@@ -865,7 +865,9 @@
                 }
 
                 // Create referral network record
-                await supabase
+                console.log('🔄 Creating referral_network entry:', { referrerId, newUserId, level: 1 });
+                
+                const { data: networkData, error: networkError } = await supabase
                     .from('referral_network')
                     .insert({
                         referrer_id: referrerId,
@@ -873,9 +875,16 @@
                         level: 1,
                         bonus_given: shouldGiveBonus,
                         created_at: new Date().toISOString()
-                    });
+                    })
+                    .select();
 
-                console.log('✅ Referral network record created');
+                if (networkError) {
+                    console.error('❌ FAILED to create referral_network entry:', networkError);
+                    console.error('Error details:', JSON.stringify(networkError, null, 2));
+                    // Don't throw - let registration complete even if network entry fails
+                } else {
+                    console.log('✅ Referral network record created:', networkData);
+                }
 
             } catch (error) {
                 console.error('Referral processing error:', error);
