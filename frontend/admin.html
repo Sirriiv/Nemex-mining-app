@@ -2176,7 +2176,7 @@
             }
         }
 
-        // UPDATED: Enhanced showUserDetails function
+        // UPDATED: Enhanced showUserDetails function with INFINITE referral levels
         async function showUserDetails(userId) {
             try {
                 document.getElementById('popupContent').innerHTML = `
@@ -2188,6 +2188,7 @@
 
                 document.getElementById('userPopup').style.display = 'flex';
 
+                // Get user profile
                 const { data: user, error: userError } = await supabaseClient
                     .from('profiles')
                     .select('*')
@@ -2196,11 +2197,44 @@
 
                 if (userError) throw new Error('User not found: ' + userError.message);
 
-                const { data: directReferrals } = await supabaseClient
-                    .from('profiles')
-                    .select('id, username, email, created_at, balance')
-                    .eq('referred_by', userId);
+                // Get ALL network referrals (infinite levels) from referral_network table
+                const { data: allNetworkReferrals, error: networkError } = await supabaseClient
+                    .from('referral_network')
+                    .select(`
+                        level,
+                        referred_id,
+                        created_at,
+                        referred:referred_id (
+                            id,
+                            username,
+                            email,
+                            balance,
+                            created_at
+                        )
+                    `)
+                    .eq('referrer_id', userId)
+                    .order('level', { ascending: true })
+                    .order('created_at', { ascending: false });
 
+                if (networkError) {
+                    console.warn('⚠️ Error loading network referrals:', networkError);
+                }
+
+                // Group referrals by level
+                const referralsByLevel = {};
+                (allNetworkReferrals || []).forEach(ref => {
+                    if (!referralsByLevel[ref.level]) {
+                        referralsByLevel[ref.level] = [];
+                    }
+                    if (ref.referred) {
+                        referralsByLevel[ref.level].push(ref.referred);
+                    }
+                });
+
+                // Get direct referrals (level 1)
+                const directReferrals = referralsByLevel[1] || [];
+
+                // Get referrer info
                 let referrer = null;
                 if (user.referred_by) {
                     const { data: referrerData } = await supabaseClient
@@ -2211,23 +2245,24 @@
                     referrer = referrerData;
                 }
 
-                // NEW: Use enhanced function to get purchase data
+                // Get purchase data
                 const purchaseStats = await getUserStatisticsWithPurchases(userId);
 
-                const { count: directReferralsCount } = await supabaseClient
-                    .from('profiles')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('referred_by', userId);
-
+                // Calculate network stats
+                const totalNetworkSize = Object.values(referralsByLevel).reduce((sum, refs) => sum + refs.length, 0);
+                
                 const networkStats = {
-                    directReferrals: directReferralsCount || 0,
-                    totalNetwork: directReferralsCount || 0,
+                    directReferrals: directReferrals.length,
+                    totalNetwork: totalNetworkSize,
                     totalPurchases: purchaseStats.packagesPurchased,
                     totalRevenue: purchaseStats.totalSpent,
-                    networkRevenue: 0
+                    levelBreakdown: Object.keys(referralsByLevel).map(level => ({
+                        level: parseInt(level),
+                        count: referralsByLevel[level].length
+                    }))
                 };
 
-                renderUserPopup(user, directReferrals || [], [], referrer, purchaseStats.purchaseHistory, purchaseStats.totalSpent, networkStats);
+                renderUserPopup(user, directReferrals, referralsByLevel, referrer, purchaseStats.purchaseHistory, purchaseStats.totalSpent, networkStats);
 
             } catch (error) {
                 console.error('❌ Error loading user details:', error);
@@ -2241,9 +2276,13 @@
             }
         }
 
-        // Render User Popup
-        function renderUserPopup(user, directReferrals, networkReferrals, referrer, purchases, totalSpent, networkStats) {
+        // UPDATED: Render User Popup with INFINITE referral levels
+        function renderUserPopup(user, directReferrals, referralsByLevel, referrer, purchases, totalSpent, networkStats) {
             const popupContent = document.getElementById('popupContent');
+
+            // Calculate all levels
+            const allLevels = Object.keys(referralsByLevel).sort((a, b) => parseInt(a) - parseInt(b));
+            const maxLevel = allLevels.length > 0 ? Math.max(...allLevels.map(l => parseInt(l))) : 0;
 
             popupContent.innerHTML = `
                 <div class="user-details-grid">
@@ -2263,6 +2302,14 @@
                             <span class="detail-value">${user.email || 'No email'}</span>
                         </div>
                         <div class="detail-item">
+                            <span class="detail-label">User ID</span>
+                            <span class="detail-value" style="font-size: 11px; word-break: break-all;">${user.id}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Balance</span>
+                            <span class="detail-value">${user.balance || 0} NMXp</span>
+                        </div>
+                        <div class="detail-item">
                             <span class="detail-label">Referrer Status</span>
                             <span class="detail-value">
                                 <span class="status-badge ${user.referred_by ? 'status-with-refs' : 'status-orphaned'}">
@@ -2271,8 +2318,8 @@
                             </span>
                         </div>
                         <div class="detail-item">
-                            <span class="detail-label">Direct Referrals</span>
-                            <span class="detail-value">${directReferrals.length} users</span>
+                            <span class="detail-label">Joined</span>
+                            <span class="detail-value">${new Date(user.created_at).toLocaleDateString()}</span>
                         </div>
                     </div>
 
@@ -2293,13 +2340,20 @@
                         </div>
                         ${purchases.length > 0 ? `
                             <div style="margin-top: 15px;">
-                                <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">Recent Purchases:</h4>
-                                ${purchases.slice(0, 5).map(purchase => `
-                                    <div class="purchase-item">
-                                        <span class="purchase-name">${purchase.package_name || 'Package'}</span>
-                                        <span class="purchase-amount">$${parseFloat(purchase.price_usd || 0).toFixed(2)}</span>
-                                    </div>
-                                `).join('')}
+                                <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">All Purchases:</h4>
+                                <div style="max-height: 300px; overflow-y: auto;">
+                                    ${purchases.map((purchase, index) => `
+                                        <div class="purchase-item">
+                                            <div>
+                                                <span class="purchase-name">${purchase.package_name || 'Package'}</span>
+                                                <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+                                                    ${new Date(purchase.created_at).toLocaleDateString()} • ${purchase.status}
+                                                </div>
+                                            </div>
+                                            <span class="purchase-amount">$${parseFloat(purchase.price_usd || 0).toFixed(2)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
                             </div>
                         ` : '<div style="text-align: center; color: var(--muted); padding: 20px;">No purchase history</div>'}
                     </div>
@@ -2308,11 +2362,15 @@
                 <div class="network-stats">
                     <div class="network-stat">
                         <div class="network-stat-value">${networkStats.directReferrals}</div>
-                        <div class="network-stat-label">Direct Referrals</div>
+                        <div class="network-stat-label">Direct Referrals (L1)</div>
                     </div>
                     <div class="network-stat">
                         <div class="network-stat-value">${networkStats.totalNetwork}</div>
                         <div class="network-stat-label">Total Network</div>
+                    </div>
+                    <div class="network-stat">
+                        <div class="network-stat-value">${maxLevel}</div>
+                        <div class="network-stat-label">Max Level</div>
                     </div>
                     <div class="network-stat">
                         <div class="network-stat-value">$${networkStats.totalRevenue.toFixed(2)}</div>
@@ -2321,7 +2379,7 @@
                 </div>
 
                 <div class="referral-preview">
-                    <h3 class="section-title">Referral Relationships</h3>
+                    <h3 class="section-title">Referral Network (All Levels)</h3>
                     
                     ${referrer ? `
                         <div style="margin-bottom: 20px;">
@@ -2337,24 +2395,43 @@
                         </div>
                     ` : ''}
 
-                    <div>
-                        <h4 style="color: var(--muted); font-size: 14px; margin-bottom: 10px;">
-                            Direct Referrals (${directReferrals.length}):
-                        </h4>
-                        ${directReferrals.length > 0 ? 
-                            directReferrals.map(ref => `
-                                <div class="relationship-node" onclick="showUserDetails('${ref.id}')">
-                                    <div class="relationship-avatar">${ref.username?.charAt(0) || 'U'}</div>
-                                    <div class="relationship-info">
-                                        <div class="relationship-name">${ref.username || 'Unknown User'}</div>
-                                        <div class="relationship-email">${ref.email || 'No email'}</div>
+                    ${allLevels.length > 0 ? `
+                        <div style="margin-bottom: 20px; padding: 15px; background: var(--glass-bg); border-radius: 10px;">
+                            <h4 style="color: var(--gold); font-size: 14px; margin-bottom: 10px;">📊 Level Breakdown:</h4>
+                            ${allLevels.map(level => {
+                                const count = referralsByLevel[level].length;
+                                return `
+                                    <div style="display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border-color);">
+                                        <span style="color: var(--text);">Level ${level}</span>
+                                        <span style="color: var(--gold); font-weight: 600;">${count} ${count === 1 ? 'user' : 'users'}</span>
                                     </div>
-                                    <span class="relationship-type">Referred</span>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        ${allLevels.map(level => {
+                            const refs = referralsByLevel[level];
+                            return `
+                                <div style="margin-bottom: 25px;">
+                                    <h4 style="color: var(--gold); font-size: 14px; margin-bottom: 10px; padding: 8px; background: var(--darker-bg); border-radius: 6px;">
+                                        📍 Level ${level} Referrals (${refs.length}):
+                                    </h4>
+                                    <div style="max-height: 300px; overflow-y: auto;">
+                                        ${refs.map(ref => `
+                                            <div class="relationship-node" onclick="showUserDetails('${ref.id}')" style="margin-bottom: 8px;">
+                                                <div class="relationship-avatar">${ref.username?.charAt(0) || 'U'}</div>
+                                                <div class="relationship-info">
+                                                    <div class="relationship-name">${ref.username || 'Unknown User'}</div>
+                                                    <div class="relationship-email">${ref.email || 'No email'}</div>
+                                                </div>
+                                                <span class="relationship-type" style="background: rgba(212, 175, 55, ${1 - (level * 0.1)}); color: var(--darker-bg);">L${level}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
                                 </div>
-                            `).join('') 
-                            : '<div style="text-align: center; color: var(--muted); padding: 20px;">No users referred yet</div>'
-                        }
-                    </div>
+                            `;
+                        }).join('')}
+                    ` : '<div style="text-align: center; color: var(--muted); padding: 20px;">No referral network yet</div>'}
                 </div>
             `;
         }
