@@ -141,6 +141,45 @@ if (fs.existsSync(walletRoutesPath)) {
 }
 
 // =============================================
+// 🎯 LOAD AND MOUNT ADMIN ROUTES
+// =============================================
+console.log('\n🔄 LOADING ADMIN ROUTES...');
+
+const adminRoutesPath = path.join(__dirname, 'backend', 'admin-routes.js');
+
+if (fs.existsSync(adminRoutesPath)) {
+    try {
+        console.log(`✅ Found admin routes at: ${adminRoutesPath}`);
+        
+        // Initialize Supabase client for admin routes
+        const { createClient } = require('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Middleware to inject supabase into requests
+        app.use('/api/admin', (req, res, next) => {
+            req.supabase = supabase;
+            next();
+        });
+        
+        const adminRoutes = require(adminRoutesPath);
+        app.use('/api/admin', adminRoutes);
+        console.log('✅ Admin routes mounted at /api/admin');
+        
+        console.log('\n📋 AVAILABLE ADMIN ENDPOINTS:');
+        console.log('   GET    /api/admin/users              - Get all users');
+        console.log('   GET    /api/admin/users/:userId      - Get user details');
+        console.log('   GET    /api/admin/check-access       - Check admin access');
+        console.log('   POST   /api/admin/orphan-referral    - Orphan a referral');
+    } catch (error) {
+        console.error('❌ FAILED to load admin routes:', error.message);
+    }
+} else {
+    console.log('⚠️ Admin routes file not found (optional)');
+}
+
+// =============================================
 // 🎯 TEST ENDPOINTS
 // =============================================
 app.get('/api/test', (req, res) => {

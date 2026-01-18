@@ -1218,7 +1218,15 @@
     <div class="modal" id="removeModal">
         <div class="modal-content">
             <div class="modal-title">Remove Referral</div>
-            <div class="modal-text" id="removeModalText">Are you sure you want to remove this user? This will free up one referral slot.</div>
+            <div class="modal-text" id="removeModalText">
+                Are you sure you want to remove this user from your referrals?<br><br>
+                <strong>⚠️ Important:</strong><br>
+                • The user will become "orphaned" (no referrer)<br>
+                • The user stays in the database<br>
+                • You will lose 30 NMXp bonus<br>
+                • They will lose 30 NMXp bonus<br>
+                • This will free up one referral slot
+            </div>
             <div class="modal-actions">
                 <button class="modal-btn modal-cancel" id="cancelRemove">Cancel</button>
                 <button class="modal-btn modal-confirm" id="confirmRemove">Remove</button>
@@ -1677,27 +1685,44 @@
             document.getElementById('removeModal').style.display = 'flex';
         }
 
-        // Remove referral function
+        // Remove referral function - Orphans the user instead of deleting
         async function removeReferral() {
             if (!userToRemove || !currentUser) return;
 
             try {
-                console.log(`🗑️ Removing referral: ${userToRemove.name}`);
+                console.log(`🔗 Orphaning referral: ${userToRemove.name}`);
+                console.log(`  - This will break the referral link but keep user in database`);
+                console.log(`  - Both users will lose 30 NMXp bonus`);
 
-                const { error: deleteError } = await supabase
-                    .from('referral_network')
-                    .delete()
-                    .eq('referrer_id', currentUser.id)
-                    .eq('referred_id', userToRemove.id);
+                // Call backend endpoint to orphan the user
+                const response = await fetch('/api/admin/orphan-referral', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        referrerId: currentUser.id,
+                        referredId: userToRemove.id
+                    })
+                });
 
-                if (deleteError) {
-                    console.error('Error deleting referral row:', deleteError);
-                    showToast('Error removing referral', 'error');
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    console.error('Error orphaning referral:', result.error);
+                    showToast(result.error || 'Error removing referral', 'error');
                     return;
                 }
 
+                console.log('✅ Referral orphaned successfully:', result.details);
+
                 // Create notification for removal
-                await createReferralNotification(currentUser.id, 'referral_removed', userToRemove.name, 'removed');
+                await createReferralNotification(
+                    currentUser.id, 
+                    'referral_removed', 
+                    userToRemove.name, 
+                    'removed'
+                );
 
                 // Force sync data to ensure UI is updated
                 await loadReferralData();
@@ -1705,8 +1730,12 @@
                 // Close modal
                 document.getElementById('removeModal').style.display = 'none';
 
-                // Show success message
-                showToast(`${userToRemove.name} removed from referrals`, 'success');
+                // Show success message with details
+                const details = result.details;
+                showToast(
+                    `${details.referredUsername} removed and orphaned. Both users lost ${details.deductedAmount} NMXp.`, 
+                    'success'
+                );
 
                 // Reset userToRemove
                 userToRemove = null;

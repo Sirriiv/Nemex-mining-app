@@ -111,6 +111,113 @@ router.get('/users/:userId', checkAdmin, async (req, res) => {
     }
 });
 
+// Orphan a referral (break the link but keep user in database)
+router.post('/orphan-referral', async (req, res) => {
+    try {
+        const { referrerId, referredId } = req.body;
+        const BONUS_AMOUNT = 30;
+
+        if (!referrerId || !referredId) {
+            return res.status(400).json({ error: 'Missing referrer or referred user ID' });
+        }
+
+        console.log('🔗 Orphaning referral:', { referrerId, referredId });
+
+        // Get Supabase from request (set by server middleware)
+        const supabase = req.supabase || req.app.locals.supabase;
+
+        // 1. Get current balances before making changes
+        const { data: referrerProfile } = await supabase
+            .from('profiles')
+            .select('balance, total_earned_from_refs, used_slots, username')
+            .eq('id', referrerId)
+            .single();
+
+        const { data: referredProfile } = await supabase
+            .from('profiles')
+            .select('balance, username')
+            .eq('id', referredId)
+            .single();
+
+        if (!referrerProfile || !referredProfile) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // 2. Remove the referral link (orphan the user)
+        const { error: orphanError } = await supabase
+            .from('profiles')
+            .update({ referred_by: null })
+            .eq('id', referredId);
+
+        if (orphanError) {
+            console.error('Error orphaning user:', orphanError);
+            return res.status(500).json({ error: 'Failed to orphan user' });
+        }
+
+        // 3. Deduct bonus from referrer
+        const newReferrerBalance = Math.max(0, (referrerProfile.balance || 0) - BONUS_AMOUNT);
+        const newReferrerEarned = Math.max(0, (referrerProfile.total_earned_from_refs || 0) - BONUS_AMOUNT);
+        const newUsedSlots = Math.max(0, (referrerProfile.used_slots || 0) - 1);
+
+        const { error: referrerUpdateError } = await supabase
+            .from('profiles')
+            .update({
+                balance: newReferrerBalance,
+                total_earned_from_refs: newReferrerEarned,
+                used_slots: newUsedSlots
+            })
+            .eq('id', referrerId);
+
+        if (referrerUpdateError) {
+            console.error('Error updating referrer balance:', referrerUpdateError);
+        }
+
+        // 4. Deduct bonus from referred user (if they had signup bonus)
+        const newReferredBalance = Math.max(0, (referredProfile.balance || 0) - BONUS_AMOUNT);
+
+        const { error: referredUpdateError } = await supabase
+            .from('profiles')
+            .update({ balance: newReferredBalance })
+            .eq('id', referredId);
+
+        if (referredUpdateError) {
+            console.error('Error updating referred user balance:', referredUpdateError);
+        }
+
+        // 5. Delete all referral_network entries for this relationship
+        const { error: networkDeleteError } = await supabase
+            .from('referral_network')
+            .delete()
+            .eq('referred_id', referredId);
+
+        if (networkDeleteError) {
+            console.error('Error deleting referral network entries:', networkDeleteError);
+        }
+
+        console.log('✅ Referral orphaned successfully');
+        console.log(`  - ${referredProfile.username} is now an orphaned user`);
+        console.log(`  - ${referrerProfile.username} lost ${BONUS_AMOUNT} NMXp`);
+        console.log(`  - ${referredProfile.username} lost ${BONUS_AMOUNT} NMXp`);
+
+        res.json({
+            success: true,
+            message: 'Referral removed successfully',
+            details: {
+                referrerUsername: referrerProfile.username,
+                referredUsername: referredProfile.username,
+                deductedAmount: BONUS_AMOUNT,
+                referrerNewBalance: newReferrerBalance,
+                referredNewBalance: newReferredBalance,
+                freedSlots: 1
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error in orphan-referral:', error);
+        res.status(500).json({ error: 'Failed to orphan referral' });
+    }
+});
+
 
 module.exports = router;
 

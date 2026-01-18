@@ -1,9 +1,10 @@
--- Automatically deduct referral bonus when a referral is removed
--- This prevents referral abuse by ensuring rewards are reversed when users are deleted
+-- Automatically deduct referral bonus when a referral is HARD DELETED from database
+-- This is for admin-level deletions, not for UI "remove referral" actions
+-- UI removals should use the /api/admin/orphan-referral endpoint instead
 
 BEGIN;
 
--- Create function to deduct bonus when referral is deleted
+-- Create function to deduct bonus when referral is permanently deleted
 CREATE OR REPLACE FUNCTION public.deduct_referral_bonus_on_delete()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -38,7 +39,7 @@ BEGIN
         used_slots = GREATEST(0, COALESCE(used_slots, 0) - 1)
     WHERE id = OLD.referrer_id;
 
-    RAISE NOTICE 'Deducted % NMXp bonus from referrer % (deleted referral: %)', 
+    RAISE NOTICE 'Deducted % NMXp bonus from referrer % (hard deleted referral: %)', 
         BONUS_AMOUNT, OLD.referrer_id, OLD.referred_id;
 
     RETURN OLD;
@@ -49,6 +50,8 @@ $$;
 DROP TRIGGER IF EXISTS trg_deduct_referral_bonus_on_delete ON public.referral_network;
 
 -- Create the trigger
+-- NOTE: This trigger fires on DELETE from referral_network table
+-- For UI "remove referral", use /api/admin/orphan-referral endpoint instead
 CREATE TRIGGER trg_deduct_referral_bonus_on_delete
 BEFORE DELETE ON public.referral_network
 FOR EACH ROW
