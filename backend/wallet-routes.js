@@ -4483,20 +4483,20 @@ async function fetchTransactionsFromProviders(address, limit = 50) {
                     if (!from_address && tx.from) from_address = tx.from;
                     if (!to_address && tx.to) to_address = tx.to;
 
-                    // Debug logging for transaction parsing
-                    if (!from_address || !to_address) {
-                        console.log('⚠️ Missing address in transaction:', {
-                            hash: hash?.substring(0, 16),
-                            from_address,
-                            to_address,
-                            has_in_msg: !!tx.in_msg,
-                            in_msg_source: tx.in_msg?.source,
-                            in_msg_destination: tx.in_msg?.destination,
-                            tx_from: tx.from,
-                            tx_to: tx.to,
-                            out_msgs_count: tx.out_msgs?.length || 0
-                        });
-                    }
+                    // Debug logging for transaction parsing (disabled to reduce logs)
+                    // if (!from_address || !to_address) {
+                    //     console.log('⚠️ Missing address in transaction:', {
+                    //         hash: hash?.substring(0, 16),
+                    //         from_address,
+                    //         to_address,
+                    //         has_in_msg: !!tx.in_msg,
+                    //         in_msg_source: tx.in_msg?.source,
+                    //         in_msg_destination: tx.in_msg?.destination,
+                    //         tx_from: tx.from,
+                    //         tx_to: tx.to,
+                    //         out_msgs_count: tx.out_msgs?.length || 0
+                    //     });
+                    // }
 
                     // Helper function to compare addresses safely
                     function isSameAddress(addr1, addr2) {
@@ -4703,8 +4703,8 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
                 if (existing) {
                     // Check if it's the same user's transaction
                     if (existing.user_id === row.user_id && existing.wallet_address === row.wallet_address) {
-                        // Exact duplicate, skip
-                        console.log(`⏭️ Skipping duplicate transaction: ${row.transaction_hash.substring(0, 10)}... for user ${row.user_id}`);
+                        // Exact duplicate, skip (log disabled to reduce noise)
+                        // console.log(`⏭️ Skipping duplicate transaction: ${row.transaction_hash.substring(0, 10)}... for user ${row.user_id}`);
                         continue;
                     }
                 }
@@ -4772,7 +4772,8 @@ async function reconcileChainTxsForUser(userId, chainTxs = []) {
             const windowStart = new Date(blockTime.getTime() - 5 * 60 * 1000).toISOString();
             const windowEnd = new Date(blockTime.getTime() + 5 * 60 * 1000).toISOString();
 
-            console.log(`🔁 Reconciling tx: hash=${tx.transaction_hash || 'none'}, amount=${amountNum}, from=${tx.from_address || 'none'}, to=${tx.to_address || 'none'}, time=${blockTime.toISOString()}, status=${tx.status || 'unknown'}`);
+            // Reconciliation log disabled to reduce verbose output
+            // console.log(`🔁 Reconciling tx: hash=${tx.transaction_hash || 'none'}, amount=${amountNum}, from=${tx.from_address || 'none'}, to=${tx.to_address || 'none'}, time=${blockTime.toISOString()}, status=${tx.status || 'unknown'}`);
 
             const { data: pendingRows, error: pendingErr } = await supabase
                 .from('transactions')
