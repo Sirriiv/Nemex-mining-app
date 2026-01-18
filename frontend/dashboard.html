@@ -158,13 +158,13 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 15px;
             text-align: center;
         }
         
         .balance-display {
-            margin-bottom: 20px;
-            padding: 15px 20px;
+            margin-bottom: 15px;
+            padding: 12px 15px;
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border-radius: 15px;
@@ -211,7 +211,7 @@
         .nemex-logo{
             width: 220px;
             height: 220px;
-            margin: 30px auto;
+            margin: 15px auto;
             position:relative;
             display:flex;
             align-items:center;
@@ -387,8 +387,8 @@
         }
 
         .countdown-section {
-            margin-bottom: 30px;
-            padding: 15px 25px;
+            margin-bottom: 15px;
+            padding: 10px 15px;
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border-radius: 15px;
@@ -426,11 +426,11 @@
             background-size: 200% 200%;
             color: var(--darker-bg);
             border: none;
-            padding: 14px 50px;
+            padding: 12px 40px;
             border-radius: 25px;
             font-size: 16px;
             font-weight: 700;
-            margin: 20px 0;
+            margin: 10px 0;
             cursor: pointer;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 
@@ -3127,7 +3127,7 @@
                 if (lastCountdownText !== 'Ready!') {
                     countdownTimer.textContent = 'Ready!';
                     claimButton.disabled = false;
-                    claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+                    claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMXp`;
                     lastCountdownText = 'Ready!';
                 }
                 return;
@@ -3141,7 +3141,7 @@
                 if (lastCountdownText !== 'Ready!') {
                     countdownTimer.textContent = 'Ready!';
                     claimButton.disabled = false;
-                    claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMX`;
+                    claimButton.textContent = `Claim ${CLAIM_AMOUNT} NMXp`;
                     lastCountdownText = 'Ready!';
                 }
                 return;
