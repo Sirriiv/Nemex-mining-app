@@ -93,10 +93,10 @@ BEGIN
         JOIN ancestors ON parent.id = ancestors.referred_by
         WHERE ancestors.depth < 10
     )
-    INSERT INTO public.referral_network (referrer_id, referred_id, level, bonus_given, created_at)
-    SELECT a.id, NEW.referred_id, a.depth + 1, false, COALESCE(NEW.created_at, now())
+    INSERT INTO public.referral_network (referrer_id, referred_id, level, created_at)
+    SELECT a.id, NEW.referred_id, a.depth + 2, COALESCE(NEW.created_at, now())
     FROM ancestors a
-    WHERE a.depth > 0
+    WHERE a.depth >= 0
     ON CONFLICT (referrer_id, referred_id) DO NOTHING;
 
     RETURN NEW;
