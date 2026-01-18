@@ -345,30 +345,41 @@
         
         /* Comprehensive Responsive Design */
         @media (max-width: 360px) {
-            .container { max-width: 100%; padding: 0 15px; }
-            .register-logo { width: 60px; height: 60px; }
-            .register-title { font-size: 22px; }
-            .form-input { padding: 12px; font-size: 14px; }
-            .register-btn { padding: 12px; font-size: 14px; }
+            .container { max-width: 100%; padding: 0 12px; }
+            .register-box { padding: 20px; margin: 15px; }
+            .register-logo { width: 55px; height: 55px; }
+            .register-title { font-size: 20px; }
+            .form-group { margin-bottom: 14px; }
+            .form-input { padding: 11px; font-size: 13px; }
+            .register-btn { padding: 11px; font-size: 13px; }
+            .link { font-size: 13px; }
         }
         
         @media (max-width: 480px) {
-            .container { max-width: 100%; }
+            .container { max-width: 100%; padding: 0 15px; }
             .register-box { padding: 25px; margin: 20px; }
         }
         
         @media (min-width: 481px) and (max-width: 767px) {
-            .container { max-width: 450px; }
+            .container { max-width: 450px; margin: 0 auto; }
+            .register-box { max-width: 400px; margin: 30px auto; }
         }
         
-        @media (min-width: 768px) {
-            .container { max-width: 500px; }
-            .register-box { padding: 40px; }
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .container { max-width: 500px; margin: 0 auto; }
+            .register-box { padding: 40px; max-width: 450px; margin: 40px auto; }
+        }
+        
+        @media (min-width: 1025px) {
+            .container { max-width: 550px; margin: 0 auto; }
+            .register-box { padding: 45px; max-width: 480px; margin: 50px auto; }
         }
         
         @media (max-height: 600px) and (orientation: landscape) {
-            .register-box { padding: 20px; margin: 10px; }
-            .register-logo { width: 50px; height: 50px; }
+            .register-box { padding: 18px; margin: 10px; }
+            .register-logo { width: 45px; height: 45px; }
+            .register-title { font-size: 20px; margin-bottom: 15px; }
+            .form-group { margin-bottom: 12px; }
         }
     </style>
 </head>
