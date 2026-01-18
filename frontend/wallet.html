@@ -3779,8 +3779,8 @@ function startRealBalanceUpdates() {
     // Run immediately
     updateRealBalance();
     
-    // Then run every 30 seconds
-    balanceUpdateInterval = setInterval(updateRealBalance, 30000);
+    // ⚡ OPTIMIZED: Run every 60 seconds (reduced from 30s to cut requests by 50%)
+    balanceUpdateInterval = setInterval(updateRealBalance, 60000);
 }
 
 function stopRealBalanceUpdates() {
@@ -3817,10 +3817,10 @@ function startAutoSync() {
     // Clear existing
     if (autoSyncInterval) clearInterval(autoSyncInterval);
     
-    // ✅ OPTIMIZED: Adaptive polling based on tab visibility
+    // ⚡ OPTIMIZED: Reduced polling frequency to save requests/egress
+    // 60s if tab active (was 30s), 180s if inactive (was 120s)
     const updateInterval = () => {
-        // 30s if tab active, 120s if inactive
-        const interval = isTabActive ? 30000 : 120000;
+        const interval = isTabActive ? 60000 : 180000;
         
         if (autoSyncInterval) clearInterval(autoSyncInterval);
         autoSyncInterval = setInterval(() => {

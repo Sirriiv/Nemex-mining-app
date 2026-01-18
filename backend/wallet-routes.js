@@ -4747,9 +4747,22 @@ async function upsertTransactionsForUser(userId, address, chainTxs = []) {
     }
 }
 
+// ⚡ Rate limiting for reconciliation to prevent excessive calls
+const reconciliationCache = new Map();
+const RECONCILIATION_COOLDOWN = 30000; // 30 seconds cooldown per user
+
 // Reusable reconciliation helper: matches pending local rows with confirmed chain txs and updates status/fees/hash
 async function reconcileChainTxsForUser(userId, chainTxs = []) {
     try {
+        // ⚡ Rate limit: Skip if reconciled for this user recently
+        const cacheKey = `reconcile_${userId}`;
+        const lastReconcile = reconciliationCache.get(cacheKey);
+        
+        if (lastReconcile && (Date.now() - lastReconcile) < RECONCILIATION_COOLDOWN) {
+            console.log(`⏭️ Skipping reconciliation for user ${userId} (cooldown active)`);
+            return { success: true, reconciledCount: 0, skipped: true };
+        }
+        
         if (!Array.isArray(chainTxs) || chainTxs.length === 0) return { success: true, reconciledCount: 0 };
 
         let reconciledCount = 0;
@@ -4863,6 +4876,16 @@ async function reconcileChainTxsForUser(userId, chainTxs = []) {
                 } catch (e) {
                     console.warn('⚠️ Exception updating pending row:', e.message);
                 }
+            }
+        }
+
+        // ⚡ Update cache after successful reconciliation
+        reconciliationCache.set(cacheKey, Date.now());
+        
+        // Clean up old cache entries (older than 5 minutes)
+        for (const [key, timestamp] of reconciliationCache.entries()) {
+            if (Date.now() - timestamp > 300000) {
+                reconciliationCache.delete(key);
             }
         }
 
