@@ -275,100 +275,41 @@
             top:50%;
             left:50%;
             transform:translate(-50%,-50%);
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 70px;
+            height: 70px;
         }
         
         .infinity-symbol{
             width:100%;
             height:100%;
-            position:relative;
-            display:flex;
-            align-items:center;
-            justify-content:center;
+            position:relative
         }
         
-        /* Mining chip with blinking effect */
-        .mining-chip {
+        .infinity-symbol::before,.infinity-symbol::after{
+            content:'';
+            position:absolute;
             width: 35px;
             height: 35px;
-            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-            border-radius: 8px;
-            position: relative;
-            box-shadow: 
-                0 0 20px rgba(212, 175, 55, 0.6),
-                inset 0 0 10px rgba(255, 255, 255, 0.3);
-            animation: chipBlink 2s ease-in-out infinite;
+            border:4px solid var(--gold);
+            border-radius:50%;
+            border-top-color:transparent;
+            border-right-color:transparent;
+            animation:rotate 2s linear infinite;
+            box-shadow: 0 0 20px var(--gold-glow);
         }
         
-        @keyframes chipBlink {
-            0%, 100% { 
-                opacity: 0.7;
-                transform: scale(1);
-                box-shadow: 
-                    0 0 20px rgba(212, 175, 55, 0.6),
-                    inset 0 0 10px rgba(255, 255, 255, 0.3);
-            }
-            50% { 
-                opacity: 1;
-                transform: scale(1.1);
-                box-shadow: 
-                    0 0 40px rgba(212, 175, 55, 1),
-                    0 0 60px rgba(212, 175, 55, 0.6),
-                    inset 0 0 15px rgba(255, 255, 255, 0.5);
-            }
+        .infinity-symbol::before{
+            top:0;
+            left:0;
+            transform:rotate(0deg);
+            animation-delay:0s
         }
         
-        /* Chip corners */
-        .mining-chip::before,
-        .mining-chip::after {
-            content: '';
-            position: absolute;
-            width: 3px;
-            height: 3px;
-            background: var(--gold-light);
-            border-radius: 50%;
-            box-shadow: 0 0 5px var(--gold-light);
-        }
-        
-        .mining-chip::before {
-            top: 3px;
-            left: 3px;
-        }
-        
-        .mining-chip::after {
-            bottom: 3px;
-            right: 3px;
-        }
-        
-        /* Center dot */
-        .chip-core {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: var(--gold-light);
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 
-                0 0 10px rgba(244, 208, 63, 0.8),
-                0 0 20px rgba(244, 208, 63, 0.5);
-            animation: corePulse 1s ease-in-out infinite;
-        }
-        
-        @keyframes corePulse {
-            0%, 100% { 
-                opacity: 0.6;
-                transform: translate(-50%, -50%) scale(1);
-            }
-            50% { 
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1.3);
-            }
+        .infinity-symbol::after{
+            bottom:0;
+            right:0;
+            transform:rotate(180deg);
+            animation-delay:-1s
         }
         
         .circuit-lines{
@@ -1680,11 +1621,7 @@
                     <div class="logo-container">
                         <div class="logo-base">
                             <div class="logo-center">
-                                <div class="infinity-symbol">
-                                    <div class="mining-chip">
-                                        <div class="chip-core"></div>
-                                    </div>
-                                </div>
+                                <div class="infinity-symbol"></div>
                             </div>
                             <div class="circuit-lines">
                                 <div class="circuit-line"></div>
