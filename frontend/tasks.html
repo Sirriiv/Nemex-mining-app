@@ -593,34 +593,43 @@
         /* Comprehensive Responsive Design */
         @media (max-width: 360px) {
             .container { max-width: 100%; padding: 0 10px; }
-            .header { padding: 12px 10px; }
-            .header-title { font-size: 16px; }
-            .task-item { padding: 12px; }
-            .task-reward { font-size: 14px; }
-            .claim-btn { padding: 8px 12px; font-size: 12px; }
+            .header { padding: 10px; }
+            .header-title { font-size: 15px; }
+            .tasks-section { padding: 15px 10px; }
+            .task-item { padding: 10px; }
+            .task-title { font-size: 14px; }
+            .task-reward { font-size: 13px; }
+            .claim-btn { padding: 6px 10px; font-size: 11px; }
         }
         
         @media (max-width: 480px) {
-            .container { max-width: 100%; }
-            .task-item { flex-direction: column; align-items: flex-start; }
-            .task-info { margin-bottom: 10px; }
+            .container { max-width: 100%; padding: 0 12px; }
+            .header { padding: 12px; }
+            .tasks-section { padding: 18px 12px; }
+            .task-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .task-info { margin-bottom: 8px; width: 100%; }
+            .task-actions { width: 100%; justify-content: flex-end; }
         }
         
         @media (min-width: 481px) and (max-width: 767px) {
-            .container { max-width: 500px; }
+            .container { max-width: 500px; margin: 0 auto; }
+            .tasks-section { max-width: 450px; margin: 0 auto; }
         }
         
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .container { max-width: 600px; }
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .container { max-width: 550px; margin: 0 auto; }
+            .tasks-section { max-width: 500px; margin: 0 auto; }
         }
         
         @media (min-width: 1025px) {
-            .container { max-width: 700px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .tasks-section { max-width: 520px; margin: 0 auto; }
         }
         
         @media (max-height: 600px) and (orientation: landscape) {
-            .tasks-section { padding: 15px 0; }
+            .tasks-section { padding: 12px 0; }
             .bottom-nav { height: 55px; }
+            .container { padding-bottom: 60px; }
         }
     </style>
 </head>
