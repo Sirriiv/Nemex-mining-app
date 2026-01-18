@@ -700,36 +700,49 @@
         /* Comprehensive Responsive Design */
         @media (max-width: 360px) {
             .container { max-width: 100%; padding: 0 10px; }
-            .header { padding: 12px 10px; }
-            .header-title { font-size: 16px; }
-            .profile-avatar { width: 70px; height: 70px; font-size: 28px; }
-            .profile-name { font-size: 20px; }
-            .stat-value { font-size: 20px; }
-            .menu-item { padding: 14px; }
+            .header { padding: 10px; }
+            .header-title { font-size: 15px; }
+            .profile-section { padding: 15px 10px; }
+            .profile-avatar { width: 65px; height: 65px; font-size: 26px; }
+            .profile-name { font-size: 18px; }
+            .profile-email { font-size: 12px; }
+            .stat-value { font-size: 18px; }
+            .stat-label { font-size: 11px; }
+            .menu-item { padding: 12px; }
+            .menu-item-text { font-size: 14px; }
         }
         
         @media (max-width: 480px) {
-            .container { max-width: 100%; }
+            .container { max-width: 100%; padding: 0 12px; }
+            .header { padding: 12px; }
+            .profile-section { padding: 18px 12px; }
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
-            .profile-section { padding: 20px; }
+            .menu-section { padding: 0 12px; }
         }
         
         @media (min-width: 481px) and (max-width: 767px) {
-            .container { max-width: 500px; }
+            .container { max-width: 500px; margin: 0 auto; }
+            .profile-section { max-width: 450px; margin: 0 auto; }
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            .menu-section { max-width: 450px; margin: 0 auto; }
         }
         
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .container { max-width: 600px; }
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .container { max-width: 550px; margin: 0 auto; }
+            .profile-section { max-width: 500px; margin: 0 auto; }
+            .menu-section { max-width: 500px; margin: 0 auto; }
         }
         
         @media (min-width: 1025px) {
-            .container { max-width: 700px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .profile-section { max-width: 520px; margin: 0 auto; }
+            .menu-section { max-width: 520px; margin: 0 auto; }
         }
         
         @media (max-height: 600px) and (orientation: landscape) {
-            .profile-section { padding: 15px; }
+            .profile-section { padding: 12px; }
             .bottom-nav { height: 55px; }
+            .container { padding-bottom: 60px; }
         }
     </style>
 </head>
