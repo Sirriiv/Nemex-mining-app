@@ -272,18 +272,25 @@
             color: var(--gold);
         }
 
+        /* 🎯 NEW: Horizontal Progress Grid */
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+
         .progress-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 14px;
             padding: 16px;
-            margin-bottom: 12px;
             transition: all 0.3s ease;
         }
 
         .progress-card:hover {
             background: rgba(255, 255, 255, 0.05);
             border-color: rgba(212, 175, 55, 0.3);
+            transform: translateY(-2px);
         }
 
         .progress-header {
@@ -293,6 +300,18 @@
             margin-bottom: 10px;
             font-size: 13px;
             font-weight: 600;
+        }
+
+        .progress-label-with-icon {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .progress-icon {
+            width: 18px;
+            height: 18px;
+            color: var(--gold);
         }
 
         .progress-bar-shell {
@@ -947,27 +966,32 @@
             .copy-btn { padding: 10px 15px; font-size: 13px; }
             .stat-value { font-size: 22px; }
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            .progress-grid { grid-template-columns: 1fr; gap: 10px; }
         }
         
         @media (max-width: 480px) {
             .container { max-width: 100%; }
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+            .progress-grid { grid-template-columns: 1fr; gap: 10px; }
             .referral-item { flex-direction: column; align-items: flex-start; }
         }
         
         @media (min-width: 481px) and (max-width: 767px) {
             .container { max-width: 500px; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+            .progress-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
         }
         
         @media (min-width: 768px) and (max-width: 1024px) {
             .container { max-width: 600px; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 15px; }
+            .progress-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
         }
         
         @media (min-width: 1025px) {
             .container { max-width: 700px; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+            .progress-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
         }
         
         @media (max-height: 600px) and (orientation: landscape) {
@@ -1040,30 +1064,61 @@
                 
                 <div class="section-subtitle" id="tierSubtitle" style="margin-bottom: 20px;">Track your requirements to unlock more referral slots.</div>
 
-                <div class="progress-card">
-                    <div class="progress-header">
-                        <span>📊 Slot Usage</span>
-                        <span id="slotProgressPct">0%</span>
+                <div class="progress-grid">
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <span class="progress-label-with-icon">
+                                <svg class="progress-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                Slot Usage
+                            </span>
+                            <span id="slotProgressPct">0%</span>
+                        </div>
+                        <div class="progress-bar-shell">
+                            <div class="progress-bar-fill" id="slotProgressBar"></div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--muted); margin-top: 6px;" id="slotProgressLabel">Used 0 / 10 slots</div>
                     </div>
-                    <div class="progress-bar-shell">
-                        <div class="progress-bar-fill" id="slotProgressBar"></div>
+
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <span class="progress-label-with-icon">
+                                <svg class="progress-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Main Tasks
+                            </span>
+                            <span id="taskProgressLabel">0/5</span>
+                        </div>
+                        <div class="progress-bar-shell"><div class="progress-bar-fill" id="taskProgressBar"></div></div>
                     </div>
-                    <div style="font-size: 11px; color: var(--muted); margin-top: 6px;" id="slotProgressLabel">Used 0 / 10 slots</div>
-                </div>
 
-                <div class="progress-card">
-                    <div class="progress-header"><span>✅ Main Tasks</span><span id="taskProgressLabel">0/5</span></div>
-                    <div class="progress-bar-shell"><div class="progress-bar-fill" id="taskProgressBar"></div></div>
-                </div>
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <span class="progress-label-with-icon">
+                                <svg class="progress-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Points
+                            </span>
+                            <span id="pointsProgressLabel">0 / 2500</span>
+                        </div>
+                        <div class="progress-bar-shell"><div class="progress-bar-fill" id="pointsProgressBar"></div></div>
+                    </div>
 
-                <div class="progress-card">
-                    <div class="progress-header"><span>💰 Points</span><span id="pointsProgressLabel">0 / 2500</span></div>
-                    <div class="progress-bar-shell"><div class="progress-bar-fill" id="pointsProgressBar"></div></div>
-                </div>
-
-                <div class="progress-card">
-                    <div class="progress-header"><span>👥 Invites</span><span id="inviteProgressLabel">0 / 5</span></div>
-                    <div class="progress-bar-shell"><div class="progress-bar-fill" id="inviteProgressBar"></div></div>
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <span class="progress-label-with-icon">
+                                <svg class="progress-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                                Invites
+                            </span>
+                            <span id="inviteProgressLabel">0 / 5</span>
+                        </div>
+                        <div class="progress-bar-shell"><div class="progress-bar-fill" id="inviteProgressBar"></div></div>
+                    </div>
                 </div>
             </div>
 
