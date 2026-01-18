@@ -859,6 +859,200 @@
             box-shadow: 0 6px 20px rgba(0, 200, 81, 0.4);
         }
 
+        /* Success Modal */
+        .success-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 3000;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .success-modal-content {
+            background: #000000;
+            border: 2px solid var(--gold);
+            border-radius: 20px;
+            padding: 35px 30px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 10px 60px rgba(212, 175, 55, 0.4);
+            animation: modalSlideIn 0.3s ease;
+            margin: auto;
+        }
+
+        .success-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .success-icon-wrapper {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #00C851, #007E33);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            animation: successPulse 2s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(0, 200, 81, 0.4);
+        }
+
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(0, 200, 81, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 40px rgba(0, 200, 81, 0.6); }
+        }
+
+        .success-icon {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+
+        .success-title {
+            color: var(--gold);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .success-subtitle {
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .success-details {
+            background: rgba(26, 26, 31, 0.8);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .success-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .success-detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .success-detail-label {
+            color: var(--muted);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .success-detail-value {
+            color: var(--gold);
+            font-weight: 600;
+            font-size: 14px;
+            text-align: right;
+        }
+
+        .success-steps {
+            margin-bottom: 25px;
+        }
+
+        .success-steps-title {
+            color: var(--text);
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .success-step {
+            background: rgba(26, 26, 31, 0.6);
+            border-left: 3px solid var(--gold);
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .success-step:hover {
+            background: rgba(26, 26, 31, 0.8);
+            border-left-color: var(--gold-light);
+        }
+
+        .success-step-title {
+            color: var(--gold);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .success-step-desc {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .success-footer {
+            background: rgba(0, 200, 81, 0.1);
+            border: 1px solid rgba(0, 200, 81, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .success-footer-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #00C851;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .success-footer-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .success-footer-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .success-ok-btn {
+            width: 100%;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            color: #000;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .success-ok-btn:hover {
+            background: linear-gradient(135deg, var(--gold-light), var(--gold));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(212, 175, 55, 0.6);
+        }
+
         /* Loading Overlay */
         .loading-overlay {
             display: none;
@@ -1241,6 +1435,105 @@
                     Continue
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal">
+        <div class="success-modal-content">
+            <div class="success-header">
+                <div class="success-icon-wrapper">
+                    <svg class="success-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                    </svg>
+                </div>
+                <div class="success-title">Payment Successfully Submitted</div>
+                <div class="success-subtitle">Your transaction has been received and is currently under verification.</div>
+            </div>
+
+            <div class="success-details">
+                <div class="success-detail-row">
+                    <div class="success-detail-label">
+                        📦 Selected Package
+                    </div>
+                    <div class="success-detail-value" id="successPackage">-</div>
+                </div>
+                <div class="success-detail-row">
+                    <div class="success-detail-label">
+                        💰 Amount Paid
+                    </div>
+                    <div class="success-detail-value" id="successAmount">-</div>
+                </div>
+                <div class="success-detail-row">
+                    <div class="success-detail-label">
+                        🔗 Transaction Hash
+                    </div>
+                    <div class="success-detail-value" id="successTxHash" style="font-size: 12px; word-break: break-all;">-</div>
+                </div>
+            </div>
+
+            <div class="success-steps">
+                <div class="success-steps-title">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    What happens next?
+                </div>
+
+                <div class="success-step">
+                    <div class="success-step-title">🔍 Blockchain Verification</div>
+                    <div class="success-step-desc">Your transaction is securely verified on the blockchain.</div>
+                </div>
+
+                <div class="success-step">
+                    <div class="success-step-title">✓ Payment Validation</div>
+                    <div class="success-step-desc">We confirm the payment amount and network to ensure accuracy.</div>
+                </div>
+
+                <div class="success-step">
+                    <div class="success-step-title">💎 Balance Credit</div>
+                    <div class="success-step-desc">Your NMXp balance will be credited within 1–2 hours.</div>
+                </div>
+
+                <div class="success-step">
+                    <div class="success-step-title">📬 Live Updates</div>
+                    <div class="success-step-desc">You'll receive real-time updates in your notifications.</div>
+                </div>
+            </div>
+
+            <div class="success-footer" id="successNotification" style="display: none;">
+                <div class="success-footer-item">
+                    <svg class="success-footer-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    Notification created — track progress on your Notifications page.
+                </div>
+            </div>
+
+            <div class="success-footer">
+                <div class="success-footer-item">
+                    <svg class="success-footer-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    Your funds are safe.
+                </div>
+                <div class="success-footer-item">
+                    <svg class="success-footer-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    No action is required from you.
+                </div>
+                <div class="success-footer-item">
+                    <svg class="success-footer-icon" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    If verification completes sooner, your NMXp will be credited immediately.
+                </div>
+            </div>
+
+            <button class="success-ok-btn" onclick="closeSuccessModal()">
+                OK
+            </button>
         </div>
     </div>
 
@@ -1904,24 +2197,13 @@
                 // Close confirmation modal
                 closeConfirmation();
 
-                // Show success message with notification info
-                let successMessage = `✅ PAYMENT SUBMITTED FOR REVIEW!
-
-📦 Package: ${selectedPackage.totalAmount.toLocaleString()} NMXp
-💰 Amount: $${selectedPackage.price} USD
-🔗 TX Hash: ${txHash.substring(0, 20)}...
-
-📋 What happens next:
-1. We'll verify your blockchain transaction
-2. Check the payment amount and network
-3. Credit your NMXp within 1-2 hours
-4. You'll receive updates in notifications`;
-
-                if (notificationCreated) {
-                    successMessage += '\n\n📬 Notification created! Check your notification page for updates.';
-                }
-
-                alert(successMessage);
+                // Show success modal with transaction details
+                showSuccessModal(
+                    selectedPackage.totalAmount,
+                    selectedPackage.price,
+                    txHash,
+                    notificationCreated
+                );
 
                 // Reset selection and reload packages
                 selectedPackage = null;
@@ -1939,6 +2221,7 @@
 
                 // Clear pending data
                 window.pendingTransactionData = null;
+                window.pendingTxHash = null;
 
             } catch (error) {
                 console.error('❌ Transaction submission error:', error);
@@ -1978,6 +2261,28 @@
                 console.error('Failed to copy: ', err);
                 alert('Failed to copy address. Please select and copy manually.');
             });
+        }
+
+        // Show success modal
+        function showSuccessModal(packageAmount, priceUSD, txHash, notificationCreated) {
+            document.getElementById('successPackage').textContent = `${packageAmount.toLocaleString()} NMXp`;
+            document.getElementById('successAmount').textContent = `$${priceUSD} USD`;
+            document.getElementById('successTxHash').textContent = txHash.substring(0, 30) + '...';
+            
+            // Show/hide notification section
+            const notificationSection = document.getElementById('successNotification');
+            if (notificationCreated) {
+                notificationSection.style.display = 'block';
+            } else {
+                notificationSection.style.display = 'none';
+            }
+            
+            document.getElementById('successModal').style.display = 'flex';
+        }
+
+        // Close success modal
+        function closeSuccessModal() {
+            document.getElementById('successModal').style.display = 'none';
         }
     </script>
 </body>
