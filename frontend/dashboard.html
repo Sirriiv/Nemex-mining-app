@@ -275,41 +275,55 @@
             top:50%;
             left:50%;
             transform:translate(-50%,-50%);
-            width: 70px;
-            height: 70px;
+            width: 90px;
+            height: 45px;
         }
         
         .infinity-symbol{
             width:100%;
             height:100%;
-            position:relative
+            position:relative;
+            display:flex;
+            align-items:center;
+            justify-content:center;
         }
         
         .infinity-symbol::before,.infinity-symbol::after{
             content:'';
             position:absolute;
-            width: 35px;
-            height: 35px;
+            width: 40px;
+            height: 40px;
             border:4px solid var(--gold);
             border-radius:50%;
-            border-top-color:transparent;
-            border-right-color:transparent;
-            animation:rotate 2s linear infinite;
-            box-shadow: 0 0 20px var(--gold-glow);
+            box-shadow: 
+                0 0 20px var(--gold-glow),
+                inset 0 0 10px rgba(212, 175, 55, 0.3);
+            animation: infinityGlow 3s ease-in-out infinite;
+        }
+        
+        @keyframes infinityGlow {
+            0%, 100% { 
+                box-shadow: 
+                    0 0 20px var(--gold-glow),
+                    inset 0 0 10px rgba(212, 175, 55, 0.3);
+            }
+            50% { 
+                box-shadow: 
+                    0 0 30px rgba(212, 175, 55, 0.6),
+                    inset 0 0 15px rgba(212, 175, 55, 0.5);
+            }
         }
         
         .infinity-symbol::before{
-            top:0;
-            left:0;
-            transform:rotate(0deg);
-            animation-delay:0s
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
         }
         
         .infinity-symbol::after{
-            bottom:0;
-            right:0;
-            transform:rotate(180deg);
-            animation-delay:-1s
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
         }
         
         .circuit-lines{
