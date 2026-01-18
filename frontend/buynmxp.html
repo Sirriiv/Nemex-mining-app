@@ -2147,31 +2147,35 @@
         // Process payment with transaction hash and notes
         async function processPayment(userNotes) {
             try {
-                const { currentUser, selectedPackage } = window.pendingTransactionData;
+                const pendingData = window.pendingTransactionData;
                 const txHash = window.pendingTxHash;
 
+                if (!pendingData || !pendingData.currentUser || !pendingData.selectedPackage) {
+                    throw new Error('Missing transaction data');
+                }
+
                 console.log('📦 Creating transaction record...', {
-                    user_id: currentUser.id,
-                    package_amount: selectedPackage.amount,
-                    total_amount: selectedPackage.totalAmount,
-                    price_usd: selectedPackage.price
+                    user_id: pendingData.currentUser.id,
+                    package_amount: pendingData.selectedPackage.amount,
+                    total_amount: pendingData.selectedPackage.totalAmount,
+                    price_usd: pendingData.selectedPackage.price
                 });
 
                 // Create pending transaction record
                 const { data: transaction, error } = await supabaseClient
                     .from('pending_transactions')
                     .insert({
-                        user_id: currentUser.id,
-                        user_email: currentUser.email,
-                        package_amount: selectedPackage.amount,
-                        total_amount: selectedPackage.totalAmount,
-                        price_usd: selectedPackage.price,
+                        user_id: pendingData.currentUser.id,
+                        user_email: pendingData.currentUser.email,
+                        package_amount: pendingData.selectedPackage.amount,
+                        total_amount: pendingData.selectedPackage.totalAmount,
+                        price_usd: pendingData.selectedPackage.price,
                         payment_method: 'crypto',
                         status: 'pending',
                         tx_hash: txHash.trim(),
                         user_notes: userNotes || '',
-                        package_name: selectedPackage.package_name,
-                        is_vip: selectedPackage.is_vip,
+                        package_name: pendingData.selectedPackage.package_name,
+                        is_vip: pendingData.selectedPackage.is_vip,
                         created_at: new Date().toISOString()
                     })
                     .select();
@@ -2187,10 +2191,10 @@
 
                 // CREATE PURCHASE NOTIFICATION
                 const notificationCreated = await createPurchaseNotification(
-                    currentUser.id,
-                    selectedPackage.package_name,
-                    selectedPackage.totalAmount,
-                    selectedPackage.price,
+                    pendingData.currentUser.id,
+                    pendingData.selectedPackage.package_name,
+                    pendingData.selectedPackage.totalAmount,
+                    pendingData.selectedPackage.price,
                     txHash
                 );
 
@@ -2199,8 +2203,8 @@
 
                 // Show success modal with transaction details
                 showSuccessModal(
-                    selectedPackage.totalAmount,
-                    selectedPackage.price,
+                    pendingData.selectedPackage.totalAmount,
+                    pendingData.selectedPackage.price,
                     txHash,
                     notificationCreated
                 );
@@ -2211,11 +2215,10 @@
                 updateMinimumAmounts();
 
                 // Reset button
-                const { confirmBtn, originalText } = window.pendingTransactionData || {};
-                if (confirmBtn) {
+                if (pendingData.confirmBtn) {
                     setTimeout(() => {
-                        confirmBtn.innerHTML = originalText || 'Yes, I Paid';
-                        confirmBtn.disabled = false;
+                        pendingData.confirmBtn.innerHTML = pendingData.originalText || 'Yes, I Paid';
+                        pendingData.confirmBtn.disabled = false;
                     }, 2000);
                 }
 
