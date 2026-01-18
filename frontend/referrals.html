@@ -960,43 +960,53 @@
         /* Comprehensive Responsive Design */
         @media (max-width: 360px) {
             .container { max-width: 100%; padding: 0 10px; }
-            .header { padding: 12px 10px; }
-            .header-title { font-size: 16px; }
-            .referral-code { font-size: 16px; padding: 10px; }
-            .copy-btn { padding: 10px 15px; font-size: 13px; }
-            .stat-value { font-size: 22px; }
-            .stats-grid { grid-template-columns: 1fr; gap: 12px; }
-            .progress-grid { grid-template-columns: 1fr; gap: 10px; }
+            .header { padding: 10px; }
+            .header-title { font-size: 15px; }
+            .referral-section { padding: 15px 10px; }
+            .referral-code { font-size: 15px; padding: 8px; }
+            .copy-btn { padding: 8px 12px; font-size: 12px; }
+            .stat-value { font-size: 20px; }
+            .stat-label { font-size: 11px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 10px; }
+            .progress-grid { grid-template-columns: 1fr; gap: 8px; }
+            .share-btn { padding: 10px; font-size: 13px; }
         }
         
         @media (max-width: 480px) {
-            .container { max-width: 100%; }
+            .container { max-width: 100%; padding: 0 12px; }
+            .header { padding: 12px; }
+            .referral-section { padding: 18px 12px; }
             .stats-grid { grid-template-columns: 1fr; gap: 12px; }
             .progress-grid { grid-template-columns: 1fr; gap: 10px; }
-            .referral-item { flex-direction: column; align-items: flex-start; }
+            .referral-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .share-btn { width: 100%; }
         }
         
         @media (min-width: 481px) and (max-width: 767px) {
-            .container { max-width: 500px; }
+            .container { max-width: 500px; margin: 0 auto; }
+            .referral-section { max-width: 450px; margin: 0 auto; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
             .progress-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
         }
         
         @media (min-width: 768px) and (max-width: 1024px) {
-            .container { max-width: 600px; }
+            .container { max-width: 550px; margin: 0 auto; }
+            .referral-section { max-width: 500px; margin: 0 auto; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 15px; }
             .progress-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
         }
         
         @media (min-width: 1025px) {
-            .container { max-width: 700px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .referral-section { max-width: 520px; margin: 0 auto; }
             .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 18px; }
             .progress-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
         }
         
         @media (max-height: 600px) and (orientation: landscape) {
-            .referral-section { padding: 15px 0; }
+            .referral-section { padding: 12px 0; }
             .bottom-nav { height: 55px; }
+            .container { padding-bottom: 60px; }
         }
     </style>
 </head>
