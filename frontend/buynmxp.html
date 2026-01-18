@@ -1053,17 +1053,17 @@
                 <svg class="tx-input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                 </svg>
-                Transaction Verification
+                Verify Your Payment
             </div>
             <div class="tx-input-message">
-                Please enter your <strong>transaction hash (TX ID)</strong> or <strong>wallet address</strong> to verify your payment.<br><br>
-                You can find the transaction hash in your wallet's transaction history.
+                Please enter your <strong>TON wallet address</strong> from which you sent the payment.<br><br>
+                This helps us quickly find and verify your transaction in our Tonkeeper wallet.
             </div>
             <input 
                 type="text" 
                 class="tx-input-field" 
                 id="txHashInput" 
-                placeholder="0x... or wallet address"
+                placeholder="Enter your TON wallet address (e.g., EQD... or UQD...)"
                 autocomplete="off"
             >
             <div class="tx-input-buttons">
@@ -1642,7 +1642,7 @@
 
             if (!txHash) {
                 txHashInput.style.borderColor = '#ff4444';
-                txHashInput.placeholder = 'Please enter transaction hash or wallet address';
+                txHashInput.placeholder = 'Please enter your TON wallet address';
                 setTimeout(() => {
                     txHashInput.style.borderColor = 'rgba(212, 175, 55, 0.3)';
                 }, 2000);
