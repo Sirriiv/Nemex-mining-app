@@ -794,35 +794,47 @@
         /* Comprehensive Responsive Design */
         @media (max-width: 360px) {
             .container { max-width: 100%; padding: 0 10px; }
-            .header { padding: 12px 10px; }
-            .header-title { font-size: 16px; }
-            .package-card { padding: 16px; }
-            .package-price { font-size: 28px; }
-            .buy-btn { padding: 12px; font-size: 14px; }
+            .header { padding: 10px; }
+            .header-title { font-size: 15px; }
+            .packages-section { padding: 15px 10px; }
+            .package-card { padding: 14px; }
+            .package-price { font-size: 26px; }
+            .package-amount { font-size: 16px; }
+            .bonus-badge { font-size: 10px; padding: 4px 8px; }
+            .buy-btn { padding: 10px; font-size: 13px; }
         }
         
         @media (max-width: 480px) {
-            .container { max-width: 100%; }
+            .container { max-width: 100%; padding: 0 12px; }
+            .header { padding: 12px; }
+            .packages-section { padding: 18px 12px; }
             .packages-grid { grid-template-columns: 1fr; gap: 15px; }
             .payment-method { padding: 14px; }
+            .modal-content { width: 95%; padding: 20px; }
         }
         
         @media (min-width: 481px) and (max-width: 767px) {
-            .container { max-width: 500px; }
+            .container { max-width: 500px; margin: 0 auto; }
+            .packages-section { max-width: 450px; margin: 0 auto; }
             .packages-grid { grid-template-columns: repeat(2, 1fr); }
         }
         
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .container { max-width: 600px; }
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .container { max-width: 550px; margin: 0 auto; }
+            .packages-section { max-width: 500px; margin: 0 auto; }
+            .packages-grid { grid-template-columns: repeat(2, 1fr); }
         }
         
         @media (min-width: 1025px) {
-            .container { max-width: 700px; }
+            .container { max-width: 600px; margin: 0 auto; }
+            .packages-section { max-width: 520px; margin: 0 auto; }
+            .packages-grid { grid-template-columns: repeat(2, 1fr); gap: 18px; }
         }
         
         @media (max-height: 600px) and (orientation: landscape) {
-            .packages-section { padding: 15px 0; }
+            .packages-section { padding: 12px 0; }
             .bottom-nav { height: 55px; }
+            .container { padding-bottom: 60px; }
         }
     </style>
 </head>
