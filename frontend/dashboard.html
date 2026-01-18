@@ -146,13 +146,13 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 20px;
+            justify-content: space-between;
+            padding: 20px 20px 10px;
             text-align: center;
         }
         
         .balance-display {
-            margin-bottom: 25px;
+            margin-bottom: 0;
             padding: 20px 25px;
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
@@ -160,6 +160,7 @@
             border: 1px solid var(--glass-border);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
             transition: all 0.4s ease;
+            align-self: stretch;
         }
         
         .balance-display:hover {
@@ -197,9 +198,9 @@
 
         /* ENHANCED: NEMEXCOIN LOGO with Advanced Effects */
         .nemex-logo{
-            width: 320px;
-            height: 320px;
-            margin: 25px auto 25px;
+            width: 350px;
+            height: 350px;
+            margin: auto 0;
             position:relative;
             display:flex;
             align-items:center;
@@ -214,8 +215,8 @@
         }
         
         .logo-container{
-            width: 300px;
-            height: 300px;
+            width: 330px;
+            height: 330px;
             position:relative;
             filter:drop-shadow(0 0 30px var(--gold-glow)) drop-shadow(0 0 60px var(--gold-glow));
         }
@@ -375,8 +376,9 @@
         }
 
         .countdown-section {
-            margin-bottom: 25px;
-            padding: 18px 30px;
+            margin-bottom: 12px;
+            margin-top: 0;
+            padding: 16px 28px;
             background: var(--glass-bg);
             backdrop-filter: blur(10px);
             border-radius: 15px;
@@ -418,7 +420,7 @@
             border-radius: 25px;
             font-size: 17px;
             font-weight: 700;
-            margin: 20px auto;
+            margin: 0 auto 10px;
             cursor: pointer;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 
