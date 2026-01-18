@@ -967,10 +967,11 @@
                 await loadCompletedTasksFromDB();
 
                 // Load daily check-in progress
-                if (profile.daily_checkins) {
-                    const dailyTask = mockTasks.find(task => task.id === 13);
+                if (profile.daily_checkins !== undefined && profile.daily_checkins !== null) {
+                    const dailyTask = mockTasks.find(task => task.id === 16);
                     if (dailyTask) {
                         dailyTask.progress = profile.daily_checkins;
+                        console.log('Loaded daily check-in progress:', profile.daily_checkins);
 
                         // Check if last check-in was today
                         const today = new Date().toDateString();
@@ -978,9 +979,10 @@
 
                         if (lastCheckin === today) {
                             // User already checked in today, mark as completed
-                            if (!completedTasks.includes(13)) {
-                                completedTasks.push(13);
+                            if (!completedTasks.includes(16)) {
+                                completedTasks.push(16);
                             }
+                            console.log('User already checked in today');
                         }
                     }
                 }
@@ -1384,6 +1386,9 @@ Let's grow together! 💫`;
             const user = await checkAuth();
             if (!user) return;
 
+            // Wait a moment to ensure all data is loaded
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             renderTasks();
         });
 
