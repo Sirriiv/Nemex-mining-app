@@ -275,55 +275,78 @@
             top:50%;
             left:50%;
             transform:translate(-50%,-50%);
-            width: 90px;
-            height: 45px;
+            width: 100px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .infinity-symbol{
             width:100%;
             height:100%;
             position:relative;
-            display:flex;
-            align-items:center;
-            justify-content:center;
         }
         
-        .infinity-symbol::before,.infinity-symbol::after{
-            content:'';
-            position:absolute;
-            width: 40px;
-            height: 40px;
-            border:4px solid var(--gold);
-            border-radius:50%;
-            box-shadow: 
-                0 0 20px var(--gold-glow),
-                inset 0 0 10px rgba(212, 175, 55, 0.3);
-            animation: infinityGlow 3s ease-in-out infinite;
+        .infinity-spinner {
+            width: 100%;
+            height: 100%;
         }
         
-        @keyframes infinityGlow {
-            0%, 100% { 
-                box-shadow: 
-                    0 0 20px var(--gold-glow),
-                    inset 0 0 10px rgba(212, 175, 55, 0.3);
+        .infinity-path {
+            fill: none;
+            stroke: var(--gold);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.8))
+                    drop-shadow(0 0 15px rgba(212, 175, 55, 0.6))
+                    drop-shadow(0 0 25px rgba(212, 175, 55, 0.4));
+            stroke-dasharray: 300;
+            stroke-dashoffset: 300;
+            animation: infinityTrace 3s ease-in-out infinite;
+        }
+        
+        @keyframes infinityTrace {
+            0% {
+                stroke-dashoffset: 300;
+                opacity: 0.6;
             }
-            50% { 
-                box-shadow: 
-                    0 0 30px rgba(212, 175, 55, 0.6),
-                    inset 0 0 15px rgba(212, 175, 55, 0.5);
+            50% {
+                stroke-dashoffset: 0;
+                opacity: 1;
+            }
+            100% {
+                stroke-dashoffset: -300;
+                opacity: 0.6;
             }
         }
         
-        .infinity-symbol::before{
+        .infinity-glow {
+            position: absolute;
+            top: 0;
             left: 0;
-            top: 50%;
-            transform: translateY(-50%);
+            width: 100%;
+            height: 100%;
+            filter: blur(10px);
+            opacity: 0.6;
         }
         
-        .infinity-symbol::after{
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
+        .infinity-glow .infinity-path {
+            stroke: var(--gold-light);
+            stroke-width: 6;
+            animation: infinityGlowPulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes infinityGlowPulse {
+            0%, 100% {
+                opacity: 0.4;
+                stroke-width: 6;
+            }
+            50% {
+                opacity: 0.8;
+                stroke-width: 8;
+            }
         }
         
         .circuit-lines{
@@ -1635,7 +1658,16 @@
                     <div class="logo-container">
                         <div class="logo-base">
                             <div class="logo-center">
-                                <div class="infinity-symbol"></div>
+                                <div class="infinity-symbol">
+                                    <!-- Glow layer -->
+                                    <svg class="infinity-spinner infinity-glow" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+                                        <path class="infinity-path" d="M 20,30 C 20,15 30,10 40,10 C 50,10 55,20 60,30 C 65,40 70,50 80,50 C 90,50 100,40 100,30 C 100,20 90,10 80,10 C 70,10 65,20 60,30 C 55,40 50,50 40,50 C 30,50 20,45 20,30 Z"/>
+                                    </svg>
+                                    <!-- Main line -->
+                                    <svg class="infinity-spinner" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+                                        <path class="infinity-path" d="M 20,30 C 20,15 30,10 40,10 C 50,10 55,20 60,30 C 65,40 70,50 80,50 C 90,50 100,40 100,30 C 100,20 90,10 80,10 C 70,10 65,20 60,30 C 55,40 50,50 40,50 C 30,50 20,45 20,30 Z"/>
+                                    </svg>
+                                </div>
                             </div>
                             <div class="circuit-lines">
                                 <div class="circuit-line"></div>
