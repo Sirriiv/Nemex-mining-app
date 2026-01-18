@@ -41,14 +41,31 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // REMOVED: app.options('*', (req, res) => { ... }) - Let cors handle it
 
-// Serve static files WITHOUT manual CORS headers
+// Serve static files with optimized caching
 app.use(express.static(path.join(__dirname, 'frontend'), {
     setHeaders: (res, filePath) => {
+        // ⚡ OPTIMIZED CACHING STRATEGY
         if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
+            // JS/CSS: Cache for 1 hour (3600s)
+            res.set('Cache-Control', 'public, max-age=3600');
+        } else if (filePath.match(/\.(jpg|jpeg|png|gif|svg|webp|ico)$/)) {
+            // Images: Cache for 7 days (604800s)
+            res.set('Cache-Control', 'public, max-age=604800');
+        } else if (filePath.endsWith('.html')) {
+            // HTML: Cache for 5 minutes (300s), must revalidate
+            res.set('Cache-Control', 'public, max-age=300, must-revalidate');
+        } else {
+            // Other files: Cache for 1 hour
             res.set('Cache-Control', 'public, max-age=3600');
         }
-        // REMOVED: res.header('Access-Control-Allow-Origin', '*');
-    }
+        
+        // Add ETag for efficient caching
+        res.set('ETag', 'true');
+    },
+    // Enable ETag generation
+    etag: true,
+    // Disable Last-Modified header (ETag is better)
+    lastModified: true
 }));
 
 // Request logging middleware
