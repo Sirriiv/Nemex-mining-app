@@ -31,11 +31,10 @@ router.get('/config', (req, res) => {
 // Get user's trading stats
 router.get('/stats', async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        const userId = authHeader ? authHeader.replace('Bearer ', '') : null;
+        const userId = req.query.user_id;
         
         if (!userId) {
-            return res.status(401).json({ success: false, error: 'Not authenticated' });
+            return res.status(400).json({ success: false, error: 'user_id required' });
         }
 
         const { supabase } = req;
@@ -89,11 +88,10 @@ router.get('/stats', async (req, res) => {
 // Get trade history
 router.get('/history', async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        const userId = authHeader ? authHeader.replace('Bearer ', '') : null;
+        const userId = req.query.user_id;
         
         if (!userId) {
-            return res.status(401).json({ success: false, error: 'Not authenticated' });
+            return res.status(400).json({ success: false, error: 'user_id required' });
         }
 
         const { supabase } = req;
@@ -120,14 +118,11 @@ router.get('/history', async (req, res) => {
 // Execute NMX purchase
 router.post('/buy-nmx', async (req, res) => {
     try {
-        const authHeader = req.headers.authorization;
-        const userId = authHeader ? authHeader.replace('Bearer ', '') : null;
+        const { userId, tonAmount } = req.body;
         
         if (!userId) {
-            return res.status(401).json({ success: false, error: 'Not authenticated' });
+            return res.status(400).json({ success: false, error: 'userId required' });
         }
-
-        const { tonAmount } = req.body;
 
         // Validate input
         if (!tonAmount || isNaN(tonAmount)) {
