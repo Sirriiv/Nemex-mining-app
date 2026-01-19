@@ -2257,11 +2257,11 @@
                         </svg>
                         <div class="action-label">Convert NMXp</div>
                     </div>
-                    <div class="action-btn" onclick="showBuyModal()" id="buyButton">
+                    <div class="action-btn" onclick="showTradeModal()" id="tradeButton">
                         <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
-                        <div class="action-label">Buy</div>
+                        <div class="action-label">Trade</div>
                     </div>
                 </div>
 
@@ -3103,6 +3103,149 @@
                 </div>
             </div>
         </div>
+            </div>
+        </div>
+
+        <!-- TRADE NMX MODAL -->
+        <div id="tradeModal" class="modal fullscreen">
+            <div class="modal-content" style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
+                <!-- Header -->
+                <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 16px 20px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
+                            <button onclick="closeTradeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                            <div>
+                                <div class="modal-title" style="color: var(--gold); font-size: 20px; font-weight: 700; margin: 0;">Trade NMX/TON</div>
+                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Buy NMX tokens with TON</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 24px 20px; max-width: 440px; margin: 0 auto; width: 100%;">
+                    
+                    <!-- Locked Balance Warning Banner -->
+                    <div style="background: linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%); border: 2px solid rgba(255, 165, 0, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; align-items: start; gap: 12px;">
+                        <svg style="width: 20px; height: 20px; color: #ffa500; flex-shrink: 0; margin-top: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
+                        <div style="flex: 1;">
+                            <div style="color: #ffa500; font-size: 14px; font-weight: 600; margin-bottom: 4px;">🔒 Locked Until Distribution</div>
+                            <div style="color: var(--text-muted); font-size: 12px; line-height: 1.5;">NMX tokens purchased here are locked until the official distribution after the mining phase.</div>
+                        </div>
+                    </div>
+
+                    <!-- Trading Stats Card -->
+                    <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 16px;">
+                            <div style="flex: 1;">
+                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Your Locked NMX</div>
+                                <div style="color: var(--gold); font-size: 18px; font-weight: 700;" id="userLockedNmx">0</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Wallet Limit</div>
+                                <div style="color: #fff; font-size: 18px; font-weight: 700;" id="walletLimitNmx">100,000</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; gap: 16px;">
+                            <div style="flex: 1;">
+                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Today's Purchases</div>
+                                <div style="color: #4CAF50; font-size: 16px; font-weight: 600;" id="todayPurchases">0 / 5,000</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Exchange Rate</div>
+                                <div style="color: #fff; font-size: 16px; font-weight: 600;">1 TON = 2,000 NMX</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trading Form -->
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            ENTER TON AMOUNT
+                        </label>
+                        <div style="position: relative;">
+                            <input 
+                                type="number" 
+                                id="tradeTonAmount" 
+                                placeholder="1.0" 
+                                min="1"
+                                max="10"
+                                step="0.1"
+                                oninput="calculateNmxOutput()"
+                                style="width: 100%; padding: 16px; padding-right: 80px; background: rgba(0,0,0,0.4); border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 12px; color: #fff; font-size: 18px; font-weight: 600; transition: all 0.3s;"
+                                onfocus="this.style.borderColor='rgba(212, 175, 55, 0.6)'"
+                                onblur="this.style.borderColor='rgba(212, 175, 55, 0.3)'"
+                            />
+                            <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 16px; font-weight: 700;">TON</div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 8px; padding: 0 4px;">
+                            <div style="color: var(--text-muted); font-size: 12px;">Available: <span id="availableTon" style="color: #fff; font-weight: 600;">0</span> TON</div>
+                            <div style="color: var(--text-muted); font-size: 12px;">Min: 1 TON • Max: 10 TON</div>
+                        </div>
+                    </div>
+
+                    <!-- Exchange Arrow -->
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(212, 175, 55, 0.1); border: 2px solid rgba(212, 175, 55, 0.3);">
+                            <svg style="width: 20px; height: 20px; color: var(--gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- NMX Output -->
+                    <div class="form-group" style="margin-bottom: 24px;">
+                        <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            YOU WILL RECEIVE
+                        </label>
+                        <div style="position: relative;">
+                            <input 
+                                type="text" 
+                                id="tradeNmxOutput" 
+                                value="0" 
+                                readonly
+                                style="width: 100%; padding: 16px; padding-right: 80px; background: rgba(212, 175, 55, 0.1); border: 2px solid rgba(212, 175, 55, 0.4); border-radius: 12px; color: var(--gold); font-size: 18px; font-weight: 700; cursor: not-allowed;"
+                            />
+                            <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 16px; font-weight: 700;">NMX</div>
+                        </div>
+                    </div>
+
+                    <!-- Trade Button -->
+                    <button 
+                        id="tradeButton"
+                        onclick="executeTrade()"
+                        style="width: 100%; padding: 16px; background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%); border: none; border-radius: 12px; color: #000; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
+                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(212, 175, 55, 0.4)'"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(212, 175, 55, 0.3)'"
+                    >
+                        🚀 Trade Now
+                    </button>
+
+                    <!-- Trade History -->
+                    <div style="margin-top: 32px;">
+                        <div style="color: var(--gold); font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Recent Trades
+                        </div>
+                        <div id="tradeHistoryList" style="display: flex; flex-direction: column; gap: 12px;">
+                            <!-- Trade history items will be inserted here -->
+                        </div>
+                    </div>
+
+                </div>
             </div>
         </div>
 
@@ -6375,8 +6518,297 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function showBuyModal() {
-    showToast('⚠️ Buy functionality coming soon!', 'warning');
+// =============================================
+// 🎯 NMX TRADING FUNCTIONS
+// =============================================
+
+let tradeConfig = null;
+let tradeStats = null;
+
+async function showTradeModal() {
+    const modal = document.getElementById('tradeModal');
+    if (!modal) return;
+
+    // Load trade configuration and stats
+    await loadTradeData();
+    
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeTradeModal() {
+    const modal = document.getElementById('tradeModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        // Clear inputs
+        document.getElementById('tradeTonAmount').value = '';
+        document.getElementById('tradeNmxOutput').value = '0';
+    }
+}
+
+async function loadTradeData() {
+    try {
+        showLoading('Loading trade data...');
+
+        // Load configuration
+        const configResponse = await fetch('/api/trade/config');
+        const configData = await configResponse.json();
+        
+        if (configData.success) {
+            tradeConfig = configData.config;
+        }
+
+        // Load user stats
+        const userId = localStorage.getItem('nemex_user_id');
+        if (!userId) {
+            showToast('❌ Please login first', 'error');
+            hideLoading();
+            return;
+        }
+
+        const statsResponse = await fetch('/api/trade/stats', {
+            headers: {
+                'Authorization': `Bearer ${userId}`
+            }
+        });
+        const statsData = await statsResponse.json();
+        
+        if (statsData.success) {
+            tradeStats = statsData.stats;
+            updateTradeUI();
+        }
+
+        // Load trade history
+        await loadTradeHistory();
+
+        hideLoading();
+    } catch (error) {
+        console.error('Error loading trade data:', error);
+        showToast('❌ Failed to load trade data', 'error');
+        hideLoading();
+    }
+}
+
+function updateTradeUI() {
+    if (!tradeStats) return;
+
+    // Update locked NMX balance
+    document.getElementById('userLockedNmx').textContent = 
+        new Intl.NumberFormat().format(tradeStats.lockedNmxBalance || 0);
+
+    // Update today's purchases
+    document.getElementById('todayPurchases').textContent = 
+        `${new Intl.NumberFormat().format(tradeStats.todayPurchased || 0)} / ${new Intl.NumberFormat().format(tradeConfig?.dailyLimitNmx || 5000)}`;
+
+    // Update available TON
+    const tonBalance = walletState?.tonBalance || 0;
+    document.getElementById('availableTon').textContent = 
+        parseFloat(tonBalance).toFixed(4);
+}
+
+function calculateNmxOutput() {
+    const tonInput = document.getElementById('tradeTonAmount');
+    const nmxOutput = document.getElementById('tradeNmxOutput');
+    
+    if (!tonInput || !nmxOutput) return;
+
+    const tonAmount = parseFloat(tonInput.value) || 0;
+    const rate = tradeConfig?.rate || 2000;
+    const nmxAmount = tonAmount * rate;
+
+    nmxOutput.value = new Intl.NumberFormat().format(nmxAmount);
+
+    // Update button state
+    updateTradeButton(tonAmount, nmxAmount);
+}
+
+function updateTradeButton(tonAmount, nmxAmount) {
+    const button = document.getElementById('tradeButton');
+    if (!button || !tradeConfig || !tradeStats) return;
+
+    const minTon = tradeConfig.minTon;
+    const maxTon = tradeConfig.maxTon;
+    const dailyLimit = tradeConfig.dailyLimitNmx;
+    const walletMax = tradeConfig.walletMaxNmx;
+    const tonBalance = walletState?.tonBalance || 0;
+
+    let errorMsg = '';
+
+    if (tonAmount === 0) {
+        errorMsg = '🚀 Trade Now';
+        button.disabled = false;
+    } else if (tonAmount < minTon) {
+        errorMsg = `⚠️ Minimum ${minTon} TON`;
+        button.disabled = true;
+    } else if (tonAmount > maxTon) {
+        errorMsg = `⚠️ Maximum ${maxTon} TON`;
+        button.disabled = true;
+    } else if (tonAmount > tonBalance) {
+        errorMsg = '⚠️ Insufficient TON';
+        button.disabled = true;
+    } else if (tradeStats.todayPurchased + nmxAmount > dailyLimit) {
+        errorMsg = '⚠️ Daily limit exceeded';
+        button.disabled = true;
+    } else if (tradeStats.lockedNmxBalance + nmxAmount > walletMax) {
+        errorMsg = '⚠️ Wallet limit exceeded';
+        button.disabled = true;
+    } else {
+        errorMsg = '🚀 Trade Now';
+        button.disabled = false;
+    }
+
+    button.textContent = errorMsg;
+}
+
+async function executeTrade() {
+    const tonInput = document.getElementById('tradeTonAmount');
+    const tonAmount = parseFloat(tonInput.value);
+
+    if (!tonAmount || tonAmount <= 0) {
+        showToast('⚠️ Please enter a valid TON amount', 'warning');
+        return;
+    }
+
+    if (!tradeConfig) {
+        showToast('❌ Trade configuration not loaded', 'error');
+        return;
+    }
+
+    // Validate amounts
+    if (tonAmount < tradeConfig.minTon) {
+        showToast(`⚠️ Minimum trade is ${tradeConfig.minTon} TON`, 'warning');
+        return;
+    }
+
+    if (tonAmount > tradeConfig.maxTon) {
+        showToast(`⚠️ Maximum trade is ${tradeConfig.maxTon} TON per transaction`, 'warning');
+        return;
+    }
+
+    // Confirm trade
+    const nmxAmount = tonAmount * tradeConfig.rate;
+    const confirmed = confirm(
+        `Confirm Trade?\n\n` +
+        `You pay: ${tonAmount} TON\n` +
+        `You receive: ${new Intl.NumberFormat().format(nmxAmount)} NMX (locked)\n\n` +
+        `Rate: 1 TON = ${tradeConfig.rate} NMX\n\n` +
+        `Note: NMX tokens will be locked until official distribution.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+        showLoading('Processing trade...');
+
+        const userId = localStorage.getItem('nemex_user_id');
+        if (!userId) {
+            throw new Error('User not authenticated');
+        }
+
+        const response = await fetch('/api/trade/buy-nmx', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userId}`
+            },
+            body: JSON.stringify({
+                tonAmount: tonAmount
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Trade failed');
+        }
+
+        // Success!
+        showToast(`✅ Trade completed! You received ${new Intl.NumberFormat().format(nmxAmount)} locked NMX`, 'success');
+
+        // Refresh data
+        await loadTradeData();
+        await refreshWalletBalance();
+
+        // Clear input
+        tonInput.value = '';
+        document.getElementById('tradeNmxOutput').value = '0';
+
+    } catch (error) {
+        console.error('Trade error:', error);
+        showToast(`❌ ${error.message}`, 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function loadTradeHistory() {
+    try {
+        const userId = localStorage.getItem('nemex_user_id');
+        if (!userId) return;
+
+        const response = await fetch('/api/trade/history', {
+            headers: {
+                'Authorization': `Bearer ${userId}`
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.trades) {
+            renderTradeHistory(data.trades);
+        }
+    } catch (error) {
+        console.error('Error loading trade history:', error);
+    }
+}
+
+function renderTradeHistory(trades) {
+    const container = document.getElementById('tradeHistoryList');
+    if (!container) return;
+
+    if (trades.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 32px; color: var(--text-muted);">
+                <svg style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                </svg>
+                <div>No trades yet</div>
+                <div style="font-size: 12px; margin-top: 4px;">Your trade history will appear here</div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = trades.slice(0, 10).map(trade => {
+        const date = new Date(trade.created_at);
+        const timeStr = date.toLocaleString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        return `
+            <div style="background: rgba(212, 175, 55, 0.05); border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex: 1;">
+                    <div style="color: #fff; font-size: 14px; font-weight: 600; margin-bottom: 4px;">
+                        ${parseFloat(trade.ton_spent).toFixed(4)} TON → ${new Intl.NumberFormat().format(parseFloat(trade.nmx_received))} NMX
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 12px;">${timeStr}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="color: var(--gold); font-size: 12px; font-weight: 600;">
+                        Rate: ${new Intl.NumberFormat().format(parseFloat(trade.rate))}
+                    </div>
+                    <div style="color: #4CAF50; font-size: 11px; margin-top: 2px;">
+                        ✓ ${trade.status}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function showLoading(message = 'Loading...') {

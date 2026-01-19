@@ -1759,17 +1759,17 @@
             try {
                 console.log('✅ QRCode library available, generating...');
                 
-                // CUSTOMIZED: Gold/yellow squares on black background to match platform theme
+                // Standard black and white QR code for maximum scannability
                 new window.QRCode(qrCodeElement, {
                     text: otpAuthUri,
-                    width: 180,
-                    height: 180,
-                    colorDark: "#d4af37",   // GOLD/YELLOW squares (platform color)
-                    colorLight: "#000000",  // BLACK background
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",   // BLACK squares (standard)
+                    colorLight: "#FFFFFF",  // WHITE background (standard)
                     correctLevel: window.QRCode.CorrectLevel.H  // 30% damage tolerance
                 });
                 
-                console.log('✅ Custom gold QR code generated successfully!');
+                console.log('✅ Standard QR code generated successfully!');
 
             } catch (error) {
                 console.error('❌ QR Code generation failed:', error);

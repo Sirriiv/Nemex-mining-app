@@ -197,6 +197,54 @@ if (fs.existsSync(adminRoutesPath)) {
 }
 
 // =============================================
+// 🎯 LOAD AND MOUNT TRADE ROUTES (NMX Trading)
+// =============================================
+console.log('\n🔄 LOADING TRADE ROUTES...');
+
+const tradeRoutesPath = path.join(__dirname, 'backend', 'trade-routes.js');
+
+if (fs.existsSync(tradeRoutesPath)) {
+    try {
+        console.log(`✅ Found trade routes at: ${tradeRoutesPath}`);
+        
+        // Initialize Supabase client for trade routes
+        const { createClient } = require('@supabase/supabase-js');
+        const supabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // Middleware to inject supabase and user auth into trade requests
+        app.use('/api/trade', (req, res, next) => {
+            req.supabase = supabase;
+            
+            // Extract user from session or auth header
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                // If using JWT token, decode it here
+                // For now, we'll use session-based auth from supabase
+            }
+            
+            next();
+        });
+        
+        const tradeRoutes = require(tradeRoutesPath);
+        app.use('/api/trade', tradeRoutes);
+        console.log('✅ Trade routes mounted at /api/trade');
+        
+        console.log('\n📋 AVAILABLE TRADE ENDPOINTS:');
+        console.log('   GET    /api/trade/config             - Get trading configuration');
+        console.log('   GET    /api/trade/stats              - Get user trading stats');
+        console.log('   GET    /api/trade/history            - Get trade history');
+        console.log('   POST   /api/trade/buy-nmx            - Execute NMX purchase');
+        console.log('   GET    /api/trade/platform-stats     - Get platform trading stats');
+    } catch (error) {
+        console.error('❌ FAILED to load trade routes:', error.message);
+    }
+} else {
+    console.log('⚠️ Trade routes file not found (optional)');
+}
+
+// =============================================
 // 🎯 TEST ENDPOINTS
 // =============================================
 app.get('/api/test', (req, res) => {
