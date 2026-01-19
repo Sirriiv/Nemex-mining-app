@@ -6598,8 +6598,9 @@ function updateTradeUI() {
     document.getElementById('todayPurchases').textContent = 
         `${new Intl.NumberFormat().format(tradeStats.todayPurchased || 0)} / ${new Intl.NumberFormat().format(tradeConfig?.dailyLimitNmx || 5000)}`;
 
-    // Update available TON
-    const tonBalance = walletState?.tonBalance || 0;
+    // Update available TON - get from SUPPORTED_TOKENS
+    const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+    const tonBalance = tonToken ? tonToken.balance : 0;
     document.getElementById('availableTon').textContent = 
         parseFloat(tonBalance).toFixed(4);
 }
@@ -6628,7 +6629,10 @@ function updateTradeButton(tonAmount, nmxAmount) {
     const maxTon = tradeConfig.maxTon;
     const dailyLimit = tradeConfig.dailyLimitNmx;
     const walletMax = tradeConfig.walletMaxNmx;
-    const tonBalance = walletState?.tonBalance || 0;
+    
+    // Get TON balance from SUPPORTED_TOKENS
+    const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
+    const tonBalance = tonToken ? tonToken.balance : 0;
 
     let errorMsg = '';
 
@@ -6642,13 +6646,15 @@ function updateTradeButton(tonAmount, nmxAmount) {
         errorMsg = `⚠️ Maximum ${maxTon} TON`;
         button.disabled = true;
     } else if (tonAmount > tonBalance) {
-        errorMsg = '⚠️ Insufficient TON';
+        errorMsg = `⚠️ Insufficient TON (Have: ${tonBalance.toFixed(4)})`;
         button.disabled = true;
     } else if (tradeStats.todayPurchased + nmxAmount > dailyLimit) {
-        errorMsg = '⚠️ Daily limit exceeded';
+        const remaining = dailyLimit - tradeStats.todayPurchased;
+        errorMsg = `⚠️ Daily limit (${new Intl.NumberFormat().format(remaining)} NMX left)`;
         button.disabled = true;
     } else if (tradeStats.lockedNmxBalance + nmxAmount > walletMax) {
-        errorMsg = '⚠️ Wallet limit exceeded';
+        const remaining = walletMax - tradeStats.lockedNmxBalance;
+        errorMsg = `⚠️ Wallet limit (${new Intl.NumberFormat().format(remaining)} NMX left)`;
         button.disabled = true;
     } else {
         errorMsg = '🚀 Trade Now';
