@@ -3106,142 +3106,164 @@
             </div>
         </div>
 
-        <!-- TRADE NMX MODAL -->
+        <!-- TRADE NMX MODAL - EXCHANGE STYLE -->
         <div id="tradeModal" class="modal fullscreen">
-            <div class="modal-content" style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
+            <div class="modal-content" style="background: #000000; border: none; border-radius: 0; max-width: 100%; width: 100%; min-height: 100vh; overflow-y: auto;">
                 <!-- Header -->
-                <div class="modal-header" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(212, 175, 55, 0.05) 100%); padding: 16px 20px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100;">
+                <div class="modal-header" style="background: rgba(0, 0, 0, 0.95); padding: 16px 20px; border-bottom: 1px solid rgba(212, 175, 55, 0.3); position: sticky; top: 0; z-index: 100; backdrop-filter: blur(10px);">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
                         <div style="display: flex; align-items: center; gap: 16px; flex: 1;">
-                            <button onclick="closeTradeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                            <button onclick="closeTradeModal()" style="background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.3); color: var(--gold); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
                                 <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                 </svg>
                             </button>
                             <div>
-                                <div class="modal-title" style="color: var(--gold); font-size: 20px; font-weight: 700; margin: 0;">Trade NMX/TON</div>
-                                <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Buy NMX tokens with TON</div>
+                                <div style="color: var(--gold); font-size: 18px; font-weight: 700;">NMX / TON</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Spot Trading</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div style="padding: 24px 20px; max-width: 440px; margin: 0 auto; width: 100%;">
+                <div style="padding: 20px; max-width: 480px; margin: 0 auto; width: 100%;">
                     
-                    <!-- Locked Balance Warning Banner -->
-                    <div style="background: linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%); border: 2px solid rgba(255, 165, 0, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 24px; display: flex; align-items: start; gap: 12px;">
-                        <svg style="width: 20px; height: 20px; color: #ffa500; flex-shrink: 0; margin-top: 2px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <!-- Buy/Sell Toggle Tabs -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 20px; background: rgba(20, 20, 20, 0.8); border-radius: 12px; padding: 4px; border: 1px solid rgba(212, 175, 55, 0.2);">
+                        <button id="buyTab" onclick="switchTradeTab('buy')" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%); border: none; border-radius: 8px; color: #000; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s;">
+                            Buy
+                        </button>
+                        <button id="sellTab" onclick="switchTradeTab('sell')" style="flex: 1; padding: 12px; background: transparent; border: none; border-radius: 8px; color: rgba(255, 255, 255, 0.5); font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+                            Sell
+                        </button>
+                    </div>
+
+                    <!-- Order Type Selector -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="color: rgba(255, 255, 255, 0.6); font-size: 12px; font-weight: 600; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Order Type</label>
+                        <div style="position: relative;">
+                            <select id="orderType" disabled style="width: 100%; padding: 12px 16px; background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 8px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; appearance: none;">
+                                <option value="market">Market</option>
+                            </select>
+                            <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--gold);">▼</div>
+                        </div>
+                    </div>
+
+                    <!-- Locked Balance Warning -->
+                    <div style="background: linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(255, 140, 0, 0.05) 100%); border: 1px solid rgba(255, 165, 0, 0.3); border-radius: 10px; padding: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <svg style="width: 18px; height: 18px; color: #ffa500; flex-shrink: 0;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
-                        <div style="flex: 1;">
-                            <div style="color: #ffa500; font-size: 14px; font-weight: 600; margin-bottom: 4px;">🔒 Locked Until Distribution</div>
-                            <div style="color: var(--text-muted); font-size: 12px; line-height: 1.5;">NMX tokens purchased here are locked until the official distribution after the mining phase.</div>
+                        <div style="flex: 1; color: rgba(255, 165, 0, 0.9); font-size: 11px; line-height: 1.4;">
+                            NMX tokens are locked until official distribution
                         </div>
                     </div>
 
-                    <!-- Trading Stats Card -->
-                    <div style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-                        <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 16px;">
-                            <div style="flex: 1;">
-                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Your Locked NMX</div>
-                                <div style="color: var(--gold); font-size: 18px; font-weight: 700;" id="userLockedNmx">0</div>
-                            </div>
-                            <div style="flex: 1;">
-                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Wallet Limit</div>
-                                <div style="color: #fff; font-size: 18px; font-weight: 700;" id="walletLimitNmx">100,000</div>
+                    <!-- Market Order Input: NMX Amount -->
+                    <div style="margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="color: rgba(255, 255, 255, 0.6); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Amount</label>
+                            <div style="color: rgba(255, 255, 255, 0.5); font-size: 11px;">
+                                Available: <span id="availableTon" style="color: var(--gold); font-weight: 600;">0</span> TON
                             </div>
                         </div>
-                        <div style="display: flex; justify-content: space-between; gap: 16px;">
-                            <div style="flex: 1;">
-                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Today's Purchases</div>
-                                <div style="color: #4CAF50; font-size: 16px; font-weight: 600;" id="todayPurchases">0 / 5,000</div>
-                            </div>
-                            <div style="flex: 1;">
-                                <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 4px;">Exchange Rate</div>
-                                <div style="color: #fff; font-size: 16px; font-weight: 600;">1 TON = 2,000 NMX</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Trading Form -->
-                    <div class="form-group" style="margin-bottom: 16px;">
-                        <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            ENTER TON AMOUNT
-                        </label>
                         <div style="position: relative;">
                             <input 
                                 type="number" 
-                                id="tradeTonAmount" 
-                                placeholder="1.0" 
-                                min="1"
-                                max="10"
-                                step="0.1"
-                                oninput="calculateNmxOutput()"
-                                style="width: 100%; padding: 16px; padding-right: 80px; background: rgba(0,0,0,0.4); border: 2px solid rgba(212, 175, 55, 0.3); border-radius: 12px; color: #fff; font-size: 18px; font-weight: 600; transition: all 0.3s;"
+                                id="tradeNmxAmount" 
+                                placeholder="0" 
+                                min="2000"
+                                max="20000"
+                                step="100"
+                                oninput="calculateTonTotal()"
+                                style="width: 100%; padding: 16px; padding-right: 80px; background: rgba(20, 20, 20, 0.8); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 8px; color: #fff; font-size: 18px; font-weight: 600; transition: all 0.3s;"
                                 onfocus="this.style.borderColor='rgba(212, 175, 55, 0.6)'"
                                 onblur="this.style.borderColor='rgba(212, 175, 55, 0.3)'"
                             />
-                            <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 16px; font-weight: 700;">TON</div>
+                            <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 14px; font-weight: 700;">NMX</div>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-top: 8px; padding: 0 4px;">
-                            <div style="color: var(--text-muted); font-size: 12px;">Available: <span id="availableTon" style="color: #fff; font-weight: 600;">0</span> TON</div>
-                            <div style="color: var(--text-muted); font-size: 12px;">Min: 1 TON • Max: 10 TON</div>
+                            <div style="color: rgba(255, 255, 255, 0.4); font-size: 11px;">Min: 2,000 NMX (1 TON)</div>
+                            <div style="color: rgba(255, 255, 255, 0.4); font-size: 11px;">Max: 20,000 NMX (10 TON)</div>
                         </div>
                     </div>
 
-                    <!-- Exchange Arrow -->
-                    <div style="text-align: center; margin: 20px 0;">
-                        <div style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; background: rgba(212, 175, 55, 0.1); border: 2px solid rgba(212, 175, 55, 0.3);">
-                            <svg style="width: 20px; height: 20px; color: var(--gold);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                            </svg>
-                        </div>
-                    </div>
-
-                    <!-- NMX Output -->
-                    <div class="form-group" style="margin-bottom: 24px;">
-                        <label class="form-label" style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <svg style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            YOU WILL RECEIVE
-                        </label>
+                    <!-- Total TON Required -->
+                    <div style="margin-bottom: 24px;">
+                        <label style="color: rgba(255, 255, 255, 0.6); font-size: 12px; font-weight: 600; margin-bottom: 8px; display: block; text-transform: uppercase; letter-spacing: 0.5px;">Total</label>
                         <div style="position: relative;">
                             <input 
                                 type="text" 
-                                id="tradeNmxOutput" 
+                                id="tradeTonTotal" 
                                 value="0" 
                                 readonly
-                                style="width: 100%; padding: 16px; padding-right: 80px; background: rgba(212, 175, 55, 0.1); border: 2px solid rgba(212, 175, 55, 0.4); border-radius: 12px; color: var(--gold); font-size: 18px; font-weight: 700; cursor: not-allowed;"
+                                style="width: 100%; padding: 16px; padding-right: 80px; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.4); border-radius: 8px; color: var(--gold); font-size: 18px; font-weight: 700; cursor: not-allowed;"
                             />
-                            <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 16px; font-weight: 700;">NMX</div>
+                            <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); color: var(--gold); font-size: 14px; font-weight: 700;">TON</div>
+                        </div>
+                        <div style="margin-top: 8px; padding: 0 4px; color: rgba(255, 255, 255, 0.5); font-size: 11px;">
+                            Rate: 1 TON = 2,000 NMX (Fixed)
                         </div>
                     </div>
 
-                    <!-- Trade Button -->
+                    <!-- Buy Button -->
                     <button 
                         id="tradeButton"
                         onclick="executeTrade()"
-                        style="width: 100%; padding: 16px; background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%); border: none; border-radius: 12px; color: #000; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);"
-                        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(212, 175, 55, 0.4)'"
-                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(212, 175, 55, 0.3)'"
+                        style="width: 100%; padding: 18px; background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%); border: none; border-radius: 10px; color: #000; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; letter-spacing: 0.5px;"
+                        onmouseover="if(!this.disabled) { this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(212, 175, 55, 0.5)'; }"
+                        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(212, 175, 55, 0.4)'"
                     >
-                        🚀 Trade Now
+                        Buy NMX
                     </button>
 
-                    <!-- Trade History -->
-                    <div style="margin-top: 32px;">
-                        <div style="color: var(--gold); font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Recent Trades
+                    <!-- Stats Summary -->
+                    <div style="margin-top: 24px; background: rgba(20, 20, 20, 0.6); border: 1px solid rgba(212, 175, 55, 0.2); border-radius: 10px; padding: 16px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div>
+                                <div style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 4px; text-transform: uppercase;">Your Locked NMX</div>
+                                <div style="color: var(--gold); font-size: 16px; font-weight: 700;" id="userLockedNmx">0</div>
+                            </div>
+                            <div>
+                                <div style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 4px; text-transform: uppercase;">Wallet Limit</div>
+                                <div style="color: #fff; font-size: 16px; font-weight: 700;">100,000 NMX</div>
+                            </div>
+                            <div>
+                                <div style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 4px; text-transform: uppercase;">Today's Purchases</div>
+                                <div style="color: #4CAF50; font-size: 14px; font-weight: 600;" id="todayPurchases">0 / 5,000</div>
+                            </div>
+                            <div>
+                                <div style="color: rgba(255, 255, 255, 0.5); font-size: 11px; margin-bottom: 4px; text-transform: uppercase;">Remaining Today</div>
+                                <div style="color: #fff; font-size: 14px; font-weight: 600;" id="remainingToday">5,000 NMX</div>
+                            </div>
                         </div>
-                        <div id="tradeHistoryList" style="display: flex; flex-direction: column; gap: 12px;">
-                            <!-- Trade history items will be inserted here -->
+                    </div>
+
+                    <!-- Orders / Assets Tabs -->
+                    <div style="margin-top: 32px;">
+                        <div style="display: flex; gap: 24px; border-bottom: 1px solid rgba(212, 175, 55, 0.2); margin-bottom: 16px;">
+                            <button id="ordersTab" onclick="switchBottomTab('orders')" style="padding: 12px 0; background: none; border: none; border-bottom: 2px solid var(--gold); color: var(--gold); font-size: 14px; font-weight: 600; cursor: pointer;">
+                                Orders
+                            </button>
+                            <button id="assetsTab" onclick="switchBottomTab('assets')" style="padding: 12px 0; background: none; border: none; border-bottom: 2px solid transparent; color: rgba(255, 255, 255, 0.5); font-size: 14px; font-weight: 600; cursor: pointer;">
+                                Assets
+                            </button>
+                        </div>
+
+                        <!-- Orders Content -->
+                        <div id="ordersContent" style="display: block;">
+                            <div id="tradeHistoryList" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
+                                <!-- Trade history will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Assets Content -->
+                        <div id="assetsContent" style="display: none;">
+                            <div style="text-align: center; padding: 40px 20px; color: rgba(255, 255, 255, 0.4);">
+                                <div style="font-size: 14px; margin-bottom: 8px;">Your NMX Assets</div>
+                                <div style="color: var(--gold); font-size: 24px; font-weight: 700; margin-bottom: 4px;" id="assetsLockedNmx">0</div>
+                                <div style="font-size: 12px; color: rgba(255, 165, 0, 0.8);">🔒 Locked until distribution</div>
+                            </div>
                         </div>
                     </div>
 
@@ -6590,13 +6612,24 @@ async function loadTradeData() {
 function updateTradeUI() {
     if (!tradeStats) return;
 
-    // Update locked NMX balance
-    document.getElementById('userLockedNmx').textContent = 
-        new Intl.NumberFormat().format(tradeStats.lockedNmxBalance || 0);
+    // Update locked NMX balance (multiple places)
+    const lockedNmx = new Intl.NumberFormat().format(tradeStats.lockedNmxBalance || 0);
+    document.getElementById('userLockedNmx').textContent = lockedNmx;
+    const assetsLockedElement = document.getElementById('assetsLockedNmx');
+    if (assetsLockedElement) assetsLockedElement.textContent = lockedNmx;
 
     // Update today's purchases
+    const todayPurchased = tradeStats.todayPurchased || 0;
+    const dailyLimit = tradeConfig?.dailyLimitNmx || 5000;
+    const remaining = dailyLimit - todayPurchased;
+    
     document.getElementById('todayPurchases').textContent = 
-        `${new Intl.NumberFormat().format(tradeStats.todayPurchased || 0)} / ${new Intl.NumberFormat().format(tradeConfig?.dailyLimitNmx || 5000)}`;
+        `${new Intl.NumberFormat().format(todayPurchased)} / ${new Intl.NumberFormat().format(dailyLimit)}`;
+    
+    const remainingElement = document.getElementById('remainingToday');
+    if (remainingElement) {
+        remainingElement.textContent = `${new Intl.NumberFormat().format(remaining)} NMX`;
+    }
 
     // Update available TON - get from SUPPORTED_TOKENS
     const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
@@ -6605,28 +6638,69 @@ function updateTradeUI() {
         parseFloat(tonBalance).toFixed(4);
 }
 
-function calculateNmxOutput() {
-    const tonInput = document.getElementById('tradeTonAmount');
-    const nmxOutput = document.getElementById('tradeNmxOutput');
+// Calculate TON total from NMX amount input
+function calculateTonTotal() {
+    const nmxInput = document.getElementById('tradeNmxAmount');
+    const tonTotal = document.getElementById('tradeTonTotal');
     
-    if (!tonInput || !nmxOutput) return;
+    if (!nmxInput || !tonTotal) return;
 
-    const tonAmount = parseFloat(tonInput.value) || 0;
+    const nmxAmount = parseFloat(nmxInput.value) || 0;
     const rate = tradeConfig?.rate || 2000;
-    const nmxAmount = tonAmount * rate;
+    const tonAmount = nmxAmount / rate;
 
-    nmxOutput.value = new Intl.NumberFormat().format(nmxAmount);
+    tonTotal.value = tonAmount.toFixed(4);
 
     // Update button state
     updateTradeButton(tonAmount, nmxAmount);
+}
+
+// Tab switching functions
+function switchTradeTab(tab) {
+    const buyTab = document.getElementById('buyTab');
+    const sellTab = document.getElementById('sellTab');
+    
+    if (tab === 'buy') {
+        buyTab.style.background = 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)';
+        buyTab.style.color = '#000';
+        sellTab.style.background = 'transparent';
+        sellTab.style.color = 'rgba(255, 255, 255, 0.5)';
+        // For now, only buy is functional
+    } else {
+        // Sell tab - show coming soon message
+        showToast('⚠️ Sell functionality coming soon!', 'warning');
+    }
+}
+
+function switchBottomTab(tab) {
+    const ordersTab = document.getElementById('ordersTab');
+    const assetsTab = document.getElementById('assetsTab');
+    const ordersContent = document.getElementById('ordersContent');
+    const assetsContent = document.getElementById('assetsContent');
+    
+    if (tab === 'orders') {
+        ordersTab.style.borderBottom = '2px solid var(--gold)';
+        ordersTab.style.color = 'var(--gold)';
+        assetsTab.style.borderBottom = '2px solid transparent';
+        assetsTab.style.color = 'rgba(255, 255, 255, 0.5)';
+        ordersContent.style.display = 'block';
+        assetsContent.style.display = 'none';
+    } else {
+        assetsTab.style.borderBottom = '2px solid var(--gold)';
+        assetsTab.style.color = 'var(--gold)';
+        ordersTab.style.borderBottom = '2px solid transparent';
+        ordersTab.style.color = 'rgba(255, 255, 255, 0.5)';
+        assetsContent.style.display = 'block';
+        ordersContent.style.display = 'none';
+    }
 }
 
 function updateTradeButton(tonAmount, nmxAmount) {
     const button = document.getElementById('tradeButton');
     if (!button || !tradeConfig || !tradeStats) return;
 
-    const minTon = tradeConfig.minTon;
-    const maxTon = tradeConfig.maxTon;
+    const minNmx = tradeConfig.rate * tradeConfig.minTon; // 2000 NMX
+    const maxNmx = tradeConfig.rate * tradeConfig.maxTon; // 20000 NMX
     const dailyLimit = tradeConfig.dailyLimitNmx;
     const walletMax = tradeConfig.walletMaxNmx;
     
@@ -6634,42 +6708,52 @@ function updateTradeButton(tonAmount, nmxAmount) {
     const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
     const tonBalance = tonToken ? tonToken.balance : 0;
 
-    let errorMsg = '';
+    let errorMsg = 'BUY NMX';
+    let isDisabled = false;
 
-    if (tonAmount === 0) {
-        errorMsg = '🚀 Trade Now';
-        button.disabled = false;
-    } else if (tonAmount < minTon) {
-        errorMsg = `⚠️ Minimum ${minTon} TON`;
-        button.disabled = true;
-    } else if (tonAmount > maxTon) {
-        errorMsg = `⚠️ Maximum ${maxTon} TON`;
-        button.disabled = true;
+    if (nmxAmount === 0) {
+        errorMsg = 'BUY NMX';
+        isDisabled = false;
+    } else if (nmxAmount < minNmx) {
+        errorMsg = `MIN ${new Intl.NumberFormat().format(minNmx)} NMX`;
+        isDisabled = true;
+    } else if (nmxAmount > maxNmx) {
+        errorMsg = `MAX ${new Intl.NumberFormat().format(maxNmx)} NMX`;
+        isDisabled = true;
     } else if (tonAmount > tonBalance) {
-        errorMsg = `⚠️ Insufficient TON (Have: ${tonBalance.toFixed(4)})`;
-        button.disabled = true;
+        errorMsg = `INSUFFICIENT TON (${tonBalance.toFixed(4)})`;
+        isDisabled = true;
     } else if (tradeStats.todayPurchased + nmxAmount > dailyLimit) {
         const remaining = dailyLimit - tradeStats.todayPurchased;
-        errorMsg = `⚠️ Daily limit (${new Intl.NumberFormat().format(remaining)} NMX left)`;
-        button.disabled = true;
+        errorMsg = `DAILY LIMIT (${new Intl.NumberFormat().format(remaining)} LEFT)`;
+        isDisabled = true;
     } else if (tradeStats.lockedNmxBalance + nmxAmount > walletMax) {
         const remaining = walletMax - tradeStats.lockedNmxBalance;
-        errorMsg = `⚠️ Wallet limit (${new Intl.NumberFormat().format(remaining)} NMX left)`;
-        button.disabled = true;
+        errorMsg = `WALLET LIMIT (${new Intl.NumberFormat().format(remaining)} LEFT)`;
+        isDisabled = true;
     } else {
-        errorMsg = '🚀 Trade Now';
-        button.disabled = false;
+        errorMsg = 'BUY NMX';
+        isDisabled = false;
     }
 
     button.textContent = errorMsg;
+    button.disabled = isDisabled;
+    
+    if (isDisabled) {
+        button.style.background = 'rgba(100, 100, 100, 0.5)';
+        button.style.cursor = 'not-allowed';
+    } else {
+        button.style.background = 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)';
+        button.style.cursor = 'pointer';
+    }
 }
 
 async function executeTrade() {
-    const tonInput = document.getElementById('tradeTonAmount');
-    const tonAmount = parseFloat(tonInput.value);
+    const nmxInput = document.getElementById('tradeNmxAmount');
+    const nmxAmount = parseFloat(nmxInput.value);
 
-    if (!tonAmount || tonAmount <= 0) {
-        showToast('⚠️ Please enter a valid TON amount', 'warning');
+    if (!nmxAmount || nmxAmount <= 0) {
+        showToast('⚠️ Please enter NMX amount', 'warning');
         return;
     }
 
@@ -6733,9 +6817,9 @@ async function executeTrade() {
         await loadTradeData();
         await refreshWalletBalance();
 
-        // Clear input
-        tonInput.value = '';
-        document.getElementById('tradeNmxOutput').value = '0';
+        // Clear inputs
+        nmxInput.value = '';
+        document.getElementById('tradeTonTotal').value = '0';
 
     } catch (error) {
         console.error('Trade error:', error);
