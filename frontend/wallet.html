@@ -6762,24 +6762,28 @@ async function executeTrade() {
         return;
     }
 
+    // Calculate TON from NMX
+    const tonAmount = nmxAmount / tradeConfig.rate;
+    const minNmx = tradeConfig.minTon * tradeConfig.rate;
+    const maxNmx = tradeConfig.maxTon * tradeConfig.rate;
+
     // Validate amounts
-    if (tonAmount < tradeConfig.minTon) {
-        showToast(`⚠️ Minimum trade is ${tradeConfig.minTon} TON`, 'warning');
+    if (nmxAmount < minNmx) {
+        showToast(`⚠️ Minimum trade is ${new Intl.NumberFormat().format(minNmx)} NMX`, 'warning');
         return;
     }
 
-    if (tonAmount > tradeConfig.maxTon) {
-        showToast(`⚠️ Maximum trade is ${tradeConfig.maxTon} TON per transaction`, 'warning');
+    if (nmxAmount > maxNmx) {
+        showToast(`⚠️ Maximum trade is ${new Intl.NumberFormat().format(maxNmx)} NMX per transaction`, 'warning');
         return;
     }
 
     // Confirm trade
-    const nmxAmount = tonAmount * tradeConfig.rate;
     const confirmed = confirm(
         `Confirm Trade?\n\n` +
-        `You pay: ${tonAmount} TON\n` +
-        `You receive: ${new Intl.NumberFormat().format(nmxAmount)} NMX (locked)\n\n` +
-        `Rate: 1 TON = ${tradeConfig.rate} NMX\n\n` +
+        `You buy: ${new Intl.NumberFormat().format(nmxAmount)} NMX (locked)\n` +
+        `You pay: ${tonAmount.toFixed(4)} TON\n\n` +
+        `Rate: 1 TON = ${new Intl.NumberFormat().format(tradeConfig.rate)} NMX\n\n` +
         `Note: NMX tokens will be locked until official distribution.`
     );
 
