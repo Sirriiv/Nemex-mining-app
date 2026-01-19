@@ -6565,8 +6565,10 @@ function closeTradeModal() {
         document.body.style.overflow = 'auto';
         
         // Clear inputs
-        document.getElementById('tradeTonAmount').value = '';
-        document.getElementById('tradeNmxOutput').value = '0';
+        const nmxInput = document.getElementById('tradeNmxAmount');
+        const tonTotal = document.getElementById('tradeTonTotal');
+        if (nmxInput) nmxInput.value = '';
+        if (tonTotal) tonTotal.value = '0';
     }
 }
 
