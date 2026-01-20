@@ -1295,7 +1295,69 @@
         // Verify external task: now actually complete it
         async function verifyExternalTask(taskId) {
             pendingVerifyTaskId = null;
-            await completeTask(taskId);
+            // External task reward logic (copied from completeTask, but for external)
+            const user = await checkAuth();
+            if (!user) return;
+
+            const task = mockTasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            // Show loading
+            const button = document.querySelector(`button[onclick*='${taskId}']`);
+            const originalText = button ? button.textContent : '';
+            if (button) {
+                button.textContent = 'Processing...';
+                button.disabled = true;
+            }
+
+            try {
+                // Save completed task to database
+                const dbSaved = await saveCompletedTaskToDB(taskId);
+                if (!dbSaved) {
+                    throw new Error('Failed to save task to database');
+                }
+
+                // Update user balance
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('balance')
+                    .eq('id', user.id)
+                    .single();
+
+                if (profile) {
+                    const newBalance = (profile.balance || 0) + task.reward;
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ balance: newBalance })
+                        .eq('id', user.id);
+                    if (updateError) {
+                        console.error('Error updating balance:', updateError);
+                        throw updateError;
+                    }
+                }
+
+                // Update local completed tasks array
+                if (!completedTasks.includes(taskId)) {
+                    completedTasks.push(taskId);
+                }
+
+                // Create task completion notification
+                await createTaskNotification(user.id, task.title, task.reward);
+
+                // Show success message
+                alert(`✅ Task completed! You earned ${task.reward} NMXp!\n\nPlease make sure you actually ${task.action.toLowerCase()}ed to support our project!`);
+
+                // Re-render tasks
+                renderTasks();
+
+            } catch (error) {
+                console.error('Error completing external task:', error);
+                alert('Error completing task. Please try again.');
+                if (button) {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
+            }
         }
 
         // Create task completion notification
