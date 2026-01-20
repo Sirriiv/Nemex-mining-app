@@ -906,6 +906,7 @@
         ];
 
         let completedTasks = [];
+        let pendingVerifyTaskId = null;
         let currentFilter = 'all';
         let currentUser = null;
         let userReferralCode = '';
@@ -1092,7 +1093,14 @@
             container.innerHTML = filteredTasks.map(task => {
                 const isCompleted = completedTasks.includes(task.id);
                 const progressPercent = task.maxProgress ? (task.progress / task.maxProgress) * 100 : 0;
-
+                let buttonHtml = '';
+                if (isCompleted) {
+                    buttonHtml = `<button class="task-action" disabled>Completed</button>`;
+                } else if (task.type === 'external' && pendingVerifyTaskId === task.id) {
+                    buttonHtml = `<button class="task-action" onclick="verifyExternalTask(${task.id})">Verify</button>`;
+                } else {
+                    buttonHtml = `<button class="task-action" onclick="${task.type === 'share' ? 'openShareModal()' : (task.type === 'external' ? `startExternalTask(${task.id})` : `completeTask(${task.id})`)}">${task.action}</button>`;
+                }
                 return `
                     <div class="task-card ${isCompleted ? 'completed' : 'available'}">
                         <div class="task-header">
@@ -1116,11 +1124,7 @@
                             <div class="task-status status-${isCompleted ? 'completed' : task.status}">
                                 ${isCompleted ? 'Completed' : 'Available'}
                             </div>
-                            <button class="task-action" 
-                                    onclick="${task.type === 'share' ? 'openShareModal()' : `completeTask(${task.id})`}" 
-                                    ${isCompleted ? 'disabled' : ''}>
-                                ${isCompleted ? 'Completed' : task.action}
-                            </button>
+                            ${buttonHtml}
                         </div>
                     </div>
                 `;
@@ -1136,18 +1140,18 @@
             if (!task) return;
 
             // Show loading
-            const button = document.querySelector(`button[onclick="${task.type === 'share' ? 'openShareModal()' : `completeTask(${taskId})`}"]`);
-            const originalText = button.textContent;
-            button.textContent = 'Processing...';
-            button.disabled = true;
+            const button = document.querySelector(`button[onclick*='${taskId}']`);
+            const originalText = button ? button.textContent : '';
+            if (button) {
+                button.textContent = 'Processing...';
+                button.disabled = true;
+            }
 
             try {
-                // For external links, open in new tab
+                // For external tasks, do nothing here (handled by verifyExternalTask)
                 if (task.type === 'external') {
-                    window.open(task.link, '_blank');
-
-                    // Simulate API call delay
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Should not be called directly anymore
+                    return;
                 }
 
                 // For daily check-in - handle separately
@@ -1220,8 +1224,8 @@
                     console.log('Daily check-in updated:', newCheckins);
                 }
 
-                // Save completed task to database (except for daily check-in which is handled separately)
-                if (task.type !== 'daily') {
+                // Save completed task to database (except for daily check-in and external)
+                if (task.type !== 'daily' && task.type !== 'external') {
                     const dbSaved = await saveCompletedTaskToDB(taskId);
                     if (!dbSaved) {
                         throw new Error('Failed to save task to database');
@@ -1258,9 +1262,7 @@
                 await createTaskNotification(user.id, task.title, task.reward);
 
                 // Show success message
-                if (task.type === 'external') {
-                    alert(`✅ Task completed! You earned ${task.reward} NMXp!\n\nPlease make sure you actually ${task.action.toLowerCase()}ed to support our project!`);
-                } else if (task.type === 'daily') {
+                if (task.type === 'daily') {
                     alert(`🎉 Daily check-in completed! You earned ${task.reward} NMXp!\nProgress: ${task.progress}/7 days`);
                 } else {
                     alert(`🎉 Task completed! You earned ${task.reward} NMXp!`);
@@ -1274,9 +1276,26 @@
                 alert('Error completing task. Please try again.');
 
                 // Reset button
-                button.textContent = originalText;
-                button.disabled = false;
+                if (button) {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
             }
+        }
+
+        // Start an external task: open link and show Verify button
+        function startExternalTask(taskId) {
+            const task = mockTasks.find(t => t.id === taskId);
+            if (!task) return;
+            window.open(task.link, '_blank');
+            pendingVerifyTaskId = taskId;
+            renderTasks();
+        }
+
+        // Verify external task: now actually complete it
+        async function verifyExternalTask(taskId) {
+            pendingVerifyTaskId = null;
+            await completeTask(taskId);
         }
 
         // Create task completion notification
