@@ -4356,9 +4356,8 @@ router.get('/price/ton', async (req, res) => {
 // 🎯 TEST TRANSACTION INSERT ENDPOINT
 // ============================================
 router.post('/test-transaction-insert', async (req, res) => {
-    try {
-        const { userId, walletAddress } = req.body;
-
+        try {
+                const { userId, walletAddress } = req.body;
         if (!userId || !walletAddress) {
             return res.status(400).json({
                 success: false,
