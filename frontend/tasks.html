@@ -1295,7 +1295,6 @@
         // Verify external task: now actually complete it
         async function verifyExternalTask(taskId) {
             pendingVerifyTaskId = null;
-            // External task reward logic (copied from completeTask, but for external)
             const user = await checkAuth();
             if (!user) return;
 
@@ -1311,6 +1310,51 @@
             }
 
             try {
+                // Special handling for Telegram join task
+                if (task.title && task.title.toLowerCase().includes('telegram')) {
+                    // Get Telegram user ID from Telegram Web App context
+                    let telegramUserId = null;
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                        telegramUserId = window.Telegram.WebApp.initDataUnsafe.user.id;
+                    }
+                    if (!telegramUserId) {
+                        alert('Telegram user not detected. Please open this page inside the Telegram bot.');
+                        if (button) {
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }
+                        return;
+                    }
+                    // Extract channel username from the link
+                    let channelUsername = null;
+                    if (task.link && task.link.includes('t.me/')) {
+                        channelUsername = task.link.split('t.me/')[1].replace(/\W.*$/, '');
+                    }
+                    if (!channelUsername) {
+                        alert('Could not determine Telegram channel username.');
+                        if (button) {
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }
+                        return;
+                    }
+                    // Call backend to verify
+                    const response = await fetch('/verify/telegram', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ telegramUserId, channelUsername })
+                    });
+                    const result = await response.json();
+                    if (!result.verified) {
+                        alert('Telegram verification failed. Please join the channel from inside Telegram.');
+                        if (button) {
+                            button.textContent = originalText;
+                            button.disabled = false;
+                        }
+                        return;
+                    }
+                }
+
                 // Save completed task to database
                 const dbSaved = await saveCompletedTaskToDB(taskId);
                 if (!dbSaved) {
