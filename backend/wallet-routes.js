@@ -106,9 +106,12 @@ router.use((req, res, next) => {
 // ============================================
 // 🎯 SUPABASE SETUP
 // ============================================
+
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 let supabase = null;
+let supabaseAdmin = null;
 let dbStatus = 'not_initialized';
 
 async function initializeSupabase() {
@@ -119,7 +122,14 @@ async function initializeSupabase() {
             return false;
         }
 
+
         supabase = createClient(supabaseUrl, supabaseAnonKey);
+        if (supabaseServiceKey) {
+            supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+            console.log('✅ Supabase admin client initialized (service key)');
+        } else {
+            console.warn('⚠️ SUPABASE_SERVICE_KEY not set. Admin actions will not bypass RLS!');
+        }
 
         const { error } = await supabase
             .from('user_wallets')
@@ -146,6 +156,12 @@ async function initializeSupabase() {
 (async () => {
     await initializeSupabase();
 })();
+
+// Helper: get Supabase client (admin or anon) based on isAdmin flag
+function getSupabaseClient(isAdmin = false) {
+    if (isAdmin && supabaseAdmin) return supabaseAdmin;
+    return supabase;
+}
 
 // ============================================
 // 🎯 COMPLETE BIP39 WORD LIST (2048 WORDS) - FULLY INTACT
@@ -2004,12 +2020,16 @@ router.get('/nmxp/:userId', async (req, res) => {
     try {
         const userId = req.params.userId;
 
-        if (!supabase || dbStatus !== 'connected') {
+        if ((!supabase && !supabaseAdmin) || dbStatus !== 'connected') {
             return res.status(503).json({ success: false, error: 'Database unavailable' });
         }
 
-        // Fetch user profile balance (NMXp) - adjust table/column names if your schema differs
-        const { data: profile, error: profileError } = await supabase
+        // Detect admin from a custom header or query param (example: X-Admin-Request: true)
+        const isAdmin = req.headers['x-admin-request'] === 'true' || req.query.admin === 'true';
+        const sbClient = getSupabaseClient(isAdmin);
+
+        // Fetch user profile balance (NMXp)
+        const { data: profile, error: profileError } = await sbClient
             .from('profiles')
             .select('id, balance')
             .eq('id', userId)
