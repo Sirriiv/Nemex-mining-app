@@ -40,15 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
     checkAndShowAdminIcon();
 });
 
-// Initialize Supabase
-let supabaseClient;
-function initializeSupabase() {
-    const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
-
-    supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
-    console.log('✅ Supabase client initialized in main.js');
-}
+// Use the global Supabase client from supabase-client.js
+let supabaseClient = window.supabase;
 
 // ADMIN FUNCTIONALITY
 const ADMIN_TOKEN = 'your-admin-secret-token-123'; // Change this to a secure token
