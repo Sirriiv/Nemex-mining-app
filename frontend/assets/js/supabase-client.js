@@ -1,5 +1,6 @@
 // assets/js/supabase-client.js
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import supabasePkg from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const { createClient } = supabasePkg;
 
 // Use YOUR exact credentials from login.html
 const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
