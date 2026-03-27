@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>NemexCoin - Maintenance</title>
+    <style>
+        :root {
+            --dark-bg: #0a0a0f;
+            --darker-bg: #050508;
+            --gold: #FFD700;
+            --gold-light: #FFED4E;
+            --gold-dark: #b8941f;
+            --gold-glow: rgba(255, 215, 0, 0.4);
+            --text: #ffffff;
+            --text-secondary: #cccccc;
+            --muted: #888888;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0f 0%, #0f0f0f 50%, #0a0a0f 100%);
+            background-size: 400% 400%;
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .maintenance-container {
+            text-align: center;
+            padding: 40px;
+            max-width: 600px;
+            animation: fadeIn 0.8s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .maintenance-icon {
+            font-size: 80px;
+            margin-bottom: 30px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 24px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            font-weight: 300;
+        }
+
+        .message {
+            font-size: 16px;
+            color: var(--muted);
+            line-height: 1.8;
+            margin-bottom: 40px;
+        }
+
+        .status-box {
+            background: rgba(255, 215, 0, 0.1);
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--gold);
+            margin-right: 12px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 10px var(--gold);
+            }
+            50% {
+                opacity: 0.5;
+                box-shadow: 0 0 5px var(--gold);
+            }
+        }
+
+        .contact-info {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .contact-info h3 {
+            color: var(--gold);
+            margin-bottom: 10px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .contact-info p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        .loading-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 215, 0, 0.2);
+            border-radius: 2px;
+            margin: 30px auto;
+            overflow: hidden;
+        }
+
+        .loading-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--gold), transparent);
+            animation: slide 2s infinite;
+        }
+
+        @keyframes slide {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-container">
+        <div class="maintenance-icon">🔧</div>
+        
+        <h1>Under Maintenance</h1>
+        
+        <p class="subtitle">We'll be right back</p>
+        
+        <p class="message">
+            We're currently performing important maintenance on our systems to provide you with the best experience. We apologize for any inconvenience and appreciate your patience.
+        </p>
+
+        <div class="loading-bar">
+            <div class="loading-bar-fill"></div>
+        </div>
+
+        <div class="status-box">
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span>Database Optimization in Progress</span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span>System Checks Running</span>
+            </div>
+            <div class="status-item">
+                <span class="status-dot"></span>
+                <span>Service Restoration Underway</span>
+            </div>
+        </div>
+
+        <div class="contact-info">
+            <h3>Need Assistance?</h3>
+            <p>For support, please contact us via Telegram or email</p>
+            <p style="margin-top: 10px; font-size: 12px; color: var(--muted);">
+                Estimated completion time: To be announced
+            </p>
+        </div>
+    </div>
+</body>
+</html>

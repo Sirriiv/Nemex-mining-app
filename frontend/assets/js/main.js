@@ -1,3 +1,50 @@
+// ========== MAINTENANCE MODE CHECK ==========
+// Set this to true to enable maintenance mode
+const MAINTENANCE_MODE_ENABLED = true;
+// Admin emails that can access the site during maintenance
+const MAINTENANCE_ADMIN_EMAILS = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
+
+// Check maintenance status before showing anything
+async function checkMaintenanceMode() {
+    // Don't block maintenance.html itself
+    if (window.location.pathname.includes('maintenance.html')) {
+        return true; // Allow access to maintenance page
+    }
+
+    if (!MAINTENANCE_MODE_ENABLED) {
+        return true; // Maintenance mode disabled, allow access
+    }
+
+    try {
+        // Get current user from Supabase
+        const { data: { user } } = await window.supabase?.auth?.getUser?.() || { data: { user: null } };
+        
+        if (!user) {
+            // Not logged in, redirect to maintenance
+            window.location.href = 'maintenance.html';
+            return false;
+        }
+
+        // Check if user is admin
+        if (MAINTENANCE_ADMIN_EMAILS.includes(user.email)) {
+            console.log('✅ Admin access granted during maintenance');
+            return true; // Admin access granted
+        }
+
+        // Not admin, redirect to maintenance
+        window.location.href = 'maintenance.html';
+        return false;
+
+    } catch (error) {
+        console.log('Could not verify user, redirecting to maintenance:', error.message);
+        window.location.href = 'maintenance.html';
+        return false;
+    }
+}
+
+// Run maintenance check immediately
+checkMaintenanceMode();
+
 // Shared functionality across all pages
 document.addEventListener('DOMContentLoaded', function() {
     // Settings icon functionality
@@ -82,10 +129,7 @@ async function checkAdminAccess() {
             return false;
         }
 
-        // Your admin emails - UPDATE THESE WITH YOUR ACTUAL EMAILS
-        const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
-
-        if (adminEmails.includes(user.email)) {
+        if (MAINTENANCE_ADMIN_EMAILS.includes(user.email)) {
             console.log('✅ Admin access granted for:', user.email);
             return true;
         } else {
