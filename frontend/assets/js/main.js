@@ -1,52 +1,116 @@
 // ========== MAINTENANCE MODE CHECK ==========
 // Set this to true to enable maintenance mode
 const MAINTENANCE_MODE_ENABLED = true;
-// Admin emails that can access the site during maintenance
-const MAINTENANCE_ADMIN_EMAILS = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
 
-// Check maintenance status before showing anything
-async function checkMaintenanceMode() {
-    // Don't block maintenance.html itself
-    if (window.location.pathname.includes('maintenance.html')) {
-        return true; // Allow access to maintenance page
-    }
-
+// Show maintenance modal popup on login/register pages
+function showMaintenanceModal() {
     if (!MAINTENANCE_MODE_ENABLED) {
-        return true; // Maintenance mode disabled, allow access
+        return; // Maintenance mode disabled
     }
 
-    try {
-        // Get current user from Supabase
-        const { data: { user } } = await window.supabase?.auth?.getUser?.() || { data: { user: null } };
-        
-        if (!user) {
-            // Not logged in, redirect to maintenance
-            window.location.href = 'maintenance.html';
-            return false;
-        }
-
-        // Check if user is admin
-        if (MAINTENANCE_ADMIN_EMAILS.includes(user.email)) {
-            console.log('✅ Admin access granted during maintenance');
-            return true; // Admin access granted
-        }
-
-        // Not admin, redirect to maintenance
-        window.location.href = 'maintenance.html';
-        return false;
-
-    } catch (error) {
-        console.log('Could not verify user, redirecting to maintenance:', error.message);
-        window.location.href = 'maintenance.html';
-        return false;
+    // Only show on login and register pages
+    const currentPage = window.location.pathname.split('/').pop() || '';
+    if (!currentPage.includes('login.html') && !currentPage.includes('register.html')) {
+        return;
     }
+
+    const existingModal = document.getElementById('maintenance-modal');
+    if (existingModal) {
+        existingModal.style.display = 'flex';
+        return; // Modal already exists
+    }
+
+    // Create modal HTML
+    const modal = document.createElement('div');
+    modal.id = 'maintenance-modal';
+    modal.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 9999;
+        backdrop-filter: blur(4px);
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(135deg, #0a0a0f 0%, #0f0f0f 50%, #0a0a0f 100%);
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            animation: slideDown 0.5s ease;
+        ">
+            <div style="font-size: 60px; margin-bottom: 20px; animation: pulse 2s infinite;">🔧</div>
+            <h1 style="
+                font-size: 32px;
+                margin-bottom: 10px;
+                background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            ">Under Maintenance</h1>
+            <p style="font-size: 18px; color: #cccccc; margin-bottom: 20px; font-weight: 300;">We'll be right back</p>
+            <p style="font-size: 14px; color: #888888; line-height: 1.8; margin-bottom: 30px;">
+                Our system is temporarily under maintenance due to database optimization. We apologize for any inconvenience and appreciate your patience.
+            </p>
+            <div style="
+                background: rgba(212, 175, 55, 0.1);
+                border: 1px solid rgba(212, 175, 55, 0.3);
+                border-radius: 10px;
+                padding: 15px;
+                margin-bottom: 30px;
+            ">
+                <p style="font-size: 12px; color: #d4af37; text-transform: uppercase; margin-bottom: 8px;">Status</p>
+                <p style="font-size: 13px; color: #cccccc;">Database Optimization in Progress</p>
+            </div>
+            <button onclick="document.getElementById('maintenance-modal').style.display='none'" style="
+                background: linear-gradient(135deg, #d4af37 0%, #f4d03f 100%);
+                color: #000;
+                border: none;
+                padding: 12px 30px;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            " onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">
+                I Understand
+            </button>
+        </div>
+        <style>
+            @keyframes slideDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.5; }
+            }
+        </style>
+    `;
+
+    document.body.appendChild(modal);
 }
-
-// Run maintenance check immediately
-checkMaintenanceMode();
 
 // Shared functionality across all pages
 document.addEventListener('DOMContentLoaded', function() {
+    // Show maintenance modal on login/register pages
+    showMaintenanceModal();
+    
     // Settings icon functionality
     const settingsIcon = document.querySelector('.settings-icon');
     if (settingsIcon) {
@@ -129,7 +193,10 @@ async function checkAdminAccess() {
             return false;
         }
 
-        if (MAINTENANCE_ADMIN_EMAILS.includes(user.email)) {
+        // Your admin emails - UPDATE THESE WITH YOUR ACTUAL EMAILS
+        const adminEmails = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com'];
+
+        if (adminEmails.includes(user.email)) {
             console.log('✅ Admin access granted for:', user.email);
             return true;
         } else {
