@@ -1,6 +1,6 @@
 // ========== MAINTENANCE MODE CHECK ==========
 // Set this to true to enable maintenance mode
-const MAINTENANCE_MODE_ENABLED = true;
+const MAINTENANCE_MODE_ENABLED = false;
 
 // Show maintenance modal popup on login/register pages
 function showMaintenanceModal() {
