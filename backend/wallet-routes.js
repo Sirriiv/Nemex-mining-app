@@ -432,6 +432,9 @@ console.log(`✅ BIP39 word list loaded: ${BIP39_WORDS.length} words`);
 // 🎯 DATABASE HELPER - CLEANED VERSION
 // ============================================
 
+const walletLookupCache = new Map();
+const WALLET_LOOKUP_TTL_MS = 15000;
+
 async function getWalletFromDatabase(userId) {
     try {
         console.log(`🔍 Fetching wallet for user: ${userId}`);
@@ -441,10 +444,15 @@ async function getWalletFromDatabase(userId) {
         }
 
         const cleanUserId = String(userId).trim();
+        const cacheKey = `wallet:${cleanUserId}`;
+        const cached = walletLookupCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp) < WALLET_LOOKUP_TTL_MS) {
+            return cached.value;
+        }
 
         const { data, error } = await supabase
             .from('user_wallets')
-            .select('*')
+            .select('id, user_id, address, created_at, source, word_count, password_hash, last_known_balance, status')
             .eq('user_id', cleanUserId)
             .maybeSingle();
 
@@ -455,10 +463,12 @@ async function getWalletFromDatabase(userId) {
 
         if (!data) {
             console.log(`❌ No wallet found for user ${userId}`);
+            walletLookupCache.set(cacheKey, { timestamp: Date.now(), value: null });
             return null;
         }
 
         console.log(`✅ Wallet found for user ${userId}`);
+        walletLookupCache.set(cacheKey, { timestamp: Date.now(), value: data });
         return data;
 
     } catch (error) {
@@ -2550,7 +2560,7 @@ router.post('/session/check', async (req, res) => {
         // Check if session exists and is not expired
         const { data: sessionData, error } = await supabase
             .from('wallet_sessions')
-            .select('*')
+            .select('session_token, user_id, wallet_address, expires_at, last_used')
             .eq('session_token', sessionToken)
             .gt('expires_at', new Date().toISOString())
             .single();

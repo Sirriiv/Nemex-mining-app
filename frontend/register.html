@@ -817,6 +817,21 @@
 
                 console.log('✅ Supabase Auth user created:', authData.user.id);
 
+                const hasActiveSession = !!authData.session?.access_token;
+                if (!hasActiveSession) {
+                    console.warn('⚠️ No active session returned after registration. The account may need email confirmation before login.');
+                    showLoadingScreen('Account created! Please check your email.');
+                    if (document.getElementById('successMessage')) {
+                        const successMessage = document.getElementById('successMessage');
+                        successMessage.textContent = 'Account created! Please check your email to confirm your account, then sign in.';
+                        successMessage.style.display = 'block';
+                    }
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2500);
+                    return;
+                }
+
                 const userId = authData.user.id;
 
                 // Calculate initial balance

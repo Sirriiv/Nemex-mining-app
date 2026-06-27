@@ -888,7 +888,7 @@
                     return false;
                 }
 
-                if (session?.user) {
+                if (session?.user && session.access_token) {
                     console.log('✅ User already logged in:', session.user.email);
 
                     // Set up wallet session
@@ -1036,6 +1036,10 @@
                     }
 
                     console.log('✅ Supabase Auth successful:', authData.user.email);
+
+                    if (!authData.session?.access_token) {
+                        throw new Error('Your account is ready, but a session could not be created. Please check your email confirmation and try again.');
+                    }
 
                     // Get user profile
                     const { data: user, error: profileError } = await supabase

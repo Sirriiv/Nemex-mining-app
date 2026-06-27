@@ -2478,6 +2478,21 @@
         let authSessionCacheTime = 0;
         const AUTH_CACHE_DURATION = 10000; // 10 seconds
         let authCheckInProgress = false;
+        let authRedirectInProgress = false;
+
+        function redirectToAuthPage(reason = 'Authentication required') {
+            if (window.location.pathname.includes('login.html') || window.location.pathname.includes('register.html')) {
+                return;
+            }
+
+            if (authRedirectInProgress) {
+                return;
+            }
+
+            authRedirectInProgress = true;
+            console.warn(`🔐 Redirecting to login: ${reason}`);
+            window.location.replace('login.html');
+        }
 
         // FIXED: Use Supabase Auth with proper session persistence
         async function checkAuth() {
@@ -2521,8 +2536,8 @@
                 }
 
                 if (!session) {
-                    console.log('❌ No Supabase session found - redirecting to login');
-                    window.location.href = 'login.html';
+                    console.log('❌ No Supabase session found');
+                    redirectToAuthPage('No active Supabase session');
                     return null;
                 }
 
@@ -2583,20 +2598,22 @@
                 if (profileError) {
                     console.error('❌ Error loading profile:', profileError);
 
-                    // If profile doesn't exist, sign out
                     if (profileError.code === 'PGRST116') {
-                        await window.supabase.auth.signOut();
-                        window.location.href = 'login.html';
+                        console.warn('⚠️ Profile not found for current user.');
+                        redirectToAuthPage('Profile missing');
                         return null;
                     }
 
-                    throw new Error('Could not load user profile');
+                    console.warn('⚠️ Profile query failed; using cached data if available.');
+                    if (userDataCache) {
+                        return userDataCache;
+                    }
+                    return null;
                 }
 
                 if (!profile) {
-                    // If profile doesn't exist, sign out
-                    await window.supabase.auth.signOut();
-                    window.location.href = 'login.html';
+                    console.warn('⚠️ No profile returned for current user.');
+                    redirectToAuthPage('Profile missing');
                     return null;
                 }
 
@@ -2640,9 +2657,34 @@
             }
         }
 
+        let notificationCountCache = null;
+        let notificationCountCacheTime = 0;
+        const NOTIFICATION_CACHE_DURATION = 30000;
+        let lastVisibilityRefresh = 0;
+        const VISIBILITY_REFRESH_INTERVAL = 30000;
+
+        function updateNotificationBadge(count) {
+            const notificationBadge = document.getElementById('notificationBadge');
+            if (!notificationBadge) return;
+
+            if (count > 0) {
+                notificationBadge.textContent = count;
+                notificationBadge.style.display = 'inline-block';
+            } else {
+                notificationBadge.style.display = 'none';
+            }
+        }
+
         // FIXED: Enhanced balance refresh
         async function refreshBalance() {
             try {
+                const now = Date.now();
+                if (userDataCache && (now - userDataCacheTime < USER_CACHE_DURATION)) {
+                    userBalance = userDataCache.balance || 0;
+                    document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
+                    return;
+                }
+
                 console.log('🔄 Refreshing balance...');
                 const userSession = await checkAuth();
                 if (!userSession) return;
@@ -2661,6 +2703,8 @@
                     .single();
 
                 if (!error && profile) {
+                    userDataCache = { ...(userDataCache || {}), balance: profile.balance || 0 };
+                    userDataCacheTime = now;
                     userBalance = profile.balance || 0;
                     document.getElementById('balanceAmount').textContent = formatNumber(userBalance);
                 }
@@ -2671,15 +2715,21 @@
         }
 
         // NEW: Load real notification count from database
-        async function loadNotificationCount() {
+        async function loadNotificationCount(forceRefresh = false) {
             try {
+                const now = Date.now();
+                if (!forceRefresh && notificationCountCache !== null && (now - notificationCountCacheTime < NOTIFICATION_CACHE_DURATION)) {
+                    updateNotificationBadge(notificationCountCache);
+                    return notificationCountCache;
+                }
+
                 const userSession = await checkAuth();
-                if (!userSession) return;
+                if (!userSession) return null;
 
                 // Check Supabase availability
                 if (!window.supabase) {
                     console.error('❌ Supabase not available for loadNotificationCount');
-                    return;
+                    return null;
                 }
 
                 // Fetch unread notifications count from database
@@ -2691,23 +2741,20 @@
 
                 if (error) {
                     console.error('Error fetching notifications:', error);
-                    return;
+                    return null;
                 }
 
                 const unreadCount = notifications ? notifications.length : 0;
-
-                const notificationBadge = document.getElementById('notificationBadge');
-                if (unreadCount > 0) {
-                    notificationBadge.textContent = unreadCount;
-                    notificationBadge.style.display = 'inline-block';
-                } else {
-                    notificationBadge.style.display = 'none';
-                }
+                notificationCountCache = unreadCount;
+                notificationCountCacheTime = now;
+                updateNotificationBadge(unreadCount);
 
                 console.log(`🔔 ${unreadCount} unread notifications`);
+                return unreadCount;
 
             } catch (error) {
                 console.error('Error loading notification count:', error);
+                return null;
             }
         }
 
@@ -2847,11 +2894,11 @@
 
                 // Refresh balance when page becomes visible
                 document.addEventListener('visibilitychange', function() {
-                    if (!document.hidden) {
-                        console.log('📄 Page visible - refreshing balance...');
+                    if (!document.hidden && (Date.now() - lastVisibilityRefresh > VISIBILITY_REFRESH_INTERVAL)) {
+                        lastVisibilityRefresh = Date.now();
+                        console.log('📄 Page visible - refreshing balance and notifications');
                         refreshBalance();
-                        // NEW: Also refresh notification count
-                        loadNotificationCount();
+                        loadNotificationCount(true);
                     }
                 });
 
