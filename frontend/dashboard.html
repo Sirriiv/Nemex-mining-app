@@ -2525,19 +2525,39 @@
                     return null;
                 }
 
-                // Wait a bit for session restoration from localStorage
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // Wait briefly for Supabase to restore the persisted session from storage.
+                let session = null;
+                let lastError = null;
 
-                const { data: { session }, error } = await window.supabase.auth.getSession();
+                for (let attempt = 0; attempt < 4; attempt++) {
+                    const { data: { session: candidateSession }, error } = await window.supabase.auth.getSession();
+                    if (error) {
+                        lastError = error;
+                    }
 
-                if (error) {
-                    console.error('Session error:', error);
-                    throw error;
+                    if (candidateSession?.access_token && candidateSession.user) {
+                        session = candidateSession;
+                        break;
+                    }
+
+                    if (attempt < 3) {
+                        await new Promise(resolve => setTimeout(resolve, 400));
+                    }
                 }
 
                 if (!session) {
-                    console.log('❌ No Supabase session found');
-                    redirectToAuthPage('No active Supabase session');
+                    try {
+                        const { data: { user }, error: userError } = await window.supabase.auth.getUser();
+                        if (!userError && user?.id) {
+                            session = { access_token: 'restored', user };
+                        }
+                    } catch (userRecoveryError) {
+                        console.warn('⚠️ Session recovery fallback failed:', userRecoveryError);
+                    }
+                }
+
+                if (!session || !session.access_token) {
+                    console.warn('⚠️ Supabase session was not ready yet; skipping immediate redirect.');
                     return null;
                 }
 

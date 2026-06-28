@@ -593,14 +593,8 @@
                     return false;
                 }
 
-                if (session?.user) {
+                if (session?.user && session.access_token) {
                     console.log('✅ User already logged in:', session.user.email);
-                    
-                    // Redirect to dashboard
-                    showLoadingScreen('Welcome Back!');
-                    setTimeout(() => {
-                        window.location.href = 'dashboard.html';
-                    }, 1500);
                     return true;
                 }
 
@@ -628,9 +622,15 @@
                 // Setup login link
                 setupLoginLink();
                 
-                // Check if user is already logged in
+                // Only redirect from the register page if the session is confirmed and stable.
                 const hasSession = await checkExistingSession(supabase);
-                if (hasSession) return;
+                if (hasSession) {
+                    showLoadingScreen('Welcome Back!');
+                    setTimeout(() => {
+                        window.location.replace('dashboard.html');
+                    }, 800);
+                    return;
+                }
                 
                 // Initialize form and check referral
                 initializeForm(supabase);

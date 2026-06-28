@@ -944,6 +944,13 @@
                 document.getElementById('backupCodeModal').style.display = 'none';
                 document.getElementById('passwordResetModal').style.display = 'none';
 
+                await new Promise(resolve => setTimeout(resolve, 600));
+                const { data: { session } } = await supabase.auth.getSession();
+                if (!session?.access_token) {
+                    console.warn('⚠️ Session was not hydrated yet; waiting one more moment before redirect.');
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                }
+
                 if (isRecovery) {
                     const successMessage = document.getElementById('successMessage');
                     successMessage.textContent = '✅ Password reset successful! You have been logged in.';
@@ -1431,9 +1438,15 @@
                 // Wait for Supabase
                 const supabase = await waitForSupabase();
                 
-                // Check if user is already logged in
+                // Only redirect from the login page after the session is confirmed and stable.
                 const hasSession = await checkExistingSession(supabase);
-                if (hasSession) return;
+                if (hasSession) {
+                    showLoadingScreen('Welcome Back!');
+                    setTimeout(() => {
+                        window.location.replace('dashboard.html');
+                    }, 800);
+                    return;
+                }
                 
                 // Setup login form
                 setupLoginForm(supabase);
