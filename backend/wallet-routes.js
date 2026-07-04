@@ -11,179 +11,154 @@ const bcrypt = require('bcrypt');
 // ============================================
 console.log('🔄 Loading TON libraries...');
 
-let tonCrypto, tonSDK, assetsSDK;
-let mnemonicNew, mnemonicToPrivateKey;
-let WalletContractV4, Address, TonClient, internal, toNano, fromNano;
-let JettonMaster, JettonWallet;
-let AssetsSDK, createApi;
+        let lastSendError = null;
+        const maxSendAttempts = 3; // increase attempts for transient RPC issues
+        for (let attempt = 1; attempt <= maxSendAttempts; attempt++) {
+            try {
+                try {
+                    const sendResult = await tonClient.sendExternalMessage(walletContract, transfer);
+                    console.log(`✅ Transaction broadcasted successfully on attempt ${attempt}!`, sendResult);
+                    lastSendError = null;
 
+                    // Generate a temporary transaction hash as placeholder
+                    const tempTxHash = 'PENDING_' + crypto.createHash('sha256')
+                        .update(walletContract.address.toString() + toAddress + amountNano.toString() + Date.now().toString())
+                        .digest('hex')
+                        .toUpperCase()
+                        .substring(0, 56);
+
+                    console.log("🔗 Temporary transaction hash:", tempTxHash);
+
+                    // Wait for blockchain indexing
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+
+                    // Get current price for USD value
+                    const priceData = await fetchRealTONPrice();
+                    const usdValue = (parseFloat(amount) * priceData.price).toFixed(2);
+
+                    // Record transaction in DB (mark as pending) so history shows immediately
+                    try {
+                        const walletAddr = walletContract.address.toString({ urlSafe: true, bounceable: false });
+
+                        const amountValue = Number(parseFloat(amount).toFixed(8));
+                        const feeValue = Number(parseFloat(process.env.TX_FEE_TON || '0.001').toFixed(8));
+
+                        console.log('🔢 Transaction amounts:', {
+                            originalAmount: amount,
+                            parsedAmount: amountValue,
+                            networkFee: feeValue,
+                            feeEnv: process.env.TX_FEE_TON,
+                            amountType: typeof amount,
+                            amountIsNaN: isNaN(amountValue)
+                        });
+
+                        const record = {
+                            user_id: userId,
+                            wallet_address: walletAddr,
+                            transaction_hash: tempTxHash,
+                            type: 'send',
+                            token: 'TON',
+                            amount: amountValue,
+                            to_address: toAddress,
+                            from_address: walletAddr,
+                            status: 'pending',
+                            network_fee: feeValue,
+                            description: memo || null,
+                            created_at: new Date().toISOString()
+                        };
+
+                        console.log('💾 Attempting to save transaction to database:', {
+                            user_id: userId,
+                            wallet_address: record.wallet_address,
+                            transaction_hash: tempTxHash,
+                            type: 'send',
+                            amount: record.amount,
+                            network_fee: record.network_fee
+                        });
+
+                        const { data: inserted, error: insertErr } = await supabase
+                            .from('transactions')
+                            .insert(record)
+                            .select();
+
+                        if (insertErr) {
+                            console.error('❌ Failed to record outgoing transaction in DB:', insertErr.message);
+                            console.error('❌ Database error details:', JSON.stringify(insertErr, null, 2));
+                            console.error('❌ Record that failed to insert:', JSON.stringify(record, null, 2));
+                        } else {
+                            console.log('✅ Transaction saved successfully to database!');
+                            console.log('✅ Inserted data:', JSON.stringify(inserted, null, 2));
+                        }
+                    } catch (dbRecordErr) {
+                        console.warn('⚠️ Non-critical DB save error after send:', dbRecordErr.message);
+                    }
+
+                    // If broadcast succeeded, break out of retry loop
+                    break;
+
+                } catch (sendErrInner) {
+                    // If sendExternalMessage failed, throw to outer catch for retry logic
+                    throw sendErrInner;
+                }
 try {
-    console.log('🔍 Attempting to load @ton/crypto...');
-    tonCrypto = require('@ton/crypto');
-    console.log('✅ @ton/crypto loaded');
+                } catch (e) {
+                    lastSendError = e;
+                    console.warn(`⚠️ Attempt ${attempt} to broadcast failed:`, e.message || e);
+                    // Try to refresh seqno and recreate transfer before next attempt
+                    try {
+                        const refreshedSeqno = await runGetSeqno(walletContract.address.toString({ urlSafe: true, bounceable: false }));
+                        if (refreshedSeqno !== null && refreshedSeqno !== undefined) {
+                            seqno = refreshedSeqno;
+                            console.log('🔄 Refreshed seqno for retry:', seqno);
+                            transfer = walletContract.createTransfer({
+                                secretKey: keyPair.secretKey,
+                                seqno: seqno,
+                                messages: [internalMsg],
+                                sendMode: 3
+                            });
+                        }
+                    } catch (refreshErr) {
+                        console.warn('⚠️ Could not refresh seqno for retry:', refreshErr.message);
+                    }
 
-    console.log('🔍 Attempting to load @ton/ton...');
-    tonSDK = require('@ton/ton');
-    console.log('✅ @ton/ton loaded');
-
-    console.log('🔍 Attempting to load @ton-community/assets-sdk...');
-    assetsSDK = require('@ton-community/assets-sdk');
-    console.log('✅ @ton-community/assets-sdk loaded');
-
-    mnemonicNew = tonCrypto.mnemonicNew;
-    mnemonicToPrivateKey = tonCrypto.mnemonicToPrivateKey;
-    WalletContractV4 = tonSDK.WalletContractV4;
-    Address = tonSDK.Address;
-    TonClient = tonSDK.TonClient;
-    internal = tonSDK.internal;
-    toNano = tonSDK.toNano;
-    fromNano = tonSDK.fromNano;
-    
-    // Assets SDK exports
-    AssetsSDK = assetsSDK.AssetsSDK;
-    createApi = assetsSDK.createApi;
-    console.log('✅ AssetsSDK and createApi loaded');
-
-    console.log('✅ TON libraries loaded successfully');
-
-} catch (error) {
-    console.error('❌❌❌ TON SDK IMPORT FAILED!');
-    console.error('❌ Error:', error.message);
-    throw new Error(`TON SDK failed to load: ${error.message}`);
-}
-
-// ============================================
-// 🎯 LOAD ENVIRONMENT VARIABLES - FIXED!
-// ============================================
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
-
-console.log('🚀 WALLET ROUTES v32.0 - DUAL API FIXED VERSION');
-
-// ============================================
-// 🎯 ENSURE CORS ON ALL RESPONSES
-// ============================================
-router.use((req, res, next) => {
-    // Ensure CORS headers on all responses (including errors)
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    next();
-});
-
-// ============================================
-// 🎯 API KEYS CONFIGURATION - FIXED!
-// ============================================
-const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
-// FIX: Handle multiple possible environment variable names
-const TON_CONSOLE_API_KEY = process.env.TON_CONSOLE_API_KEY || process.env.TON_API_TOKEN || process.env.TONAPI_KEY || '';
-const TON_API_URL = process.env.TON_API_URL || 'https://tonapi.io/v2';
-
-console.log('🔑 API Keys Status:');
-console.log(`   - TON Center: ${TONCENTER_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
-console.log(`   - TON Console: ${TON_CONSOLE_API_KEY ? '✓ Loaded' : '✗ Missing'}`);
-
-if (!TON_CONSOLE_API_KEY) {
-    console.warn('⚠️ WARNING: TON_CONSOLE_API_KEY is missing! Transactions may fail.');
-    console.warn('   Get one from: https://tonconsole.com/');
-    console.warn('   Or add to .env: TON_CONSOLE_API_KEY=bearer_your_token_here');
-}
-
-// ============================================
-// 🎯 CORS MIDDLEWARE
-// ============================================
-router.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end();
-    }
-    next();
-});
-
-// ============================================
-// 🎯 SUPABASE SETUP
-// ============================================
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-let supabase = null;
-let supabaseAdmin = null;
-let dbStatus = 'not_initialized';
-
-async function initializeSupabase() {
-    try {
-        if (!supabaseUrl || !supabaseAnonKey) {
-            console.error('❌ SUPABASE CREDENTIALS MISSING');
-            dbStatus = 'credentials_missing';
-            return false;
-        }
-
-
-        supabase = createClient(supabaseUrl, supabaseAnonKey);
-        if (supabaseServiceKey) {
-            supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-            console.log('✅ Supabase admin client initialized (service key)');
-        } else {
-            console.warn('⚠️ SUPABASE_SERVICE_KEY not set. Admin actions will not bypass RLS!');
-        }
-
-        const { error } = await supabase
-            .from('user_wallets')
-            .select('id')
-            .limit(1);
-
-        if (error) {
-            console.error('❌ Supabase connection test failed:', error.message);
-            dbStatus = 'connection_error';
-            return false;
-        }
-
-        console.log('✅ Supabase connected successfully!');
-        dbStatus = 'connected';
-        return true;
-    } catch (error) {
-        console.error('❌ Supabase initialization error:', error.message);
-        dbStatus = 'initialization_error';
-        return false;
-    }
-}
-
-// Initialize Supabase immediately
-(async () => {
-    await initializeSupabase();
-})();
-
-// Helper: get Supabase client (admin or anon) based on isAdmin flag
+                    if (attempt === maxSendAttempts) {
+                        console.error('❌ All send attempts exhausted for sendExternalMessage');
+                    } else {
+                        console.log('ℹ️ Will retry broadcasting...');
+                    }
+                }
 function getSupabaseClient(isAdmin = false) {
-    if (isAdmin && supabaseAdmin) return supabaseAdmin;
-    return supabase;
-}
-
-// ============================================
-// 🎯 COMPLETE BIP39 WORD LIST (2048 WORDS) - FULLY INTACT
-// ============================================
-
-const BIP39_WORDS = [
-    "abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract",
-    "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid",
-    "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual",
-    "adapt", "add", "addict", "address", "adjust", "admit", "adult", "advance",
-    "advice", "aerobic", "affair", "afford", "afraid", "again", "age", "agent",
-    "agree", "ahead", "aim", "air", "airport", "aisle", "alarm", "album",
-    "alcohol", "alert", "alien", "all", "alley", "allow", "almost", "alone",
-    "alpha", "already", "also", "alter", "always", "amateur", "amazing", "among",
-    "amount", "amused", "analyst", "anchor", "ancient", "anger", "angle", "angry",
-    "animal", "ankle", "announce", "annual", "another", "answer", "antenna", "antique",
-    "anxiety", "any", "apart", "apology", "appear", "apple", "approve", "april",
-    "arch", "arctic", "area", "arena", "argue", "arm", "armed", "armor", "army",
-    "around", "arrange", "arrest", "arrive", "arrow", "art", "artefact", "artist",
-    "artwork", "ask", "aspect", "assault", "asset", "assist", "assume", "asthma",
-    "athlete", "atom", "attack", "attend", "attitude", "attract", "auction", "audit",
+                // bubble up
+                lastSendError = sendError;
+            }
     "august", "aunt", "author", "auto", "autumn", "average", "avocado", "avoid",
+
+        // If after retries we still have a lastSendError, attempt alternate broadcasting method
+        if (lastSendError) {
+            try {
+                console.log('🔁 Attempting fallback broadcast via RPC client.open(...).sendTransfer()');
+                const clientConfig = { endpoint: tonClient.endpoint || TON_API_URL, timeout: 30000 };
+                if (TON_CONSOLE_API_KEY) clientConfig.apiKey = TON_CONSOLE_API_KEY.replace('bearer_', '');
+                if (TONCENTER_API_KEY && !clientConfig.apiKey) clientConfig.apiKey = TONCENTER_API_KEY;
+
+                const fallbackClient = new TonClient(clientConfig);
+                const contract = fallbackClient.open(walletContract);
+                const fallbackSeqno = await contract.getSeqno();
+                console.log('🔍 Fallback seqno:', fallbackSeqno);
+
+                await contract.sendTransfer({
+                    secretKey: keyPair.secretKey,
+                    seqno: fallbackSeqno,
+                    messages: [internalMsg]
+                });
+
+                console.log('✅ Fallback broadcast succeeded via contract.sendTransfer');
+                lastSendError = null;
+            } catch (fallbackErr) {
+                console.error('❌ Fallback broadcast failed:', fallbackErr.message || fallbackErr);
+                // keep lastSendError for error reporting
+            }
+        }
     "awake", "aware", "away", "awesome", "awful", "awkward", "axis", "baby",
     "bachelor", "bacon", "badge", "bag", "balance", "balcony", "ball", "bamboo",
     "banana", "banner", "bar", "barely", "bargain", "barrel", "base", "basic",
