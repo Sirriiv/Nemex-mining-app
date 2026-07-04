@@ -461,7 +461,7 @@ async function generateRealTONWallet() {
         console.log('🎯 Generating REAL TON wallet...');
         const mnemonicArray = await mnemonicNew();
         const mnemonic = mnemonicArray.join(' ');
-        console.log('✅ Mnemonic generated');
+        console.log('✅ Mnemonic generated (kept secret)');
 
         const keyPair = await mnemonicToPrivateKey(mnemonicArray);
         console.log('✅ Key pair derived');
@@ -495,7 +495,6 @@ async function generateRealTONWallet() {
             address: uqAddress,
             eqAddress: eqAddress,
             publicKey: Buffer.from(keyPair.publicKey).toString('hex'),
-            privateKey: Buffer.from(keyPair.secretKey).toString('hex'),
             wordCount: 24,
             source: 'ton-v4-official-sdk-uq'
         };
@@ -1388,7 +1387,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
             // Use central decrypt helper which supports Argon2id and legacy fallback
             const decrypted = await decryptMnemonic(wallet.encrypted_mnemonic, walletPassword);
             mnemonic = decrypted.split(' ');
-            console.log('✅ Mnemonic decrypted successfully');
+            console.log('✅ Mnemonic decrypted');
         } catch (decryptError) {
             console.error('❌ Mnemonic decryption failed:', decryptError.message);
             throw new Error('Failed to decrypt wallet. Wrong password or corrupted data.');
@@ -3321,7 +3320,7 @@ router.post('/send-gas-fee', async (req, res) => {
         try {
             const decrypted = await decryptMnemonic(wallet.encrypted_mnemonic, walletPassword);
             mnemonic = decrypted.split(' ');
-            console.log('✅ Mnemonic decrypted successfully, word count:', mnemonic.length);
+            console.log('✅ Mnemonic decrypted');
         } catch (decryptError) {
             console.error('❌ Decryption failed:', decryptError);
             console.error('❌ Error details:', {
@@ -3348,7 +3347,7 @@ router.post('/send-gas-fee', async (req, res) => {
         // Send the gas fee
         try {
             console.log('💸 Sending gas fee...');
-            console.log('🔍 Using mnemonic length:', mnemonic.length, 'words');
+            console.log('🔍 Using mnemonic for transaction (kept secret)');
             
             const keyPair = await mnemonicToPrivateKey(mnemonic);
             console.log('✅ KeyPair generated from mnemonic');
@@ -3929,11 +3928,11 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
             mnemonic = decrypted.split(' ');
 
             if (!mnemonic || mnemonic.length < 12) {
-                console.error('❌ Decrypted mnemonic invalid:', mnemonic?.length, 'words');
+                console.error('❌ Decrypted mnemonic invalid');
                 throw new Error('Invalid mnemonic recovered. Data may be corrupted.');
             }
 
-            console.log('✅ Mnemonic decrypted successfully:', mnemonic.length, 'words');
+            console.log('✅ Mnemonic decrypted');
         } catch (decryptError) {
             console.error('❌ Decryption error:', decryptError.message);
             console.error('❌ Stack:', decryptError.stack);
