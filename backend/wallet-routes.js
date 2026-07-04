@@ -5,6 +5,7 @@ const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 const axios = require('axios');
 const bcrypt = require('bcrypt');
+const argon2 = require('argon2');
 
 // ============================================
 // 🎯 TON IMPORTS - OFFICIAL SDK + ASSETS SDK
@@ -574,10 +575,23 @@ async function verifyWalletPassword(password, hash) {
     return await bcrypt.compare(password, hash);
 }
 
-function encryptMnemonic(mnemonic, password) {
+async function encryptMnemonic(mnemonic, password, saltHex = null) {
     const algorithm = 'aes-256-gcm';
     const iv = crypto.randomBytes(16);
-    const key = crypto.scryptSync(password, 'nemex-salt', 32);
+
+    // Generate per-user salt if not provided
+    const salt = saltHex ? Buffer.from(saltHex, 'hex') : crypto.randomBytes(16);
+    const saltOut = saltHex || salt.toString('hex');
+
+    // Derive a 32-byte key using Argon2id
+    const key = await argon2.hash(password, {
+        salt: salt,
+        raw: true,
+        hashLength: 32,
+        type: argon2.argon2id,
+        timeCost: 3,
+        memoryCost: 1 << 16
+    });
 
     const cipher = crypto.createCipheriv(algorithm, key, iv);
     let encrypted = cipher.update(mnemonic, 'utf8', 'hex');
@@ -588,11 +602,14 @@ function encryptMnemonic(mnemonic, password) {
         iv: iv.toString('hex'),
         encrypted: encrypted,
         authTag: authTag.toString('hex'),
-        algorithm: algorithm
+        algorithm: algorithm,
+        salt: saltOut,
+        kdf: 'argon2id',
+        kdfParams: { timeCost: 3, memoryCost: 1 << 16, hashLength: 32 }
     };
 }
 
-function decryptMnemonic(encryptedData, password) {
+async function decryptMnemonic(encryptedData, password) {
     try {
         // Parse encrypted data (could be string or object)
         let data;
@@ -606,16 +623,36 @@ function decryptMnemonic(encryptedData, password) {
         const iv = Buffer.from(data.iv, 'hex');
         const authTag = Buffer.from(data.authTag, 'hex');
         const encrypted = data.encrypted;
-        
-        // Derive key from password using same salt as encryption
-        const key = crypto.scryptSync(password, 'nemex-salt', 32);
 
-        const decipher = crypto.createDecipheriv(algorithm, key, iv);
+        // Determine KDF/salt
+        if (data.kdf && data.kdf === 'argon2id' && data.salt) {
+            const salt = Buffer.from(data.salt, 'hex');
+            const key = await argon2.hash(password, {
+                salt: salt,
+                raw: true,
+                hashLength: 32,
+                type: argon2.argon2id,
+                timeCost: (data.kdfParams && data.kdfParams.timeCost) || 3,
+                memoryCost: (data.kdfParams && data.kdfParams.memoryCost) || (1 << 16)
+            });
+
+            const decipher = crypto.createDecipheriv(algorithm, key, iv);
+            decipher.setAuthTag(authTag);
+
+            let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+            decrypted += decipher.final('utf8');
+
+            return decrypted;
+        }
+
+        // Backwards-compatible fallback to scrypt with legacy static salt
+        const legacyKey = crypto.scryptSync(password, 'nemex-salt', 32);
+        const decipher = crypto.createDecipheriv(algorithm, legacyKey, iv);
         decipher.setAuthTag(authTag);
-        
+
         let decrypted = decipher.update(encrypted, 'hex', 'utf8');
         decrypted += decipher.final('utf8');
-        
+
         return decrypted;
     } catch (error) {
         console.error('❌ Decryption failed:', error.message);
@@ -1348,20 +1385,9 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
 
         let mnemonic;
         try {
-            const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-            const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
-
-            const decipher = crypto.createDecipheriv(
-                encryptedData.algorithm,
-                key,
-                Buffer.from(encryptedData.iv, 'hex')
-            );
-            decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
-
-            let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-            decrypted += decipher.final('utf8');
+            // Use central decrypt helper which supports Argon2id and legacy fallback
+            const decrypted = await decryptMnemonic(wallet.encrypted_mnemonic, walletPassword);
             mnemonic = decrypted.split(' ');
-
             console.log('✅ Mnemonic decrypted successfully');
         } catch (decryptError) {
             console.error('❌ Mnemonic decryption failed:', decryptError.message);
@@ -2110,7 +2136,7 @@ router.post('/create', async (req, res) => {
         console.log('✅ Valid TON address generated:', wallet.address);
 
         const passwordHash = await hashWalletPassword(walletPassword);
-        const encryptedMnemonic = encryptMnemonic(wallet.mnemonic, walletPassword);
+        const encryptedMnemonic = await encryptMnemonic(wallet.mnemonic, walletPassword);
 
         const walletRecord = {
             user_id: userId,
@@ -2688,7 +2714,7 @@ router.post('/change-password', async (req, res) => {
         // Decrypt mnemonic with current password
         let mnemonic;
         try {
-            mnemonic = decryptMnemonic(wallet.encrypted_mnemonic, currentPassword);
+            mnemonic = await decryptMnemonic(wallet.encrypted_mnemonic, currentPassword);
         } catch (error) {
             console.error('❌ Failed to decrypt mnemonic:', error);
             return res.status(500).json({
@@ -2698,7 +2724,7 @@ router.post('/change-password', async (req, res) => {
         }
 
         // Re-encrypt mnemonic with new password
-        const newEncryptedData = encryptMnemonic(mnemonic, newPassword);
+        const newEncryptedData = await encryptMnemonic(mnemonic, newPassword);
         const newPasswordHash = await hashWalletPassword(newPassword);
 
         // Update database with JSON stringified encrypted data
@@ -3290,38 +3316,10 @@ router.post('/send-gas-fee', async (req, res) => {
 
         console.log('✅ Validation passed, decrypting wallet...');
 
-        // Decrypt mnemonic using user's wallet password
+        // Decrypt mnemonic using central helper
         let mnemonic;
         try {
-            // Parse the encrypted_mnemonic JSON string
-            let encryptedData;
-            if (typeof wallet.encrypted_mnemonic === 'string') {
-                encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-            } else {
-                encryptedData = wallet.encrypted_mnemonic;
-            }
-
-            console.log('🔍 Encrypted data structure:', {
-                hasIv: !!encryptedData.iv,
-                hasEncrypted: !!encryptedData.encrypted,
-                hasAuthTag: !!encryptedData.authTag,
-                algorithm: encryptedData.algorithm
-            });
-
-            const iv = Buffer.from(encryptedData.iv, 'hex');
-            const encryptedText = encryptedData.encrypted;
-            const authTag = Buffer.from(encryptedData.authTag, 'hex');
-            const algorithm = encryptedData.algorithm || 'aes-256-gcm';
-            
-            // Derive key using user's password with the same salt used during encryption
-            const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
-            
-            const decipher = crypto.createDecipheriv(algorithm, key, iv);
-            decipher.setAuthTag(authTag);
-            
-            let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-            decrypted += decipher.final('utf8');
-            
+            const decrypted = await decryptMnemonic(wallet.encrypted_mnemonic, walletPassword);
             mnemonic = decrypted.split(' ');
             console.log('✅ Mnemonic decrypted successfully, word count:', mnemonic.length);
         } catch (decryptError) {
@@ -3330,7 +3328,7 @@ router.post('/send-gas-fee', async (req, res) => {
                 message: decryptError.message,
                 stack: decryptError.stack
             });
-            
+
             // Check if it's likely a wrong password
             if (decryptError.message.includes('Unsupported state') || 
                 decryptError.message.includes('auth') || 
@@ -3340,7 +3338,7 @@ router.post('/send-gas-fee', async (req, res) => {
                     message: 'Incorrect wallet password'
                 });
             }
-            
+
             return res.status(500).json({
                 success: false,
                 message: 'Failed to decrypt wallet credentials'
@@ -3926,31 +3924,15 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
                 console.error('❌ No encrypted mnemonic found in wallet record');
                 throw new Error('Wallet data corrupted. Missing encrypted mnemonic.');
             }
-            
-            const encryptedData = JSON.parse(wallet.encrypted_mnemonic);
-            console.log('📊 Encrypted data structure:', {
-                hasIv: !!encryptedData.iv,
-                hasEncrypted: !!encryptedData.encrypted,
-                hasAuthTag: !!encryptedData.authTag,
-                algorithm: encryptedData.algorithm
-            });
-            
-            const key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
-            const decipher = crypto.createDecipheriv(
-                encryptedData.algorithm,
-                key,
-                Buffer.from(encryptedData.iv, 'hex')
-            );
-            decipher.setAuthTag(Buffer.from(encryptedData.authTag, 'hex'));
-            let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
-            decrypted += decipher.final('utf8');
+
+            const decrypted = await decryptMnemonic(wallet.encrypted_mnemonic, walletPassword);
             mnemonic = decrypted.split(' ');
-            
+
             if (!mnemonic || mnemonic.length < 12) {
                 console.error('❌ Decrypted mnemonic invalid:', mnemonic?.length, 'words');
                 throw new Error('Invalid mnemonic recovered. Data may be corrupted.');
             }
-            
+
             console.log('✅ Mnemonic decrypted successfully:', mnemonic.length, 'words');
         } catch (decryptError) {
             console.error('❌ Decryption error:', decryptError.message);
