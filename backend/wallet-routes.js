@@ -411,6 +411,22 @@ console.log(`✅ BIP39 word list loaded: ${BIP39_WORDS.length} words`);
 const walletLookupCache = new Map();
 const WALLET_LOOKUP_TTL_MS = 15000;
 
+// ============================================
+// 🎯 SEND QUEUE + IDEMPOTENCY HELPERS
+// Per-user send queue to serialize outgoing transactions and avoid seqno races
+const sendQueues = new Map();
+
+function runWithSendQueue(userId, fn) {
+    const key = String(userId);
+    const prev = sendQueues.get(key) || Promise.resolve();
+    const next = prev.then(() => fn()).catch((e) => { throw e; });
+    // Ensure queue entry is cleared when done
+    sendQueues.set(key, next.finally(() => {
+        if (sendQueues.get(key) === next) sendQueues.delete(key);
+    }));
+    return next;
+}
+
 async function getWalletFromDatabase(userId) {
     try {
         console.log(`🔍 Fetching wallet for user: ${userId}`);
@@ -1356,7 +1372,7 @@ async function deployWalletIfNeeded(keyPair, walletContract, tonClient = null) {
 // ============================================
 // 🎯 FIXED: SEND TON TRANSACTION WITH DUAL APIS
 // ============================================
-async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '') {
+async function sendTONTransaction(userId, walletPassword, toAddress, amount, memo = '', idempotencyKey = null) {
     console.log('🚀 SEND TRANSACTION STARTED');
 
     try {
@@ -1653,6 +1669,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
                 const record = {
                         user_id: userId,
                         wallet_address: walletAddr,
+                    idempotency_key: idempotencyKey || null,
                         transaction_hash: tempTxHash,
                         type: 'send',
                         token: 'TON',
@@ -3513,6 +3530,7 @@ router.post('/send', async (req, res) => {
 
     try {
         const { userId, walletPassword, toAddress, amount, memo = '' } = req.body;
+        const idempotencyKey = req.headers['idempotency-key'] || req.body.idempotencyKey || null;
 
         console.log('📋 Request details:', { 
             userId: userId ? `${userId.substring(0, 8)}...` : 'MISSING',
@@ -3576,7 +3594,26 @@ router.post('/send', async (req, res) => {
 
         try {
             console.log('🚀 Calling sendTONTransaction with amountNum:', amountNum, 'type:', typeof amountNum);
-            const result = await sendTONTransaction(userId, walletPassword, toAddress, amountNum, memo);
+            // If client provided an idempotency key, try to return previous result if already processed
+            if (idempotencyKey) {
+                try {
+                    const { data: existing, error: existingErr } = await supabase
+                        .from('transactions')
+                        .select('*')
+                        .eq('idempotency_key', idempotencyKey)
+                        .maybeSingle();
+
+                    if (!existingErr && existing) {
+                        console.log('🔁 Idempotent request detected - returning existing transaction');
+                        return res.json({ success: true, message: 'Idempotent - already processed', data: existing });
+                    }
+                } catch (e) {
+                    console.warn('⚠️ Idempotency check failed (column may not exist):', e.message);
+                    // proceed without failing
+                }
+            }
+
+            const result = await runWithSendQueue(userId, () => sendTONTransaction(userId, walletPassword, toAddress, amountNum, memo, idempotencyKey));
 
             console.log('✅✅✅ Transaction SUCCESS!');
 
