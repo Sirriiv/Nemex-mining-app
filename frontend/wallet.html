@@ -3900,10 +3900,9 @@ async function initWallet() {
                 }
             } else if (result.showPasswordPrompt) {
                 // ✅ Wallet exists but no session - show password prompt directly
-                // Don't show welcome screen or wallet interface, go straight to login
                 console.log('🔐 Wallet exists, showing password prompt');
                 showWalletLoginModal();
-            } else if (result.showCreateForm) {
+            } else if (result.showCreateForm || result.hasWallet === false) {
                 console.log('🆕 No wallet found - showing create form');
                 showCreateWalletModal();
             } else {
