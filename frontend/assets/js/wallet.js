@@ -772,7 +772,8 @@ class WalletManager {
 
             // Also get NMX price
             const nmxResponse = await fetch(`${this.apiBaseUrl}/price/nmx`).catch(() => null);
-            let nmxPrice = { price: 0.01, source: 'default' };
+            // Force NMX price to 0.001 for immediate testing/display
+            let nmxPrice = { price: 0.001, source: 'default' };
 
             if (nmxResponse) {
                 try {

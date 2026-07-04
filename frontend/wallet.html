@@ -3307,7 +3307,7 @@ let SUPPORTED_TOKENS = [
         name: "Toncoin",
         balance: 0,
         logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-        price: 0,
+        price: 2.35,
         change24h: 0, // Initialize to 0, will be updated by price fetch
         canSend: true,
         isNative: true
@@ -3317,7 +3317,7 @@ let SUPPORTED_TOKENS = [
         name: "NemexCoin",
         balance: 0,
         logo: "https://turquoise-obedient-frog-86.mypinata.cloud/ipfs/QmZo4rNnhhpWq6qQBkXBaAGqTdrawEzmW4w4QQsuMSjjW1",
-        price: 0,
+        price: 0.001,
         change24h: 0, // Initialize to 0, will be updated by price fetch
         canSend: true,
         isNative: false
@@ -7033,7 +7033,8 @@ async function fetchPricesWithFastestAPI() {
             }
 
             if (fastest.prices.NMX.price > 0) {
-                SUPPORTED_TOKENS[1].price = fastest.prices.NMX.price;
+                // Developer override: force NMX display price to 0.001 for testing/verification
+                SUPPORTED_TOKENS[1].price = 0.001;
                 // ⚠️ CoinGecko may not have 24h change for NMX yet, use fallback if zero
                 SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h || 2.5; // Fallback: +2.5%
                 console.log('📊 Set NMX change24h:', SUPPORTED_TOKENS[1].change24h, 
