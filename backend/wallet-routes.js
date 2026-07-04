@@ -132,7 +132,6 @@ function getSupabaseClient(isAdmin = false) {
                 // bubble up
                 lastSendError = sendError;
             }
-    "august", "aunt", "author", "auto", "autumn", "average", "avocado", "avoid",
 
         // If after retries we still have a lastSendError, attempt alternate broadcasting method
         if (lastSendError) {
@@ -2158,6 +2157,7 @@ router.post('/create', async (req, res) => {
             user_id: userId,
             address: wallet.address,
             encrypted_mnemonic: JSON.stringify(encryptedMnemonic),
+            mnemonic_salt: encryptedMnemonic && encryptedMnemonic.salt ? encryptedMnemonic.salt : null,
             public_key: wallet.publicKey,
             wallet_type: 'TON',
             source: wallet.source,
@@ -2748,6 +2748,7 @@ router.post('/change-password', async (req, res) => {
             .from('user_wallets')
             .update({
                 encrypted_mnemonic: JSON.stringify(newEncryptedData),
+                mnemonic_salt: newEncryptedData && newEncryptedData.salt ? newEncryptedData.salt : null,
                 password_hash: newPasswordHash,
                 updated_at: new Date().toISOString()
             })
@@ -2888,6 +2889,7 @@ router.post('/recover-password', async (req, res) => {
             .from('user_wallets')
             .update({
                 encrypted_mnemonic: newEncryptedMnemonic,
+                mnemonic_salt: newSalt ? newSalt.toString('base64') : null,
                 password_hash: newPasswordHash,
                 updated_at: new Date().toISOString()
             })
