@@ -452,7 +452,7 @@ async function getWalletFromDatabase(userId) {
 
         const { data, error } = await supabase
             .from('user_wallets')
-            .select('id, user_id, address, created_at, source, word_count, password_hash')
+            .select('id, user_id, address, created_at, source, word_count, password_hash, encrypted_mnemonic')
             .eq('user_id', cleanUserId)
             .maybeSingle();
 
