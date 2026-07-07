@@ -2,7 +2,7 @@
 const TOKEN_CONFIGS = {
     TON: {
         symbol: "TON",
-        name: "Toncoin",
+        name: "GRAM",
         coinGeckoId: "the-open-network",
         logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ton/info/logo.png",
         contract: null,

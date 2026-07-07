@@ -2530,7 +2530,7 @@
                                      style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;"
                                      onerror="handleTokenLogoError(this, 'TON')">
                                 <div style="flex: 1;">
-                                    <div id="selectedTokenName" style="font-size: 16px; font-weight: 700; color: var(--text);">Toncoin</div>
+                                    <div id="selectedTokenName" style="font-size: 16px; font-weight: 700; color: var(--text);">GRAM</div>
                                     <div id="selectedTokenSymbol" style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">TON</div>
                                 </div>
                                 <svg id="dropdownArrow" style="width: 20px; height: 20px; color: var(--gold); transition: transform 0.3s ease;" 
@@ -2557,7 +2557,7 @@
                                         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);">
 
                                 <!-- TON Option -->
-                                <div class="token-option" onclick="selectToken('TON', 'Toncoin', 'https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png')"
+                                <div class="token-option" onclick="selectToken('TON', 'GRAM', 'https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png')"
                                      style="padding: 16px; 
                                             cursor: pointer; 
                                             display: flex; 
@@ -2570,7 +2570,7 @@
                                          style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;"
                                          onerror="handleTokenLogoError(this, 'TON')">
                                     <div style="flex: 1;">
-                                        <div style="font-size: 16px; font-weight: 700; color: var(--text);">Toncoin</div>
+                                        <div style="font-size: 16px; font-weight: 700; color: var(--text);">GRAM</div>
                                         <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">TON</div>
                                     </div>
                                     <div style="text-align: right;">
@@ -3304,10 +3304,10 @@ const NMX_JETTON_MASTER = 'EQBRSrXz-7iYDnFZGhrER2XQL-gBgv1hr3Y8byWsVIye7A9f';
 let SUPPORTED_TOKENS = [
     {
         symbol: "TON",
-        name: "Toncoin",
+        name: "GRAM",
         balance: 0,
         logo: "https://assets.coingecko.com/coins/images/17980/large/ton_symbol.png", 
-        price: 2.35,
+        price: 1.62,
         change24h: 0, // Initialize to 0, will be updated by price fetch
         canSend: true,
         isNative: true
@@ -4509,7 +4509,7 @@ function renderTransactionHistory(transactions) {
                 : displayAddress;
 
             const tokenSymbol = tx.token || 'TON';
-            const tokenName = isTON ? 'Toncoin' : (isNMX ? 'NemexCoin' : tokenSymbol);
+            const tokenName = isTON ? 'GRAM' : (isNMX ? 'NemexCoin' : tokenSymbol);
             
             // Determine status
             let statusClass = 'status-pending';
@@ -5409,7 +5409,7 @@ function showAddressDetails() {
 💫 **Type:** Universal TON Address
 
 🎯 **Supported Tokens:**
-• TON (Toncoin)
+• TON (GRAM)
 • NMX (NemexCoin)
 • Any TEP-64 tokens
 • All TON-based assets

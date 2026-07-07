@@ -790,7 +790,7 @@ class WalletManager {
                 success: true,
                 prices: {
                     TON: { 
-                        price: parseFloat(result.price) || 2.35,
+                        price: parseFloat(result.price) || 1.62,
                         change24h: 0,
                         source: result.source || 'default'
                     },
@@ -808,7 +808,7 @@ class WalletManager {
                 success: false,
                 error: error.message,
                 prices: {
-                    TON: { price: 2.35, change24h: 0, source: 'fallback' },
+                    TON: { price: 1.62, change24h: 0, source: 'fallback' },
                     NMX: { price: 0.01, change24h: 0, source: 'fallback' }
                 }
             };
@@ -836,7 +836,7 @@ class WalletManager {
                 success: true,
                 balance: parseFloat(result.balance) || 0,
                 valueUSD: parseFloat(result.valueUSD) || 0,
-                tonPrice: parseFloat(result.tonPrice) || 2.35,
+                tonPrice: parseFloat(result.tonPrice) || 1.62,
                 isActive: result.isActive || false,
                 status: result.status || 'unknown',
                 address: result.address,

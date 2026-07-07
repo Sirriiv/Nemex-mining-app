@@ -1173,9 +1173,9 @@ async function fetchRealTONPrice() {
     }
 
     // Final fallback
-    console.log('✅ Using static fallback price: $2.35');
+    console.log('✅ Using static fallback price: $1.62');
     priceCache.data = {
-        price: 2.35,
+        price: 1.62,
         change24h: 0,
         source: 'fallback',
         timestamp: now,
@@ -1996,7 +1996,7 @@ router.get('/health', async (req, res) => {
             send_enabled: true,
             auto_deploy_enabled: true,
             price_fetching: 'fallback',
-            price: 2.35,
+            price: 1.62,
             ton_console_api: TON_CONSOLE_API_KEY ? 'configured' : 'missing',
             ton_center_api: TONCENTER_API_KEY ? 'configured' : 'missing',
             timestamp: new Date().toISOString()
@@ -2970,7 +2970,7 @@ router.get('/balance/:address', async (req, res) => {
         } catch (priceError) {
             console.log('⚠️ Price fetch failed, using fallback');
             priceData = {
-                price: 2.35,
+                price: 1.62,
                 change24h: 0,
                 source: 'fallback',
                 timestamp: Date.now()
@@ -3009,7 +3009,7 @@ router.get('/balance/:address', async (req, res) => {
             address: req.params.address,
             balance: "0.0000",
             balanceUSD: "0.00",
-            tonPrice: "2.35",
+            tonPrice: "1.62",
             priceChange24h: "0.00",
             priceSource: 'fallback',
             balanceSource: 'error',
@@ -4388,7 +4388,7 @@ router.get('/price/ton', async (req, res) => {
         return res.json({
             success: true,
             symbol: 'TON',
-            price: "2.35",
+            price: "1.62",
             change24h: "0.00",
             change24hPercent: "0.00%",
             source: 'fallback',
