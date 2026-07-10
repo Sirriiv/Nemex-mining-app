@@ -486,6 +486,20 @@ router.get('/health', async (req, res) => {
     try {
         const supabase = req.supabase;
 
+        // Treasury signer check (safe — no keys exposed)
+        let treasurySignerInfo = null;
+        try {
+            const settlement = require('./settlement-engine');
+            const signer = await settlement.getTreasurySigner();
+            treasurySignerInfo = {
+                derived: signer.walletContract.address.toString({ urlSafe: true, bounceable: false }),
+                expected: settlement.TREASURY_TON_WALLET,
+                match: signer.walletContract.address.toString({ urlSafe: true, bounceable: false }) === settlement.TREASURY_TON_WALLET
+            };
+        } catch (e) {
+            treasurySignerInfo = { error: e.message };
+        }
+
         const [wallets, lastSync] = await Promise.all([
             supabase.from('treasury_wallets').select('*'),
             supabase.from('treasury_sync_logs')
@@ -506,7 +520,8 @@ router.get('/health', async (req, res) => {
             walletConnectionStatus,
             lastSuccessfulSync: lastSync.data?.find(l => l.status === 'success')?.synced_at || null,
             syncLogs: lastSync.data || [],
-            overallHealth: walletConnectionStatus.every(w => w.status === 'active') ? 'healthy' : 'degraded'
+            overallHealth: walletConnectionStatus.every(w => w.status === 'active') ? 'healthy' : 'degraded',
+            treasurySigner: treasurySignerInfo
         });
     } catch (error) {
         console.error('Health error:', error);
