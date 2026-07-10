@@ -9,7 +9,7 @@ const TON_API_URL = process.env.TON_API_URL || 'https://tonapi.io/v2';
 const TONCENTER_API_KEY = process.env.TONCENTER_API_KEY || '';
 const TON_CONSOLE_API_KEY = process.env.TON_CONSOLE_API_KEY || '';
 
-const TREASURY_TON_WALLET = 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
+const TREASURY_TON_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
 const NMX_JETTON_MASTER = '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec';
 
 const DEFAULT_SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes

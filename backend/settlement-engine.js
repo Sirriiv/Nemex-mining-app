@@ -10,7 +10,7 @@ const { mnemonicToPrivateKey } = require('@ton/crypto');
 const { WalletContractV4, TonClient, Address, internal, toNano, fromNano, beginCell } = require('@ton/ton');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
-const TREASURY_TON_WALLET = 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
+const TREASURY_TON_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
 const NMX_JETTON_MASTER = '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec';
 
 // RPC endpoints in priority order
