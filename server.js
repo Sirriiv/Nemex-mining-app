@@ -4,10 +4,35 @@ const cors = require('cors');
 const compression = require('compression');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// =============================================
+// 🔌 HTTP KEEPALIVE AGENTS - critical for egress
+// =============================================
+const keepAliveAgent = new http.Agent({
+    keepAlive: true,
+    keepAliveMsecs: 30000,
+    maxSockets: 50,
+    maxFreeSockets: 10,
+    timeout: 60000,
+    scheduling: 'fifo'
+});
+const keepAliveAgentHttps = new https.Agent({
+    keepAlive: true,
+    keepAliveMsecs: 30000,
+    maxSockets: 50,
+    maxFreeSockets: 10,
+    timeout: 60000,
+    scheduling: 'fifo'
+});
+
+global.httpKeepAliveAgent = keepAliveAgent;
+global.httpsKeepAliveAgent = keepAliveAgentHttps;
 
 // =============================================
 // 🎯 SIMPLIFIED CORS SETUP - ONE LAYER ONLY
@@ -44,27 +69,18 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Serve static files with optimized caching
 app.use(express.static(path.join(__dirname, 'frontend'), {
     setHeaders: (res, filePath) => {
-        // ⚡ OPTIMIZED CACHING STRATEGY
         if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
-            // JS/CSS: Cache for 1 hour (3600s)
-            res.set('Cache-Control', 'public, max-age=3600');
+            res.set('Cache-Control', 'public, max-age=86400, immutable'); // 24h
         } else if (filePath.match(/\.(jpg|jpeg|png|gif|svg|webp|ico)$/)) {
-            // Images: Cache for 7 days (604800s)
-            res.set('Cache-Control', 'public, max-age=604800');
+            res.set('Cache-Control', 'public, max-age=2592000, immutable'); // 30 days
         } else if (filePath.endsWith('.html')) {
-            // HTML: Cache for 5 minutes (300s), must revalidate
-            res.set('Cache-Control', 'public, max-age=300, must-revalidate');
+            res.set('Cache-Control', 'public, max-age=60, must-revalidate'); // 1 min
         } else {
-            // Other files: Cache for 1 hour
-            res.set('Cache-Control', 'public, max-age=3600');
+            res.set('Cache-Control', 'public, max-age=86400');
         }
-        
-        // Add ETag for efficient caching
         res.set('ETag', 'true');
     },
-    // Enable ETag generation
     etag: true,
-    // Disable Last-Modified header (ETag is better)
     lastModified: true
 }));
 
@@ -245,6 +261,129 @@ if (fs.existsSync(tradeRoutesPath)) {
 }
 
 // =============================================
+// 🎯 LOAD AND MOUNT TREASURY ROUTES
+// =============================================
+console.log('\n🔄 LOADING TREASURY ROUTES...');
+
+const treasuryRoutesPath = path.join(__dirname, 'backend', 'treasury-routes.js');
+
+if (fs.existsSync(treasuryRoutesPath)) {
+    try {
+        console.log(`✅ Found treasury routes at: ${treasuryRoutesPath}`);
+
+        // Initialize Supabase client for treasury routes
+        const { createClient } = require('@supabase/supabase-js');
+        const treasurySupabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const treasurySupabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const treasurySupabase = createClient(treasurySupabaseUrl, treasurySupabaseKey);
+
+        // Middleware to inject supabase into treasury requests
+        app.use('/api/treasury', (req, res, next) => {
+            req.supabase = treasurySupabase;
+            next();
+        });
+
+        const treasuryRoutes = require(treasuryRoutesPath);
+        app.use('/api/treasury', treasuryRoutes);
+        console.log('✅ Treasury routes mounted at /api/treasury');
+
+        // Start Treasury auto-sync on boot
+        const treasurySync = require('./backend/treasury-sync');
+        treasurySync.startAutoSync(treasurySupabase);
+        console.log('🔄 Treasury auto-sync started');
+
+        console.log('\n📋 AVAILABLE TREASURY ENDPOINTS:');
+        console.log('   GET    /api/treasury/overview         - Treasury overview & reserves');
+        console.log('   GET    /api/treasury/reference-value  - Treasury Reference Value');
+        console.log('   GET    /api/treasury/wallets          - List treasury wallets');
+        console.log('   PUT    /api/treasury/wallets/:id      - Update wallet details');
+        console.log('   GET    /api/treasury/transactions     - List treasury transactions');
+        console.log('   POST   /api/treasury/transactions     - Create treasury transaction');
+        console.log('   PATCH  /api/treasury/transactions/:id - Update transaction status');
+        console.log('   GET    /api/treasury/config           - Get treasury settings');
+        console.log('   PUT    /api/treasury/config           - Update treasury settings');
+        console.log('   GET    /api/treasury/audit-logs       - View audit logs');
+        console.log('   GET    /api/treasury/sync-logs        - View sync history');
+        console.log('   POST   /api/treasury/sync             - Trigger wallet sync');
+        console.log('   GET    /api/treasury/health           - Treasury health status');
+    } catch (error) {
+        console.error('❌ FAILED to load treasury routes:', error.message);
+    }
+} else {
+    console.log('⚠️ Treasury routes file not found (optional)');
+}
+
+// =============================================
+// 🎯 LOAD AND MOUNT FINANCE ROUTES (Financial Engine)
+// =============================================
+console.log('\n🔄 LOADING FINANCE ROUTES...');
+
+const financeRoutesPath = path.join(__dirname, 'backend', 'finance-routes.js');
+
+if (fs.existsSync(financeRoutesPath)) {
+    try {
+        console.log(`✅ Found finance routes at: ${financeRoutesPath}`);
+
+        const { createClient } = require('@supabase/supabase-js');
+        const financeSupabaseUrl = process.env.SUPABASE_URL || 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const financeSupabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const financeSupabase = createClient(financeSupabaseUrl, financeSupabaseKey);
+
+        app.use('/api/finance', (req, res, next) => {
+            req.supabase = financeSupabase;
+            next();
+        });
+
+        const financeRoutes = require(financeRoutesPath);
+        app.use('/api/finance', financeRoutes);
+        console.log('✅ Finance routes mounted at /api/finance');
+
+        console.log('\n📋 AVAILABLE FINANCE ENDPOINTS:');
+        console.log('   GET    /api/finance/config            - Financial engine config');
+        console.log('   GET    /api/finance/quote/buy         - Get buy quote (NMX with TON)');
+        console.log('   GET    /api/finance/quote/sell        - Get sell quote (NMX for TON)');
+        console.log('   POST   /api/finance/trade/validate    - Validate a quote');
+        console.log('   POST   /api/finance/trade/create      - Create and process a trade');
+        console.log('   GET    /api/finance/trade/:id/status  - Get trade status');
+        console.log('   GET    /api/finance/trade/history     - Get trade history');
+        console.log('   GET    /api/finance/ledger            - Get financial ledger');
+    } catch (error) {
+        console.error('❌ FAILED to load finance routes:', error.message);
+    }
+} else {
+    console.log('⚠️ Finance routes file not found (optional)');
+}
+
+// =============================================
+// 🔄 CRON KEEPALIVE ENDPOINT - Prevent Render free-tier sleep
+// =============================================
+// Render's free tier sleeps after 15 min of inactivity.
+// External cron services (cron-job.org, uptimerobot) should ping this endpoint
+// every 5-10 minutes to keep the server alive.
+app.get('/api/cron/keepalive', async (req, res) => {
+    // Lightweight health check - verifies DB connection pool
+    let dbAlive = false;
+    if (global.walletSupabaseConnected) {
+        dbAlive = true;
+    }
+    res.json({
+        status: 'alive',
+        db: dbAlive ? 'connected' : 'disconnected',
+        uptime: process.uptime(),
+        timestamp: Date.now()
+    });
+});
+
+app.get('/api/cron/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        memory: process.memoryUsage().heapUsed,
+        timestamp: Date.now()
+    });
+});
+
+// =============================================
 // 🎯 TEST ENDPOINTS
 // =============================================
 app.get('/api/test', (req, res) => {
@@ -341,6 +480,10 @@ app.get('/dashboard', (req, res) => {
 
 app.get('/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'frontend', 'login.html'));
+});
+
+app.get('/trade', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend', 'trade.html'));
 });
 
 // =============================================

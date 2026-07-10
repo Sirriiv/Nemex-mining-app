@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade NMX — Nemex</title>
+    <link rel="icon" type="image/x-icon" href="assets/nemex-icon.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --dark-bg: #000000;
+            --dark-surface: #0d0d0d;
+            --dark-card: rgba(20, 20, 20, 0.8);
+            --gold: #d4af37;
+            --gold-light: #f4d03f;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255,255,255,0.6);
+            --text-muted: rgba(255,255,255,0.4);
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --info: #3498db;
+            --border: rgba(212, 175, 55, 0.2);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .page-wrapper {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 20px 40px;
+        }
+
+        /* Header */
+        .trade-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--dark-bg);
+            border-bottom: 1px solid var(--border);
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .back-btn {
+            background: rgba(212,175,55,0.1);
+            border: 1px solid var(--border);
+            color: var(--gold);
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 18px;
+            text-decoration: none;
+        }
+        .header-title {
+            color: var(--gold);
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .header-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .treasury-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(46,204,113,0.1);
+            border: 1px solid rgba(46,204,113,0.3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 11px;
+            color: var(--success);
+            font-weight: 600;
+        }
+        .treasury-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        /* Buy/Sell Tabs */
+        .trade-tabs {
+            display: flex;
+            gap: 8px;
+            margin: 20px 0;
+            background: var(--dark-card);
+            border-radius: 12px;
+            padding: 4px;
+            border: 1px solid var(--border);
+        }
+        .trade-tab {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .trade-tab.active-buy {
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            color: #000;
+            font-weight: 700;
+        }
+        .trade-tab.active-sell {
+            background: linear-gradient(135deg, var(--danger), #c0392b);
+            color: #fff;
+            font-weight: 700;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        /* Quote Info Row */
+        .quote-info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .quote-info-item {
+            background: rgba(212,175,55,0.05);
+            border: 1px solid rgba(212,175,55,0.15);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .quote-info-label {
+            color: var(--text-muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .quote-info-value {
+            color: var(--gold);
+            font-size: 16px;
+            font-weight: 700;
+        }
+        .quote-info-value.mono {
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        /* Input */
+        .input-group {
+            margin-bottom: 16px;
+        }
+        .input-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .input-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .input-available {
+            color: var(--text-muted);
+            font-size: 11px;
+        }
+        .input-available span {
+            color: var(--gold);
+            font-weight: 600;
+        }
+        .input-wrapper {
+            position: relative;
+        }
+        .input-wrapper input {
+            width: 100%;
+            padding: 16px;
+            padding-right: 80px;
+            background: rgba(20,20,20,0.8);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 18px;
+            font-weight: 600;
+            transition: border-color 0.3s;
+        }
+        .input-wrapper input:focus {
+            outline: none;
+            border-color: rgba(212,175,55,0.6);
+        }
+        .input-suffix {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gold);
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .input-hints {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            padding: 0 4px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        /* Quote Display */
+        .quote-display {
+            background: rgba(212,175,55,0.08);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .quote-display.visible { display: block; }
+        .quote-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+        }
+        .quote-row .label { color: var(--text-secondary); }
+        .quote-row .value { color: #fff; font-weight: 600; }
+        .quote-receive {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            text-align: center;
+            padding: 12px 0 8px;
+            border-top: 1px solid var(--border);
+            margin-top: 8px;
+        }
+        .quote-expiry {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .quote-expiry .countdown { color: var(--warning); font-weight: 600; }
+        .quote-expiry.expired .countdown { color: var(--danger); }
+
+        /* Buttons */
+        .btn-primary {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light));
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(212,175,55,0.3);
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(212,175,55,0.4);
+        }
+        .btn-primary:disabled {
+            background: rgba(100,100,100,0.5);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .btn-secondary {
+            padding: 10px 20px;
+            background: rgba(212,175,55,0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--gold);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: rgba(212,175,55,0.2); }
+        .btn-danger {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--danger), #c0392b);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+        }
+        .btn-danger:hover:not(:disabled) { transform: translateY(-2px); }
+        .btn-danger:disabled {
+            background: rgba(100,100,100,0.5);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        /* Fee indication */
+        .fee-badge {
+            display: inline-block;
+            background: rgba(243,156,18,0.15);
+            border: 1px solid rgba(243,156,18,0.3);
+            color: var(--warning);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Action row (Get Quote / Review) */
+        .action-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* History */
+        .history-item {
+            background: rgba(212,175,55,0.05);
+            border: 1px solid rgba(212,175,55,0.15);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-dir {
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .history-dir.buy { color: var(--success); }
+        .history-dir.sell { color: var(--danger); }
+        .history-amount {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .history-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            align-items: center; justify-content: center;
+            flex-direction: column;
+        }
+        .loading-overlay.visible { display: flex; }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            margin-top: 16px;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            animation: toastIn 0.3s ease;
+            min-width: 280px;
+            text-align: center;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toast-success { background: rgba(46,204,113,0.2); border: 1px solid var(--success); color: var(--success); }
+        .toast-error { background: rgba(231,76,60,0.2); border: 1px solid var(--danger); color: var(--danger); }
+        .toast-warning { background: rgba(243,156,18,0.2); border: 1px solid var(--warning); color: var(--warning); }
+
+        /* Section divider */
+        .section-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 24px 0;
+        }
+        .section-title {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loadingText">Loading...</div>
+    </div>
+
+    <!-- Header -->
+    <div class="trade-header">
+        <div class="header-left">
+            <a href="wallet.html" class="back-btn">←</a>
+            <div>
+                <div class="header-title">NMX / TON</div>
+                <div class="header-subtitle">Spot Trading</div>
+            </div>
+        </div>
+        <div class="treasury-badge" id="treasuryBadge">
+            <div class="treasury-dot"></div>
+            <span id="treasuryHealthText">Synced</span>
+        </div>
+    </div>
+
+    <div class="page-wrapper">
+
+        <!-- Treasury Reference Value -->
+        <div class="card" style="text-align:center;">
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Treasury Reference Value</div>
+            <div style="font-size:24px;font-weight:700;color:var(--gold);font-family:monospace;" id="refValueDisplay">—</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">TON ÷ NMX</div>
+        </div>
+
+        <!-- Quote Info Row -->
+        <div class="quote-info-row">
+            <div class="quote-info-item">
+                <div class="quote-info-label" id="feeLabel">Buy Fee</div>
+                <div class="quote-info-value" id="feeValue">—%</div>
+            </div>
+            <div class="quote-info-item">
+                <div class="quote-info-label">Quote Expires</div>
+                <div class="quote-info-value mono" id="expiryValue">—s</div>
+            </div>
+        </div>
+
+        <!-- Buy/Sell Tabs -->
+        <div class="trade-tabs">
+            <button class="trade-tab active-buy" id="buyTabBtn" onclick="switchTab('buy')">Buy NMX</button>
+            <button class="trade-tab" id="sellTabBtn" onclick="switchTab('sell')">Sell NMX</button>
+        </div>
+
+        <!-- BUY VIEW -->
+        <div id="buyView">
+            <div class="input-group">
+                <div class="input-label-row">
+                    <span class="input-label">You spend</span>
+                    <span class="input-available">Available: <span id="tonAvailable">0</span> TON</span>
+                </div>
+                <div class="input-wrapper">
+                    <input type="number" id="buyTonAmount" placeholder="0" min="0" step="0.01" oninput="onBuyAmountChange()">
+                    <div class="input-suffix">TON</div>
+                </div>
+                <div class="input-hints" id="buyHints"></div>
+            </div>
+
+            <button class="btn-primary" id="buyQuoteBtn" onclick="requestBuyQuote()" disabled>GET QUOTE</button>
+
+            <div class="quote-display" id="buyQuoteDisplay">
+                <div class="quote-row">
+                    <span class="label">You spend</span>
+                    <span class="value" id="bqSpend">—</span>
+                </div>
+                <div class="quote-row">
+                    <span class="label">Rate <span style="font-size:10px;color:var(--text-muted);">(NMX per TON)</span></span>
+                    <span class="value" id="bqRate">—</span>
+                </div>
+                <div class="quote-row">
+                    <span class="label">Fee <span class="fee-badge" id="bqFeePercent">—</span></span>
+                    <span class="value" id="bqFee">—</span>
+                </div>
+                <div class="quote-receive" id="bqReceive">—</div>
+                <div class="quote-expiry" id="bqExpiry">
+                    Quote expires in <span class="countdown" id="bqCountdown">—</span>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:12px;">
+                    <button class="btn-secondary" style="flex:1;" onclick="confirmBuyTrade()" id="buyConfirmBtn">REVIEW & CONFIRM</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SELL VIEW -->
+        <div id="sellView" style="display:none;">
+            <div class="input-group">
+                <div class="input-label-row">
+                    <span class="input-label">You sell</span>
+                    <span class="input-available">Available: <span id="nmxAvailable">0</span> NMX</span>
+                </div>
+                <div class="input-wrapper">
+                    <input type="number" id="sellNmxAmount" placeholder="0" min="0" step="1" oninput="onSellAmountChange()">
+                    <div class="input-suffix">NMX</div>
+                </div>
+                <div class="input-hints" id="sellHints"></div>
+            </div>
+
+            <button class="btn-danger" id="sellQuoteBtn" onclick="requestSellQuote()" disabled>GET QUOTE</button>
+
+            <div class="quote-display" id="sellQuoteDisplay">
+                <div class="quote-row">
+                    <span class="label">You sell</span>
+                    <span class="value" id="sqSell">—</span>
+                </div>
+                <div class="quote-row">
+                    <span class="label">Rate <span style="font-size:10px;color:var(--text-muted);">(TON per NMX)</span></span>
+                    <span class="value" id="sqRate">—</span>
+                </div>
+                <div class="quote-row">
+                    <span class="label">Fee <span class="fee-badge" id="sqFeePercent">—</span></span>
+                    <span class="value" id="sqFee">—</span>
+                </div>
+                <div class="quote-receive" id="sqReceive">—</div>
+                <div class="quote-expiry" id="sqExpiry">
+                    Quote expires in <span class="countdown" id="sqCountdown">—</span>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:12px;">
+                    <button class="btn-secondary" style="flex:1;" onclick="confirmSellTrade()" id="sellConfirmBtn">REVIEW & CONFIRM</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trade History -->
+        <div class="section-divider"></div>
+        <div class="section-title">Trade History</div>
+        <div id="tradeHistoryContainer">
+            <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No trades yet</div>
+        </div>
+
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        let state = {
+            userId: null,
+            accessToken: null,
+            activeTab: 'buy',
+            financeConfig: null,
+            quoteExpirySeconds: 60,
+            buyFeePercent: 3,
+            sellFeePercent: 3,
+            minTrade: 1,
+            maxTrade: 100000,
+            referenceValue: null,
+            tonBalance: 0,
+            nmxBalance: 0,
+            buyQuote: null,
+            sellQuote: null,
+            buyCountdownInterval: null,
+            sellCountdownInterval: null
+        };
+
+        // ─── Toast ──────────────────────────────────────────────
+
+        function showToast(msg, type) {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast toast-' + (type || 'success');
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => { t.remove(); }, 4000);
+        }
+
+        function showLoading(msg) {
+            document.getElementById('loadingText').textContent = msg || 'Loading...';
+            document.getElementById('loadingOverlay').classList.add('visible');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.remove('visible');
+        }
+
+        // ─── Init ───────────────────────────────────────────────
+
+        async function init() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+            state.userId = session.user.id;
+            state.accessToken = session.access_token;
+
+            await Promise.all([
+                loadFinanceConfig(),
+                loadUserBalances(),
+                loadTradeHistory()
+            ]);
+        }
+
+        async function loadFinanceConfig() {
+            try {
+                const resp = await fetch('/api/finance/config', {
+                    headers: { 'Authorization': `Bearer ${state.accessToken}` }
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    state.financeConfig = data.config;
+                    state.quoteExpirySeconds = data.config.quoteExpirationSeconds || 60;
+                    state.buyFeePercent = data.config.buyFeePercent || 3;
+                    state.sellFeePercent = data.config.sellFeePercent || 3;
+                    state.minTrade = data.config.minTradeAmount || 1;
+                    state.maxTrade = data.config.maxTradeAmount || 100000;
+                    state.referenceValue = data.config.treasuryReferenceValue || null;
+
+                    document.getElementById('refValueDisplay').textContent =
+                        (state.referenceValue || 0).toFixed(8);
+                    document.getElementById('feeLabel').textContent = 'Buy Fee';
+                    document.getElementById('feeValue').textContent = state.buyFeePercent + '%';
+                    document.getElementById('expiryValue').textContent = state.quoteExpirySeconds + 's';
+
+                    const health = data.config.tradingEnabled ? 'Synced' : 'Offline';
+                    document.getElementById('treasuryHealthText').textContent = health;
+                    const badge = document.getElementById('treasuryBadge');
+                    if (!data.config.tradingEnabled) {
+                        badge.style.borderColor = 'rgba(231,76,60,0.3)';
+                        badge.querySelector('.treasury-dot').style.background = 'var(--danger)';
+                        badge.style.color = 'var(--danger)';
+                    }
+                }
+            } catch (err) {
+                console.error('Config load error:', err);
+            }
+        }
+
+        async function loadUserBalances() {
+            // Load TON balance from user's Nemex wallet
+            try {
+                const checkResp = await fetch('/api/wallet/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.accessToken}`
+                    },
+                    body: JSON.stringify({ userId: state.userId })
+                });
+                const checkData = await checkResp.json();
+
+                let walletAddress = checkData.address || checkData.walletAddress;
+                if (!walletAddress && checkData.wallet && checkData.wallet.address) {
+                    walletAddress = checkData.wallet.address;
+                }
+
+                if (walletAddress) {
+                    const balResp = await fetch(`/api/wallet/balance/${walletAddress}`, {
+                        headers: { 'Authorization': `Bearer ${state.accessToken}` }
+                    });
+                    const balData = await balResp.json();
+                    state.tonBalance = parseFloat(balData.balance) || 0;
+                }
+            } catch (err) {
+                console.error('TON balance load error:', err);
+            }
+
+            document.getElementById('tonAvailable').textContent =
+                state.tonBalance.toFixed(4);
+
+            // Load locked NMX balance for Sell tab
+            try {
+                const tradeResp = await fetch(`/api/trade/stats?user_id=${state.userId}`, {
+                    headers: { 'Authorization': `Bearer ${state.accessToken}` }
+                });
+                const tradeData = await tradeResp.json();
+                if (tradeData.success && tradeData.stats) {
+                    state.nmxBalance = parseFloat(tradeData.stats.lockedNmxBalance) || 0;
+                    document.getElementById('nmxAvailable').textContent =
+                        new Intl.NumberFormat().format(state.nmxBalance);
+                }
+            } catch (err) {
+                console.error('NMX balance load error:', err);
+            }
+        }
+
+        // ─── Tab Switching ──────────────────────────────────────
+
+        function switchTab(tab) {
+            state.activeTab = tab;
+            const buyTab = document.getElementById('buyTabBtn');
+            const sellTab = document.getElementById('sellTabBtn');
+
+            if (tab === 'buy') {
+                buyTab.className = 'trade-tab active-buy';
+                sellTab.className = 'trade-tab';
+                document.getElementById('buyView').style.display = 'block';
+                document.getElementById('sellView').style.display = 'none';
+                document.getElementById('feeLabel').textContent = 'Buy Fee';
+                document.getElementById('feeValue').textContent = state.buyFeePercent + '%';
+                document.getElementById('expiryValue').textContent = state.quoteExpirySeconds + 's';
+            } else {
+                sellTab.className = 'trade-tab active-sell';
+                buyTab.className = 'trade-tab';
+                document.getElementById('sellView').style.display = 'block';
+                document.getElementById('buyView').style.display = 'none';
+                document.getElementById('feeLabel').textContent = 'Sell Fee';
+                document.getElementById('feeValue').textContent = state.sellFeePercent + '%';
+                document.getElementById('expiryValue').textContent = state.quoteExpirySeconds + 's';
+            }
+        }
+
+        // ─── Amount input handlers ──────────────────────────────
+
+        function onBuyAmountChange() {
+            const val = parseFloat(document.getElementById('buyTonAmount').value) || 0;
+            const btn = document.getElementById('buyQuoteBtn');
+            const hints = document.getElementById('buyHints');
+
+            if (val > 0 && state.tonBalance > 0 && val > state.tonBalance) {
+                hints.innerHTML = '<span style="color:var(--danger);">⚠ Insufficient TON balance</span>';
+                btn.disabled = true;
+            } else if (val > 0 && val < state.minTrade) {
+                hints.innerHTML = `<span style="color:var(--warning);">Min trade: ${state.minTrade} TON</span>`;
+                btn.disabled = true;
+            } else if (val > state.maxTrade) {
+                hints.innerHTML = `<span style="color:var(--warning);">Max trade: ${state.maxTrade} TON</span>`;
+                btn.disabled = true;
+            } else if (val > 0) {
+                hints.innerHTML = '';
+                btn.disabled = false;
+            } else {
+                hints.innerHTML = '';
+                btn.disabled = true;
+            }
+        }
+
+        function onSellAmountChange() {
+            const val = parseFloat(document.getElementById('sellNmxAmount').value) || 0;
+            const btn = document.getElementById('sellQuoteBtn');
+            const hints = document.getElementById('sellHints');
+
+            if (val > 0 && state.nmxBalance > 0 && val > state.nmxBalance) {
+                hints.innerHTML = '<span style="color:var(--danger);">⚠ Insufficient NMX balance</span>';
+                btn.disabled = true;
+            } else if (val > 0) {
+                hints.innerHTML = '';
+                btn.disabled = false;
+            } else {
+                hints.innerHTML = '';
+                btn.disabled = true;
+            }
+        }
+
+        // ─── Quote Requests ─────────────────────────────────────
+
+        async function requestBuyQuote() {
+            const amount = parseFloat(document.getElementById('buyTonAmount').value);
+            if (!amount || amount <= 0) return;
+
+            showLoading('Requesting buy quote...');
+
+            try {
+                const resp = await fetch(
+                    `/api/finance/quote/buy?user_id=${state.userId}&amount=${amount}`,
+                    { headers: { 'Authorization': `Bearer ${state.accessToken}` } }
+                );
+                const data = await resp.json();
+
+                if (!data.success) {
+                    showToast(data.error || 'Failed to get quote', 'error');
+                    hideLoading();
+                    return;
+                }
+
+                state.buyQuote = data.quote;
+                displayBuyQuote(data.quote);
+                showToast('Quote received', 'success');
+            } catch (err) {
+                showToast('Quote request failed: ' + err.message, 'error');
+            }
+
+            hideLoading();
+        }
+
+        function displayBuyQuote(quote) {
+            const display = document.getElementById('buyQuoteDisplay');
+            display.classList.add('visible');
+
+            document.getElementById('bqSpend').textContent =
+                parseFloat(quote.amountRequested).toFixed(4) + ' TON';
+            document.getElementById('bqRate').textContent =
+                parseFloat(quote.rate).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' NMX/TON';
+            document.getElementById('bqFeePercent').textContent = quote.feePercent + '%';
+            document.getElementById('bqFee').textContent =
+                parseFloat(quote.feeAmount).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' NMX';
+            document.getElementById('bqReceive').textContent =
+                parseFloat(quote.amountReceivable).toLocaleString(undefined, { maximumFractionDigits: 2 }) + ' NMX';
+
+            // Countdown
+            const expiresAt = new Date(quote.expiresAt).getTime();
+            startBuyCountdown(expiresAt);
+        }
+
+        function startBuyCountdown(expiresAt) {
+            clearInterval(state.buyCountdownInterval);
+            const el = document.getElementById('bqCountdown');
+            const expiryEl = document.getElementById('bqExpiry');
+
+            function tick() {
+                const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+                el.textContent = remaining + 's';
+                if (remaining <= 0) {
+                    clearInterval(state.buyCountdownInterval);
+                    expiryEl.classList.add('expired');
+                    el.textContent = 'Expired';
+                    document.getElementById('buyConfirmBtn').disabled = true;
+                    state.buyQuote = null;
+                }
+            }
+            tick();
+            state.buyCountdownInterval = setInterval(tick, 1000);
+        }
+
+        async function requestSellQuote() {
+            const amount = parseFloat(document.getElementById('sellNmxAmount').value);
+            if (!amount || amount <= 0) return;
+
+            showLoading('Requesting sell quote...');
+
+            try {
+                const resp = await fetch(
+                    `/api/finance/quote/sell?user_id=${state.userId}&amount=${amount}`,
+                    { headers: { 'Authorization': `Bearer ${state.accessToken}` } }
+                );
+                const data = await resp.json();
+
+                if (!data.success) {
+                    showToast(data.error || 'Failed to get quote', 'error');
+                    hideLoading();
+                    return;
+                }
+
+                state.sellQuote = data.quote;
+                displaySellQuote(data.quote);
+                showToast('Quote received', 'success');
+            } catch (err) {
+                showToast('Quote request failed: ' + err.message, 'error');
+            }
+
+            hideLoading();
+        }
+
+        function displaySellQuote(quote) {
+            const display = document.getElementById('sellQuoteDisplay');
+            display.classList.add('visible');
+
+            document.getElementById('sqSell').textContent =
+                parseFloat(quote.amountRequested).toLocaleString() + ' NMX';
+            document.getElementById('sqRate').textContent =
+                parseFloat(quote.rate).toFixed(8) + ' TON/NMX';
+            document.getElementById('sqFeePercent').textContent = quote.feePercent + '%';
+            document.getElementById('sqFee').textContent =
+                parseFloat(quote.feeAmount).toFixed(6) + ' TON';
+            document.getElementById('sqReceive').textContent =
+                parseFloat(quote.amountReceivable).toFixed(6) + ' TON';
+
+            const expiresAt = new Date(quote.expiresAt).getTime();
+            startSellCountdown(expiresAt);
+        }
+
+        function startSellCountdown(expiresAt) {
+            clearInterval(state.sellCountdownInterval);
+            const el = document.getElementById('sqCountdown');
+            const expiryEl = document.getElementById('sqExpiry');
+
+            function tick() {
+                const remaining = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+                el.textContent = remaining + 's';
+                if (remaining <= 0) {
+                    clearInterval(state.sellCountdownInterval);
+                    expiryEl.classList.add('expired');
+                    el.textContent = 'Expired';
+                    document.getElementById('sellConfirmBtn').disabled = true;
+                    state.sellQuote = null;
+                }
+            }
+            tick();
+            state.sellCountdownInterval = setInterval(tick, 1000);
+        }
+
+        // ─── Trade Confirmation ─────────────────────────────────
+
+        async function confirmBuyTrade() {
+            if (!state.buyQuote) {
+                showToast('No active quote. Get a quote first.', 'warning');
+                return;
+            }
+
+            const walletPassword = await promptPassword();
+            if (!walletPassword) return;
+
+            const quote = state.buyQuote;
+            showLoading('Validating and settling trade...');
+
+            try {
+                // Step 1: Validate & Create trade
+                const validateResp = await fetch('/api/finance/trade/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.accessToken}`
+                    },
+                    body: JSON.stringify({ quote_id: quote.id, user_id: state.userId })
+                });
+                const validateData = await validateResp.json();
+                if (!validateData.success) {
+                    showToast('Trade invalid: ' + (validateData.error || 'validation failed'), 'error');
+                    clearQuoteState('buy');
+                    hideLoading();
+                    return;
+                }
+
+                const createResp = await fetch('/api/finance/trade/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.accessToken}`
+                    },
+                    body: JSON.stringify({ quote_id: quote.id, user_id: state.userId })
+                });
+                const createData = await createResp.json();
+                if (!createData.success) {
+                    showToast('Trade creation failed: ' + (createData.error || 'unknown'), 'error');
+                    clearQuoteState('buy');
+                    hideLoading();
+                    return;
+                }
+
+                const tradeId = createData.trade.id;
+
+                // Step 2: Settle (blockchain)
+                showLoading('Settling on blockchain...');
+                const settleResp = await fetch('/api/finance/trade/settle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.accessToken}`
+                    },
+                    body: JSON.stringify({
+                        trade_id: tradeId,
+                        user_id: state.userId,
+                        wallet_password: walletPassword
+                    })
+                });
+                const settleData = await settleResp.json();
+
+                if (!settleData.success) {
+                    showToast('Settlement failed: ' + (settleData.error || 'unknown error'), 'error');
+                    hideLoading();
+                    return;
+                }
+
+                showToast('Trade settled! ' +
+                    quote.amountRequested + ' TON → ' +
+                    quote.amountReceivable + ' NMX', 'success');
+
+                clearQuoteState('buy');
+                await loadTradeHistory();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+
+            hideLoading();
+        }
+
+        async function confirmSellTrade() {
+            if (!state.sellQuote) {
+                showToast('No active quote. Get a quote first.', 'warning');
+                return;
+            }
+
+            const walletPassword = await promptPassword();
+            if (!walletPassword) return;
+
+            const quote = state.sellQuote;
+            showLoading('Validating and settling trade...');
+
+            try {
+                const validateResp = await fetch('/api/finance/trade/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.accessToken}`
+                    },
+                    body: JSON.stringify({ quote_id: quote.id, user_id: state.userId })
+                });
+                const validateData = await validateResp.json();
+                if (!validateData.success) {
+                    showToast('Trade invalid: ' + (validateData.error || 'validation failed'), 'error');
+                    clearQuoteState('sell');
+                    hideLoading();
+                    return;
+                }
+
+                const createResp = await fetch('/api/finance/trade/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.accessToken}`
+                    },
+                    body: JSON.stringify({ quote_id: quote.id, user_id: state.userId })
+                });
+                const createData = await createResp.json();
+                if (!createData.success) {
+                    showToast('Trade creation failed: ' + (createData.error || 'unknown'), 'error');
+                    clearQuoteState('sell');
+                    hideLoading();
+                    return;
+                }
+
+                const tradeId = createData.trade.id;
+
+                showLoading('Settling on blockchain...');
+                const settleResp = await fetch('/api/finance/trade/settle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.accessToken}`
+                    },
+                    body: JSON.stringify({
+                        trade_id: tradeId,
+                        user_id: state.userId,
+                        wallet_password: walletPassword
+                    })
+                });
+                const settleData = await settleResp.json();
+
+                if (!settleData.success) {
+                    showToast('Settlement failed: ' + (settleData.error || 'unknown error'), 'error');
+                    hideLoading();
+                    return;
+                }
+
+                showToast('Trade settled! ' +
+                    quote.amountRequested + ' NMX → ' +
+                    quote.amountReceivable + ' TON', 'success');
+
+                clearQuoteState('sell');
+                await loadTradeHistory();
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+            }
+
+            hideLoading();
+        }
+
+        function clearQuoteState(tab) {
+            if (tab === 'buy') {
+                state.buyQuote = null;
+                document.getElementById('buyQuoteDisplay').classList.remove('visible');
+                document.getElementById('buyTonAmount').value = '';
+                document.getElementById('buyQuoteBtn').disabled = true;
+                clearInterval(state.buyCountdownInterval);
+            } else {
+                state.sellQuote = null;
+                document.getElementById('sellQuoteDisplay').classList.remove('visible');
+                document.getElementById('sellNmxAmount').value = '';
+                document.getElementById('sellQuoteBtn').disabled = true;
+                clearInterval(state.sellCountdownInterval);
+            }
+        }
+
+        function promptPassword() {
+            return new Promise((resolve) => {
+                const password = prompt('Enter your wallet password to sign the transaction:');
+                if (!password) {
+                    showToast('Password required to complete trade', 'warning');
+                    resolve(null);
+                    return;
+                }
+                resolve(password);
+            });
+        }
+
+        // ─── Trade History ──────────────────────────────────────
+
+        async function loadTradeHistory() {
+            try {
+                const resp = await fetch(
+                    `/api/finance/trade/history?user_id=${state.userId}&limit=30`,
+                    { headers: { 'Authorization': `Bearer ${state.accessToken}` } }
+                );
+                const data = await resp.json();
+                const trades = data.trades || [];
+                const container = document.getElementById('tradeHistoryContainer');
+
+                if (trades.length === 0) {
+                    container.innerHTML =
+                        '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px;">No trades yet</div>';
+                    return;
+                }
+
+                container.innerHTML = trades.map(t => {
+                    const dir = t.trade_type || t.type;
+                    const dirClass = dir === 'buy' ? 'buy' : 'sell';
+                    const dirLabel = dir === 'buy' ? 'BUY' : 'SELL';
+                    const date = new Date(t.created_at);
+                    const timeStr = date.toLocaleDateString('en-US', {
+                        month: 'short', day: 'numeric'
+                    }) + ' ' + date.toLocaleTimeString('en-US', {
+                        hour: '2-digit', minute: '2-digit'
+                    });
+
+                    const from = parseFloat(t.amount_from || t.amountFrom || 0);
+                    const to = parseFloat(t.amount_to || t.amountTo || 0);
+                    const assetFrom = t.asset_from || t.assetFrom || (dir === 'buy' ? 'TON' : 'NMX');
+                    const assetTo = t.asset_to || t.assetTo || (dir === 'buy' ? 'NMX' : 'TON');
+
+                    let statusBadge = '';
+                    if (t.status === 'completed') {
+                        statusBadge = '<span style="color:var(--success);font-size:11px;">✓ Completed</span>';
+                    } else if (t.status === 'processing') {
+                        statusBadge = '<span style="color:var(--warning);font-size:11px;">Processing</span>';
+                    } else {
+                        statusBadge = '<span style="color:var(--text-muted);font-size:11px;">' + (t.status || '') + '</span>';
+                    }
+
+                    return `
+                        <div class="history-item">
+                            <div>
+                                <div class="history-dir ${dirClass}">${dirLabel}</div>
+                                <div class="history-meta">${timeStr} ${statusBadge}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div class="history-amount">
+                                    ${from.toFixed(dir === 'buy' ? 4 : 0)} ${assetFrom}
+                                    → ${to.toFixed(dir === 'buy' ? 0 : 4)} ${assetTo}
+                                </div>
+                                <div class="history-meta">
+                                    Fee: ${parseFloat(t.fee_amount || t.feeAmount || 0).toFixed(4)} ${assetTo}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Trade history error:', err);
+            }
+        }
+
+        // ─── Start ──────────────────────────────────────────────
+
+        (function() {
+            init().catch(err => {
+                console.error('Init error:', err);
+                showToast('Failed to load trade page', 'error');
+            });
+        })();
+    </script>
+</body>
+</html>

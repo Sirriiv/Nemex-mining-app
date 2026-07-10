@@ -232,6 +232,129 @@
             margin-bottom: 4px;
         }
 
+        /* Treasury Reference Card */
+        .treasury-ref-card {
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.08) 0%, rgba(46, 204, 113, 0.03) 100%);
+            border: 1px solid rgba(46, 204, 113, 0.2);
+            border-radius: var(--border-radius);
+            margin: 0 20px 16px;
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+        }
+        .treasury-ref-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .treasury-ref-icon {
+            width: 16px; height: 16px;
+            color: rgba(46, 204, 113, 0.8);
+        }
+        .treasury-ref-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(46, 204, 113, 0.8);
+        }
+        .treasury-info-btn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.3);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0;
+            margin-left: auto;
+            transition: color 0.2s;
+        }
+        .treasury-info-btn:hover { color: rgba(255,255,255,0.7); }
+        .treasury-ref-body {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+        .treasury-ref-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gold);
+            font-family: monospace;
+        }
+
+        /* Token Treasury Reference (NMX card) */
+        .token-treasury-ref {
+            margin-top: 2px;
+        }
+        .token-treasury-ref .tr-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(46, 204, 113, 0.7);
+            display: block;
+            margin-bottom: 2px;
+        }
+        .token-treasury-ref .tr-val {
+            font-size: 13px;
+            font-weight: 600;
+            font-family: monospace;
+            color: var(--gold);
+        }
+        .treasury-ref-change {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .treasury-ref-change.positive { color: var(--success); }
+        .treasury-ref-change.negative { color: var(--danger); }
+        .treasury-ref-change.neutral { color: var(--text-muted); }
+        .treasury-ref-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+        }
+        .treasury-ref-sync {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        .treasury-ref-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .tr-status-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+        .tr-status-dot.healthy { background: var(--success); }
+        .tr-status-dot.degraded { background: var(--warning); }
+        .tr-status-dot.offline { background: var(--danger); }
+
+        /* Treasury Info Tooltip */
+        .treasury-tooltip {
+            position: fixed;
+            z-index: 10001;
+            background: var(--dark-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            max-width: 300px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-secondary);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.2s, transform 0.2s;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .treasury-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         .action-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -2257,11 +2380,33 @@
                         </svg>
                         <div class="action-label">Convert NMXp</div>
                     </div>
-                    <div class="action-btn" onclick="showTradeModal()" id="tradeButton">
+                    <div class="action-btn" onclick="window.location.href='trade.html'" id="tradeButton">
                         <svg class="action-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
                         <div class="action-label">Trade</div>
+                    </div>
+                </div>
+
+                <!-- Treasury Reference Value -->
+                <div class="treasury-ref-card" id="treasuryRefCard">
+                    <div class="treasury-ref-header">
+                        <svg class="treasury-ref-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        <span class="treasury-ref-label">Treasury Reference</span>
+                        <button class="treasury-info-btn" id="trInfoBtn" title="What is the Treasury Reference Value?">ⓘ</button>
+                    </div>
+                    <div class="treasury-ref-body">
+                        <div class="treasury-ref-value" id="trValue">—</div>
+                        <div class="treasury-ref-change" id="trChange">—</div>
+                    </div>
+                    <div class="treasury-ref-footer">
+                        <span class="treasury-ref-sync" id="trSyncTime">Last updated: —</span>
+                        <span class="treasury-ref-status" id="trStatus">
+                            <span class="tr-status-dot"></span>
+                            <span id="trStatusText">Loading...</span>
+                        </span>
                     </div>
                 </div>
 
@@ -3876,7 +4021,8 @@ async function initWallet() {
                     // ✅ Then fetch fresh data in background (non-blocking)
                     Promise.all([
                         fetchPricesWithFastestAPI(),  // Get fresh prices & percentages
-                        updateRealBalance()            // Get fresh balances
+                        updateRealBalance(),          // Get fresh balances
+                        fetchTreasuryReference()      // Get treasury reference value
                     ]).then(() => {
                         // Update display with fresh data
                         updateWalletDisplay();
@@ -3943,8 +4089,8 @@ function startRealBalanceUpdates() {
     // Run immediately
     updateRealBalance();
     
-    // ⚡ OPTIMIZED: Run every 60 seconds (reduced from 30s to cut requests by 50%)
-    balanceUpdateInterval = setInterval(updateRealBalance, 60000);
+    // ⚡ OPTIMIZED: Run every 120 seconds (further reduced egress)
+    balanceUpdateInterval = setInterval(updateRealBalance, 120000);
 }
 
 function stopRealBalanceUpdates() {
@@ -3968,11 +4114,16 @@ function debounce(fn, wait = 250) {
 }
 
 function scheduleImmediateUpdate() {
-    // Debounced immediate update (called on focus/visibility change)
+    const now = Date.now();
+    // Cooldown: don't refresh more than every 30s from visibility events
+    if (now - lastBalanceUpdate < 30000) {
+        console.log('⏳ Visibility update skipped (30s cooldown)');
+        return;
+    }
     const doUpdate = debounce(async () => {
         try { await updateRealBalance(); } catch (e) { /* ignore */ }
         try { await loadTransactionHistory(); } catch (e) { /* ignore */ }
-    }, 200);
+    }, 500);
     doUpdate();
 }
 
@@ -4753,6 +4904,128 @@ async function confirmSendTransaction() {
 }
 
 // =============================================
+// 🎯 TREASURY REFERENCE VALUE (from Financial Engine)
+// =============================================
+
+let treasuryRefData = {
+    referenceValue: null,
+    tonReserve: 0,
+    nmxReserve: 0,
+    tradingEnabled: false,
+    lastUpdated: null
+};
+
+function getStoredRefValue() {
+    try {
+        const stored = localStorage.getItem('treasuryPreviousRefValue');
+        return stored ? parseFloat(stored) : null;
+    } catch { return null; }
+}
+
+function setStoredRefValue(value) {
+    try {
+        if (value !== null && value > 0) {
+            localStorage.setItem('treasuryPreviousRefValue', value.toString());
+        }
+    } catch {}
+}
+
+async function fetchTreasuryReference() {
+    try {
+        const resp = await fetch('/api/finance/config');
+        const data = await resp.json();
+        if (!data.success) return;
+
+        const config = data.config;
+        const previousValue = getStoredRefValue();
+        const currentValue = config.treasuryReferenceValue || 0;
+
+        treasuryRefData.referenceValue = currentValue;
+        treasuryRefData.tonReserve = config.treasuryTonReserve || 0;
+        treasuryRefData.nmxReserve = config.treasuryNmxReserve || 0;
+        treasuryRefData.tradingEnabled = config.tradingEnabled;
+        treasuryRefData.lastUpdated = new Date();
+
+        updateTreasuryRefCard(previousValue, currentValue);
+
+        // Refresh token list so NMX card updates with new treasury ref
+        if (SUPPORTED_TOKENS[1] && typeof SUPPORTED_TOKENS[1].balance !== 'undefined') {
+            updateWalletDisplay();
+        }
+
+        if (currentValue > 0) {
+            setStoredRefValue(currentValue);
+        }
+    } catch (err) {
+        console.error('Treasury reference fetch error:', err);
+        document.getElementById('trStatusText').textContent = 'Offline';
+        const dot = document.querySelector('.tr-status-dot');
+        if (dot) dot.className = 'tr-status-dot offline';
+    }
+}
+
+function updateTreasuryRefCard(previousValue, currentValue) {
+    const valueEl = document.getElementById('trValue');
+    const changeEl = document.getElementById('trChange');
+    const syncEl = document.getElementById('trSyncTime');
+    const statusText = document.getElementById('trStatusText');
+    const dot = document.querySelector('.tr-status-dot');
+
+    if (valueEl) {
+        valueEl.textContent = currentValue > 0 ? currentValue.toFixed(8) : '—';
+    }
+
+    if (changeEl) {
+        if (previousValue !== null && previousValue > 0 && currentValue > 0) {
+            const pct = ((currentValue - previousValue) / previousValue) * 100;
+            const formatted = pct >= 0 ? '+' + pct.toFixed(2) + '%' : pct.toFixed(2) + '%';
+            changeEl.textContent = formatted;
+            changeEl.className = 'treasury-ref-change ' + (pct >= 0.01 ? 'positive' : pct <= -0.01 ? 'negative' : 'neutral');
+        } else {
+            changeEl.textContent = '—';
+            changeEl.className = 'treasury-ref-change neutral';
+        }
+    }
+
+    if (syncEl) {
+        const time = treasuryRefData.lastUpdated
+            ? treasuryRefData.lastUpdated.toLocaleTimeString()
+            : '—';
+        syncEl.textContent = 'Last updated: ' + time;
+    }
+
+    if (statusText) {
+        statusText.textContent = treasuryRefData.tradingEnabled ? 'Synced' : 'Offline';
+    }
+    if (dot) {
+        dot.className = 'tr-status-dot ' + (treasuryRefData.tradingEnabled ? 'healthy' : 'offline');
+    }
+}
+
+// ─── Treasury info tooltip ──────────────────────────────────────
+
+function showTreasuryTooltip(e) {
+    let tooltip = document.getElementById('treasuryTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'treasuryTooltip';
+        tooltip.className = 'treasury-tooltip';
+        tooltip.innerHTML = 'The Treasury Reference Value is calculated from the current TON and NMX reserves held by the Nemex Treasury. It is an internal Treasury-backed reference and not a public market price.';
+        document.body.appendChild(tooltip);
+    }
+    const rect = e.target.getBoundingClientRect();
+    tooltip.style.left = Math.min(rect.left - 100, window.innerWidth - 320) + 'px';
+    tooltip.style.top = (rect.bottom + 8) + 'px';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.classList.add('visible');
+}
+
+function hideTreasuryTooltip() {
+    const tooltip = document.getElementById('treasuryTooltip');
+    if (tooltip) tooltip.classList.remove('visible');
+}
+
+// =============================================
 // 🎯 WALLET DATA LOADING (UPDATED WITH FIXED FORMATTING)
 // =============================================
 
@@ -4792,12 +5065,40 @@ function updateWalletDisplay() {
     const tokenList = document.getElementById('tokenList');
     if (tokenList) {
         tokenList.innerHTML = SUPPORTED_TOKENS.map(token => {
-            // ✅ FIXED: Token price shows $0.00 (2 decimal places)
             const priceDisplay = formatTokenPrice(token.price);
-            // ✅ FIXED: Token balance shows 0.0000 (4 decimal places)
             const balanceDisplay = formatTokenBalance(token.balance, token.symbol);
-            // ✅ FIXED: Token value shows $0.00 (2 decimal places)
             const valueDisplay = formatTokenValue(token.balance * token.price);
+
+            let priceLine = '';
+            if (token.symbol === 'NMX') {
+                const tv = treasuryRefData.referenceValue || 0;
+                const tChange = (() => {
+                    const prev = getStoredRefValue();
+                    if (prev && prev > 0 && tv > 0) {
+                        const pct = ((tv - prev) / prev) * 100;
+                        return {
+                            text: (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%',
+                            cls: pct >= 0.01 ? 'change-positive' : pct <= -0.01 ? 'change-negative' : 'change-positive'
+                        };
+                    }
+                    return null;
+                })();
+
+                priceLine = `
+                    <div class="token-treasury-ref">
+                        <span class="tr-label">Treasury Ref</span>
+                        <span class="tr-val">${tv > 0 ? tv.toFixed(8) : '—'}</span>
+                        ${tChange ? `<span class="token-change ${tChange.cls}">Treasury Ref Change ${tChange.text}</span>` : ''}
+                    </div>`;
+            } else {
+                priceLine = `
+                    <div class="token-price">
+                        $${priceDisplay} 
+                        <span class="token-change ${(typeof token.change24h === 'number' && token.change24h >= 0) ? 'change-positive' : 'change-negative'}">
+                            ${typeof token.change24h === 'number' ? (token.change24h >= 0 ? '+' : '') + token.change24h.toFixed(2) + '%' : '0.00%'}
+                        </span>
+                    </div>`;
+            }
             
             return `
             <div class="token-card ${token.symbol === 'TON' ? 'featured' : ''}">
@@ -4809,12 +5110,7 @@ function updateWalletDisplay() {
                 <div class="token-info">
                     <div class="token-name">${token.name}</div>
                     <div class="token-symbol">${token.symbol}</div>
-                    <div class="token-price">
-                        $${priceDisplay} 
-                        <span class="token-change ${(typeof token.change24h === 'number' && token.change24h >= 0) ? 'change-positive' : 'change-negative'}">
-                            ${typeof token.change24h === 'number' ? (token.change24h >= 0 ? '+' : '') + token.change24h.toFixed(2) + '%' : '0.00%'}
-                        </span>
-                    </div>
+                    ${priceLine}
                 </div>
                 <div class="token-balance">
                     <div class="token-amount">${balanceDisplay}</div>
@@ -7129,6 +7425,21 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // ✅ Update prices every 60 seconds in background
     setInterval(fetchPricesWithFastestAPI, 60000);
+
+    // ✅ Update Treasury Reference every 60 seconds
+    setInterval(fetchTreasuryReference, 60000);
+
+    // ✅ Treasury info tooltip
+    const infoBtn = document.getElementById('trInfoBtn');
+    if (infoBtn) {
+        infoBtn.addEventListener('mouseenter', showTreasuryTooltip);
+        infoBtn.addEventListener('mouseleave', hideTreasuryTooltip);
+        infoBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tooltip = document.getElementById('treasuryTooltip');
+            if (tooltip) tooltip.classList.toggle('visible');
+        });
+    }
 
     window.addEventListener('click', function(event) {
         if (event.target.classList.contains('modal')) {

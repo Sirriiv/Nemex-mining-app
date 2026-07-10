@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treasury - Nemex</title>
+    <link rel="icon" type="image/x-icon" href="assets/nemex-icon.jpg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --dark-bg: #0a0a0a;
+            --dark-surface: #141414;
+            --dark-card: #1a1a1a;
+            --gold: #f0b90b;
+            --gold-hover: #d4a30a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --border-color: #2a2a2a;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --info: #3498db;
+            --radius: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header h1 { font-size: 24px; font-weight: 700; color: var(--gold); }
+        .health-dot {
+            width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+        }
+        .health-dot.healthy { background: var(--success); box-shadow: 0 0 6px var(--success); }
+        .health-dot.degraded { background: var(--warning); box-shadow: 0 0 6px var(--warning); }
+        .health-dot.critical { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+
+        .back-btn {
+            background: var(--dark-card);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .back-btn:hover { background: var(--dark-surface); color: var(--text-primary); }
+
+        .refresh-btn {
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .refresh-btn:hover { background: var(--gold-hover); }
+        .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--dark-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 16px;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        .stat-card .value.small { font-size: 20px; }
+        .stat-card .sub {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            overflow-x: auto;
+        }
+        .nav-tab {
+            padding: 10px 18px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            position: relative;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .nav-tab.active { color: var(--gold); }
+        .nav-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0;
+            height: 2px;
+            background: var(--gold);
+        }
+        .nav-tab:hover { color: var(--text-primary); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .card {
+            background: var(--dark-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        .card h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .table-container {
+            background: var(--dark-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: var(--dark-surface);
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 10px 14px;
+            border-top: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+        tr:hover { background: rgba(240, 185, 11, 0.03); }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-success { background: rgba(46, 204, 113, 0.15); color: var(--success); }
+        .badge-warning { background: rgba(243, 156, 18, 0.15); color: var(--warning); }
+        .badge-danger { background: rgba(231, 76, 60, 0.15); color: var(--danger); }
+        .badge-info { background: rgba(52, 152, 219, 0.15); color: var(--info); }
+        .badge-gold { background: rgba(240, 185, 11, 0.15); color: var(--gold); }
+
+        .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .empty-state { text-align: center; padding: 40px; color: var(--text-secondary); }
+        .empty-state .icon { font-size: 32px; margin-bottom: 8px; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--dark-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: var(--gold);
+            outline: none;
+        }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .toggle-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .toggle {
+            position: relative;
+            width: 48px; height: 26px;
+            background: var(--border-color);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .toggle.active { background: var(--gold); }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 20px; height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle.active::after { transform: translateX(22px); }
+
+        .save-btn {
+            background: var(--gold);
+            color: #000;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .save-btn:hover { background: var(--gold-hover); }
+        .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .hash-link {
+            color: var(--info);
+            font-family: monospace;
+            font-size: 12px;
+            text-decoration: none;
+        }
+        .hash-link:hover { text-decoration: underline; }
+
+        .wallet-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--dark-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            margin-bottom: 12px;
+        }
+        .wallet-card .wallet-info { flex: 1; }
+        .wallet-card .wallet-asset {
+            font-size: 18px; font-weight: 700; color: var(--gold);
+            margin-bottom: 4px;
+        }
+        .wallet-card .wallet-address {
+            font-size: 13px; color: var(--text-secondary);
+            font-family: monospace; word-break: break-all;
+        }
+        .wallet-card .wallet-balance {
+            font-size: 20px; font-weight: 700;
+            text-align: right;
+        }
+        .wallet-card .wallet-status { font-size: 12px; text-align: right; margin-top: 4px; }
+
+        .reference-value-display {
+            text-align: center;
+            padding: 24px;
+        }
+        .reference-value-display .rv-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .reference-value-display .rv-value {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--gold);
+            font-family: monospace;
+        }
+        .reference-value-display .rv-formula {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 12px;
+        }
+        .reference-value-display .rv-ton {
+            color: var(--info);
+        }
+        .reference-value-display .rv-nmx {
+            color: var(--success);
+        }
+
+        .custom-alert {
+            position: fixed;
+            top: 20px; right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: #fff;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .alert-success { background: var(--success); }
+        .alert-error { background: var(--danger); }
+        .alert-warning { background: var(--warning); }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center; align-items: center;
+            z-index: 999;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--dark-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+        }
+        .modal h3 { margin-bottom: 16px; }
+        .modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+        .cancel-btn {
+            background: var(--dark-surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>Treasury</h1>
+                <span class="health-dot" id="healthDot" title="Treasury Health"></span>
+            </div>
+            <div class="header-actions">
+                <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">Sync Now</button>
+                <a href="dashboard.html" class="back-btn">Back to Dashboard</a>
+            </div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="label">TON Reserve</div>
+                <div class="value" id="statTonReserve">—</div>
+                <div class="sub" id="statTonStatus"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">NMX Reserve</div>
+                <div class="value" id="statNmxReserve">—</div>
+                <div class="sub" id="statNmxStatus"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Treasury Reference Value</div>
+                <div class="value small" id="statRefValue">—</div>
+                <div class="sub">TON / NMX</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Last Sync</div>
+                <div class="value small" id="statLastSync">—</div>
+                <div class="sub" id="statSyncStatus"></div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Transactions</div>
+                <div class="value small" id="statTxCount">0</div>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')">Wallets</button>
+            <button class="nav-tab" onclick="showTab('transactions')">Transactions</button>
+            <button class="nav-tab" onclick="showTab('refvalue')">Reference Value</button>
+            <button class="nav-tab" onclick="showTab('health')">Health</button>
+            <button class="nav-tab" onclick="showTab('settings')">Settings</button>
+            <button class="nav-tab" onclick="showTab('audit')">Audit Logs</button>
+        </div>
+
+        <!-- Wallets Tab -->
+        <div class="tab-content active" id="overview">
+            <div id="walletsContainer">
+                <div class="loading">Loading wallet data...</div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+                <h3>Add / Edit Wallet</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Asset</label>
+                        <select id="walletAsset">
+                            <option value="TON">TON</option>
+                            <option value="NMX">NMX</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Label</label>
+                        <input type="text" id="walletLabel" placeholder="e.g. Treasury TON Wallet">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Wallet Address</label>
+                    <input type="text" id="walletAddress" placeholder="Enter blockchain wallet address">
+                </div>
+                <button class="save-btn" onclick="saveWallet()">Save Wallet</button>
+                <span id="walletEditId" style="display:none;"></span>
+            </div>
+        </div>
+
+        <!-- Transactions Tab -->
+        <div class="tab-content" id="transactions">
+            <div class="card">
+                <div class="form-row" style="margin-bottom:12px;">
+                    <div class="form-group">
+                        <label>Filter Asset</label>
+                        <select id="txFilterAsset" onchange="loadTransactions()">
+                            <option value="">All</option>
+                            <option value="TON">TON</option>
+                            <option value="NMX">NMX</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filter Type</label>
+                        <select id="txFilterType" onchange="loadTransactions()">
+                            <option value="">All</option>
+                            <option value="deposit">Deposit</option>
+                            <option value="withdrawal">Withdrawal</option>
+                            <option value="fee">Fee</option>
+                            <option value="transfer">Transfer</option>
+                            <option value="adjustment">Adjustment</option>
+                        </select>
+                    </div>
+                </div>
+                <button class="save-btn" onclick="showAddTxModal()" style="margin-bottom:12px;">+ Record Transaction</button>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Asset</th>
+                            <th>Amount</th>
+                            <th>Type</th>
+                            <th>Transaction Hash</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="txTableBody">
+                        <tr><td colspan="7" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Reference Value Tab -->
+        <div class="tab-content" id="refvalue">
+            <div class="card">
+                <div class="reference-value-display">
+                    <div class="rv-label">Treasury Reference Value</div>
+                    <div class="rv-value" id="refValueDisplay">—</div>
+                    <div class="rv-formula">
+                        = <span class="rv-ton" id="refTonDisplay">—</span> TON ÷
+                        <span class="rv-nmx" id="refNmxDisplay">—</span> NMX
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Reference Value Explanation</h3>
+                <p style="color:var(--text-secondary); font-size:13px; line-height:1.6;">
+                    The Treasury Reference Value is calculated by dividing the total TON reserve by the total NMX reserve.
+                    This represents the backing value of NMX tokens within the Nemex ecosystem treasury.
+                    <br><br>
+                    <strong>Important:</strong> This is the <em>Treasury Reference Value</em> — not a market price or token price.
+                    It reflects the treasury's internal reserve ratio and serves as a benchmark for the ecosystem's financial health.
+                </p>
+            </div>
+        </div>
+
+        <!-- Health Tab -->
+        <div class="tab-content" id="health">
+            <div id="healthContainer">
+                <div class="loading">Loading health data...</div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+                <h3>Sync History</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Wallet</th>
+                                <th>Status</th>
+                                <th>Balance Snapshot</th>
+                                <th>Error</th>
+                            </tr>
+                        </thead>
+                        <tbody id="syncLogsTableBody">
+                            <tr><td colspan="5" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div class="tab-content" id="settings">
+            <div class="card">
+                <h3>Trading Configuration</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Buy Fee (%)</label>
+                        <input type="number" id="settingBuyFee" step="0.01" min="0" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label>Sell Fee (%)</label>
+                        <input type="number" id="settingSellFee" step="0.01" min="0" max="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Quote Expiration (seconds)</label>
+                        <input type="number" id="settingQuoteExp" min="10" max="3600">
+                    </div>
+                    <div class="form-group">
+                        <label>Min Trade Amount</label>
+                        <input type="number" id="settingMinTrade" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Max Trade Amount</label>
+                        <input type="number" id="settingMaxTrade" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Trading Enabled</label>
+                        <div class="toggle-wrapper" style="margin-top:6px;">
+                            <div class="toggle" id="settingTradingToggle" onclick="toggleTrading()"></div>
+                            <span id="settingTradingLabel" style="font-size:13px;color:var(--text-secondary);">OFF</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:16px;">
+                <h3>Sync Configuration</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Auto-Sync Enabled</label>
+                        <div class="toggle-wrapper" style="margin-top:6px;">
+                            <div class="toggle" id="settingAutoSyncToggle" onclick="toggleAutoSync()"></div>
+                            <span id="settingAutoSyncLabel" style="font-size:13px;color:var(--text-secondary);">ON</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Sync Interval (minutes)</label>
+                        <input type="number" id="settingSyncInterval" step="1" min="1" max="1440">
+                    </div>
+                </div>
+                <div class="form-text" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">
+                    Treasury TON: <code style="font-size:11px;background:var(--dark-bg);padding:2px 6px;border-radius:4px;">UQB_FCa2k5...KOSC</code>
+                    <br>NMX Jetton: <code style="font-size:11px;background:var(--dark-bg);padding:2px 6px;border-radius:4px;">0:514ab5...489eec</code>
+                </div>
+            </div>
+
+            <button class="save-btn" id="saveSettingsBtn" onclick="saveSettings()">Save Settings</button>
+            <button class="save-btn" id="saveSyncSettingsBtn" onclick="saveSyncSettings()" style="margin-left:8px;background:var(--dark-card);color:var(--text-primary);border:1px solid var(--border-color);">Save Sync Settings</button>
+        </div>
+
+        <!-- Audit Logs Tab -->
+        <div class="tab-content" id="audit">
+            <div class="form-group" style="max-width:250px;">
+                <label>Filter Category</label>
+                <select id="auditFilterCategory" onchange="loadAuditLogs()">
+                    <option value="">All</option>
+                    <option value="config">Config</option>
+                    <option value="wallet">Wallet</option>
+                    <option value="transaction">Transaction</option>
+                    <option value="sync">Sync</option>
+                    <option value="general">General</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Category</th>
+                            <th>Action</th>
+                            <th>Details</th>
+                            <th>IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditTableBody">
+                        <tr><td colspan="5" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div class="modal-overlay" id="addTxModal">
+        <div class="modal">
+            <h3>Record Treasury Transaction</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Asset</label>
+                    <select id="modalTxAsset">
+                        <option value="TON">TON</option>
+                        <option value="NMX">NMX</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="modalTxType">
+                        <option value="deposit">Deposit</option>
+                        <option value="withdrawal">Withdrawal</option>
+                        <option value="fee">Fee</option>
+                        <option value="transfer">Transfer</option>
+                        <option value="adjustment">Adjustment</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Amount</label>
+                <input type="number" id="modalTxAmount" step="0.00000001" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>Transaction Hash</label>
+                <input type="text" id="modalTxHash" placeholder="Blockchain transaction hash">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="modalTxDesc" placeholder="e.g. User deposit from wallet">
+            </div>
+            <div class="form-group">
+                <label>Status</label>
+                <select id="modalTxStatus">
+                    <option value="completed">Completed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                    <option value="cancelled">Cancelled</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="cancel-btn" onclick="closeAddTxModal()">Cancel</button>
+                <button class="save-btn" onclick="submitTransaction()">Record</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const supabaseUrl = 'https://bjulifvbfogymoduxnzl.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJqdWxpZnZiZm9neW1vZHV4bnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MTk0NDMsImV4cCI6MjA3NTQ5NTQ0M30.MPxDDybfODRnzvrFNZ0TQKkV983tGUFriHYgIpa_LaU';
+        const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+        const ADMIN_EMAILS = ['salimabusalimabubakar@gmail.com', 'admin@nemexcoin.com', 'nemexinvestments@proton.me'];
+
+        let treasuryConfig = {};
+        let tradingEnabled = false;
+        let autoSyncEnabled = true;
+        let syncIntervalMinutes = 5;
+
+        function showCustomAlert(message, type = 'success') {
+            const alert = document.createElement('div');
+            alert.className = `custom-alert alert-${type}`;
+            alert.textContent = message;
+            document.body.appendChild(alert);
+            setTimeout(() => alert.remove(), 3000);
+        }
+
+        async function checkAdminAccess() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (!session) { window.location.href = 'login.html'; return false; }
+
+            if (ADMIN_EMAILS.includes(session.user.email)) return true;
+
+            const { data: profile } = await supabaseClient
+                .from('profiles')
+                .select('admin_level')
+                .eq('id', session.user.id)
+                .single();
+
+            if (!profile || !profile.admin_level || profile.admin_level <= 0) {
+                window.location.href = 'dashboard.html';
+                return false;
+            }
+            return true;
+        }
+
+        function showTab(tabName) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if (tabName === 'overview') loadWallets();
+            if (tabName === 'transactions') loadTransactions();
+            if (tabName === 'refvalue') loadReferenceValue();
+            if (tabName === 'health') loadHealth();
+            if (tabName === 'settings') loadSettings();
+            if (tabName === 'audit') loadAuditLogs();
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '—';
+            const d = new Date(dateStr);
+            return d.toLocaleString();
+        }
+
+        function formatShortDate(dateStr) {
+            if (!dateStr) return 'Never';
+            const d = new Date(dateStr);
+            const now = new Date();
+            const diff = Math.floor((now - d) / 1000);
+            if (diff < 60) return 'Just now';
+            if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
+            return d.toLocaleDateString();
+        }
+
+        function truncateHash(hash, len = 10) {
+            if (!hash) return '—';
+            if (hash.length <= len * 2 + 3) return hash;
+            return hash.substring(0, len) + '...' + hash.substring(hash.length - len);
+        }
+
+        // ─── OVERVIEW & WALLETS ─────────────────────────────────
+
+        async function loadWallets() {
+            const container = document.getElementById('walletsContainer');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            try {
+                const resp = await fetch('/api/treasury/wallets', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+                const wallets = json.wallets || [];
+
+                if (wallets.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><div class="icon">🏦</div>No treasury wallets configured yet.</div>';
+                    return;
+                }
+
+                container.innerHTML = wallets.map((w, i) => {
+                    const statusClass = w.status === 'active' ? 'badge-success' :
+                                       w.status === 'syncing' ? 'badge-warning' :
+                                       w.status === 'error' ? 'badge-danger' : 'badge-info';
+                    return `
+                        <div class="wallet-card">
+                            <div class="wallet-info">
+                                <div class="wallet-asset">${w.asset} — ${w.label || 'Treasury Wallet'}</div>
+                                <div class="wallet-address">${w.wallet_address || 'No address configured'}</div>
+                            </div>
+                            <div>
+                                <div class="wallet-balance">${parseFloat(w.balance).toLocaleString(undefined, {maximumFractionDigits: 8})} ${w.asset}</div>
+                                <div class="wallet-status"><span class="badge ${statusClass}">${w.status}</span></div>
+                                <div style="font-size:11px;color:var(--text-secondary);text-align:right;margin-top:4px;">
+                                    Last synced: ${formatShortDate(w.last_synced_at)}
+                                </div>
+                                <button class="back-btn" style="margin-top:8px;font-size:12px;width:100%;" onclick="editWallet(${w.id}, '${w.asset}', '${(w.label||'').replace(/'/g,"\\'")}', '${(w.wallet_address||'').replace(/'/g,"\\'")}')">Edit</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state">Failed to load wallets.</div>';
+            }
+        }
+
+        function editWallet(id, asset, label, address) {
+            document.getElementById('walletAsset').value = asset;
+            document.getElementById('walletLabel').value = label;
+            document.getElementById('walletAddress').value = address;
+            document.getElementById('walletEditId').textContent = id;
+            document.getElementById('walletEditId').style.display = 'inline';
+            window.scrollTo({ top: document.getElementById('walletsContainer').offsetHeight + 200, behavior: 'smooth' });
+        }
+
+        async function saveWallet() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const asset = document.getElementById('walletAsset').value;
+            const label = document.getElementById('walletLabel').value;
+            const address = document.getElementById('walletAddress').value;
+            const editId = document.getElementById('walletEditId').textContent;
+
+            if (!label || !address) {
+                showCustomAlert('Please fill in label and address', 'warning');
+                return;
+            }
+
+            try {
+                let resp;
+                if (editId) {
+                    resp = await fetch(`/api/treasury/wallets/${editId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.session.access_token}`
+                        },
+                        body: JSON.stringify({ label, wallet_address: address, status: 'active' })
+                    });
+                } else {
+                    // Use transactions endpoint to seed wallet if needed — for now just update by asset
+                    resp = await fetch(`/api/treasury/wallets/${asset === 'TON' ? '1' : '2'}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${session.session.access_token}`
+                        },
+                        body: JSON.stringify({ label, wallet_address: address, status: 'active' })
+                    });
+                }
+
+                if (resp.ok) {
+                    showCustomAlert('Wallet saved successfully');
+                    document.getElementById('walletLabel').value = '';
+                    document.getElementById('walletAddress').value = '';
+                    document.getElementById('walletEditId').textContent = '';
+                    document.getElementById('walletEditId').style.display = 'none';
+                    loadWallets();
+                    loadOverviewStats();
+                } else {
+                    showCustomAlert('Failed to save wallet', 'error');
+                }
+            } catch (err) {
+                showCustomAlert('Error saving wallet', 'error');
+            }
+        }
+
+        // ─── TRANSACTIONS ───────────────────────────────────────
+
+        async function loadTransactions() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const asset = document.getElementById('txFilterAsset').value;
+            const type = document.getElementById('txFilterType').value;
+            const tbody = document.getElementById('txTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+
+            try {
+                let url = '/api/treasury/transactions?limit=100';
+                if (asset) url += `&asset=${asset}`;
+                if (type) url += `&type=${type}`;
+
+                const resp = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+                const txs = json.transactions || [];
+
+                if (txs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No transactions found.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = txs.map(tx => {
+                    const typeClass = tx.tx_type === 'deposit' ? 'badge-success' :
+                                     tx.tx_type === 'withdrawal' ? 'badge-danger' :
+                                     tx.tx_type === 'fee' ? 'badge-warning' :
+                                     tx.tx_type === 'transfer' ? 'badge-info' : 'badge-gold';
+                    const statusClass = tx.status === 'completed' ? 'badge-success' :
+                                       tx.status === 'pending' ? 'badge-warning' :
+                                       tx.status === 'failed' ? 'badge-danger' : 'badge-info';
+                    return `
+                        <tr>
+                            <td>${formatShortDate(tx.created_at)}</td>
+                            <td><span class="badge badge-gold">${tx.asset}</span></td>
+                            <td>${parseFloat(tx.amount).toLocaleString(undefined, {maximumFractionDigits: 8})}</td>
+                            <td><span class="badge ${typeClass}">${tx.tx_type}</span></td>
+                            <td>${tx.transaction_hash ? `<span class="hash-link" title="${tx.transaction_hash}">${truncateHash(tx.transaction_hash)}</span>` : '—'}</td>
+                            <td><span class="badge ${statusClass}">${tx.status}</span></td>
+                            <td>
+                                ${tx.status === 'pending' ? `<button class="back-btn" style="font-size:11px;padding:4px 8px;" onclick="updateTxStatus(${tx.id}, 'completed')">✓</button>` : ''}
+                                ${tx.status === 'pending' ? `<button class="back-btn" style="font-size:11px;padding:4px 8px;color:var(--danger);" onclick="updateTxStatus(${tx.id}, 'cancelled')">✕</button>` : ''}
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Failed to load transactions.</td></tr>';
+            }
+        }
+
+        async function updateTxStatus(id, status) {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            try {
+                const resp = await fetch(`/api/treasury/transactions/${id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.session.access_token}`
+                    },
+                    body: JSON.stringify({ status })
+                });
+                if (resp.ok) {
+                    showCustomAlert(`Transaction ${status}`);
+                    loadTransactions();
+                    loadOverviewStats();
+                } else {
+                    showCustomAlert('Failed to update', 'error');
+                }
+            } catch (err) {
+                showCustomAlert('Error updating transaction', 'error');
+            }
+        }
+
+        function showAddTxModal() {
+            document.getElementById('addTxModal').classList.add('show');
+        }
+
+        function closeAddTxModal() {
+            document.getElementById('addTxModal').classList.remove('show');
+        }
+
+        async function submitTransaction() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const asset = document.getElementById('modalTxAsset').value;
+            const type = document.getElementById('modalTxType').value;
+            const amount = document.getElementById('modalTxAmount').value;
+            const hash = document.getElementById('modalTxHash').value;
+            const desc = document.getElementById('modalTxDesc').value;
+            const status = document.getElementById('modalTxStatus').value;
+
+            if (!amount || parseFloat(amount) <= 0) {
+                showCustomAlert('Please enter a valid amount', 'warning');
+                return;
+            }
+
+            try {
+                const resp = await fetch('/api/treasury/transactions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        asset, amount: parseFloat(amount), tx_type: type,
+                        transaction_hash: hash || null, description: desc || null, status
+                    })
+                });
+                if (resp.ok) {
+                    showCustomAlert('Transaction recorded');
+                    closeAddTxModal();
+                    loadTransactions();
+                    loadOverviewStats();
+                } else {
+                    showCustomAlert('Failed to record transaction', 'error');
+                }
+            } catch (err) {
+                showCustomAlert('Error recording transaction', 'error');
+            }
+        }
+
+        // ─── REFERENCE VALUE ────────────────────────────────────
+
+        async function loadReferenceValue() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            try {
+                const resp = await fetch('/api/treasury/reference-value', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+                const rv = json.treasuryReferenceValue || 0;
+                const ton = json.tonReserve || 0;
+                const nmx = json.nmxReserve || 0;
+
+                document.getElementById('refValueDisplay').textContent = rv.toFixed(8);
+                document.getElementById('refTonDisplay').textContent = parseFloat(ton).toLocaleString(undefined, {maximumFractionDigits: 4});
+                document.getElementById('refNmxDisplay').textContent = parseFloat(nmx).toLocaleString(undefined, {maximumFractionDigits: 2});
+            } catch (err) {
+                document.getElementById('refValueDisplay').textContent = 'Error';
+            }
+        }
+
+        // ─── HEALTH ─────────────────────────────────────────────
+
+        async function loadHealth() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const container = document.getElementById('healthContainer');
+            container.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const resp = await fetch('/api/treasury/health', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+
+                container.innerHTML = (json.walletConnectionStatus || []).map(w => {
+                    const cls = w.status === 'active' ? 'badge-success' :
+                               w.status === 'syncing' ? 'badge-warning' :
+                               w.status === 'error' ? 'badge-danger' : 'badge-info';
+                    return `
+                        <div class="card">
+                            <h3>${w.asset} Wallet Connection</h3>
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div>
+                                    <div style="color:var(--text-secondary);font-size:13px;">Address</div>
+                                    <div style="font-family:monospace;font-size:13px;margin-top:4px;">${w.address || 'Not configured'}</div>
+                                </div>
+                                <div style="text-align:right;">
+                                    <span class="badge ${cls}" style="font-size:13px;">${w.status}</span>
+                                    <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">
+                                        Last synced: ${formatShortDate(w.lastSynced)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="margin-top:12px;font-size:18px;font-weight:700;color:var(--gold);">
+                                Balance: ${parseFloat(w.balance).toLocaleString(undefined, {maximumFractionDigits: 8})} ${w.asset}
+                            </div>
+                        </div>
+                    `;
+                }).join('') + `
+                    <div class="card">
+                        <h3>Overall Health</h3>
+                        <span class="badge ${json.overallHealth === 'healthy' ? 'badge-success' : 'badge-warning'}" style="font-size:16px;">
+                            ${json.overallHealth.toUpperCase()}
+                        </span>
+                        <div style="color:var(--text-secondary);font-size:13px;margin-top:8px;">
+                            Last successful sync: ${formatDate(json.lastSuccessfulSync)}
+                        </div>
+                    </div>
+                `;
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state">Failed to load health data.</div>';
+            }
+
+            // Load sync logs
+            try {
+                const syncResp = await fetch('/api/treasury/sync-logs', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const syncJson = await syncResp.json();
+                const logs = syncJson.syncLogs || [];
+                const tbody = document.getElementById('syncLogsTableBody');
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No sync history yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = logs.map(l => {
+                        const cls = l.status === 'success' ? 'badge-success' :
+                                   l.status === 'failed' ? 'badge-danger' : 'badge-warning';
+                        return `
+                            <tr>
+                                <td>${formatShortDate(l.synced_at)}</td>
+                                <td>${l.treasury_wallets?.asset || 'All'} (${l.treasury_wallets?.label || '—'})</td>
+                                <td><span class="badge ${cls}">${l.status}</span></td>
+                                <td>${l.balance_snapshot ? parseFloat(l.balance_snapshot).toLocaleString() : '—'}</td>
+                                <td style="color:var(--danger);">${l.error_message || '—'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (err) {
+                // silent
+            }
+        }
+
+        // ─── SETTINGS ───────────────────────────────────────────
+
+        async function loadSettings() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            try {
+                const resp = await fetch('/api/treasury/config', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+                treasuryConfig = json.config || {};
+
+                document.getElementById('settingBuyFee').value = treasuryConfig.buy_fee ?? 3;
+                document.getElementById('settingSellFee').value = treasuryConfig.sell_fee ?? 3;
+                document.getElementById('settingQuoteExp').value = treasuryConfig.quote_expiration_seconds ?? 300;
+                document.getElementById('settingMinTrade').value = treasuryConfig.min_trade_amount ?? 1;
+                document.getElementById('settingMaxTrade').value = treasuryConfig.max_trade_amount ?? 100000;
+                tradingEnabled = treasuryConfig.trading_enabled ?? false;
+                updateTradingToggle();
+
+                // Load sync config
+                const syncResp = await fetch('/api/treasury/sync-config', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const syncJson = await syncResp.json();
+                autoSyncEnabled = syncJson.autoSyncEnabled ?? true;
+                syncIntervalMinutes = syncJson.syncIntervalMinutes ?? 5;
+                document.getElementById('settingSyncInterval').value = syncIntervalMinutes;
+                updateAutoSyncToggle();
+            } catch (err) {
+                showCustomAlert('Failed to load settings', 'error');
+            }
+        }
+
+        function toggleTrading() {
+            tradingEnabled = !tradingEnabled;
+            updateTradingToggle();
+        }
+
+        function updateTradingToggle() {
+            const toggle = document.getElementById('settingTradingToggle');
+            const label = document.getElementById('settingTradingLabel');
+            if (tradingEnabled) {
+                toggle.classList.add('active');
+                label.textContent = 'ON';
+                label.style.color = 'var(--success)';
+            } else {
+                toggle.classList.remove('active');
+                label.textContent = 'OFF';
+                label.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        async function saveSettings() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const btn = document.getElementById('saveSettingsBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const resp = await fetch('/api/treasury/config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        buy_fee: parseFloat(document.getElementById('settingBuyFee').value),
+                        sell_fee: parseFloat(document.getElementById('settingSellFee').value),
+                        quote_expiration_seconds: parseInt(document.getElementById('settingQuoteExp').value),
+                        min_trade_amount: parseFloat(document.getElementById('settingMinTrade').value),
+                        max_trade_amount: parseFloat(document.getElementById('settingMaxTrade').value),
+                        trading_enabled: tradingEnabled
+                    })
+                });
+                if (resp.ok) {
+                    showCustomAlert('Settings saved successfully');
+                } else {
+                    showCustomAlert('Failed to save settings', 'error');
+                }
+            } catch (err) {
+                showCustomAlert('Error saving settings', 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Save Settings';
+        }
+
+        function toggleAutoSync() {
+            autoSyncEnabled = !autoSyncEnabled;
+            updateAutoSyncToggle();
+        }
+
+        function updateAutoSyncToggle() {
+            const toggle = document.getElementById('settingAutoSyncToggle');
+            const label = document.getElementById('settingAutoSyncLabel');
+            if (autoSyncEnabled) {
+                toggle.classList.add('active');
+                label.textContent = 'ON';
+                label.style.color = 'var(--success)';
+            } else {
+                toggle.classList.remove('active');
+                label.textContent = 'OFF';
+                label.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        async function saveSyncSettings() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const btn = document.getElementById('saveSyncSettingsBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const interval = parseInt(document.getElementById('settingSyncInterval').value) || 5;
+                const resp = await fetch('/api/treasury/sync-config', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.session.access_token}`
+                    },
+                    body: JSON.stringify({
+                        auto_sync_enabled: autoSyncEnabled,
+                        sync_interval_minutes: interval
+                    })
+                });
+                if (resp.ok) {
+                    showCustomAlert('Sync settings saved');
+                } else {
+                    const j = await resp.json();
+                    showCustomAlert('Failed: ' + (j.error || 'unknown'), 'error');
+                }
+            } catch (err) {
+                showCustomAlert('Error saving sync settings', 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Save Sync Settings';
+        }
+
+        // ─── AUDIT LOGS ─────────────────────────────────────────
+
+        async function loadAuditLogs() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            const category = document.getElementById('auditFilterCategory').value;
+            const tbody = document.getElementById('auditTableBody');
+            tbody.innerHTML = '<tr><td colspan="5" class="loading">Loading...</td></tr>';
+
+            try {
+                let url = '/api/treasury/audit-logs?limit=100';
+                if (category) url += `&category=${category}`;
+
+                const resp = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+                const logs = json.logs || [];
+
+                if (logs.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No audit logs yet.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = logs.map(l => {
+                    const catClass = l.category === 'config' ? 'badge-warning' :
+                                    l.category === 'wallet' ? 'badge-info' :
+                                    l.category === 'transaction' ? 'badge-gold' :
+                                    l.category === 'sync' ? 'badge-success' : 'badge-info';
+                    return `
+                        <tr>
+                            <td>${formatDate(l.created_at)}</td>
+                            <td><span class="badge ${catClass}">${l.category}</span></td>
+                            <td>${l.action}</td>
+                            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-secondary);">
+                                ${l.details ? JSON.stringify(l.details).substring(0, 80) + '...' : '—'}
+                            </td>
+                            <td style="font-family:monospace;font-size:11px;color:var(--text-secondary);">${l.ip_address || '—'}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Failed to load audit logs.</td></tr>';
+            }
+        }
+
+        // ─── OVERVIEW STATS ─────────────────────────────────────
+
+        async function loadOverviewStats() {
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) return;
+
+            try {
+                const resp = await fetch('/api/treasury/overview', {
+                    headers: { 'Authorization': `Bearer ${session.session.access_token}` }
+                });
+                const json = await resp.json();
+
+                document.getElementById('statTonReserve').textContent = parseFloat(json.tonReserve).toLocaleString(undefined, {maximumFractionDigits: 4}) + ' TON';
+                document.getElementById('statNmxReserve').textContent = parseFloat(json.nmxReserve).toLocaleString(undefined, {maximumFractionDigits: 2}) + ' NMX';
+                document.getElementById('statRefValue').textContent = (json.treasuryReferenceValue || 0).toFixed(8);
+                document.getElementById('statLastSync').textContent = formatShortDate(json.treasuryHealth?.lastSuccessfulSync);
+                document.getElementById('statSyncStatus').textContent = json.treasuryHealth?.syncStatus || 'unknown';
+                document.getElementById('statTxCount').textContent = json.transactionCount;
+
+                // Update health dot
+                const dot = document.getElementById('healthDot');
+                dot.className = 'health-dot ' + (json.treasuryHealth?.overall || 'critical');
+                dot.title = `Treasury Health: ${json.treasuryHealth?.overall || 'unknown'}`;
+
+                // Wallet status in stat cards
+                const tonStatus = document.getElementById('statTonStatus');
+                const nmxStatus = document.getElementById('statNmxStatus');
+                if (json.treasuryHealth?.tonWalletConnected) {
+                    tonStatus.innerHTML = '<span class="badge badge-success">Connected</span>';
+                } else {
+                    tonStatus.innerHTML = '<span class="badge badge-danger">Disconnected</span>';
+                }
+                if (json.treasuryHealth?.nmxWalletConnected) {
+                    nmxStatus.innerHTML = '<span class="badge badge-success">Connected</span>';
+                } else {
+                    nmxStatus.innerHTML = '<span class="badge badge-danger">Disconnected</span>';
+                }
+            } catch (err) {
+                console.error('Stats load error:', err);
+            }
+        }
+
+        // ─── SYNC ───────────────────────────────────────────────
+
+        async function refreshAll() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = true;
+            btn.textContent = 'Syncing...';
+
+            const { data: session } = await supabaseClient.auth.getSession();
+            if (!session) { btn.disabled = false; btn.textContent = 'Sync Now'; return; }
+
+            try {
+                const resp = await fetch('/api/treasury/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${session.session.access_token}`
+                    },
+                    body: JSON.stringify({ wallet_id: null })
+                });
+                const json = await resp.json();
+                if (resp.ok && json.success) {
+                    const r = json.results;
+                    const tonOk = r.ton.success ? '✅' : '❌';
+                    const nmxOk = r.nmx.success ? '✅' : '❌';
+                    showCustomAlert(`Sync complete ${tonOk}TON: ${r.ton.balance || 'failed'} ${nmxOk}NMX: ${r.nmx.balance || 'failed'}`);
+                } else {
+                    showCustomAlert('Sync failed: ' + (json.message || 'unknown error'), 'error');
+                }
+            } catch (err) {
+                showCustomAlert('Sync error: ' + err.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Sync Now';
+            await loadOverviewStats();
+            if (document.getElementById('overview').classList.contains('active')) loadWallets();
+            if (document.getElementById('health').classList.contains('active')) loadHealth();
+            if (document.getElementById('refvalue').classList.contains('active')) loadReferenceValue();
+            if (document.getElementById('transactions').classList.contains('active')) loadTransactions();
+        }
+
+        // ─── INIT ───────────────────────────────────────────────
+
+        (async function init() {
+            const isAdmin = await checkAdminAccess();
+            if (!isAdmin) return;
+            await loadOverviewStats();
+            await loadWallets();
+        })();
+    </script>
+</body>
+</html>

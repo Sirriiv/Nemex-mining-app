@@ -8,6 +8,24 @@ const bcrypt = require('bcrypt');
 const argon2 = require('argon2');
 
 // ============================================
+// 🔌 HTTP KEEPALIVE AGENT - Reuse connections
+// ============================================
+const http = require('http');
+const https = require('https');
+const httpAgent = new http.Agent({ keepAlive: true, keepAliveMsecs: 30000, maxSockets: 50, maxFreeSockets: 10, timeout: 30000 });
+const httpsAgent = new https.Agent({ keepAlive: true, keepAliveMsecs: 30000, maxSockets: 50, maxFreeSockets: 10, timeout: 30000 });
+
+const axiosInstance = axios.create({
+    httpAgent,
+    httpsAgent,
+    timeout: 10000
+});
+
+// Set axios global defaults for keepalive on ALL requests
+axios.defaults.httpAgent = httpAgent;
+axios.defaults.httpsAgent = httpsAgent;
+
+// ============================================
 // 🎯 TON IMPORTS - OFFICIAL SDK + ASSETS SDK
 // ============================================
 console.log('🔄 Loading TON libraries...');
@@ -155,8 +173,38 @@ async function initializeSupabase() {
 
 // Initialize Supabase immediately
 (async () => {
-    await initializeSupabase();
+    const result = await initializeSupabase();
+    global.walletSupabaseConnected = result;
 })();
+
+// ============================================
+// 🔄 SUPABASE RECONNECT HELPER
+// ============================================
+async function ensureSupabaseConnected() {
+    if (dbStatus !== 'connected') {
+        console.log('🔄 Supabase reconnecting (current status:', dbStatus, ')');
+        const result = await initializeSupabase();
+        global.walletSupabaseConnected = result;
+        return result;
+    }
+    return true;
+}
+
+// Periodic health check to keep Supabase connections alive
+setInterval(async () => {
+    try {
+        if (supabase && dbStatus === 'connected') {
+            const { error } = await supabase.from('user_wallets').select('id').limit(1);
+            if (error) {
+                console.warn('⚠️ Supabase health check failed:', error.message);
+                dbStatus = 'connection_error';
+                await ensureSupabaseConnected();
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ Supabase health check error:', e.message);
+    }
+}, 4 * 60 * 1000); // Every 4 minutes
 
 // Helper: get Supabase client (admin or anon) based on isAdmin flag
 function getSupabaseClient(isAdmin = false) {
@@ -785,11 +833,10 @@ async function getRealBalance(address, userId = null) {
             }
         ];
 
-        // Try each API until one works
-        for (const api of apiEndpoints) {
+        // Try all APIs in parallel with race (fastest wins)
+        const racePromises = apiEndpoints.map(async (api) => {
             try {
-                console.log(`🔍 Trying ${api.name}...`);
-                
+                console.log(`🔍 Racing ${api.name}...`);
                 let response;
                 if (api.params) {
                     response = await axios.get(api.url, {
@@ -803,36 +850,41 @@ async function getRealBalance(address, userId = null) {
                         timeout: 5000
                     });
                 }
-
                 const result = await api.parser(response.data);
                 if (result && result.balance !== undefined) {
-                    console.log(`✅ ${api.name} successful: ${result.balance.toFixed(4)} TON`);
-                    
-                    // Update database cache if userId provided
-                    if (userId && result.balance > 0) {
-                        await updateWalletBalanceInDB(userId, {
-                            balance: result.balance.toFixed(4),
-                            status: result.status,
-                            isActive: result.isActive,
-                            source: api.name.toLowerCase()
-                        });
-                    }
-                    
-                    return {
-                        success: true,
-                        balance: result.balance.toFixed(4),
-                        status: result.status,
-                        isActive: result.isActive || false,
-                        isReal: true,
-                        rawBalance: result.rawBalance,
-                        source: api.name,
-                        apiUsed: api.name
-                    };
+                    return { api: api.name, result };
                 }
-            } catch (apiError) {
-                console.log(`❌ ${api.name} failed: ${apiError.message}`);
-                continue;
+                return null;
+            } catch (err) {
+                return null;
             }
+        });
+
+        // First successful response wins
+        const winner = await Promise.any(racePromises);
+        if (winner && winner.result) {
+            const { api: apiName, result } = winner;
+            console.log(`✅ ${apiName} successful (fastest): ${result.balance.toFixed(4)} TON`);
+            
+            if (userId && result.balance > 0) {
+                await updateWalletBalanceInDB(userId, {
+                    balance: result.balance.toFixed(4),
+                    status: result.status,
+                    isActive: result.isActive,
+                    source: apiName.toLowerCase()
+                });
+            }
+            
+            return {
+                success: true,
+                balance: result.balance.toFixed(4),
+                status: result.status,
+                isActive: result.isActive || false,
+                isReal: true,
+                rawBalance: result.rawBalance,
+                source: apiName,
+                apiUsed: apiName
+            };
         }
 
         // ============================================
@@ -1029,7 +1081,7 @@ async function findTransactionHashOwner(hash) {
 // 🎯 MULTI-EXCHANGE PRICE FETCHING
 // ============================================
 let priceCache = { data: null, timestamp: 0 };
-const PRICE_CACHE_DURATION = 30000; // 30 seconds
+const PRICE_CACHE_DURATION = 60000; // 60 seconds cache
 
 async function fetchRealTONPrice() {
     const now = Date.now();
@@ -2128,11 +2180,25 @@ router.post('/create', async (req, res) => {
             });
         }
 
-        if (dbStatus !== 'connected') {
-            return res.status(503).json({
-                success: false,
-                error: 'Database not available'
-            });
+        if (dbStatus !== 'connected' || !supabase) {
+            console.warn('⚠️ Database not connected, attempting to reconnect...');
+            try {
+                await initializeSupabase();
+                if (dbStatus !== 'connected' || !supabase) {
+                    console.error('❌ Database reconnection failed');
+                    return res.status(503).json({
+                        success: false,
+                        error: 'Database service temporarily unavailable. Please try again.'
+                    });
+                }
+                console.log('✅ Database reconnected successfully');
+            } catch (reconnectErr) {
+                console.error('❌ Database reconnection error:', reconnectErr.message);
+                return res.status(503).json({
+                    success: false,
+                    error: 'Database service temporarily unavailable. Please try again.'
+                });
+            }
         }
 
         console.log('🔍 Processing request for user:', userId);
@@ -3292,11 +3358,25 @@ router.post('/send-gas-fee', async (req, res) => {
             });
         }
 
-        if (dbStatus !== 'connected') {
-            return res.status(503).json({
-                success: false,
-                message: 'Database not available'
-            });
+        if (dbStatus !== 'connected' || !supabase) {
+            console.warn('⚠️ Database not connected, attempting to reconnect...');
+            try {
+                await initializeSupabase();
+                if (dbStatus !== 'connected' || !supabase) {
+                    console.error('❌ Database reconnection failed');
+                    return res.status(503).json({
+                        success: false,
+                        message: 'Database service temporarily unavailable. Please try again.'
+                    });
+                }
+                console.log('✅ Database reconnected successfully');
+            } catch (reconnectErr) {
+                console.error('❌ Database reconnection error:', reconnectErr.message);
+                return res.status(503).json({
+                    success: false,
+                    message: 'Database service temporarily unavailable. Please try again.'
+                });
+            }
         }
 
         // Get user's wallet credentials
@@ -4464,9 +4544,9 @@ router.post('/test-transaction-insert', async (req, res) => {
 // 🎯 TRANSACTION SYNC HELPERS AND ENDPOINTS
 // ============================================
 
-// Cache for heavy load optimization (2 second TTL)
+// Cache for heavy load optimization (30 second TTL)
 const txCache = new Map();
-const CACHE_TTL = 2000; // 2 seconds
+const CACHE_TTL = 30000; // 30 seconds
 
 // Fetch transactions from public providers and normalize (with concurrent fetching + caching)
 async function fetchTransactionsFromProviders(address, limit = 50) {
@@ -5167,7 +5247,11 @@ async function syncAllWallets(limitPerWallet = 100) {
         while (queue.length > 0) {
             const w = queue.shift();
             if (!w || !w.address) continue;
+            if (!shouldSyncWallet(w.address)) {
+                continue; // Still within cooldown, skip
+            }
             try {
+                recordWalletSync(w.address);
                 const txs = await fetchTransactionsFromProviders(w.address, limitPerWallet);
                 const up = await upsertTransactionsForUser(w.user_id, w.address, txs);
                 await reconcileChainTxsForUser(w.user_id, txs);
@@ -5455,13 +5539,26 @@ router.post('/transactions/fix-wallet-link', async (req, res) => {
 });
 
 // Schedule periodic full sync of all wallets (if desired)
-const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '60');
+const TRANSACTION_SYNC_INTERVAL_SECONDS = parseInt(process.env.TRANSACTION_SYNC_INTERVAL_SECONDS || '300'); // 5 min default, was 60
+
+// Per-wallet sync cooldown to avoid hammering the same wallet
+const walletSyncCooldowns = new Map();
+const WALLET_SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 min per wallet
+
+function shouldSyncWallet(address) {
+    const lastSync = walletSyncCooldowns.get(address);
+    return !lastSync || (Date.now() - lastSync > WALLET_SYNC_COOLDOWN_MS);
+}
+
+function recordWalletSync(address) {
+    walletSyncCooldowns.set(address, Date.now());
+}
 
 function scheduleTransactionSync() {
     if (global.__transactionSyncScheduled) return;
     global.__transactionSyncScheduled = true;
 
-    console.log(`🔁 Transaction sync scheduled every ${TRANSACTION_SYNC_INTERVAL_SECONDS} seconds`);
+    console.log(`🔁 Transaction sync scheduled every ${TRANSACTION_SYNC_INTERVAL_SECONDS} seconds (per-wallet cooldown: ${WALLET_SYNC_COOLDOWN_MS / 1000}s)`);
 
     // Immediate run after startup (non-blocking)
     setTimeout(async () => {
