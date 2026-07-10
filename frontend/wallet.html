@@ -234,97 +234,83 @@
 
         /* Treasury Reference Card */
         .treasury-ref-card {
-            background: linear-gradient(135deg, rgba(46, 204, 113, 0.08) 0%, rgba(46, 204, 113, 0.03) 100%);
-            border: 1px solid rgba(46, 204, 113, 0.2);
-            border-radius: var(--border-radius);
-            margin: 0 20px 16px;
-            padding: 14px 18px;
-            box-shadow: var(--shadow);
+            background: linear-gradient(135deg, rgba(46, 204, 113, 0.06) 0%, rgba(46, 204, 113, 0.02) 100%);
+            border: 1px solid rgba(46, 204, 113, 0.15);
+            border-radius: var(--border-radius-sm);
+            margin: 0 20px 10px;
+            padding: 10px 16px;
         }
         .treasury-ref-header {
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 6px;
+            margin-bottom: 4px;
         }
         .treasury-ref-icon {
-            width: 16px; height: 16px;
-            color: rgba(46, 204, 113, 0.8);
+            width: 14px; height: 14px;
+            color: rgba(46, 204, 113, 0.7);
         }
         .treasury-ref-label {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: rgba(46, 204, 113, 0.8);
+            color: rgba(46, 204, 113, 0.7);
         }
         .treasury-info-btn {
             background: none;
             border: none;
-            color: rgba(255,255,255,0.3);
+            color: rgba(255,255,255,0.25);
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             padding: 0;
             margin-left: auto;
             transition: color 0.2s;
         }
-        .treasury-info-btn:hover { color: rgba(255,255,255,0.7); }
+        .treasury-info-btn:hover { color: rgba(255,255,255,0.6); }
         .treasury-ref-body {
             display: flex;
             align-items: baseline;
-            gap: 12px;
+            gap: 10px;
         }
         .treasury-ref-value {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 700;
             color: var(--gold);
             font-family: monospace;
         }
-
-        /* Token Treasury Reference (NMX card) */
-        .token-treasury-ref {
-            margin-top: 2px;
-        }
-        .token-treasury-ref .tr-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: rgba(46, 204, 113, 0.7);
-            display: block;
-            margin-bottom: 2px;
-        }
-        .token-treasury-ref .tr-val {
-            font-size: 13px;
-            font-weight: 600;
-            font-family: monospace;
-            color: var(--gold);
-        }
         .treasury-ref-change {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
         }
         .treasury-ref-change.positive { color: var(--success); }
         .treasury-ref-change.negative { color: var(--danger); }
         .treasury-ref-change.neutral { color: var(--text-muted); }
+
+        /* NMX card treasury ref inline */
+        .token-treasury-ref { margin-top: 2px; }
+        .token-treasury-ref .tr-val { font-size: 13px; font-weight: 600; font-family: monospace; color: var(--gold); }
+        .token-treasury-ref .tr-label { font-size: 10px; color: rgba(46,204,113,0.6); font-weight: 600; }
+
         .treasury-ref-footer {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 6px;
+            margin-top: 4px;
         }
         .treasury-ref-sync {
-            font-size: 11px;
+            font-size: 10px;
             color: var(--text-muted);
         }
         .treasury-ref-status {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 11px;
+            gap: 4px;
+            font-size: 10px;
             font-weight: 600;
         }
         .tr-status-dot {
-            width: 6px; height: 6px;
+            width: 5px; height: 5px;
             border-radius: 50%;
             background: var(--success);
         }
@@ -358,9 +344,9 @@
         .action-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            padding: 20px;
-            margin: 0 10px;
+            gap: 12px;
+            padding: 12px 20px 6px;
+            margin: 0;
         }
 
         .action-btn {
@@ -2360,6 +2346,28 @@
                     </div>
                 </section>
 
+                <!-- Treasury Reference Value -->
+                <div class="treasury-ref-card" id="treasuryRefCard">
+                    <div class="treasury-ref-header">
+                        <svg class="treasury-ref-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        <span class="treasury-ref-label">Treasury Reference</span>
+                        <button class="treasury-info-btn" id="trInfoBtn" title="What is the Treasury Reference Value?">ⓘ</button>
+                    </div>
+                    <div class="treasury-ref-body">
+                        <div class="treasury-ref-value" id="trValue">—</div>
+                        <div class="treasury-ref-change" id="trChange">—</div>
+                    </div>
+                    <div class="treasury-ref-footer">
+                        <span class="treasury-ref-sync" id="trSyncTime">—</span>
+                        <span class="treasury-ref-status" id="trStatus">
+                            <span class="tr-status-dot"></span>
+                            <span id="trStatusText">—</span>
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Action Buttons -->
                 <div class="action-buttons">
                     <div class="action-btn" onclick="showSendModal()" id="sendButton">
@@ -2385,28 +2393,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
                         </svg>
                         <div class="action-label">Trade</div>
-                    </div>
-                </div>
-
-                <!-- Treasury Reference Value -->
-                <div class="treasury-ref-card" id="treasuryRefCard">
-                    <div class="treasury-ref-header">
-                        <svg class="treasury-ref-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                        </svg>
-                        <span class="treasury-ref-label">Treasury Reference</span>
-                        <button class="treasury-info-btn" id="trInfoBtn" title="What is the Treasury Reference Value?">ⓘ</button>
-                    </div>
-                    <div class="treasury-ref-body">
-                        <div class="treasury-ref-value" id="trValue">—</div>
-                        <div class="treasury-ref-change" id="trChange">—</div>
-                    </div>
-                    <div class="treasury-ref-footer">
-                        <span class="treasury-ref-sync" id="trSyncTime">Last updated: —</span>
-                        <span class="treasury-ref-status" id="trStatus">
-                            <span class="tr-status-dot"></span>
-                            <span id="trStatusText">Loading...</span>
-                        </span>
                     </div>
                 </div>
 
@@ -5086,9 +5072,8 @@ function updateWalletDisplay() {
 
                 priceLine = `
                     <div class="token-treasury-ref">
-                        <span class="tr-label">Treasury Ref</span>
-                        <span class="tr-val">${tv > 0 ? tv.toFixed(8) : '—'}</span>
-                        ${tChange ? `<span class="token-change ${tChange.cls}">Treasury Ref Change ${tChange.text}</span>` : ''}
+                        <span class="tr-val">${tv > 0 ? tv.toFixed(8) : '—'} <span class="tr-label">TR</span></span>
+                        ${tChange ? `<span class="token-change ${tChange.cls}">${tChange.text}</span>` : ''}
                     </div>`;
             } else {
                 priceLine = `
