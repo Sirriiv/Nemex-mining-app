@@ -7,7 +7,7 @@ const argon2 = require('argon2');
 const bcrypt = require('bcrypt');
 const axios = require('axios');
 const { mnemonicToPrivateKey } = require('@ton/crypto');
-const { WalletContractV4, TonClient, Address, internal, toNano, fromNano, beginCell } = require('@ton/ton');
+const { WalletContractV4, WalletContractV5R1, TonClient, Address, internal, toNano, fromNano, beginCell } = require('@ton/ton');
 
 const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
 const TREASURY_TON_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
@@ -59,19 +59,34 @@ async function getTreasurySigner() {
     const mnemonic = await decryptTreasuryMnemonic();
     const words = mnemonic.trim().split(/\s+/);
     _treasuryKeyPair = await mnemonicToPrivateKey(words);
-    _treasuryWalletContract = WalletContractV4.create({
-        workchain: 0,
-        publicKey: _treasuryKeyPair.publicKey
-    });
 
-    const derived = _treasuryWalletContract.address.toString({ urlSafe: true, bounceable: false });
-    if (derived !== TREASURY_TON_WALLET) {
-        _treasuryKeyPair = null;
-        _treasuryWalletContract = null;
-        throw new Error(`Treasury mnemonic mismatch. Expected ${TREASURY_TON_WALLET}, derived ${derived}`);
+    // Try V5R1 first (most common for modern wallets), then V4
+    const contracts = [];
+    for (let sub = 0; sub <= 15; sub++) {
+        try {
+            contracts.push(WalletContractV5R1.create({
+                workchain: 0, publicKey: _treasuryKeyPair.publicKey,
+                walletId: { networkGlobalId: -239, context: { workchain: 0, walletVersion: 'v5r1', subwalletNumber: sub } }
+            }));
+        } catch {}
+    }
+    contracts.push(WalletContractV4.create({ workchain: 0, publicKey: _treasuryKeyPair.publicKey }));
+
+    for (const c of contracts) {
+        const derived = c.address.toString({ urlSafe: true, bounceable: false });
+        if (derived === TREASURY_TON_WALLET) {
+            _treasuryWalletContract = c;
+            return { keyPair: _treasuryKeyPair, walletContract: _treasuryWalletContract };
+        }
     }
 
-    return { keyPair: _treasuryKeyPair, walletContract: _treasuryWalletContract };
+    // No match — report the first derived address for debugging
+    const firstDerived = contracts.length > 0
+        ? contracts[0].address.toString({ urlSafe: true, bounceable: false })
+        : 'none';
+    _treasuryKeyPair = null;
+    _treasuryWalletContract = null;
+    throw new Error(`Treasury mnemonic mismatch. Expected ${TREASURY_TON_WALLET}, derived ${firstDerived}`);
 }
 
 function clearTreasurySignerCache() {
