@@ -76,8 +76,24 @@ async function fetchTonBalance(address) {
         }
     });
 
-    const winner = await Promise.any(races);
-    if (winner) return winner;
+    // Try all in parallel race, then fall back to sequential if race fails
+    try {
+        const winner = await Promise.any(races);
+        if (winner) return winner;
+    } catch {}
+
+    // Sequential fallback — try each API one at a time
+    for (const ep of endpoints) {
+        try {
+            const cfg = { headers: ep.headers || {}, timeout: 10000 };
+            if (ep.params) cfg.params = ep.params;
+            const resp = await axios.get(ep.url, cfg);
+            const balance = await ep.parser(resp.data);
+            if (balance !== null && balance !== undefined) {
+                return { source: ep.name + ' (sequential)', balance };
+            }
+        } catch {}
+    }
 
     throw new Error('All TON balance APIs failed');
 }
