@@ -415,19 +415,38 @@ function getGitShortCommit() {
     }
 }
 
-app.get('/api/deploy-info', (req, res) => {
-    const commit = getGitShortCommit();
-    res.json({
-        success: true,
-        commit,
-        env: {
-            TONCENTER_API_KEY: !!process.env.TONCENTER_API_KEY,
-            TON_CONSOLE_API_KEY: !!process.env.TON_CONSOLE_API_KEY,
-            TONAPI_KEY: !!process.env.TONAPI_KEY,
-            NODE_ENV: process.env.NODE_ENV || 'development'
-        },
-        timestamp: new Date().toISOString()
-    });
+app.get('/api/deploy-info', async (req, res) => {
+    try {
+        const commit = getGitShortCommit();
+
+        let treasurySigner = null;
+        try {
+            const settlement = require('./backend/settlement-engine');
+            const signer = await settlement.getTreasurySigner();
+            treasurySigner = {
+                match: signer.walletContract.address.toString({ urlSafe: true, bounceable: false }) === settlement.TREASURY_TON_WALLET
+            };
+        } catch (e) {
+            treasurySigner = { error: e.message.substring(0, 100) };
+        }
+
+        res.json({
+            success: true,
+            commit,
+            env: {
+                TONCENTER_API_KEY: !!process.env.TONCENTER_API_KEY,
+                TON_CONSOLE_API_KEY: !!process.env.TON_CONSOLE_API_KEY,
+                TONAPI_KEY: !!process.env.TONAPI_KEY,
+                NODE_ENV: process.env.NODE_ENV || 'development',
+                TREASURY_MNEMONIC_SET: !!process.env.TREASURY_MNEMONIC_ENCRYPTED,
+                TREASURY_WALLET_SET: !!process.env.TREASURY_WALLET_ADDRESS
+            },
+            treasurySigner,
+            timestamp: new Date().toISOString()
+        });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
 });
 
 // =============================================
