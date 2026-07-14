@@ -133,20 +133,39 @@ async function decryptUserMnemonic(wallet, walletPassword) {
         ? JSON.parse(wallet.encrypted_mnemonic)
         : wallet.encrypted_mnemonic;
 
-    const iv = Buffer.from(data.iv, 'hex');
-    const authTag = Buffer.from(data.authTag, 'hex');
-    const salt = Buffer.from(data.salt, 'hex');
+    const algorithm = data.algorithm || 'aes-256-gcm';
 
-    const key = await argon2.hash(walletPassword, {
-        salt, raw: true, hashLength: 32,
-        type: argon2.argon2id,
-        timeCost: data.kdfParams?.timeCost || 3,
-        memoryCost: data.kdfParams?.memoryCost || (1 << 16)
-    });
+    // Detect encoding: hex (wallet creation) vs base64 (password recovery)
+    const hasAlgorithmField = !!data.algorithm;
+    const encoding = hasAlgorithmField ? 'hex' : 'base64';
 
-    const decipher = crypto.createDecipheriv(data.algorithm, key, iv);
+    const iv = Buffer.from(data.iv, encoding);
+    const authTag = Buffer.from(data.authTag, encoding);
+    const decryptedText = data.encrypted;
+
+    let key;
+    if (data.kdf === 'argon2id' && data.salt) {
+        const salt = Buffer.from(data.salt, encoding);
+        key = await argon2.hash(walletPassword, {
+            salt, raw: true, hashLength: 32,
+            type: argon2.argon2id,
+            timeCost: data.kdfParams?.timeCost || 3,
+            memoryCost: data.kdfParams?.memoryCost || (1 << 16)
+        });
+    } else {
+        // scrypt fallback (password recovery format)
+        const salt = Buffer.from(data.salt || 'nemex-salt', encoding);
+        key = await new Promise((resolve, reject) => {
+            crypto.scrypt(walletPassword, salt, 32, (err, derivedKey) => {
+                if (err) reject(err);
+                else resolve(derivedKey);
+            });
+        });
+    }
+
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
     decipher.setAuthTag(authTag);
-    let decrypted = decipher.update(data.encrypted, 'hex', 'utf8');
+    let decrypted = decipher.update(decryptedText, encoding, 'utf8');
     decrypted += decipher.final('utf8');
 
     return decrypted;
