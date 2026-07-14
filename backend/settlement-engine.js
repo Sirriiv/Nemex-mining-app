@@ -135,26 +135,35 @@ async function decryptUserMnemonic(wallet, walletPassword) {
 
     const algorithm = data.algorithm || 'aes-256-gcm';
 
-    // Detect encoding: hex (wallet creation) vs base64 (password recovery)
-    const hasAlgorithmField = !!data.algorithm;
-    const encoding = hasAlgorithmField ? 'hex' : 'base64';
+    let encoding, iv, authTag, decryptedText, key;
 
-    const iv = Buffer.from(data.iv, encoding);
-    const authTag = Buffer.from(data.authTag, encoding);
-    const decryptedText = data.encrypted;
-
-    let key;
     if (data.kdf === 'argon2id' && data.salt) {
-        const salt = Buffer.from(data.salt, encoding);
+        // Format 1: Wallet creation — hex-encoded, argon2id KDF
+        encoding = 'hex';
+        iv = Buffer.from(data.iv, 'hex');
+        authTag = Buffer.from(data.authTag, 'hex');
+        decryptedText = data.encrypted;
+        const salt = Buffer.from(data.salt, 'hex');
         key = await argon2.hash(walletPassword, {
             salt, raw: true, hashLength: 32,
             type: argon2.argon2id,
             timeCost: data.kdfParams?.timeCost || 3,
             memoryCost: data.kdfParams?.memoryCost || (1 << 16)
         });
+    } else if (data.algorithm) {
+        // Format 2: Legacy wallet creation — hex-encoded, scrypt with static salt
+        encoding = 'hex';
+        iv = Buffer.from(data.iv, 'hex');
+        authTag = Buffer.from(data.authTag, 'hex');
+        decryptedText = data.encrypted;
+        key = crypto.scryptSync(walletPassword, 'nemex-salt', 32);
     } else {
-        // scrypt fallback (password recovery format)
-        const salt = Buffer.from(data.salt || 'nemex-salt', encoding);
+        // Format 3: Password recovery — base64-encoded, scrypt with random salt
+        encoding = 'base64';
+        iv = Buffer.from(data.iv, 'base64');
+        authTag = Buffer.from(data.authTag, 'base64');
+        decryptedText = data.encrypted;
+        const salt = Buffer.from(data.salt, 'base64');
         key = await new Promise((resolve, reject) => {
             crypto.scrypt(walletPassword, salt, 32, (err, derivedKey) => {
                 if (err) reject(err);
