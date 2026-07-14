@@ -343,14 +343,33 @@ function parseJettonMaster(address) {
 async function runGetMethod(client, contractAddress, method, stackParams = []) {
     try {
         const response = await client.runMethod(contractAddress, method, stackParams);
-        if (response.stack && response.stack.length > 0) {
-            const resultItem = response.stack[0];
-            const cell = resultItem.cell;
-            if (cell) {
-                const slice = cell.beginParse();
-                const addr = slice.loadAddress();
-                if (addr) {
-                    return addr.toString({ urlSafe: true, bounceable: true });
+        console.log(`[Settle] runGetMethod(${method}) response keys:`, Object.keys(response));
+        if (response.stack) {
+            console.log(`[Settle] runGetMethod(${method}) stack length:`, response.stack.length);
+            if (response.stack.length > 0) {
+                const item = response.stack[0];
+                console.log(`[Settle] runGetMethod(${method}) stack[0] keys:`, Object.keys(item));
+                console.log(`[Settle] runGetMethod(${method}) stack[0] type:`, item.type);
+                console.log(`[Settle] runGetMethod(${method}) stack[0] cell:`, typeof item.cell, !!item.cell);
+                console.log(`[Settle] runGetMethod(${method}) stack[0] cells:`, !!item.cells);
+                // Try all known cell formats
+                let cell = item.cell;
+                if (!cell && item.cells && Array.isArray(item.cells) && item.cells.length > 0) {
+                    cell = item.cells[0];
+                    console.log(`[Settle] Using cells[0]`);
+                }
+                if (cell) {
+                    try {
+                        const slice = cell.beginParse();
+                        const addr = slice.loadAddress();
+                        if (addr) {
+                            const result = addr.toString({ urlSafe: true, bounceable: true });
+                            console.log(`[Settle] Derived jetton wallet:`, result);
+                            return result;
+                        }
+                    } catch (parseErr) {
+                        console.error(`[Settle] Cell parse failed:`, parseErr.message);
+                    }
                 }
             }
         }
