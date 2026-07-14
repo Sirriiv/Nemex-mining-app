@@ -254,9 +254,13 @@ async function sendNmxJetton(supabase, fromKeyPair, fromWalletContract, toAddres
     const jettonMasterAddr = parseJettonMaster(NMX_JETTON_MASTER);
 
     // Get Jetton wallet address for sender
+    const ownerAddressCell = beginCell()
+        .storeAddress(fromWalletContract.address)
+        .endCell();
+
     const jettonWalletAddr = await runGetMethod(
         client, jettonMasterAddr, 'get_wallet_address',
-        [{ type: 'slice', value: fromWalletContract.address.toString() }]
+        [{ type: 'slice', cell: ownerAddressCell }]
     );
 
     if (!jettonWalletAddr) throw new Error('Failed to derive Jetton wallet address');
@@ -338,12 +342,17 @@ function parseJettonMaster(address) {
 
 async function runGetMethod(client, contractAddress, method, stackParams = []) {
     try {
-        const { stack } = await client.runMethod(contractAddress, method, stackParams);
-        if (stack && stack.length > 0 && stack[0][1] === 'slice') {
-            const cell = stack[0][2];
-            const slice = cell.beginParse();
-            const addr = slice.loadAddress();
-            return addr.toString({ urlSafe: true, bounceable: true });
+        const response = await client.runMethod(contractAddress, method, stackParams);
+        if (response.stack && response.stack.length > 0) {
+            const resultItem = response.stack[0];
+            const cell = resultItem.cell;
+            if (cell) {
+                const slice = cell.beginParse();
+                const addr = slice.loadAddress();
+                if (addr) {
+                    return addr.toString({ urlSafe: true, bounceable: true });
+                }
+            }
         }
         return null;
     } catch (e) {
