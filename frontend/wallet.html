@@ -4833,10 +4833,8 @@ async function fetchTreasuryReference() {
 
         updateTreasuryRefCard(previousValue, currentValue);
 
-        // Refresh token list so NMX card updates with new treasury ref
-        if (SUPPORTED_TOKENS[1] && typeof SUPPORTED_TOKENS[1].balance !== 'undefined') {
-            updateWalletDisplay();
-        }
+        // Update NMX price from treasury reference value
+        updateNmxPriceFromTreasury();
 
         if (currentValue > 0) {
             setStoredRefValue(currentValue);
@@ -4846,6 +4844,21 @@ async function fetchTreasuryReference() {
         document.getElementById('trStatusText').textContent = 'Offline';
         const dot = document.querySelector('.tr-status-dot');
         if (dot) dot.className = 'tr-status-dot offline';
+    }
+}
+
+function updateNmxPriceFromTreasury() {
+    const refValue = treasuryRefData.referenceValue;
+    if (refValue && refValue > 0) {
+        // referenceValue = TON / NMX (how much TON per 1 NMX)
+        // NMX price in USD = TON price * referenceValue
+        const tonPrice = SUPPORTED_TOKENS[0].price || 1.0;
+        const nmxPrice = tonPrice * refValue;
+        const previousPrice = SUPPORTED_TOKENS[1].price;
+        SUPPORTED_TOKENS[1].price = nmxPrice;
+        console.log('📊 NMX price from treasury:', previousPrice.toFixed(8), '→', nmxPrice.toFixed(8), 
+            '(TON=' + tonPrice + ', ref=' + refValue + ')');
+        updateWalletDisplay();
     }
 }
 
@@ -7213,13 +7226,13 @@ async function fetchPricesWithFastestAPI() {
             }
 
             if (fastest.prices.NMX.price > 0) {
-                // Developer override: force NMX display price to 0.001 for testing/verification
-                SUPPORTED_TOKENS[1].price = 0.001;
-                // ⚠️ CoinGecko may not have 24h change for NMX yet, use fallback if zero
-                SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h || 2.5; // Fallback: +2.5%
-                console.log('📊 Set NMX change24h:', SUPPORTED_TOKENS[1].change24h, 
-                    fastest.prices.NMX.change24h === 0 ? '(using fallback)' : '(from API)');
+                SUPPORTED_TOKENS[1].price = fastest.prices.NMX.price;
+                SUPPORTED_TOKENS[1].change24h = fastest.prices.NMX.change24h || 2.5;
+                console.log('📊 Set NMX change24h:', SUPPORTED_TOKENS[1].change24h);
             }
+
+            // Override NMX price from treasury reference value if available
+            updateNmxPriceFromTreasury();
 
             // ✅ Cache the successful result
             priceCache = fastest.prices;
