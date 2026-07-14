@@ -103,8 +103,10 @@ async function connectTonClient() {
             if (rpc.apiKey) cfg.apiKey = rpc.apiKey;
             const client = new TonClient(cfg);
             await client.getBalance(Address.parse(TREASURY_TON_WALLET));
+            console.log(`[Settle] Connected to ${rpc.name}`);
             return { client, name: rpc.name };
-        } catch {
+        } catch (err) {
+            console.warn(`[Settle] ${rpc.name} unreachable:`, err.message);
             continue;
         }
     }

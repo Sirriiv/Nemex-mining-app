@@ -395,12 +395,16 @@ router.post('/trade/settle', async (req, res) => {
             });
         }
 
+        console.log(`[Settle] Starting settlement for trade ${trade_id}, user ${user_id}`);
+
         const result = await settlement.settleTrade(
             req.supabase,
             trade_id,
             user_id,
             wallet_password
         );
+
+        console.log(`[Settle] Settlement completed for trade ${trade_id}`);
 
         res.json({
             success: true,
@@ -409,7 +413,15 @@ router.post('/trade/settle', async (req, res) => {
             settlement: result.settlement
         });
     } catch (err) {
-        console.error('Settle error:', err);
+        console.error('[Settle] Error stack:', err.stack);
+        console.error('[Settle] Error details:', {
+            message: err.message,
+            name: err.name,
+            code: err.code,
+            status: err.status,
+            response: err.response?.data,
+            details: err.details
+        });
 
         const message = err.message.includes('already settled') ? err.message
             : err.message.includes('expired') ? err.message
