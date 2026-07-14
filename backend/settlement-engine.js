@@ -198,9 +198,14 @@ async function sendTon(supabase, fromKeyPair, fromWalletContract, toAddress, amo
         throw new Error(`Insufficient TON: have ${balanceTon.toFixed(4)}, need ${amountTon.toFixed(4)} + gas`);
     }
 
-    console.log(`[Settle] sendTon: getting contract state...`);
-    const contractState = await client.getContractState(fromWalletContract.address);
-    const seqno = contractState.seqno ?? 0;
+    console.log(`[Settle] sendTon: getting seqno...`);
+    const openedContract = client.open(fromWalletContract);
+    let seqno;
+    try {
+        seqno = await openedContract.getSeqno();
+    } catch {
+        throw new Error(`User wallet not deployed. Fund it with at least 0.05 TON first.`);
+    }
     console.log(`[Settle] sendTon: seqno=${seqno}`);
 
     const transfer = fromWalletContract.createTransfer({
@@ -277,8 +282,8 @@ async function sendNmxJetton(supabase, fromKeyPair, fromWalletContract, toAddres
         .storeRef(forwardPayload)
         .endCell();
 
-    const contractState = await client.getContractState(fromWalletContract.address);
-    const seqno = contractState.seqno ?? 0;
+    const openedContract = client.open(fromWalletContract);
+    const seqno = await openedContract.getSeqno();
 
     const transfer = fromWalletContract.createTransfer({
         secretKey: fromKeyPair.secretKey,
@@ -292,7 +297,12 @@ async function sendNmxJetton(supabase, fromKeyPair, fromWalletContract, toAddres
         sendMode: 3
     });
 
-    await client.sendExternalMessage(fromWalletContract, transfer);
+    try {
+        await client.sendExternalMessage(fromWalletContract, transfer);
+    } catch (sendErr) {
+        const detail = sendErr.response?.data || sendErr.message;
+        throw new Error(`NMX broadcast failed via ${name}: ${JSON.stringify(detail).substring(0, 200)}`);
+    }
     console.log(`[Settle] Sent ${amountNmx} NMX → ${toAddress.substring(0, 12)}... via ${name}, seqno=${seqno}`);
 
     const txHash = crypto.createHash('sha256')
