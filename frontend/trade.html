@@ -705,6 +705,17 @@
                     });
                     const balData = await balResp.json();
                     state.tonBalance = parseFloat(balData.balance) || 0;
+
+                    // Also load live NMX jetton balance
+                    const nmxResp = await fetch(`/api/wallet/jetton-balance/${walletAddress}?jettonMasterAddress=0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec`, {
+                        headers: { 'Authorization': `Bearer ${state.accessToken}` }
+                    });
+                    const nmxData = await nmxResp.json();
+                    if (nmxData.success) {
+                        state.nmxBalance = parseFloat(nmxData.balance) || 0;
+                        document.getElementById('nmxAvailable').textContent =
+                            new Intl.NumberFormat().format(state.nmxBalance);
+                    }
                 }
             } catch (err) {
                 console.error('TON balance load error:', err);
@@ -712,21 +723,6 @@
 
             document.getElementById('tonAvailable').textContent =
                 state.tonBalance.toFixed(4);
-
-            // Load locked NMX balance for Sell tab
-            try {
-                const tradeResp = await fetch(`/api/trade/stats?user_id=${state.userId}`, {
-                    headers: { 'Authorization': `Bearer ${state.accessToken}` }
-                });
-                const tradeData = await tradeResp.json();
-                if (tradeData.success && tradeData.stats) {
-                    state.nmxBalance = parseFloat(tradeData.stats.lockedNmxBalance) || 0;
-                    document.getElementById('nmxAvailable').textContent =
-                        new Intl.NumberFormat().format(state.nmxBalance);
-                }
-            } catch (err) {
-                console.error('NMX balance load error:', err);
-            }
         }
 
         // ─── Tab Switching ──────────────────────────────────────

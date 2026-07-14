@@ -480,18 +480,24 @@ async function settleSell(supabase, trade, quote, userId, walletPassword) {
         throw new Error('Trade already settled');
     }
 
+    console.log(`[Settle] settleSell: loading treasury signer and user wallet...`);
     const [treasurySigner, userWallet] = await Promise.all([
         getTreasurySigner(),
         getUserWallet(supabase, userId)
     ]);
+    console.log(`[Settle] settleSell: user wallet loaded: ${userWallet.address?.substring(0, 12)}...`);
 
+    console.log(`[Settle] settleSell: decrypting user mnemonic...`);
     const userMnemonic = await decryptUserMnemonic(userWallet, walletPassword);
+    console.log(`[Settle] settleSell: mnemonic decrypted OK`);
     const userWords = userMnemonic.split(' ');
     const userKeyPair = await mnemonicToPrivateKey(userWords);
     const userContract = WalletContractV4.create({
         workchain: 0,
         publicKey: userKeyPair.publicKey
     });
+    console.log(`[Settle] settleSell: user contract: ${userContract.address.toString({ urlSafe: true, bounceable: false }).substring(0, 12)}...`);
+    console.log(`[Settle] settleSell: stored address: ${userWallet.address?.substring(0, 12)}...`);
 
     const nmxAmount = parseFloat(trade.amount_from);
     const tonAmount = parseFloat(trade.amount_to);
@@ -499,9 +505,17 @@ async function settleSell(supabase, trade, quote, userId, walletPassword) {
     console.log(`[Settle] SELL: user→Treasury ${nmxAmount} NMX, Treasury→user ${tonAmount} TON`);
 
     // Step 1: User sends NMX to Treasury
-    const nmxTx = await sendNmxJetton(supabase, userKeyPair, userContract, TREASURY_TON_WALLET, nmxAmount);
+    console.log(`[Settle] settleSell: step 1 - user sends NMX to treasury...`);
+    let nmxTx;
+    try {
+        nmxTx = await sendNmxJetton(supabase, userKeyPair, userContract, TREASURY_TON_WALLET, nmxAmount);
+        console.log(`[Settle] settleSell: NMX sent OK, hash=${nmxTx.txHash?.substring(0, 12)}`);
+    } catch (nmxErr) {
+        throw new Error(`NMX transfer failed: ${nmxErr.message}`);
+    }
 
     // Step 2: Treasury sends TON to user
+    console.log(`[Settle] settleSell: step 2 - treasury sends TON to user...`);
     let tonTx;
     try {
         tonTx = await sendTon(supabase, treasurySigner.keyPair, treasurySigner.walletContract, userWallet.address, tonAmount);
