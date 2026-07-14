@@ -559,4 +559,59 @@ router.get('/config', async (req, res) => {
     }
 });
 
+// GET /api/finance/diagnostics — Internal diagnostics for settlement
+router.get('/diagnostics', async (req, res) => {
+    const results = { steps: {}, errors: [] };
+    try {
+        // 1. Test Supabase connection
+        const { data: walletTest, error: dbErr } = await req.supabase.from('user_wallets').select('id').limit(1);
+        results.steps.supabase = dbErr ? `FAIL: ${dbErr.message} (code: ${dbErr.code})` : `OK (rows: ${walletTest?.length || 0})`;
+        if (dbErr) results.errors.push({ step: 'supabase', error: dbErr.message, code: dbErr.code });
+
+        // 2. Test Treasury state read
+        const { data: treasury, error: treasuryErr } = await req.supabase.from('treasury_wallets').select('asset, balance').limit(2);
+        results.steps.treasury = treasuryErr ? `FAIL: ${treasuryErr.message}` : `OK (wallets: ${treasury?.length || 0})`;
+        if (treasuryErr) results.errors.push({ step: 'treasury', error: treasuryErr.message });
+
+        // 3. Test env vars
+        results.steps.env = {
+            hasSupabaseUrl: !!process.env.SUPABASE_URL,
+            hasServiceKey: !!process.env.SUPABASE_SERVICE_KEY,
+            serviceKeyLen: (process.env.SUPABASE_SERVICE_KEY || '').length,
+            hasTreasuryMnemonic: !!process.env.TREASURY_MNEMONIC_ENCRYPTED,
+            hasEncryptionKey: !!process.env.ENCRYPTION_KEY,
+            hasTreasuryAddress: !!process.env.TREASURY_WALLET_ADDRESS,
+            treasuryAddress: process.env.TREASURY_WALLET_ADDRESS || 'NOT SET',
+            hasTonConsoleKey: !!process.env.TON_CONSOLE_API_KEY,
+            hasTonCenterKey: !!process.env.TONCENTER_API_KEY,
+            nodeEnv: process.env.NODE_ENV
+        };
+
+        // 4. Test TON RPC endpoints
+        const { TonClient, Address } = require('@ton/ton');
+        const treasuryAddr = process.env.TREASURY_WALLET_ADDRESS || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
+        const rpcTests = [];
+        const rpcs = [
+            { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', key: process.env.TONCENTER_API_KEY },
+            { name: 'Public', endpoint: 'https://toncenter.com/api/v2/jsonRPC', key: undefined },
+        ];
+        for (const rpc of rpcs) {
+            try {
+                const cfg = { endpoint: rpc.endpoint, timeout: 8000 };
+                if (rpc.key) cfg.apiKey = rpc.key;
+                const client = new TonClient(cfg);
+                const balance = await client.getBalance(Address.parse(treasuryAddr));
+                rpcTests.push({ name: rpc.name, status: 'OK', balance: balance.toString() });
+            } catch (e) {
+                rpcTests.push({ name: rpc.name, status: 'FAIL', error: e.message.substring(0, 100) });
+            }
+        }
+        results.steps.tonRpc = rpcTests;
+
+        res.json({ success: true, diagnostics: results });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message, diagnostics: results });
+    }
+});
+
 module.exports = router;
