@@ -185,19 +185,24 @@ async function decryptUserMnemonic(wallet, walletPassword) {
 // ─── TON TRANSFER ──────────────────────────────────────────────
 
 async function sendTon(supabase, fromKeyPair, fromWalletContract, toAddress, amountTon) {
+    console.log(`[Settle] sendTon: connecting to RPC...`);
     const { client, name } = await connectTonClient();
+    console.log(`[Settle] sendTon: connected to ${name}`);
 
     const amountNano = toNano(amountTon.toFixed(9));
-    const minKeep = toNano('0.01');
+    console.log(`[Settle] sendTon: getting balance for ${fromWalletContract.address.toString().substring(0, 12)}...`);
 
     const balance = await client.getBalance(fromWalletContract.address);
     const balanceTon = Number(BigInt(balance)) / 1_000_000_000;
+    console.log(`[Settle] sendTon: balance=${balanceTon.toFixed(4)} TON`);
     if (balanceTon < amountTon + 0.02) {
         throw new Error(`Insufficient TON: have ${balanceTon.toFixed(4)}, need ${amountTon.toFixed(4)} + gas`);
     }
 
+    console.log(`[Settle] sendTon: getting contract state...`);
     const contractState = await client.getContractState(fromWalletContract.address);
     const seqno = contractState.seqno ?? 0;
+    console.log(`[Settle] sendTon: seqno=${seqno}`);
 
     const transfer = fromWalletContract.createTransfer({
         secretKey: fromKeyPair.secretKey,
@@ -210,8 +215,9 @@ async function sendTon(supabase, fromKeyPair, fromWalletContract, toAddress, amo
         sendMode: 3
     });
 
+    console.log(`[Settle] sendTon: broadcasting...`);
     await client.sendExternalMessage(fromWalletContract, transfer);
-    console.log(`[Settle] Sent ${amountTon} TON → ${toAddress.substring(0, 12)}... via ${name}, seqno=${seqno}`);
+    console.log(`[Settle] sent ${amountTon} TON → ${toAddress.substring(0, 12)}... via ${name}, seqno=${seqno}`);
 
     // Record transaction
     const txHash = crypto.createHash('sha256')
@@ -350,19 +356,23 @@ async function settleBuy(supabase, trade, quote, userId, walletPassword) {
         throw new Error('Trade already settled');
     }
 
-    // Load Treasury signer and user wallet in parallel
+    console.log(`[Settle] settleBuy: loading treasury signer and user wallet...`);
     const [treasurySigner, userWallet] = await Promise.all([
         getTreasurySigner(),
         getUserWallet(supabase, userId)
     ]);
+    console.log(`[Settle] settleBuy: user wallet loaded: ${userWallet.address?.substring(0, 12)}...`);
 
+    console.log(`[Settle] settleBuy: decrypting user mnemonic...`);
     const userMnemonic = await decryptUserMnemonic(userWallet, walletPassword);
+    console.log(`[Settle] settleBuy: mnemonic decrypted OK`);
     const userWords = userMnemonic.split(' ');
     const userKeyPair = await mnemonicToPrivateKey(userWords);
     const userContract = WalletContractV4.create({
         workchain: 0,
         publicKey: userKeyPair.publicKey
     });
+    console.log(`[Settle] settleBuy: user contract created: ${userContract.address.toString().substring(0, 12)}...`);
 
     const tonAmount = parseFloat(trade.amount_from);
     const nmxAmount = parseFloat(trade.amount_to);
@@ -370,7 +380,9 @@ async function settleBuy(supabase, trade, quote, userId, walletPassword) {
     console.log(`[Settle] BUY: user→Treasury ${tonAmount} TON, Treasury→user ${nmxAmount} NMX`);
 
     // Step 1: User sends TON to Treasury
+    console.log(`[Settle] settleBuy: step 1 - user sends TON to treasury...`);
     const tonTx = await sendTon(supabase, userKeyPair, userContract, TREASURY_TON_WALLET, tonAmount);
+    console.log(`[Settle] settleBuy: TON sent OK, hash=${tonTx.txHash.substring(0, 12)}...`);
 
     // Step 2: Treasury sends NMX to user
     let nmxTx;
@@ -450,6 +462,7 @@ async function settleSell(supabase, trade, quote, userId, walletPassword) {
 // ─── MAIN SETTLE ENTRYPOINT ────────────────────────────────────
 
 async function settleTrade(supabase, tradeId, userId, walletPassword) {
+    console.log(`[Settle] Step 1/7: Loading trade ${tradeId}...`);
     const { data: trade, error: tradeErr } = await supabase
         .from('fe_trades')
         .select('*')
@@ -457,29 +470,43 @@ async function settleTrade(supabase, tradeId, userId, walletPassword) {
         .eq('user_id', userId)
         .single();
 
-    if (tradeErr || !trade) throw new Error('Trade not found');
+    if (tradeErr) {
+        console.error(`[Settle] Trade query error:`, tradeErr);
+        throw new Error(`Trade query failed: ${tradeErr.message}`);
+    }
+    if (!trade) throw new Error('Trade not found');
     if (trade.status === 'completed' || trade.status === 'settled') {
         throw new Error('Trade already settled');
     }
 
-    const { data: quote } = await supabase
+    console.log(`[Settle] Step 2/7: Loading quote ${trade.quote_id}...`);
+    const { data: quote, error: quoteErr } = await supabase
         .from('fe_quotes')
         .select('*')
         .eq('id', trade.quote_id)
         .single();
 
+    if (quoteErr) {
+        console.error(`[Settle] Quote query error:`, quoteErr);
+        throw new Error(`Quote query failed: ${quoteErr.message}`);
+    }
     if (!quote) throw new Error('Quote not found');
 
-    // Re-validate quote expiry
+    console.log(`[Settle] Step 3/7: Checking quote expiry...`);
     if (new Date(quote.expires_at) < new Date()) {
         await supabase.from('fe_trades').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', tradeId);
         await supabase.from('fe_quotes').update({ status: 'expired' }).eq('id', quote.id);
         throw new Error('Quote has expired');
     }
 
-    // Mark trade as processing
-    await supabase.from('fe_trades').update({ status: 'processing', updated_at: new Date().toISOString() }).eq('id', tradeId);
+    console.log(`[Settle] Step 4/7: Marking trade as processing...`);
+    const { error: updateErr } = await supabase.from('fe_trades').update({ status: 'processing', updated_at: new Date().toISOString() }).eq('id', tradeId);
+    if (updateErr) {
+        console.error(`[Settle] Trade update error:`, updateErr);
+        throw new Error(`Trade update failed: ${updateErr.message}`);
+    }
 
+    console.log(`[Settle] Step 5/7: Executing ${trade.trade_type} settlement...`);
     let settlement;
     try {
         if (trade.trade_type === 'buy') {
@@ -487,45 +514,32 @@ async function settleTrade(supabase, tradeId, userId, walletPassword) {
         } else {
             settlement = await settleSell(supabase, trade, quote, userId, walletPassword);
         }
-
-        // Mark trade as completed
-        await supabase.from('fe_trades').update({
-            status: 'completed',
-            treasury_ton_after: null,
-            treasury_nmx_after: null,
-            updated_at: new Date().toISOString()
-        }).eq('id', tradeId);
-
-        // Consume the quote
-        await supabase.from('fe_quotes').update({ status: 'consumed' }).eq('id', quote.id);
-
-        // Trigger Treasury sync
-        try {
-            const treasurySync = require('./treasury-sync');
-            await treasurySync.syncTreasury(supabase, TREASURY_TON_WALLET, NMX_JETTON_MASTER);
-        } catch (syncErr) {
-            console.error('[Settle] Post-settlement Treasury sync failed:', syncErr.message);
-        }
-
-        return { success: true, trade, settlement };
-    } catch (err) {
-        console.error('[Settle] Settlement failed:', err.message);
-
-        // Mark trade as failed
-        await supabase.from('fe_trades').update({
-            status: 'failed',
-            updated_at: new Date().toISOString()
-        }).eq('id', tradeId);
-
-        await supabase.from('treasury_audit_logs').insert({
-            action: 'Settlement failed',
-            category: 'sync',
-            details: { tradeId, userId, tradeType: trade.trade_type, error: err.message },
-            ip_address: 'settlement-engine'
-        });
-
-        throw err;
+    } catch (settleErr) {
+        console.error(`[Settle] Step 5 FAILED:`, settleErr.message, settleErr.stack);
+        await supabase.from('fe_trades').update({ status: 'failed', updated_at: new Date().toISOString() }).eq('id', tradeId);
+        throw settleErr;
     }
+
+    console.log(`[Settle] Step 6/7: Marking trade as completed...`);
+    await supabase.from('fe_trades').update({
+        status: 'completed',
+        treasury_ton_after: null,
+        treasury_nmx_after: null,
+        updated_at: new Date().toISOString()
+    }).eq('id', tradeId);
+
+    await supabase.from('fe_quotes').update({ status: 'consumed' }).eq('id', quote.id);
+
+    console.log(`[Settle] Step 7/7: Triggering treasury sync...`);
+    try {
+        const treasurySync = require('./treasury-sync');
+        await treasurySync.syncTreasury(supabase, TREASURY_TON_WALLET, NMX_JETTON_MASTER);
+    } catch (syncErr) {
+        console.error('[Settle] Treasury sync failed (non-fatal):', syncErr.message);
+    }
+
+    console.log(`[Settle] DONE - trade ${tradeId} settled successfully`);
+    return { success: true, trade, settlement };
 }
 
 module.exports = {
