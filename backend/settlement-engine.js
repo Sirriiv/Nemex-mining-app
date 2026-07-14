@@ -9,14 +9,13 @@ const axios = require('axios');
 const { mnemonicToPrivateKey } = require('@ton/crypto');
 const { WalletContractV4, WalletContractV5R1, TonClient, Address, internal, toNano, fromNano, beginCell } = require('@ton/ton');
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || '';
-const TREASURY_TON_WALLET = process.env.TREASURY_WALLET_ADDRESS || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
+const ENCRYPTION_KEY = (process.env.ENCRYPTION_KEY || '').trim();
+const TREASURY_TON_WALLET = (process.env.TREASURY_WALLET_ADDRESS || '').trim() || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
 const NMX_JETTON_MASTER = '0:514ab5f3fbb8980e71591a1ac44765d02fe80182fd61af763c6f25ac548c9eec';
 
 // RPC endpoints in priority order
 const RPC_ENDPOINTS = [
-    { name: 'TON Console', endpoint: 'https://tonapi.io/v2/jsonRPC', apiKey: (process.env.TON_CONSOLE_API_KEY || '').replace('bearer_', '') },
-    { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: process.env.TONCENTER_API_KEY || '' },
+    { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: (process.env.TONCENTER_API_KEY || '').trim() },
     { name: 'Public', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: undefined }
 ];
 
@@ -26,7 +25,7 @@ let _treasuryKeyPair = null;
 let _treasuryWalletContract = null;
 
 async function decryptTreasuryMnemonic() {
-    const encoded = process.env.TREASURY_MNEMONIC_ENCRYPTED;
+    const encoded = (process.env.TREASURY_MNEMONIC_ENCRYPTED || '').trim();
     if (!encoded) throw new Error('TREASURY_MNEMONIC_ENCRYPTED not set in environment');
     if (!ENCRYPTION_KEY) throw new Error('ENCRYPTION_KEY not set in environment');
 
