@@ -253,15 +253,31 @@ async function sendNmxJetton(supabase, fromKeyPair, fromWalletContract, toAddres
 
     const jettonMasterAddr = parseJettonMaster(NMX_JETTON_MASTER);
 
-    // Get Jetton wallet address for sender
+    // Get Jetton wallet address for sender (try RPC + REST fallback)
     const ownerAddressCell = beginCell()
         .storeAddress(fromWalletContract.address)
         .endCell();
 
-    const jettonWalletAddr = await runGetMethod(
+    let jettonWalletAddr = await runGetMethod(
         client, jettonMasterAddr, 'get_wallet_address',
         [{ type: 'slice', cell: ownerAddressCell }]
     );
+
+    // REST API fallback
+    if (!jettonWalletAddr) {
+        try {
+            const ownerAddr = fromWalletContract.address.toString({ urlSafe: true, bounceable: false });
+            const masterRaw = NMX_JETTON_MASTER.replace(':', '%3A');
+            const jettonResp = await axios.get(
+                `https://tonapi.io/v2/accounts/${ownerAddr}/jettons/${masterRaw}`,
+                { headers: { Authorization: `Bearer ${(process.env.TON_CONSOLE_API_KEY || '').replace('bearer_', '')}` }, timeout: 8000 }
+            );
+            jettonWalletAddr = jettonResp.data?.wallet_address?.address;
+            if (jettonWalletAddr) console.log(`[Settle] Jetton wallet via REST: ${jettonWalletAddr}`);
+        } catch (restErr) {
+            console.warn(`[Settle] REST jetton lookup failed:`, restErr.message.substring(0, 80));
+        }
+    }
 
     if (!jettonWalletAddr) throw new Error('Failed to derive Jetton wallet address');
     const parsedJettonWallet = Address.parse(jettonWalletAddr);
@@ -341,43 +357,51 @@ function parseJettonMaster(address) {
 }
 
 async function runGetMethod(client, contractAddress, method, stackParams = []) {
-    try {
-        const response = await client.runMethod(contractAddress, method, stackParams);
-        console.log(`[Settle] runGetMethod(${method}) response keys:`, Object.keys(response));
-        if (response.stack) {
-            console.log(`[Settle] runGetMethod(${method}) stack length:`, response.stack.length);
-            if (response.stack.length > 0) {
-                const item = response.stack[0];
-                console.log(`[Settle] runGetMethod(${method}) stack[0] keys:`, Object.keys(item));
-                console.log(`[Settle] runGetMethod(${method}) stack[0] type:`, item.type);
-                console.log(`[Settle] runGetMethod(${method}) stack[0] cell:`, typeof item.cell, !!item.cell);
-                console.log(`[Settle] runGetMethod(${method}) stack[0] cells:`, !!item.cells);
-                // Try all known cell formats
-                let cell = item.cell;
-                if (!cell && item.cells && Array.isArray(item.cells) && item.cells.length > 0) {
-                    cell = item.cells[0];
-                    console.log(`[Settle] Using cells[0]`);
+    // Try multiple RPC endpoints — some work better than others for runMethod
+    const rpcEndpoints = [
+        { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: process.env.TONCENTER_API_KEY || '' },
+        { name: 'TON API', endpoint: 'https://tonapi.io/v2/jsonRPC', apiKey: (process.env.TON_CONSOLE_API_KEY || '').replace('bearer_', '') },
+        { name: 'Public', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: '' }
+    ];
+
+    for (const rpc of rpcEndpoints) {
+        try {
+            const cfg = { endpoint: rpc.endpoint, timeout: 15000 };
+            if (rpc.apiKey) cfg.apiKey = rpc.apiKey;
+            const tempClient = new TonClient(cfg);
+
+            const response = await tempClient.runMethod(contractAddress, method, stackParams);
+
+            if (response.stack && response.stack.length > 0) {
+                const resultItem = response.stack[0];
+                let cell;
+
+                if (resultItem.type === 'slice' && resultItem.cell) {
+                    cell = resultItem.cell;
+                } else if (resultItem.type === 'cell' && resultItem.cell) {
+                    cell = resultItem.cell;
+                } else if (resultItem.cell) {
+                    cell = resultItem.cell;
+                } else if (resultItem.cells && Array.isArray(resultItem.cells) && resultItem.cells.length > 0) {
+                    cell = resultItem.cells[0];
                 }
+
                 if (cell) {
-                    try {
-                        const slice = cell.beginParse();
-                        const addr = slice.loadAddress();
-                        if (addr) {
-                            const result = addr.toString({ urlSafe: true, bounceable: true });
-                            console.log(`[Settle] Derived jetton wallet:`, result);
-                            return result;
-                        }
-                    } catch (parseErr) {
-                        console.error(`[Settle] Cell parse failed:`, parseErr.message);
+                    const slice = cell.beginParse();
+                    const addr = slice.loadAddress();
+                    if (addr) {
+                        const result = addr.toString({ urlSafe: true, bounceable: true });
+                        console.log(`[Settle] Jetton wallet from ${rpc.name}: ${result}`);
+                        return result;
                     }
                 }
             }
+        } catch (e) {
+            console.warn(`[Settle] runGetMethod ${rpc.name} failed:`, e.message.substring(0, 80));
         }
-        return null;
-    } catch (e) {
-        console.error(`[Settle] runGetMethod(${method}) failed:`, e.message);
-        return null;
     }
+
+    return null;
 }
 
 // ─── DEDUP CHECK ───────────────────────────────────────────────
