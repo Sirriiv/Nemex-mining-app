@@ -236,37 +236,9 @@ async function processTrade(supabase, quoteId, userId) {
         fee: trade.fee_amount
     });
 
-    await writeLedger(supabase, 'trade_validated', 'trade', trade.id, userId, {
-        treasury_ton: treasury.tonReserve,
-        treasury_nmx: treasury.nmxReserve
-    });
-
-    // Step 3: Mark as processing
-    await supabase
-        .from('fe_trades')
-        .update({ status: 'processing', updated_at: new Date().toISOString() })
-        .eq('id', trade.id);
-
-    await writeLedger(supabase, 'trade_completed', 'trade', trade.id, userId, {
-        note: 'Trade recorded — blockchain settlement pending (Phase 3)'
-    });
-
-    // Step 4: Mark quote as consumed
-    await supabase.from('fe_quotes').update({ status: 'consumed' }).eq('id', quote.id);
-
-    // Step 5: Update trade to completed
-    const { data: finalTrade, error: updateErr } = await supabase
-        .from('fe_trades')
-        .update({ status: 'completed', updated_at: new Date().toISOString() })
-        .eq('id', trade.id)
-        .select()
-        .single();
-
-    if (updateErr) throw updateErr;
-
     return {
         success: true,
-        trade: finalTrade
+        trade
     };
 }
 
