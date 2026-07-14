@@ -3843,19 +3843,22 @@ let isInitializingWallet = false;
 async function initWallet() {
     console.log('🔄 Initializing Nemex Hybrid wallet v11...');
 
+    // If wallet is already loaded and interface is visible, just refresh balances
+    if (walletState.isInitialized && walletState.hasWallet) {
+        const walletInterface = document.getElementById('walletInterface');
+        if (walletInterface && !walletInterface.classList.contains('hidden')) {
+            console.log('✅ Wallet already initialized and visible, refreshing balances');
+            await updateRealBalance({ force: true });
+            await fetchPricesWithFastestAPI();
+            updateWalletDisplay();
+            return;
+        }
+    }
+
     // Prevent multiple simultaneous initializations
     if (isInitializingWallet) {
         console.log('⏳ Already initializing wallet, skipping...');
         return;
-    }
-
-    // If wallet is already loaded and interface is visible, skip re-initialization
-    if (walletState.isInitialized && walletState.hasWallet) {
-        const walletInterface = document.getElementById('walletInterface');
-        if (walletInterface && !walletInterface.classList.contains('hidden')) {
-            console.log('✅ Wallet already initialized and visible, skipping re-init');
-            return;
-        }
     }
 
     isInitializingWallet = true;
@@ -3904,7 +3907,7 @@ async function initWallet() {
                     // ✅ Then fetch fresh data in background (non-blocking)
                     Promise.all([
                         fetchPricesWithFastestAPI(),  // Get fresh prices & percentages
-                        updateRealBalance(),          // Get fresh balances
+                        updateRealBalance({ force: true }),          // Get fresh balances
                         fetchTreasuryReference()      // Get treasury reference value
                     ]).then(() => {
                         // Update display with fresh data
@@ -4090,10 +4093,9 @@ let isUpdatingBalance = false; // Debounce flag
 let lastBalanceUpdate = 0; // Timestamp of last update
 const BALANCE_UPDATE_COOLDOWN = 5000; // 5 seconds minimum between updates
 
-async function updateRealBalance() {
-    // ✅ OPTIMIZED: Prevent excessive updates with cooldown
+async function updateRealBalance(opts = {}) {
     const now = Date.now();
-    if (isUpdatingBalance || (now - lastBalanceUpdate < BALANCE_UPDATE_COOLDOWN)) {
+    if (!opts.force && (isUpdatingBalance || (now - lastBalanceUpdate < BALANCE_UPDATE_COOLDOWN))) {
         console.log('⏳ Balance update skipped (cooldown active)');
         return;
     }
