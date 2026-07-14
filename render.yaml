@@ -10,3 +10,5 @@ services:
         value: production
       - key: NODE_VERSION
         value: 20.11.0
+      - key: TREASURY_WALLET_ADDRESS
+        sync: false

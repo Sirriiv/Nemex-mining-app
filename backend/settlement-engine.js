@@ -215,8 +215,13 @@ async function sendTon(supabase, fromKeyPair, fromWalletContract, toAddress, amo
     });
 
     console.log(`[Settle] sendTon: broadcasting...`);
-    await client.sendExternalMessage(fromWalletContract, transfer);
-    console.log(`[Settle] sent ${amountTon} TON → ${toAddress.substring(0, 12)}... via ${name}, seqno=${seqno}`);
+    try {
+        await client.sendExternalMessage(fromWalletContract, transfer);
+        console.log(`[Settle] sent ${amountTon} TON → ${toAddress.substring(0, 12)}... via ${name}, seqno=${seqno}`);
+    } catch (sendErr) {
+        const detail = sendErr.response?.data || sendErr.message;
+        throw new Error(`TON broadcast failed via ${name}: ${JSON.stringify(detail).substring(0, 200)}`);
+    }
 
     // Record transaction
     const txHash = crypto.createHash('sha256')
