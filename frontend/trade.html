@@ -34,9 +34,9 @@
             line-height: 1.5;
         }
         .page-wrapper {
-            max-width: 480px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 0 20px 40px;
+            padding: 0 24px 40px;
         }
 
         /* Header */
@@ -417,8 +417,10 @@
             font-size: 14px;
             font-weight: 600;
             animation: toastIn 0.3s ease;
-            min-width: 280px;
+            max-width: 90vw;
             text-align: center;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
         @keyframes toastIn {
             from { opacity: 0; transform: translateY(-20px); }
@@ -613,7 +615,8 @@
             t.className = 'toast toast-' + (type || 'success');
             t.textContent = msg;
             c.appendChild(t);
-            setTimeout(() => { t.remove(); }, 4000);
+            const duration = type === 'error' ? 12000 : 4000;
+            setTimeout(() => { t.remove(); }, duration);
         }
 
         function showLoading(msg) {
