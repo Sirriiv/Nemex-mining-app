@@ -3847,10 +3847,14 @@ async function initWallet() {
     if (walletState.isInitialized && walletState.hasWallet) {
         const walletInterface = document.getElementById('walletInterface');
         if (walletInterface && !walletInterface.classList.contains('hidden')) {
-            console.log('✅ Wallet already initialized and visible, refreshing balances');
-            await updateRealBalance({ force: true });
-            await fetchPricesWithFastestAPI();
-            updateWalletDisplay();
+            console.log('✅ Wallet already initialized, forcing fresh balance fetch');
+            try {
+                await updateRealBalance({ force: true });
+                await fetchPricesWithFastestAPI();
+                updateWalletDisplay();
+            } catch (e) {
+                console.error('Revisit refresh error:', e);
+            }
             return;
         }
     }
@@ -4097,8 +4101,13 @@ async function updateRealBalance(opts = {}) {
     console.log('[updateRealBalance] called, opts:', opts, 'walletState:', walletState.isInitialized, walletState.hasWallet);
     const now = Date.now();
     if (!opts.force && (isUpdatingBalance || (now - lastBalanceUpdate < BALANCE_UPDATE_COOLDOWN))) {
-        console.log('[updateRealBalance] skipping (cooldown active, diff=', now - lastBalanceUpdate, 'ms)');
-        return;
+        // Allow if we have zero balances (likely first load)
+        const hasNonZeroBalance = SUPPORTED_TOKENS.some(t => t.balance > 0);
+        if (hasNonZeroBalance) {
+            console.log('[updateRealBalance] skipping (cooldown)');
+            return;
+        }
+        console.log('[updateRealBalance] bypassing cooldown — balances are zero');
     }
     
     try {
