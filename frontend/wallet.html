@@ -2972,7 +2972,7 @@
 
                     <!-- Fee at the bottom of swap panels -->
                     <div class="conversion-fee">
-                        <span class="fee-text">Gas Fee: 0.002 TON</span>
+                        <span class="fee-text">Gas Fee: 0.1 TON</span>
                     </div>
                 </div>
 
@@ -4605,7 +4605,7 @@ function showConversionDetails(conversion) {
         
         From: ${Number(conversion.nmxp_amount).toLocaleString()} NMXp
         To: ${Number(conversion.nmx_amount).toFixed(2)} NMX
-        Gas Fee: ${conversion.gas_fee || 0.002} TON
+        Gas Fee: ${conversion.gas_fee || 0.1} TON
         Status: ${statusText}
         Date: ${new Date(conversion.created_at).toLocaleString()}
     `, conversion.status === 'pending' ? 'warning' : conversion.status === 'approved' || conversion.status === 'completed' ? 'success' : 'error');
