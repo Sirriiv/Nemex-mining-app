@@ -372,15 +372,16 @@ async function runGetMethod(client, contractAddress, method, stackParams = []) {
 
             const response = await tempClient.runMethod(contractAddress, method, stackParams);
 
-            if (response.stack && response.stack.length > 0) {
-                const resultItem = response.stack[0];
+            // Handle both { stack: [...] } (array) and { stack: { items: [...] } } (object)
+            const stackItems = Array.isArray(response.stack) 
+                ? response.stack 
+                : (response.stack?.items || []);
+
+            if (stackItems.length > 0) {
+                const resultItem = stackItems[0];
                 let cell;
 
-                if (resultItem.type === 'slice' && resultItem.cell) {
-                    cell = resultItem.cell;
-                } else if (resultItem.type === 'cell' && resultItem.cell) {
-                    cell = resultItem.cell;
-                } else if (resultItem.cell) {
+                if (resultItem.cell) {
                     cell = resultItem.cell;
                 } else if (resultItem.cells && Array.isArray(resultItem.cells) && resultItem.cells.length > 0) {
                     cell = resultItem.cells[0];
