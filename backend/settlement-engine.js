@@ -205,7 +205,7 @@ async function sendTon(supabase, fromKeyPair, fromWalletContract, toAddress, amo
     try {
         seqno = await openedContract.getSeqno();
     } catch {
-        throw new Error(`User wallet not deployed. Fund it with at least 0.05 TON first.`);
+        throw new Error(`User wallet not deployed. Fund it with at least 0.02 TON first.`);
     }
     console.log(`[Settle] sendTon: seqno=${seqno}`);
 

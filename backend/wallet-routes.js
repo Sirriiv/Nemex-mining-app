@@ -1339,11 +1339,11 @@ async function deployWalletIfNeeded(keyPair, walletContract, tonClient = null) {
             console.log('⚠️ Wallet not deployed. Attempting deployment...');
 
             const balance = await tonClient.getBalance(walletContract.address);
-            const minDeployBalance = toNano('0.05');
+            const minDeployBalance = toNano('0.02');
 
             if (BigInt(balance) < minDeployBalance) {
                 throw new Error(
-                    `Wallet needs at least 0.05 TON for deployment. Current: ${fromNano(balance)} TON`
+                    `Wallet needs at least 0.02 TON for deployment. Current: ${fromNano(balance)} TON`
                 );
             }
 
@@ -1669,8 +1669,8 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         const balance = await tonClient.getBalance(walletContract.address);
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
         
-        // ✅ FIXED: Use realistic gas fee (0.05 TON for safety)
-        const requiredGasFee = 0.05;
+        // ✅ Use realistic gas fee (~0.003 TON for simple transfers)
+        const requiredGasFee = 0.003;
         const totalRequired = parseFloat(amount) + requiredGasFee;
 
         if (balanceTON < totalRequired) {
@@ -3419,10 +3419,10 @@ router.post('/send-gas-fee', async (req, res) => {
                 const balance = parseFloat(fromNano(balanceCheck.data.balance)) || 0;
                 console.log(`💰 Current balance: ${balance} TON`);
 
-                if (balance < 0.1) { // Need exactly 0.1 TON for gas fee
+                if (balance < 0.04) { // Jetton transfers need ~0.04 TON for gas
                     return res.status(400).json({
                         success: false,
-                        message: `Insufficient balance. You have ${balance.toFixed(4)} TON, need at least 0.1 TON for gas fee`
+                        message: `Insufficient balance. You have ${balance.toFixed(4)} TON, need at least 0.04 TON for gas fee`
                     });
                 }
             } catch (balanceError) {
@@ -3763,7 +3763,7 @@ router.post('/send', async (req, res) => {
 
             if (transactionError.message.includes('deployment') || transactionError.message.includes('initialization')) {
                 errorType = 'initialization_failed';
-                fix = 'Make sure wallet has at least 0.05 TON and try again';
+                fix = 'Make sure wallet has at least 0.02 TON and try again';
             } else if (transactionError.message.includes('Insufficient balance')) {
                 errorType = 'insufficient_balance';
                 fix = 'Add more TON to your wallet';
@@ -4193,7 +4193,7 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
         }
 
         // Validate sufficient balance for gas
-        console.log('🔍 Step 6: Validating gas fees...');        const requiredGas = 0.05; // Jetton transfers need ~0.05 TON for gas
+        console.log('🔍 Step 6: Validating gas fees...');        const requiredGas = 0.04; // Jetton transfers need ~0.04 TON for gas
 
         if (balanceTON < requiredGas) {
             console.error(`❌ Insufficient gas: have ${balanceTON.toFixed(4)} TON, need ${requiredGas} TON`);
@@ -5596,4 +5596,4 @@ scheduleTransactionSync();
 
 console.log('✅ WALLET ROUTES READY - DUAL API FIXED VERSION');
 
-module.exports = router;
+module.exports = router;;
