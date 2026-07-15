@@ -4094,9 +4094,10 @@ let lastBalanceUpdate = 0; // Timestamp of last update
 const BALANCE_UPDATE_COOLDOWN = 5000; // 5 seconds minimum between updates
 
 async function updateRealBalance(opts = {}) {
+    console.log('[updateRealBalance] called, opts:', opts, 'walletState:', walletState.isInitialized, walletState.hasWallet);
     const now = Date.now();
     if (!opts.force && (isUpdatingBalance || (now - lastBalanceUpdate < BALANCE_UPDATE_COOLDOWN))) {
-        console.log('⏳ Balance update skipped (cooldown active)');
+        console.log('[updateRealBalance] skipping (cooldown active, diff=', now - lastBalanceUpdate, 'ms)');
         return;
     }
     
