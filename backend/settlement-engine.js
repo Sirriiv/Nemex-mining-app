@@ -8,6 +8,7 @@ const bcrypt = require('bcrypt');
 const axios = require('axios');
 const { mnemonicToPrivateKey } = require('@ton/crypto');
 const { WalletContractV4, WalletContractV5R1, TonClient, Address, internal, toNano, fromNano, beginCell } = require('@ton/ton');
+const { AssetsSDK, createApi } = require('@ton-community/assets-sdk');
 
 const ENCRYPTION_KEY = (process.env.ENCRYPTION_KEY || '').trim();
 const TREASURY_TON_WALLET = (process.env.TREASURY_WALLET_ADDRESS || '').trim() || 'UQB_FCa2k5M5aybZ63llTR91dvUSoEDdlqOkbiORv6hNKOSC';
@@ -249,81 +250,29 @@ async function sendTon(supabase, fromKeyPair, fromWalletContract, toAddress, amo
 // ─── NMX JETTON TRANSFER ───────────────────────────────────────
 
 async function sendNmxJetton(supabase, fromKeyPair, fromWalletContract, toAddress, amountNmx) {
+    console.log(`[Settle] sendNmxJetton: using Assets SDK for reliable jetton transfer...`);
     const { client, name } = await connectTonClient();
 
     const jettonMasterAddr = parseJettonMaster(NMX_JETTON_MASTER);
+    const amount = toNano(amountNmx.toFixed(9));
 
-    // Get Jetton wallet address for sender (try RPC + REST fallback)
-    const ownerAddressCell = beginCell()
-        .storeAddress(fromWalletContract.address)
-        .endCell();
+    // Use Assets SDK (auto-deploys jetton wallet if needed, same as wallet send page)
+    const sender = fromWalletContract.sender(client.provider(fromWalletContract.address), fromKeyPair.secretKey);
+    const api = await createApi('mainnet');
+    const sdk = AssetsSDK.create({ api, sender });
+    const jetton = await sdk.openJetton(jettonMasterAddr);
+    const jettonWallet = await jetton.getWallet(fromWalletContract.address);
 
-    let jettonWalletAddr = await runGetMethod(
-        client, jettonMasterAddr, 'get_wallet_address',
-        [{ type: 'slice', cell: ownerAddressCell }]
+    console.log(`[Settle] sendNmxJetton: jetton wallet ${jettonWallet.address.toString().substring(0, 12)}..., sending ${amountNmx} NMX`);
+
+    await jettonWallet.send(
+        sender,
+        Address.parse(toAddress),
+        amount,
+        { forwardAmount: toNano('0'), forwardPayload: null }
     );
 
-    // REST API fallback
-    if (!jettonWalletAddr) {
-        try {
-            const ownerAddr = fromWalletContract.address.toString({ urlSafe: true, bounceable: false });
-            const masterRaw = NMX_JETTON_MASTER.replace(':', '%3A');
-            const jettonResp = await axios.get(
-                `https://tonapi.io/v2/accounts/${ownerAddr}/jettons/${masterRaw}`,
-                { headers: { Authorization: `Bearer ${(process.env.TON_CONSOLE_API_KEY || '').replace('bearer_', '')}` }, timeout: 8000 }
-            );
-            jettonWalletAddr = jettonResp.data?.wallet_address?.address;
-            if (jettonWalletAddr) console.log(`[Settle] Jetton wallet via REST: ${jettonWalletAddr}`);
-        } catch (restErr) {
-            console.warn(`[Settle] REST jetton lookup failed:`, restErr.message.substring(0, 80));
-        }
-    }
-
-    if (!jettonWalletAddr) throw new Error('Failed to derive Jetton wallet address');
-    const parsedJettonWallet = Address.parse(jettonWalletAddr);
-
-    const amount = BigInt(Math.floor(amountNmx * 1_000_000_000));
-
-    // Build Jetton transfer internal message
-    const forwardPayload = beginCell()
-        .storeUint(0, 32)
-        .storeStringTail('Nemex Settlement')
-        .endCell();
-
-    const jettonTransferBody = beginCell()
-        .storeUint(0x0f8a7ea5, 32)
-        .storeUint(0, 64)
-        .storeCoins(amount)
-        .storeAddress(Address.parse(toAddress))
-        .storeAddress(fromWalletContract.address)
-        .storeBit(false)
-        .storeCoins(toNano('0.01'))
-        .storeBit(true)
-        .storeRef(forwardPayload)
-        .endCell();
-
-    const openedContract = client.open(fromWalletContract);
-    const seqno = await openedContract.getSeqno();
-
-    const transfer = fromWalletContract.createTransfer({
-        secretKey: fromKeyPair.secretKey,
-        seqno,
-        messages: [internal({
-            to: parsedJettonWallet,
-            value: toNano('0.05'),
-            body: jettonTransferBody,
-            bounce: true
-        })],
-        sendMode: 3
-    });
-
-    try {
-        await client.sendExternalMessage(fromWalletContract, transfer);
-    } catch (sendErr) {
-        const detail = sendErr.response?.data || sendErr.message;
-        throw new Error(`NMX broadcast failed via ${name}: ${JSON.stringify(detail).substring(0, 200)}`);
-    }
-    console.log(`[Settle] Sent ${amountNmx} NMX → ${toAddress.substring(0, 12)}... via ${name}, seqno=${seqno}`);
+    console.log(`[Settle] sent ${amountNmx} NMX → ${toAddress.substring(0, 12)}... via Assets SDK / ${name}`);
 
     const txHash = crypto.createHash('sha256')
         .update(fromWalletContract.address.toString() + toAddress + amount.toString() + Date.now().toString())
@@ -339,7 +288,7 @@ async function sendNmxJetton(supabase, fromKeyPair, fromWalletContract, toAddres
         description: `Settlement: ${amountNmx} NMX sent to ${toAddress}`
     });
 
-    return { txHash, seqno };
+    return { txHash, seqno: 0 };
 }
 
 // ─── JETTON HELPERS ────────────────────────────────────────────
@@ -354,55 +303,6 @@ function parseJettonMaster(address) {
         }
         throw new Error('Cannot parse Jetton master address: ' + address);
     }
-}
-
-async function runGetMethod(client, contractAddress, method, stackParams = []) {
-    // Try multiple RPC endpoints — some work better than others for runMethod
-    const rpcEndpoints = [
-        { name: 'TON Center', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: process.env.TONCENTER_API_KEY || '' },
-        { name: 'TON API', endpoint: 'https://tonapi.io/v2/jsonRPC', apiKey: (process.env.TON_CONSOLE_API_KEY || '').replace('bearer_', '') },
-        { name: 'Public', endpoint: 'https://toncenter.com/api/v2/jsonRPC', apiKey: '' }
-    ];
-
-    for (const rpc of rpcEndpoints) {
-        try {
-            const cfg = { endpoint: rpc.endpoint, timeout: 15000 };
-            if (rpc.apiKey) cfg.apiKey = rpc.apiKey;
-            const tempClient = new TonClient(cfg);
-
-            const response = await tempClient.runMethod(contractAddress, method, stackParams);
-
-            // Handle both { stack: [...] } (array) and { stack: { items: [...] } } (object)
-            const stackItems = Array.isArray(response.stack) 
-                ? response.stack 
-                : (response.stack?.items || []);
-
-            if (stackItems.length > 0) {
-                const resultItem = stackItems[0];
-                let cell;
-
-                if (resultItem.cell) {
-                    cell = resultItem.cell;
-                } else if (resultItem.cells && Array.isArray(resultItem.cells) && resultItem.cells.length > 0) {
-                    cell = resultItem.cells[0];
-                }
-
-                if (cell) {
-                    const slice = cell.beginParse();
-                    const addr = slice.loadAddress();
-                    if (addr) {
-                        const result = addr.toString({ urlSafe: true, bounceable: true });
-                        console.log(`[Settle] Jetton wallet from ${rpc.name}: ${result}`);
-                        return result;
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn(`[Settle] runGetMethod ${rpc.name} failed:`, e.message.substring(0, 80));
-        }
-    }
-
-    return null;
 }
 
 // ─── DEDUP CHECK ───────────────────────────────────────────────
