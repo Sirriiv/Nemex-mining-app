@@ -4139,38 +4139,38 @@ async function updateRealBalance(opts = {}) {
         
         // Process TON balance
         const tonData = await tonResponse.json();
-        if (tonData.success) {
+        if (tonData.success && tonData.balanceSource !== 'database_cache' && tonData.balanceSource !== 'error') {
             const tonBalance = parseFloat(tonData.balance) || 0;
             
             const tonToken = SUPPORTED_TOKENS.find(t => t.symbol === 'TON');
             if (tonToken) {
                 const oldBalance = tonToken.balance;
-                // ✅ FIX: Only update balance, preserve price and change24h
                 tonToken.balance = tonBalance;
-                // Do NOT reset tonToken.price or tonToken.change24h here!
                 
                 if (Math.abs(tonBalance - oldBalance) > 0.01) {
                     console.log('💰 TON Balance:', oldBalance.toFixed(4), '→', tonBalance.toFixed(4));
                 }
             }
+        } else {
+            console.log('[updateRealBalance] TON balance source is stale cache, keeping existing value');
         }
         
         // ✅ Process NMX Jetton balance
         const nmxData = await nmxResponse.json();
-        if (nmxData.success) {
+        if (nmxData.success && nmxData.balanceSource !== 'database_cache' && nmxData.balanceSource !== 'error') {
             const nmxBalance = parseFloat(nmxData.balance) || 0;
             
             const nmxToken = SUPPORTED_TOKENS.find(t => t.symbol === 'NMX');
             if (nmxToken) {
                 const oldBalance = nmxToken.balance;
-                // ✅ FIX: Only update balance, preserve price and change24h
                 nmxToken.balance = nmxBalance;
-                // Do NOT reset nmxToken.price or nmxToken.change24h here!
                 
                 if (Math.abs(nmxBalance - oldBalance) > 0.01) {
                     console.log('💰 NMX Balance:', oldBalance.toFixed(2), '→', nmxBalance.toFixed(2));
                 }
             }
+        } else {
+            console.log('[updateRealBalance] NMX balance source is stale cache, keeping existing value');
         }
 
         // Update displays
