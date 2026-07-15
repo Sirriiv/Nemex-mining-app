@@ -2972,7 +2972,7 @@
 
                     <!-- Fee at the bottom of swap panels -->
                     <div class="conversion-fee">
-                        <span class="fee-text">Gas Fee: 0.1 TON</span>
+                        <span class="fee-text">Gas Fee: 0.002 TON</span>
                     </div>
                 </div>
 
@@ -3426,8 +3426,8 @@ let currentTokenPrice = 0;
 // ✅ BLOCKCHAIN-ACCURATE GAS FEES
 // These fees are what the TON blockchain actually requires, not arbitrary values
 const GAS_FEES = {
-    TON: 0.05,      // Native TON transfer: ~0.01-0.05 TON (using 0.05 for safety)
-    JETTON: 0.05    // Jetton (NMX) transfer: ~0.04-0.06 TON (similar to TON, calls smart contract)
+    TON: 0.002,     // Native TON transfer: ~0.001-0.002 TON
+    JETTON: 0.002   // Jetton (NMX) transfer: ~0.001-0.002 TON
 };
 
 // Helper function to get gas fee for current token
@@ -4388,7 +4388,7 @@ async function loadTransactionHistory() {
                                 nmxp_amount: conv.nmxp_amount,
                                 nmx_amount: conv.nmx_amount,
                                 status: conv.status,
-                                gas_fee: conv.gas_fee_paid || 0.1,
+                                gas_fee: conv.gas_fee_paid || 0.002,
                                 created_at: conv.created_at,
                                 conversion_id: conv.id
                             }));
@@ -4605,7 +4605,7 @@ function showConversionDetails(conversion) {
         
         From: ${Number(conversion.nmxp_amount).toLocaleString()} NMXp
         To: ${Number(conversion.nmx_amount).toFixed(2)} NMX
-        Gas Fee: ${conversion.gas_fee || 0.1} TON
+        Gas Fee: ${conversion.gas_fee || 0.002} TON
         Status: ${statusText}
         Date: ${new Date(conversion.created_at).toLocaleString()}
     `, conversion.status === 'pending' ? 'warning' : conversion.status === 'approved' || conversion.status === 'completed' ? 'success' : 'error');
@@ -6094,8 +6094,8 @@ async function executeProductionConversion() {
 
         console.log('✅ Sufficient TON balance. User confirmed conversion, collecting gas fee immediately...');
         
-        // Step 1: Automatically collect 0.1 TON gas fee with retry logic and exponential backoff
-        showToast('Collecting gas fee (0.1 TON)...', 'info');
+        // Step 1: Automatically collect 0.002 TON gas fee with retry logic and exponential backoff
+        showToast('Collecting gas fee (0.002 TON)...', 'info');
         
         const MAX_RETRIES = 4; // Increased from 2 to 4 attempts
         const BASE_DELAY = 8000; // Base delay of 8 seconds
@@ -6296,7 +6296,7 @@ async function executeProductionConversion() {
         console.log('✅ Balance updated successfully');
 
         // Success notification with clear total fee breakdown
-        showToast(`✅ Conversion successful! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet. Fee: 0.1 TON collected`, 'success');
+        showToast(`✅ Conversion successful! ${nmxAmount.toFixed(2)} NMX will be sent to your wallet. Fee: 0.002 TON collected`, 'success');
 
         // Clear cache to force balance refresh
         cachedUserData = null;
