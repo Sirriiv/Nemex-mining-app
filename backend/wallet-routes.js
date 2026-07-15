@@ -1670,7 +1670,7 @@ async function sendTONTransaction(userId, walletPassword, toAddress, amount, mem
         const balanceTON = Number(BigInt(balance)) / 1_000_000_000;
         
         // ✅ Use realistic gas fee (~0.003 TON for simple transfers)
-        const requiredGasFee = 0.003;
+        const requiredGasFee = 0.002;
         const totalRequired = parseFloat(amount) + requiredGasFee;
 
         if (balanceTON < totalRequired) {
@@ -4310,7 +4310,7 @@ async function sendJettonTransaction(userId, walletPassword, toAddress, amount, 
                 to_address: toAddress,
                 from_address: walletContract.address.toString(),
                 status: 'completed',
-                network_fee: 0.05,
+                network_fee: 0.002,
                 description: memo || 'NMX Jetton transfer',
                 created_at: new Date().toISOString()
             };
@@ -5596,4 +5596,4 @@ scheduleTransactionSync();
 
 console.log('✅ WALLET ROUTES READY - DUAL API FIXED VERSION');
 
-module.exports = router;;
+module.exports = router;;;
