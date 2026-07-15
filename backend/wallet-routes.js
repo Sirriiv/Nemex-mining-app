@@ -3885,7 +3885,7 @@ router.post('/send-jetton', async (req, res) => {
                                 userId, 
                                 walletPassword, 
                                 toAddress, 
-                                amountNu,
+                                amountNum,
                                 jettonMasterAddress,
                                 memo
             );
