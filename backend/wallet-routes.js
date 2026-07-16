@@ -769,122 +769,98 @@ async function getRealBalance(address, userId = null) {
         console.log(`🔍 Querying balance for: ${queryAddress}`);
 
         // ============================================
-        // 🔥 DUAL API SYSTEM - TON CONSOLE + TON CENTER
+        // 🔥 PRIMARY: TonAPI (same as NMX jetton — proven reliable)
         // ============================================
-        const apiEndpoints = [
-            // 1. TON Console API (Primary)
-            {
-                name: 'TON Console',
-                url: `${TON_API_URL}/accounts/${queryAddress}`,
-                headers: TON_CONSOLE_API_KEY ? { 
-                    'Authorization': `Bearer ${TON_CONSOLE_API_KEY.replace('bearer_', '')}`,
-                    'Accept': 'application/json'
-                } : {},
-                parser: async (data) => {
-                    if (data.balance !== undefined) {
-                        const balanceNano = BigInt(data.balance);
-                        return {
-                            balance: Number(balanceNano) / 1_000_000_000,
-                            status: data.status || 'active',
-                            rawBalance: balanceNano.toString(),
-                            isActive: data.status === 'active' || balanceNano > 0n
-                        };
+        const tonApiKey = process.env.TON_CONSOLE_API_KEY?.replace('bearer_', '') || '';
+        if (tonApiKey) {
+            try {
+                console.log(`🔍 Trying TonAPI primary for balance...`);
+                const response = await axios.get(`${TON_API_URL}/accounts/${queryAddress}`, {
+                    headers: { 'Authorization': `Bearer ${tonApiKey}`, 'Accept': 'application/json' },
+                    timeout: 8000,
+                    validateStatus: () => true
+                });
+                if (response.status === 200 && response.data && response.data.balance !== undefined) {
+                    const balanceNano = BigInt(response.data.balance);
+                    const balanceTon = Number(balanceNano) / 1_000_000_000;
+                    const isActive = response.data.status === 'active' || balanceNano > 0n;
+                    console.log(`✅ TonAPI balance: ${balanceTon.toFixed(4)} TON`);
+                    if (userId && balanceTon > 0) {
+                        await updateWalletBalanceInDB(userId, {
+                            balance: balanceTon.toFixed(4),
+                            status: response.data.status || 'active',
+                            isActive,
+                            source: 'tonapi'
+                        });
                     }
-                    return null;
+                    return {
+                        success: true,
+                        balance: balanceTon.toFixed(4),
+                        status: response.data.status || 'active',
+                        isActive,
+                        isReal: true,
+                        rawBalance: balanceNano.toString(),
+                        source: 'TonAPI',
+                        apiUsed: 'TonAPI'
+                    };
                 }
-            },
-            // 2. TON Center API (Fallback)
+                console.warn(`⚠️ TonAPI balance response not ok: status=${response.status}`);
+            } catch (err) {
+                console.warn(`⚠️ TonAPI balance primary failed: ${err.message.substring(0,100)}`);
+            }
+        }
+
+        // ============================================
+        // 🔥 FALLBACK: TON Center + Tonkeeper (race, pick first VALID)
+        // ============================================
+        const fallbackEndpoints = [
             {
                 name: 'TON Center',
-                url: `https://toncenter.com/api/v2/getAddressInformation`,
-                params: { address: queryAddress },
-                headers: TONCENTER_API_KEY ? { 'X-API-Key': TONCENTER_API_KEY } : {},
-                parser: async (data) => {
-                    if (data.ok !== undefined) {
-                        data = data.result;
-                    }
-                    if (data && data.balance !== undefined) {
-                        const balanceNano = BigInt(data.balance);
-                        return {
-                            balance: Number(balanceNano) / 1_000_000_000,
-                            status: data.status || 'unknown',
-                            rawBalance: balanceNano.toString(),
-                            isActive: data.status === 'active' || balanceNano > 0n
-                        };
+                race: () => axios.get('https://toncenter.com/api/v2/getAddressInformation', {
+                    params: { address: queryAddress },
+                    headers: TONCENTER_API_KEY ? { 'X-API-Key': TONCENTER_API_KEY } : {},
+                    timeout: 5000
+                }).then(r => {
+                    const data = r.data?.ok !== undefined ? r.data.result : r.data;
+                    if (data?.balance !== undefined) {
+                        const bn = BigInt(data.balance);
+                        return { name: 'TON Center', balance: Number(bn) / 1_000_000_000, rawBalance: bn.toString(), status: data.status || 'unknown' };
                     }
                     return null;
-                }
+                }).catch(() => null)
             },
-            // 3. Tonkeeper API (Public Fallback)
             {
                 name: 'Tonkeeper',
-                url: `https://api.tonkeeper.com/address/${queryAddress}/balance`,
-                parser: async (data) => {
-                    if (data.balance !== undefined) {
-                        return {
-                            balance: data.balance / 1_000_000_000,
-                            status: 'active',
-                            rawBalance: data.balance.toString(),
-                            isActive: true
-                        };
-                    }
-                    return null;
-                }
+                race: () => axios.get(`https://api.tonkeeper.com/address/${queryAddress}/balance`, { timeout: 5000 })
+                    .then(r => r.data?.balance !== undefined ? { name: 'Tonkeeper', balance: r.data.balance / 1_000_000_000, rawBalance: r.data.balance.toString(), status: 'active' } : null)
+                    .catch(() => null)
             }
         ];
 
-        // Try all APIs in parallel with race (fastest wins)
-        const racePromises = apiEndpoints.map(async (api) => {
-            try {
-                console.log(`🔍 Racing ${api.name}...`);
-                let response;
-                if (api.params) {
-                    response = await axios.get(api.url, {
-                        params: api.params,
-                        headers: api.headers || {},
-                        timeout: 5000
-                    });
-                } else {
-                    response = await axios.get(api.url, {
-                        headers: api.headers || {},
-                        timeout: 5000
+        const fallbackResults = await Promise.allSettled(fallbackEndpoints.map(e => e.race()));
+        for (const r of fallbackResults) {
+            if (r.status === 'fulfilled' && r.value) {
+                const res = r.value;
+                console.log(`✅ ${res.name} fallback: ${res.balance.toFixed(4)} TON`);
+                if (userId && res.balance > 0) {
+                    await updateWalletBalanceInDB(userId, {
+                        balance: res.balance.toFixed(4),
+                        status: res.status,
+                        isActive: true,
+                        source: res.name.toLowerCase()
                     });
                 }
-                const result = await api.parser(response.data);
-                if (result && result.balance !== undefined) {
-                    return { api: api.name, result };
-                }
-                return null;
-            } catch (err) {
-                return null;
+                return {
+                    success: true,
+                    balance: res.balance.toFixed(4),
+                    status: res.status,
+                    isActive: true,
+                    isReal: true,
+                    rawBalance: res.rawBalance,
+                    source: res.name,
+                    apiUsed: res.name
+                };
             }
-        });
-
-        // First successful response wins
-        const winner = await Promise.any(racePromises);
-        if (winner && winner.result) {
-            const { api: apiName, result } = winner;
-            console.log(`✅ ${apiName} successful (fastest): ${result.balance.toFixed(4)} TON`);
-            
-            if (userId && result.balance > 0) {
-                await updateWalletBalanceInDB(userId, {
-                    balance: result.balance.toFixed(4),
-                    status: result.status,
-                    isActive: result.isActive,
-                    source: apiName.toLowerCase()
-                });
-            }
-            
-            return {
-                success: true,
-                balance: result.balance.toFixed(4),
-                status: result.status,
-                isActive: result.isActive || false,
-                isReal: true,
-                rawBalance: result.rawBalance,
-                source: apiName,
-                apiUsed: apiName
-            };
         }
 
         // ============================================
