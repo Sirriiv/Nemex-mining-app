@@ -351,10 +351,43 @@ async function settleBuy(supabase, trade, quote, userId, walletPassword) {
     const tonTx = await sendTon(supabase, userKeyPair, userContract, TREASURY_TON_WALLET, tonAmount);
     console.log(`[Settle] settleBuy: TON sent OK, hash=${tonTx.txHash.substring(0, 12)}...`);
 
+    // Record user TON send in transactions table
+    await supabase.from('transactions').insert({
+        user_id: userId,
+        wallet_address: userContract.address.toString(),
+        transaction_hash: tonTx.txHash,
+        type: 'send',
+        token: 'TON',
+        amount: tonAmount,
+        to_address: TREASURY_TON_WALLET,
+        from_address: userContract.address.toString(),
+        status: 'completed',
+        network_fee: 0.002,
+        description: `Trade #${trade.id.substring(0, 8)} — Sold TON for NMX`,
+        created_at: new Date().toISOString()
+    });
+
     // Step 2: Treasury sends NMX to user
     let nmxTx;
     try {
         nmxTx = await sendNmxJetton(supabase, treasurySigner.keyPair, treasurySigner.walletContract, userWallet.address, nmxAmount);
+        console.log(`[Settle] settleBuy: NMX sent OK, hash=${nmxTx.txHash.substring(0, 12)}...`);
+
+        // Record user NMX receive in transactions table
+        await supabase.from('transactions').insert({
+            user_id: userId,
+            wallet_address: userWallet.address,
+            transaction_hash: nmxTx.txHash,
+            type: 'receive',
+            token: 'NMX',
+            amount: nmxAmount,
+            to_address: userWallet.address,
+            from_address: TREASURY_TON_WALLET,
+            status: 'completed',
+            network_fee: 0.002,
+            description: `Trade #${trade.id.substring(0, 8)} — Received NMX from treasury`,
+            created_at: new Date().toISOString()
+        });
     } catch (err) {
         // Treasury NMX send failed after user paid TON — log for manual resolution
         await supabase.from('treasury_audit_logs').insert({
@@ -411,6 +444,22 @@ async function settleSell(supabase, trade, quote, userId, walletPassword) {
     try {
         nmxTx = await sendNmxJetton(supabase, userKeyPair, userContract, TREASURY_TON_WALLET, nmxAmount);
         console.log(`[Settle] settleSell: NMX sent OK, hash=${nmxTx.txHash?.substring(0, 12)}`);
+
+        // Record user NMX send in transactions table
+        await supabase.from('transactions').insert({
+            user_id: userId,
+            wallet_address: userContract.address.toString(),
+            transaction_hash: nmxTx.txHash,
+            type: 'send',
+            token: 'NMX',
+            amount: nmxAmount,
+            to_address: TREASURY_TON_WALLET,
+            from_address: userContract.address.toString(),
+            status: 'completed',
+            network_fee: 0.002,
+            description: `Trade #${trade.id.substring(0, 8)} — Sold NMX for TON`,
+            created_at: new Date().toISOString()
+        });
     } catch (nmxErr) {
         throw new Error(`NMX transfer failed: ${nmxErr.message}`);
     }
@@ -420,6 +469,23 @@ async function settleSell(supabase, trade, quote, userId, walletPassword) {
     let tonTx;
     try {
         tonTx = await sendTon(supabase, treasurySigner.keyPair, treasurySigner.walletContract, userWallet.address, tonAmount);
+        console.log(`[Settle] settleSell: TON sent OK, hash=${tonTx.txHash?.substring(0, 12)}`);
+
+        // Record user TON receive in transactions table
+        await supabase.from('transactions').insert({
+            user_id: userId,
+            wallet_address: userWallet.address,
+            transaction_hash: tonTx.txHash,
+            type: 'receive',
+            token: 'TON',
+            amount: tonAmount,
+            to_address: userWallet.address,
+            from_address: TREASURY_TON_WALLET,
+            status: 'completed',
+            network_fee: 0.002,
+            description: `Trade #${trade.id.substring(0, 8)} — Received TON from treasury`,
+            created_at: new Date().toISOString()
+        });
     } catch (err) {
         await supabase.from('treasury_audit_logs').insert({
             action: 'CRITICAL: Settlement partial failure — NMX received, TON not sent',
