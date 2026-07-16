@@ -700,10 +700,16 @@
                 }
 
                 if (walletAddress) {
-                    const balResp = await fetch(`/api/wallet/balance/${walletAddress}`, {
-                        headers: { 'Authorization': `Bearer ${state.accessToken}` }
-                    });
-                    const balData = await balResp.json();
+                    // Retry up to 5 times for live TON balance (skip stale cache)
+                    let balData;
+                    for (let attempt = 0; attempt < 5; attempt++) {
+                        const balResp = await fetch(`/api/wallet/balance/${walletAddress}`, {
+                            headers: { 'Authorization': `Bearer ${state.accessToken}` }
+                        });
+                        balData = await balResp.json();
+                        if (balData.success && balData.balanceSource !== 'database_cache' && balData.balanceSource !== 'error') break;
+                        if (attempt < 4) await new Promise(r => setTimeout(r, 1000));
+                    }
                     state.tonBalance = parseFloat(balData.balance) || 0;
 
                     // Also load live NMX jetton balance
