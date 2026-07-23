@@ -1013,7 +1013,8 @@
                     quote.amountReceivable + ' NMX', 'success');
 
                 clearQuoteState('buy');
-                await loadTradeHistory();
+                // Brief delay to ensure DB propagation
+                setTimeout(() => loadTradeHistory(), 1200);
             } catch (err) {
                 showToast('Error: ' + err.message, 'error');
             }
@@ -1094,7 +1095,7 @@
                     quote.amountReceivable + ' TON', 'success');
 
                 clearQuoteState('sell');
-                await loadTradeHistory();
+                setTimeout(() => loadTradeHistory(), 1200);
             } catch (err) {
                 showToast('Error: ' + err.message, 'error');
             }
