@@ -255,13 +255,51 @@ async function sendNmxJetton(supabase, fromKeyPair, fromWalletContract, toAddres
 
     const jettonMasterAddr = parseJettonMaster(NMX_JETTON_MASTER);
     const amount = toNano(amountNmx.toFixed(9));
+    const walletAddr = fromWalletContract.address;
 
-    // Use Assets SDK (auto-deploys jetton wallet if needed, same as wallet send page)
-    const sender = fromWalletContract.sender(client.provider(fromWalletContract.address), fromKeyPair.secretKey);
+    // Step A: Ensure wallet is deployed (critical for user wallets sending NMX)
+    console.log(`[Settle] sendNmxJetton: checking deployment for ${walletAddr.toString().substring(0, 12)}...`);
+    const isDeployed = await client.isContractDeployed(walletAddr);
+    if (!isDeployed) {
+        const bal = await client.getBalance(walletAddr);
+        const balTon = Number(BigInt(bal)) / 1_000_000_000;
+        if (balTon < 0.02) {
+            throw new Error(`Wallet not deployed and has only ${balTon.toFixed(4)} TON — need at least 0.02 TON`);
+        }
+        console.log(`[Settle] sendNmxJetton: deploying wallet (balance=${balTon.toFixed(4)} TON)...`);
+        const deployTransfer = fromWalletContract.createTransfer({
+            secretKey: fromKeyPair.secretKey,
+            seqno: 0,
+            messages: [],
+            sendMode: 3
+        });
+        await client.sendExternalMessage(fromWalletContract, deployTransfer);
+        // Wait for deployment
+        for (let i = 0; i < 20; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            if (await client.isContractDeployed(walletAddr)) break;
+        }
+        if (!(await client.isContractDeployed(walletAddr))) {
+            throw new Error('Wallet deployment timed out');
+        }
+        console.log(`[Settle] sendNmxJetton: wallet deployed OK`);
+    }
+
+    // Step B: Get fresh seqno and build sender
+    const openedContract = client.open(fromWalletContract);
+    let seqno;
+    try {
+        seqno = await openedContract.getSeqno();
+    } catch {
+        throw new Error('Failed to get wallet seqno');
+    }
+    console.log(`[Settle] sendNmxJetton: seqno=${seqno}`);
+
+    const sender = fromWalletContract.sender(client.provider(walletAddr), fromKeyPair.secretKey);
     const api = await createApi('mainnet');
     const sdk = AssetsSDK.create({ api, sender });
     const jetton = await sdk.openJetton(jettonMasterAddr);
-    const jettonWallet = await jetton.getWallet(fromWalletContract.address);
+    const jettonWallet = await jetton.getWallet(walletAddr);
 
     console.log(`[Settle] sendNmxJetton: jetton wallet ${jettonWallet.address.toString().substring(0, 12)}..., sending ${amountNmx} NMX`);
 
