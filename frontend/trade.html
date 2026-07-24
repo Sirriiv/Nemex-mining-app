@@ -561,7 +561,7 @@
         <div class="card" style="text-align:center;">
             <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Treasury Reference Value</div>
             <div style="font-size:24px;font-weight:700;color:var(--gold);font-family:monospace;" id="refValueDisplay">—</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">TON ÷ NMX</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">TON / NMX &nbsp;|&nbsp; <span style="color:var(--gold);" id="nmxUsdPrice">$—</span></div>
         </div>
 
         <!-- Quote Info Row -->
@@ -749,6 +749,11 @@
 
                     document.getElementById('refValueDisplay').textContent =
                         (state.referenceValue || 0).toFixed(8);
+                    // Compute NMX USD price: referenceValue * TON price
+                    const tonPrice = data.config.tonPrice || 1.62;
+                    const nmxUsd = (state.referenceValue || 0) * tonPrice;
+                    document.getElementById('nmxUsdPrice').textContent =
+                        nmxUsd > 0 ? '$' + nmxUsd.toFixed(8) : '$—';
                     document.getElementById('feeLabel').textContent = 'Buy Fee';
                     document.getElementById('feeValue').textContent = state.buyFeePercent + '%';
                     document.getElementById('expiryValue').textContent = state.quoteExpirySeconds + 's';
@@ -1099,8 +1104,13 @@
                     quote.amountReceivable + ' NMX', 'success');
 
                 clearQuoteState('buy');
-                // Refresh balances and history after DB propagation
-                setTimeout(() => { loadUserBalances(); loadTradeHistory(); }, 1200);
+                // Wait for blockchain propagation, then refresh
+                showLoading('Updating balances...');
+                setTimeout(async () => {
+                    await loadUserBalances();
+                    await loadTradeHistory();
+                    hideLoading();
+                }, 3000);
             } catch (err) {
                 showToast('Error: ' + err.message, 'error');
             }
@@ -1181,7 +1191,12 @@
                     quote.amountReceivable + ' TON', 'success');
 
                 clearQuoteState('sell');
-                setTimeout(() => { loadUserBalances(); loadTradeHistory(); }, 1200);
+                showLoading('Updating balances...');
+                setTimeout(async () => {
+                    await loadUserBalances();
+                    await loadTradeHistory();
+                    hideLoading();
+                }, 3000);
             } catch (err) {
                 showToast('Error: ' + err.message, 'error');
             }
