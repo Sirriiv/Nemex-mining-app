@@ -430,6 +430,71 @@
         .toast-error { background: rgba(231,76,60,0.2); border: 1px solid var(--danger); color: var(--danger); }
         .toast-warning { background: rgba(243,156,18,0.2); border: 1px solid var(--warning); color: var(--warning); }
 
+        /* Password Modal */
+        .password-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 99999;
+        }
+        .password-modal {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            border: 2px solid var(--gold);
+            box-shadow: 0 10px 40px rgba(212,175,55,0.3);
+            border-radius: 16px; width: 420px; max-width: 90vw;
+            overflow: hidden;
+        }
+        .password-modal-header {
+            text-align: center; padding: 30px 25px 20px;
+        }
+        .password-modal-icon {
+            width: 56px; height: 56px; margin: 0 auto 16px;
+            border-radius: 50%; background: rgba(212,175,55,0.1);
+            border: 2px solid rgba(212,175,55,0.4);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .password-modal-header h3 {
+            color: var(--gold); font-size: 20px; font-weight: 700; margin: 0 0 6px;
+        }
+        .password-modal-header p {
+            color: #888; font-size: 13px; margin: 0;
+        }
+        .password-modal-body { padding: 0 25px 20px; }
+        .password-modal-input {
+            width: 100%; padding: 14px 16px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(212,175,55,0.3);
+            border-radius: 10px; color: #fff; font-size: 15px;
+            outline: none; transition: border-color 0.2s;
+        }
+        .password-modal-input:focus {
+            border-color: var(--gold);
+        }
+        .password-modal-hint {
+            font-size: 11px; color: #666; margin: 8px 0 0; text-align: center;
+        }
+        .password-modal-actions {
+            display: flex; gap: 12px; padding: 0 25px 25px;
+        }
+        .password-modal-btn {
+            flex: 1; padding: 14px 20px; border-radius: 10px;
+            font-weight: 600; font-size: 14px; cursor: pointer;
+            border: none; transition: all 0.2s;
+        }
+        .password-modal-btn.cancel {
+            background: transparent; color: var(--gold);
+            border: 2px solid var(--gold);
+        }
+        .password-modal-btn.cancel:hover {
+            background: rgba(212,175,55,0.1);
+        }
+        .password-modal-btn.confirm {
+            background: linear-gradient(135deg, var(--gold), #b8961e);
+            color: #000; font-weight: 700;
+        }
+        .password-modal-btn.confirm:hover {
+            background: linear-gradient(135deg, #f4d03f, var(--gold));
+        }
+
         /* Section divider */
         .section-divider {
             height: 1px;
@@ -452,6 +517,27 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="spinner"></div>
         <div class="loading-text" id="loadingText">Loading...</div>
+    </div>
+
+    <!-- Password Modal -->
+    <div class="password-overlay" id="passwordOverlay" style="display:none;">
+        <div class="password-modal">
+            <div class="password-modal-header">
+                <div class="password-modal-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+                </div>
+                <h3>Confirm Transaction</h3>
+                <p>Enter your wallet password to sign</p>
+            </div>
+            <div class="password-modal-body">
+                <input type="password" id="tradePasswordInput" class="password-modal-input" placeholder="Your wallet password" autocomplete="current-password">
+                <p class="password-modal-hint">Required to authorize the blockchain transaction</p>
+            </div>
+            <div class="password-modal-actions">
+                <button class="password-modal-btn cancel" id="passwordCancelBtn">Cancel</button>
+                <button class="password-modal-btn confirm" id="passwordConfirmBtn">Confirm Trade</button>
+            </div>
+        </div>
     </div>
 
     <!-- Header -->
@@ -1121,13 +1207,38 @@
 
         function promptPassword() {
             return new Promise((resolve) => {
-                const password = prompt('Enter your wallet password to sign the transaction:');
-                if (!password) {
-                    showToast('Password required to complete trade', 'warning');
+                const overlay = document.getElementById('passwordOverlay');
+                const input = document.getElementById('tradePasswordInput');
+                const confirmBtn = document.getElementById('passwordConfirmBtn');
+                const cancelBtn = document.getElementById('passwordCancelBtn');
+                input.value = '';
+                overlay.style.display = 'flex';
+                input.focus();
+
+                const cleanup = () => {
+                    overlay.style.display = 'none';
+                    confirmBtn.style.opacity = '1';
+                    confirmBtn.disabled = false;
+                };
+
+                confirmBtn.onclick = () => {
+                    const pw = input.value.trim();
+                    if (!pw) {
+                        showToast('Please enter your wallet password', 'warning');
+                        return;
+                    }
+                    cleanup();
+                    resolve(pw);
+                };
+
+                cancelBtn.onclick = () => {
+                    cleanup();
                     resolve(null);
-                    return;
-                }
-                resolve(password);
+                };
+
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') confirmBtn.click();
+                };
             });
         }
 
