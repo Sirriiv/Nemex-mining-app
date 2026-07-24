@@ -363,7 +363,7 @@ async function settleBuy(supabase, trade, quote, userId, walletPassword) {
         from_address: userContract.address.toString(),
         status: 'completed',
         network_fee: 0.002,
-        description: `Trade #${trade.id.substring(0, 8)} — Sold TON for NMX`,
+        description: `Trade #${String(trade.id).substring(0, 8)} — Sold TON for NMX`,
         created_at: new Date().toISOString()
     });
 
@@ -385,7 +385,7 @@ async function settleBuy(supabase, trade, quote, userId, walletPassword) {
             from_address: TREASURY_TON_WALLET,
             status: 'completed',
             network_fee: 0.002,
-            description: `Trade #${trade.id.substring(0, 8)} — Received NMX from treasury`,
+            description: `Trade #${String(trade.id).substring(0, 8)} — Received NMX from treasury`,
             created_at: new Date().toISOString()
         });
     } catch (err) {
@@ -457,7 +457,7 @@ async function settleSell(supabase, trade, quote, userId, walletPassword) {
             from_address: userContract.address.toString(),
             status: 'completed',
             network_fee: 0.002,
-            description: `Trade #${trade.id.substring(0, 8)} — Sold NMX for TON`,
+            description: `Trade #${String(trade.id).substring(0, 8)} — Sold NMX for TON`,
             created_at: new Date().toISOString()
         });
     } catch (nmxErr) {
@@ -483,7 +483,7 @@ async function settleSell(supabase, trade, quote, userId, walletPassword) {
             from_address: TREASURY_TON_WALLET,
             status: 'completed',
             network_fee: 0.002,
-            description: `Trade #${trade.id.substring(0, 8)} — Received TON from treasury`,
+            description: `Trade #${String(trade.id).substring(0, 8)} — Received TON from treasury`,
             created_at: new Date().toISOString()
         });
     } catch (err) {
