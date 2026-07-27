@@ -10,22 +10,27 @@
 -- =============================================
 -- 1. PROFILES TABLE
 -- =============================================
+-- FIXED: profiles uses "id" (not "user_id") as the auth.users.id foreign key
+-- Column mismatch was causing PGRST116 → redirect loop for new users
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own profile
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
 CREATE POLICY "Users can view own profile"
 ON profiles FOR SELECT
-USING (auth.uid()::text = user_id);
+USING (auth.uid()::text = id::text);
 
 -- Users can update their own profile
+DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 CREATE POLICY "Users can update own profile"
 ON profiles FOR UPDATE
-USING (auth.uid()::text = user_id);
+USING (auth.uid()::text = id::text);
 
 -- Users can insert their own profile (for registration)
+DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 CREATE POLICY "Users can insert own profile"
 ON profiles FOR INSERT
-WITH CHECK (auth.uid()::text = user_id);
+WITH CHECK (auth.uid()::text = id::text);
 
 -- =============================================
 -- 2. REFERRAL_NETWORK TABLE
