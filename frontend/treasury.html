@@ -1460,6 +1460,9 @@
                     const tonAmt = (isBuy ? parseFloat(t.amount_from) : parseFloat(t.amount_to)).toFixed(4);
                     const feeAmt = parseFloat(t.fee_amount || 0);
                     const feeStr = isBuy ? feeAmt.toFixed(2) + ' NMX' : feeAmt.toFixed(4) + ' TON';
+                    const statusBadge = t.status === 'completed'
+                        ? '<span class="badge badge-success">completed</span>'
+                        : '<span class="badge badge-warning">processing</span>';
                     return `
                         <tr>
                             <td style="font-size:11px;color:var(--text-secondary);">${timeStr}</td>
@@ -1467,7 +1470,7 @@
                             <td style="font-family:monospace;">${nmxAmt}</td>
                             <td style="font-family:monospace;">${tonAmt}</td>
                             <td style="font-size:11px;color:var(--text-secondary);">${feeStr}</td>
-                            <td><span class="badge badge-success">${t.status}</span></td>
+                            <td>${statusBadge}</td>
                         </tr>`;
                 }).join('');
 

@@ -486,11 +486,11 @@ router.get('/token-flow', async (req, res) => {
     try {
         const supabase = req.supabase;
 
-        // Get all completed trades from fe_trades
+        // Get all completed or processing trades (processing = settlement in progress or stuck)
         const { data: trades, error } = await supabase
             .from('fe_trades')
             .select('trade_type, amount_from, amount_to, fee_amount, status, created_at')
-            .eq('status', 'completed')
+            .in('status', ['completed', 'processing'])
             .order('created_at', { ascending: false });
 
         if (error) throw error;
